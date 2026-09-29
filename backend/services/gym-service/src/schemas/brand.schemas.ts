@@ -17,7 +17,8 @@ const brandName = z
 const brandDescription = z
   .string()
   .trim()
-  .max(2000, 'Mô tả thương hiệu không được vượt quá 2000 ký tự')
+  // Dùng làm "Thông tin giới thiệu" khi chi nhánh chưa có giới thiệu riêng — cùng giới hạn 300.
+  .max(300, 'Giới thiệu thương hiệu tối đa 300 ký tự')
   .optional();
 
 export const brandCreateSchema = z.object({

@@ -41,6 +41,7 @@ import {
   workoutService,
 } from "../../src/services/api";
 import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
+import { useUnreadNotifications } from "../../src/features/notifications/useNotifications";
 import {
   addDays,
   formatScheduleDate,
@@ -109,6 +110,8 @@ export default function ClientDashboardScreen() {
     },
     enabled: !!user?.id,
   });
+
+  const unreadNotifications = useUnreadNotifications();
 
   const inbodyQuery = useQuery({
     queryKey: ["inbody-history"],
@@ -247,7 +250,7 @@ export default function ClientDashboardScreen() {
         </View>
         <View className="flex-row items-center gap-3">
           <RoundButton icon={Search} onPress={() => router.push("/client/library/search")} />
-          <RoundButton icon={Bell} dot onPress={() => router.push("/client/notifications")} />
+          <RoundButton icon={Bell} dot={unreadNotifications > 0} onPress={() => router.push("/client/notifications")} />
           <Avatar name={user?.firstName || "Bạn"} size={44} />
         </View>
       </View>
@@ -288,7 +291,7 @@ export default function ClientDashboardScreen() {
         {/* Quick access */}
         <StaggerItem>
           <View className="flex-row gap-2.5">
-            <QuickAction icon={ClipboardList} label="Kế hoạch" onPress={() => router.push("/client/workout")} />
+            <QuickAction icon={ClipboardList} label="Kế hoạch" onPress={() => router.push("/client/plans")} />
             <QuickAction icon={BarChart3} label="Thống kê" onPress={() => router.push("/client/stats/activity")} />
             <QuickAction icon={ScanLine} label="InBody" onPress={() => router.push("/client/inbody")} />
             <QuickAction icon={MessageCircle} label="Tin nhắn" onPress={() => router.push("/client/messages")} />

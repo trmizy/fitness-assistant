@@ -1,6 +1,18 @@
 import { useEffect, type ReactNode } from "react";
-import { BackHandler, Modal, Pressable, Text, View, useWindowDimensions } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  BackHandler,
+  KeyboardAvoidingView,
+  Modal,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -58,10 +70,13 @@ export function BottomSheet({
 
   useEffect(() => {
     if (!open) return;
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      onClose();
-      return true;
-    });
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        onClose();
+        return true;
+      },
+    );
     return () => subscription.remove();
   }, [open, onClose]);
 
@@ -107,7 +122,13 @@ export function BottomSheet({
     // where it may legally be declared.
     //
     // `animationType="none"`: the entrance is the design's own spring, not the platform's.
-    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
       {/* A Modal is its own native window on Android, which the app's root GestureHandlerRootView
           does not reach into — without this second root the drag-to-dismiss gesture never fires.
           Styled with `style`, not `className`: NativeWind only rewrites className on components it
@@ -123,20 +144,37 @@ export function BottomSheet({
           />
         </Animated.View>
 
-        <GestureDetector gesture={dragGesture}>
+        {/* The drag-to-dismiss gesture lives on the handle + title only. Attached to the whole
+            sheet (as it first was) it also captured every vertical swipe over the content, so a
+            ScrollView inside a tall sheet (Phase 8's intake/check-in/generate forms) could never
+            scroll. The sheet is capped at 92% of the screen so long content scrolls inside it. */}
+        {/* Sheets hold text fields (revision note, reasons, forms). A Modal is its own window, so
+            the activity's adjustResize never reaches it — without this the keyboard simply covered
+            the field being typed into and the submit button under it. */}
+        <KeyboardAvoidingView behavior="padding">
           <Animated.View
-            className="rounded-t-3xl border-t border-border bg-card px-5 pt-3"
-            style={[{ paddingBottom: insets.bottom + 20 }, sheetStyle]}
+            className="rounded-t-3xl border-t border-border bg-card px-5"
+            style={[
+              {
+                paddingBottom: insets.bottom + 20,
+                maxHeight: screenHeight * 0.92,
+              },
+              sheetStyle,
+            ]}
           >
-            <View className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
-            {title ? (
-              <Text className="mb-4 text-center font-display text-lg text-foreground">
-                {title}
-              </Text>
-            ) : null}
+            <GestureDetector gesture={dragGesture}>
+              <View className="pt-3">
+                <View className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+                {title ? (
+                  <Text className="mb-4 text-center font-display text-lg text-foreground">
+                    {title}
+                  </Text>
+                ) : null}
+              </View>
+            </GestureDetector>
             {children}
           </Animated.View>
-        </GestureDetector>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
   );

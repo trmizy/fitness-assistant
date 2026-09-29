@@ -71,6 +71,8 @@ export const agentUpdatableProfileFieldsSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   heightCm: z.number().positive().max(300).optional(),
   currentWeight: z.number().positive().max(400).optional(),
+  // FIND_TRAINING_PROGRAM's experience slot (GAP-17) — same enum as profile.models.ts.
+  experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
 }).strict();
 export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
 
@@ -111,7 +113,9 @@ export const fitnessAgentTools = {
       // AgentPreferences day array is 1..7 (1 = Thứ 2 .. 7 = Chủ nhật). Only Sunday differs; passing a raw 0 through made
       // AgentPreferencesSchema throw (HTTP 500) on any PT / program / workout request for a user who picked Chủ nhật
       // (found by the full chat verification). Normalise at this single read boundary.
-      const profile = { ...raw, days: [...new Set(raw.days.map((d) => (d === 0 ? 7 : d)))].sort((a, b) => a - b) };
+      // user-service names it `experience`; the workflow's PROFILE_FACT slot reads/compares/writes
+      // `experienceLevel` (the real profile field), so both names are exposed (merged from feature/payment-gateways).
+      const profile = { ...raw, days: [...new Set(raw.days.map((d) => (d === 0 ? 7 : d)))].sort((a, b) => a - b), experienceLevel: raw.experience ?? null };
       const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
       return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
     } catch (err) {

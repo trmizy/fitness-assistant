@@ -25,6 +25,7 @@ import { GymPhotoGallery } from "./GymPhotoGallery";
 import { BranchMap } from "./BranchMap";
 import { SocialLinks } from "./SocialLinks";
 import { useLocationNames } from "./addressAutoPin";
+import { ABOUT_MAX } from "./AboutCounter";
 import { PaymentMethodDialog } from "../payment/PaymentMethodDialog";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
@@ -80,6 +81,12 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
       ? [{ id: gym.id, name: gym.name, address: gym.address, latitude: gym.latitude ?? null, longitude: gym.longitude ?? null }]
       : [];
   const otherBranches = branches.filter((b) => b.id !== gymId);
+  // Giới thiệu chi nhánh, chưa có thì dùng giới thiệu thương hiệu. Tối đa ABOUT_MAX ký tự — dữ liệu cũ
+  // dài hơn (trước khi có giới hạn) được cắt gọn khi hiển thị, không sửa dữ liệu.
+  const aboutRaw = (gym?.description || gym?.brand?.description || "").trim();
+  const cut = aboutRaw.slice(0, ABOUT_MAX);
+  // Cắt ở khoảng trắng gần nhất để không đứt giữa chữ.
+  const about = aboutRaw.length > ABOUT_MAX ? `${(cut.lastIndexOf(" ") > ABOUT_MAX - 40 ? cut.slice(0, cut.lastIndexOf(" ")) : cut).trimEnd()}…` : aboutRaw;
 
   const startBuy = (plan: GymMembershipPlan) => {
     if (multiGymWarnings.length > 0) setWarningTarget(plan);
@@ -192,10 +199,13 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
       <div className="p-5 space-y-5">
         {tab === "detail" && (
           <>
-            <GymPhotoGallery photos={gym.photos ?? []} title={gym.name} />
-            {(gym.description || gym.brand?.description) && (
-              <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{gym.description || gym.brand?.description}</p>
+            {about && (
+              <section>
+                <h3 className="text-sm font-bold text-zinc-200 mb-1.5">Thông tin giới thiệu</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{about}</p>
+              </section>
             )}
+            <GymPhotoGallery photos={gym.photos ?? []} title={gym.name} />
 
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2 text-zinc-300">

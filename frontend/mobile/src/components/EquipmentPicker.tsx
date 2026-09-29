@@ -306,3 +306,26 @@ export function TrainingLocationPresetRow({ onApply }: { onApply: (slugs: string
     </View>
   );
 }
+
+// Web's components/EquipmentPicker.tsx — an account that never saved granular equipment gets its
+// OLD free-text `availableEquipment` answers preselected through this strict alias map (never
+// fuzzy-matched); nothing is saved until the user presses Save.
+const LEGACY_EQUIPMENT_ALIAS: Record<string, string> = {
+  barbell: "barbell",
+  dumbbells: "dumbbell",
+  dumbbell: "dumbbell",
+  bodyweight: "bodyweight",
+  resistance_bands: "resistance-band",
+  kettlebell: "kettlebell",
+  cables: "cable-machine",
+  // "machines" intentionally omitted — too ambiguous to safely preselect.
+};
+
+export function preselectFromLegacyEquipment(legacyValues: string[]): Set<string> {
+  const slugs = new Set<string>();
+  for (const raw of legacyValues) {
+    const mapped = LEGACY_EQUIPMENT_ALIAS[raw.trim().toLowerCase()];
+    if (mapped) slugs.add(mapped);
+  }
+  return slugs;
+}

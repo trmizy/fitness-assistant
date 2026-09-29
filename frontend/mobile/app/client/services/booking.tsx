@@ -705,7 +705,7 @@ function RescheduleSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Đổi lịch buổi tập">
-      <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
         <View className="gap-4 pb-2">
           <Text className="font-body text-xs text-muted-foreground">
             {session
@@ -972,7 +972,7 @@ function BookingSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Đặt buổi tập">
-      <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
         <View className="gap-4 pb-2">
           {contracts.length > 1 ? (
             <View className="gap-2">

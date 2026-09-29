@@ -9,6 +9,7 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
 import { MapLocationPicker } from "../../components/gym/MapLocationPicker";
 import { AutoPinStatus, useAutoPin, useLocationNames } from "../../components/gym/addressAutoPin";
+import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   // GYM_BRANCH_FORM_SPEC.md Phase 1 — never actually rendered through GymCard (drafts get
@@ -384,9 +385,11 @@ export function MyGymsPage() {
                 value={brandForm.description}
                 onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })}
                 rows={3}
+                maxLength={ABOUT_MAX}
                 placeholder="Mô tả (tuỳ chọn)"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
               />
+              <AboutCounter value={brandForm.description} />
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
@@ -488,9 +491,11 @@ export function MyGymsPage() {
                 value={gymForm.description}
                 onChange={(e) => setGymForm({ ...gymForm, description: e.target.value })}
                 rows={3}
+                maxLength={ABOUT_MAX}
                 placeholder="Description (optional)"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
               />
+              <AboutCounter value={gymForm.description} />
               <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
                 <input
                   aria-label="Address"

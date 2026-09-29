@@ -10,6 +10,7 @@ import {
   INTERNAL_SERVICE_SECRET_DEFAULT,
 } from "../utils/internal-secret";
 import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
+import { adminRoleBreakdown, adminRoleLabel, adminUserStatus } from "../utils/adminUserView";
 import {
   partnerApplicationLimiter,
   partnerApplicationStartLimiter,
@@ -95,7 +96,9 @@ type AuthUser = {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: "ADMIN" | "CUSTOMER" | "PT";
+  role: "ADMIN" | "CUSTOMER" | "PT" | "GYM_OWNER";
+  // auth-service has returned this all along; GAP-21 — the aggregates now read it.
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -601,10 +604,6 @@ router.get(
         return { month: label, users: cumulative };
       });
 
-      const clientCount = users.filter((u) => u.role === "CUSTOMER").length;
-      const trainerCount = users.filter(
-        (u) => u.role === "PT" || ptSet.has(u.id),
-      ).length;
 
       const monitorSummary = buildMonitorSummary(probes);
       const upstreamWarnings = [
@@ -651,12 +650,13 @@ router.get(
           [u.firstName, u.lastName].filter(Boolean).join(" ") ||
           u.email.split("@")[0],
         email: u.email,
-        role: u.role === "PT" ? "PT" : "Client",
+        role: adminRoleLabel(u.role),
         joined: new Date(u.createdAt).toLocaleDateString("en-US", {
           month: "short",
           day: "2-digit",
         }),
-        status: u.role === "PT" || ptSet.has(u.id) ? "Pending" : "Active",
+        // GAP-21: was "Pending" for every PT (meaningless for an approved trainer).
+        status: adminUserStatus(u.isActive),
       }));
 
       const alerts = [
@@ -688,10 +688,8 @@ router.get(
             pendingPT,
           },
           userGrowth,
-          roleData: [
-            { name: "Clients", value: clientCount },
-            { name: "Trainers", value: trainerCount },
-          ],
+          // GAP-21: gym owners used to fall outside every slice.
+          roleData: adminRoleBreakdown(users, (u) => u.role === "PT" || ptSet.has(u.id)),
           systemAlerts: alerts,
           recentUsers,
           ocrStats: statsRes?.data?.ocrStats || {
@@ -769,15 +767,11 @@ router.get(
         const name =
           [u.firstName, u.lastName].filter(Boolean).join(" ") ||
           u.email.split("@")[0];
-        const role =
-          u.role === "PT" ? "PT" : u.role === "ADMIN" ? "Admin" : "Client";
+        const role = adminRoleLabel(u.role);
         const contracts = contractSummary[u.id] ?? 0;
 
-        // Determine status:
-        // - PT role → Active
-        // - CUSTOMER with no activity recently → Active (default)
-        // We don't have a suspended/inactive field yet, so default to Active.
-        const status = "Active";
+        // GAP-21: from auth-service isActive (disable/enable), not a hard-coded "Active".
+        const status = adminUserStatus(u.isActive);
 
         return {
           id: u.id,

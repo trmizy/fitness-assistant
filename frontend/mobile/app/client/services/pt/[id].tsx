@@ -50,6 +50,7 @@ import {
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
+import { contractRequestError } from "../../../../src/features/services/contracts";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
 
@@ -145,10 +146,7 @@ export default function TrainerDetailScreen() {
         setLowAvailability(info);
         return;
       }
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được yêu cầu",
-        "danger",
-      );
+      toast.show(contractRequestError(error), "danger");
     },
   });
 

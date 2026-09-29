@@ -4,6 +4,7 @@ import axios from "axios";
 // native-backed implementation whose Response DOES expose a real ReadableStream — the AI Coach
 // stream below is the one caller that needs it (everything else goes through axios).
 import { fetch as streamingFetch } from "expo/fetch";
+import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -91,6 +92,7 @@ export interface CoachEvidenceItem {
 }
 
 export interface CoachStreamDonePayload {
+  structuredBlocks?: AgentChatBlock[];
   conversationId?: string;
   sessionId?: string;
   evidenceUsed?: CoachEvidenceItem[];
@@ -111,6 +113,7 @@ export interface AiChatSessionSummary {
 }
 
 export interface AiSessionMessage {
+  structuredBlocks?: AgentChatBlock[] | null;
   id: string;
   question: string;
   answer: string;
@@ -394,14 +397,15 @@ export const profileService = {
     return data;
   },
 
-  uploadPhoto: async (file: UploadFile) => {
-    const formData = new FormData();
-    appendUpload(formData, "photo", file);
-    const { data } = await api.post("/profile/me/photo", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data as { photoUrl: string };
-  },
+  // Same presign → confirm flow as web (required on AWS, where the multipart route is disabled),
+  // falling back to multipart on a backend without an upload bucket (local dev).
+  uploadPhoto: async (file: UploadFile) =>
+    (await uploadViaPresignOrLegacy(file, {
+      presign: "/profile/me/photo/presign",
+      confirm: "/profile/me/photo/confirm",
+      legacy: "/profile/me/photo",
+      legacyField: "photo",
+    })) as { photoUrl: string },
 
   becomePT: async () => {
     const { data } = await api.patch("/profile/me/become-pt");
@@ -1618,6 +1622,555 @@ export const trainingCycleService = {
   },
 };
 
+// Ported verbatim from web's api.ts for Phase 8 / WB-11 (mobile FitnessRoadmap journey + guided
+// wizard). Data layer only — the server owns every rule; see fitness-service's roadmap routes.
+// ── FitnessRoadmap + RoadmapPhase (long-horizon journey orchestration on
+// top of TrainingCycle — see docs/fitness-roadmap-phase-integration-plan.md
+// and docs/FITNESS_ROADMAP_REBUILD_DESIGN.md /
+// docs/FITNESS_ROADMAP_AI_DRAFT_DESIGN.md). Orchestration metadata only —
+// calories/macros/workout content stay on NutritionGoal/WorkoutProgram,
+// never duplicated here. ─────────────────────────────────────────────────
+
+export type FitnessRoadmapStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+export type RoadmapCreatorRole = "CLIENT" | "PT" | "AI" | "SYSTEM";
+export type RoadmapPhaseType =
+  | "FAT_LOSS"
+  | "DIET_BREAK"
+  | "MAINTENANCE"
+  | "LEAN_GAIN"
+  | "MINI_CUT"
+  | "RECOMPOSITION"
+  | "PERFORMANCE"
+  | "RECOVERY";
+export type RoadmapPhaseStatus = "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "SKIPPED";
+
+export interface FitnessRoadmap {
+  id: string;
+  userId: string;
+  name: string;
+  goalType: string;
+  status: FitnessRoadmapStatus;
+  plannedStartAt: string;
+  plannedEndAt: string | null;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+  createdByUserId: string | null;
+  createdByRole: RoadmapCreatorRole;
+  sourceAssessmentId: string | null;
+  targetMetrics: Record<string, unknown> | null;
+  configuration: Record<string, unknown> | null;
+  version: number;
+  previousRoadmapId: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapPhaseObjective {
+  maxCycles?: number;
+  completed?: boolean;
+}
+
+export interface RoadmapPhaseWithCycles {
+  id: string;
+  roadmapId: string;
+  phaseIndex: number;
+  name: string;
+  phaseType: RoadmapPhaseType;
+  status: RoadmapPhaseStatus;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+  objective: RoadmapPhaseObjective | null;
+  constraints: Record<string, unknown> | null;
+  transitionRules: { completeOnPlannedEndDate?: boolean; allowDeloadCycle?: boolean } | null;
+  trainingCycles: Array<
+    TrainingCycle & {
+      latestAssessment: CycleAssessment | null;
+      schedules: Array<{ id: string; status: string; date: string; programDay: { id: string; title: string; program: { id: string; name: string; status: string } } | null }>;
+      nutritionGoals: Array<{ id: string; status: string; calories: number; protein: number; carbs: number; fat: number; validFrom: string }>;
+      nutritionPrograms: Array<{ id: string; name: string; status: string }>;
+    }
+  >;
+  progress: { plannedCycleCount: number; cycleCount: number; completedCycleCount: number };
+}
+
+// Gymini Adaptive Roadmap Production Closure (Gap C, design doc §8/§9) —
+// only populated when roadmap.status === "COMPLETED". Every field is
+// null when the underlying data doesn't exist (no original snapshot,
+// no real final measurement) — never fabricated.
+export interface RoadmapFinalSummary {
+  startWeightKg: number | null;
+  startBodyFatPct: number | null;
+  originalProjectedEndWeightKg: number | null;
+  originalProjectedEndBodyFatPct: number | null;
+  actualFinalWeightKg: number | null;
+  actualFinalBodyFatPct: number | null;
+  actualMeasuredAt: string | null;
+  totalWeeks: number | null;
+  completedPhaseCount: number;
+  totalPhaseCount: number;
+  cycleCount: number;
+  rebuildCount: number;
+}
+
+export interface RoadmapTrainingReadiness {
+  status: "READY" | "NEEDS_GENERATION";
+  lastAssessmentDecision: string | null;
+  canReuseLastProgram: boolean;
+}
+
+export interface RoadmapNutritionReadiness {
+  status: "READY" | "NEEDS_GENERATION";
+}
+
+export interface FitnessRoadmapProjection {
+  roadmap: FitnessRoadmap;
+  phases: RoadmapPhaseWithCycles[];
+  activePhase: RoadmapPhaseWithCycles | null;
+  activeCycle: RoadmapPhaseWithCycles["trainingCycles"][number] | null;
+  pendingRebuild: { assessmentId: string; cycleId: string; phaseId: string } | null;
+  finalSummary: RoadmapFinalSummary | null;
+  trainingReadiness: RoadmapTrainingReadiness | null;
+  nutritionReadiness: RoadmapNutritionReadiness | null;
+}
+
+export interface CreateRoadmapPhaseInput {
+  phaseIndex: number;
+  name: string;
+  phaseType: RoadmapPhaseType;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  objective?: RoadmapPhaseObjective;
+  constraints?: Record<string, unknown>;
+  transitionRules?: { completeOnPlannedEndDate?: boolean; allowDeloadCycle?: boolean };
+}
+
+export interface RoadmapRebuildProposal {
+  assessmentId: string;
+  cycleId: string;
+  currentPhaseId: string;
+  proposedPhases: Array<{
+    name: string;
+    phaseType: RoadmapPhaseType;
+    plannedStartAt: string;
+    plannedEndAt: string;
+    objective?: RoadmapPhaseObjective;
+  }>;
+}
+
+export interface RoadmapAiDraft {
+  goalType: string;
+  plannedStartAt: string;
+  summary: string;
+  reasoningSummary: string;
+  confidence: number;
+  warnings: string[];
+  assumptions: string[];
+  phases: Array<{
+    phaseIndex: number;
+    name: string;
+    phaseType: RoadmapPhaseType;
+    plannedStartAt: string;
+    plannedEndAt: string;
+    objective?: RoadmapPhaseObjective;
+  }>;
+}
+
+// Gymini Guided Roadmap Creation (design doc §15) — POST /fitness-roadmaps/diagnosis
+// request/response shapes. Read-only: mirrors fitness-diagnosis.engine.ts's
+// output exactly, never a second source of truth.
+export interface FitnessDiagnosisInput {
+  weightKg?: number;
+  heightCm?: number;
+  age?: number;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  bodyFatPct?: number;
+  bodyFatMethod?: "manual" | "visual_reference" | "inbody";
+  activityLevel?: "SEDENTARY" | "LIGHTLY_ACTIVE" | "MODERATELY_ACTIVE" | "VERY_ACTIVE" | "EXTREMELY_ACTIVE";
+  trainingDaysPerWeek?: number;
+  dailyGoalSteps?: number;
+  goal?: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE";
+  targetWeightKg?: number;
+  targetBodyFatPercent?: number;
+  timeframeWeeks?: number;
+}
+
+export interface FitnessDiagnosisResult {
+  current: {
+    weightKg: number | null;
+    heightCm: number | null;
+    age: number | null;
+    gender: string | null;
+    activityLevel: string | null;
+    experienceLevel: string | null;
+    bodyFatPct: number | null;
+    bodyFatMethod: string | null;
+    ffmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  };
+  target: {
+    weightKg: number | null;
+    bodyFatPct: number | null;
+    timeframeWeeks: number | null;
+    ffmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  };
+  energyBreakdown: {
+    bmr: number;
+    bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+    tdee: number;
+    components: Array<{ label: string; kcal: number; estimated: boolean }>;
+  } | null;
+  dataCompleteness: {
+    weight: boolean;
+    height: boolean;
+    age: boolean;
+    gender: boolean;
+    activityLevel: boolean;
+    bodyFatPct: boolean;
+  };
+  safety: { safetyScreeningStatus: string; professionalReviewRequired: boolean };
+  targetRealism: { warnings: string[]; suggestedMinTimeframeWeeks: number | null };
+  reasoning: string;
+}
+
+// Gymini Roadmap Projection & Strategy Report Hardening (design doc §13)
+// — POST /fitness-roadmaps/projection request/response shapes. Read-only:
+// mirrors fitness-roadmap-forecast.engine.ts's output exactly, never a
+// second source of truth. Every field is named `projected*`/`estimated*`
+// so it can never be confused with a real TrainingCycle/NutritionGoal/
+// InBody value.
+export interface RoadmapPhaseForecastPhaseInput {
+  phaseIndex: number;
+  phaseType: RoadmapPhaseType;
+  name: string;
+  plannedStartAt: string;
+  plannedEndAt: string;
+}
+
+export interface RoadmapPhaseForecastInput {
+  weightKg?: number;
+  heightCm?: number;
+  age?: number;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  bodyFatPct?: number;
+  bodyFatMethod?: "manual" | "visual_reference" | "inbody";
+  activityLevel?: "SEDENTARY" | "LIGHTLY_ACTIVE" | "MODERATELY_ACTIVE" | "VERY_ACTIVE" | "EXTREMELY_ACTIVE";
+  phases: RoadmapPhaseForecastPhaseInput[];
+}
+
+export type StrategyBucket = "CUT" | "BUILD" | "STABILIZE";
+
+export interface StrategyGroupResult {
+  key: string;
+  bucket: StrategyBucket;
+  phaseIndexes: number[];
+}
+
+// Gymini Adaptive Forecast Reconciliation additions (design doc §7/§8) —
+// explicitly a categorical uncertainty band tied to confidence tier, NOT
+// a statistical confidence interval (see fitness-roadmap-forecast.engine.ts's
+// own computeForecastRange doc comment).
+export interface ForecastRange {
+  low: number;
+  expected: number;
+  high: number;
+}
+
+export type ForecastConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
+
+export interface ForecastConfidence {
+  tier: ForecastConfidenceTier;
+  score: number;
+  reasonCodes: string[];
+}
+
+export interface PhaseForecastResult {
+  phaseIndex: number;
+  phaseType: RoadmapPhaseType;
+  name: string;
+  plannedStartAt: string;
+  plannedEndAt: string;
+  durationWeeks: number;
+  projectedStartWeightKg: number;
+  projectedEndWeightKg: number;
+  projectedStartBodyFatPct: number | null;
+  projectedEndBodyFatPct: number | null;
+  projectedStartFfmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  projectedEndFfmi: { fatFreeMassKg: number; ffmi: number; normalizedFfmi: number } | null;
+  projectedEndWeightRangeKg: ForecastRange;
+  projectedEndBodyFatPctRange: ForecastRange | null;
+  confidence: ForecastConfidence;
+  estimatedStartBmr: number;
+  estimatedStartTdee: number;
+  estimatedEndBmr: number;
+  estimatedEndTdee: number;
+  bmrFormula: "inbody_measured" | "mifflin_st_jeor";
+  projectedCalories: number;
+  projectedDeficitOrSurplusKcal: number;
+  projectedDeficitOrSurplusPercent: number | null;
+  projectedMacros: { proteinGrams: number; carbGrams: number; fatGrams: number };
+  dataCompleteness: { bodyComposition: boolean };
+  assumptions: string[];
+}
+
+export interface RoadmapPhaseForecastResult {
+  strategyGroups: StrategyGroupResult[];
+  phaseForecasts: PhaseForecastResult[];
+  dataCompleteness: { baseline: boolean; bodyComposition: boolean };
+}
+
+// Gymini Adaptive Forecast Reconciliation (design doc §15) —
+// GET /fitness-roadmaps/current/forecast response shape. Read-only.
+export type ReconciliationStatus = "ON_TRACK" | "AHEAD_OF_FORECAST" | "BEHIND_FORECAST" | "INSUFFICIENT_DATA";
+
+export interface ReconciliationMetricComparison {
+  expected: number;
+  actual: number;
+  delta: number;
+}
+
+export interface PhaseReconciliationResult {
+  phaseIndex: number;
+  weight: ReconciliationMetricComparison | null;
+  bodyFat: ReconciliationMetricComparison | null;
+  adherenceRate: number | null;
+  strengthProgressScore: number | null;
+  status: ReconciliationStatus;
+  reasonCodes: string[];
+}
+
+export interface CurrentForecastResult {
+  roadmapId: string;
+  // The immutable, creation-time baseline — verbatim from
+  // configuration.roadmapProjectionSnapshot, never overwritten.
+  originalForecast: RoadmapPhaseForecastResult | null;
+  // Freshly computed every request from the roadmap's remaining
+  // (ACTIVE+PLANNED) phases + the user's LATEST real actual state —
+  // never persisted (design doc §6). Null only when the roadmap has zero
+  // remaining phases or insufficient baseline data.
+  currentForecast: { strategyGroups: StrategyGroupResult[]; phaseForecasts: PhaseForecastResult[] } | null;
+  reconciliations: PhaseReconciliationResult[];
+  // Deterministic, template-based Vietnamese explanation (never raw AI
+  // reasoning) for why the current forecast differs from the original.
+  changeReasonCodes: string[];
+  changeExplanation: string;
+}
+
+export const fitnessRoadmapService = {
+  getCurrent: async () => {
+    const { data } = await api.get<FitnessRoadmapProjection>("/fitness-roadmaps/current");
+    return data;
+  },
+
+  // Self-service DRAFT lookup — surfaces a PT-created (or the user's own
+  // not-yet-activated) draft that getCurrent (ACTIVE-only) cannot.
+  getCurrentDraft: async () => {
+    const { data } = await api.get<FitnessRoadmapProjection>("/fitness-roadmaps/draft/current");
+    return data;
+  },
+
+  getById: async (roadmapId: string) => {
+    const { data } = await api.get<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}`);
+    return data;
+  },
+
+  create: async (input: {
+    name: string;
+    goalType: string;
+    plannedStartAt: string;
+    plannedEndAt?: string;
+    idempotencyKey?: string;
+    phases?: CreateRoadmapPhaseInput[];
+  }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>("/fitness-roadmaps", input);
+    return data;
+  },
+
+  addPhase: async (roadmapId: string, input: CreateRoadmapPhaseInput) => {
+    const { data } = await api.post(`/fitness-roadmaps/${roadmapId}/phases`, input);
+    return data;
+  },
+
+  activate: async (roadmapId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/activate`, {});
+    return data;
+  },
+
+  activatePhase: async (roadmapId: string, phaseId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(
+      `/fitness-roadmaps/${roadmapId}/phases/${phaseId}/activate`,
+      {},
+    );
+    return data;
+  },
+
+  advance: async (roadmapId: string) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/advance`, {});
+    return data;
+  },
+
+  // Read-only computation, but exposed as POST server-side (no request
+  // body needed) — matches the real route exactly.
+  previewRebuild: async (roadmapId: string) => {
+    const { data } = await api.post<RoadmapRebuildProposal>(`/fitness-roadmaps/${roadmapId}/rebuild/preview`, {});
+    return data;
+  },
+
+  applyRebuild: async (roadmapId: string, input: { assessmentId: string; phases?: CreateRoadmapPhaseInput[] }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/fitness-roadmaps/${roadmapId}/rebuild/apply`, input);
+    return data;
+  },
+
+  archive: async (roadmapId: string) => {
+    const { data } = await api.post<{ roadmapId: string; archived: boolean }>(
+      `/fitness-roadmaps/${roadmapId}/archive`,
+      {},
+    );
+    return data;
+  },
+
+  // Gymini Guided Roadmap Creation — read-only, zero DB write, zero AI call.
+  // Powers Step 2's energy breakdown and Step 4's Fitness Diagnosis screen.
+  getDiagnosis: async (input: FitnessDiagnosisInput) => {
+    const { data } = await api.post<FitnessDiagnosisResult>("/fitness-roadmaps/diagnosis", input);
+    return data;
+  },
+
+  // Gymini Roadmap Projection & Strategy Report Hardening — read-only,
+  // zero DB write, zero AI call. Powers Step 4's collapsible strategy
+  // timeline + per-phase forecast cards.
+  getPhaseForecast: async (input: RoadmapPhaseForecastInput) => {
+    const { data } = await api.post<RoadmapPhaseForecastResult>("/fitness-roadmaps/projection", input);
+    return data;
+  },
+
+  // Gymini Adaptive Forecast Reconciliation — read-only, zero DB write.
+  // Original forecast (immutable baseline) + freshly-computed current
+  // forecast (chained from the user's latest real actual state) +
+  // reconciliation for every completed phase.
+  getCurrentForecast: async () => {
+    const { data } = await api.get<CurrentForecastResult>("/fitness-roadmaps/current/forecast");
+    return data;
+  },
+
+  generateAiDraft: async (input: {
+    goalType: string;
+    timeframeWeeks?: number;
+    plannedStartAt?: string;
+    constraints?: string[];
+    goalVisualAttributes?: { muscularity: string | null; relativeLeanness: string | null; focusMuscles: string[] };
+    targetWeightKg?: number;
+    targetBodyFatPercent?: number;
+    trainingDaysPerWeek?: number;
+  }) => {
+    // Real LLM round-trip (ai-service -> callLlmJson, up to 3 attempts) —
+    // the shared `api` instance's flat 10s default timeout was aborting
+    // this client-side before the server-side generation finished (found
+    // via real browser E2E: request stuck pending, "Lưu bản nháp" never
+    // appeared). Same 120s override already used for other LLM-heavy calls
+    // (trainingCycleService.evaluate, coachService.chat).
+    const { data } = await api.post<RoadmapAiDraft>("/fitness-roadmaps/ai-draft", input, { timeout: 120000 });
+    return data;
+  },
+
+  acceptAiDraft: async (input: {
+    name: string;
+    goalType: string;
+    plannedStartAt: string;
+    sourceAssessmentId?: string;
+    phases: CreateRoadmapPhaseInput[];
+    configuration?: Record<string, unknown>;
+  }) => {
+    const { data } = await api.post<FitnessRoadmapProjection>("/fitness-roadmaps/ai-draft/accept", input);
+    return data;
+  },
+};
+
+// Web's services/fitnessAgent.ts — the AI Coach's action API (`ai-service: /ai/agent/*`). Every call
+// answers `{ data: AgentReply }`: the session it landed in plus one structured block to render.
+// Images go as base64 JSON (JPEG/PNG, max 4 MB — the same cap web checks before upload).
+export type ImageChatResult =
+  | { type: "EQUIPMENT"; equipmentName: string; targetMuscles: string[]; howToUse: string; safetyNote: string; answer: string }
+  | { type: "WORKOUT_SCHEDULE"; summary: string; days: Array<{ label: string; exercises: string[] }>; answer: string }
+  | { type: "GENERAL"; answer: string };
+
+export interface AgentChatBlock {
+  type:
+    | "PT_RECOMMENDATIONS"
+    | "PROGRAM_RECOMMENDATIONS"
+    | "ACTION_CONFIRMATION"
+    | "ACTION_RESULT"
+    | "GOAL_ANALYSIS"
+    | "IMAGE_CHAT"
+    | "SUBSTITUTE_RESULT"
+    | "CYCLE_EVALUATION_RESULT"
+    | "WORKFLOW_MISSING_DATA"
+    | "PROFILE_UPDATE_CONFIRMATION";
+  recommendationId?: string;
+  actionId?: string;
+  kind?: string;
+  title?: string;
+  note?: string | null;
+  expiresAt?: string;
+  risk?: "LOW" | "MEDIUM" | "HIGH";
+  candidates?: any[];
+  evidence?: Array<{ id: string; title: string; sourceUrl: string; finding: string; evidenceLevel: string }>;
+  warnings?: string[];
+  summary?: Record<string, any>;
+  attributes?: {
+    muscularity?: string | null;
+    relativeLeanness?: string | null;
+    focusMuscles?: string[];
+    confidence?: number;
+    usable?: boolean;
+    [key: string]: any;
+  };
+  result?: ImageChatResult;
+  message?: string;
+  steps?: string[];
+  nextUrl?: string;
+  goalConfirmed?: boolean;
+  status?: string;
+  decision?: string | null;
+  aiSummary?: string | null;
+  userDecision?: string;
+  nutritionDecision?: string | null;
+  nutritionAiHeadline?: string | null;
+  nutritionAiExplanation?: string | null;
+  nutritionUserDecision?: string;
+  workflowId?: string;
+  workflowType?: string;
+  // Seen live: known items are { label, value } objects, not strings (see workflowItemText).
+  known?: Array<string | { label?: string; value?: unknown }>;
+  missing?: Array<string | { label?: string; value?: unknown }>;
+  changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+  allowUseOnce?: boolean;
+}
+
+export interface AgentReply {
+  sessionId: string;
+  conversationId: string;
+  block: AgentChatBlock;
+}
+
+export type AgentImage = { mediaType: "image/jpeg" | "image/png"; base64: string };
+
+async function agentPost(url: string, body: unknown): Promise<AgentReply> {
+  const { data } = await api.post(url, body, { timeout: 60000 });
+  return data?.data as AgentReply;
+}
+
+export const fitnessAgentService = {
+  choose: (id: string, candidateId: string, packageId?: string) =>
+    agentPost(`/ai/agent/recommendations/${id}/choose`, { candidateId, packageId }),
+  confirm: (id: string) => agentPost(`/ai/agent/actions/${id}/confirm`, { confirmed: true }),
+  confirmGoal: (sessionId: string, goal: unknown) => agentPost("/ai/agent/goal/confirm", { sessionId, goal }),
+  image: (image: AgentImage, sessionId?: string) => agentPost("/ai/agent/goal-image", { image, sessionId }),
+  imageChat: (image: AgentImage, question: string, sessionId?: string) =>
+    agentPost("/ai/agent/image-chat", { image, question: question.trim() || undefined, sessionId }),
+};
+
 // ── Phase 2/3 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md ────────────────
 // Richer session feedback addressed directly by workoutScheduleId (works for
 // sessions outside a cycle too), plus the deterministic cycle-level summary.
@@ -2803,6 +3356,9 @@ export const planService = {
     daysPerWeek: number;
     exercisesPerDay?: number;
     contractId?: string;
+    // Accepted by ai-service's generateWorkoutPlanSchema (plan.schemas.ts); web sends them too.
+    trainingLocation?: "HOME" | "GYM";
+    equipmentPreference?: "MACHINE_ONLY" | "MIXED_GYM";
   }): Promise<PlanJobResponse> => {
     const { data } = await api.post("/plans/workout/generate", input);
     return extractPlanJobResponse(data);
@@ -2980,7 +3536,9 @@ export const planService = {
 
   saveNutritionPlanToNutrition: async (
     planId: string,
-    input: { startDate?: string; forceArchive?: boolean },
+    // endDate/repeatEnabled are read by ai-service's SaveNutritionPlanToNutritionRequestSchema
+    // (web sends them too); omitted = the 7-day menu applied once from startDate.
+    input: { startDate?: string; endDate?: string; repeatEnabled?: boolean; forceArchive?: boolean },
   ): Promise<{
     sourcePlanId: string;
     createdNutritionPlanId?: string;
@@ -3279,6 +3837,20 @@ export const adminService = {
   getDashboard: async () => {
     const { data } = await api.get("/admin/dashboard");
     return data;
+  },
+
+  // Gateway aggregate (auth + user-service): name/email/role/status per account — the admin
+  // "Người dùng" list, and the name lookup for withdrawal/dispute rows that only carry an id.
+  listUserDirectory: async () => {
+    const { data } = await api.get("/admin/users");
+    return data;
+  },
+  // AD-05 — lock/unlock ANY account (auth-service setUserActive). For a PT this also relays a
+  // DEACTIVATE to user-service, which cancels + refunds every open contract; re-enabling does
+  // NOT restore them. The screen spells that out before calling this.
+  setUserActive: async (userId: string, isActive: boolean) => {
+    const { data } = await api.patch(`/admin/users/${userId}/${isActive ? "enable" : "disable"}`);
+    return data?.data ?? data;
   },
 
   getSystemMonitoring: async () => {
@@ -4439,6 +5011,26 @@ export const ptCoachService = {
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
     return data;
   },
+
+  // WB-13 — a coach's read-only view of their client's roadmap, plus the one thing a coach may
+  // write: a DRAFT the CLIENT then reviews. Returns the active roadmap and any pending draft
+  // separately so the UI can tell "no roadmap at all" apart from "a draft is already waiting on
+  // the client", and never offers to create a second redundant draft.
+  getClientRoadmap: async (
+    clientId: string,
+  ): Promise<{ activeRoadmap: FitnessRoadmapProjection | null; pendingDraft: FitnessRoadmapProjection | null }> => {
+    const { data } = await api.get(`/coach/clients/${clientId}/roadmap`);
+    return data;
+  },
+  // Only the CLIENT can activate, advance, rebuild or archive a roadmap (Phase 0.3's boundary) —
+  // a coach proposes, nothing more.
+  createRoadmapDraft: async (
+    clientId: string,
+    input: { name: string; goalType: string; plannedStartAt: string; plannedEndAt?: string },
+  ): Promise<FitnessRoadmapProjection> => {
+    const { data } = await api.post<FitnessRoadmapProjection>(`/coach/clients/${clientId}/roadmap/draft`, input);
+    return data;
+  },
 };
 
 export const sessionService = {
@@ -4607,6 +5199,280 @@ export const availabilityService = {
   },
 };
 
+/**
+ * WB-15/16 — the gym-partner self-onboarding flow, ported from web's `services/partnerApplication.ts`.
+ *
+ * `accessState` is the routing authority for the whole gym-owner space: gym-service derives it
+ * from partner status + verification + account status + onboardingCompletedAt
+ * (partner-application.state.ts `deriveAccessState`), and the operational routes are gated on the
+ * same value server-side. The app must never decide for itself that someone is "approved enough".
+ */
+export type PartnerAccessState =
+  | "LEGACY"
+  | "SETUP_INCOMPLETE"
+  | "RESTRICTED"
+  | "ONBOARDING"
+  | "UNDER_REVIEW"
+  | "CHANGES_REQUESTED"
+  | "REJECTED"
+  | "APPROVED_PAYOUT_PENDING"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "TERMINATED";
+
+export interface PartnerAccessStatus {
+  accessState: PartnerAccessState;
+  editable: boolean;
+  partnerId: string | null;
+  role: string | null;
+}
+
+export type PartnerRepresentativeRole =
+  | "GYM_OWNER"
+  | "CO_FOUNDER"
+  | "LEGAL_REPRESENTATIVE"
+  | "AUTHORIZED_MANAGER";
+export type PartnerBusinessScale = "ONE_BRANCH" | "MULTIPLE_BRANCHES";
+export type PartnerDocType =
+  | "BUSINESS_LICENSE"
+  | "REPRESENTATIVE_ID"
+  | "PREMISES_PROOF"
+  | "TAX_CODE_CERTIFICATE"
+  | "SITE_PHOTOS"
+  | "FIRE_SAFETY_CERTIFICATE";
+export type PartnerPhotoCategory =
+  | "EXTERIOR"
+  | "MAIN_TRAINING_AREA"
+  | "EQUIPMENT"
+  | "CARDIO"
+  | "CHANGING_ROOM"
+  | "AMENITIES"
+  | "OTHER";
+
+const unwrapPartner = <T,>(res: any): T => (res?.data?.data ?? res?.data) as T;
+
+export const partnerApplicationService = {
+  status: async () => unwrapPartner<PartnerAccessStatus>(await api.get("/owner/application/status")),
+  // Idempotent — finishes creating the partner row for a user the sign-up saga left half-made.
+  bootstrap: async () =>
+    unwrapPartner<{ created: boolean; partnerId: string }>(await api.post("/owner/application/bootstrap")),
+  get: async () => unwrapPartner<any>(await api.get("/owner/application")),
+  timeline: async () => unwrapPartner<any>(await api.get("/owner/application/timeline")),
+
+  saveRepresentative: async (v: { name: string; phone: string; role: PartnerRepresentativeRole }) =>
+    unwrapPartner(await api.put("/owner/application/representative", v)),
+  saveBusinessScale: async (scale: PartnerBusinessScale) =>
+    unwrapPartner(await api.put("/owner/application/business-scale", { scale })),
+  saveBrand: async (v: { name: string; description?: string }) =>
+    unwrapPartner(await api.put("/owner/application/brand", v)),
+  saveBranch: async (v: Record<string, unknown>) => unwrapPartner(await api.put("/owner/application/branch", v)),
+  saveSocial: async (v: { facebookUrl: string; instagramUrl: string; tiktokUrl: string; youtubeUrl: string }) =>
+    unwrapPartner(await api.put("/owner/application/social", v)),
+  saveLegal: async (v: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null }) =>
+    unwrapPartner(await api.put("/owner/application/legal", v)),
+
+  presign: async (v: {
+    kind: "PHOTO" | "DOCUMENT" | "LOGO";
+    contentType: string;
+    sizeBytes: number;
+    docType?: PartnerDocType;
+    photoCategory?: PartnerPhotoCategory;
+  }) => unwrapPartner<PartnerPresignResult>(await api.post("/owner/application/uploads/presign", v)),
+  confirm: async (uploadId: string) =>
+    unwrapPartner<{ kind: string }>(await api.post("/owner/application/uploads/confirm", { uploadId })),
+  reorderPhotos: async (ids: string[]) => unwrapPartner(await api.put("/owner/application/photos/reorder", { ids })),
+  setCoverPhoto: async (photoId: string) => unwrapPartner(await api.patch(`/owner/application/photos/${photoId}/cover`)),
+  deletePhoto: async (photoId: string) => unwrapPartner(await api.delete(`/owner/application/photos/${photoId}`)),
+  documentFile: async (docType: PartnerDocType, fileId: string) =>
+    unwrapPartner<{ url: string; mimeType: string; expiresInSec: number }>(
+      await api.get(`/owner/application/documents/${docType}/files/${fileId}`),
+    ),
+  removeDocumentFile: async (docType: PartnerDocType, fileId: string) =>
+    unwrapPartner(await api.delete(`/owner/application/documents/${docType}/files/${fileId}`)),
+
+  submit: async (acceptTerms: boolean) =>
+    unwrapPartner(await api.post("/owner/application/submit", { acceptTerms })),
+  resubmit: async () => unwrapPartner(await api.post("/owner/application/resubmit")),
+  markIssueUpdated: async (issueId: string, note?: string) =>
+    unwrapPartner(await api.post(`/owner/application/issues/${issueId}/mark-updated`, note ? { note } : {})),
+};
+
+/**
+ * WB-15 — đăng ký đối tác công khai (auth-service). Ba bước: xin liên kết → xác minh liên kết →
+ * đặt mật khẩu. **Không** đi qua interceptor JWT của Gymini vì lúc này chưa có tài khoản nào.
+ *
+ * `devVerifyLink` chỉ có khi máy chủ bật cờ dev (`PARTNER_APPLICATION_DEV_ECHO`) — token gốc không
+ * được lưu ở đâu cả, nên không có nó thì chỉ còn đường mở thư thật.
+ */
+export type PartnerApplyStartResult = {
+  status: "SENT" | "DELIVERY_FAILED";
+  email: string;
+  expiresInHours: number;
+  devVerifyLink?: string;
+};
+
+export type PartnerApplyVerifyResult =
+  | { status: "VALID"; email: string; setupToken: string; setupExpiresAt: string }
+  | { status: "INVALID" | "EXPIRED" | "USED" };
+
+export const partnerApplyPublic = {
+  start: async (email: string) => {
+    const { data } = await api.post("/auth/partner-applications/start", { email });
+    return data as PartnerApplyStartResult;
+  },
+  verify: async (token: string) => {
+    const { data } = await api.post("/auth/partner-applications/verify", { token });
+    return data as PartnerApplyVerifyResult;
+  },
+  setPassword: async (setupToken: string, password: string) => {
+    const { data } = await api.post("/auth/partner-applications/set-password", { setupToken, password });
+    return data as { accessToken?: string; refreshToken?: string; user?: unknown };
+  },
+};
+
+export type PartnerPresignResult = {
+  uploadId: string;
+  url: string;
+  fields: Record<string, string>;
+  expiresAt: string;
+  maxBytes: number;
+};
+
+/** Tệp người dùng chọn từ máy — cùng hình dạng `UploadFile` mà các multipart khác trong tệp này dùng. */
+export type ApplicationUploadTarget =
+  | { kind: "PHOTO"; photoCategory?: PartnerPhotoCategory }
+  | { kind: "DOCUMENT"; docType: PartnerDocType }
+  | { kind: "LOGO" };
+
+/**
+ * Tải một tệp của hồ sơ lên: **xin uỷ quyền → POST multipart tới đúng đích máy chủ trả về → xác
+ * nhận**. Ứng dụng không biết (và không được biết) đích là S3 hay kho tương thích nào — nó chỉ đẩy
+ * tới `url` với đúng `fields` được cấp.
+ *
+ * Hai điều kiện của biểu mẫu presigned POST, sai là hỏng: mọi `fields` phải đi TRƯỚC, và phần `file`
+ * phải là phần tử CUỐI.
+ *
+ * Dùng `fetch` chứ không dùng `api` (axios của Gymini): đích tải lên là bên thứ ba, gửi kèm JWT của
+ * mình sang đó là rò rỉ vô cớ.
+ */
+/** Số byte thật của một tệp cục bộ; ném lỗi nói được nếu không đọc nổi, chứ không gửi bừa số 0. */
+async function fileSizeBytes(uri: string): Promise<number> {
+  try {
+    const size = new FSFile(uri).size;
+    if (typeof size === "number" && Number.isFinite(size) && size > 0) return size;
+  } catch {
+    // rơi xuống lỗi bên dưới
+  }
+  throw new Error("Không đọc được kích thước tệp. Hãy chọn lại tệp.");
+}
+
+/**
+ * WB-17 — "Duyệt hồ sơ đối tác" (admin). Thay hẳn WB-03: đường admin tự tạo tài khoản chủ gym đã bị
+ * gỡ (`POST /admin/partners` trả 410), nên đây giờ là **đường duy nhất** để một chủ gym tồn tại.
+ *
+ * Máy chủ tự tính `approve.canApprove` và `approve.blockers` kèm câu tiếng Việt — ứng dụng hiển thị
+ * đúng những gì máy chủ nói, không dựng lại luật duyệt lần thứ hai.
+ */
+export type AdminApplicationRow = {
+  id: string;
+  contactEmail: string | null;
+  applicantName: string | null;
+  legalName: string | null;
+  brandName: string | null;
+  firstBranchName: string | null;
+  businessScale: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  status: string;
+  verificationStatus: "NOT_VERIFIED" | "IN_REVIEW" | "NEEDS_INFO" | "REJECTED" | "VERIFIED";
+};
+
+export const adminPartnerApplications = {
+  list: async (verificationStatus?: string) =>
+    unwrapPartner<{ items: AdminApplicationRow[]; counts: Record<string, number> }>(
+      await api.get("/admin/partners/applications", {
+        params: verificationStatus ? { verificationStatus } : undefined,
+      }),
+    ),
+  get: async (id: string) => unwrapPartner<any>(await api.get(`/admin/partners/${id}/application`)),
+  /** Mỗi lần admin mở một giấy tờ đều được ghi nhật ký ở máy chủ — đó là chủ ý, không phải phụ phẩm. */
+  documentFile: async (id: string, docType: PartnerDocType, fileId?: string) =>
+    unwrapPartner<{ url: string; expiresInSec: number | null; mimeType: string | null }>(
+      await api.get(`/admin/partners/${id}/application/documents/${docType}/file`, {
+        params: fileId ? { fileId } : undefined,
+      }),
+    ),
+  acceptDocument: async (id: string, docType: PartnerDocType) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/documents/${docType}/accept`)),
+  requestChanges: async (
+    id: string,
+    v: { issues: { category: string; message: string }[]; documents: { docType: PartnerDocType; note: string }[] },
+  ) => unwrapPartner(await api.post(`/admin/partners/${id}/application/request-changes`, v)),
+  resolveIssue: async (id: string, issueId: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/issues/${issueId}/resolve`)),
+  reopenIssue: async (id: string, issueId: string, message: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/issues/${issueId}/reopen`, { message })),
+  approve: async (id: string) => unwrapPartner(await api.post(`/admin/partners/${id}/application/approve`)),
+  reject: async (id: string, reason: string, adminNote?: string) =>
+    unwrapPartner(await api.post(`/admin/partners/${id}/application/reject`, { reason, adminNote })),
+  reopen: async (id: string) => unwrapPartner(await api.post(`/admin/partners/${id}/application/reopen`)),
+};
+
+// AD-02 — admin side of PT applications (user-service /pt-applications/admin). The server does NOT
+// check the current status before a review action; the screen gates actions by status itself
+// (features/admin/adminModeration.ts#ptActions).
+export const adminPtApplications = {
+  list: async (status?: string) => {
+    const { data } = await api.get("/pt-applications/admin", { params: status ? { status } : undefined });
+    return data;
+  },
+  get: async (id: string) => {
+    const { data } = await api.get(`/pt-applications/admin/${id}`);
+    return data;
+  },
+  review: async (id: string, action: "UNDER_REVIEW" | "APPROVE" | "REQUEST_INFO" | "REJECT", payload: Record<string, string> = {}) => {
+    const { data } = await api.post(`/pt-applications/admin/${id}/review/${action}`, payload);
+    return data;
+  },
+};
+
+export async function uploadApplicationFile(file: UploadFile, target: ApplicationUploadTarget): Promise<void> {
+  // `sizeBytes` phải là số byte THẬT: máy chủ nhét nó vào điều kiện `content-length-range` của biểu
+  // mẫu presigned, nên khai sai thì kho lưu trữ từ chối chính tệp vừa ký. Đọc từ hệ tệp, không đoán.
+  const sizeBytes = await fileSizeBytes(file.uri);
+  const auth = await partnerApplicationService.presign({
+    kind: target.kind,
+    contentType: file.type || "application/octet-stream",
+    sizeBytes,
+    ...(target.kind === "PHOTO" ? { photoCategory: target.photoCategory } : {}),
+    ...(target.kind === "DOCUMENT" ? { docType: target.docType } : {}),
+  });
+
+  // Tải bằng API gốc của expo-file-system, KHÔNG bằng fetch/axios + FormData. Đã thử cả hai trên máy
+  // thật 27/9: `fetch` của Expo không nhận phần tệp kiểu RN ("Unsupported FormDataPart
+  // implementation"); còn XHR/axios gửi tệp từ URI với độ dài KHÔNG biết trước → `Transfer-Encoding:
+  // chunked`, không có Content-Length — biểu mẫu POST presigned của S3/MinIO bắt buộc Content-Length
+  // (MinIO qua proxy trả "EmptyRequestBody"). `File.upload` MULTIPART dựng thân với độ dài biết trước,
+  // các trường ký trước rồi tệp SAU CÙNG — đúng thứ tự S3 yêu cầu. Không có JWT: biểu mẫu tự mang chữ ký.
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(auth.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: file.type || "application/octet-stream",
+      parameters: auth.fields,
+    });
+  } catch {
+    throw new Error("Không gửi được tệp lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`Tải tệp lên thất bại (${res.status}).`);
+  }
+
+  await partnerApplicationService.confirm(auth.uploadId);
+}
+
 export const notificationService = {
   list: async (page = 1, limit = 20) => {
     const { data } = await api.get(
@@ -4738,6 +5604,144 @@ export const paymentService = {
     const { data } = await api.post(`/me/payments/${transactionId}/sync`);
     return data?.data ?? data;
   },
+};
+
+// ── CL-22 PT application (web's services/ptApplicationService.ts) ─────────────────────────
+// Statuses: DRAFT → SUBMITTED → UNDER_REVIEW → NEEDS_MORE_INFO ⇄ … → APPROVED | REJECTED.
+// A draft can be saved only in DRAFT / NEEDS_MORE_INFO; REJECTED is final (server refuses).
+export type PTApplicationStatus = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_MORE_INFO" | "APPROVED" | "REJECTED";
+
+export interface PTApplicationCertificate {
+  id?: string;
+  certificateName: string;
+  issuingOrganization: string;
+  isCurrentlyValid: boolean;
+  certificationStatus?: string;
+  issueDate?: string;
+  expirationDate?: string;
+  certificateFileUrl?: string;
+}
+
+export interface PTAvailabilityBlock {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface PTApplicationTrainingLocation {
+  provinceCode: number;
+  wardCode?: number;
+  gymName?: string;
+  addressLine?: string;
+  legacyDistrictName?: string;
+  isPrimary?: boolean;
+  note?: string;
+}
+
+export interface PTApplication {
+  id?: string;
+  status?: PTApplicationStatus;
+  phoneNumber?: string;
+  nationalIdNumber?: string;
+  currentAddress?: string;
+  idCardFrontUrl?: string;
+  idCardBackUrl?: string;
+  portraitPhotoUrl?: string;
+  yearsOfExperience?: string;
+  educationBackground?: string;
+  previousWorkExperience?: string;
+  professionalBio?: string;
+  mainSpecialties: string[];
+  targetClientGroups: string[];
+  primaryTrainingGoals: string[];
+  trainingMethodsApproach?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+  socialLinks?: { instagram?: string; facebook?: string; youtube?: string; tiktok?: string } | null;
+  serviceMode?: "ONLINE" | "OFFLINE" | "HYBRID";
+  sessionDurationMinutes?: number;
+  availabilityBlocks?: PTAvailabilityBlock[];
+  availableDays?: string[];
+  gymAffiliation?: string;
+  desiredSessionPrice?: number | null;
+  onlinePricePerSession?: number | null;
+  offlinePricePerSession?: number | null;
+  onlinePackagePrice?: number | null;
+  offlinePackagePrice?: number | null;
+  sessionsPerPackage?: number | null;
+  additionalPricingNotes?: string;
+  residenceProvinceCode?: number | null;
+  residenceWardCode?: number | null;
+  residenceAddressLine?: string;
+  applicationTrainingLocations?: PTApplicationTrainingLocation[];
+  otherReferences?: string;
+  adminNote?: string | null;
+  rejectionReason?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  certificates: PTApplicationCertificate[];
+  media: Array<{ groupType: string; fileUrl: string; label?: string }>;
+}
+
+/** Presigned PUT target (web's PresignedUploadTarget). */
+type PresignTarget = { uploadUrl: string; key: string; maxBytes?: number };
+
+/**
+ * Upload a picked file through the presign → PUT → confirm flow (what AWS/Lambda requires), or —
+ * when this backend has no upload bucket configured (the local dev stack answers
+ * "USER_UPLOAD_BUCKET is not configured") — through the legacy multipart route, which is the
+ * only one that works there. Web only does the first, so on the dev stack its uploads fail.
+ */
+async function uploadViaPresignOrLegacy(
+  file: UploadFile,
+  routes: { presign: string; confirm: string; legacy: string; legacyField: string },
+): Promise<any> {
+  let target: PresignTarget | null = null;
+  try {
+    const { data } = await api.post<PresignTarget>(routes.presign, { contentType: file.type });
+    target = data;
+  } catch (e: any) {
+    const msg = String(e?.response?.data?.error ?? "");
+    if (!/not configured/i.test(msg)) throw e;
+  }
+  if (target?.uploadUrl) {
+    const blob = await (await fetch(file.uri)).blob();
+    if (typeof target.maxBytes === "number" && blob.size > target.maxBytes) {
+      throw new Error(`File quá lớn. Giới hạn tối đa ${(target.maxBytes / 1024 / 1024).toFixed(0)} MB.`);
+    }
+    const put = await fetch(target.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: blob });
+    if (!put.ok) throw new Error("Không thể tải file lên kho lưu trữ. Vui lòng thử lại.");
+    const { data } = await api.post(routes.confirm, { key: target.key });
+    return data;
+  }
+  const form = new FormData();
+  appendUpload(form, routes.legacyField, file);
+  const { data } = await api.post(routes.legacy, form, { headers: { "Content-Type": "multipart/form-data" } });
+  return data;
+}
+
+export const ptApplicationService = {
+  /** null = never applied (the server answers `null`). */
+  getMe: async (): Promise<PTApplication | null> => {
+    const { data } = await api.get("/pt-applications/me");
+    return data ?? null;
+  },
+  saveDraft: async (body: Partial<PTApplication>): Promise<PTApplication> => {
+    const { data } = await api.post("/pt-applications/me/draft", body);
+    return data;
+  },
+  submit: async (): Promise<PTApplication> => {
+    const { data } = await api.post("/pt-applications/me/submit");
+    return data;
+  },
+  /** `url` is the stable reference to store in the form; `previewUrl` a short-lived signed link. */
+  uploadDocument: async (file: UploadFile): Promise<{ url: string; previewUrl?: string }> =>
+    uploadViaPresignOrLegacy(file, {
+      presign: "/pt-applications/me/upload/presign",
+      confirm: "/pt-applications/me/upload/confirm",
+      legacy: "/pt-applications/me/upload",
+      legacyField: "document",
+    }),
 };
 
 export const walletService = {

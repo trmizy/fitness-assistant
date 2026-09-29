@@ -24,7 +24,8 @@ const gymAddress = z
 const gymDescription = z
   .string()
   .trim()
-  .max(2000, 'Mô tả phòng gym không được vượt quá 2000 ký tự')
+  // Hiện ở đầu mục "Chi tiết" cho khách ("Thông tin giới thiệu") — ngắn gọn, đọc lướt được.
+  .max(300, 'Giới thiệu phòng gym tối đa 300 ký tự')
   .optional();
 
 const gymCity = z

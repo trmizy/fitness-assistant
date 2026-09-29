@@ -64,6 +64,15 @@
           "microphonePermission": "Gymini cần quyền microphone để gọi thoại/video với PT."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
+          "locationWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
       "./plugins/shortenPackagePaths.js",
       "./plugins/withCmakeObjectPathMax.js",
       "./plugins/withDevMenuOnboardingSkipped.js"

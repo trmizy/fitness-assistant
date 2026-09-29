@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Apple,
@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Check,
   ChevronRight,
+  ClipboardList,
   Compass,
   Dumbbell,
   LayoutTemplate,
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 
+import { RoadmapJourney } from "../../../src/features/roadmap/RoadmapJourney";
 import {
   Badge,
   Button,
@@ -38,7 +40,9 @@ import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../
 import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
-const TABS = ["Lịch tuần", "Nhật ký", "Chu kỳ"] as const;
+// "Lộ trình" (WB-11, Phase 8) is web's Training-page "Lộ trình" tab: the long-term journey, with the
+// current cycle shown inline and "Chu kỳ" kept for the full cycle drill-down.
+const TABS = ["Lịch tuần", "Nhật ký", "Chu kỳ", "Lộ trình"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -58,7 +62,8 @@ type Tab = (typeof TABS)[number];
 export default function WorkoutScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Tab>("Lịch tuần");
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<Tab>(() => (TABS as readonly string[]).includes(String(params.tab)) ? (params.tab as Tab) : "Lịch tuần");
 
   const weekStart = useMemo(() => startOfWeek(new Date()), []);
 
@@ -109,15 +114,26 @@ export default function WorkoutScreen() {
     >
       <View className="px-5">
         <View className="mb-4 flex-row items-center justify-between">
-          <Text className="font-display text-2xl text-foreground">Tập luyện</Text>
-          <View className="flex-row items-center gap-2">
+          <Text className="mr-3 font-display text-2xl text-foreground">Tập luyện</Text>
+          {/* Seven round buttons no longer fit a 360dp row next to the title once Kế hoạch joined
+              (Phase 8), so the tool buttons scroll sideways instead of pushing off-screen; "+"
+              stays pinned outside the scroller as the primary action. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-1"
+            contentContainerStyle={{ gap: 8, flexGrow: 1, justifyContent: "flex-end" }}
+          >
             {/* Nutrition lives under this tab (doc 08 §4.2), so its door is here rather than a
                 sixth tab. */}
             <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
             <ToolButton icon={Compass} onPress={() => router.push("/client/library")} />
+            <ToolButton icon={ClipboardList} onPress={() => router.push("/client/plans")} />
             <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
             <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />
             <ToolButton icon={BarChart3} onPress={() => router.push("/client/stats/activity")} />
+          </ScrollView>
+          <View className="ml-2">
             <Tappable
               className="h-10 w-10 items-center justify-center rounded-full bg-primary"
               onPress={() => router.push("/client/workout/log")}
@@ -225,8 +241,10 @@ export default function WorkoutScreen() {
               <RecentWorkouts data={historyQuery.data} />
             )}
           </View>
-        ) : (
+        ) : tab === "Chu kỳ" ? (
           <CycleTab query={cycleQuery} />
+        ) : (
+          <RoadmapJourney onOpenCycle={() => setTab("Chu kỳ")} />
         )}
       </View>
     </ScrollView>

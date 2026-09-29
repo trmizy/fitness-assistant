@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isAllowedOrigin, trustedWebOrigin } from "../utils/corsOrigins";
+import { isAllowedOrigin, lanWebOriginFromHost, trustedWebOrigin } from "../utils/corsOrigins";
 
 test("isAllowedOrigin: no Origin header (native app / curl / server-to-server) is allowed", () => {
   assert.equal(isAllowedOrigin(undefined), true);
@@ -50,13 +50,27 @@ test("trustedWebOrigin: a missing Origin is NOT trusted, even though CORS lets i
   assert.equal(trustedWebOrigin("null"), null);
 });
 
-test("trustedWebOrigin: the current LAN address, localhost and a dev tunnel are returned as-is", () => {
+test("trustedWebOrigin: the current LAN address and localhost are returned as-is", () => {
   assert.equal(trustedWebOrigin("http://192.168.2.100:5173"), "http://192.168.2.100:5173");
   assert.equal(trustedWebOrigin("http://localhost:5173"), "http://localhost:5173");
-  assert.equal(
-    trustedWebOrigin("https://zldpdbp4-5173.asse.devtunnels.ms"),
-    "https://zldpdbp4-5173.asse.devtunnels.ms",
-  );
+});
+
+test("trustedWebOrigin: a *.devtunnels.ms Origin is CORS-allowed but never used as an email-link host", () => {
+  // Anyone can mint a devtunnels.ms hostname, so a forged Origin must not steer a reset link to it.
+  assert.equal(isAllowedOrigin("https://zldpdbp4-5173.asse.devtunnels.ms"), true);
+  assert.equal(trustedWebOrigin("https://zldpdbp4-5173.asse.devtunnels.ms"), null);
+});
+
+test("lanWebOriginFromHost: the Android app calling the gateway by LAN IP gets a link to the web on that same IP", () => {
+  assert.equal(lanWebOriginFromHost("192.168.2.101:3000"), "http://192.168.2.101:5173");
+  assert.equal(lanWebOriginFromHost("10.0.0.7:3000"), "http://10.0.0.7:5173");
+  assert.equal(lanWebOriginFromHost("api-gateway:3000"), null, "Docker-internal host (via Vite proxy) is not a web address");
+  assert.equal(lanWebOriginFromHost("abc.trycloudflare.com"), null);
+  assert.equal(lanWebOriginFromHost("8.8.8.8:3000"), null, "public IPs are never trusted");
+  const prev = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  assert.equal(lanWebOriginFromHost("192.168.2.101:3000"), null, "off in production");
+  process.env.NODE_ENV = prev;
 });
 
 test("trustedWebOrigin: an attacker's domain is rejected, so a reset link can never point at it", () => {

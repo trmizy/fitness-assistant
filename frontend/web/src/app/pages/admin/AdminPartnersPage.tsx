@@ -242,6 +242,8 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
   );
 }
 
+type DetailTab = "overview" | "accounts" | "gyms" | "documents" | "money" | "audit" | "notes" | "complaints";
+
 function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [tab, setTab] = useState<DetailTab>("overview");
   const [menuOpen, setMenuOpen] = useState(false);

@@ -38,8 +38,8 @@ function requireOwnerIds(ctx: PartnerContext) {
   return { partnerId: ctx.partnerId, ownerId: ctx.principalUserId };
 }
 
-function assertEditable(ctx: PartnerContext) {
-  const state = deriveAccessState({
+function accessStateOf(ctx: PartnerContext) {
+  return deriveAccessState({
     isLegacy: ctx.isLegacy,
     hasAccount: Boolean(ctx.accountId),
     accountStatus: ctx.accountStatus,
@@ -47,9 +47,24 @@ function assertEditable(ctx: PartnerContext) {
     verificationStatus: ctx.verificationStatus,
     onboardingCompletedAt: ctx.onboardingCompletedAt,
   });
+}
+
+function assertEditable(ctx: PartnerContext) {
+  const state = accessStateOf(ctx);
   if (!isEditableState(state)) {
     throw appError('Hồ sơ không ở trạng thái có thể chỉnh sửa', 409, 'APPLICATION_LOCKED', { accessState: state });
   }
+}
+
+/**
+ * Logo thương hiệu đổi được CẢ SAU KHI DUYỆT (như giới thiệu / mạng xã hội) — chủ gym đang vận hành
+ * cũng cần thay logo. Ảnh chi nhánh và giấy tờ thì vẫn chỉ khi hồ sơ còn sửa được (assertEditable).
+ * Tạm khoá / chấm dứt / đang xét / bị từ chối → vẫn chặn.
+ */
+const LOGO_AFTER_APPROVAL_STATES = new Set(['APPROVED_PAYOUT_PENDING', 'ACTIVE', 'LEGACY']);
+function assertCanUpload(ctx: PartnerContext, kind: UploadKind) {
+  if (kind === 'LOGO' && LOGO_AFTER_APPROVAL_STATES.has(accessStateOf(ctx))) return;
+  assertEditable(ctx);
 }
 
 async function draftGym(ownerId: string) {
@@ -108,7 +123,7 @@ export const partnerUploadService = {
     },
   ) {
     const { partnerId, ownerId } = requireOwnerIds(ctx);
-    assertEditable(ctx);
+    assertCanUpload(ctx, input.kind);
     if (!partnerS3.isConfigured()) {
       throw appError('Tính năng tải tệp chưa được cấu hình trên môi trường này', 503, 'UPLOADS_UNAVAILABLE');
     }
@@ -180,11 +195,11 @@ export const partnerUploadService = {
    */
   async confirm(ctx: PartnerContext, actorUserId: string, uploadId: string, req?: Request) {
     const { partnerId, ownerId } = requireOwnerIds(ctx);
-    assertEditable(ctx);
 
     const intent = await prisma.partnerUploadIntent.findUnique({ where: { id: uploadId } });
     // Cố ý cùng một thông báo cho "không có" và "của người khác" — không lộ sự tồn tại của intent.
     if (!intent || intent.partnerId !== partnerId) throw appError('Không tìm thấy lượt tải lên', 404, 'NOT_FOUND');
+    assertCanUpload(ctx, intent.kind as UploadKind);
     if (intent.confirmedAt) return { alreadyConfirmed: true, kind: intent.kind };
     if (intent.expiresAt.getTime() < Date.now()) {
       throw appError('Lượt tải lên đã hết hạn — hãy thử lại', 410, 'UPLOAD_EXPIRED');

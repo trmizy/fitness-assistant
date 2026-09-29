@@ -21,6 +21,19 @@
 - Trạng thái: OPEN / ĐÃ BÁO CÁO — chờ quyết định / ĐÃ CÓ QUYẾT ĐỊNH (ghi rõ quyết định)
 ```
 
+## ⏳ Đang chờ Ngài quyết định (chốt lại 2026-09-24, khi đóng Phase 9)
+
+Hai gap dưới đây **không chặn** Phase 10 (không gian HLV), nhưng phải được quyết trước khi coi
+luồng tiền / chat là hoàn chỉnh. Ghi ở đây để các phase sau không vô tình bỏ quên:
+
+| Gap | Đang vướng gì | Ai quyết | Mobile đang làm gì tạm |
+|---|---|---|---|
+| **GAP-13** — khiếu nại / hoàn tiền đơn 1-1 | `openDispute` không kiểm trạng thái đơn và `DISPUTED` không có đường ra (không màn admin, không API phân xử); chính sách hoàn tiền theo tiến độ chưa chốt | **Ngài + partner** | Hai nút "Yêu cầu hoàn tiền" / "Khiếu nại" đang **comment lại** (không xoá) trong `app/client/plans/orders/[id].tsx` — tìm chuỗi "TẠM TẮT 22/9". Helper + unit test vẫn giữ để bật lại là chạy ngay |
+| **GAP-14** — socket gateway giữ token lúc bắt tay | Access token sống 15 phút nhưng gateway dùng lại token bắt tay cho mọi lần gọi chat-service → socket mở lâu bị từ chối vào phòng / gửi tin | **Quyết định backend** (web cũng dính) | `ensureFreshSocket()` trong `src/realtime/socketClient.ts` tự kết nối lại khi token bắt tay còn < 60s — đã kiểm socket 3,5 giờ tuổi vẫn nhắn được |
+
+Khi Ngài chốt: GAP-13 cần backend (guard trạng thái + luồng admin) → web → rồi mới bỏ comment ở mobile;
+GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá của mobile trở thành thừa nhưng vô hại.
+
 ## Danh sách gap hiện tại
 
 *(3 gap dưới đây được phát hiện ngay ở Phase 0 khi đối chiếu 67 màn hình New Frontend với
@@ -43,6 +56,12 @@
   `PATCH /admin/pts/:id/status` + `GET /admin/pts` (roster tổng hợp kèm rating/student count).
 - Trạng thái: OPEN — chờ Ngài quyết định có làm mới backend cho việc này hay bỏ tính năng khỏi
   Phase 13.
+
+- **Đối chiếu lại 28/9 (Phase 13, `CODE AUDIT`):** backend nay CÓ đường "tạm ngưng PT" gián tiếp:
+  `PATCH /admin/users/:id/disable|enable` (gateway → auth-service `setUserActive`) khoá tài khoản, và
+  nếu tài khoản là PT thì **relay `DEACTIVATE`/`REACTIVATE` sang user-service** (có hàng thử lại). Vẫn
+  **không có** danh sách roster PT kèm rating/số học viên. Nghĩa là: tạm ngưng/khôi phục một PT làm
+  được từ màn Người dùng (AD-05) nếu Ngài cho mở hành động đó; màn roster riêng như mock vẫn BLOCKED.
 
 ### GAP-2 — "Gói lỗi" (hoàn tiền hội viên gym bất thường) không có hàng đợi, chỉ có form nhập ID thủ công
 
@@ -77,6 +96,13 @@
 - Đề xuất: xác nhận lại đúng semantics của endpoint disable/enable ở auth-service trước khi quyết
   định port thẳng vào AD-05 hay cần endpoint riêng.
 - Trạng thái: OPEN — cần xác nhận kỹ hơn khi bắt đầu Phase 13 (không blocking Phase 0).
+
+- **Đối chiếu lại 28/9 (Phase 13, `CODE AUDIT`):** endpoint KHÔNG còn là "chưa rõ ngữ nghĩa":
+  `PATCH /admin/users/:userId/disable|enable` là khoá/mở **mọi** tài khoản (chỉ ADMIN), kèm relay PT ở
+  GAP-1. Web vẫn chỉ dùng nó ở màn chủ gym. **Chỗ hỏng thật nằm ở danh sách:** gateway `GET /admin/users`
+  gán cứng `status = "Active"` và bỏ `isActive` mà auth-service đã trả → một tài khoản vừa bị khoá vẫn
+  hiện "Active". Xem GAP-21. Còn lại là quyết định sản phẩm của Ngài: mobile có mở nút khoá/mở khoá
+  cho người dùng thường không (web chưa có).
 
 ### GAP-4 — Không có luồng "quên mật khẩu" tự phục vụ cho người dùng thường
 
@@ -323,3 +349,199 @@
 - Tác dụng phụ trong lúc kiểm: tài khoản test john.doe nay có `region = NAM` (trước là rỗng) — không
   đưa về rỗng được qua API vì chính lỗi này; sửa DB trực tiếp cần Ngài cho phép.
 - Trạng thái: ĐÃ BÁO CÁO — chờ quyết định.
+
+## GAP-19 — `requestContract` còn một thông báo lỗi tiếng Anh sót lại
+
+- Phát hiện: Phase 11 (PT-07), 2026-09-25, khi khách gửi yêu cầu hợp đồng cho PT đã có hợp đồng.
+- `contract.service.ts` viết gần như toàn bộ lỗi của `requestContract` bằng tiếng Việt (dòng 308–326:
+  "Gói dịch vụ này đã ngừng bán", "PT hiện đang tạm ngưng nhận khách mới", …) nhưng **dòng 392** vẫn là
+  `throw err("You already have an active or pending contract with this PT", 409)`.
+- Hậu quả: người dùng Việt thấy nguyên câu tiếng Anh. Web cũng hiện y hệt (cùng endpoint).
+- Mobile (đã vá, không đụng backend): `contractRequestError()` trong
+  `src/features/services/contracts.ts` ánh xạ các chuỗi tiếng Anh đã biết sang tiếng Việt và cho qua
+  nguyên văn những câu vốn đã tiếng Việt. Đã kiểm trên máy: toast nay là "Bạn đang có hợp đồng với huấn
+  luyện viên này rồi…".
+- Sửa tận gốc chỉ là đổi một chuỗi ở user-service — nhỏ, nhưng thuộc backend nên chờ Ngài cho phép.
+- Trạng thái: ĐÃ VÁ PHÍA MOBILE — backend chờ quyết định.
+## GAP-13 — Khiếu nại / hoàn tiền đơn dịch vụ 1-1: luồng chưa hoàn chỉnh — ⏸ TẠM TẮT TRÊN MOBILE, CHỜ BÀN VỚI PARTNER
+
+- Phát hiện: Phase 8 (CL-12), 2026-09-22, đọc `ai-service/src/services/personalized-service.service.ts`
+  + `controllers/personalized-service.controller.ts` + web admin.
+- **Khiếu nại (`POST /marketplace/orders/:id/dispute`, `openDispute`)**:
+  - Không kiểm trạng thái đơn — chỉ kiểm người gọi là khách **hoặc PT** của đơn, rồi đặt `DISPUTED`.
+  - `DISPUTED` chỉ được GHI ở đúng một chỗ, **không chỗ nào đọc lại**: không màn admin, không API xử lý, không
+    bước nào đưa đơn ra khỏi trạng thái này (trang "Khiếu nại buổi tập" của admin web là cho buổi tập hợp
+    đồng PT, không phải đơn 1-1). Khiếu nại chính đáng cũng nằm im mãi.
+  - Hậu quả cụ thể khi gọi được:
+    1. Đơn `PENDING_PAYMENT` → `DISPUTED`: khách trả tiền xong, `activateAfterPayment` chỉ cập nhật đơn còn
+       `PENDING_PAYMENT` nên bỏ qua → tiền đã bị giữ, đơn không kích hoạt.
+    2. Đơn `CANCELLED` / `REFUNDED` / `COMPLETED` → `DISPUTED`: lịch sử đơn sai; với `COMPLETED` tiền đã chuyển
+       cho PT từ lúc khách chấp nhận, và khách mất quyền đánh giá (đánh giá chỉ khi `COMPLETED`).
+    3. PT cũng khiếu nại được → đẩy đơn đang chạy của khách sang `DISPUTED`, khách không check-in / kết thúc
+       dịch vụ được nữa (hai việc đó chỉ khi `ACCEPTED`/`ACTIVE`).
+- **Hoàn tiền (`POST /marketplace/orders/:id/refund-request`, `requestRefund`)**: có kiểm trạng thái (chặn
+  REFUNDED/CANCELLED/REFUND_REQUESTED) và admin có luồng duyệt (`/marketplace/orders/refund-requests`,
+  `refund-resolve`), nhưng vẫn gọi được từ `DISPUTED`, và chính sách "ai được hoàn bao nhiêu khi PT đã làm một
+  phần" chưa được chốt với partner.
+- Web: có hàm `openDispute` nhưng **không nút nào gọi**; nút "Yêu cầu hoàn tiền / Khiếu nại" của web chỉ gọi
+  hoàn tiền (web KHÔNG đổi trong đợt này).
+- **Mobile (22/9, lệnh Ngài)**: comment lại — KHÔNG xoá — hai nút "Yêu cầu hoàn tiền" + "Khiếu nại", hai sheet
+  và hai mutation trong `frontend/mobile/app/client/plans/orders/[id].tsx` (tìm "TẠM TẮT 22/9"). Helper
+  `canRequestRefund` / `canDispute` và unit test của chúng vẫn giữ. "Huỷ đơn" (trước khi PT làm) vẫn bật.
+  Banner "Đang yêu cầu hoàn tiền / Đang khiếu nại" vẫn hiện nếu đơn đã ở hai trạng thái đó.
+- **Việc cần làm sau (sau khi Ngài bàn với partner)**:
+  1. Chốt chính sách: ai được khiếu nại (khách, PT, cả hai), ở trạng thái nào; hoàn tiền bao nhiêu theo tiến độ.
+  2. Backend (ai-service): guard trạng thái cho `openDispute`; luồng admin xử lý `DISPUTED` (xem, phân xử,
+     đưa đơn về trạng thái trước / hoàn tiền / đóng); không cho `requestRefund` từ `DISPUTED` nếu chính sách
+     không muốn.
+  3. Web: màn admin cho khiếu nại đơn 1-1; tách nút hoàn tiền / khiếu nại cho khách nếu chính sách giữ cả hai.
+  4. Mobile: bỏ comment ở `orders/[id].tsx` (ba chỗ) + kiểm lại trên máy.
+- Trạng thái: ⏸ TẠM TẮT — chờ Ngài bàn với partner. **Xác nhận lại 24/9 (đóng Phase 9): vẫn đang chờ, mang sang Phase 10.**
+
+## GAP-14 — Socket gateway giữ token lúc bắt tay suốt đời kết nối → chat hỏng sau 15 phút
+
+- Phát hiện: Phase 9 (SH-04), 2026-09-22, kiểm chat realtime trên máy ảo: tin PT gửi không tới máy.
+- Nguyên nhân: `backend/gateway/src/socket/socketAuth.ts` lưu `socket.data.authToken` lúc bắt tay;
+  `handlers/chat.handlers.ts` dùng đúng token đó để gọi chat-service mỗi lần `chat:join_conversation`
+  (kiểm quyền) và `chat:message:send` (lưu tin). Access token sống 15 phút (`JWT_ACCESS_EXPIRY`), nên một
+  socket mở lâu hơn 15 phút bị từ chối vào phòng / gửi tin, dù socket vẫn "connected" — lỗi trả qua
+  `chat:error`, không có dấu hiệu nào khác. Web dính y hệt (tab web mở > 15 phút rồi vào chat).
+- Mobile (đã làm, không đụng backend): `realtime/socketClient.ts` nhớ token đã bắt tay; `ensureFreshSocket()`
+  kết nối lại socket (callback `auth` làm mới phiên) trước khi vào phòng / gửi tin nếu token đó còn < 60s.
+  Đã kiểm trên máy ảo: socket 3,5 giờ tuổi → vào lại hội thoại → nhận/gửi realtime bình thường.
+- Đề xuất backend (chờ quyết định): cho client gửi token mới qua một sự kiện (vd `auth:refresh`) hoặc để
+  gateway tự làm mới/kiểm lại token mỗi lần gọi service; web cũng hưởng lợi.
+- Trạng thái: ĐÃ VÁ PHÍA MOBILE — backend chờ quyết định. **Xác nhận lại 24/9 (đóng Phase 9): vẫn đang chờ, mang sang Phase 10.**
+
+## GAP-15 — Ảnh trong AI Coach (image-chat, goal-image) chạy bằng khoá Anthropic dành riêng cho InBody
+
+- Phát hiện: Phase 9 (WB-12), 2026-09-22, khi kiểm luồng "Gửi ảnh & hỏi AI" trên máy ảo.
+- Nguyên nhân (đọc code, không đọc giá trị khoá): `ai-service/src/services/fitness-vision-chat.service.ts`
+  (và bản goal-image cùng mẫu) chọn nhà cung cấp theo thứ tự `LLM_PROVIDER=bedrock` → **`ANTHROPIC_API_KEY`
+  có mặt** → Ollama `GOAL_VISION_MODEL`. Container `gymcoach-ai-dev` hiện có `ANTHROPIC_API_KEY` (khoá Ngài
+  quy định **chỉ dùng cho quét InBody**), không đặt `GOAL_VISION_MODEL` → mọi ảnh gửi AI Coach đi qua khoá đó.
+  Web dính y hệt (cùng endpoint).
+- Đã xảy ra: 1 yêu cầu image-chat lúc kiểm (09:40, 22/9), server trả 500. **Đính chính (kiểm lại 22/9):** 500 là
+  `PayloadTooLargeError` ở bước đọc body (GAP-18) — yêu cầu **chưa tới Anthropic**, khoá chưa bị dùng. **Đã ngừng mọi
+  kiểm thử luồng ảnh** (cả "Ảnh hình thể tham khảo") cho tới khi Ngài quyết.
+- Mobile (đã làm): lỗi 5xx của `/ai/agent/*` hiện câu tiếng Việt, không hiện câu tiếng Anh thô của server.
+- Cần Ngài quyết (backend/cấu hình, mobile không đụng): (a) bỏ `ANTHROPIC_API_KEY` khỏi env của ai-service,
+  chỉ để service InBody dùng; hoặc (b) thêm cờ riêng (vd `VISION_CHAT_PROVIDER`) để image-chat/goal-image
+  không tự dùng khoá InBody; hoặc (c) cho phép dùng khoá cho hai luồng này.
+- **Quyết định 22/9 (Ngài): chọn (c)** — cho phép image-chat và goal-image dùng khoá này. Chỉ hai luồng ảnh đó;
+  mọi luồng khác vẫn cấm dùng khoá.
+- Trạng thái: ĐÃ QUYẾT (c) — không cần đổi backend. Luồng ảnh được phép kiểm trên máy.
+
+## GAP-16 — Image user-service dev mang bản `@gym-coach/shared` cũ → mọi thao tác agent qua user-service lỗi 500
+
+- Phát hiện: Phase 9 (WB-12), 22/9, hỏi AI Coach "Tìm PT cho tôi" trên máy ảo: hỏi đủ mục tiêu/ngày/ngân sách
+  thì server trả "An unexpected error occurred".
+- Chuỗi lỗi (đã kiểm): ai-service → `POST user-service /profile/agent/candidates` → 500. Chạy thẳng hàm
+  `agenticFitnessService.candidates` trong container: `TypeError: Cannot read properties of undefined (reading
+  'parse')` — `AgentPreferencesSchema` là `undefined` vì `/app/backend/shared/dist` trong image
+  `compose-user-service` là bản build 13/9, chưa có `fitness-agent` (thêm sau merge 18/9). Image ai-service
+  thì có bản mới. `src` của user-service được mount nhưng `shared/dist` nằm cứng trong image.
+- Ảnh hưởng: mọi công cụ agent ở user-service (`/profile/agent/candidates`, `/goal`, `/drafts`, …) → web và
+  mobile đều không ra được gợi ý PT/chương trình, không tạo được nháp hợp đồng qua AI Coach.
+- Không phải lỗi code — môi trường dev cũ. Cách sửa: build lại image user-service (lưu ý gotcha
+  `patchedDependencies` với Dockerfile.dev) rồi recreate container. Mobile không tự làm (đụng backend đang chạy
+  chung) — chờ Ngài cho phép.
+- Phía mobile (đã sửa, do dữ liệu thật lộ ra): khối WORKFLOW_MISSING_DATA nhận `known` dạng `{label, value}` (web
+  khai `string[]` và render thẳng → nhiều khả năng web cũng sập ở khối này); enum mục tiêu hiện tiếng Việt.
+- **22/9 — ĐÃ XỬ LÝ (Ngài cho phép):** build lại + recreate `user-service` (migrate status "up to date" trước khi
+  chạy) và `fitness-service` (image này cũng mang shared cũ → `/workouts/agent/candidates` 500; `migrate diff` DB ↔
+  schema rỗng nên `db push --accept-data-loss` lúc khởi động không đổi gì). Tên biến môi trường trước/sau giống
+  hệt; cả hai healthy; `AgentPreferencesSchema` có mặt. Tìm PT qua AI Coach hết 500 (trả kết quả thật).
+  Lưu ý: lần khởi động fitness chạy `seed_all` như mọi lần, và lần này importer `exercise_muscle_mapping` **chèn
+  3.065 dòng ánh xạ bài tập–nhóm cơ** (bỏ qua 36 trùng) — dữ liệu danh mục, không phải dữ liệu người dùng; image cũ
+  chưa có importer này. `auth-service` cũng còn shared cũ nhưng không dùng phần agent — chưa đụng.
+- Trạng thái: ĐÃ XỬ LÝ (môi trường dev).
+
+## GAP-17 — AI Coach "gợi ý chương trình tự tập" hỏng khi hồ sơ chưa có trình độ tập
+
+- Phát hiện: Phase 9 (WB-12), 22/9, sau khi GAP-16 đã xử lý. "tôi tự tập, gợi ý chương trình" → hỏi mục tiêu → hỏi
+  ngày tập → server trả "An unexpected error occurred".
+- Nguyên nhân (đã kiểm): `fitness-service /workouts/agent/candidates` trả **422 "Provide goal, training days and
+  experience level"**; hồ sơ john có `experienceLevel` = null. Workflow `find-pt-program` của ai-service không có
+  bước hỏi trình độ, và lỗi 422 bị đổi thành câu tiếng Anh chung chung — người dùng kẹt, không biết cần bổ sung gì.
+  Web dính y hệt.
+- Không sửa dữ liệu john để test qua (quy tắc repo). Mobile không đổi backend.
+- Đề xuất backend: thêm slot "trình độ tập" vào workflow này (hoặc đọc từ hồ sơ và hỏi nếu thiếu), và trả 422 thành
+  câu hỏi/thông điệp tiếng Việt thay vì lỗi chung.
+- **22/9 — ĐÃ SỬA (lệnh Ngài, sửa backend ai-service):** thêm slot "trình độ tập" (PROFILE_FACT → `experienceLevel`,
+  qua khối "Cập nhật hồ sơ" có sẵn) vào workflow gợi ý chương trình (`find-pt-program.workflow.ts`); parser
+  `parseExperienceLevel` (`slot-values.ts`, không nhận nhầm "mỗi buổi"); `experienceLevel` vào whitelist ghi hồ sơ +
+  bí danh trong context (`fitness-agent-tools.ts`); bỏ `experienceLevel` khỏi AgentPreferences khi tiếp tục
+  (`fitness-agent.service.ts`); mục tiêu trong phần "đã biết" hiện tiếng Việt thay enum. Test mới
+  `agent-workflow-program-experience.test.ts` (BACKEND INTEGRATION, DB `gymcoach_ai_test`) 2/2 + test cũ
+  `agent-workflow-program-e2e` xanh. REAL emulator: hỏi đủ 4 mục → khối "Trình độ tập: Chưa thiết lập → Mới tập"
+  (không bấm xác nhận để khỏi ghi hồ sơ john). Web: khối xác nhận của web chưa có nhãn cho `experienceLevel`
+  (sẽ hiện tên trường thô) — không sửa web.
+- Trạng thái: ĐÃ SỬA.
+
+## GAP-18 — "Gửi ảnh & hỏi AI" (image-chat) hỏng với ảnh chụp thật: giới hạn body 100 KB
+
+- Phát hiện: Phase 9 (WB-12), 22/9, gửi 1 ảnh (≈1,1 MB) qua "Gửi ảnh & hỏi AI" → 500; log ai-service:
+  `PayloadTooLargeError: request entity too large`.
+- Nguyên nhân (đọc code): `ai-service/src/app.ts` chỉ nới `express.json({ limit: "6mb" })` cho
+  `/ai/agent/goal-image`; `/ai/agent/image-chat` rơi vào `express.json()` mặc định **100 KB**. Ảnh gửi dạng base64
+  JSON, nên ảnh > ~75 KB đều bị từ chối trước khi tới xử lý — web (cho chọn tới 4 MB) dính y hệt.
+- Lỗi này bị trả thành 500 chung → mobile hiện "Không thể phân tích ảnh. Vui lòng thử lại." (đã kiểm trên máy).
+- Mobile không tự nén ảnh xuống < 100 KB để lách (ảnh sẽ quá mờ để máy/lịch tập đọc được, và web vẫn hỏng).
+- Đề xuất backend: thêm `app.use("/ai/agent/image-chat", express.json({ limit: "6mb" }))` như goal-image; trả 413
+  với thông điệp tiếng Việt.
+- goal-image (giới hạn 6 MB) đã kiểm trên máy 22/9 — chạy tới kết quả thật (sau khi mobile sửa nhãn loại ảnh).
+- **22/9 — ĐÃ SỬA (lệnh Ngài):** `ai-service/src/app.ts` thêm `express.json({ limit: "6mb" })` cho
+  `/ai/agent/image-chat`; lỗi body quá lớn nay trả 413 "Ảnh quá lớn. Hãy chọn ảnh JPEG/PNG dưới 4 MB." thay vì 500.
+  REAL emulator: gửi ảnh phòng gym + "Phòng tập này có gì?" → AI trả lời đúng nội dung ảnh (qua khoá theo GAP-15 (c)).
+- Trạng thái: ĐÃ SỬA.
+
+## GAP-20 — Liên kết xác minh đối tác không mở được thẳng ứng dụng (Phase 12, WB-15)
+
+**Hiện trạng.** Thư "Xác minh email để trở thành đối tác" trỏ tới trang WEB:
+`{x-public-base-url}/partner/apply/verify#token=…`. Trên điện thoại, một liên kết https chỉ mở thẳng
+ứng dụng khi có **App Links đã xác minh tên miền** (Android cần `assetlinks.json` trên chính tên miền
+đó). Môi trường phát triển chưa có tên miền nào để xác minh.
+
+**Ảnh hưởng.** Người dùng bấm liên kết trong thư trên điện thoại sẽ mở trình duyệt, không mở app.
+
+**Ứng dụng đang xử lý thế nào.** Màn `partner/verify` nhận mã theo ba đường: deep link
+`fitnessassistant://partner/verify#token=…`, dán cả liên kết, hoặc dán riêng mã. Đủ dùng, nhưng
+không phải trải nghiệm đúng.
+
+**Cần ở phía backend/hạ tầng (khi có tên miền thật).** Phục vụ `/.well-known/assetlinks.json` với
+`applicationId` và dấu vân tay chứng chỉ ký của ứng dụng; giữ nguyên dạng liên kết hiện tại (mã ở
+fragment) — không cần đổi gì trong thư.
+
+**Không chặn Phase 12.**
+
+## GAP-21 — Danh bạ người dùng của admin gán sai vai trò và trạng thái (Phase 13, AD-01/AD-05)
+
+**Phát hiện 28/9** khi dựng AD-01 trên dữ liệu thật. Nằm ở gateway (`backend/gateway/src/routes/
+proxy.routes.ts`), hai route tổng hợp `GET /admin/dashboard` và `GET /admin/users`:
+
+1. **Vai trò:** `role: u.role === "PT" ? "PT" : "Client"` (và biến thể có "Admin") → mọi tài khoản
+   **GYM_OWNER hiện là "Client"**. Thấy thật: `p12-mobile@example.com` (chủ gym vừa được duyệt) nằm
+   trong "Đăng ký gần đây" với nhãn khách hàng.
+2. **Phân bổ vai trò của dashboard** chỉ có `Clients` + `Trainers` → 143 + 8 = 151 trên tổng 205;
+   54 tài khoản (chủ gym, quản trị viên…) không thuộc cột nào.
+3. **Trạng thái:** `/admin/users` gán cứng `status = "Active"` (chú thích trong code: "We don't have a
+   suspended/inactive field yet") — nhưng auth-service **đã** trả `isActive`. Hệ quả: khoá một tài
+   khoản xong, danh sách vẫn nói "Active".
+4. `recentUsers` của dashboard gán `status = "Pending"` cho mọi PT — nhãn không có nghĩa gì với PT đã duyệt.
+
+**Mobile đang xử lý thế nào.** AD-01 hiện phần chênh là **"Chưa phân loại"** kèm một câu giải thích,
+thay vì để 151 và 205 mâu thuẫn cạnh nhau. Nhãn vai trò từng dòng vẫn là của máy chủ (app không có cách
+biết đúng hơn). AD-05 **chưa** làm hành động khoá/mở — làm rồi mà danh sách không phản ánh thì người
+duyệt không biết mình vừa làm gì.
+
+**Cần ở gateway (nhỏ):** ánh xạ `GYM_OWNER` → một nhãn riêng; thêm cột chủ gym (và admin nếu muốn) vào
+`roleData`; lấy `status` từ `isActive` của auth-service; bỏ "Pending" cho PT. Không đổi hình dạng
+câu trả lời.
+
+**Không chặn AD-01 / AD-06. Chặn phần "khoá/mở khoá" của AD-05.**
+
+**ĐÃ SỬA 28/9 (Ngài cho phép):** `backend/gateway/src/utils/adminUserView.ts` + `proxy.routes.ts` —
+nhãn "Gym Owner", lát "Gym owners" trong `roleData`, `status` từ `isActive`, bỏ "Pending" cho PT. Test 3 ca
+mới, gateway 41/41; `REAL HTTP/API` sau `docker compose restart api-gateway`. Chi tiết:
+`MOBILE_PLATFORM_ADAPTERS.md` §35.1. Trạng thái: **ĐÃ SỬA**.

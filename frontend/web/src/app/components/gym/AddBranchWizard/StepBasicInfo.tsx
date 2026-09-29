@@ -80,7 +80,7 @@ export function StepBasicInfo({
             value={value.description}
             onChange={(e) => onChange({ ...value, description: e.target.value })}
             rows={4}
-            maxLength={2000}
+            maxLength={DESC_MAX}
             placeholder="Không gian rộng rãi, đầy đủ thiết bị hiện đại, có HLV hỗ trợ..."
             className={`${inputClass} resize-none`}
           />

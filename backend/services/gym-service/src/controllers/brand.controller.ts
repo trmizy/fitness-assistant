@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { brandLogoUrl } from '../services/gym-photo-url';
 import { brandService } from '../services/brand.service';
 import { principalId } from '../middleware/partner-context.middleware';
 
@@ -16,7 +17,9 @@ export const brandController = {
   async listOwned(req: Request, res: Response) {
     const ownerId = principalId(req);
     const brands = await brandService.listOwned(ownerId);
-    res.json({ success: true, data: brands });
+    // Logo nằm trong bucket riêng tư → link ký tạm, để trang hồ sơ chủ gym hiện được logo hiện tại.
+    const withLogo = await Promise.all(brands.map(async (b: any) => ({ ...b, logoUrl: await brandLogoUrl(b.logoKey) })));
+    res.json({ success: true, data: withLogo });
   },
 
   async getOwnedById(req: Request, res: Response) {
