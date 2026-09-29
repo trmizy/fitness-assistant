@@ -390,6 +390,15 @@ exports.Prisma.NotificationPreferenceScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PushDeviceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  token: 'token',
+  platform: 'platform',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PTAvailabilityScalarFieldEnum = {
   id: 'id',
   ptUserId: 'ptUserId',
@@ -824,6 +833,7 @@ exports.Prisma.ModelName = {
   ClientReview: 'ClientReview',
   Notification: 'Notification',
   NotificationPreference: 'NotificationPreference',
+  PushDevice: 'PushDevice',
   PTAvailability: 'PTAvailability',
   PTScheduleException: 'PTScheduleException',
   VietnamProvince: 'VietnamProvince',

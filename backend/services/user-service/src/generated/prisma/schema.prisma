@@ -802,6 +802,23 @@ model NotificationPreference {
   @@map("notification_preferences")
 }
 
+// Mobile Phase 14.2 — one row per phone install that can receive push notifications.
+// The FCM token identifies the INSTALL, not the person: when another account signs in on
+// the same phone the row is re-pointed at them (upsert by token), so a phone never keeps
+// receiving the previous account's notifications. Tokens FCM reports as dead are deleted
+// by push.service.ts on the first failed send.
+model PushDevice {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  platform  String   @default("android")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("push_devices")
+}
+
 // ─── PT Availability ──────────────────────────────────────────────
 
 model PTAvailability {

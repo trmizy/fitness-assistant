@@ -82,4 +82,49 @@ export const notificationController = {
       res.status(500).json({ error: "Failed to update notification preferences" });
     }
   },
+
+  // Mobile Phase 14.2 — POST /notifications/devices { token, platform? }. The owner is always
+  // the authenticated caller (x-user-id from the gateway), never a body field.
+  async registerDevice(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const token = req.body?.token;
+      const platform = req.body?.platform ?? "android";
+      if (!isPlausibleToken(token)) {
+        res.status(400).json({ error: "INVALID_PUSH_TOKEN" });
+        return;
+      }
+      if (platform !== "android") {
+        res.status(400).json({ error: "UNSUPPORTED_PLATFORM" });
+        return;
+      }
+      await notificationService.registerDevice(userId, token, platform);
+      res.status(204).end();
+    } catch (error: any) {
+      logger.error(error, "Register push device error");
+      res.status(500).json({ error: "Failed to register device" });
+    }
+  },
+
+  // DELETE /notifications/devices/:token — sign-out. Only removes the caller's own row.
+  async unregisterDevice(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const token = req.params.token;
+      if (!isPlausibleToken(token)) {
+        res.status(400).json({ error: "INVALID_PUSH_TOKEN" });
+        return;
+      }
+      await notificationService.unregisterDevice(userId, token);
+      res.status(204).end();
+    } catch (error: any) {
+      logger.error(error, "Unregister push device error");
+      res.status(500).json({ error: "Failed to unregister device" });
+    }
+  },
 };
+
+/** FCM registration tokens are long opaque strings; this only rejects obvious garbage. */
+export function isPlausibleToken(token: unknown): token is string {
+  return typeof token === "string" && token.length >= 20 && token.length <= 4096 && !/\s/.test(token);
+}

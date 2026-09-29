@@ -5,6 +5,8 @@ import {
   NotificationEntityType,
 } from "../generated/prisma";
 import { notificationRepository } from "../repositories/notification.repository";
+import { pushDeviceRepository } from "../repositories/push-device.repository";
+import { pushService } from "./push.service";
 
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
@@ -86,6 +88,8 @@ export const notificationService = {
 
     // Push real-time (non-blocking)
     pushToSocket({ userId: data.userId, notification });
+    // Mobile Phase 14.2 — and to the user's phones (non-blocking, never throws).
+    void pushService.sendToUser(notification);
 
     return notification;
   },
@@ -126,5 +130,14 @@ export const notificationService = {
 
   async getUnreadCount(userId: string) {
     return notificationRepository.countUnread(userId);
+  },
+
+  // Mobile Phase 14.2 — the caller's phone subscribes / unsubscribes (see PushDevice).
+  async registerDevice(userId: string, token: string, platform: string) {
+    await pushDeviceRepository.register(token, userId, platform);
+  },
+
+  async unregisterDevice(userId: string, token: string) {
+    await pushDeviceRepository.unregister(token, userId);
   },
 };
