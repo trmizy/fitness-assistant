@@ -277,6 +277,7 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      FIREBASE_CREDENTIALS_DIR: /app/secret
       # TEMPORARY (requested to unblock local testing): this dev environment has no public
       # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
       # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
@@ -290,6 +291,10 @@ services:
       - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
+      # Mobile Phase 14.2 — Firebase service-account key for phone push (push.service.ts reads
+      # the first service_account JSON in FIREBASE_CREDENTIALS_DIR). Read-only; the folder is
+      # git-ignored and never baked into an image. Missing folder = push simply off.
+      - ../../secret:/app/secret:ro
     depends_on:
       postgres:
         condition: service_healthy

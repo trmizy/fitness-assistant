@@ -5517,6 +5517,13 @@ export const notificationService = {
     const { data } = await api.put("/notifications/preferences", patch);
     return data;
   },
+  // Phase 14.2 — this phone's FCM token. The owner is whoever is signed in (server-side).
+  registerDevice: async (token: string) => {
+    await api.post("/notifications/devices", { token, platform: "android" });
+  },
+  unregisterDevice: async (token: string) => {
+    await api.delete(`/notifications/devices/${encodeURIComponent(token)}`, { timeout: 5000 });
+  },
 };
 
 // Roadmap P4.1 "Notifications/reminders" (§27).
