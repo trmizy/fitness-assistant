@@ -74,6 +74,13 @@ export const agentUpdatableProfileFieldsSchema = z.object({
 }).strict();
 export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
 
+/** Marks an error as coming from the profile READ itself (getUserFitnessContext), so callers can tell a profile outage from any other tool failure. */
+export const PROFILE_READ_ORIGIN = "profile-read";
+function markProfileReadOrigin(err: unknown): never {
+  if (err && typeof err === "object") (err as { origin?: string }).origin = PROFILE_READ_ORIGIN;
+  throw err;
+}
+
 async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
   const baseURL = service === "user" ? process.env.USER_SERVICE_URL ?? "http://localhost:3004" : process.env.FITNESS_SERVICE_URL ?? "http://localhost:3002";
@@ -98,9 +105,18 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
 
 export const fitnessAgentTools = {
   async getUserFitnessContext(identity: AgentIdentity) {
-    const profile = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
-    const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
-    return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    try {
+      const raw = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
+      // user-service stores preferredTrainingDays as 0..6 with 0 = Chủ nhật (OnboardingWizardPage weekdayOptions), while every
+      // AgentPreferences day array is 1..7 (1 = Thứ 2 .. 7 = Chủ nhật). Only Sunday differs; passing a raw 0 through made
+      // AgentPreferencesSchema throw (HTTP 500) on any PT / program / workout request for a user who picked Chủ nhật
+      // (found by the full chat verification). Normalise at this single read boundary.
+      const profile = { ...raw, days: [...new Set(raw.days.map((d) => (d === 0 ? 7 : d)))].sort((a, b) => a - b) };
+      const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
+      return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    } catch (err) {
+      return markProfileReadOrigin(err);
+    }
   },
   async findPTCandidates(identity: AgentIdentity, preferences: AgentPreferences) {
     const result = await domain(identity, "user", "POST", "/profile/agent/candidates", AgentPreferencesSchema.parse(preferences), ptResultSchema);
@@ -137,9 +153,15 @@ export const fitnessAgentTools = {
   // PATCH — see design doc §5/§29) so a slot-filling workflow can only ever
   // set the specific fields it's designed to ask about, never an arbitrary
   // property name an LLM extractor might produce.
-  updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
+  async updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
     const body = agentUpdatableProfileFieldsSchema.parse(fields);
-    return domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    const result = await domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    // The authoritative profile just changed: drop the AI service's own short-lived profile snapshot so the workflow
+    // that resumes RIGHT AFTER this write (and the next chat turn) reads the fresh profile, never the pre-write one.
+    // (Found by the full chat verification: the resumed roadmap request answered "missing profile data" for values
+    // that had just been saved, because profile_extractor served its 15 s cache.)
+    profileExtractor.invalidateCache(identity.userId);
+    return result;
   },
   // Agent automation (chat "hãy tạo và gán lộ trình/plan tập/dinh dưỡng vào
   // hệ thống") — all four calls below reuse EXISTING, already-shipped
