@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FileText,
   MapPin,
+  QrCode,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -660,6 +661,12 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
 
                   {membership.status === "ACTIVE" && left != null ? (
                     <Text className="font-body text-xs text-muted-foreground">{`Còn ${left} ngày`}</Text>
+                  ) : null}
+                  {/* Phase 14.3 — check in at the desk by scanning the gym's QR (web: GymMembershipsPage). */}
+                  {membership.status === "ACTIVE" ? (
+                    <Button size="sm" icon={QrCode} onPress={() => router.push("/client/services/checkin" as never)}>
+                      Quét mã check-in
+                    </Button>
                   ) : null}
 
                   {canReportMembership(membership) ? (

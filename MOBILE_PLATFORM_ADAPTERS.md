@@ -3094,3 +3094,22 @@ cũng chưa từng có push). Firebase project `gymini-8ea09` do Ngài tạo; `g
 - Tin nhắn chat (chat-service) **không** đi qua `notificationService` nên chưa có push — ngoài phạm vi bảng
   `notifications`; cần quyết nếu muốn.
 - Dữ liệu thử: 8 thông báo "[Thử nghiệm] …" tạo khi kiểm đã **xoá** khỏi danh sách của hytrongbeou (Ngài đồng ý, 30/9).
+
+## 39. Phase 14.3 — hội viên quét QR check-in (30/9)
+
+**Đã dựng:** nút "Quét mã check-in" trên gói hội viên ĐANG HIỆU LỰC (tab Dịch vụ → Hội viên, như web
+`GymMembershipsPage`) → màn `app/client/services/checkin.tsx`: `expo-camera` `CameraView` quét QR bằng bộ đọc mã gốc,
+camera chỉ chạy khi màn đang hiển thị; xin quyền camera, từ chối hẳn thì mở Cài đặt; một lần quét = một yêu cầu
+`POST /me/gym-checkins`, lỗi thì tự cho quét lại sau 2,5 s; chỉ gửi mã đúng dạng token check-in có chữ ký
+(`base64url.base64url`, `utils/checkinToken.ts` của gym-service) — link, mã vạch, Wi-Fi… bị bỏ qua tại máy. Thành công:
+thẻ cho lễ tân (tên, phòng gym, gói, lượt, hạn thẻ, giờ vào). Logic thuần ở `src/features/services/checkin.ts`.
+
+**Kiểm:** `checkin.test.ts` 5/5; `tsc` sạch; lint không cảnh báo mới. Trên máy ảo: nút chỉ hiện ở gói "Đang hiệu lực",
+màn xin quyền → cấp quyền → camera chạy với khung ngắm.
+
+**CHƯA kiểm:** camera đọc mã QR thật → check-in. Đã lấy mã QR thật của Titan Gym (`GET /owner/gyms/:id/checkin-qr`
+bằng chủ gym) và thử dán lên cảnh camera ảo (`-virtualscene-poster`, `emu virtualscene-image`) — bản emulator này không
+hiện ảnh dán (đã xoay đủ 360°). Cần điện thoại thật hoặc webcam.
+
+**Còn mở:** phía CHỦ GYM trên mobile chưa có chỗ hiện mã QR để in (web: `GymCheckinPanel` trong trang quản lý chi nhánh;
+mobile chưa có màn chi tiết chi nhánh — GY-03). Cần thư viện vẽ QR cho RN → hỏi Ngài.
