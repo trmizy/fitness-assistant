@@ -3045,3 +3045,52 @@ lúc sửa code là nhất thời (tải lại là hết), không phải lỗi c
 - **Callback trùng (idempotency)**: do backend (`handleEvent` idempotent, chống cộng hai lần) — `CODE AUDIT`, không kiểm thêm.
 - **MoMo** chưa bấm thử.
 - Hai quan sát phía backend (không sửa) → `MOBILE_BACKEND_GAPS.md` GAP-22.
+
+## 38. Phase 14.2 — thông báo đẩy (FCM) (29–30/9)
+
+**Quyết định của Ngài (28/9):** cho sửa backend vì trước đó không có gì cho push (không lưu token, không gửi; web
+cũng chưa từng có push). Firebase project `gymini-8ea09` do Ngài tạo; `google-services.json` ở
+`frontend/mobile/`, khoá tài khoản dịch vụ ở `secret/` (gitignore) gắn chỉ-đọc vào user-service dev.
+
+### 38.1 Đã dựng
+
+| Phía | File | Ghi chú |
+|---|---|---|
+| Backend | `user-service`: model `PushDevice` + migration `20260929090000_push_devices`, `push-device.repository.ts`, `push.service.ts`, `POST /notifications/devices`, `DELETE /notifications/devices/:token` | Mọi thông báo đi qua `notificationService.create` → có push, không sửa từng nguồn. FCM HTTP v1 ký JWT bằng `node:crypto` (không thêm thư viện, không rebuild image). Best-effort, không bao giờ làm hỏng việc tạo thông báo. Token định danh MÁY: tài khoản khác đăng nhập → dòng chuyển sang họ. Chỉ xoá token khi FCM báo `UNREGISTERED`/404. Gateway đã proxy `/notifications/*` nên không đổi gateway. |
+| App | `src/features/push/{pushRouting.ts,pushDevice.ts,PushManager.tsx}`, `app/_layout.tsx`, `AppContext.logout`, `app.json` (`googleServicesFile`) | Xin quyền (Android 13+), kênh `default`, đăng ký token + đăng ký lại khi FCM xoay token. Push không dành cho người đang đăng nhập: không hiện banner, bấm không mở gì. Bấm → khách đi theo `notificationRoute` (như danh sách trong app), PT với link phía khách đi theo khách, vai trò khác về trang chủ vai trò; đánh dấu đã đọc. Đăng xuất: huỷ token (khi phiên còn hiệu lực) + xoá khay thông báo. |
+
+### 38.2 Kiểm chứng (máy ảo Pixel có Google Play, tài khoản `hytrongbeou@gmail.com`)
+
+- **Tự động:** backend `push-service.test.ts` 6/6 (JWT RS256 xác minh được bằng khoá công khai, dạng tin, token chết, đọc khoá); mobile `pushRouting.test.ts` 7/7; toàn bộ unit mobile 584/584; `tsc` sạch; lint không cảnh báo mới.
+- **REAL HTTP/API + máy ảo:** thông báo tạo qua `POST /internal/notifications` (đúng đường các service khác dùng), FCM thật.
+
+| Ca | Bản | Kết quả |
+|---|---|---|
+| Đăng nhập → xin quyền → đăng ký | dev | Hộp quyền Android hiện; bấm Allow → dòng `push_devices` đúng `user_id`, token 142 ký tự |
+| App đang mở | dev | Banner "Gymini · [Thử nghiệm] …" hiện trên màn hình |
+| App chạy nền → bấm | dev | Mở **Buổi tập** (`/client/booking` → `/client/services/booking`), `unread = false` |
+| App đã tắt (vuốt khỏi đa nhiệm, `pid` trống, `stopped=false`) → bấm | **release** | Khởi động lạnh → mở **Buổi tập**, `unread = false` |
+| Đăng xuất | release | `push_devices` của tài khoản → 0 dòng; push gửi sau đó **không tới máy** |
+
+### 38.3 Phát hiện trong lúc kiểm
+
+1. **Bản dev client làm rơi thao tác bấm thông báo khi khởi động lạnh** — trình khởi chạy của dev client mở lại app bằng
+   `fitnessassistant://expo-development-client/...` với cờ xoá task ngay sau intent của thông báo (logcat), cùng họ với
+   §37.3. Không phải lỗi code; bản release (không có trình khởi chạy đó) nhận đúng → ca "app đã tắt" chỉ kiểm được trên release.
+2. **Sửa thật:** ở bản release, bấm thông báo khi app tắt được xử lý (đánh dấu đã đọc) nhưng rồi app nằm ở Trang chủ —
+   chuyển hướng mặc định của `app/index` đè lên. `PushManager` giờ chỉ mở màn đích khi app đã rời `/`.
+3. **Bẫy công cụ:** Git Bash đổi `/client/booking` thành `C:/Program Files/Git/client/booking` khi truyền vào
+   `docker exec -e` → hai thông báo thử đầu có link hỏng (app mở danh sách thông báo, đúng hành vi với link lạ).
+   Script thử phải `export MSYS_NO_PATHCONV=1`.
+4. `am kill` không tắt được tiến trình vừa được đánh thức — muốn thử "app đã tắt" phải vuốt khỏi đa nhiệm (hoặc
+   kiểm `pid` trước khi gửi). `force-stop` thì chặn luôn FCM, không phản ánh thực tế.
+5. Build: bản debug cần `NODE_PATH` (lỗi worklets của Reanimated), bản release cần thêm `NODE_ENV=production` và lớp
+   manifest tạm cho HTTP thường (đã gỡ sau khi đo). Máy ảo x86_64 cần build riêng `-PreactNativeArchitectures=x86_64`.
+
+### 38.4 Còn mở của 14.2
+
+- Chưa kiểm trên **điện thoại thật** (ROG Phone 6 đã có bản arm64 có Firebase, chưa chạy lại ca nào) và chưa kiểm
+  **đổi tài khoản trên cùng máy** bằng tay (logic có test đơn vị + upsert theo token phía server).
+- Tin nhắn chat (chat-service) **không** đi qua `notificationService` nên chưa có push — ngoài phạm vi bảng
+  `notifications`; cần quyết nếu muốn.
+- Dữ liệu thử: 8 thông báo "[Thử nghiệm] …" tạo khi kiểm đã **xoá** khỏi danh sách của hytrongbeou (Ngài đồng ý, 30/9).

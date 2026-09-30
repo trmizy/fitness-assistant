@@ -17,6 +17,7 @@ import { AppProvider } from "../src/context/AppContext";
 import { RequirePasswordChange } from "../src/components/guards/RequirePasswordChange";
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
+import { PushManager } from "../src/features/push/PushManager";
 
 // GestureHandlerRootView must wrap the whole app (react-native-gesture-handler's own
 // requirement), and SafeAreaProvider must sit above every screen that reads insets.
@@ -82,6 +83,8 @@ export default function RootLayout() {
                   <RequirePasswordChange>
                     <Slot />
                   </RequirePasswordChange>
+                  {/* Phase 14.2 — phone push: registers this device, routes taps. Renders nothing. */}
+                  <PushManager />
                 </ToastProvider>
               </SocketProvider>
             </AppProvider>
