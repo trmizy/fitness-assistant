@@ -181,6 +181,17 @@ export const callService = {
     return callRepository.updateStatus(callSessionId, CallStatus.CONNECTING);
   },
 
+  /**
+   * Called when a participant's WebRTC connection reports "connected" (`call:connected`). Only
+   * the call's own caller/callee count; see callRepository.markConnected for first-wins.
+   */
+  async markConnected(callSessionId: string, userId: string) {
+    const call = await callRepository.findById(callSessionId);
+    if (!call) return { error: "Call not found" };
+    if (call.callerId !== userId && call.calleeId !== userId) return { error: "Not authorized" };
+    return callRepository.markConnected(callSessionId);
+  },
+
   async setActive(callSessionId: string) {
     return callRepository.updateStatus(callSessionId, CallStatus.ACTIVE, {
       startedAt: new Date(),

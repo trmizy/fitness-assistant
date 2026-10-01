@@ -501,6 +501,23 @@ export function registerCallHandlers(
     },
   );
 
+  // ── Peer connection established (either side) ───────────────
+  // Sent by a client when its RTCPeerConnection reaches "connected" — the moment media really
+  // flows, which is what the call-log duration should measure (not accept, not the SDP answer:
+  // a call whose ICE never connects must log 0:00). Nothing is relayed; it only records.
+  socket.on(
+    "call:connected",
+    async ({ callSessionId }: { callSessionId: string }) => {
+      try {
+        const result = await callService.markConnected(callSessionId, user.id);
+        if ("error" in result) return;
+        if (result.started) logger.info({ callSessionId, by: user.id }, "Call connected");
+      } catch (error) {
+        logger.error(error, "call:connected error");
+      }
+    },
+  );
+
   // ── ICE Candidate relay ──────────────────────────────────────
   socket.on(
     "call:ice_candidate",

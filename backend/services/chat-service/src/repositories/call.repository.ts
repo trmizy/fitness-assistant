@@ -28,6 +28,26 @@ export const callRepository = {
       data: { status, ...extra },
     }),
 
+  /**
+   * A participant's peer connection reached "connected". The FIRST report stamps `startedAt`
+   * (the duration shown in the call-log message is measured from here); later reports — the
+   * other side's, or a renegotiation after an open-room rejoin — only lift the status back to
+   * ACTIVE and never move `startedAt`. Conditional updates, so two simultaneous reports can't
+   * both win. Terminal rows (ENDED, MISSED, …) are never touched.
+   */
+  markConnected: async (id: string, at: Date = new Date()) => {
+    const first = await prisma.callSession.updateMany({
+      where: { id, startedAt: null, status: { in: ["ACCEPTED", "CONNECTING", "ACTIVE"] } },
+      data: { status: "ACTIVE", startedAt: at },
+    });
+    if (first.count > 0) return { started: true };
+    await prisma.callSession.updateMany({
+      where: { id, status: { in: ["ACCEPTED", "CONNECTING"] } },
+      data: { status: "ACTIVE" },
+    });
+    return { started: false };
+  },
+
   /** Find any non-terminal call for a user (as caller or callee) */
   findActiveCallForUser: (userId: string) =>
     prisma.callSession.findFirst({
