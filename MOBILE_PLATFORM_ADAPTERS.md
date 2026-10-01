@@ -3113,3 +3113,39 @@ hiện ảnh dán (đã xoay đủ 360°). Cần điện thoại thật hoặc w
 
 **Còn mở:** phía CHỦ GYM trên mobile chưa có chỗ hiện mã QR để in (web: `GymCheckinPanel` trong trang quản lý chi nhánh;
 mobile chưa có màn chi tiết chi nhánh — GY-03). Cần thư viện vẽ QR cho RN → hỏi Ngài.
+
+## 40. Phase 14.4 — gọi thoại/video (SH-05) (30/9)
+
+**Đã dựng** (`src/features/call/`): `callState.ts` (máy trạng thái y hệt `CallContext` của web + cửa sổ vào phòng
+`joinSessionState`: chỉ buổi ONLINE + CONFIRMED, từ 30 phút trước giờ bắt đầu tới 30 phút sau giờ kết thúc),
+`useRNWebRTC.ts` (`react-native-webrtc` 124: lấy media trước, VIDEO hỏng camera thì vào bằng âm thanh; xếp hàng ICE tới
+khi có remote description; đóng peer mà giữ media cho phòng mở), `CallProvider.tsx` (bắt `call:*` trên socket của
+chat-service suốt phiên; dọn khi đăng xuất), `CallOverlay.tsx` (Modal toàn màn: gọi đến / gọi đi / xem trước / chờ /
+đang kết nối / đang gọi, đếm ngược phòng, nút đổi camera trước↔sau). Lối vào: nút gọi thoại + video ở đầu khung chat;
+`JoinSessionButton` ở thẻ buổi tập của khách (`services/booking.tsx`) và lịch dạy PT (`pt/schedule.tsx`).
+
+**Khác web, có chủ đích:** (1) sau khi chờ xin quyền micro/camera, kiểm lại cuộc gọi còn đúng không — nếu đã bị nhỡ/huỷ
+trong lúc hộp thoại quyền mở thì nhả micro/camera ngay, không gửi `call:accept` (lỗi thật bắt được khi kiểm: cuộc gọi
+nhỡ nhưng camera vẫn sáng); bấm "Nghe" lần hai bị bỏ qua. (2) màn "Đang kết nối" có nút kết thúc — web không có, nhưng
+Modal của app chặn nút Back nên thiếu nút là kẹt vĩnh viễn nếu phía kia không trả lời.
+
+**Kiểm (REAL BROWSER + máy ảo, backend dev thật, pt@example.com trên Chrome có media giả ↔ hytrongbeou trên máy ảo):**
+- web gọi video → app đổ chuông → nghe → video 2 chiều (app thấy luồng Chrome, web thấy camera trước máy ảo 360×640);
+  tắt micro/camera trên app → web nhận `media_toggled` và hiện biểu tượng; app cúp → web `call:ended`, DB `ENDED/hangup`;
+- app gọi thoại → web nghe → nối; web cúp → app đóng. Nhật ký âm thanh Android: app ghi âm VOICE_COMMUNICATION mở/đóng
+  đúng lúc bắt đầu/kết thúc mỗi cuộc gọi; `dumpsys media.camera` không còn client sau khi cúp;
+- đổ chuông 30 s không nghe → `call:missed`, overlay tự đóng; nhỡ trong lúc hộp quyền mở → toast, camera được nhả.
+- `call.test.ts` 5/5, cả bộ unit 591/591; `tsc` sạch; lint 0 lỗi (19 cảnh báo cũ, không cái nào ở file mới).
+
+**Lưu ý kiểm:** `adb screencap` không chụp được SurfaceView của `RTCView` (ra màu đen) — dùng
+`adb emu screenrecord screenshot <thư mục>` để thấy video thật.
+
+**CHƯA kiểm:** (1) "Tham gia buổi học" vào phòng thật — không có buổi ONLINE + CONFIRMED nào trong khung giờ; hợp đồng
+ONLINE còn hiệu lực duy nhất là của PT huytronh4@gmail.com, cần đặt buổi + PT xác nhận (hỏi Ngài). (2) 2 máy thật, khác
+mạng (4G ↔ Wi-Fi) để thử TURN — server trả sẵn STUN/TURN metered.ca, chưa chứng minh qua NAT thật. (3) Loa ngoài/tai
+nghe: chưa có InCallManager, âm thanh đi theo mặc định của hệ thống. (4) Bị gián đoạn (cuộc gọi GSM đến), mất mạng giữa
+chừng, app ra nền trong khi gọi. (5) Thông báo cuộc gọi đến khi app đã tắt — chat-service không gửi push cho cuộc gọi.
+
+**Backend:** thời lượng cuộc gọi luôn 0:00 — GAP-23, **đã sửa 30/9** bằng sự kiện `call:connected` (chat-service +
+web + mobile). Máy ảo mất ~6–7 s từ lúc nghe tới lúc thông (riêng `setLocalDescription` của answer ~4 s — mã hoá video
+bằng CPU); cần đo lại trên điện thoại thật.

@@ -56,7 +56,7 @@
 | SH-02 | `Onboarding.tsx` | **Không có 1:1** — web không có màn intro marketing riêng | `(auth)/welcome.tsx` (mới, không map web) | không gọi API | Public | — | 3 slide tĩnh | không | không | không | 4 | **xong/đã kiểm trên emulator (16/9)** — `app/welcome.tsx` (đặt ở gốc, KHÔNG trong `(auth)`: group đó đệm safe-area nên ảnh không tràn được lên status bar). Hiện 1 lần mỗi lần cài, cờ `intro.seen` trong AsyncStorage; xong thì quay về route gốc để nó tự chọn đích (ADAPTERS §20.12) |
 | SH-03 | `SetupWizard.tsx` | `pages/client/OnboardingWizardPage.tsx` (`/client/onboarding`) | `(client)/onboarding.tsx` (chặn shell, không phải tab thường) | user (`profileService`) + fitness (`equipmentService`) | client, chặn tới khi `hasCompletedOnboarding` | — | goal/level/days/equipment | không | không | không | 5 (chuyển từ 4 — quyết định của Ngài 15/9) | **xong/đã kiểm trên emulator + backend thật (15/9)** — 6 bước theo dữ liệu web, giao diện theo `SetupWizard.tsx`; lưu đúng mọi trường vào `user_profiles` + 8 dòng `user_equipment` (đối chiếu DB), nháp khôi phục được sau khi tắt app. Xem ADAPTERS §20.8 |
 | SH-04 | `Chat.tsx` | `pages/client/ChatCoachPage.tsx` (host `ChatPage.tsx`+`AICoachPage.tsx`), tái dùng ở `/pt/chat` | `(client)/chat/index.tsx`,`ai-coach.tsx`,`[conversationId].tsx`; `(pt)/chat.tsx` | chat: `/chat/conversations*`; ai: `/ai/sessions*`,`/ai/ask/stream` | client, pt | — | thread list/mở/gõ/AI stream | không | không | socket | 9 | xong 22/9 — `app/client/messages/[conversationId].tsx`; socket 2 chiều + typing + resume đã kiểm trên máy ảo (§25.1) |
-| SH-05 | `MeetingRoom.tsx` | Không phải route — `components/call/CallOverlay.tsx`, mount toàn cục qua `CallProvider` | overlay toàn cục, không phải 1 route Expo Router | chat: WebSocket `call:initiate/offer/answer/ice_candidate/accept/reject/end` | mọi vai trò đã đăng nhập | — | connecting/live/ended | không | không | webrtc, mic/camera | 14 | chưa làm/chưa kiểm |
+| SH-05 | `MeetingRoom.tsx` | Không phải route — `components/call/CallOverlay.tsx`, mount toàn cục qua `CallProvider` | overlay toàn cục, không phải 1 route Expo Router | chat: WebSocket `call:initiate/offer/answer/ice_candidate/accept/reject/end` | mọi vai trò đã đăng nhập | — | connecting/live/ended | không | không | webrtc, mic/camera | 14 | **đã làm 30/9 (14.4), kiểm một phần** — `src/features/call/*` (CallProvider + CallOverlay dạng Modal toàn cục), nút gọi thoại/video ở đầu khung chat, nút "Tham gia buổi học" ở Buổi tập (khách) + Lịch dạy (PT). Kiểm thật máy ảo ↔ Chrome (web): video 2 chiều, gọi thoại 2 chiều, tắt micro/camera, cúp từ mỗi phía, nhỡ cuộc gọi. CHƯA kiểm: vào phòng buổi học (không có buổi ONLINE nào trong khung giờ), 2 máy thật khác mạng/TURN (ADAPTERS §40) |
 | SH-06 | `PaymentResult.tsx` | `pages/client/PaymentResultPage.tsx` | `payments/result.tsx` | payment: `POST /me/payments/:id/sync` | client, pt | — | verifying/success/failed | không | có (return từ cổng, xem 14.1) | expo-web-browser | 14 (21/9: bỏ bản stub ở Phase 7 — Phase 7 dừng ở "chờ thanh toán", không mở cổng nào nên không có đường vào màn này; làm trọn cùng lúc mở cổng thật) | **xong 28/9 (14.1)** — `app/client/payments/result.tsx`; 4 lối vào (Hội viên, Hợp đồng, mua gói ở chi tiết gym, dịch vụ 1-1). Kiểm thật trên máy ảo + VNPay sandbox: mua gói → PAID → gói ACTIVE; app bị tắt giữa chừng → mở lại vào đúng màn kết quả. Chưa kiểm: nhánh app còn sống khi cổng trả về (máy ảo luôn tắt app), hợp đồng/đơn 1-1 bấm thật, MoMo (ADAPTERS §37) |
 | SH-07 | `ReportIssue.tsx` | `components/gym/ReportIssueDialog.tsx` — chỉ thấy nhúng trong `GymMembershipsPage.tsx` | `(client)/report-issue.tsx` (mở từ nhiều nơi) | gym: `/gyms/:id/complaints`,`/me/complaints`,`/complaint-photos` | client, pt | — | Mới/Đang xử lý/Đã xử lý | ảnh minh chứng ×5 | không | camera/picker | 9 | xong 22/9 — `app/client/services/report-issue.tsx`, mở từ thẻ gói hội viên (ACTIVE / hết hạn ≤30 ngày); chưa gửi báo cáo thật |
 | SH-08 | `Settings.tsx` (+`EquipmentSettings`,`NotificationPrefs`) | 3 route riêng: `SettingsPage.tsx`,`TrainingEquipmentSettingsPage.tsx`,`NotificationPreferencesPage.tsx` | `(client)/settings/index.tsx`,`training-equipment.tsx`,`notification-preferences.tsx` | fitness (`equipmentService`) + user (`notificationService`) | client, pt | — | toggle list | không | không | không | 9 | xong 22/9 — `profile/settings.tsx` + `equipment.tsx` + `notification-prefs.tsx`; WB-14 dinh dưỡng chuyển về Cài đặt (NutritionPrefsForm dùng chung); KHÔNG làm: giao diện/ngôn ngữ, đơn vị, công tắc buổi tập (mobile chưa có hành vi tương ứng) |
@@ -384,3 +384,34 @@ chứng — không xoá dòng.
 | GAP-20 | Liên kết xác minh đối tác không mở thẳng app (chưa có App Links) | Màn `partner/verify` nhận deep link, dán cả liên kết, hoặc dán riêng mã | Cần tên miền thật + `/.well-known/assetlinks.json` — việc hạ tầng khi có tên miền |
 
 Chi tiết từng GAP: `MOBILE_BACKEND_GAPS.md`. Bằng chứng Phase 12–13: `MOBILE_PLATFORM_ADAPTERS.md` §30–§36.
+
+## Sổ việc còn mở — Phase 14 (ghi 1/10)
+
+Cùng cách ghi như trên. Phase 14 chưa đóng: code 14.1–14.4 đã có, nhưng "Xong khi" của kế hoạch đòi kiểm trên
+thiết bị thật. Buổi thử bằng điện thoại thật dự định tối 30/9 **chưa chạy được** (máy tính không nhận điện thoại qua
+USB — không thấy thiết bị ADB/MTP nào) → dời lại.
+
+### D. Cần kiểm trên điện thoại thật (ROG Phone 6, USB + `adb reverse tcp:3000 / tcp:8081`, một bên web một bên app)
+
+| # | Việc | Bằng chứng hiện có | Trạng thái |
+|---|---|---|---|
+| D1 | **14.4** gọi thoại + video app↔web cả hai chiều trên máy thật (đo lại thời gian từ lúc nghe tới lúc thông — máy ảo 6–7 s) | Máy ảo ↔ Chrome (§40) | OPEN |
+| D2 | **14.4** "Tham gia buổi học" vào phòng thật, cả khách lẫn PT, ra rồi vào lại | Chưa có — cần buổi ONLINE + CONFIRMED trong khung giờ: đặt từ hytrongbeou trên hợp đồng ONLINE với huytronh4, PT xác nhận | OPEN |
+| D3 | **14.4** khác mạng (điện thoại 4G ↔ máy tính Wi-Fi) để chứng minh TURN | Chưa có | OPEN |
+| D4 | **14.4** loa ngoài/tai nghe, cuộc gọi điện thoại chen ngang, app ra nền, mất mạng giữa chừng | Chưa có | OPEN |
+| D5 | **14.4** thời lượng cuộc gọi trên máy thật (GAP-23 đã sửa) | Máy ảo: "Video call ended (0:17)" | OPEN |
+| D6 | **14.1** cổng thanh toán trả về khi app còn sống (foreground/background); hợp đồng PT + đơn 1-1 bấm thật; MoMo | Máy ảo chỉ kiểm được nhánh app bị tắt (§37.4) | OPEN |
+| D7 | **14.2** push trên máy thật (mở / nền / đã tắt) + đổi tài khoản trên cùng máy | Máy ảo (§38) | OPEN |
+| D8 | **14.3** camera quét mã QR thật → check-in | Không có (ảnh dán cảnh camera ảo không hiện — §39) | OPEN |
+| D9 | **B3** nút "Dùng vị trí hiện tại" nhánh thành công | — | OPEN |
+
+### E. Chức năng còn thiếu / chờ Ngài quyết
+
+| # | Việc | Cần gì | Trạng thái |
+|---|---|---|---|
+| E1 | **GY-03** chủ gym hiện mã QR check-in để in (đối ứng của 14.3) | Thư viện vẽ QR cho RN (vd `react-native-qrcode-svg`) — Ngài chọn | OPEN — chờ Ngài |
+| E2 | Thông báo **cuộc gọi đến khi app đã tắt** | chat-service gửi push cho `call:initiate` (backend) | OPEN — chờ Ngài |
+| E3 | **Push cho tin nhắn chat** | chat-service không đi qua `notificationService` (§38.4) | OPEN — chờ Ngài |
+| E4 | Tin hệ thống cuộc gọi còn tiếng Anh ("Video call ended", "Missed video call") | Đổi chuỗi ở chat-service | OPEN — chờ Ngài |
+| E5 | GAP-22 giao dịch cổng đã huỷ vẫn PENDING | Backend (§37, GAP-22) | OPEN — chờ Ngài |
+

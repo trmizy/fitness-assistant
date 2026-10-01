@@ -562,3 +562,26 @@ nút "Kiểm tra lại" — đúng như web. Không tự suy ra "thất bại" t
 **Cần Ngài quyết (backend, không gấp):** có cho `vnpay/return` ghi FAILED khi chữ ký hợp lệ và mã là huỷ
 (như nó đã ghi PAID), và cho việc huỷ gói/hợp đồng huỷ luôn giao dịch PENDING đi kèm không. Nếu không, các
 giao dịch này chỉ đóng khi quét đối soát làm hết hạn.
+
+## GAP-23 — Tin nhắn "cuộc gọi đã kết thúc" luôn ghi thời lượng 0:00 (Phase 14.4) — ĐÃ SỬA 30/9
+
+**Thấy 30/9 khi kiểm gọi video máy ảo ↔ web** (web bị y hệt — không phải lỗi app): cuộc gọi dài ~2 phút vẫn sinh
+tin hệ thống "Video call ended (0:00)". `call.handler.ts` tính thời lượng bằng `endedAt − startedAt`, nhưng
+`startedAt` chỉ được ghi trong `callService.setActive()` — hàm này không có chỗ nào gọi, nên `call_sessions.status`
+cũng không bao giờ lên `ACTIVE` (đi thẳng CONNECTING → ENDED). Ví dụ: `8c82c3e0…`.
+
+**Mobile đang làm gì:** hiển thị nguyên văn tin hệ thống như web; đồng hồ trong màn gọi là đồng hồ tại máy.
+
+**Cần Ngài quyết (backend, không gấp):** thêm một sự kiện kiểu `call:connected` (client gửi khi ICE "connected")
+để server gọi `setActive`, hoặc cho server ghi `startedAt` ngay lúc chấp nhận — cả web lẫn mobile phải cùng đổi.
+Tin hệ thống còn là tiếng Anh ("Video call ended", "Missed video call").
+
+**Đã sửa 30/9 (Ngài chọn cách 2):** client gửi `call:connected` khi RTCPeerConnection lên "connected" (web
+`CallContext.tsx` + mobile `CallProvider.tsx`); chat-service `call:connected` → `callService.markConnected`: chỉ
+caller/callee được gửi; lần đầu ghi `startedAt` + `ACTIVE` bằng câu UPDATE có điều kiện `startedAt IS NULL` (hai bên
+báo cùng lúc thì chỉ một bên thắng), các lần sau (bên kia, vào lại phòng buổi học) chỉ đưa lại `ACTIVE`, không đổi
+`startedAt`; cuộc gọi đã kết thúc/còn đổ chuông không bị "hồi sinh". Cuộc gọi không bao giờ thông vẫn ghi 0:00 — đúng.
+Bản Capacitor cũ không gửi sự kiện này: nếu một bên còn bản cũ thì bên kia vẫn gửi; cả hai bản cũ thì như trước.
+Kiểm: `src/__tests__/call-connected.test.ts` 6/6 + `call-membership.test.ts` 4/4 trên `gymcoach_chat_test` (DB test
+mới tạo 30/9); gọi thật máy ảo ↔ Chrome → DB `started_at` 08:55:09, `ended_at` 08:55:26, tin "Video call ended (0:17)".
+Tin hệ thống vẫn là tiếng Anh (chưa đổi).

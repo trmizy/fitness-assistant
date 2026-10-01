@@ -18,6 +18,8 @@ import { RequirePasswordChange } from "../src/components/guards/RequirePasswordC
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
 import { PushManager } from "../src/features/push/PushManager";
+import { CallProvider } from "../src/features/call/CallProvider";
+import { CallOverlay } from "../src/features/call/CallOverlay";
 
 // GestureHandlerRootView must wrap the whole app (react-native-gesture-handler's own
 // requirement), and SafeAreaProvider must sit above every screen that reads insets.
@@ -80,9 +82,14 @@ export default function RootLayout() {
                   {/* WB-01 — mật khẩu tạm phải đổi trước khi dùng bất cứ thứ gì. Đặt TRONG
                       ToastProvider để chính màn chặn cũng hiện được thông báo, và bọc ngoài
                       `Slot` để không một route nào lọt qua. */}
-                  <RequirePasswordChange>
-                    <Slot />
-                  </RequirePasswordChange>
+                  {/* Phase 14.4 — calls: the provider listens for call:* on chat-service's socket for
+                      the whole session; the overlay is a full-screen Modal over any screen. */}
+                  <CallProvider>
+                    <RequirePasswordChange>
+                      <Slot />
+                    </RequirePasswordChange>
+                    <CallOverlay />
+                  </CallProvider>
                   {/* Phase 14.2 — phone push: registers this device, routes taps. Renders nothing. */}
                   <PushManager />
                 </ToastProvider>

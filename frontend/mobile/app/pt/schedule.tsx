@@ -31,6 +31,7 @@ import {
 import { availabilityService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { JoinSessionButton } from "../../src/features/call/JoinSessionButton";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import {
   DAY_LABELS,
@@ -381,6 +382,9 @@ export default function PtScheduleScreen() {
                       <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>
                     </View>
                     {st.note ? <Text className="font-body text-xs text-muted-foreground">{st.note}</Text> : null}
+                    <JoinSessionButton
+                      session={{ id: s.id, sessionMode: s.sessionMode, status: s.status, startAt: s.scheduledStartAt, endAt: s.scheduledEndAt }}
+                    />
 
                     {ptIncomingReschedule(s) ? (
                       <View className="gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3">
