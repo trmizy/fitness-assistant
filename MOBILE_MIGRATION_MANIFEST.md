@@ -420,3 +420,39 @@ USB — không thấy thiết bị ADB/MTP nào) → dời lại.
 | E4 | Tin hệ thống cuộc gọi còn tiếng Anh | `callLogContent` ở chat-service | **XONG 1/10** — §41 (tin cũ trong DB giữ nguyên tiếng Anh) |
 | E5 | GAP-22 giao dịch cổng đã huỷ vẫn PENDING | `/payments/vnpay/return` đóng FAILED khi mã huỷ/từ chối có chữ ký | **XONG phần cổng 1/10** — §41; phần "huỷ gói hội viên" còn mở (GAP-22) |
 
+
+## Khoảng trống parity web → mobile — Phase 14B (ghi 3/10)
+
+Nguồn: `MOBILE_WEB_PARITY_AUDIT_2026-10-03.md` (CODE AUDIT). Kế hoạch: Phase 14B trong plan mobile. Mỗi dòng khi xong
+ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
+
+| Mã | Nội dung | Cụm 14B | Trạng thái |
+|---|---|---|---|
+| PG-A1 | Chu kỳ tập & đánh giá chu kỳ (bắt đầu/hoàn thành/huỷ, đánh giá, đề xuất tập + dinh dưỡng, diet break, báo cáo, lịch sử) | 14B.1 | OPEN |
+| PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | OPEN |
+| PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | OPEN |
+| PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | OPEN |
+| PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | OPEN |
+| PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | OPEN |
+| PG-A7 | Chủ gym: quản lý chi nhánh (= GY-03) | 14B.5 | OPEN |
+| PG-B1 | Huỷ gói hội viên đang hoạt động | 14B.6 | OPEN |
+| PG-B2 | Viết/xoá đánh giá phòng gym | 14B.6 | OPEN |
+| PG-B3 | Chi tiết hợp đồng + PDF (+ gửi lại ký điện tử) | 14B.6 | OPEN |
+| PG-B4 | PT đánh giá khách hàng | 14B.2 | OPEN |
+| PG-B5 | Chia sẻ mẫu buổi tập (CL-16 PARTIAL, GAP-8) | 14B.6 | OPEN |
+| PG-B6 | AI giải thích kế hoạch | 14B.6 | OPEN |
+| PG-B7 | Tạo/gỡ gói bán từ kế hoạch đã duyệt, "Gói bán của tôi" | 14B.6 | OPEN |
+| PG-B8 | Bộ lọc thư viện thực phẩm | 14B.6 | OPEN |
+| PG-B9 | Nhận lời mời làm quản lý chi nhánh (= WB-02) | 14B.6 | OPEN |
+| PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | OPEN |
+| PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | OPEN |
+| PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | OPEN |
+| PG-C4 | Dinh dưỡng: nhận xét trong ngày, biểu đồ 7 ngày | 14B.3 | OPEN |
+| PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | OPEN |
+| PG-C6 | Tổng quan PT: biểu đồ doanh thu, cảnh báo học viên | 14B.7 | OPEN |
+| PG-C7 | Tổng quan admin: tăng trưởng, vai trò, cảnh báo hệ thống, đăng ký gần đây | 14B.7 | OPEN |
+| PG-D1 | Admin: quản lý đối tác đang hoạt động | 14B.8 | OPEN — hỏi Ngài |
+| PG-D2 | Admin: tổng quan tài chính + đối soát | 14B.8 | OPEN — hỏi Ngài |
+
+Ghi chú: dòng **AD-02** ở bảng trên còn ghi "chưa làm/chưa kiểm" ở cột trạng thái nhưng đã **xong + đã kiểm 28/9**
+(ADAPTERS §35.3) — nội dung cột trước đã ghi đúng.
