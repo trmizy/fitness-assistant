@@ -18,6 +18,7 @@ import {
   canSend,
   dayDivider,
   isSystemMessage,
+  systemMessageText,
   MAX_MESSAGE_LENGTH,
   messageTime,
   normalizeConversations,
@@ -109,7 +110,10 @@ export default function ConversationScreen() {
     }
   };
 
-  const name = peerName(conv);
+  // Opened straight from a push (E3) the conversation list may still be loading: show nothing
+  // rather than the "Người dùng · Học viên" fallback, which names the wrong role for a PT.
+  const loadingPeer = !conv && convQuery.isLoading;
+  const name = loadingPeer ? "" : peerName(conv);
   const { initiateCall } = useCall();
   const peerId = conv?.otherUser?.id ?? null;
 
@@ -129,7 +133,7 @@ export default function ConversationScreen() {
             <Text className="font-display text-base text-foreground" numberOfLines={1}>
               {name}
             </Text>
-            <Text className="font-body text-xs text-primary">{typing ? "Đang soạn tin…" : peerRoleLabel(conv?.otherUser?.role)}</Text>
+            <Text className="font-body text-xs text-primary">{typing ? "Đang soạn tin…" : loadingPeer ? "" : peerRoleLabel(conv?.otherUser?.role)}</Text>
           </View>
           {peerId ? (
             <>
@@ -170,7 +174,7 @@ export default function ConversationScreen() {
                   <Animated.View entering={FadeInDown.springify().stiffness(400).damping(30)} className="items-center">
                     <View className="flex-row items-center gap-1.5 rounded-full bg-panel px-3 py-1.5">
                       <PhoneOff size={12} color={darkColors.mutedForeground} />
-                      <Text className="font-body text-xs text-muted-foreground">{m.content}</Text>
+                      <Text className="font-body text-xs text-muted-foreground">{systemMessageText(m.content)}</Text>
                     </View>
                   </Animated.View>
                 ) : (

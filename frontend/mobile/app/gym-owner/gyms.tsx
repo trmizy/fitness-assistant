@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Dumbbell, MapPin, Pencil, Plus, Star, Users } from "lucide-react-native";
+import { Building2, Check, Dumbbell, MapPin, Pencil, Plus, QrCode, Star, Users } from "lucide-react-native";
+import { router } from "expo-router";
 
 import {
   Badge,
@@ -421,6 +422,19 @@ function BranchCard({ gym }: { gym: OwnedGym }) {
           </Text>
         )}
       </View>
+      {/* E1 — front-desk check-in QR; only a branch that is (or was) selling has members to scan it. */}
+      {stats ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={QrCode}
+          onPress={() =>
+            router.push({ pathname: "/gym-owner/checkin-qr", params: { gymId: gym.id, name: branchName(gym) } })
+          }
+        >
+          Mã QR check-in
+        </Button>
+      ) : null}
     </Card>
   );
 }

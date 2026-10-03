@@ -4,10 +4,11 @@ import type { MediaStream } from "react-native-webrtc";
 import { useToast } from "../../components/ui";
 import { useApp } from "../../context/AppContext";
 import { isChatWsEnabled } from "../../config/serverUrl";
-import { connectSocket, getSocket } from "../../services/socket";
+import { connectSocket, disconnectSocket, getSocket, watchAppStateForSocketRecovery } from "../../services/socket";
 import type { CallType } from "../../types";
 import { callErrorMessage, callReducer, initialCallState, isFinishedCallStatus, type CallState } from "./callState";
 import { useRNWebRTC } from "./useRNWebRTC";
+import { dismissCallPush } from "../push/pushDevice";
 
 const DEFAULT_ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
 
@@ -54,7 +55,8 @@ export function useCall(): CallContextValue {
  * a room instead of ending it.
  */
 export function CallProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, user } = useApp();
+  const userId = user?.id ?? null;
   const isAuthenticatedRef = useRef(isAuthenticated);
   useLayoutEffect(() => {
     isAuthenticatedRef.current = isAuthenticated;
@@ -141,8 +143,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   // ── Socket listeners ────────────────────────────────────────────
   useEffect(() => {
-    if (!isAuthenticated || !enabled) return;
+    if (!isAuthenticated || !enabled || !userId) return;
     const socket = connectSocket();
+    // Android drops this socket once the app has sat in the background a while, and its own
+    // reconnect gives up after 5 tries — without this, calls stopped arriving until a restart.
+    const stopRecovery = watchAppStateForSocketRecovery();
 
     const isRelevant = (id?: string) => !!id && stateRef.current.callInfo?.callSessionId === id;
 
@@ -303,10 +308,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
       "call:error": onError,
     };
     for (const [event, fn] of Object.entries(handlers)) socket.on(event, fn);
+    // E2 — a phone woken by the "đang gọi" push connects after the ring went out to an empty
+    // room: ask for anything still ringing for us, now that the listeners above exist, and again
+    // after every reconnect.
+    const sync = () => socket.emit("call:sync");
+    socket.on("connect", sync);
+    if (socket.connected) sync();
     return () => {
       for (const [event, fn] of Object.entries(handlers)) socket.off(event, fn);
+      socket.off("connect", sync);
+      stopRecovery();
+      // Signed out or another account signed in: this connection authenticated as the previous
+      // user, so it must go — otherwise their calls would ring for whoever is signed in now.
+      disconnectSocket();
     };
-  }, [isAuthenticated, enabled, doCleanup]);
+  }, [isAuthenticated, enabled, userId, doCleanup]);
 
   // ── Actions: media first (inside the tap), then signal ───────────
   const realtimeOff = useCallback(() => {
@@ -425,11 +441,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     isCallerRef.current = false;
     socket.emit("call:accept", { callSessionId: info.callSessionId });
+    void dismissCallPush(info.callSessionId);
   }, [enabled, acquire, doCleanup]);
 
   const rejectCall = useCallback(() => {
     const id = stateRef.current.callInfo?.callSessionId;
     if (id && enabled) connectSocket().emit("call:reject", { callSessionId: id });
+    if (id) void dismissCallPush(id);
     doCleanup();
   }, [enabled, doCleanup]);
 

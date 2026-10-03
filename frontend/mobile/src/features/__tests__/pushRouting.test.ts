@@ -6,7 +6,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { isForCurrentUser, pushTapRoute, readPushData } from "../push/pushRouting";
+import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen } from "../push/pushRouting";
 
 const push = (over: Record<string, unknown> = {}) =>
   readPushData({ notificationId: "n1", userId: "u1", link: "", entityType: "SESSION", eventType: "SESSION_CONFIRMED", ...over });
@@ -18,6 +18,8 @@ describe("readPushData", () => {
       userId: null,
       link: null,
       entityType: null,
+      kind: null,
+      callSessionId: null,
     });
     assert.equal(readPushData(undefined).userId, null);
   });
@@ -56,5 +58,32 @@ describe("pushTapRoute", () => {
   it("push của tài khoản khác hoặc khi chưa đăng nhập → không mở gì", () => {
     assert.equal(pushTapRoute(push(), "u2", "client"), null);
     assert.equal(pushTapRoute(push(), null, null), null);
+  });
+});
+
+describe("E2/E3 — push cuộc gọi / tin nhắn từ chat-service", () => {
+  const call = (over: Record<string, unknown> = {}) =>
+    readPushData({ userId: "u1", kind: "CALL", callSessionId: "k1", link: "/client/messages/c1", ...over });
+
+  it("khách và PT mở thẳng cuộc trò chuyện", () => {
+    assert.equal(pushTapRoute(call(), "u1", "client"), "/client/messages/c1");
+    assert.equal(pushTapRoute(call({ kind: "CHAT" }), "u1", "pt"), "/client/messages/c1");
+  });
+
+  it("link lạ không được dùng làm đường đi — về trang chủ của vai trò", () => {
+    assert.equal(pushTapRoute(call({ link: "/admin/users" }), "u1", "client"), "/client/dashboard");
+    assert.equal(pushTapRoute(call({ link: "/client/messages/c1/../../admin" }), "u1", "client"), "/client/dashboard");
+    assert.equal(pushTapRoute(call(), "u1", "gym_owner"), "/gym-owner/dashboard");
+  });
+
+  it("vẫn chỉ cho đúng tài khoản", () => {
+    assert.equal(pushTapRoute(call(), "u2", "client"), null);
+  });
+
+  it("app đang mở: không hiện banner cho cuộc gọi / tin nhắn (đã có trong app), thông báo thường vẫn hiện", () => {
+    assert.equal(showsWhileOpen(call()), false);
+    assert.equal(showsWhileOpen(call({ kind: "CHAT" })), false);
+    assert.equal(showsWhileOpen(push()), true);
+    assert.equal(readPushData({ kind: "SOMETHING" }).kind, null);
   });
 });

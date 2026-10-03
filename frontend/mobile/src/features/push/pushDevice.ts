@@ -1,3 +1,4 @@
+import * as Notifications from "expo-notifications";
 import { notificationService } from "../../services/api";
 import { Preferences } from "../../services/storage";
 
@@ -26,4 +27,20 @@ export async function unregisterPushToken(): Promise<void> {
     // offline / session already gone — see the header for why this is safe to drop
   }
   await Preferences.remove({ key: KEY });
+}
+
+/**
+ * E2 — once the call has been answered or declined in the app, its "đang gọi" notice in the shade
+ * is stale. Best-effort: the shade entry is the system's, and a missing one is not an error.
+ */
+export async function dismissCallPush(callSessionId: string): Promise<void> {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    for (const n of shown) {
+      const data = (n.request.content.data ?? {}) as Record<string, unknown>;
+      if (data.callSessionId === callSessionId) await Notifications.dismissNotificationAsync(n.request.identifier);
+    }
+  } catch {
+    // nothing to tidy
+  }
 }

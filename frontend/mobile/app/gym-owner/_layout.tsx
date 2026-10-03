@@ -33,7 +33,7 @@ export default function GymOwnerLayout() {
   return (
     <RequireRole allow={["gym_owner"]}>
       <RequirePartnerAccess>
-        <WorkspaceTabs workspace="gym" tabs={gymTabs} hiddenRoutes={["plans", "collaborations", "managers"]} />
+        <WorkspaceTabs workspace="gym" tabs={gymTabs} hiddenRoutes={["plans", "collaborations", "managers", "checkin-qr"]} />
       </RequirePartnerAccess>
     </RequireRole>
   );

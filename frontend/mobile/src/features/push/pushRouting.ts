@@ -14,6 +14,9 @@ export type PushData = {
   userId: string | null;
   link: string | null;
   entityType: string | null;
+  /** E2/E3 — chat-service's realtime nudges (no notifications row): "CALL" | "CHAT", else null. */
+  kind: "CALL" | "CHAT" | null;
+  callSessionId: string | null;
 };
 
 const str = (value: unknown) => (typeof value === "string" && value.length > 0 ? value : null);
@@ -25,7 +28,20 @@ export function readPushData(raw: unknown): PushData {
     userId: str(data.userId),
     link: str(data.link),
     entityType: str(data.entityType),
+    kind: data.kind === "CALL" || data.kind === "CHAT" ? data.kind : null,
+    callSessionId: str(data.callSessionId),
   };
+}
+
+const CONVERSATION_LINK = /^\/client\/messages\/[A-Za-z0-9_-]+$/;
+
+/**
+ * A call or chat push is about the conversation, which the app already shows live while it is
+ * open (the ringing overlay, the message list) — so no banner on top of it then. In the
+ * background the system draws these itself; this handler only runs in the foreground.
+ */
+export function showsWhileOpen(data: PushData): boolean {
+  return data.kind === null;
 }
 
 /**
@@ -49,6 +65,12 @@ export function pushTapRoute(
   role: UserRole | null | undefined,
 ): string | null {
   if (!role || !isForCurrentUser(data, currentUserId)) return null;
+  // E2/E3: straight to the conversation (a PT chats from the client-side screen too). An incoming
+  // call needs no route of its own — the overlay rings over whatever screen this opens (call:sync).
+  if (data.kind) {
+    if ((role === "client" || role === "pt") && data.link && CONVERSATION_LINK.test(data.link)) return data.link;
+    return ROLE_HOME[role];
+  }
   const clientSide = role === "client" || (role === "pt" && (data.link ?? "").startsWith("/client"));
   if (clientSide) {
     return notificationRoute({ link: data.link, entityType: data.entityType }) ?? "/client/notifications";

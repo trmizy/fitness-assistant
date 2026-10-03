@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { router, usePathname, useRootNavigationState } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import { useApp } from "../../context/AppContext";
 import { notificationService } from "../../services/api";
 import { notificationsKey, unreadCountKey } from "../notifications/useNotifications";
 import { registerPushToken } from "./pushDevice";
-import { isForCurrentUser, pushTapRoute, readPushData, type PushData } from "./pushRouting";
+import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen, type PushData } from "./pushRouting";
 
 /** Must match ANDROID_CHANNEL_ID in user-service push.service.ts. */
 const CHANNEL_ID = "default";
@@ -20,8 +20,12 @@ let signedInUserId: string | null = null;
 // written for whoever is signed in right now (see isForCurrentUser).
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const mine = isForCurrentUser(readPushData(notification.request.content.data), signedInUserId);
-    return { shouldShowBanner: mine, shouldShowList: mine, shouldPlaySound: mine, shouldSetBadge: false };
+    const data = readPushData(notification.request.content.data);
+    // This handler also runs while the app sits in the background with its JS alive (seen on the
+    // emulator: a call push vanished after Home) — "open" means actually on screen.
+    const onScreen = AppState.currentState === "active";
+    const show = isForCurrentUser(data, signedInUserId) && (!onScreen || showsWhileOpen(data));
+    return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
   },
 });
 
