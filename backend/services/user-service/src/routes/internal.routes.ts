@@ -7,6 +7,7 @@ import { profileRepository } from "../repositories/profile.repository";
 import { inbodyService } from "../services/inbody.service";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
 import { notificationService } from "../services/notification.service";
+import { pushService } from "../services/push.service";
 import { contractRepository } from "../repositories/contract.repository";
 
 const router = Router();
@@ -193,6 +194,39 @@ router.post("/notifications", async (req, res) => {
     logger.error(error, "Internal notification create failed");
     res.status(500).json({ error: error.message });
   }
+});
+
+// Mobile E2/E3 — chat-service's realtime phone nudges (incoming call, new chat message). Push
+// only: no notifications row (the bell list would drown, and the conversation already records
+// both). Answers 202 at once; delivery is best-effort and never fails the caller.
+router.post("/push", (req, res) => {
+  const { userId, title, body, kind, link, data, tag, ttlSeconds } = req.body ?? {};
+  const okData =
+    data === undefined ||
+    (data && typeof data === "object" && !Array.isArray(data) && Object.values(data).every((v) => typeof v === "string"));
+  if (
+    typeof userId !== "string" || !userId ||
+    typeof title !== "string" || !title ||
+    typeof body !== "string" || !body ||
+    (kind !== "CALL" && kind !== "CHAT") ||
+    !okData ||
+    (tag !== undefined && typeof tag !== "string") ||
+    (ttlSeconds !== undefined && (typeof ttlSeconds !== "number" || ttlSeconds <= 0))
+  ) {
+    res.status(400).json({ error: "userId, title, body, kind (CALL|CHAT) are required; data values must be strings" });
+    return;
+  }
+  void pushService.sendRaw({
+    userId,
+    title: title.slice(0, 120),
+    body: body.slice(0, 240),
+    kind,
+    link: typeof link === "string" ? link : null,
+    data,
+    tag,
+    ttlSeconds,
+  });
+  res.status(202).json({ accepted: true });
 });
 
 // Phase 5 (quản lý đối tác phòng tập) — gym-service gọi trước khi cho admin xác nhận

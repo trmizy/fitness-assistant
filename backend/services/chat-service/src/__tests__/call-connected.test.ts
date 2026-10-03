@@ -126,3 +126,14 @@ test("unknown call id is reported, not thrown", skipOpts, async () => {
     error: "Call not found",
   });
 });
+
+// ── E4: the call-log line itself (pure, no DB) ──────────────────────────────
+test("callLogContent: Vietnamese, duration from startedAt, 0:00 when never connected", async () => {
+  const { callLogContent } = await import("../socket/call.handler");
+  const startedAt = new Date("2026-10-01T08:55:09.198Z");
+  const endedAt = new Date("2026-10-01T08:56:26.995Z");
+  assert.equal(callLogContent({ callType: "VIDEO", startedAt, endedAt }, false), "📞 Cuộc gọi video đã kết thúc (1:17)");
+  assert.equal(callLogContent({ callType: "VOICE", startedAt: null, endedAt }, false), "📞 Cuộc gọi thoại đã kết thúc (0:00)");
+  assert.equal(callLogContent({ callType: "VOICE" }, true), "📞 Cuộc gọi thoại nhỡ");
+  assert.equal(callLogContent({ callType: "VIDEO" }, true), "📞 Cuộc gọi video nhỡ");
+});

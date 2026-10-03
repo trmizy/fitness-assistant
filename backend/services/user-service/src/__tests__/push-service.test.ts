@@ -14,6 +14,7 @@ import path from "node:path";
 import {
   ANDROID_CHANNEL_ID,
   buildMessage,
+  buildRawMessage,
   isDeadToken,
   loadServiceAccount,
   signAssertion,
@@ -66,6 +67,46 @@ describe("buildMessage", () => {
     for (const value of Object.values(msg.message.data)) assert.equal(typeof value, "string");
     assert.equal(msg.message.data.userId, "u1", "the app checks the push is for whoever is signed in");
     assert.equal(msg.message.data.link, "");
+  });
+});
+
+describe("buildRawMessage (E2/E3 — chat-service nudges)", () => {
+  it("keeps the caller's title, tags the shade entry, and expires a ring", () => {
+    const msg = buildRawMessage("tok", {
+      userId: "u2",
+      title: "Huấn luyện viên A",
+      body: "Đang gọi video cho bạn…",
+      kind: "CALL",
+      link: "/client/messages/c1",
+      data: { callSessionId: "k1", conversationId: "c1" },
+      tag: "call-k1",
+      ttlSeconds: 30,
+    });
+    assert.deepEqual(msg.message.notification, { title: "Huấn luyện viên A", body: "Đang gọi video cho bạn…" });
+    assert.equal(msg.message.android.ttl, "30s");
+    assert.equal(msg.message.android.notification.tag, "call-k1");
+    assert.equal(msg.message.android.notification.channel_id, ANDROID_CHANNEL_ID);
+    assert.deepEqual(msg.message.data, {
+      callSessionId: "k1",
+      conversationId: "c1",
+      kind: "CALL",
+      userId: "u2",
+      link: "/client/messages/c1",
+    });
+  });
+
+  it("a caller-supplied data key can never override kind/userId (the app's ownership check)", () => {
+    const msg = buildRawMessage("tok", {
+      userId: "real",
+      title: "t",
+      body: "b",
+      kind: "CHAT",
+      data: { userId: "spoofed", kind: "CALL" },
+    });
+    assert.equal(msg.message.data.userId, "real");
+    assert.equal(msg.message.data.kind, "CHAT");
+    assert.equal("ttl" in msg.message.android, false);
+    assert.equal("tag" in msg.message.android.notification, false);
   });
 });
 

@@ -3,6 +3,7 @@ import { chatRepository } from "../repositories/chat.repository";
 import { canCreateDirectChat } from "./chat.policy";
 import { getIo } from "../socket";
 import { getInternalUser } from "../clients/auth-service.client";
+import { pushNewMessage } from "./push-relay";
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
@@ -156,9 +157,9 @@ export const chatService = {
     // reloading (which re-fetches via GET and finds the row already there). Mirror the
     // socket handler's broadcast here so BOTH send paths notify participants identically.
     const io = getIo();
+    const conversation = await chatRepository.findConversationById(conversationId);
     if (io) {
       io.to(conversationId).emit("chat:new_message", message);
-      const conversation = await chatRepository.findConversationById(conversationId);
       if (conversation) {
         for (const p of conversation.participants) {
           io.to(`user:${p.userId}`).emit("chat:conversation_updated", {
@@ -167,6 +168,15 @@ export const chatService = {
           });
         }
       }
+    }
+    // Mobile E3 — phone push to the other participants, same as the socket send path.
+    if (conversation) {
+      void pushNewMessage({
+        conversationId,
+        senderId,
+        content: message.content,
+        participantIds: conversation.participants.map((p) => p.userId),
+      });
     }
 
     return {

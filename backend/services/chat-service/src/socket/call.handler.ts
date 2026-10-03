@@ -7,6 +7,8 @@ import { canInitiateCallFromChat } from "../services/call.policy";
 import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
 import { chatRepository } from "../repositories/chat.repository";
+import { callRepository } from "../repositories/call.repository";
+import { CALL_RING_SECONDS, displayName, pushIncomingCall, pushMissedCall } from "../services/push-relay";
 
 // Track ring timeouts: callSessionId → timeout handle
 const ringTimeouts = new Map<string, NodeJS.Timeout>();
@@ -114,19 +116,27 @@ export function isCallParticipant(
   return userId === call.callerId || userId === call.calleeId;
 }
 
+/**
+ * The system line posted into the conversation when a CHAT call ends or is missed. Shown verbatim
+ * by web and mobile (Vietnamese UI); the 📞 is web's only icon for these bubbles. Duration runs from
+ * the first `call:connected` (startedAt) — a call that never connected reads 0:00.
+ */
+export function callLogContent(
+  call: { callType: string; startedAt?: Date | null; endedAt?: Date | null },
+  isMissed: boolean,
+): string {
+  const kind = call.callType === "VIDEO" ? "video" : "thoại";
+  if (isMissed) return `📞 Cuộc gọi ${kind} nhỡ`;
+  const durationMs = call.startedAt && call.endedAt ? Math.max(0, call.endedAt.getTime() - call.startedAt.getTime()) : 0;
+  const durationMins = Math.floor(durationMs / 60000);
+  const durationSecs = Math.floor((durationMs % 60000) / 1000);
+  return `📞 Cuộc gọi ${kind} đã kết thúc (${durationMins}:${durationSecs.toString().padStart(2, "0")})`;
+}
+
 async function emitCallLogMessage(io: Server, call: any, isMissed: boolean = false) {
   if (!call.conversationId || call.origin !== CallOrigin.CHAT) return;
   try {
-    let content = "";
-    if (isMissed) {
-      content = `📞 Missed ${call.callType === 'VIDEO' ? 'video' : 'voice'} call`;
-    } else {
-      const durationMs = call.startedAt && call.endedAt ? call.endedAt.getTime() - call.startedAt.getTime() : 0;
-      const durationMins = Math.floor(durationMs / 60000);
-      const durationSecs = Math.floor((durationMs % 60000) / 1000);
-      const timeStr = `${durationMins}:${durationSecs.toString().padStart(2, '0')}`;
-      content = `📞 ${call.callType === 'VIDEO' ? 'Video' : 'Voice'} call ended (${timeStr})`;
-    }
+    const content = callLogContent(call, isMissed);
     const msg = await chatRepository.createMessage(call.conversationId, "system", content);
     
     // Map senderId → authorId for frontend
@@ -247,27 +257,10 @@ export function registerCallHandlers(
         // window (already enforced by joinSession/verifyJoinToken before this point) stays
         // open. The offline-callee-is-a-missed-call and 30s-ring-timeout rules below exist
         // ONLY to model a real phone-style ring, which a CHAT call still is.
-        if (!isSessionCall) {
-          // Check if callee is online
-          if (!onlineUsers.has(calleeId)) {
-            // Create call as MISSED immediately
-            const result = await callService.initiateCall({
-              conversationId: conversationId || undefined,
-              callerId: user.id,
-              calleeId,
-              callType: callType as CallType,
-              origin: (origin as CallOrigin) || CallOrigin.CHAT,
-              coachingSessionId,
-            });
-            if ("call" in result && result.call) {
-              await callService.markMissed(result.call.id);
-            }
-            socket.emit("call:missed", {
-              callSessionId: result && "call" in result ? result.call?.id : null,
-            });
-            return;
-          }
-        }
+        // Mobile E2: an offline callee used to make this a MISSED call on the spot. It now rings
+        // like any other for CALL_RING_SECONDS while a phone push ("X đang gọi…") wakes the
+        // callee's phone; opening the app within the ring finds the call via call:sync below.
+        // If nobody answers, the ring timeout marks it missed exactly as for an online callee.
 
         const result = await callService.initiateCall({
           conversationId: conversationId || undefined,
@@ -316,17 +309,23 @@ export function registerCallHandlers(
         const call = result.call!;
         const iceServers = await getIceServers();
 
+        // The caller's real name (it used to be their email) — shown on the ringing screen and
+        // as the push title.
+        const callerName = (await displayName(user.id)) ?? user.email;
+
         if (!isSessionCall) {
           // Notify callee (all tabs via user room) — a genuine ring, CHAT-origin only.
           io.to(`user:${calleeId}`).emit("call:incoming", {
             callSessionId: call.id,
             callerId: user.id,
-            callerName: user.email,
+            callerName,
             callType: call.callType,
             origin: call.origin,
             conversationId: call.conversationId,
             iceServers,
           });
+          // …and to their phone, which may be asleep or have the app closed (E2).
+          pushIncomingCall(call, callerName);
         }
 
         // Confirm to caller. For a SESSION call this is the FIRST person in the room — they
@@ -353,8 +352,10 @@ export function registerCallHandlers(
                 callSessionId: call.id,
               });
               await emitCallLogMessage(io, missed, true);
+              // Replaces the "đang gọi" push in the callee's shade (same tag).
+              pushMissedCall(missed, callerName);
             }
-          }, 30_000);
+          }, CALL_RING_SECONDS * 1000);
           ringTimeouts.set(call.id, timeout);
         }
 
@@ -455,6 +456,9 @@ export function registerCallHandlers(
         io.to(`user:${call.calleeId}`).emit("call:cancelled", {
           callSessionId,
         });
+        // The caller hung up before an answer — to the callee that is a missed call; this
+        // replaces the "đang gọi" push still sitting in their shade.
+        pushMissedCall(call, (await displayName(user.id)) ?? user.email);
 
         logger.info({ callSessionId, cancelledBy: user.id }, "Call cancelled");
       } catch (error) {
@@ -500,6 +504,29 @@ export function registerCallHandlers(
       }
     },
   );
+
+  // ── A client (re)attached its call listeners — anything ringing for it? ──
+  // Mobile E2: the phone woken by the "đang gọi" push connects AFTER call:incoming went out to
+  // an empty room, so it asks. Pull, not push-on-connect: the server cannot know when the
+  // client's listeners are attached, and an event sent before that is simply lost.
+  socket.on("call:sync", async () => {
+    try {
+      const since = new Date(Date.now() - CALL_RING_SECONDS * 1000);
+      const call = await callRepository.findRingingChatCallForCallee(user.id, since);
+      if (!call) return;
+      socket.emit("call:incoming", {
+        callSessionId: call.id,
+        callerId: call.callerId,
+        callerName: (await displayName(call.callerId)) ?? "",
+        callType: call.callType,
+        origin: call.origin,
+        conversationId: call.conversationId,
+        iceServers: await getIceServers(),
+      });
+    } catch (error) {
+      logger.error(error, "call:sync error");
+    }
+  });
 
   // ── Peer connection established (either side) ───────────────
   // Sent by a client when its RTCPeerConnection reaches "connected" — the moment media really

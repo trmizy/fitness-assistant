@@ -48,6 +48,16 @@ export const callRepository = {
     return { started: false };
   },
 
+  /**
+   * Mobile E2 — the CHAT call still ringing for this callee, if any (newest first). A phone that
+   * was woken by the "đang gọi" push connects after the ring went out; it asks for this.
+   */
+  findRingingChatCallForCallee: (calleeId: string, since: Date) =>
+    prisma.callSession.findFirst({
+      where: { calleeId, status: "RINGING", origin: "CHAT", createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+    }),
+
   /** Find any non-terminal call for a user (as caller or callee) */
   findActiveCallForUser: (userId: string) =>
     prisma.callSession.findFirst({

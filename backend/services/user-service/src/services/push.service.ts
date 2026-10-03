@@ -104,10 +104,24 @@ export function signAssertion(sa: ServiceAccount, nowSeconds: number): string {
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+/**
+ * One retry on a NETWORK failure (fetch threw), never on an HTTP answer. Seen in dev: a single
+ * "fetch failed" from the container to Google dropped an incoming-call push whose whole useful
+ * life is the 30 s ring.
+ */
+async function fetchOnceMore(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return fetch(url, init);
+  }
+}
+
 async function accessToken(sa: ServiceAccount): Promise<string> {
   const now = Date.now();
   if (cachedToken && cachedToken.expiresAt - 60_000 > now) return cachedToken.value;
-  const res = await fetch(TOKEN_URL, {
+  const res = await fetchOnceMore(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -144,6 +158,40 @@ export function buildMessage(token: string, n: PushableNotification) {
 }
 
 /**
+ * A push that is NOT a row in the notifications table — the realtime nudges chat-service sends
+ * (an incoming call, a new chat message: E2/E3). The bell list would drown in those, and the
+ * conversation itself already records them. `kind` lets the app route a tap and decide whether
+ * to show it while open; `tag` makes a later push replace an earlier one in the shade (the
+ * "đang gọi" notice becomes "cuộc gọi nhỡ"; a conversation keeps only its latest message);
+ * `ttlSeconds` stops a stale ring from being delivered after the call is long over.
+ */
+export type RawPush = {
+  userId: string;
+  title: string;
+  body: string;
+  kind: "CALL" | "CHAT";
+  link?: string | null;
+  data?: Record<string, string>;
+  tag?: string;
+  ttlSeconds?: number;
+};
+
+export function buildRawMessage(token: string, p: RawPush) {
+  return {
+    message: {
+      token,
+      notification: { title: p.title, body: p.body },
+      data: { ...(p.data ?? {}), kind: p.kind, userId: p.userId, link: p.link ?? "" },
+      android: {
+        priority: "HIGH",
+        ...(p.ttlSeconds ? { ttl: `${Math.max(1, Math.floor(p.ttlSeconds))}s` } : {}),
+        notification: { channel_id: ANDROID_CHANNEL_ID, ...(p.tag ? { tag: p.tag } : {}) },
+      },
+    },
+  };
+}
+
+/**
  * FCM's way of saying "this token will never work again" — delete it rather than retry.
  * INVALID_ARGUMENT is deliberately NOT here: it also means "your message is malformed", and
  * a payload bug must not silently unsubscribe every phone.
@@ -154,36 +202,46 @@ export function isDeadToken(status: number, body: unknown): boolean {
   return details.some((d) => d.errorCode === "UNREGISTERED");
 }
 
+/** Sends one message per registered device; best-effort, never throws. */
+async function sendToDevices(userId: string, build: (token: string) => unknown): Promise<void> {
+  try {
+    const sa = account();
+    if (!sa) return;
+    const tokens = await pushDeviceRepository.tokensForUser(userId);
+    if (tokens.length === 0) return;
+    const bearer = await accessToken(sa);
+    await Promise.all(
+      tokens.map(async (token) => {
+        const res = await fetchOnceMore(
+          `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+            body: JSON.stringify(build(token)),
+          },
+        );
+        if (res.ok) return;
+        const body = await res.json().catch(() => null);
+        if (isDeadToken(res.status, body)) {
+          await pushDeviceRepository.forget(token);
+          logger.info({ userId }, "[push] dropped a dead device token");
+        } else {
+          logger.warn({ status: res.status, userId }, "[push] FCM send failed");
+        }
+      }),
+    );
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, userId }, "[push] send skipped");
+  }
+}
+
 export const pushService = {
   async sendToUser(n: PushableNotification): Promise<void> {
-    try {
-      const sa = account();
-      if (!sa) return;
-      const tokens = await pushDeviceRepository.tokensForUser(n.userId);
-      if (tokens.length === 0) return;
-      const bearer = await accessToken(sa);
-      await Promise.all(
-        tokens.map(async (token) => {
-          const res = await fetch(
-            `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
-              body: JSON.stringify(buildMessage(token, n)),
-            },
-          );
-          if (res.ok) return;
-          const body = await res.json().catch(() => null);
-          if (isDeadToken(res.status, body)) {
-            await pushDeviceRepository.forget(token);
-            logger.info({ userId: n.userId }, "[push] dropped a dead device token");
-          } else {
-            logger.warn({ status: res.status, userId: n.userId }, "[push] FCM send failed");
-          }
-        }),
-      );
-    } catch (err) {
-      logger.warn({ err: (err as Error).message, userId: n.userId }, "[push] send skipped");
-    }
+    await sendToDevices(n.userId, (token) => buildMessage(token, n));
+  },
+
+  /** E2/E3 — a realtime nudge with no notifications-table row (see RawPush). */
+  async sendRaw(p: RawPush): Promise<void> {
+    await sendToDevices(p.userId, (token) => buildRawMessage(token, p));
   },
 };
