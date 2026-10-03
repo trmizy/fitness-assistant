@@ -19,6 +19,10 @@ import {
   suggestions,
   visibleEvidence,
   workflowItemText,
+  nutritionPreviewTargets,
+  previewDayTitle,
+  previewExerciseLine,
+  workoutPreviewMeta,
 } from "../coach/coach";
 
 describe("coach", () => {
@@ -117,5 +121,28 @@ describe("coach", () => {
     assert.equal(detectImageMediaType("/9j/4AAQSkZJRg"), "image/jpeg");
     assert.equal(detectImageMediaType("iVBORw0KGgoAAAANSUhEUg"), "image/png");
     assert.equal(detectImageMediaType("R0lGODlh"), null);
+  });
+});
+
+describe("WB-19 — thẻ xem trước kế hoạch AI Coach tạo (web eba5a74)", () => {
+  it("tiêu đề ngày tập và dòng bài tập giống web", () => {
+    assert.equal(previewDayTitle({ day: "Thứ 2", goal: "Đẩy", firstDate: "2026-10-06" }), "Thứ 2 — Đẩy · từ 06/10");
+    assert.equal(previewDayTitle({ day: "Thứ 4", goal: "", firstDate: null }), "Thứ 4");
+    assert.equal(previewExerciseLine({ name: "Squat", sets: 4, reps: "8-10", restSeconds: 120 }), "Squat — 4 × 8-10 · nghỉ 120s");
+    assert.equal(previewExerciseLine({ name: "Plank", sets: 3, reps: "45s", restSeconds: 0 }), "Plank — 3 × 45s");
+  });
+
+  it("dòng tóm tắt lịch tập dùng nhãn mục tiêu tiếng Việt", () => {
+    const label = (g: string) => ({ MUSCLE_GAIN: "Tăng cơ" } as Record<string, string>)[g] ?? g;
+    assert.equal(workoutPreviewMeta({ daysPerWeek: 4, sessionMinutes: 60, goal: "MUSCLE_GAIN" }, label), "4 buổi/tuần · khoảng 60 phút/buổi · Tăng cơ");
+    assert.equal(workoutPreviewMeta({ daysPerWeek: 3, sessionMinutes: 45, goal: null }, label), "3 buổi/tuần · khoảng 45 phút/buổi");
+  });
+
+  it("mục tiêu dinh dưỡng: macro làm tròn, thiếu macro nào thì bỏ macro đó", () => {
+    assert.equal(
+      nutritionPreviewTargets({ dailyCaloriesTarget: 2200, mealsPerDay: 4, proteinTargetGrams: 149.6, carbTargetGrams: 230.2, fatTargetGrams: 70 }),
+      "~2200 kcal/ngày · 4 bữa/ngày · P150g C230g F70g",
+    );
+    assert.equal(nutritionPreviewTargets({ dailyCaloriesTarget: 1800, mealsPerDay: 3, proteinTargetGrams: null }), "~1800 kcal/ngày · 3 bữa/ngày");
   });
 });

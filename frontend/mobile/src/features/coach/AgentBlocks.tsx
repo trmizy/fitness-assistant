@@ -10,13 +10,23 @@ import { useWorkspaceAccent } from "../../theme/workspace";
 import { formatVND } from "../../utils/currency";
 import { Chip, FieldLabel } from "../plans/PlanWidgets";
 import { FOCUS_LABELS, LEANNESS_LABEL, MUSCULARITY_LABEL } from "../roadmap/roadmap";
-import { agentErrorMessage, dayLabel, mobileRouteForNextUrl, workflowItemText } from "./coach";
+import {
+  agentErrorMessage,
+  dayLabel,
+  mobileRouteForNextUrl,
+  nutritionPreviewTargets,
+  previewDayTitle,
+  previewExerciseLine,
+  workflowItemText,
+  workoutPreviewMeta,
+} from "./coach";
 import { CoachText } from "./CoachText";
 
 /**
  * WB-12 — web's `components/agent/FitnessAgentBlocks.tsx` in React Native: the structured blocks an
  * AI Coach answer can carry (PT / program candidates, action confirmations, goal-from-photo,
- * image-chat results, cycle evaluation, missing-data checklist, profile-change confirmation).
+ * image-chat results, cycle evaluation, missing-data checklist, profile-change confirmation) — and,
+ * since WB-19 (web eba5a74), the workout / nutrition plans the coach drafts in chat.
  *
  * Every action calls the same `/ai/agent/*` endpoint web calls; nothing is decided here. The
  * Vietnamese labels are web's, which mirror ai-service's own label tables.
@@ -109,6 +119,10 @@ export function AgentBlock({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
+  // WB-19: "Để sau" / "Bỏ qua" is NOT "saved". On a confirmation card it only postpones here (the
+  // backend action stays pending, so it can still be confirmed); on a plan preview "Bỏ qua bản này"
+  // really cancels the draft server-side. Before this, "Để sau" flipped the card to "Đã xác nhận".
+  const [dismissed, setDismissed] = useState(false);
   const [goal, setGoal] = useState("MUSCLE_GAIN");
   const [focus, setFocus] = useState<string[]>(block.attributes?.focusMuscles ?? []);
   const [muscularity, setMuscularity] = useState<string>(block.attributes?.muscularity ?? "MODERATE");
@@ -122,6 +136,20 @@ export function AgentBlock({
     try {
       onReply(await fn());
       setCompleted(true);
+    } catch (e) {
+      setError(agentErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function dismissDraft() {
+    if (busy || completed || dismissed || !block.actionId) return;
+    setBusy(true);
+    setError("");
+    try {
+      onReply(await fitnessAgentService.dismiss(block.actionId));
+      setDismissed(true);
     } catch (e) {
       setError(agentErrorMessage(e));
     } finally {
@@ -362,10 +390,15 @@ export function AgentBlock({
             <Button size="sm" disabled={busy || completed || expired} onPress={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>
               {busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}
             </Button>
-            <Button size="sm" variant="ghost" disabled={busy || completed} onPress={() => setCompleted(true)}>
-              Để sau
-            </Button>
+            {dismissed ? null : (
+              <Button size="sm" variant="ghost" disabled={busy || completed} onPress={() => setDismissed(true)}>
+                Để sau
+              </Button>
+            )}
           </View>
+          {dismissed && !completed ? (
+            <Small>Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.</Small>
+          ) : null}
         </Panel>
       ) : null}
 
@@ -573,6 +606,89 @@ export function AgentBlock({
               }}
             >
               Hủy
+            </Button>
+          </View>
+        </Panel>
+      ) : null}
+
+      {block.type === "WORKOUT_PLAN_PREVIEW" ? (
+        <Panel tone="warn">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="font-body-semibold text-sm text-foreground">{block.title ?? "Lịch tập do AI Coach tạo"}</Text>
+            <RiskBadge risk={block.risk} />
+          </View>
+          <Small>{workoutPreviewMeta(block, (g) => GOAL_LABEL[g] ?? g)}</Small>
+          {block.days?.map((d, i) => (
+            <View key={i} className="rounded-lg border border-border px-2.5">
+              <Disclosure title={previewDayTitle(d)}>
+                {d.exercises.map((e, j) => (
+                  <Small key={j}>• {previewExerciseLine(e)}</Small>
+                ))}
+                <View className="h-2" />
+              </Disclosure>
+            </View>
+          ))}
+          {block.note ? <Small>{block.note}</Small> : null}
+          {expired && !completed && !dismissed ? <Small tone="warn">Bản nháp này đã hết hạn — hãy nhờ AI Coach tạo lại.</Small> : null}
+          <View className="mt-1 flex-row flex-wrap gap-2">
+            <Button
+              size="sm"
+              disabled={busy || completed || dismissed || expired}
+              onPress={() => void run(() => fitnessAgentService.confirm(block.actionId!))}
+            >
+              {busy ? "Đang xử lý…" : completed ? "Đã lưu" : "Lưu lịch tập này"}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={busy || completed || dismissed} onPress={() => void dismissDraft()}>
+              {dismissed ? "Đã bỏ qua" : "Bỏ qua bản này"}
+            </Button>
+          </View>
+        </Panel>
+      ) : null}
+
+      {block.type === "NUTRITION_PLAN_PREVIEW" ? (
+        <Panel tone="warn">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="font-body-semibold text-sm text-foreground">{block.title ?? "Thực đơn do AI Coach tạo"}</Text>
+            <RiskBadge risk={block.risk} />
+          </View>
+          {block.targetNote ? <Small tone="primary">{block.targetNote}</Small> : null}
+          {block.excludedFoods?.length ? <Small tone="fg">Đã loại trừ: {block.excludedFoods.join(", ")}</Small> : null}
+          {block.softPreferences?.length ? (
+            <Small>Gợi ý cho AI (không đảm bảo): {block.softPreferences.join("; ")}</Small>
+          ) : null}
+          <Small>{nutritionPreviewTargets(block)}</Small>
+          {block.nutritionDays?.map((d, i) => (
+            <View key={i} className="rounded-lg border border-border px-2.5">
+              <Disclosure title={`${d.title} — ${d.totalCalories} kcal`}>
+                {d.meals.map((m, j) => (
+                  <View key={j} className="gap-0.5">
+                    <Small tone="fg">
+                      {m.title} ({m.calories} kcal)
+                    </Small>
+                    {m.items.map((it, k) => (
+                      <Small key={k}>
+                        • {it.name} — {it.quantity}
+                        {it.unit} ({it.calories} kcal)
+                      </Small>
+                    ))}
+                  </View>
+                ))}
+                <View className="h-2" />
+              </Disclosure>
+            </View>
+          ))}
+          {block.note ? <Small>{block.note}</Small> : null}
+          {expired && !completed && !dismissed ? <Small tone="warn">Bản nháp này đã hết hạn — hãy nhờ AI Coach tạo lại.</Small> : null}
+          <View className="mt-1 flex-row flex-wrap gap-2">
+            <Button
+              size="sm"
+              disabled={busy || completed || dismissed || expired}
+              onPress={() => void run(() => fitnessAgentService.confirm(block.actionId!))}
+            >
+              {busy ? "Đang xử lý…" : completed ? "Đã lưu" : "Lưu thực đơn này"}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={busy || completed || dismissed} onPress={() => void dismissDraft()}>
+              {dismissed ? "Đã bỏ qua" : "Bỏ qua bản này"}
             </Button>
           </View>
         </Panel>

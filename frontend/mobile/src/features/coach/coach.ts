@@ -222,3 +222,42 @@ export function detectImageMediaType(base64: string): AgentImage["mediaType"] | 
   if (base64.startsWith("/9j/")) return "image/jpeg";
   return null;
 }
+
+// ── WB-19 — AI-generated plan previews (web eba5a74, FitnessAgentBlocks.tsx) ─────────────────────
+
+type PreviewDay = { day: string; goal?: string | null; firstDate?: string | null };
+type PreviewExercise = { name: string; sets: number; reps: string; restSeconds?: number | null };
+
+/** "Thứ 2 — Đẩy · từ 06/10": web shows the first date as dd/mm (from an ISO yyyy-mm-dd). */
+export function previewDayTitle(d: PreviewDay): string {
+  const from = d.firstDate ? d.firstDate.split("-").reverse().slice(0, 2).join("/") : "";
+  return `${d.day}${d.goal ? ` — ${d.goal}` : ""}${from ? ` · từ ${from}` : ""}`;
+}
+
+export function previewExerciseLine(e: PreviewExercise): string {
+  return `${e.name} — ${e.sets} × ${e.reps}${e.restSeconds ? ` · nghỉ ${e.restSeconds}s` : ""}`;
+}
+
+/** "4 buổi/tuần · khoảng 60 phút/buổi · Tăng cơ". */
+export function workoutPreviewMeta(
+  b: { daysPerWeek?: number; sessionMinutes?: number; goal?: string | null },
+  goalLabel: (goal: string) => string,
+): string {
+  return `${b.daysPerWeek ?? "?"} buổi/tuần · khoảng ${b.sessionMinutes ?? "?"} phút/buổi${b.goal ? ` · ${goalLabel(b.goal)}` : ""}`;
+}
+
+/** "~2200 kcal/ngày · 4 bữa/ngày · P150g C230g F70g" — macros rounded, each only when present. */
+export function nutritionPreviewTargets(b: {
+  dailyCaloriesTarget?: number;
+  mealsPerDay?: number;
+  proteinTargetGrams?: number | null;
+  carbTargetGrams?: number | null;
+  fatTargetGrams?: number | null;
+}): string {
+  const macros = [
+    b.proteinTargetGrams != null ? `P${Math.round(b.proteinTargetGrams)}g` : "",
+    b.carbTargetGrams != null ? `C${Math.round(b.carbTargetGrams)}g` : "",
+    b.fatTargetGrams != null ? `F${Math.round(b.fatTargetGrams)}g` : "",
+  ].filter(Boolean);
+  return `~${b.dailyCaloriesTarget ?? "?"} kcal/ngày · ${b.mealsPerDay ?? "?"} bữa/ngày${macros.length ? ` · ${macros.join(" ")}` : ""}`;
+}

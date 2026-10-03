@@ -2118,7 +2118,11 @@ export interface AgentChatBlock {
     | "SUBSTITUTE_RESULT"
     | "CYCLE_EVALUATION_RESULT"
     | "WORKFLOW_MISSING_DATA"
-    | "PROFILE_UPDATE_CONFIRMATION";
+    | "PROFILE_UPDATE_CONFIRMATION"
+    // WB-19 (web eba5a74): draft-only plans the coach generates in chat, saved via the same
+    // actionId/confirm() as ACTION_CONFIRMATION, or cancelled server-side via dismiss().
+    | "WORKOUT_PLAN_PREVIEW"
+    | "NUTRITION_PLAN_PREVIEW";
   recommendationId?: string;
   actionId?: string;
   kind?: string;
@@ -2158,6 +2162,39 @@ export interface AgentChatBlock {
   missing?: Array<string | { label?: string; value?: unknown }>;
   changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   allowUseOnce?: boolean;
+  // WORKOUT_PLAN_PREVIEW
+  goal?: string | null;
+  daysPerWeek?: number;
+  sessionMinutes?: number;
+  days?: Array<{
+    day: string;
+    goal: string;
+    firstDate?: string | null;
+    exercises: Array<{ name: string; sets: number; reps: string; restSeconds: number }>;
+  }>;
+  // NUTRITION_PLAN_PREVIEW
+  targetNote?: string;
+  excludedFoods?: string[];
+  softPreferences?: string[];
+  mealsPerDay?: number;
+  dailyCaloriesTarget?: number;
+  proteinTargetGrams?: number;
+  carbTargetGrams?: number;
+  fatTargetGrams?: number;
+  nutritionDays?: Array<{
+    dayNumber: number;
+    title: string;
+    totalCalories: number;
+    meals: Array<{
+      mealType: string;
+      title: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      items: Array<{ name: string; quantity: number; unit: string; calories: number }>;
+    }>;
+  }>;
 }
 
 export interface AgentReply {
@@ -2177,6 +2214,8 @@ export const fitnessAgentService = {
   choose: (id: string, candidateId: string, packageId?: string) =>
     agentPost(`/ai/agent/recommendations/${id}/choose`, { candidateId, packageId }),
   confirm: (id: string) => agentPost(`/ai/agent/actions/${id}/confirm`, { confirmed: true }),
+  // WB-19 — "Bỏ qua bản này": cancels a workout/nutrition DRAFT server-side (not the same as "Để sau").
+  dismiss: (id: string) => agentPost(`/ai/agent/actions/${id}/dismiss`, {}),
   confirmGoal: (sessionId: string, goal: unknown) => agentPost("/ai/agent/goal/confirm", { sessionId, goal }),
   image: (image: AgentImage, sessionId?: string) => agentPost("/ai/agent/goal-image", { image, sessionId }),
   imageChat: (image: AgentImage, question: string, sessionId?: string) =>
