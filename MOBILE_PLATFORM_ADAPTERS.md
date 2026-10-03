@@ -3149,3 +3149,87 @@ chừng, app ra nền trong khi gọi. (5) Thông báo cuộc gọi đến khi a
 **Backend:** thời lượng cuộc gọi luôn 0:00 — GAP-23, **đã sửa 30/9** bằng sự kiện `call:connected` (chat-service +
 web + mobile). Máy ảo mất ~6–7 s từ lúc nghe tới lúc thông (riêng `setLocalDescription` của answer ~4 s — mã hoá video
 bằng CPU); cần đo lại trên điện thoại thật.
+
+## 41. Phase 14 — E1–E5 (Ngài cho làm cả năm, gồm sửa backend) (1/10)
+
+**E1 — chủ gym hiện mã QR check-in** (đối ứng của 14.3; web `GymCheckinPanel`). Màn `app/gym-owner/checkin-qr.tsx`, mở
+từ nút "Mã QR check-in" trên thẻ chi nhánh đã duyệt (tab Phòng gym). Vẽ bằng `qrcode@1.5.4` (đúng bản web, thêm vào mobile
+bằng pnpm rồi chạy lại `scripts/shorten-package-paths.js` vì pnpm gỡ các junction `D:/.rn*`) thành một `<Path>` của
+react-native-svg (`src/components/QrCode.tsx`). Thêm so với web: ngày hết hạn mã (server ký 365 ngày) và "Lưu ảnh để in"
+(SVG → PNG → bảng chia sẻ, có mục In). Danh sách "Check-in gần đây" làm mới 10 s như web.
+Kiểm (máy ảo, jane.smith): màn hiện đúng; **giải mã ảnh chụp màn hình bằng jsQR** → token đúng `gymId`, `purpose`,
+hạn 01/10/2027; gửi token đó lên `POST /me/gym-checkins` bằng hytrongbeou → **check-in thành công** (REAL HTTP/API), token
+sửa 1 ký tự → `INVALID_TOKEN`; lượt check-in hiện ngay trong danh sách của chủ gym; nút lưu ảnh mở bảng chia sẻ với PNG.
+⚠ Lượt check-in đó là thật (hytrongbeou có gói thương hiệu dùng được ở chi nhánh này): `gym_check_ins 908c5185…`.
+
+**E2 — cuộc gọi đến khi app không mở.** chat-service: người nhận offline không còn bị đánh dấu nhỡ ngay — vẫn đổ chuông
+30 s; mỗi cuộc gọi CHAT gửi push "<tên> — Đang gọi video/thoại cho bạn…" (tag `call-<id>`, ttl 30 s); hết giờ hoặc người
+gọi huỷ → push "Cuộc gọi … nhỡ" cùng tag (thay thế). Sự kiện mới `call:sync`: app hỏi cuộc gọi đang đổ chuông khi gắn xong
+listener và sau mỗi lần nối lại. `callerName` nay là tên thật (trước là email). user-service: `POST /internal/push`
+(service-secret, chỉ gửi push, không tạo dòng thông báo) + thử lại 1 lần khi lỗi mạng (đã thấy một push bị rơi vì
+"fetch failed").
+App: bấm push CALL/CHAT → mở thẳng cuộc trò chuyện (chỉ nhận link dạng `/client/messages/<id>`); đang ở trước thì không hiện
+banner (overlay/chat đã hiện) — **chỉ khi thật sự đang ở trước** (`AppState`), vì bộ xử lý của expo-notifications cũng chạy
+lúc app chạy nền (lỗi bắt được khi kiểm: push gọi bị nuốt sau khi bấm Home); nghe/từ chối trong app thì dọn push "đang gọi".
+
+**Lỗi 14.4 bắt được khi kiểm E2, đã sửa:** (1) socket chat-service của app (`services/socket.ts`, chỉ CallProvider dùng)
+**không bao giờ nối lại** sau khi Android cắt nó lúc chạy nền (hàm phục hồi có sẵn nhưng chưa gắn) → sau một lúc ở nền app
+không nhận cuộc gọi nào nữa. (2) **Cách ly tài khoản (P1):** socket đó không bị ngắt khi đăng xuất → tài khoản đăng nhập
+sau vẫn nhận cuộc gọi của người trước. Nay CallProvider gắn bộ phục hồi và ngắt/tạo lại socket theo `userId`.
+Kiểm: đăng xuất hytrongbeou, đăng nhập jane → PT gọi hytrongbeou → máy **không** đổ chuông, không push; `push_devices` chỉ
+còn máy của jane.
+
+**E3 — push tin nhắn chat.** Cả hai đường gửi (socket và REST) gọi `pushNewMessage` → mỗi người còn lại một push
+"<tên người gửi>: <nội dung ≤120 ký tự>" (tag `chat-<conversationId>`: cuộc trò chuyện chỉ giữ tin mới nhất trong khay).
+Kiểm: app chạy nền, PT gửi tin qua API thật → push "Professional Trainer / nội dung" → bấm → mở đúng cuộc trò chuyện.
+Sửa kèm: mở thẳng từ push, đầu khung chat từng chớp "Người dùng · Học viên" lúc danh sách chưa tải — nay để trống.
+
+**E4 — tin hệ thống tiếng Việt:** "📞 Cuộc gọi video/thoại nhỡ", "📞 Cuộc gọi … đã kết thúc (m:ss)" (`callLogContent`);
+app bỏ emoji khi hiển thị (đã có icon riêng), web giữ emoji làm icon. Tin cũ trong DB vẫn là tiếng Anh.
+
+**E5 — GAP-22 (phần cổng):** xem `MOBILE_BACKEND_GAPS.md` GAP-22.
+
+**Kiểm E2 trọn vòng (máy ảo + Chrome, REAL BROWSER/HTTP):** app ở nền ~1 phút → PT gọi video từ web → push đến sau ~1–5 s
+→ bấm → mở cuộc trò chuyện, màn đổ chuông hiện sau ~9 s (app quay lại + socket nối lại + `call:sync`) → nghe → offer/answer
+→ `call:connected` → cúp: DB `ENDED/hangup`, tin "📞 Cuộc gọi video đã kết thúc (1:03)"; push "đang gọi" đã được dọn.
+Không nghe → sau 30 s push đổi thành "Cuộc gọi video nhỡ".
+
+**Test:** mobile unit 600/600, tsc sạch, lint 0 lỗi; chat-service `push-relay` 4/4, `call-connected` 7/7, `call-membership`
+4/4, `chat-message-validation` 5/5 (gymcoach_chat_test); user-service `push-service` 8/8; payment-service
+`gateway-failure-closes-checkout` 6/6 + `webhook-security` 12/12 + `ledger-idempotency` 7/7 + `membership-ledger` 8/8
+(gymcoach_payment_test, chạy **từng file** — chạy song song nhiều file trên cùng DB test thì đụng nhau).
+
+**CHƯA kiểm:** app **tắt hẳn** + push gọi (bản dev nạp >40 s, quá 30 s đổ chuông → cần bản release / máy thật, D10);
+VNPay thật bấm "Huỷ" (D11); push trên máy thật (D7).
+
+## 42. WB-19 — AI Coach: thẻ xem trước lịch tập / thực đơn do AI tạo (vá Phase 9) (1/10)
+
+**Vì sao:** Ngài hỏi bản merge mới có cần cập nhật plan không. Rà lại: merge cuối cùng mang code web/backend vào nhánh là
+`e9a0cfe` (28/9), chứa đúng một commit `eba5a74` (trmizy, 20/9, "complete coach workflow readiness") — **sau** khi Phase 9
+(AI Coach, WB-12) đóng 24/9, và chưa tài liệu mobile nào đối chiếu. Remote không còn commit nào mới hơn nhánh (fetch 1/10).
+Phần backend (ai-service: luồng tạo lịch tập/thực đơn trong chat, ràng buộc món ăn; fitness-service: khởi tạo mục tiêu dinh
+dưỡng, `GET /nutrition/target-preview` — web không gọi) mobile dùng lại qua API sẵn có. Phần web mobile thiếu — vá ngay
+(Ngài chọn, 1/10):
+
+- Thẻ `WORKOUT_PLAN_PREVIEW` "Lịch tập do AI Coach tạo": số buổi/tuần · phút/buổi · mục tiêu, từng ngày mở/đóng (bài × hiệp
+  × lần · nghỉ), "Lưu lịch tập này" (`confirm`) / "Bỏ qua bản này" (**`POST /ai/agent/actions/:id/dismiss`**, mới — huỷ bản
+  nháp trên server), hết hạn thì khoá nút.
+- Thẻ `NUTRITION_PLAN_PREVIEW` "Thực đơn do AI Coach tạo": ghi chú mục tiêu, món đã loại trừ, gợi ý mềm, kcal/ngày · bữa ·
+  P/C/F, từng ngày → từng bữa → từng món; Lưu / Bỏ qua như trên.
+- **Lỗi web đã sửa mà mobile còn mang:** "Để sau" trên thẻ xác nhận đổi nút thành "Đã xác nhận" dù chưa làm gì. Nay chỉ hoãn tại
+  máy, ghi "Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.", nút Xác nhận vẫn bấm được.
+
+Code: `src/features/coach/AgentBlocks.tsx`, kiểu + `fitnessAgentService.dismiss` ở `src/services/api.ts`, hàm dựng chữ ở
+`src/features/coach/coach.ts` (`previewDayTitle`, `previewExerciseLine`, `workoutPreviewMeta`, `nutritionPreviewTargets`).
+Test: `coach.test.ts` 16/16; **component test** `AgentBlocks.test.tsx` 6/6 (jest-expo) với thẻ lịch tập **thật** server trả
+ngày 1/10 cho "Tạo lịch tập 3 buổi mỗi tuần cho tôi": mở ngày → bài tập; "Lưu" gọi `confirm`; "Bỏ qua" gọi `dismiss` rồi khoá
+thẻ; hết hạn không lưu được; thẻ thực đơn; "Để sau" không còn ghi "Đã xác nhận". Unit 603/603, tsc sạch, lint sạch.
+**REAL HTTP/API:** `/ai/ask` trả `structuredBlocks[0].type = WORKOUT_PLAN_PREVIEW` đúng hình dạng đã khai báo (lịch tập sinh
+theo luật + danh mục, **không cần LLM**); `POST /ai/agent/actions/:id/dismiss` → "Đã bỏ qua bản nháp này — chưa lưu gì vào hệ
+thống.", DB `CANCELLED` (2 bản nháp thử đều đã bỏ). Đường stream app dùng (`/ai/ask/stream`) có mang `structuredBlocks` ở
+sự kiện kết thúc.
+**CHƯA kiểm:** thẻ hiện trên máy (D12) — máy ảo quá chậm: câu trả lời văn bản của nút gợi ý "Lập lịch tập cho tôi" chạy chữ
+gần 1 giờ chưa xong (D13, ghi nhận, chưa điều tra); thực đơn cần LLM (Ollama không chạy trên máy dev).
+
+**Bài học (áp dụng từ nay):** trước khi đóng Phase 14 và trước Phase 15, rà mọi commit web/backend vào nhánh kể từ lần đối
+chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ khi có merge mới.

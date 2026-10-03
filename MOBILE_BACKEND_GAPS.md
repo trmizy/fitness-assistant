@@ -546,7 +546,7 @@ nhãn "Gym Owner", lát "Gym owners" trong `roleData`, `status` từ `isActive`,
 mới, gateway 41/41; `REAL HTTP/API` sau `docker compose restart api-gateway`. Chi tiết:
 `MOBILE_PLATFORM_ADAPTERS.md` §35.1. Trạng thái: **ĐÃ SỬA**.
 
-## GAP-22 — Giao dịch cổng đã huỷ vẫn nằm PENDING (Phase 14.1) — chỉ ghi nhận, chưa sửa
+## GAP-22 — Giao dịch cổng đã huỷ vẫn nằm PENDING (Phase 14.1) — ĐÃ SỬA ý 1 (1/10), ý 2 còn mở
 
 **Thấy 28/9 khi kiểm thanh toán trên mobile** (không phải lỗi app — app hiện đúng lời server):
 
@@ -562,6 +562,15 @@ nút "Kiểm tra lại" — đúng như web. Không tự suy ra "thất bại" t
 **Cần Ngài quyết (backend, không gấp):** có cho `vnpay/return` ghi FAILED khi chữ ký hợp lệ và mã là huỷ
 (như nó đã ghi PAID), và cho việc huỷ gói/hợp đồng huỷ luôn giao dịch PENDING đi kèm không. Nếu không, các
 giao dịch này chỉ đóng khi quét đối soát làm hết hạn.
+
+**1/10 — Ngài cho sửa (E5), đã sửa ý 1:** `/payments/vnpay/return` có chữ ký hợp lệ và `vnp_ResponseCode` là thất bại
+dứt khoát (24 huỷ, 11 hết hạn, 09/10/12/13/79 thẻ/OTP/mật khẩu, 51 không đủ tiền, 65 vượt hạn mức, 75 ngân hàng bảo
+trì) → `failFromSignedGatewayResult` đưa giao dịch PENDING/PROCESSING sang FAILED (cùng luật tra theo cổng + khớp cổng
+như `handleEvent`). Không đụng mã 07 (đã trừ tiền nhưng bị nghi ngờ) và 99. PAID không bao giờ bị hạ; một PAID đến
+muộn vẫn lật FAILED → PAID. Test `gateway-failure-closes-checkout.integration.test.ts` 6/6 (gymcoach_payment_test, gồm
+route với chữ ký thật + chữ ký bị sửa). **Ý 2 (huỷ gói hội viên thì huỷ luôn giao dịch PENDING) chưa làm:** nếu khách
+vừa trả tiền ở cổng đúng lúc bấm huỷ gói, đánh CANCELLED giao dịch sẽ khiến PAID đến sau bị bỏ qua — cần thiết kế
+riêng (hỏi cổng trước khi huỷ), để lại.
 
 ## GAP-23 — Tin nhắn "cuộc gọi đã kết thúc" luôn ghi thời lượng 0:00 (Phase 14.4) — ĐÃ SỬA 30/9
 
