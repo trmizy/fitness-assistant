@@ -55,6 +55,19 @@ function buildSignedQuery(params: Record<string, string>): { query: string; sign
  * it against the same secret and credits — so the simulated checkout drives the genuine
  * verification + credit path without a live merchant.
  */
+/**
+ * vnp_ResponseCode values that mean "this payment attempt did not go through and never will":
+ * 24 = payer cancelled, 11 = payment window expired, 09/10/12/13/79 = card/account/OTP/password
+ * problems, 51 = insufficient balance, 65 = daily limit, 75 = bank under maintenance. Deliberately
+ * NOT included: 07 (money taken but flagged as suspicious — not a failure) and 99 (unknown) — those
+ * stay open for querydr/reconciliation to settle.
+ */
+const VNPAY_DEFINITIVE_FAILURE_CODES = new Set(['09', '10', '11', '12', '13', '24', '51', '65', '75', '79']);
+
+export function isDefinitiveVnpayFailure(responseCode: unknown): boolean {
+  return typeof responseCode === 'string' && VNPAY_DEFINITIVE_FAILURE_CODES.has(responseCode);
+}
+
 export function buildSimulatedReturnQuery(input: { txnRef: string; amount: number; success: boolean }): string {
   const vnpParams: Record<string, string> = {
     vnp_Version: '2.1.0',

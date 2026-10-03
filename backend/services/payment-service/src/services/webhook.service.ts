@@ -187,6 +187,28 @@ async function settlePurchase(txn: {
  * exact same idempotent path a real webhook would (provider-match guard, already-PAID guard,
  * frozen rate/party allocation) — this function only ever supplies the "PAID" signal.
  */
+/**
+ * GAP-22: a gateway that SIGNS a definitive failure for a checkout (VNPay's return redirect with
+ * vnp_ResponseCode 24 when the payer cancels, …) used to leave the transaction PENDING until the
+ * stale sweep, so the result page said "Đang chờ xác nhận" for a payment that was already over.
+ * Close it now — same provider-scoped lookup and provider-match rule as handleEvent, and only from
+ * PENDING/PROCESSING (markFailedIfOpen). A later genuine PAID still settles a FAILED purchase
+ * (handleEvent only skips PAID rows), so this can never lose a real payment.
+ * The caller is responsible for having verified the provider's signature first.
+ */
+export async function failFromSignedGatewayResult(event: {
+  provider: string;
+  providerTransactionId: string;
+}): Promise<boolean> {
+  const providerEnum = event.provider as PaymentProviderType;
+  const txn = await transactionRepository.findByProviderTransactionId(event.providerTransactionId, providerEnum);
+  if (!txn) return false;
+  if (String(event.provider).toUpperCase() !== String(txn.provider).toUpperCase()) return false;
+  const moved = await transactionRepository.markFailedIfOpen(txn.id);
+  if (moved) logger.info(`[WebhookService] ${event.provider} reported a definitive failure — transaction ${txn.id} → FAILED`);
+  return moved;
+}
+
 export async function pollAndSettle(txn: PaymentTransaction): Promise<'PAID' | 'FAILED' | 'PENDING' | 'UNSUPPORTED'> {
   // A direct-to-gateway checkout (membership/contract purchase) is created with status
   // PENDING and never moves to PROCESSING anywhere in this codebase — only the old

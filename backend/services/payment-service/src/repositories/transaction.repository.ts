@@ -118,6 +118,15 @@ export const transactionRepository = {
     `);
   },
 
+  /** FAILED only from a still-open state — never downgrades PAID/REFUNDED/CANCELLED. True if it moved. */
+  async markFailedIfOpen(id: string) {
+    const { count } = await prisma.paymentTransaction.updateMany({
+      where: { id, status: { in: ['PENDING', 'PROCESSING'] } },
+      data: { status: 'FAILED', failedAt: new Date() },
+    });
+    return count > 0;
+  },
+
   async markFailed(id: string) {
     return prisma.paymentTransaction.update({ where: { id }, data: { status: 'FAILED', failedAt: new Date() } });
   },
