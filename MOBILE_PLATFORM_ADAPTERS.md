@@ -3484,5 +3484,5 @@ nhóm), `workout-analytics.utils.ts` (phân bổ nhóm cơ / loại bài tập),
   mobile — mobile chỉ thêm lịch từ buổi của chương trình hiện có. **Ngài 5/10: ghi lại, bàn sau** — không làm trong 14B.4.
 - Chương trình thủ công khi đang có chu kỳ tập: tài khoản thử không có chu kỳ đang chạy nên chưa thấy lịch được gắn chu kỳ trên máy.
 - Triset / circuit (≥ 3 bài) và nhánh "Nghỉ sau vòng" chỉ có unit test; trên máy mới kiểm superset 2 bài.
-- GAP-26: 2 lỗi web ở trên — chờ Ngài.
+- GAP-26: 2 lỗi web ở trên — **đã sửa web 5/10** (Ngài cho phép; REAL BROWSER, xem GAP-26).
 

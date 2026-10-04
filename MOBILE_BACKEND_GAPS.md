@@ -646,14 +646,14 @@ web ↔ mobile; mobile không đổi backend.
 (Playwright, web dev, hytrongbeou): sửa món đã ghi → `PATCH /nutrition/:id → 200`, DB 95 → 90 kcal; sửa lượng Yến mạch trong thực
 đơn 60 → 80 g → `PATCH /nutrition/program-meal-items/:id → 200`, DB 80 g / 303 kcal / 10.6 g đạm / 54.2 g tinh bột / 5.2 g béo.
 
-## GAP-26 — Web: nút "Xóa" lịch ở ngày không xoá được; danh sách thiết bị bài tự tạo chỉ còn BODYWEIGHT (14B.4) — CHỜ NGÀI
+## GAP-26 — Web: nút "Ẩn" lịch ở ngày không xoá được; danh sách thiết bị bài tự tạo chỉ còn BODYWEIGHT (14B.4) — ĐÃ SỬA web 5/10
 
 Hai lỗi của **web** (không phải backend) thấy 4–5/10 khi chép phần sửa lịch / chương trình sang mobile. CODE AUDIT (đọc code web +
 backend); mobile đã làm đúng theo server, web chưa sửa.
 
-1. **"Xóa" lịch tập hiện ở mọi dòng, server chỉ cho xoá buổi hôm nay.** Danh sách lịch của `WorkoutLogPage.tsx` (~dòng 4940) có nút
-   "Xóa" không kèm điều kiện ngày; fitness-service `deleteSchedule` gọi `assertScheduleDateEditable` — từ chối cả ngày **đã qua** lẫn
-   **tương lai** (`schedule-lock.util.ts`, giờ Việt Nam). Người dùng bấm "Xóa" một buổi tuần sau → hộp xác nhận → lỗi. Mobile chỉ hiện
+1. **"Ẩn" (xoá) lịch tập hiện ở mọi dòng "Buổi tập sắp tới", server chỉ cho xoá buổi hôm nay.** `WorkoutLogPage.tsx` (~dòng 4940) có
+   nút "Ẩn" (hộp xác nhận "Xóa lịch tập này…") không kèm điều kiện ngày; fitness-service `deleteSchedule` gọi `assertScheduleDateEditable` — từ chối cả ngày **đã qua** lẫn
+   **tương lai** (`schedule-lock.util.ts`, giờ Việt Nam). Người dùng bấm "Ẩn" một buổi tuần sau → hộp xác nhận → lỗi. Mobile chỉ hiện
    "Ẩn khỏi lịch" ở buổi hôm nay chưa tập (`scheduleActions.canDeleteSchedule`).
 2. **Thiết bị / nhóm cơ khi tạo bài tự tạo không lấy được từ server.** `workoutService.getExerciseFilterOptions` trả nguyên
    `{ success, data: { bodyParts, equipments, … } }`; trang gán thẳng vào `exerciseOptions` rồi đọc `exerciseOptions.equipments` →
@@ -662,4 +662,12 @@ backend); mobile đã làm đúng theo server, web chưa sửa.
 
 **Cần Ngài quyết:** sửa web cho giống (1: chỉ hiện "Xóa" khi buổi là hôm nay và chưa có workout; 2: `return data?.data ?? data` ở
 `getExerciseFilterOptions`) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
+**Đã sửa web 5/10 (Ngài cho phép):** `WorkoutLogPage.tsx` — nút "Ẩn" chỉ hiện khi buổi là hôm nay và chưa có workout; chỗ nhận
+`getExerciseFilterOptions` bóc lớp `data` (giống `ExerciseLibraryPage`, không đổi hàm dùng chung trong `api.ts`). `vite build` qua.
+REAL BROWSER (Playwright, web dev, hytrongbeou, chỉ quan sát — không bấm xoá / lưu): "Buổi tập sắp tới" 5 dòng → "Ẩn" chỉ ở 05/10
+(hôm nay, chưa tập), không có ở 07, 08, 10, 12/10; form "Tạo bài tập tùy chỉnh" → Thiết bị 9 lựa chọn (Bodyweight … Foam Roller), bộ
+lọc thiết bị của hộp chọn bài cũng đủ 9 (trước: chỉ "Bodyweight" / trống).
+Lưu ý khi kiểm: container `gymcoach-web-dev` không nhận thay đổi file qua bind mount (Vite giữ bản đã nạp) → phải `docker restart
+gymcoach-web-dev` sau khi sửa `frontend/web/src` thì trang mới chạy code mới.
 
