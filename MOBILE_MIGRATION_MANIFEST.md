@@ -419,6 +419,7 @@ USB — không thấy thiết bị ADB/MTP nào) → dời lại.
 | E3 | **Push cho tin nhắn chat** | chat-service → user-service `/internal/push` (không tạo dòng thông báo) | **XONG 1/10** — §41 |
 | E4 | Tin hệ thống cuộc gọi còn tiếng Anh | `callLogContent` ở chat-service | **XONG 1/10** — §41 (tin cũ trong DB giữ nguyên tiếng Anh) |
 | E5 | GAP-22 giao dịch cổng đã huỷ vẫn PENDING | `/payments/vnpay/return` đóng FAILED khi mã huỷ/từ chối có chữ ký | **XONG phần cổng 1/10** — §41; phần "huỷ gói hội viên" còn mở (GAP-22) |
+| E6 | **Buổi tập tự do không theo giáo án** (web `WorkoutLogPage` → `logWorkout` / `updateWorkout`: chọn bài tuỳ ý cho một ngày trống rồi lưu) — mobile chỉ thêm lịch từ buổi của chương trình | Ngài quyết có làm hay loại trừ (phát hiện khi làm 14B.4, ADAPTERS §46) | **CHỜ NGÀI — 5/10 Ngài: ghi lại, bàn sau** |
 
 
 ## Khoảng trống parity web → mobile — Phase 14B (ghi 3/10)
@@ -430,7 +431,7 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 |---|---|---|---|
 | PG-A1 | Chu kỳ tập & đánh giá chu kỳ (bắt đầu/hoàn thành/huỷ, đánh giá, đề xuất tập + dinh dưỡng, diet break, báo cáo, lịch sử) | 14B.1 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §43 (chưa commit; "Kết thúc chu kỳ" chưa bấm thật) |
 | PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | **Phản hồi sau buổi: XONG 4/10** — §43. **Lý do bỏ buổi: XONG 4/10** sau khi sửa backend GAP-24 (Ngài cho phép) |
-| PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | OPEN |
+| PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | **XONG 5/10** — ADAPTERS §46; chuỗi "Xong khi" chạy thật trên testuser009 (tạo chương trình → dời 1 buổi → đổi 1 bài → tập xong, DB khớp); 2 lỗi web ghi ở GAP-26; còn mở: buổi tập tự do không theo giáo án (web `logWorkout`) — **Ngài 5/10: ghi lại, bàn sau** |
 | PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | **XONG 4/10** — ADAPTERS §45; kèm 2 lỗi web ghi ở GAP-25 (sửa nhật ký gọi sai PUT; sửa lượng không tính lại calo) |
 | PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §44; Duyệt/Sửa/Từ chối chỉ có component test (dev DB không có đề xuất đang chờ PT) |
 | PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | **XONG 4/10** — §44 (giao thật cho John Doe theo lệnh Ngài, DB + thông báo khớp) |
@@ -445,7 +446,7 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-B8 | Bộ lọc thư viện thực phẩm | 14B.6 | OPEN |
 | PG-B9 | Nhận lời mời làm quản lý chi nhánh (= WB-02) | 14B.6 | OPEN |
 | PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | OPEN |
-| PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | OPEN |
+| PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | **XONG 5/10** — ADAPTERS §46 (tab Nhật ký; số khớp hồ sơ + InBody) |
 | PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | OPEN |
 | PG-C4 | Dinh dưỡng: nhận xét trong ngày, biểu đồ 7 ngày | 14B.3 | **XONG 4/10** — §45 |
 | PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | OPEN |

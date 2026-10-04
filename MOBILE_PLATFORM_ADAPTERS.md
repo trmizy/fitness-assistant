@@ -3405,3 +3405,84 @@ sửa nhật ký, nhận xét theo luật, biểu đồ 7 ngày, banner lệch m
 - Chế độ "Nhập lượng" của "Một phần" chỉ có unit test (đã kiểm chế độ %).
 - GAP-25: web vẫn còn 2 lỗi trên — chờ Ngài.
 
+## 46. Phase 14B.4 — Sửa lịch & chương trình tập (PG-A3) + chỉ số cơ thể, phân bổ tập luyện (PG-C2) (4–5/10)
+
+**Nguồn hành vi:** web `WorkoutLogPage.tsx` (chi tiết ngày, dời / ẩn / thêm lịch, hoàn thành / hoàn tác cả bài, đổi bài, loại set,
+tóm tắt buổi, chương trình thủ công, sửa bài trong ngày, superset, bài tự tạo), `exercise-group.utils.ts` (thứ tự tập xen kẽ trong
+nhóm), `workout-analytics.utils.ts` (phân bổ nhóm cơ / loại bài tập), khối "Chỉ số cơ thể". Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/workout/scheduleActions.ts` + `DaySheet.tsx` — bấm một ngày trong Lịch tuần mở sheet: mở buổi hôm nay, **Dời lịch**
+  (14 ngày tới từ hôm nay + lý do), **Ẩn khỏi lịch** (có xác nhận), **Thêm lịch tập** (ngày nghỉ, chọn buổi của chương trình hiện tại;
+  chưa có chương trình → mở "Chương trình mới"). Nút chỉ hiện khi server sẽ cho phép (xem "Khác web" 1).
+- `src/features/workout/exerciseActions.ts` + `SessionExtras.tsx` + `log.tsx` — trong buổi tập: **Đổi bài** (bài thay thế của server,
+  chỉ buổi này; bài đã đổi hoàn thành bằng "Xong cả bài" vì lệnh đó mang theo bài thay), **Xong cả bài / Hoàn tác bài**, chip **loại set**
+  (Warm-up / Working / Top set / Back-off / Failure), **Tóm tắt buổi tập** (số của `GET /workouts/:id/summary`, kể cả PR).
+- `src/features/workout/exerciseGroups.ts` — chép hàm thuần của web cho superset / triset / circuit: nhãn "Superset · Bài 1/2 · Vòng 1/2";
+  tick một set trong nhóm → thời gian nghỉ là "nghỉ giữa bài" hoặc "nghỉ sau vòng" của nhóm, thanh nghỉ ghi "Tiếp theo: <bài> · set N".
+- `log.tsx` — bài **thêm vào giáo án sau khi buổi đã bắt đầu** hiện thành thẻ "Xong cả bài" (server tính nó vào tổng buổi; thiếu thẻ thì
+  buổi kẹt ở "làm một phần" — lỗi bắt được khi kiểm, xem dưới).
+- `app/client/workout/programs/index.tsx` ("Chương trình của tôi", mở từ nút quả tạ ở thanh công cụ Tập luyện) — từng buổi: **Sửa bài**
+  (hiệp / lần / nghỉ, xoá, thêm từ thư viện hoặc "Bài của tôi"), **Đổi tên buổi**, **Nhóm superset** (chọn ≥ 2 bài chưa nhóm, nghỉ giữa
+  bài / sau vòng), **Bỏ nhóm**, **Ẩn chương trình**. `programEdit.ts` dựng lệnh lưu (cập nhật / thêm / xoá; ngày trống bị chặn như web).
+- `app/client/workout/programs/new.tsx` — **chương trình thủ công** (dùng lại `PlanDraftBuilder`, bỏ phần AI), `replaceExisting: true`
+  như web, có câu cảnh báo "thay các buổi chưa tập". `ExercisePickerSheet.tsx` (dùng chung với PT) thêm mục "Bài của tôi": tạo bài tự
+  tạo (kèm hỏi lại khi trùng), lưu trữ.
+- `src/features/workout/workoutAnalytics.ts` + `TrainingInsights.tsx` — tab Nhật ký: **Chỉ số cơ thể** (bắt đầu = `startingWeight` của
+  hồ sơ, hiện tại = lần đo InBody mới nhất, đã thay đổi, còn lại tới mục tiêu; nút sang màn InBody) và **Phân bổ tập luyện** (nhóm cơ,
+  loại bài tập; Gần nhất / 7 ngày / 30 ngày / Tất cả).
+- Sửa kèm: tên buổi đọc `programDay.title` (trước đọc `.name` không tồn tại → mọi dòng hiện "Buổi tập") ở Lịch tuần, màn tập, Trang chủ
+  (thẻ "Hôm nay"), và tên ngày thực đơn ở màn Dinh dưỡng; Lịch tuần tính lại ngày khi mở lại màn / app quay lại (trước giữ ngày lúc mở
+  màn — để app qua nửa đêm thì "Hôm nay" vẫn là hôm qua; có từ Phase 5).
+
+**Khác web có chủ đích:**
+1. "Ẩn khỏi lịch" chỉ có ở buổi **hôm nay** chưa tập — web hiện nút ở mọi dòng nhưng server từ chối mọi ngày khác (GAP-26 ý 1).
+2. Danh sách thiết bị / nhóm cơ khi tạo bài tự tạo lấy từ `filter-options` đã bóc lớp `data` — web không bóc nên chỉ còn "BODYWEIGHT"
+   (GAP-26 ý 2).
+3. Phân bổ nhóm cơ tách các mục ghi gộp "Pectorals, Triceps, …" thành từng nhóm cơ (web đếm cả chuỗi là một nhóm).
+4. Mobile hiện mọi bài cùng lúc nên bước kế trong superset hiện bằng thời gian nghỉ + dòng "Tiếp theo", không tự nhảy sang bài kế như web.
+5. Biểu đồ phân bổ là thanh xếp chồng thay cho biểu đồ tròn (cùng số liệu).
+6. Nhãn nhóm trong màn chương trình theo web ("Superset · Bài 2"), không dùng chữ A/B.
+
+**Kiểm chứng (máy ảo, dev client, backend dev; DB đối chiếu từng bước):**
+- hytrongbeou (password123):
+  - Sheet ngày: buổi hôm nay đã bỏ qua chỉ hiện "Ẩn" → ẩn → `workout_schedules` mất dòng; "Thêm lịch tập" hôm nay → dòng mới (server
+    không gắn chu kỳ — đúng hành vi createSchedule); dời sang 05/10 (đã có lịch) → toast "Ngày này đã có lịch tập."; dời 04/10 → 08/10 lý
+    do "ban" → `date` 08/10, `original_planned_date` 04/10, `reschedule_reason` ban.
+  - Buổi tập: chip loại set → `workout_sets.set_type` TOP; Đổi bài Bench Press → Dumbbell Bench Press + Xong cả bài →
+    `workout_exercises.exercise_id` đổi, `notes` "Đã đổi từ "Bench Press" sang "Dumbbell Bench Press"", 2 set 10 kg × 8 hoàn thành;
+    Hoàn tác bài → 2 set `completed=false`, bài thay + ghi chú giữ nguyên; giáo án vẫn là Bench Press.
+  - Chương trình: Squats 2 → 3 hiệp; tạo bài tự tạo "Kiem thu Day ta don 14B4" (thân trên, tạ đơn) và thêm vào buổi A →
+    `workout_program_exercises` thứ tự 3, `exercises.owner_id` có giá trị; nhóm Squats + bài tự tạo → `workout_program_exercise_groups`
+    SUPERSET 30 / 90 s, 2 thành viên; Bỏ nhóm → 0 nhóm; đổi tên buổi B → DB đổi (sau đó trả tên cũ qua đúng API, HTTP 200); lưu trữ bài
+    tự tạo → `archived_at` có giá trị, biến khỏi "Bài của tôi".
+  - Superset trong buổi tập (Bench + Squats): nhãn "Superset · Bài 1/2 · Vòng 1/2" (vòng đổi theo set đang tập); tick Bench set 2 →
+    thanh nghỉ "Nghỉ giữa bài" (đếm từ 30 s), "Tiếp theo: Squats · set 2"; set cuối của nhóm → "Nghỉ giữa set" 90 s. Nhánh "Nghỉ sau
+    vòng" (90 s của nhóm) chỉ có unit test — trên máy chưa chụp được lúc nó hiện.
+  - Tab Nhật ký: Bắt đầu 80 kg / Hiện tại 110.2 kg / Đã thay đổi +30.2 kg / Còn lại 38.2 kg (mục tiêu 72) — khớp hồ sơ + InBody; Phân
+    bổ 7 ngày: 6 nhóm cơ 17%, Sức mạnh 100%.
+- testuser009 (Test@123456) — chuỗi "Xong khi" của cụm, từ đầu tới cuối:
+  - Chương trình mới "Chương trình của tôi" 4 tuần, Buổi 1 (CN) Barbell Bench Press, Buổi 2 (T2) Barbell Full Squat →
+    `workout_programs` MANUAL ACTIVE, PPL cũ ARCHIVED, 8 lịch 04/10–26/10; 193 lịch NOT_STARTED cũ (đều đã qua) bị thay.
+  - Dời Buổi 1 11/10 → 07/10 → DB `date` 07/10, `original_planned_date` 11/10; server gửi push "Đã dời lịch buổi tập…".
+  - Buổi 2 hôm nay (05/10): Bắt đầu → Đổi bài Barbell Full Squat → Goblet Squats, 12.5 kg × 10 → Xong cả bài → lịch COMPLETED 1/1, 3 set
+    Goblet Squats 12.5 × 10 kèm ghi chú đổi bài; Tóm tắt 1 bài / 3 set / 375 kg; giáo án Buổi 2 vẫn là Barbell Full Squat.
+- Tự động: `workoutEditing.test.ts` 25 (node:test: luật lịch, luật cả bài / đổi bài, bước superset, lệnh lưu chương trình, phân bổ, hành
+  trình cân nặng). Toàn bộ unit 667/667, jest 12 bộ / 73 test, `tsc` sạch, lint 0 lỗi (6 cảnh báo có sẵn từ trước).
+
+**Lỗi bắt được khi kiểm, đã sửa:**
+1. Bài thêm vào giáo án giữa buổi không hiện trong màn tập nhưng server vẫn tính → buổi kẹt "PARTIALLY_COMPLETED 2/3" dù mọi set hiện đã
+   xong (bấm "Kết thúc buổi tập" vẫn báo "Đã hoàn thành"). Thêm thẻ bài còn lại → COMPLETED 3/3.
+2. Tạo chương trình mới xong, màn "Chương trình của tôi" còn hiện chương trình cũ (cache) và chồng thêm một màn cùng loại lên stack →
+   reset cache + `dismissTo` thay cho `replace`.
+3. Bộ chọn bài giữ chữ tìm kiếm của lần trước sau khi chọn bài.
+4. Thanh nghỉ trong suốt, đè lên chữ bên dưới → thêm nền đặc.
+5. Tên buổi (`.name` → `.title`) và Lịch tuần giữ ngày cũ qua nửa đêm (xem trên).
+
+**CHƯA làm / còn mở:**
+- **Buổi tập tự do không theo giáo án** (web `logWorkout` / `updateWorkout`: chọn bài tuỳ ý cho một ngày trống rồi lưu) chưa có trên
+  mobile — mobile chỉ thêm lịch từ buổi của chương trình hiện có. **Ngài 5/10: ghi lại, bàn sau** — không làm trong 14B.4.
+- Chương trình thủ công khi đang có chu kỳ tập: tài khoản thử không có chu kỳ đang chạy nên chưa thấy lịch được gắn chu kỳ trên máy.
+- Triset / circuit (≥ 3 bài) và nhánh "Nghỉ sau vòng" chỉ có unit test; trên máy mới kiểm superset 2 bài.
+- GAP-26: 2 lỗi web ở trên — chờ Ngài.
+

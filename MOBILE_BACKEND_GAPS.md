@@ -646,3 +646,20 @@ web ↔ mobile; mobile không đổi backend.
 (Playwright, web dev, hytrongbeou): sửa món đã ghi → `PATCH /nutrition/:id → 200`, DB 95 → 90 kcal; sửa lượng Yến mạch trong thực
 đơn 60 → 80 g → `PATCH /nutrition/program-meal-items/:id → 200`, DB 80 g / 303 kcal / 10.6 g đạm / 54.2 g tinh bột / 5.2 g béo.
 
+## GAP-26 — Web: nút "Xóa" lịch ở ngày không xoá được; danh sách thiết bị bài tự tạo chỉ còn BODYWEIGHT (14B.4) — CHỜ NGÀI
+
+Hai lỗi của **web** (không phải backend) thấy 4–5/10 khi chép phần sửa lịch / chương trình sang mobile. CODE AUDIT (đọc code web +
+backend); mobile đã làm đúng theo server, web chưa sửa.
+
+1. **"Xóa" lịch tập hiện ở mọi dòng, server chỉ cho xoá buổi hôm nay.** Danh sách lịch của `WorkoutLogPage.tsx` (~dòng 4940) có nút
+   "Xóa" không kèm điều kiện ngày; fitness-service `deleteSchedule` gọi `assertScheduleDateEditable` — từ chối cả ngày **đã qua** lẫn
+   **tương lai** (`schedule-lock.util.ts`, giờ Việt Nam). Người dùng bấm "Xóa" một buổi tuần sau → hộp xác nhận → lỗi. Mobile chỉ hiện
+   "Ẩn khỏi lịch" ở buổi hôm nay chưa tập (`scheduleActions.canDeleteSchedule`).
+2. **Thiết bị / nhóm cơ khi tạo bài tự tạo không lấy được từ server.** `workoutService.getExerciseFilterOptions` trả nguyên
+   `{ success, data: { bodyParts, equipments, … } }`; trang gán thẳng vào `exerciseOptions` rồi đọc `exerciseOptions.equipments` →
+   `undefined` → form bài tự tạo rơi về `["BODYWEIGHT"]` (dòng ~1623), bộ lọc thiết bị của hộp chọn bài trống (~8494). Mobile bóc lớp
+   `data` (`programEdit.filterOptions`) → đủ danh sách (đã tạo bài "Tạ đơn" trên máy).
+
+**Cần Ngài quyết:** sửa web cho giống (1: chỉ hiện "Xóa" khi buổi là hôm nay và chưa có workout; 2: `return data?.data ?? data` ở
+`getExerciseFilterOptions`) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
