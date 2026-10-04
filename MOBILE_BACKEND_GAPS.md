@@ -595,7 +595,7 @@ Kiểm: `src/__tests__/call-connected.test.ts` 6/6 + `call-membership.test.ts` 4
 mới tạo 30/9); gọi thật máy ảo ↔ Chrome → DB `started_at` 08:55:09, `ended_at` 08:55:26, tin "Video call ended (0:17)".
 Tin hệ thống vẫn là tiếng Anh (chưa đổi).
 
-## GAP-24 — Lý do bỏ buổi tập không bao giờ lưu được (14B.1, PG-A2) — CHỜ NGÀI QUYẾT
+## GAP-24 — Lý do bỏ buổi tập không bao giờ lưu được (14B.1, PG-A2) — ĐÃ SỬA 4/10 (Ngài cho phép)
 
 **Thấy 4/10 khi kiểm trên máy ảo** (web bị y hệt — cùng endpoint, không phải lỗi app): bỏ một buổi rồi chọn lý do →
 `POST /workouts/schedules/:id/feedback` luôn trả 400 "skipReason is required for a skipped/cancelled session", dù body
@@ -617,4 +617,12 @@ lý do." (đúng thông báo của web). Không lách ở phía app.
 **Đề xuất sửa (backend, 1 dòng, miền Tập luyện — cần Ngài cho phép theo quyết định Phase 0.3):** đảo thứ tự
 `z.union([skipCancelFeedbackSchema, completionFeedbackSchema])` — schema bỏ buổi bắt buộc có `skipReason` nên body hoàn
 thành vẫn rơi về schema hoàn thành — kèm một test gọi đúng `sessionFeedbackInputSchema`/controller với body bỏ buổi.
+
+**Đã sửa 4/10 (Ngài cho phép sửa backend):** `models/session-feedback.models.ts` đảo thứ tự thành
+`z.union([skipCancelFeedbackSchema, completionFeedbackSchema])` (có chú thích lý do). Web và mobile cùng được sửa vì cùng
+endpoint; không đổi client. Kiểm: `session-feedback.models.test.ts` 13/13 (thêm 3 test gọi đúng schema của controller — body bỏ
+buổi giữ đủ lý do / cờ điều chỉnh / ngày tập bù, body hoàn thành vẫn là phản hồi hoàn thành); `session-feedback.integration.test.ts`
+10/10 trên DB test mới tạo `gymcoach_fitness_test` (trước đây không có DB test cho fitness nên bộ này luôn bị bỏ qua); máy ảo:
+hytrongbeou ghi lý do cho buổi 04/10 đã bỏ → "Đã ghi nhận lý do bỏ buổi tập", DB `cycle_session_feedback` = schedule_conflict,
+should_adjust_plan = true, makeup 2026-10-06.
 

@@ -3301,7 +3301,7 @@ chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ
   chỉ có unit test.
 - Mã lý do của Decision Engine (`CYCLE_TOO_SHORT`…) và câu giải thích dinh dưỡng do server ghép (`INSUFFICIENT_WEIGHT_SAMPLES`)
   hiện dạng mã thô — web y hệt; cần bảng nhãn chung (đề xuất làm cùng web, không tự đặt nhãn riêng cho mobile).
-- GAP-24 chờ Ngài quyết.
+- GAP-24: **đã sửa 4/10** (Ngài cho phép) — lý do bỏ buổi lưu được, kiểm lại trên máy ảo; chi tiết ở MOBILE_BACKEND_GAPS.md.
 
 ## 44. Phase 14B.2 — PT: dữ liệu học viên, duyệt đề xuất dinh dưỡng, giao kế hoạch (PG-A5/PG-A6), đánh giá khách (PG-B4) (4/10)
 
