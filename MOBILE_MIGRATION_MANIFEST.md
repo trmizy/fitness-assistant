@@ -431,7 +431,7 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-A1 | Chu kỳ tập & đánh giá chu kỳ (bắt đầu/hoàn thành/huỷ, đánh giá, đề xuất tập + dinh dưỡng, diet break, báo cáo, lịch sử) | 14B.1 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §43 (chưa commit; "Kết thúc chu kỳ" chưa bấm thật) |
 | PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | **Phản hồi sau buổi: XONG 4/10** — §43. **Lý do bỏ buổi: XONG 4/10** sau khi sửa backend GAP-24 (Ngài cho phép) |
 | PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | OPEN |
-| PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | OPEN |
+| PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | **XONG 4/10** — ADAPTERS §45; kèm 2 lỗi web ghi ở GAP-25 (sửa nhật ký gọi sai PUT; sửa lượng không tính lại calo) |
 | PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §44; Duyệt/Sửa/Từ chối chỉ có component test (dev DB không có đề xuất đang chờ PT) |
 | PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | **XONG 4/10** — §44 (giao thật cho John Doe theo lệnh Ngài, DB + thông báo khớp) |
 | PG-A7 | Chủ gym: quản lý chi nhánh (= GY-03) | 14B.5 | OPEN |
@@ -447,7 +447,7 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | OPEN |
 | PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | OPEN |
 | PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | OPEN |
-| PG-C4 | Dinh dưỡng: nhận xét trong ngày, biểu đồ 7 ngày | 14B.3 | OPEN |
+| PG-C4 | Dinh dưỡng: nhận xét trong ngày, biểu đồ 7 ngày | 14B.3 | **XONG 4/10** — §45 |
 | PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | OPEN |
 | PG-C6 | Tổng quan PT: biểu đồ doanh thu, cảnh báo học viên | 14B.7 | OPEN |
 | PG-C7 | Tổng quan admin: tăng trưởng, vai trò, cảnh báo hệ thống, đăng ký gần đây | 14B.7 | OPEN |

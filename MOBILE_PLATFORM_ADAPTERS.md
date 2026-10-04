@@ -3361,3 +3361,47 @@ chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ
 - Duyệt / Sửa / Từ chối với một đề xuất thật — cần chu kỳ có đề xuất dinh dưỡng đang chờ (nhiều tuần cân nặng thật); dev DB không có.
   E2E chéo vai trò "khách sinh đề xuất ở 14B.1 → PT duyệt → khách thấy" vì vậy chưa chạy được.
 
+## 45. Phase 14B.3 — Thực hiện thực đơn (PG-A4) + nhận xét dinh dưỡng trong ngày, biểu đồ 7 ngày (PG-C4) (4/10)
+
+**Nguồn hành vi:** web `NutritionPage.tsx` (phần thực đơn trong ngày, hộp "Ghi nhận lượng thực ăn", "Thêm món vào bữa", sửa món,
+sửa nhật ký, nhận xét theo luật, biểu đồ 7 ngày, banner lệch mục tiêu). Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/nutrition/mealPlan.ts` — phần thuần: chọn bữa của thực đơn theo loại bữa (chỉ khi thực đơn phủ ngày đó), trạng thái
+  bữa, khoá sửa/xoá khi đã ăn, xem trước "Một phần" theo %, dựng body hoàn thành (theo % / theo lượng ăn — luật web), body thêm món,
+  body sửa nhật ký (kiểm như web), nhận xét trong ngày (luật web, tối đa 2 dòng), dữ liệu 7 ngày.
+- `src/features/nutrition/MealPlanParts.tsx` — thẻ bữa của thực đơn (Hoàn thành / Một phần / Bỏ qua / Hoàn tác, xoá bữa có xác nhận,
+  thêm món, sửa lượng, xoá món có xác nhận), sheet "Ghi nhận lượng thực ăn" (2 chế độ), sheet sửa lượng, sheet sửa món đã ghi, thẻ nhận
+  xét, biểu đồ 7 ngày (vẽ bằng View), banner lệch mục tiêu ("Tạo lại thực đơn" mở AI Coach như web; "Vẫn giữ thực đơn này").
+- `app/client/workout/nutrition/index.tsx` — loại bữa có trong thực đơn hôm nay hiện thẻ bữa của thực đơn (mục của server, đã gồm cả
+  món tự ghi của bữa đó); loại bữa khác giữ danh sách nhật ký, giờ bấm vào để sửa. Thêm banner, nhận xét, biểu đồ.
+- `app/client/workout/nutrition/add.tsx` — có `planMealId` thì cùng màn tìm thực phẩm thêm món vào bữa của thực đơn
+  (`POST /nutrition/program-meals/:id/items`) thay vì ghi nhật ký.
+- `nutritionMath.ts`: dòng nhật ký giữ `quantity` (form sửa có ô khối lượng như web). `api.ts`: `updateLog` dùng **PATCH** (xem GAP-25).
+
+**Khác web có chủ đích:**
+1. Sửa lượng món trong thực đơn gửi kèm calo/macro tính lại (web chỉ gửi số gam → calo không đổi) — GAP-25 ý 2.
+2. Sửa nhật ký gọi PATCH (web gọi PUT → 404, chưa bao giờ chạy) — GAP-25 ý 1.
+3. Xoá món / xoá bữa có hộp xác nhận (web xoá món ngay khi bấm).
+4. Lịch tháng của web ở trang dinh dưỡng: mobile đã có màn "Tổng kết tháng" riêng (Phase 6), không lặp lại.
+
+**Kiểm chứng:**
+- TEST FIXTURE: thực đơn 7 ngày × 3 bữa × 3 món ("Thực đơn kiểm thử 14B.3", 63 món, thực phẩm USDA thật) tạo cho hytrongbeou qua đường
+  nhập của fitness-service mà ai-service gọi khi người dùng lưu thực đơn AI (`POST /nutrition/from-ai-plan`, token nội bộ đọc từ biến
+  môi trường container, không in ra) — máy dev không có LLM để sinh thực đơn thật.
+- Máy ảo (dev client, backend dev), DB đối chiếu từng bước:
+  - Sửa lượng Chuối 120 → 150 g → `nutrition_program_meal_items` 150 g, 134 kcal, 34.2 g tinh bột (bản đầu chỉ gửi gam như web → calo
+    giữ 107: lỗi bắt được khi kiểm, đã sửa).
+  - "Hoàn thành" bữa sáng → `nutrition_meal_completions` COMPLETED 100, món bị khoá; "Hoàn tác" → bản ghi bị xoá.
+  - "Một phần" bữa trưa: xem trước 50% = 272 kcal (543 × 0.5); chọn 75% → PARTIAL 75, `actualProgress` 407 kcal.
+  - Thêm món vào bữa sáng → dòng mới 100 g / 120 kcal; xoá (có xác nhận) → còn 3 món.
+  - "Bỏ qua" bữa tối → SKIPPED; xoá bữa tối khỏi kế hoạch → bữa + bản ghi hoàn thành đều không còn.
+  - Ghi nhật ký Bữa phụ (không thuộc thực đơn) → `nutrition_logs` dòng mới; sửa calo → 95 (sau khi đổi sang PATCH); biểu đồ 7 ngày
+    hiện 95 ở CN; nhận xét "Protein hôm nay còn thấp…" đúng luật.
+- Tự động: `mealPlan.test.ts` 14 (node:test, dùng dạng dữ liệu thật của `daily-task`), `GoalPlanMismatchBanner.test.tsx` 3 (jest).
+
+**CHƯA kiểm / còn mở:**
+- Banner lệch mục tiêu trên máy: server trả MATCHED cho tài khoản thử; muốn hiện phải đổi mục tiêu dinh dưỡng thật → chỉ component test.
+- Chế độ "Nhập lượng" của "Một phần" chỉ có unit test (đã kiểm chế độ %).
+- GAP-25: web vẫn còn 2 lỗi trên — chờ Ngài.
+

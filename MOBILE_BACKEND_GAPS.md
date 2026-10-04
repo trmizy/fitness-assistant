@@ -626,3 +626,18 @@ buổi giữ đủ lý do / cờ điều chỉnh / ngày tập bù, body hoàn t
 hytrongbeou ghi lý do cho buổi 04/10 đã bỏ → "Đã ghi nhận lý do bỏ buổi tập", DB `cycle_session_feedback` = schedule_conflict,
 should_adjust_plan = true, makeup 2026-10-06.
 
+## GAP-25 — Web: sửa nhật ký ăn luôn lỗi; sửa lượng món trong thực đơn không tính lại calo (14B.3) — mobile đã tránh, web CHỜ NGÀI
+
+Hai lỗi của **web** (không phải backend) thấy 4/10 khi chép phần thực đơn sang mobile. Ghi ở đây vì cùng sổ theo dõi khác biệt
+web ↔ mobile; mobile không đổi backend.
+
+1. **Sửa món đã ghi (nhật ký ăn) không bao giờ lưu được.** `nutritionService.updateLog` của web gọi **PUT** `/nutrition/:id`, nhưng
+   fitness-service chỉ có `router.patch("/:id")` → 404 "Cannot PUT /nutrition/…". REAL HTTP/API: PUT → trang lỗi Express; PATCH cùng
+   body → 200, DB đổi. Mobile (bản chép của web) bị y hệt cho tới 4/10 — **đã đổi sang PATCH**, kiểm trên máy ảo: calo 100 → 95, DB
+   `nutrition_logs.updated_at` đổi.
+2. **Sửa lượng một món trong thực đơn chỉ đổi số gam.** Web gửi `{ quantity }` một mình; server chỉ cập nhật trường được gửi →
+   calo/macro giữ nguyên lượng cũ (máy ảo: Chuối 120 → 150 g mà vẫn 107 kcal). Mobile gửi kèm calo/macro tính lại theo giá trị /100 g
+   của thực phẩm (hoặc theo tỉ lệ nếu món không có trong danh mục) → 150 g = 134 kcal, DB khớp.
+
+**Cần Ngài quyết:** sửa web cho giống (1: `api.patch`; 2: gửi kèm macro tính lại) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
