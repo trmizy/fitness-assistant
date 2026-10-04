@@ -306,7 +306,7 @@ export default function NutritionScreen() {
                   {dailyTask?.program?.name ?? "Chương trình dinh dưỡng"}
                 </Text>
                 <Text className="mt-0.5 font-body text-xs text-muted-foreground">
-                  {dailyTask?.day?.name ? `${dailyTask.day.name} · ` : ""}
+                  {dailyTask?.day?.title ?? dailyTask?.day?.name ? `${dailyTask.day.title ?? dailyTask.day.name} · ` : ""}
                   {Array.isArray(dailyTask?.meals) ? `${dailyTask.meals.length} bữa theo kế hoạch` : "Theo kế hoạch"}
                 </Text>
               </View>

@@ -13,6 +13,9 @@ import {
   Minus,
   Play,
   Plus,
+  Repeat,
+  CheckCheck,
+  Undo2,
   SkipForward,
   Square,
   Timer,
@@ -29,7 +32,10 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { workoutService } from "../../../src/services/api";
+import {
+  workoutService,
+  type ExerciseSubstitute,
+} from "../../../src/services/api";
 import { toDateInputValue } from "../../../src/utils/date";
 import { haptics } from "../../../src/lib/haptics";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -48,6 +54,25 @@ import {
   SkipFeedbackSheet,
 } from "../../../src/features/workout/SessionFeedbackSheets";
 import { FEEDBACK_COMPLETION_STATUSES, FEEDBACK_SKIP_STATUSES } from "../../../src/features/workout/sessionFeedback";
+import {
+  canCompleteWhole,
+  canSwap,
+  canUndoWhole,
+  closesCycleSession,
+  plannedNotLogged,
+  setTypeLabel,
+  wholeCompletionPayload,
+  type Swap,
+} from "../../../src/features/workout/exerciseActions";
+import { SessionSummaryCard, SetTypeSheet, SwapExerciseSheet } from "../../../src/features/workout/SessionExtras";
+import {
+  computeNextInterleavedWorkoutStep,
+  findCurrentInterleavedWorkoutStep,
+  groupAwareBlocks,
+  groupMetaFromDay,
+  setRowsByProgramExerciseId,
+} from "../../../src/features/workout/exerciseGroups";
+import { GROUP_TYPE_LABEL } from "../../../src/features/workout/programEdit";
 
 /**
  * CL-17 — live workout logging.
@@ -79,6 +104,11 @@ export default function WorkoutLogScreen() {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [rest, setRest] = useState<number | null>(null);
+  // 14B.4 — inside a superset the rest is "between exercises" / "after the round" and names what comes next.
+  const [restInfo, setRestInfo] = useState<{
+    title: string;
+    next: string | null;
+  }>({ title: "Nghỉ giữa set", next: null });
   const [blocks, setBlocks] = useState<ExerciseBlock[] | null>(null);
   const [starting, setStarting] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -87,6 +117,18 @@ export default function WorkoutLogScreen() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [backAfterFeedback, setBackAfterFeedback] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
+  // 14B.4 — session-only swaps by block key, the block being swapped, the set whose type is being picked.
+  const [swaps, setSwaps] = useState<Record<string, Swap>>({});
+  const [swapFor, setSwapFor] = useState<{
+    key: string;
+    exerciseId: string;
+    name: string;
+  } | null>(null);
+  const [setTypeFor, setSetTypeFor] = useState<{
+    blockKey: string;
+    row: SetRow;
+  } | null>(null);
+  const [blockBusy, setBlockBusy] = useState<string | null>(null);
   const hydratedFor = useRef<string | null>(null);
   const clockSeededFor = useRef<string | null>(null);
 
@@ -105,7 +147,10 @@ export default function WorkoutLogScreen() {
     return list[0] ?? null;
   }, [scheduleQuery.data]);
 
+  const groupMeta = useMemo(() => groupMetaFromDay(schedule?.programDay), [schedule]);
+
   const workoutId: string | null = schedule?.workoutId ?? schedule?.workout?.id ?? null;
+  const scheduleId: string | null = schedule?.id ? String(schedule.id) : null;
   const completed = schedule?.status === "COMPLETED";
 
   const workoutQuery = useQuery({
@@ -252,10 +297,47 @@ export default function WorkoutLogScreen() {
       const next = !row.completed;
       haptics.tap();
       patchRow(block.key, row.id, { completed: next });
-      if (next) setRest(block.restSeconds);
+      if (next) {
+        // Web's interleaved order: in a group the next step is the next member's same set, then the
+        // next round — rest length and the "Tiếp theo" line come from that step.
+        const list = blocks ?? [];
+        const index = list.findIndex((b) => b.key === block.key);
+        const rows = setRowsByProgramExerciseId(list);
+        const own = block.programExerciseId
+          ? rows[String(block.programExerciseId)]
+          : undefined;
+        if (own)
+          rows[String(block.programExerciseId)] = own.map((r) =>
+            r.setNumber === row.setNumber ? { ...r, completed: true } : r,
+          );
+        const step =
+          index >= 0
+            ? computeNextInterleavedWorkoutStep(
+                groupAwareBlocks(list, groupMeta),
+                rows,
+                index,
+                row.setNumber,
+                block.restSeconds,
+              )
+            : null;
+        if (step) {
+          const nextBlock = list[step.exerciseIndex];
+          setRestInfo({
+            title:
+              step.restKind === "after_round"
+                ? "Nghỉ sau vòng"
+                : "Nghỉ giữa bài",
+            next: `${swaps[nextBlock.key]?.name ?? nextBlock.name} · set ${step.setNumber}`,
+          });
+          setRest(step.restSeconds);
+        } else {
+          setRestInfo({ title: "Nghỉ giữa set", next: null });
+          setRest(block.restSeconds);
+        }
+      }
       void persist(block.key, row, next);
     },
-    [patchRow, persist],
+    [patchRow, persist, blocks, groupMeta, swaps],
   );
 
   const addSet = useCallback(
@@ -313,6 +395,129 @@ export default function WorkoutLogScreen() {
     }
   }, [schedule?.id, queryClient, toast]);
 
+  const refreshSession = useCallback(async () => {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["workout-schedules", "today"] }),
+      queryClient.refetchQueries({ queryKey: ["workout", workoutId] }),
+    ]).catch(() => {});
+  }, [queryClient, workoutId]);
+
+  // "Xong cả bài" / a swapped exercise — web's exercise-level completion (applies a swap server-side).
+  const completeWhole = useCallback(
+    async (block: ExerciseBlock) => {
+      if (!scheduleId || !block.programExerciseId) return;
+      setBlockBusy(block.key);
+      try {
+        const res = await workoutService.completeScheduleExercise(
+          scheduleId,
+          block.programExerciseId,
+          wholeCompletionPayload(block, swaps[block.key]),
+        );
+        haptics.success();
+        hydratedFor.current = null;
+        await refreshSession();
+        if (closesCycleSession(res)) {
+          setRest(null);
+          setBackAfterFeedback(false);
+          setFeedbackOpen(true);
+        }
+      } catch (e: any) {
+        toast.show(
+          e?.response?.data?.error ?? "Không hoàn thành được bài này.",
+          "danger",
+        );
+      } finally {
+        setBlockBusy(null);
+      }
+    },
+    [scheduleId, swaps, refreshSession, toast],
+  );
+
+  // A plan exercise the session has no row for yet (added to the program mid-session).
+  const completePlanned = useCallback(
+    async (programExercise: any) => {
+      if (!scheduleId) return;
+      setBlockBusy(`planned-${programExercise.id}`);
+      try {
+        const res = await workoutService.completeScheduleExercise(scheduleId, String(programExercise.id));
+        haptics.success();
+        hydratedFor.current = null;
+        await refreshSession();
+        if (closesCycleSession(res)) {
+          setRest(null);
+          setBackAfterFeedback(false);
+          setFeedbackOpen(true);
+        }
+      } catch (e: any) {
+        toast.show(e?.response?.data?.error ?? "Không hoàn thành được bài này.", "danger");
+      } finally {
+        setBlockBusy(null);
+      }
+    },
+    [scheduleId, refreshSession, toast],
+  );
+
+  const undoWhole = useCallback(
+    async (block: ExerciseBlock) => {
+      if (!scheduleId || !block.programExerciseId) return;
+      setBlockBusy(block.key);
+      try {
+        await workoutService.undoCompleteScheduleExercise(
+          scheduleId,
+          block.programExerciseId,
+        );
+        hydratedFor.current = null;
+        await refreshSession();
+      } catch (e: any) {
+        toast.show(
+          e?.response?.data?.error ?? "Không hoàn tác được bài này.",
+          "danger",
+        );
+      } finally {
+        setBlockBusy(null);
+      }
+    },
+    [scheduleId, refreshSession, toast],
+  );
+
+  const pickSubstitute = useCallback(
+    (sub: ExerciseSubstitute) => {
+      if (!swapFor) return;
+      setSwaps((prev) => ({
+        ...prev,
+        [swapFor.key]: {
+          exerciseId: sub.id,
+          name: sub.exerciseName,
+          fromName: swapFor.name,
+        },
+      }));
+      setSwapFor(null);
+      toast.show(
+        `Đã đổi sang "${sub.exerciseName}" cho buổi tập này`,
+        "success",
+      );
+    },
+    [swapFor, toast],
+  );
+
+  const saveSetType = useCallback(
+    async (value: string) => {
+      const target = setTypeFor;
+      setSetTypeFor(null);
+      if (!target) return;
+      patchRow(target.blockKey, target.row.id, { setType: value });
+      try {
+        await workoutService.updateSet(target.row.id, { setType: value });
+      } catch {
+        patchRow(target.blockKey, target.row.id, {
+          setType: target.row.setType ?? null,
+        });
+        toast.show("Không lưu được loại set.", "danger");
+      }
+    },
+    [setTypeFor, patchRow, toast],
+  );
+
   const finish = useCallback(async () => {
     haptics.success();
     await Promise.all([
@@ -336,7 +541,6 @@ export default function WorkoutLogScreen() {
   }, [queryClient, toast]);
 
   // Skipping is only offered before the session was started (the server refuses it after).
-  const scheduleId: string | null = schedule?.id ? String(schedule.id) : null;
   const skipSession = useCallback(() => {
     if (!scheduleId) return;
     Alert.alert("Bỏ qua buổi tập này?", "Buổi hôm nay sẽ được đánh dấu là bỏ qua. Bạn vẫn có thể bắt đầu tập lại trong hôm nay.", [
@@ -404,7 +608,7 @@ export default function WorkoutLogScreen() {
         <View className="flex-1 justify-center px-5">
           <Card className="p-5">
             <Text className="font-display text-xl text-foreground">
-              {schedule?.programDay?.name ?? schedule?.name ?? "Buổi tập hôm nay"}
+              {schedule?.programDay?.title ?? schedule?.programDay?.name ?? schedule?.name ?? "Buổi tập hôm nay"}
             </Text>
             <Text className="mt-1.5 font-body text-sm text-muted-foreground">
               Bấm bắt đầu để mở buổi tập — hệ thống sẽ tạo sẵn các set theo giáo án.
@@ -448,7 +652,10 @@ export default function WorkoutLogScreen() {
                     {completed ? "Đã hoàn thành" : running ? "Đang tập" : "Tạm dừng"}
                   </Badge>
                   <Text className="font-display mt-1.5 text-lg leading-tight text-foreground">
-                    {schedule?.programDay?.name ?? schedule?.name ?? "Buổi tập"}
+                    {schedule?.programDay?.title ??
+                      schedule?.programDay?.name ??
+                      schedule?.name ??
+                      "Buổi tập"}
                   </Text>
                 </View>
                 <View className="items-end">
@@ -502,6 +709,10 @@ export default function WorkoutLogScreen() {
               </View>
             ) : null}
 
+            {completed && workoutId ? (
+              <SessionSummaryCard workoutId={workoutId} />
+            ) : null}
+
             {(blocks ?? []).length === 0 ? (
               <EmptyState
                 icon={Dumbbell}
@@ -510,7 +721,7 @@ export default function WorkoutLogScreen() {
               />
             ) : (
               <View className="gap-4">
-                {(blocks ?? []).map((block) => (
+                {(blocks ?? []).map((block, blockIndex) => (
                   <Card key={block.key} className="p-4">
                     <View className="mb-3 flex-row items-center gap-3">
                       <ExerciseMedia
@@ -520,14 +731,73 @@ export default function WorkoutLogScreen() {
                       />
                       <View className="flex-1">
                         <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                          {block.name}
+                          {swaps[block.key]?.name ?? block.name}
                         </Text>
+                        {swaps[block.key] ? (
+                          <Text
+                            className="font-body text-[11px] text-primary"
+                            numberOfLines={1}
+                          >
+                            {`Đổi từ "${swaps[block.key].fromName}" · chỉ buổi này`}
+                          </Text>
+                        ) : block.notes ? (
+                          <Text
+                            className="font-body text-[11px] text-muted-foreground"
+                            numberOfLines={1}
+                          >
+                            {block.notes}
+                          </Text>
+                        ) : null}
                         <View className="mt-0.5 flex-row items-center gap-1">
                           <Timer size={11} color="#8b9299" />
                           <Text className="font-body text-[11px] text-muted-foreground">
                             Nghỉ {block.restSeconds}s giữa set
                           </Text>
                         </View>
+                        {(() => {
+                          const meta = block.programExerciseId
+                            ? groupMeta.get(String(block.programExerciseId))
+                            : undefined;
+                          if (!meta) return null;
+                          const exercises = groupAwareBlocks(
+                            blocks ?? [],
+                            groupMeta,
+                          );
+                          const members = exercises.filter(
+                            (e) => e.groupId === meta.groupId,
+                          ).length;
+                          if (members < 2) return null;
+                          const position =
+                            exercises
+                              .filter((e) => e.groupId === meta.groupId)
+                              .sort(
+                                (a, b) =>
+                                  (a.groupOrder ?? 0) - (b.groupOrder ?? 0),
+                              )
+                              .findIndex(
+                                (e) =>
+                                  e.programExerciseId ===
+                                  block.programExerciseId,
+                              ) + 1;
+                          const activeRow = block.sets.find(
+                            (s) => !s.completed,
+                          );
+                          const step = activeRow
+                            ? findCurrentInterleavedWorkoutStep(
+                                exercises,
+                                setRowsByProgramExerciseId(blocks ?? []),
+                                blockIndex,
+                                activeRow.setNumber,
+                              )
+                            : null;
+                          return (
+                            <View className="mt-1 flex-row">
+                              <Badge tone="info">
+                                {`${GROUP_TYPE_LABEL[meta.groupType] ?? "Nhóm bài"} · Bài ${position}/${members}${step ? ` · Vòng ${step.roundNumber}/${step.totalRounds}` : ""}`}
+                              </Badge>
+                            </View>
+                          );
+                        })()}
                       </View>
                       <Text className="font-body text-xs text-muted-foreground">
                         {block.sets.filter((s) => s.completed).length}/{block.sets.length}
@@ -565,7 +835,9 @@ export default function WorkoutLogScreen() {
                             <Tappable
                               className={`h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                                 row.completed ? "bg-primary" : "border border-border bg-card"
-                              }`}
+                              } ${swaps[block.key] ? "opacity-30" : ""}`}
+                              // A swapped exercise is completed as a whole (that call carries the swap).
+                              disabled={!!swaps[block.key]}
                               onPress={() => toggleSet(block, row)}
                             >
                               <Check
@@ -575,12 +847,22 @@ export default function WorkoutLogScreen() {
                               />
                             </Tappable>
                           </View>
-                          {row.targetReps != null || row.targetRpe != null ? (
-                            <Text className="mt-1.5 pl-8 font-body text-[11px] text-muted-foreground">
-                              Mục tiêu: {row.targetReps ?? "—"} reps
-                              {row.targetRpe != null ? ` · RPE ${row.targetRpe}` : ""}
-                            </Text>
-                          ) : null}
+                          <View className="mt-1.5 flex-row items-center gap-2 pl-8">
+                            <Tappable
+                              haptic={false}
+                              className="rounded-md border border-border bg-card px-2 py-0.5"
+                              accessibilityLabel={`Loại set ${i + 1}: ${setTypeLabel(row.setType)}`}
+                              onPress={() => setSetTypeFor({ blockKey: block.key, row })}
+                            >
+                              <Text className="font-body text-[10px] text-muted-foreground">{`${setTypeLabel(row.setType)} ▾`}</Text>
+                            </Tappable>
+                            {row.targetReps != null || row.targetRpe != null ? (
+                              <Text className="font-body text-[11px] text-muted-foreground">
+                                Mục tiêu: {row.targetReps ?? "—"} reps
+                                {row.targetRpe != null ? ` · RPE ${row.targetRpe}` : ""}
+                              </Text>
+                            ) : null}
+                          </View>
                         </View>
                       ))}
                     </View>
@@ -592,8 +874,85 @@ export default function WorkoutLogScreen() {
                       <Plus size={16} color="#8b9299" />
                       <Text className="font-body-semibold text-sm text-muted-foreground">Thêm set</Text>
                     </Tappable>
+                    {/* 14B.4 — exercise-level actions (web): swap before any set is done, finish the whole
+                        exercise in one go, or undo a finished one. */}
+                    <View className="mt-2 flex-row gap-2">
+                      {canSwap(block, completed) && !swaps[block.key] ? (
+                        <View className="flex-1">
+                          <Button
+                            full
+                            size="sm"
+                            variant="ghost"
+                            icon={Repeat}
+                            onPress={() =>
+                              setSwapFor({
+                                key: block.key,
+                                exerciseId: block.exerciseId,
+                                name: block.name,
+                              })
+                            }
+                          >
+                            Đổi bài
+                          </Button>
+                        </View>
+                      ) : null}
+                      {canCompleteWhole(block, completed) ? (
+                        <View className="flex-1">
+                          <Button
+                            full
+                            size="sm"
+                            variant="secondary"
+                            icon={CheckCheck}
+                            disabled={blockBusy === block.key}
+                            onPress={() => void completeWhole(block)}
+                          >
+                            {blockBusy === block.key
+                              ? "Đang lưu…"
+                              : "Xong cả bài"}
+                          </Button>
+                        </View>
+                      ) : null}
+                      {canUndoWhole(block) ? (
+                        <View className="flex-1">
+                          <Button
+                            full
+                            size="sm"
+                            variant="ghost"
+                            icon={Undo2}
+                            disabled={blockBusy === block.key}
+                            onPress={() => void undoWhole(block)}
+                          >
+                            Hoàn tác bài
+                          </Button>
+                        </View>
+                      ) : null}
+                    </View>
                   </Card>
                 ))}
+                {!completed && workoutId
+                  ? plannedNotLogged(schedule?.programDay, blocks ?? []).map((pe: any) => (
+                      <Card key={`planned-${pe.id}`} className="gap-3 p-4">
+                        <View>
+                          <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+                            {pe.exercise?.exerciseName ?? "Bài tập"}
+                          </Text>
+                          <Text className="font-body text-[11px] text-muted-foreground">
+                            {`${pe.sets ?? "—"} × ${pe.reps ?? "—"} · thêm vào giáo án sau khi buổi đã bắt đầu`}
+                          </Text>
+                        </View>
+                        <Button
+                          full
+                          size="sm"
+                          variant="secondary"
+                          icon={CheckCheck}
+                          disabled={blockBusy === `planned-${pe.id}`}
+                          onPress={() => void completePlanned(pe)}
+                        >
+                          Xong cả bài
+                        </Button>
+                      </Card>
+                    ))
+                  : null}
               </View>
             )}
           </ScrollView>
@@ -607,30 +966,44 @@ export default function WorkoutLogScreen() {
               className="absolute inset-x-0 px-5"
               style={{ bottom: insets.bottom + 84 }}
             >
-              <View className="rounded-2xl border border-primary/40 bg-primary/10 p-3.5">
-                <View className="mb-2.5 flex-row items-center gap-2">
-                  <Timer size={18} color={accent.primary} />
-                  <Text className="font-body-semibold text-sm text-primary">Nghỉ giữa set</Text>
-                  <Text
-                    className="font-display ml-auto text-2xl text-primary"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
-                    {clock(rest)}
-                  </Text>
-                </View>
-                <View className="flex-row gap-2">
-                  <RestButton
-                    icon={Minus}
-                    label="15s"
-                    onPress={() => setRest((r) => Math.max(0, (r ?? 0) - 15))}
-                  />
-                  <RestButton icon={Plus} label="15s" onPress={() => setRest((r) => (r ?? 0) + 15)} />
-                  <Tappable
-                    className="flex-1 items-center rounded-xl bg-primary py-2"
-                    onPress={() => setRest(null)}
-                  >
-                    <Text className="font-body-semibold text-sm text-on-primary">Bỏ qua</Text>
-                  </Tappable>
+              {/* Opaque backing: the tinted card alone let the exercise rows underneath show through. */}
+              <View className="overflow-hidden rounded-2xl bg-background">
+                <View className="rounded-2xl border border-primary/40 bg-primary/10 p-3.5">
+                  <View className="mb-2.5 flex-row items-center gap-2">
+                    <Timer size={18} color={accent.primary} />
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-body-semibold text-sm text-primary">{restInfo.title}</Text>
+                      {restInfo.next ? (
+                        <Text className="font-body text-[11px] text-primary" numberOfLines={1}>
+                          Tiếp theo: {restInfo.next}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text
+                      className="font-display text-2xl text-primary"
+                      style={{ fontVariant: ["tabular-nums"] }}
+                    >
+                      {clock(rest)}
+                    </Text>
+                  </View>
+                  <View className="flex-row gap-2">
+                    <RestButton
+                      icon={Minus}
+                      label="15s"
+                      onPress={() => setRest((r) => Math.max(0, (r ?? 0) - 15))}
+                    />
+                    <RestButton
+                      icon={Plus}
+                      label="15s"
+                      onPress={() => setRest((r) => (r ?? 0) + 15)}
+                    />
+                    <Tappable
+                      className="flex-1 items-center rounded-xl bg-primary py-2"
+                      onPress={() => setRest(null)}
+                    >
+                      <Text className="font-body-semibold text-sm text-on-primary">Bỏ qua</Text>
+                    </Tappable>
+                  </View>
                 </View>
               </View>
             </Animated.View>
@@ -663,6 +1036,20 @@ export default function WorkoutLogScreen() {
             onClose={closeFeedback}
           />
           <SkipFeedbackSheet scheduleId={String(schedule.id)} open={skipOpen} onClose={() => setSkipOpen(false)} />
+          <SwapExerciseSheet
+            exercise={swapFor}
+            otherExerciseIds={(blocks ?? [])
+              .map((b) => b.exerciseId)
+              .filter((id) => id && id !== swapFor?.exerciseId)}
+            onSelect={pickSubstitute}
+            onClose={() => setSwapFor(null)}
+          />
+          <SetTypeSheet
+            current={setTypeFor?.row.setType}
+            open={setTypeFor != null}
+            onSelect={(v) => void saveSetType(v)}
+            onClose={() => setSetTypeFor(null)}
+          />
         </>
       ) : null}
     </View>

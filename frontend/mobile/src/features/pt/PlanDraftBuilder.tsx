@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Plus, Search, Sparkles, Trash2, type LucideIcon } from "lucide-react-native";
+import { Text, TextInput, View } from "react-native";
+import { useMutation } from "@tanstack/react-query";
+import { Plus, Sparkles, Trash2, type LucideIcon } from "lucide-react-native";
 
-import { BottomSheet, Button, Card, Input, Tappable, inputPlaceholderColor, useToast } from "../../components/ui";
-import { ptCoachService, workoutService } from "../../services/api";
+import { Button, Card, Input, Tappable, useToast } from "../../components/ui";
+import { ptCoachService } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
-import { darkColors, designTokens } from "../../theme/colors";
+import { darkColors } from "../../theme/colors";
+import { ExercisePickerSheet } from "../workout/ExercisePickerSheet";
 import {
   WEEKDAYS,
   daysFromAiDraft,
@@ -48,8 +49,14 @@ export function PlanDraftBuilder({
   errorFallback,
   onSubmit,
   onDone,
+  hideAiDraft = false,
+  includeCustomExercises = false,
 }: {
+  /** The client the plan is for (AI draft context). Unused when `hideAiDraft`. */
   clientUserId: string;
+  /** 14B.4 — a client building their own program: no coach AI draft, and their custom exercises. */
+  hideAiDraft?: boolean;
+  includeCustomExercises?: boolean;
   title: string;
   nameLabel?: string;
   initialName: string;
@@ -76,15 +83,6 @@ export function PlanDraftBuilder({
   const [ptNotes, setPtNotes] = useState("");
   const [aiInfo, setAiInfo] = useState<{ dataGaps: string[]; warnings: string[]; summaryForPt: string } | null>(null);
   const [pickFor, setPickFor] = useState<number | null>(null);
-  const [search, setSearch] = useState("");
-
-  const exercises = useQuery({
-    queryKey: ["pt-draft-exercises", search],
-    queryFn: () => workoutService.getExercises({ search: search || undefined, limit: 20 }),
-    enabled: pickFor !== null,
-  });
-  // `getExercises` already unwraps to the array; the catalogue's field is `exerciseName`, not `name`.
-  const exerciseRows: any[] = Array.isArray(exercises.data) ? exercises.data : [];
 
   const generate = useMutation({
     mutationFn: () =>
@@ -152,6 +150,7 @@ export function PlanDraftBuilder({
         </View>
       </Card>
 
+      {hideAiDraft ? null : (
       <Card className="gap-2.5 border-primary/30 bg-primary/5 p-4">
         <View className="flex-row items-center gap-1.5">
           <Sparkles size={15} color={accent.primary} />
@@ -170,6 +169,7 @@ export function PlanDraftBuilder({
           <Text className="font-body text-xs text-muted-foreground">Thiếu dữ liệu: {aiInfo.dataGaps.join("; ")}</Text>
         ) : null}
       </Card>
+      )}
 
       {days.map((d, dayIdx) => (
         <Card key={dayIdx} className="gap-3 p-4">
@@ -234,10 +234,7 @@ export function PlanDraftBuilder({
             size="sm"
             variant="secondary"
             icon={Plus}
-            onPress={() => {
-              setSearch("");
-              setPickFor(dayIdx);
-            }}
+            onPress={() => setPickFor(dayIdx)}
           >
             Thêm bài tập
           </Button>
@@ -255,56 +252,17 @@ export function PlanDraftBuilder({
         {submit.isPending ? submittingLabel : submitLabel}
       </Button>
 
-      <BottomSheet open={pickFor !== null} onClose={() => setPickFor(null)} title="Chọn bài tập">
-        <View className="gap-3 pb-2">
-          <View className="h-11 flex-row items-center gap-2 rounded-xl border border-border bg-panel px-3.5">
-            <Search size={16} color={designTokens.mutedForeground} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Tìm bài tập"
-              placeholderTextColor={inputPlaceholderColor}
-              className="flex-1 font-body text-sm text-foreground"
-            />
-          </View>
-          <ScrollView className="max-h-[360px]" keyboardShouldPersistTaps="handled">
-            {exercises.isLoading ? (
-              <ActivityIndicator className="py-6" color={accent.primary} />
-            ) : exercises.isError ? (
-              <Text className="py-6 text-center font-body text-sm text-destructive">Không thể tải danh sách bài tập. Vui lòng thử lại.</Text>
-            ) : exerciseRows.length === 0 ? (
-              <Text className="py-6 text-center font-body text-sm text-muted-foreground">Không tìm thấy bài tập.</Text>
-            ) : (
-              exerciseRows.map((ex: any) => (
-                <Tappable
-                  key={ex.id}
-                  accessibilityLabel={exName(ex)}
-                  onPress={() => {
-                    if (pickFor !== null) addExercise(pickFor, ex.id, exName(ex));
-                    setPickFor(null);
-                  }}
-                  className="border-b border-border py-3"
-                >
-                  <Text className="font-body-semibold text-sm text-foreground">{exName(ex)}</Text>
-                  {exMeta(ex) ? <Text className="font-body text-xs text-muted-foreground">{exMeta(ex)}</Text> : null}
-                </Tappable>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      </BottomSheet>
+      <ExercisePickerSheet
+        open={pickFor !== null}
+        includeCustom={includeCustomExercises}
+        onPick={(ex) => {
+          if (pickFor !== null) addExercise(pickFor, ex.id, ex.name);
+          setPickFor(null);
+        }}
+        onClose={() => setPickFor(null)}
+      />
     </View>
   );
-}
-
-/** The exercise catalogue's own field names. */
-function exName(ex: any): string {
-  return ex?.exerciseName ?? ex?.name ?? "Bài tập";
-}
-
-function exMeta(ex: any): string {
-  const muscle = Array.isArray(ex?.muscleGroupsActivated) ? ex.muscleGroupsActivated[0] : ex?.primaryMuscle;
-  return [muscle, ex?.typeOfEquipment ?? ex?.equipment].filter(Boolean).join(" · ");
 }
 
 function NumField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {

@@ -312,7 +312,7 @@ export default function ClientDashboardScreen() {
                       {isToday(nextSchedule.date) ? "Hôm nay" : formatScheduleDate(nextSchedule.date)}
                     </Badge>
                     <Text className="flex-1 font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                      {nextDay?.name ?? nextSchedule?.name ?? "Buổi tập"}
+                      {nextDay?.title ?? nextDay?.name ?? nextSchedule?.name ?? "Buổi tập"}
                     </Text>
                   </View>
                   {nextExerciseCount > 0 ? (
@@ -476,7 +476,7 @@ export default function ClientDashboardScreen() {
                     </View>
                     <View className="flex-1">
                       <Text className="font-body text-sm text-foreground" numberOfLines={1}>
-                        {s?.programDay?.name ?? s?.name ?? "Buổi tập"}
+                        {s?.programDay?.title ?? s?.programDay?.name ?? s?.name ?? "Buổi tập"}
                       </Text>
                     </View>
                     <Badge tone="neutral">

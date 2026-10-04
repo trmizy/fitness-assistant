@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppState, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Apple,
@@ -20,6 +20,9 @@ import {
 } from "lucide-react-native";
 
 import { CyclePanel } from "../../../src/features/cycle/CyclePanel";
+import { DaySheet, scheduleTitle } from "../../../src/features/workout/DaySheet";
+import { BodyJourneyCard, TrainingDistributionCard } from "../../../src/features/workout/TrainingInsights";
+import type { TrainingDay } from "../../../src/features/workout/trainingWeek";
 import { RoadmapJourney } from "../../../src/features/roadmap/RoadmapJourney";
 import {
   Badge,
@@ -35,7 +38,7 @@ import {
 } from "../../../src/components/ui";
 import { workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
-import { addDays, startOfWeek, toDateInputValue } from "../../../src/utils/date";
+import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../../src/utils/date";
 import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -64,10 +67,21 @@ export default function WorkoutScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<Tab>(() => (TABS as readonly string[]).includes(String(params.tab)) ? (params.tab as Tab) : "Lịch tuần");
 
-  const weekStart = useMemo(() => startOfWeek(new Date()), []);
+  // Re-read the calendar day on focus / foreground: left open past midnight, the week and its
+  // "Hôm nay" row (and so the day sheet's actions) would otherwise stay on yesterday.
+  const [dayKey, setDayKey] = useState(() => toDateInputValue(new Date()));
+  const syncDay = useCallback(() => setDayKey(toDateInputValue(new Date())), []);
+  useFocusEffect(syncDay);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => s === "active" && syncDay());
+    return () => sub.remove();
+  }, [syncDay]);
+  const weekStart = useMemo(() => startOfWeek(parseApiDateOnly(dayKey)), [dayKey]);
+  // 14B.4 — tapping a day opens its sheet (start today's session, reschedule, hide, add a session).
+  const [openDay, setOpenDay] = useState<TrainingDay | null>(null);
 
   const schedulesQuery = useQuery({
-    queryKey: ["workout-schedules", "week"],
+    queryKey: ["workout-schedules", "week", toDateInputValue(weekStart)],
     queryFn: () =>
       workoutService.getSchedules(50, {
         startDate: toDateInputValue(weekStart),
@@ -79,6 +93,17 @@ export default function WorkoutScreen() {
     queryKey: ["workout-history", "recent"],
     queryFn: () => workoutService.getHistory(1, 10),
   });
+  // 14B.4 — a longer window for the "Phân bổ" charts (30 days / all), loaded with the Nhật ký tab.
+  const analyticsQuery = useQuery({
+    queryKey: ["workout-history", "analytics"],
+    queryFn: () => workoutService.getHistory(1, 100),
+    enabled: tab === "Nhật ký",
+  });
+  const analyticsWorkouts: any[] = Array.isArray(analyticsQuery.data)
+    ? analyticsQuery.data
+    : Array.isArray((analyticsQuery.data as any)?.workouts)
+      ? (analyticsQuery.data as any).workouts
+      : [];
 
   const { refreshing, onRefresh } = usePullToRefresh([
     ["workout-schedules", "week"],
@@ -89,8 +114,8 @@ export default function WorkoutScreen() {
 
   // Day-state rules (rest / past / in progress / done) live in buildTrainingWeek, where they are tested.
   const week = useMemo(
-    () => buildTrainingWeek(schedulesQuery.data, weekStart),
-    [schedulesQuery.data, weekStart],
+    () => buildTrainingWeek(schedulesQuery.data, weekStart, parseApiDateOnly(dayKey)),
+    [schedulesQuery.data, weekStart, dayKey],
   );
 
   const planned = week.filter((d) => !d.rest).length;
@@ -120,6 +145,8 @@ export default function WorkoutScreen() {
                 sixth tab. */}
             <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
             <ToolButton icon={ClipboardList} onPress={() => router.push("/client/plans")} />
+            {/* 14B.4 — the current program: edit days / exercises / supersets, or build one by hand. */}
+            <ToolButton icon={Dumbbell} onPress={() => router.push("/client/workout/programs")} />
             <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
             <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />
             <ToolButton icon={BarChart3} onPress={() => router.push("/client/stats/activity")} />
@@ -167,14 +194,9 @@ export default function WorkoutScreen() {
                   <StaggerItem key={day.key}>
                     <Card
                       className={`flex-row items-center gap-3 p-4 ${day.today ? "border-primary/40 bg-primary/5" : ""}`}
-                      onPress={
-                        // Only today's session can be started: the logging screen always opens
-                        // TODAY's schedule, so letting a past or future day open it would log the
-                        // wrong session under that day's card.
-                        day.today && day.schedule && !day.done
-                          ? () => router.push("/client/workout/log")
-                          : undefined
-                      }
+                      // Every day opens its sheet; only today's session can be started from it — the
+                      // logging screen always opens TODAY's schedule.
+                      onPress={() => setOpenDay(day)}
                     >
                       <View className="w-14 shrink-0">
                         <Text
@@ -188,9 +210,8 @@ export default function WorkoutScreen() {
                           className={`font-body text-sm ${day.rest ? "text-muted-foreground" : "font-body-semibold text-foreground"}`}
                           numberOfLines={1}
                         >
-                          {day.rest
-                            ? "Nghỉ ngơi"
-                            : (day.schedule?.programDay?.name ?? day.schedule?.name ?? "Buổi tập")}
+                          {/* programDay carries `title` (the old `.name` read always fell back to "Buổi tập"). */}
+                          {day.rest ? "Nghỉ ngơi" : scheduleTitle(day.schedule)}
                         </Text>
                       </View>
                       {day.done ? (
@@ -231,6 +252,8 @@ export default function WorkoutScreen() {
             ) : (
               <RecentWorkouts data={historyQuery.data} />
             )}
+            <BodyJourneyCard />
+            <TrainingDistributionCard workouts={analyticsWorkouts} />
           </View>
         ) : tab === "Chu kỳ" ? (
           <CyclePanel />
@@ -238,6 +261,7 @@ export default function WorkoutScreen() {
           <RoadmapJourney onOpenCycle={() => setTab("Chu kỳ")} />
         )}
       </View>
+      <DaySheet day={openDay} onClose={() => setOpenDay(null)} />
     </ScrollView>
   );
 }
