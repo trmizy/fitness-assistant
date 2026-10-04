@@ -407,9 +407,40 @@ export function NutritionPage() {
   const [addItemQty, setAddItemQty] = useState("100");
 
   // ── Manual edit mutations ─────────────────────────────────────────────────
+  // GAP-25 (4/10): the server only updates the fields it is sent, so a bare { quantity } left the
+  // item's calories/macros at the old amount (banana 120 g → 150 g stayed 107 kcal). Send them
+  // rescaled — from the catalog food's per-100 g values when the item has one, else in proportion to
+  // the item's current numbers.
   const updateItemMutation = useMutation({
-    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
-      nutritionService.updateMealItem(itemId, { quantity }),
+    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+      const item = ((dailyTask as any)?.meals ?? [])
+        .flatMap((m: any) => (Array.isArray(m.items) ? m.items : []))
+        .find((i: any) => (i.programMealItemId || i.id) === itemId);
+      const r1 = (v: number) => Math.round(v * 10) / 10;
+      const food = item?.food;
+      if (food && food.calories != null) {
+        const f = quantity / 100;
+        return nutritionService.updateMealItem(itemId, {
+          quantity,
+          calories: Math.round(Number(food.calories) * f),
+          protein: r1(Number(food.protein ?? 0) * f),
+          carbs: r1(Number(food.carbs ?? 0) * f),
+          fat: r1(Number(food.fats ?? food.fat ?? 0) * f),
+        });
+      }
+      const oldQty = Number(item?.quantity);
+      if (item && oldQty > 0) {
+        const f = quantity / oldQty;
+        return nutritionService.updateMealItem(itemId, {
+          quantity,
+          calories: Math.round(Number(item.calories ?? 0) * f),
+          protein: r1(Number(item.proteinGrams ?? item.protein ?? 0) * f),
+          carbs: r1(Number(item.carbGrams ?? item.carbs ?? 0) * f),
+          fat: r1(Number(item.fatGrams ?? item.fat ?? 0) * f),
+        });
+      }
+      return nutritionService.updateMealItem(itemId, { quantity });
+    },
     onSuccess: () => {
       void refetchDailyTask();
       setEditingItemId(null);

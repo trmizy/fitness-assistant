@@ -4432,8 +4432,10 @@ export const nutritionService = {
     const { data } = await api.post("/nutrition", log);
     return data;
   },
+  // GAP-25 (4/10): PATCH — the only method fitness-service routes for /nutrition/:id; PUT 404'd
+  // ("Cannot PUT"), so editing a log never saved.
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {
