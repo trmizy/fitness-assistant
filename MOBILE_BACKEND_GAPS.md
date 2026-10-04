@@ -626,7 +626,7 @@ buổi giữ đủ lý do / cờ điều chỉnh / ngày tập bù, body hoàn t
 hytrongbeou ghi lý do cho buổi 04/10 đã bỏ → "Đã ghi nhận lý do bỏ buổi tập", DB `cycle_session_feedback` = schedule_conflict,
 should_adjust_plan = true, makeup 2026-10-06.
 
-## GAP-25 — Web: sửa nhật ký ăn luôn lỗi; sửa lượng món trong thực đơn không tính lại calo (14B.3) — mobile đã tránh, web CHỜ NGÀI
+## GAP-25 — Web: sửa nhật ký ăn luôn lỗi; sửa lượng món trong thực đơn không tính lại calo (14B.3) — ĐÃ SỬA cả web 4/10
 
 Hai lỗi của **web** (không phải backend) thấy 4/10 khi chép phần thực đơn sang mobile. Ghi ở đây vì cùng sổ theo dõi khác biệt
 web ↔ mobile; mobile không đổi backend.
@@ -640,4 +640,9 @@ web ↔ mobile; mobile không đổi backend.
    của thực phẩm (hoặc theo tỉ lệ nếu món không có trong danh mục) → 150 g = 134 kcal, DB khớp.
 
 **Cần Ngài quyết:** sửa web cho giống (1: `api.patch`; 2: gửi kèm macro tính lại) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
+**Đã sửa web 4/10 (Ngài cho phép):** `frontend/web/src/app/services/api.ts` `updateLog` → `api.patch`; `NutritionPage.tsx`
+`updateItemMutation` gửi kèm calo/macro tính lại (theo /100 g của thực phẩm, hoặc theo tỉ lệ). `vite build` qua. REAL BROWSER
+(Playwright, web dev, hytrongbeou): sửa món đã ghi → `PATCH /nutrition/:id → 200`, DB 95 → 90 kcal; sửa lượng Yến mạch trong thực
+đơn 60 → 80 g → `PATCH /nutrition/program-meal-items/:id → 200`, DB 80 g / 303 kcal / 10.6 g đạm / 54.2 g tinh bột / 5.2 g béo.
 
