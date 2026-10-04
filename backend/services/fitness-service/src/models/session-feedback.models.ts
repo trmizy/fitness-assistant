@@ -70,7 +70,12 @@ export const skipCancelFeedbackSchema = z.object({
  * submitting). This schema just validates "the request body is a plausible
  * shape of one or the other," the service picks which fields it actually
  * persists based on real status. */
-export const sessionFeedbackInputSchema = z.union([completionFeedbackSchema, skipCancelFeedbackSchema]);
+// Skip/cancel FIRST (GAP-24, 4/10): z.union returns the first schema that parses, and the completion
+// schema is all-optional and non-strict — tried first, it accepted a skip body and stripped
+// skipReason / shouldAdjustPlan / userAvailableMakeupDay, so every skip reason was rejected by the
+// service ("skipReason is required"). The skip schema requires skipReason, so a completion body still
+// falls through to the completion schema.
+export const sessionFeedbackInputSchema = z.union([skipCancelFeedbackSchema, completionFeedbackSchema]);
 export type CompletionFeedbackInput = z.infer<typeof completionFeedbackSchema>;
 export type SkipCancelFeedbackInput = z.infer<typeof skipCancelFeedbackSchema>;
 export type ExerciseFeedbackItem = z.infer<typeof exerciseFeedbackItemSchema>;

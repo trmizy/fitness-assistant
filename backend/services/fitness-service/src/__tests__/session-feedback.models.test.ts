@@ -4,6 +4,7 @@ import {
   completionFeedbackSchema,
   skipCancelFeedbackSchema,
   exerciseFeedbackItemSchema,
+  sessionFeedbackInputSchema,
 } from "../models/session-feedback.models";
 
 test("completion feedback: accepts a full valid payload", () => {
@@ -71,3 +72,41 @@ test("skip/cancel feedback: rejects invalid skipReason enum value", () => {
   const result = skipCancelFeedbackSchema.safeParse({ skipReason: "just_because" });
   assert.equal(result.success, false);
 });
+
+// GAP-24 — the controller parses with sessionFeedbackInputSchema (the union), not the individual
+// schemas above; a skip body used to come out as {} and every skip reason was refused.
+test("input schema (controller): a skip body keeps skipReason, plan flag and makeup day", () => {
+  const parsed = sessionFeedbackInputSchema.parse({
+    skipReason: "schedule_conflict",
+    shouldAdjustPlan: true,
+    userAvailableMakeupDay: "2026-10-06",
+    notes: "Bận họp",
+  });
+  assert.deepEqual(parsed, {
+    skipReason: "schedule_conflict",
+    shouldAdjustPlan: true,
+    userAvailableMakeupDay: "2026-10-06",
+    notes: "Bận họp",
+  });
+});
+
+test("input schema (controller): a completion body still parses as completion feedback", () => {
+  const body = {
+    readinessScore: 6,
+    sessionRpe: 7.5,
+    painScore: 3,
+    painLocation: "vai",
+    sessionRating: 4,
+    difficulty: "just_right",
+    exerciseFeedback: [{ exerciseId: "ex-1", issueType: "pain" }],
+  };
+  assert.deepEqual(sessionFeedbackInputSchema.parse(body), body);
+});
+
+test("input schema (controller): an invalid skip reason is not silently accepted as empty completion feedback", () => {
+  // Falls through to the completion schema, which strips the unknown key — the service then refuses a
+  // skipped session without a reason; what matters here is that a valid reason is never dropped.
+  const parsed = sessionFeedbackInputSchema.parse({ skipReason: "just_because" }) as Record<string, unknown>;
+  assert.equal(parsed.skipReason, undefined);
+});
+
