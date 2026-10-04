@@ -432,13 +432,13 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | **Phản hồi sau buổi: XONG 4/10** — §43. **Lý do bỏ buổi: giao diện xong, lưu bị chặn bởi lỗi backend GAP-24** (web cũng hỏng) |
 | PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | OPEN |
 | PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | OPEN |
-| PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | OPEN |
-| PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | OPEN |
+| PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §44; Duyệt/Sửa/Từ chối chỉ có component test (dev DB không có đề xuất đang chờ PT) |
+| PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | **XONG 4/10** — §44 (giao thật cho John Doe theo lệnh Ngài, DB + thông báo khớp) |
 | PG-A7 | Chủ gym: quản lý chi nhánh (= GY-03) | 14B.5 | OPEN |
 | PG-B1 | Huỷ gói hội viên đang hoạt động | 14B.6 | OPEN |
 | PG-B2 | Viết/xoá đánh giá phòng gym | 14B.6 | OPEN |
 | PG-B3 | Chi tiết hợp đồng + PDF (+ gửi lại ký điện tử) | 14B.6 | OPEN |
-| PG-B4 | PT đánh giá khách hàng | 14B.2 | OPEN |
+| PG-B4 | PT đánh giá khách hàng | 14B.2 | **XONG 4/10** — §44 (đánh giá thật, DB khớp) |
 | PG-B5 | Chia sẻ mẫu buổi tập (CL-16 PARTIAL, GAP-8) | 14B.6 | OPEN |
 | PG-B6 | AI giải thích kế hoạch | 14B.6 | OPEN |
 | PG-B7 | Tạo/gỡ gói bán từ kế hoạch đã duyệt, "Gói bán của tôi" | 14B.6 | OPEN |

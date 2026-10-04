@@ -3303,3 +3303,61 @@ chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ
   hiện dạng mã thô — web y hệt; cần bảng nhãn chung (đề xuất làm cùng web, không tự đặt nhãn riêng cho mobile).
 - GAP-24 chờ Ngài quyết.
 
+## 44. Phase 14B.2 — PT: dữ liệu học viên, duyệt đề xuất dinh dưỡng, giao kế hoạch (PG-A5/PG-A6), đánh giá khách (PG-B4) (4/10)
+
+**Nguồn hành vi:** web `PTClientDetail.tsx` (tab + "Cần chú ý"), `ClientFitnessSummaryCard.tsx`, `ClientProgressCard.tsx`,
+`AssignPlanModal.tsx`, `PTServiceOrderPage.tsx`, phần "Đánh giá khách" của `PTContractsPage.tsx`. Không đổi backend.
+
+**Đã làm (mobile):**
+- `api.ts`: kiểu `CoachClientSummary` mở rộng theo web (`latestAssessment`, `nutrition` gồm mục tiêu, thực đơn, trạng thái khớp,
+  đề xuất AI gần nhất + `canPtAct`), `CoachClientProgress`; hàm `getClientProgress`, `approve/reject/modifyNutritionRecommendation`,
+  `triggerDietBreakRecommendation` (chép từ web).
+- `src/features/pt/coachClient.ts` — nhãn (web), "Cần chú ý" (chỉ suy từ dữ liệu đã tải), điều kiện được duyệt / được đề xuất
+  diet break, xu hướng cân nặng, kiểm form "Sửa".
+- `src/features/pt/ClientCoachCards.tsx` — thẻ Cần chú ý, Dữ liệu tập luyện, Dinh dưỡng (Duyệt / Sửa trong sheet / Từ chối, Đề
+  xuất diet break), Đo lường InBody. Cùng khoá query với web nên các thẻ dùng chung một lần gọi.
+- `app/pt/students/[id].tsx` — hợp đồng ACTIVE: thêm nút "Giao kế hoạch" và 4 tab Tổng quan / Tập luyện / Dinh dưỡng / Tiến độ
+  (buổi tập nằm ở tab Tập luyện như web); hợp đồng khác giữ trang cũ. Tab "Lịch sử" (hợp đồng khác của khách) không làm: ở mobile
+  mỗi hợp đồng là một dòng riêng trong danh sách học viên.
+- `src/features/pt/planDraft.ts` + `PlanDraftBuilder.tsx` — trình soạn kế hoạch **dùng chung** cho "Gửi bản nháp" của đơn 1-1
+  (PT-09, trước đây viết riêng trong màn đơn) và "Giao kế hoạch". Thêm chọn thứ trong tuần cho từng buổi (web có, bản mobile cũ
+  thiếu — mỗi thứ dùng một lần), tên buổi sửa được, ô mục tiêu (chỉ khi giao kế hoạch).
+- `app/pt/students/assign-plan.tsx` — màn "Giao kế hoạch" (web là modal; trình soạn dài nên làm thành màn).
+- `app/pt/contracts.tsx` — buổi COMPLETED chưa đánh giá có nút "Đánh giá khách" (sheet 1–5 sao + ghi chú); đã đánh giá thì hiện
+  số sao.
+
+**Khác web có chủ đích (trình bày, không đổi nghiệp vụ):**
+1. "Đề xuất diet break" chỉ hiện khi có chu kỳ đang chạy — web hiện cả khi không có chu kỳ và gửi `/cycles/undefined/…`.
+2. Cờ phản hồi hiện bằng nhãn tiếng Việt (web nối nguyên mã `HIGH_PAIN_REPORTED`…); thẻ tập luyện có thêm các cảnh báo chu kỳ
+   server đã trả (`cycleSummary.alerts`).
+3. Màn giao kế hoạch báo trước: **kế hoạch mới thay mọi buổi chưa tập của học viên** (backend `createManualProgram` mặc định
+   `replaceExisting`; web giao im lặng).
+4. Bản nháp AI không bao giờ gán trùng thứ (web giữ `prev[i]?.weekday ?? i`, có thể trùng).
+5. Form "Sửa" chặn ô trống/số âm trước khi gửi (web gửi nguyên).
+6. Sửa thêm 2 lỗi hiển thị cũ ở các màn đụng tới: tên gói dài tràn khỏi mép phải ở thẻ Hợp đồng; ô ghi chú đánh giá quá thấp.
+
+**Kiểm chứng (máy ảo, dev client, backend dev; pt@example.com → học viên John Doe, hợp đồng ACTIVE `3ad55e9a…`):**
+- Tab Tổng quan: "Cần chú ý" = "Chu kỳ mới chưa có lịch tập" + "Tuân thủ tập luyện đang thấp" — khớp `/coach/clients/:id/summary`
+  (adherence 0/3) và roadmap `NEEDS_GENERATION`.
+- Tập luyện: chu kỳ "Giai đoạn khởi đầu", tuân thủ 0% (0/3) + cảnh báo của server. Dinh dưỡng: 2000 kcal · 150g đạm "Người dùng tự
+  đặt", "Chưa có thực đơn". Tiến độ: 71.3 kg / 16.4% / 35.2 kg, "Giảm 17.4 kg qua 2 lần đo" — khớp `/progress`.
+- "Đề xuất diet break" → server 409 "Diet break chỉ áp dụng cho chu kỳ giảm cân (WEIGHT_LOSS)." hiện thành toast; DB
+  `cycle_assessments` của chu kỳ trước/sau = 0 (không ghi gì).
+- "Đánh giá khách" (hợp đồng đã chấm dứt `e200e8a0…`, buổi 31/08 11:25) → 4 sao "ok" → DB `client_reviews` có dòng mới, danh sách
+  đổi sang "Bạn đã đánh giá khách ★★★★"; buổi đã đánh giá từ trước hiện 5 sao.
+- Giao kế hoạch: màn mở đúng (lời nhắc thay lịch, tên/mục tiêu/số tuần/ngày bắt đầu, chọn thứ — thứ đã dùng bị mờ, thêm buổi tự
+  nhận thứ trống), bộ chọn bài tập lấy danh mục thật, "Nhờ AI soạn nháp" → server trả bản dự phòng (máy dev không có LLM), app hiện
+  "Thiếu dữ liệu…" đúng.
+- **Giao kế hoạch thật** (Ngài cho phép thay lịch của John Doe, 4/10): 2 buổi — Thứ 2 "3/4 Sit-Up", Thứ 5 "90/90 Hamstring", 4 tuần
+  → DB: chương trình "Kế hoạch cho John Doe", 8 buổi NOT_STARTED Thứ 2 + Thứ 5 từ 05/10 đến 29/10; 16 buổi chưa tập cũ đã bị thay,
+  buổi COMPLETED 15/09 giữ nguyên; `coach_client_action_audits` CREATE_AND_ASSIGN_PLAN; học viên nhận thông báo
+  "PT của bạn vừa gán chương trình tập luyện mới: Kế hoạch cho John Doe".
+- Màn đơn 1-1 (`e440d531…`, PT_REVIEWING) sau khi đổi sang trình soạn chung: render đúng, có chọn thứ, kiểm hợp lệ "Mỗi buổi cần ít
+  nhất một bài tập" khoá nút gửi.
+- Tự động: `ptCoach.test.ts` 10 (node:test) + `ClientCoachCards.test.tsx` 3 (jest: Duyệt / Từ chối gọi đúng endpoint + cycle +
+  assessment; Sửa gửi số của PT; không có đề xuất thì hiện diet break và hiện lỗi server).
+
+**CHƯA kiểm / còn mở:**
+- Duyệt / Sửa / Từ chối với một đề xuất thật — cần chu kỳ có đề xuất dinh dưỡng đang chờ (nhiều tuần cân nặng thật); dev DB không có.
+  E2E chéo vai trò "khách sinh đề xuất ở 14B.1 → PT duyệt → khách thấy" vì vậy chưa chạy được.
+
