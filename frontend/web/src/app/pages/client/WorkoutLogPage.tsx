@@ -2828,7 +2828,9 @@ export function WorkoutLogPage() {
     if (!showAddExercise) return;
     workoutService
       .getExerciseFilterOptions()
-      .then(setExerciseOptions)
+      // The endpoint answers `{ success, data: { bodyParts, equipments, ... } }` — unwrap it the same
+      // way ExerciseLibraryPage does, or every picker falls back to its hard-coded default (GAP-26).
+      .then((res: any) => setExerciseOptions(res?.data ?? res ?? {}))
       .catch(() => setExerciseOptions({}));
   }, [showAddExercise]);
 
@@ -4937,21 +4939,28 @@ export function WorkoutLogPage() {
                             >
                               Sửa
                             </button>
-                            <button
-                              onClick={async () => {
-                                if (
-                                  !window.confirm(
-                                    "Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.",
+                            {/* fitness-service only deletes TODAY's schedule with no workout yet
+                                (assertScheduleDateEditable) — offering it on later days only ever
+                                ended in an error (GAP-26). */}
+                            {isSameCalendarDay(parseApiDateOnly(schedule.date), new Date()) &&
+                            !schedule.workoutId &&
+                            !schedule.workout?.id ? (
+                              <button
+                                onClick={async () => {
+                                  if (
+                                    !window.confirm(
+                                      "Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.",
+                                    )
                                   )
-                                )
-                                  return;
-                                await workoutService.deleteSchedule(schedule.id);
-                                await refetchProgramAndSchedules();
-                              }}
-                              className="text-[10px] px-2 py-1 rounded-full border border-red-500/25 text-red-300 hover:bg-red-500/10"
-                            >
-                              Ẩn
-                            </button>
+                                    return;
+                                  await workoutService.deleteSchedule(schedule.id);
+                                  await refetchProgramAndSchedules();
+                                }}
+                                className="text-[10px] px-2 py-1 rounded-full border border-red-500/25 text-red-300 hover:bg-red-500/10"
+                              >
+                                Ẩn
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       );
