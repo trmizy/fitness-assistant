@@ -26,6 +26,7 @@ import {
   scaleFood,
   type MealType,
 } from "../../../../src/features/nutrition/nutritionMath";
+import { planItemPayload } from "../../../../src/features/nutrition/mealPlan";
 
 /**
  * CL-03 — logging one food.
@@ -37,13 +38,17 @@ import {
  *
  * Macros come from the catalog per 100 g and are scaled here exactly as web scales them, so a
  * portion logged on either client produces the same row.
+ *
+ * 14B.3 — with `planMealId` the same search adds the food to that meal of the running nutrition plan
+ * (web's "Thêm món vào bữa", `POST /nutrition/program-meals/:id/items`) instead of writing a log.
  */
 export default function AddFoodScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const params = useLocalSearchParams<{ meal?: string }>();
+  const params = useLocalSearchParams<{ meal?: string; planMealId?: string; mealTitle?: string }>();
+  const planMealId = params.planMealId ? String(params.planMealId) : null;
 
   const today = toDateInputValue(new Date());
 
@@ -79,6 +84,20 @@ export default function AddFoodScreen() {
       return;
     }
     setSaving(true);
+    if (planMealId) {
+      try {
+        await nutritionService.addMealItem(planMealId, planItemPayload(selected, gramsNumber));
+        await queryClient.refetchQueries({ queryKey: ["nutrition-daily-task", today] }).catch(() => {});
+        haptics.success();
+        toast.show("Đã thêm món vào kế hoạch.", "success");
+        router.back();
+      } catch (e: any) {
+        toast.show(e?.response ? e.response.data?.error ?? "Không thể thêm món." : "Mất mạng — chưa thêm được món.", "danger");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     try {
       await nutritionService.createLog(
         buildLogPayload({
@@ -107,8 +126,10 @@ export default function AddFoodScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Thêm món ăn" onBack={() => router.back()} />
+      <ScreenHeader title={planMealId ? "Thêm món vào bữa" : "Thêm món ăn"} onBack={() => router.back()} />
 
+      {/* The plan meal already fixes the meal type. */}
+      {planMealId ? null : (
       <View className="px-5 pt-4">
         <Segmented
           options={MEAL_TYPES.map((m) => MEAL_LABELS[m])}
@@ -119,6 +140,7 @@ export default function AddFoodScreen() {
           }}
         />
       </View>
+      )}
 
       {selected ? (
         <>
@@ -175,7 +197,9 @@ export default function AddFoodScreen() {
             style={{ paddingBottom: insets.bottom + 12 }}
           >
             <Button full size="lg" icon={Plus} disabled={saving} onPress={save}>
-              {`Thêm vào ${MEAL_LABELS[mealType].toLowerCase()}`}
+              {planMealId
+                ? `Thêm vào ${String(params.mealTitle || MEAL_LABELS[mealType]).toLowerCase()} (kế hoạch)`
+                : `Thêm vào ${MEAL_LABELS[mealType].toLowerCase()}`}
             </Button>
           </View>
         </>

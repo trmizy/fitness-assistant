@@ -4601,8 +4601,10 @@ export const nutritionService = {
     const { data } = await api.post("/nutrition", log);
     return data;
   },
+  // 14B.3 — PATCH, the only method fitness-service routes for `/nutrition/:id`. Web (and this copy
+  // until now) sent PUT, which 404s ("Cannot PUT"), so editing a log has never worked on web.
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {

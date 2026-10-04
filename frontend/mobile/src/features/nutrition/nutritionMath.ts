@@ -37,6 +37,8 @@ export type NutritionLogRow = {
   carbs: number;
   fat: number;
   notes: string | null;
+  /** Grams, when the log recorded it (14B.3 — the edit form shows it, as on web). */
+  quantity?: number | null;
 };
 
 export type MacroTotals = { calories: number; protein: number; carbs: number; fat: number };
@@ -72,6 +74,7 @@ export function normalizeLog(raw: any): NutritionLogRow {
     // `fats` is what the API returns; `fat` is only here for a hand-written row or a future rename.
     fat: num(raw?.fats ?? raw?.fat),
     notes: raw?.notes ?? null,
+    quantity: raw?.quantity != null && Number.isFinite(Number(raw.quantity)) ? Number(raw.quantity) : null,
   };
 }
 
