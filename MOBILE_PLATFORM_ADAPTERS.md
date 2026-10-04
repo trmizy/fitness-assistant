@@ -3233,3 +3233,73 @@ gần 1 giờ chưa xong (D13, ghi nhận, chưa điều tra); thực đơn cầ
 
 **Bài học (áp dụng từ nay):** trước khi đóng Phase 14 và trước Phase 15, rà mọi commit web/backend vào nhánh kể từ lần đối
 chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ khi có merge mới.
+
+## 43. Phase 14B.1 — Chu kỳ tập & đánh giá chu kỳ (PG-A1) + phản hồi sau buổi / lý do bỏ buổi (PG-A2) (3–4/10)
+
+**Nguồn hành vi:** web `TrainingCyclePage.tsx` (đọc lại toàn bộ 3/10) và phần `SessionFeedbackModal` /
+`SkipCancelFeedbackModal` / `SessionFeedbackStatusRow` của `WorkoutLogPage.tsx`. Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/cycle/cycle.ts` — phần thuần: nhãn (xu hướng, quyết định cũ 4 mức, quyết định thích nghi 6 mức, quyết định
+  dinh dưỡng 6 mức, cảm nhận, cờ phản hồi, cờ báo cáo — chép đúng nhãn web), mức tin cậy Cao/Trung bình/Thấp (không hiện %),
+  "Cách tính" cho từng ô số, chọn chu kỳ liên quan (đang chạy, không thì chu kỳ đóng gần nhất), % thời gian đã qua, dòng "kế
+  hoạch so với thực tế" theo đúng một loại số liệu mỗi bài.
+- `src/features/cycle/CyclePanel.tsx` — thay đoạn `CycleTab` cũ (in `JSON.stringify(cycle.summary)` ra màn hình) trong tab
+  Tập luyện → "Chu kỳ". Cùng các khối, cùng thứ tự như web: chu kỳ đang chạy (bắt đầu / kết thúc / huỷ có xác nhận / xoá có
+  xác nhận, tuân thủ, volume, PR, cảnh báo), đề xuất cũ cho chu kỳ đóng gần nhất (thăm dò 4 giây khi đang phân tích, gợi ý sau
+  2 phút, NEW_PLAN chỉ giải thích chứ không có nút), tiến độ (4 ô bấm xem "Cách tính", xu hướng, cột volume tuần vẽ bằng View),
+  tóm tắt cảm nhận, đánh giá thích nghi (đánh giá / chấp nhận / giữ lịch / xem chi tiết / tạo lại) + thẻ dinh dưỡng riêng
+  (áp dụng / giữ, hoặc "Đã hiểu") + gợi ý diet break, lịch sử + báo cáo chu kỳ trong BottomSheet.
+- `src/features/workout/sessionFeedback.ts` + `SessionFeedbackSheets.tsx` — hộp cảm nhận (sao, độ khó, thích/không, 4 thang
+  có nút −/+, vị trí đau khi đau > 0, muốn tập lại, so với buổi trước, thẻ từng bài, ghi chú), hộp lý do bỏ buổi (8 lý do, muốn
+  điều chỉnh kế hoạch, ngày tập bù = 7 ngày tới thay ô ngày tự do của web, ghi chú), hàng "Đã ghi cảm nhận · Xem/sửa" /
+  "Chưa ghi cảm nhận · Thêm ngay". Payload giống hệt web.
+- `app/client/workout/log.tsx` — hàng trạng thái phản hồi khi buổi COMPLETED/PARTIALLY_COMPLETED; nút "Bỏ qua buổi tập này"
+  (có xác nhận) khi buổi NOT_STARTED, hoặc "Đã bỏ qua buổi này · Ghi lý do" khi SKIPPED/CANCELLED; tự mở hộp cảm nhận khi set
+  cuối đóng buổi nằm trong chu kỳ (luật web — dựa `progress.trainingCycleId` mà `PATCH /workouts/sets/:id` trả về).
+- `api.ts`: thêm `trainingCycleService.getDietBreakStatus`, thêm `PROPOSE_DIET_BREAK` vào kiểu `nutritionDecision`.
+
+**Khác web có chủ đích (đều là trình bày, không đổi nghiệp vụ):**
+1. "Bài tập được thích / ít được thích": server trả **Exercise.id**, web in nguyên UUID; mobile đổi sang tên qua danh mục bài
+   tập (cùng khoá cache với màn chi tiết bài tập), không đổi được thì bỏ qua.
+2. "Đã hiểu" ở thẻ dinh dưỡng đi qua cùng lệnh chấp nhận; web hiện toast "Đã áp dụng đề xuất dinh dưỡng — tạo phiên bản mục
+   tiêu calo/macro mới" cả khi không có gì được áp dụng (DB `applied_nutrition_goal_id = null`). Mobile hiện "Đã ghi nhận".
+3. "Xem/sửa" nạp lại bản phản hồi đã lưu; web luôn mở form với giá trị mặc định.
+4. Hộp cảm nhận tự mở ngay khi set cuối được tích (web cũng vậy). Lỗi thật bắt được khi kiểm: bản đầu chỉ mở trong nút
+   "Kết thúc buổi tập", nhưng server đóng buổi ngay ở set cuối nên nút đó đã biến mất — sửa theo đúng cách web làm.
+5. Đồng hồ nghỉ giữa set ẩn khi buổi đã hoàn thành (trước đây vẫn đếm trên màn tổng kết).
+6. Thêm khoảng đệm cuối tab Chu kỳ: nút AI Coach nổi che nút xoá của dòng lịch sử cuối.
+
+**Kiểm chứng:**
+- TEST FIXTURE (qua API thật, không phải luồng người dùng): tạo chương trình thủ công 3 buổi/tuần cho hytrongbeou
+  (`8601282c…`, 12 buổi, gắn chu kỳ) và một buổi 04/10 (`5995d96e…`, không gắn chu kỳ) — tạo chương trình trên app thuộc cụm
+  14B.4. Lần gọi đầu gửi tiếng Việt qua Git Bash sai mã hoá → tên chương trình/ngày/buổi bị lỗi ký tự; đã sửa lại bằng API
+  (UTF-8) và một câu UPDATE cột `workouts.name` của đúng buổi đó.
+- REAL BROWSER-tương đương trên **máy ảo** (dev client, backend dev), DB đối chiếu từng bước:
+  - "Bắt đầu chu kỳ mới" → `training_cycles` ACTIVE #1 03/10–02/11 (30 ngày).
+  - Bắt đầu buổi 03/10 → IN_PROGRESS; tích 4 set → COMPLETED, `training_cycle_id` có; bỏ tích → PARTIALLY_COMPLETED; tích lại
+    → hộp cảm nhận tự mở. Lưu → `cycle_session_feedback`: rating 4, just_right, high, RPE 7, đau 3, "vai", mệt 5, yes,
+    better_than_last_time, `cycle_id` đúng; `exercise_session_feedback`: Bench Press = liked, Squats = pain. Hàng trạng thái
+    đổi sang "Đã ghi cảm nhận · Xem/sửa".
+  - Tab Chu kỳ: tuân thủ 1/1, PR mới, volume 140 kg, chất lượng dữ liệu 25%, cảnh báo InBody; hộp "Cách tính"; tóm tắt cảm nhận
+    1/12, 4.0 sao, đau 3.0, cờ "Có bài tập gây đau cụ thể", tên bài tập đúng.
+  - "Đánh giá chu kỳ (nâng cao)" → `cycle_assessments` v1 COMPLETED, INSUFFICIENT_DATA, tin cậy 0.13 (hiện "Thấp"), 3 mã lý do,
+    dinh dưỡng REQUEST_MORE_DATA/LOW; câu dự phòng khi không có LLM hiện đúng. Chấp nhận → `user_decision` ACCEPTED +
+    `reviewed_at`. "Đã hiểu" → `nutrition_user_decision` ACCEPTED, `applied_nutrition_goal_id` null.
+  - Bỏ buổi 04/10 → xác nhận → SKIPPED, hộp lý do tự mở, nút Lưu khoá khi chưa chọn → chọn lý do + điều chỉnh + 06/10 → **400
+    từ server (GAP-24, lỗi backend có sẵn, web cũng hỏng)**.
+  - pt@example.com (chỉ xem): thẻ "AI đang phân tích chu kỳ #1… lâu hơn dự kiến" cho chu kỳ COMPLETED chưa đánh giá; lịch sử →
+    báo cáo chu kỳ mở trong sheet; hộp xác nhận xoá → "Không", DB chu kỳ còn nguyên.
+- Tự động: `cycle.test.ts` 9 + `sessionFeedback.test.ts` 6 (node:test); toàn bộ unit 618/618, component 67/67 (jest), tsc sạch,
+  lint: 0 lỗi, file đụng tới chỉ còn 2 cảnh báo cũ của `log.tsx`.
+
+**CHƯA kiểm / còn mở:**
+- "Kết thúc chu kỳ" và "Huỷ chu kỳ" chưa bấm thật (sẽ đóng chu kỳ duy nhất của hytrongbeou); thẻ đề xuất cũ KEEP/ADJUST/NEW_PLAN
+  và nút "mở chu kỳ tiếp theo" chưa có dữ liệu thật để hiện; đề xuất dinh dưỡng có số (áp dụng / giữ, diet break) cần dữ liệu cân
+  nặng nhiều tuần — dev DB chưa có.
+- "Xem/sửa" phản hồi của buổi đã qua: backend chỉ cho sửa buổi **hôm nay**, buổi 03/10 đã khoá khi sang 04/10 → phần nạp lại
+  chỉ có unit test.
+- Mã lý do của Decision Engine (`CYCLE_TOO_SHORT`…) và câu giải thích dinh dưỡng do server ghép (`INSUFFICIENT_WEIGHT_SAMPLES`)
+  hiện dạng mã thô — web y hệt; cần bảng nhãn chung (đề xuất làm cùng web, không tự đặt nhãn riêng cho mobile).
+- GAP-24 chờ Ngài quyết.
+

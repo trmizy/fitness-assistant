@@ -594,3 +594,27 @@ Bản Capacitor cũ không gửi sự kiện này: nếu một bên còn bản c
 Kiểm: `src/__tests__/call-connected.test.ts` 6/6 + `call-membership.test.ts` 4/4 trên `gymcoach_chat_test` (DB test
 mới tạo 30/9); gọi thật máy ảo ↔ Chrome → DB `started_at` 08:55:09, `ended_at` 08:55:26, tin "Video call ended (0:17)".
 Tin hệ thống vẫn là tiếng Anh (chưa đổi).
+
+## GAP-24 — Lý do bỏ buổi tập không bao giờ lưu được (14B.1, PG-A2) — CHỜ NGÀI QUYẾT
+
+**Thấy 4/10 khi kiểm trên máy ảo** (web bị y hệt — cùng endpoint, không phải lỗi app): bỏ một buổi rồi chọn lý do →
+`POST /workouts/schedules/:id/feedback` luôn trả 400 "skipReason is required for a skipped/cancelled session", dù body
+có `skipReason`. Nguyên nhân (fitness-service `models/session-feedback.models.ts`): `sessionFeedbackInputSchema =
+z.union([completionFeedbackSchema, skipCancelFeedbackSchema])`. Zod thử schema "hoàn thành" trước; schema đó toàn trường
+tuỳ chọn và không `.strict()`, nên body bỏ buổi **khớp luôn** và bị lột mất `skipReason`, `shouldAdjustPlan`,
+`userAvailableMakeupDay` (parse ra `{}`). Service thấy buổi SKIPPED mà không có lý do → 400. Test hiện có không bắt được vì
+chỉ kiểm từng schema riêng và gọi service trực tiếp, bỏ qua `z.union` của controller.
+
+**Hệ quả:** lý do bỏ buổi, "muốn điều chỉnh kế hoạch", ngày tập bù chưa từng được lưu ở cả web lẫn mobile; các cờ dựa trên
+chúng trong tóm tắt phản hồi chu kỳ (bỏ buổi do bận / thiếu động lực / quá khó…) không bao giờ bật.
+
+**Bằng chứng:** REAL HTTP/API — body `{"skipReason":"schedule_conflict","shouldAdjustPlan":true,"userAvailableMakeupDay":"2026-10-06"}`
+lên buổi `5995d96e…` (SKIPPED) → 400 như trên, DB không có dòng; parse cục bộ `sessionFeedbackInputSchema` cùng body → `{}`.
+
+**Mobile đang làm gì:** hộp "Vì sao bạn bỏ buổi tập này?" giống web; bấm Lưu hiện lỗi "Không thể ghi nhận. Vui lòng chọn
+lý do." (đúng thông báo của web). Không lách ở phía app.
+
+**Đề xuất sửa (backend, 1 dòng, miền Tập luyện — cần Ngài cho phép theo quyết định Phase 0.3):** đảo thứ tự
+`z.union([skipCancelFeedbackSchema, completionFeedbackSchema])` — schema bỏ buổi bắt buộc có `skipReason` nên body hoàn
+thành vẫn rơi về schema hoàn thành — kèm một test gọi đúng `sessionFeedbackInputSchema`/controller với body bỏ buổi.
+

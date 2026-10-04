@@ -428,8 +428,8 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 
 | Mã | Nội dung | Cụm 14B | Trạng thái |
 |---|---|---|---|
-| PG-A1 | Chu kỳ tập & đánh giá chu kỳ (bắt đầu/hoàn thành/huỷ, đánh giá, đề xuất tập + dinh dưỡng, diet break, báo cáo, lịch sử) | 14B.1 | OPEN |
-| PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | OPEN |
+| PG-A1 | Chu kỳ tập & đánh giá chu kỳ (bắt đầu/hoàn thành/huỷ, đánh giá, đề xuất tập + dinh dưỡng, diet break, báo cáo, lịch sử) | 14B.1 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §43 (chưa commit; "Kết thúc chu kỳ" chưa bấm thật) |
+| PG-A2 | Phản hồi sau buổi tập (cảm nhận, RPE, đau, mệt, từng bài) + lý do bỏ buổi | 14B.1 | **Phản hồi sau buổi: XONG 4/10** — §43. **Lý do bỏ buổi: giao diện xong, lưu bị chặn bởi lỗi backend GAP-24** (web cũng hỏng) |
 | PG-A3 | Sửa lịch & chương trình tập (bỏ/dời/thêm buổi, chương trình thủ công, sửa bài, superset, bài tự tạo, loại set, bài thay thế) | 14B.4 | OPEN |
 | PG-A4 | Thực hiện thực đơn (đánh dấu bữa, % đã ăn, sửa/xoá món, xoá bữa, trạng thái) + sửa nhật ký ăn | 14B.3 | OPEN |
 | PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | OPEN |
