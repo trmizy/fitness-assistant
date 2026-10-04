@@ -5024,11 +5024,69 @@ export const contractService = {
 // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — PT/coach access to
 // a client's fitness data + plan assignment, built on the existing Contract
 // relationship (routed through the gateway's /coach -> fitness-service).
+// 14B.2 (PG-A5) — widened to web's shape: latest assessment, nutrition goal/plan/consistency and the
+// pending AI nutrition decision a coach may act on, plus the InBody trend for the progress card.
 export interface CoachClientSummary {
   activeCycle: TrainingCycle | null;
   cycleSummary: CycleSummary | null;
   feedbackSummary: CycleFeedbackSummary | null;
   priorDecisions: CycleDecision[];
+  // PT Coaching Workspace phase §21 — the training-side CycleAssessment's
+  // own reasoning (decision + AI-summary + reason codes), reusing exactly
+  // the fields the client's own Journey UI already reads. Never a new
+  // decision engine, never raw chain-of-thought.
+  latestAssessment?: {
+    decision: string | null;
+    aiSummary: string | null;
+    reasonCodes: string[] | null;
+    confidenceScore: number | null;
+  } | null;
+  // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
+  nutrition?: {
+    activeGoal: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      triggeredBy: string | null;
+      goalMode: string;
+      validFrom?: string;
+    } | null;
+    // PT Coaching Workspace phase §19 — the actual meal plan (distinct
+    // from the goal) plus its live consistency status against the
+    // current goal, reusing nutrition-goal-plan-consistency.service.ts
+    // verbatim (never a second consistency check).
+    activeProgram?: {
+      id: string;
+      name: string;
+      dailyCaloriesTarget: number | null;
+      proteinTargetGrams: number | null;
+      carbTargetGrams: number | null;
+      fatTargetGrams: number | null;
+      sourceGoalId: string | null;
+      createdAt: string;
+    } | null;
+    consistency?: NutritionGoalPlanConsistency | null;
+    latestNutritionDecision: {
+      assessmentId: string | null;
+      decision: string | null;
+      confidence: string | null;
+      headline: string | null;
+      explanation: string | null;
+      userDecision: string;
+      reviewedAt: string | null;
+      reviewedByRole: string | null;
+      ptNote: string | null;
+      // Phase 2 — true only when there's a real, still-actionable proposal
+      // (PENDING + proposedChanges present) for a PT to Approve/Modify/Reject.
+      canPtAct: boolean;
+    } | null;
+  };
+}
+
+export interface CoachClientProgress {
+  latest: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null } | null;
+  recent: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null }[];
 }
 
 // Named ptCoachService (not coachService) — that name is already taken by
@@ -5036,6 +5094,11 @@ export interface CoachClientSummary {
 export const ptCoachService = {
   getClientSummary: async (clientId: string) => {
     const { data } = await api.get<CoachClientSummary>(`/coach/clients/${clientId}/summary`);
+    return data;
+  },
+  // §23/§32 — lazy-loaded only when the Progress tab is opened.
+  getClientProgress: async (clientId: string) => {
+    const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
   createAndAssignPlan: async (
@@ -5077,6 +5140,50 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  // 14B.2 (PG-A5) — ported from web. Each is an audited, server-checked coach action; only the
+  // diet-break trigger creates a new proposal, and that one still waits on the client.
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 PT Approve/Modify/Reject
+  // (spec §XXIII). `cycleId` is the client's cycle carrying the pending
+  // recommendation — read it off getClientSummary().activeCycle.id.
+  approveNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/reject`,
+      { assessmentId, note },
+    );
+    return data;
+  },
+  modifyNutritionRecommendation: async (
+    clientId: string,
+    cycleId: string,
+    modifiedGoal: { calories: number; protein: number; carbs: number; fat: number },
+    assessmentId?: string,
+    note?: string,
+  ) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/modify`,
+      { ...modifiedGoal, assessmentId, note },
+    );
+    return data;
+  },
+  // Diet break / maintenance-phase modeling — PT-initiated trigger
+  // (2026-09-07). Creates a real new PENDING nutrition recommendation (the
+  // client still accepts/rejects it through the normal review UI) proposing
+  // the client's real, freshly-computed maintenance calories.
+  triggerDietBreakRecommendation: async (clientId: string, cycleId: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/trigger-diet-break`,
+      { note },
+    );
     return data;
   },
 

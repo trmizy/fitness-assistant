@@ -9,6 +9,7 @@ import {
   ChevronUp,
   FileSignature,
   MessageSquare,
+  Star,
   UserX,
   X,
 } from "lucide-react-native";
@@ -33,6 +34,7 @@ import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { formatVND } from "../../src/utils/currency";
 import { shortDate } from "../../src/features/wallet/wallet";
+import { StarInput, StarRow } from "../../src/features/plans/PlanWidgets";
 import {
   CONTRACT_TABS,
   REJECT_REASONS,
@@ -402,6 +404,26 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
     onError: (e) => fail(e, "Không huỷ được buổi tập"),
   });
 
+  // 14B.2 (PG-B4) — web PTContractsPage: after a COMPLETED session the coach rates the client (the
+  // mirror of the client's own session review). One review per session; the server enforces it.
+  const [reviewFor, setReviewFor] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const closeReview = () => {
+    setReviewFor(null);
+    setReviewRating(5);
+    setReviewComment("");
+  };
+  const reviewClient = useMutation({
+    mutationFn: () => sessionService.reviewClient(String(reviewFor), reviewRating, reviewComment.trim() || undefined),
+    onSuccess: () => {
+      toast.show("Đã gửi đánh giá về khách hàng", "success");
+      closeReview();
+      done();
+    },
+    onError: (e) => fail(e, "Không gửi được đánh giá"),
+  });
+
   const busy = confirm.isPending || complete.isPending || noShow.isPending || cancel.isPending;
 
   if (query.isLoading) return <ActivityIndicator className="py-3" color={accent.primary} />;
@@ -425,6 +447,16 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
               </Text>
               <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>
             </View>
+            {s.status === "COMPLETED" && s.clientReview ? (
+              <View className="flex-row items-center gap-2">
+                <Text className="font-body text-[11px] text-muted-foreground">Bạn đã đánh giá khách</Text>
+                <StarRow value={Number(s.clientReview.rating) || 0} size={12} />
+              </View>
+            ) : s.status === "COMPLETED" ? (
+              <Button size="sm" variant="secondary" icon={Star} onPress={() => setReviewFor(String(s.id))}>
+                Đánh giá khách
+              </Button>
+            ) : null}
             {actions.length > 0 ? (
               <View className="flex-row flex-wrap gap-2">
                 {actions.includes("confirm") ? (
@@ -452,6 +484,29 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
           </View>
         );
       })}
+
+      <BottomSheet open={reviewFor !== null} onClose={closeReview} title="Đánh giá khách hàng">
+        <View className="items-center gap-4 pb-2">
+          <StarInput value={reviewRating} onChange={setReviewRating} size={34} />
+          <View className="w-full">
+            <Input
+              value={reviewComment}
+              onChangeText={setReviewComment}
+              placeholder="Khách hàng này thế nào? (đúng giờ, hợp tác...) — không bắt buộc"
+              multiline
+              style={{ minHeight: 72, textAlignVertical: "top" }}
+            />
+          </View>
+          <View className="w-full flex-row gap-2">
+            <Button className="flex-1" variant="secondary" onPress={closeReview}>
+              Bỏ qua
+            </Button>
+            <Button className="flex-1" disabled={reviewClient.isPending} onPress={() => reviewClient.mutate()}>
+              {reviewClient.isPending ? "Đang gửi…" : "Gửi đánh giá"}
+            </Button>
+          </View>
+        </View>
+      </BottomSheet>
     </View>
   );
 }

@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Dumbbell, FileText, MessageCircle, Route, Sparkles } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Dumbbell, FileText, MessageCircle, Route, Sparkles } from "lucide-react-native";
 
 import {
   Avatar,
@@ -33,6 +33,17 @@ import {
   type PtContract,
 } from "../../../src/features/pt/pt";
 import { shortDate } from "../../../src/features/wallet/wallet";
+import {
+  ClientAttentionCard,
+  ClientNutritionCoachCard,
+  ClientProgressCard,
+  ClientTrainingSummaryCard,
+} from "../../../src/features/pt/ClientCoachCards";
+
+// 14B.2 — web PTClientDetail's tabs (its "Lịch sử" tab lists the client's other contracts; here each
+// contract is its own row in the roster, so it has no equivalent).
+const TABS = ["Tổng quan", "Tập luyện", "Dinh dưỡng", "Tiến độ"] as const;
+type Tab = (typeof TABS)[number];
 
 /**
  * PT-03 — one student. Web routes this by clientUserId and then guesses which contract is meant
@@ -40,9 +51,10 @@ import { shortDate } from "../../../src/features/wallet/wallet";
  * row the trainer tapped IS a contract and a client with two packages must not collapse into one
  * screen. clientUserId is read back off the contract for the calls that need it.
  *
- * Phase 10 shows the coaching relationship and its sessions. The client's roadmap, fitness
- * summary and plan assignment (web's other four tabs, WB-13) belong to Phase 11 — no placeholder
- * card pretends otherwise.
+ * Phase 10 showed the coaching relationship and its sessions; WB-13 added the roadmap card; 14B.2
+ * adds web's other tabs — the client's training data, the nutrition card where the coach acts on a
+ * pending AI proposal, the InBody trend, "Cần chú ý" — and "Giao kế hoạch". All of it only for an
+ * ACTIVE contract, the same gate the server applies.
  */
 export default function PtStudentDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -50,6 +62,7 @@ export default function PtStudentDetailScreen() {
   const { user } = useApp();
   const { id } = useLocalSearchParams<{ id: string }>();
   const contractId = String(id ?? "");
+  const [tab, setTab] = useState<Tab>("Tổng quan");
 
   const contractsQuery = useQuery({
     queryKey: ["pt-contracts", user?.id ?? "guest"],
@@ -98,6 +111,11 @@ export default function PtStudentDetailScreen() {
   const used = Number(contract.usedSessions ?? 0);
   const total = Number(contract.totalSessions ?? 0);
   const remaining = Math.max(0, total - used);
+  const isActive = contract.status === "ACTIVE";
+  // A non-active contract keeps the old single page (contract + sessions); an active one splits
+  // into tabs, sessions under "Tập luyện" as on web.
+  const showOverview = !isActive || tab === "Tổng quan";
+  const showSessions = !isActive || tab === "Tập luyện";
 
   return (
     <View className="flex-1 bg-background">
@@ -142,9 +160,32 @@ export default function PtStudentDetailScreen() {
                   Lịch dạy
                 </Button>
               </View>
+              {contract.status === "ACTIVE" ? (
+                <Button
+                  size="sm"
+                  icon={ClipboardList}
+                  full
+                  onPress={() => router.push({ pathname: "/pt/students/assign-plan", params: { contractId } })}
+                >
+                  Giao kế hoạch
+                </Button>
+              ) : null}
             </Card>
           </StaggerItem>
 
+          {isActive ? (
+            <StaggerItem>
+              <Segmented options={[...TABS]} value={tab} onChange={(v) => setTab(v as Tab)} />
+            </StaggerItem>
+          ) : null}
+
+          {isActive && tab === "Tổng quan" ? (
+            <StaggerItem>
+              <ClientAttentionCard clientUserId={contract.clientUserId} />
+            </StaggerItem>
+          ) : null}
+
+          {showOverview ? (
           <StaggerItem>
             <Text className="mb-3 px-1 font-display text-lg text-foreground">Hợp đồng</Text>
             <Card className="gap-2.5 p-4">
@@ -166,12 +207,31 @@ export default function PtStudentDetailScreen() {
             </Card>
           </StaggerItem>
 
-          {contract.status === "ACTIVE" ? (
+          ) : null}
+
+          {isActive && tab === "Tổng quan" ? (
             <StaggerItem>
               <ClientRoadmapCard clientUserId={contract.clientUserId} clientName={name} />
             </StaggerItem>
           ) : null}
 
+          {isActive && tab === "Tập luyện" ? (
+            <StaggerItem>
+              <ClientTrainingSummaryCard clientUserId={contract.clientUserId} />
+            </StaggerItem>
+          ) : null}
+          {isActive && tab === "Dinh dưỡng" ? (
+            <StaggerItem>
+              <ClientNutritionCoachCard clientUserId={contract.clientUserId} />
+            </StaggerItem>
+          ) : null}
+          {isActive && tab === "Tiến độ" ? (
+            <StaggerItem>
+              <ClientProgressCard clientUserId={contract.clientUserId} />
+            </StaggerItem>
+          ) : null}
+
+          {showSessions ? (
           <StaggerItem>
             <View className="mb-3 flex-row items-center justify-between px-1">
               <Text className="font-display text-lg text-foreground">Buổi tập</Text>
@@ -210,6 +270,7 @@ export default function PtStudentDetailScreen() {
               </Card>
             )}
           </StaggerItem>
+          ) : null}
         </Stagger>
       </ScrollView>
     </View>
@@ -220,7 +281,8 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between gap-3">
       <Text className="font-body text-sm text-muted-foreground">{label}</Text>
-      <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+      {/* min-w-0 + flex-1: a long package name ellipsizes instead of running off the screen edge. */}
+      <Text className="min-w-0 flex-1 text-right font-body-semibold text-sm text-foreground" numberOfLines={1}>
         {value}
       </Text>
     </View>
