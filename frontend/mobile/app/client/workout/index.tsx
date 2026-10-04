@@ -19,12 +19,12 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 
+import { CyclePanel } from "../../../src/features/cycle/CyclePanel";
 import { RoadmapJourney } from "../../../src/features/roadmap/RoadmapJourney";
 import {
   Badge,
   Button,
   Card,
-  CountUp,
   EmptyState,
   ProgressRing,
   Segmented,
@@ -33,9 +33,9 @@ import {
   StaggerItem,
   Tappable,
 } from "../../../src/components/ui";
-import { trainingCycleService, workoutService } from "../../../src/services/api";
+import { workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
-import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../../src/utils/date";
+import { addDays, startOfWeek, toDateInputValue } from "../../../src/utils/date";
 import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -80,18 +80,11 @@ export default function WorkoutScreen() {
     queryFn: () => workoutService.getHistory(1, 10),
   });
 
-  const cycleQuery = useQuery({
-    queryKey: ["training-cycle", "active"],
-    queryFn: () => trainingCycleService.getActive(),
-    // An account with no active cycle answers 404 — that is a normal state, not an outage, so it
-    // must not be retried three times before the empty state can render.
-    retry: false,
-  });
-
   const { refreshing, onRefresh } = usePullToRefresh([
     ["workout-schedules", "week"],
     ["workout-history", "recent"],
-    ["training-cycle", "active"],
+    // Prefix: every query of the Chu kỳ segment (active, history, progress, assessment...).
+    ["training-cycle"],
   ]);
 
   // Day-state rules (rest / past / in progress / done) live in buildTrainingWeek, where they are tested.
@@ -240,7 +233,7 @@ export default function WorkoutScreen() {
             )}
           </View>
         ) : tab === "Chu kỳ" ? (
-          <CycleTab query={cycleQuery} />
+          <CyclePanel />
         ) : (
           <RoadmapJourney onOpenCycle={() => setTab("Chu kỳ")} />
         )}
@@ -307,74 +300,6 @@ function RecentWorkouts({ data }: { data: any }) {
           );
         })}
       </Stagger>
-    </View>
-  );
-}
-
-function CycleTab({ query }: { query: { isLoading: boolean; data: any; isError: boolean } }) {
-  const accent = useWorkspaceAccent();
-  // Read the clock once per mount, not on every render: the cycle's week index is day-grained, and a
-  // render-time Date.now() makes the output depend on when React happens to re-render.
-  const [now] = useState(() => Date.now());
-
-  if (query.isLoading) {
-    return <Skeleton className="h-40 rounded-2xl" />;
-  }
-
-  const cycle = query.data?.cycle;
-  if (query.isError || !cycle) {
-    return (
-      <EmptyState
-        icon={CalendarClock}
-        title="Chưa có chu kỳ nào đang chạy"
-        description="Chu kỳ tập luyện được tạo cùng kế hoạch — bắt đầu một kế hoạch để mở chu kỳ đầu tiên."
-      />
-    );
-  }
-
-  const start = parseApiDateOnly(cycle.startDate);
-  const end = parseApiDateOnly(cycle.endDate);
-  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000));
-  const elapsed = Math.min(
-    totalDays,
-    Math.max(0, Math.round((now - start.getTime()) / 86_400_000)),
-  );
-  const weekIndex = Math.floor(elapsed / 7) + 1;
-  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-
-  return (
-    <View className="gap-5">
-      <Card className="p-5">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Badge tone="info">
-              Tuần {Math.min(weekIndex, totalWeeks)} / {totalWeeks}
-            </Badge>
-            <Text className="font-display mt-2 text-xl text-foreground" numberOfLines={2}>
-              {cycle.name ?? cycle.goal ?? "Chu kỳ hiện tại"}
-            </Text>
-            <Text className="mt-1 font-body text-sm text-muted-foreground">
-              {start.toLocaleDateString("vi-VN")} – {end.toLocaleDateString("vi-VN")}
-            </Text>
-          </View>
-          <ProgressRing progress={elapsed / totalDays} size={72} stroke={7} color={accent.chart3}>
-            <Text className="font-display text-base text-foreground">
-              <CountUp to={Math.round((elapsed / totalDays) * 100)} suffix="%" />
-            </Text>
-          </ProgressRing>
-        </View>
-      </Card>
-
-      {cycle.summary ? (
-        <Card className="p-4">
-          <Text className="mb-2 font-display text-base text-foreground">Tổng kết tới hiện tại</Text>
-          <Text className="font-body text-sm leading-6 text-muted-foreground">
-            {typeof cycle.summary === "string"
-              ? cycle.summary
-              : JSON.stringify(cycle.summary, null, 2)}
-          </Text>
-        </Card>
-      ) : null}
     </View>
   );
 }

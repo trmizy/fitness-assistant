@@ -1449,7 +1449,7 @@ export interface CycleAssessment {
   // Phase 2 — Adaptive Nutrition Decision Engine, an independent decision
   // space/lifecycle evaluated at the same touchpoint (see
   // docs/body-state-and-adaptive-planning.md).
-  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
+  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "PROPOSE_DIET_BREAK" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
   nutritionConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
   nutritionSignals: Record<string, unknown> | null;
   nutritionProposedChanges: { calories?: number; protein?: number; carbs?: number; fat?: number } | null;
@@ -1564,6 +1564,19 @@ export const trainingCycleService = {
 
   getLatestAssessment: async (id: string) => {
     const { data } = await api.get<CycleAssessment>(`/training-cycles/${id}/assessments/latest`);
+    return data;
+  },
+
+  // 14B.1 (web TrainingCyclePage) — "how close am I to the next diet-break proposal", shown while
+  // nothing is proposed yet.
+  getDietBreakStatus: async (id: string) => {
+    const { data } = await api.get<{
+      applicable: boolean;
+      weeksSinceDeficitPhaseStarted: number | null;
+      thresholdWeeks: number;
+      weeksRemaining: number | null;
+      eligible: boolean;
+    }>(`/training-cycles/${id}/diet-break-status`);
     return data;
   },
 

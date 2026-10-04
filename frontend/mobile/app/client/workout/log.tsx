@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import {
   Minus,
   Play,
   Plus,
+  SkipForward,
   Square,
   Timer,
 } from "lucide-react-native";
@@ -41,6 +42,12 @@ import {
   type ExerciseBlock,
   type SetRow,
 } from "../../../src/features/workout/normalizeWorkout";
+import {
+  SessionFeedbackSheet,
+  SessionFeedbackStatusRow,
+  SkipFeedbackSheet,
+} from "../../../src/features/workout/SessionFeedbackSheets";
+import { FEEDBACK_COMPLETION_STATUSES, FEEDBACK_SKIP_STATUSES } from "../../../src/features/workout/sessionFeedback";
 
 /**
  * CL-17 — live workout logging.
@@ -74,6 +81,12 @@ export default function WorkoutLogScreen() {
   const [rest, setRest] = useState<number | null>(null);
   const [blocks, setBlocks] = useState<ExerciseBlock[] | null>(null);
   const [starting, setStarting] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  // 14B.1 (PG-A2) — post-session feedback / skip reason sheets. `backAfterFeedback`: opened by
+  // "Kết thúc buổi tập", so closing it finishes the flow the way finishing used to.
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [backAfterFeedback, setBackAfterFeedback] = useState(false);
+  const [skipOpen, setSkipOpen] = useState(false);
   const hydratedFor = useRef<string | null>(null);
   const clockSeededFor = useRef<string | null>(null);
 
@@ -200,12 +213,25 @@ export default function WorkoutLogScreen() {
   const persist = useCallback(
     async (blockKey: string, row: SetRow, completed: boolean) => {
       try {
-        await workoutService.updateSet(row.id, {
+        const res: any = await workoutService.updateSet(row.id, {
           weight: row.weight,
           reps: row.reps,
           completed,
         });
         patchRow(blockKey, row.id, { unsynced: false });
+        // 14B.1 (PG-A2) — the set that closes a session inside a training cycle asks for feedback
+        // right away, as web does: the server flips the session to COMPLETED on this very call, so
+        // the "Kết thúc buổi tập" button is already gone by the time the user would press it.
+        const progress = res?.progress ?? res?.data?.progress;
+        if (
+          completed &&
+          progress?.trainingCycleId &&
+          (progress.progressPercent >= 100 || progress.completedExercises >= progress.totalExercises)
+        ) {
+          setRest(null);
+          setBackAfterFeedback(false);
+          setFeedbackOpen(true);
+        }
       } catch (e: any) {
         // A response means the server rejected it — that is a real error worth showing. No
         // response at all means the network dropped; keep the value and let them retry.
@@ -298,10 +324,58 @@ export default function WorkoutLogScreen() {
       queryClient.refetchQueries({ queryKey: ["activity-heatmap", "dashboard-week"] }),
     ]).catch(() => {});
     toast.show("Đã hoàn thành buổi tập!", "success");
+    // Web asks for feedback right after a session that closed inside a training cycle.
+    const fresh: any[] = queryClient.getQueryData(["workout-schedules", "today"]) ?? [];
+    const closed = fresh[0];
+    if (closed?.trainingCycleId && FEEDBACK_COMPLETION_STATUSES.includes(closed.status)) {
+      setBackAfterFeedback(true);
+      setFeedbackOpen(true);
+      return;
+    }
     router.back();
   }, [queryClient, toast]);
 
+  // Skipping is only offered before the session was started (the server refuses it after).
+  const scheduleId: string | null = schedule?.id ? String(schedule.id) : null;
+  const skipSession = useCallback(() => {
+    if (!scheduleId) return;
+    Alert.alert("Bỏ qua buổi tập này?", "Buổi hôm nay sẽ được đánh dấu là bỏ qua. Bạn vẫn có thể bắt đầu tập lại trong hôm nay.", [
+      { text: "Không", style: "cancel" },
+      {
+        text: "Bỏ qua",
+        style: "destructive",
+        onPress: async () => {
+          setSkipping(true);
+          try {
+            await workoutService.skipSchedule(scheduleId);
+            await Promise.all([
+              queryClient.refetchQueries({ queryKey: ["workout-schedules", "today"] }),
+              queryClient.refetchQueries({ queryKey: ["workout-schedules", "week"] }),
+            ]).catch(() => {});
+            setSkipOpen(true);
+          } catch (e: any) {
+            toast.show(e?.response?.data?.error ?? "Không thể bỏ qua buổi tập này.", "danger");
+          } finally {
+            setSkipping(false);
+          }
+        },
+      },
+    ]);
+  }, [scheduleId, queryClient, toast]);
+
+  const closeFeedback = useCallback(() => {
+    setFeedbackOpen(false);
+    if (backAfterFeedback) router.back();
+  }, [backAfterFeedback]);
+
   const loading = scheduleQuery.isLoading || (!!workoutId && workoutQuery.isLoading);
+  // Per-exercise feedback is keyed by Exercise.id, one entry per exercise even if it repeats.
+  const feedbackExercises = useMemo(() => {
+    const seen = new Set<string>();
+    return (blocks ?? [])
+      .filter((b) => b.exerciseId && !seen.has(b.exerciseId) && seen.add(b.exerciseId))
+      .map((b) => ({ exerciseId: b.exerciseId, name: b.name }));
+  }, [blocks]);
   const unsyncedCount = (blocks ?? []).reduce(
     (n, b) => n + b.sets.filter((s) => s.unsynced).length,
     0,
@@ -335,10 +409,19 @@ export default function WorkoutLogScreen() {
             <Text className="mt-1.5 font-body text-sm text-muted-foreground">
               Bấm bắt đầu để mở buổi tập — hệ thống sẽ tạo sẵn các set theo giáo án.
             </Text>
-            <View className="mt-4">
-              <Button full size="lg" icon={Play} disabled={starting} onPress={startSession}>
+            <View className="mt-4 gap-2">
+              <Button full size="lg" icon={Play} disabled={starting || skipping} onPress={startSession}>
                 Bắt đầu buổi tập
               </Button>
+              {FEEDBACK_SKIP_STATUSES.includes(schedule?.status) ? (
+                <Button full variant="ghost" onPress={() => setSkipOpen(true)}>
+                  {`${schedule.status === "SKIPPED" ? "Đã bỏ qua buổi này" : "Đã hủy buổi này"} · Ghi lý do`}
+                </Button>
+              ) : schedule?.status === "NOT_STARTED" ? (
+                <Button full variant="ghost" icon={SkipForward} disabled={skipping || starting} onPress={skipSession}>
+                  {skipping ? "Đang bỏ qua..." : "Bỏ qua buổi tập này"}
+                </Button>
+              ) : null}
             </View>
           </Card>
         </View>
@@ -406,6 +489,18 @@ export default function WorkoutLogScreen() {
                 )}
               </View>
             </Card>
+
+            {FEEDBACK_COMPLETION_STATUSES.includes(schedule?.status) ? (
+              <View className="mb-4">
+                <SessionFeedbackStatusRow
+                  scheduleId={String(schedule.id)}
+                  onOpen={() => {
+                    setBackAfterFeedback(false);
+                    setFeedbackOpen(true);
+                  }}
+                />
+              </View>
+            ) : null}
 
             {(blocks ?? []).length === 0 ? (
               <EmptyState
@@ -504,7 +599,8 @@ export default function WorkoutLogScreen() {
           </ScrollView>
 
           {/* Rest countdown */}
-          {rest !== null ? (
+          {/* A finished session has no next set to rest for. */}
+          {rest !== null && !completed ? (
             <Animated.View
               entering={FadeInDown.springify().damping(32).stiffness(340)}
               exiting={FadeOutDown.duration(160)}
@@ -557,6 +653,18 @@ export default function WorkoutLogScreen() {
           </View>
         </>
       )}
+
+      {schedule?.id ? (
+        <>
+          <SessionFeedbackSheet
+            scheduleId={String(schedule.id)}
+            exercises={feedbackExercises}
+            open={feedbackOpen}
+            onClose={closeFeedback}
+          />
+          <SkipFeedbackSheet scheduleId={String(schedule.id)} open={skipOpen} onClose={() => setSkipOpen(false)} />
+        </>
+      ) : null}
     </View>
   );
 }
