@@ -453,8 +453,8 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | **XONG 5/10** — §49 (máy ảo + API) |
 | PG-C6 | Tổng quan PT: biểu đồ doanh thu, cảnh báo học viên | 14B.7 | **XONG 5/10** — §49 (máy ảo + API); cảnh báo học viên đã có từ Phase 10 |
 | PG-C7 | Tổng quan admin: tăng trưởng, vai trò, cảnh báo hệ thống, đăng ký gần đây | 14B.7 | **ĐÃ CÓ từ Phase 13** (`ac6f44b`) — §49; dòng audit 3/10 là dương tính giả, không đổi gì |
-| PG-D1 | Admin: quản lý đối tác đang hoạt động | 14B.8 | OPEN — hỏi Ngài |
-| PG-D2 | Admin: tổng quan tài chính + đối soát | 14B.8 | OPEN — hỏi Ngài |
+| PG-D1 | Admin: quản lý đối tác đang hoạt động | 14B.8 | **XONG 5/10** — §50; Ngài chọn làm toàn bộ trên mobile; chấm dứt hợp tác chỉ kiểm tới bước xác nhận (không đảo lại được) |
+| PG-D2 | Admin: tổng quan tài chính + đối soát | 14B.8 | **XONG 5/10** — §50 |
 
 Ghi chú: dòng **AD-02** ở bảng trên còn ghi "chưa làm/chưa kiểm" ở cột trạng thái nhưng đã **xong + đã kiểm 28/9**
 (ADAPTERS §35.3) — nội dung cột trước đã ghi đúng.

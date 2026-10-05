@@ -3703,3 +3703,62 @@ nửa "cảnh báo học viên" của C6.
   "Upper Body Power · 17/9/2026 · 60 phút · 3 bài"…; thẻ Cân bằng cơ thể cùng kết quả như mobile; tràn ngang 0 px ở cả hai khổ; theme
   sáng + tối đều hiển thị đúng. `vite build` thành công.
 - "AI Insights" của web: chưa sửa — ghi manifest E7, Ngài bàn với partner sau.
+
+## 50. Phase 14B.8 — Admin: quản lý đối tác + tài chính (PG-D1/D2) (5/10)
+
+Ngài chọn (5/10) làm **toàn bộ** trên mobile, không để lại cho bản máy tính như WB-05..10.
+
+**PG-D1 — Đối tác** (`app/admin/partners/index.tsx`, `[id].tsx`, `src/features/admin/{adminPartners.ts,PartnerSections.tsx}`), theo
+web `AdminPartnersPage`:
+- Danh sách: "Cần bạn xử lý" (hồ sơ chờ thẩm định → lọc; chi nhánh / tên thương hiệu chờ duyệt → màn duyệt chi nhánh), tìm theo tên /
+  email / MST, lọc trạng thái. Hồ sơ tự đăng ký còn PROSPECT mở ở "Duyệt hồ sơ đối tác" (WB-17), như web.
+- Chi tiết: menu Hành động (xem dưới góc nhìn đối tác, tạm khoá kèm bảng "sẽ xảy ra / vẫn tiếp tục", bỏ tạm khoá, chấm dứt kèm xem trước
+  hệ quả + chọn cách xử lý hội viên) theo đúng điều kiện trạng thái của web; 8 tab: Tổng quan (thẩm định, sửa hồ sơ), Tài khoản (sửa
+  tên, đặt lại mật khẩu → sao chép link, buộc đăng xuất, chuyển quyền sở hữu, thu hồi — chủ sở hữu cuối cùng không thu hồi được; thư mời
+  đang chờ: gửi lại / thu hồi, cảnh báo quá 7 ngày), Chi nhánh (mở màn duyệt chi nhánh), Giấy tờ + nhật ký trao đổi, Tiền (mức chung +
+  xem trước hệ quả chấm dứt), Nhật ký kiểm toán, Ghi chú nội bộ, Khiếu nại (dùng chung sheet với hàng đợi "Xử lý" — tách thành
+  `ComplaintSheet.tsx`).
+- **Khác web có chủ ý:**
+  - Thu hồi / buộc đăng xuất / chuyển quyền có hộp xác nhận (web bấm là chạy).
+  - Chiết khấu riêng nhập theo **%** (0–100) và đổi sang tỉ lệ 0–1. Web là ô chữ tự do "(0-1)" và gym-service không kiểm tra: nhập "8"
+    với ý 8% sẽ lưu 8 (= 800%), rồi `commission-rate.service` lặng lẽ thay bằng mức sàn khi tính tiền.
+  - Nhật ký kiểm toán có nhãn tiếng Việt cho **mọi** giá trị `PartnerAuditAction`; web dừng ở VIEWED_AS_PARTNER nên các sự kiện hồ sơ
+    tự đăng ký ("APPLICATION_APPROVED", "DOCUMENT_ACCEPTED"…) hiện nguyên mã.
+  - Với đối tác **tự đăng ký**, gym-service trả 409 `SELF_SERVICE_APPLICATION` cho sửa hồ sơ, ghi nhận / xác minh giấy tờ bằng URL, đặt
+    trạng thái thẩm định (chủ ý: một vòng đời duy nhất, có nhật ký). Web vẫn hiện các nút đó và bấm thì lỗi; mobile ẩn chúng và đưa
+    sang "Duyệt hồ sơ đối tác". **Hệ quả cần Ngài biết:** hiện không có chỗ nào đặt chiết khấu riêng cho đối tác tự đăng ký.
+- Màn chi tiết gắn `key` theo id: expo-router dùng lại màn khi chỉ đổi id (deep link sang đối tác khác) và giữ tab đang mở của đối tác cũ.
+
+**PG-D2 — Tài chính** (`app/admin/finance.tsx`), theo web `AdminFinancePage`: Tổng quan (Ngày / Tuần / Tháng / Quý, khoảng ngày nhập
+YYYY-MM-DD như các màn mobile khác, 3 tổng, biểu đồ cột thu/chi/ròng, bảng theo kỳ) + Đối soát (tự làm mới 30 s, thêm số dư **đang
+khoá** của PT / phòng gym mà web không hiện, ví âm). Rút tiền và hoàn tiền 1-1 đã có hàng đợi riêng trên mobile → chỉ là link.
+Lối vào: khối "Đối tác" / "Tài chính" trên Tổng quan admin.
+
+**Sửa kèm (chung):** `Segmented` + các chip mới hiển thị một dòng, không ngắt ở dấu cách — Android đo chữ hụt nên "Đối soát" còn "Đối",
+"Tổng quan" còn "Tổng" (cùng lỗi Badge ở 14B.5).
+
+**Kiểm chứng (admin@example.com):**
+- Máy ảo: danh sách 52 đối tác + "Cần bạn xử lý" 15/3/2 (khớp `GET /admin/partners/queue`); P12 — Tổng quan, Tài khoản (3 tài khoản,
+  chủ sở hữu không có nút Thu hồi), Giấy tờ, Tiền (5%, hệ quả 0 hội viên · 2/2 chi nhánh), Nhật ký (toàn tiếng Việt), xem dưới góc nhìn
+  đối tác; đối tác "Chain_X_Premium" — tab Khiếu nại 10 dòng, sheet chi tiết; Tài chính — Ngày (thu 18.400.000 ₫ / chi 10.000 ₫), Tháng
+  (148.491.500 / 16.653.126 / 4.090.450 ₫ = API), Đối soát (106.947.000 ₫ cân bằng); hàng đợi "Xử lý → Khiếu nại" sau khi tách sheet;
+  360 dp.
+- Thao tác thật trên máy (đối chiếu DB/API ngay sau):
+  - Buộc đăng xuất Quan Ly2 (P12) → `SESSIONS_REVOKED` đúng tài khoản.
+  - Thêm nhật ký trao đổi (Email) trên P12; thêm ghi chú nội bộ trên "E2E Partner …0420000".
+  - Tạm khoá P12 → `SUSPENDED` + lý do, menu đổi thành Bỏ tạm khoá / Chấm dứt → bỏ tạm khoá → `ACTIVE`, chủ gym đăng nhập lại được.
+  - Sửa hồ sơ "E2E Partner …0420000": chiết khấu riêng 8 → lưu `0.08`; trả lại null bằng đúng lời gọi PATCH (REAL HTTP/API).
+  - Sheet chấm dứt: hiển thị hệ quả + 2 chính sách, nút khoá tới khi đủ — **không bấm xác nhận** (không đảo lại được).
+- REAL HTTP/API: `POST /admin/partner-accounts/:id/reset-password` → `{ resetLink, emailSent: true, expiresAt }` (đúng các trường app dùng);
+  `PATCH /admin/partners/:id` với đối tác tự đăng ký → 409 `SELF_SERVICE_APPLICATION`.
+- Chưa bấm thật: chuyển quyền sở hữu, thu hồi tài khoản, gửi lại / thu hồi thư mời (P12 không có thư mời PENDING), ghi nhận / xác minh
+  giấy tờ bằng URL (chỉ còn với hồ sơ cũ), chấm dứt hợp tác.
+- Tự động: `cluster14b8.test.ts` 16 (node:test). Unit 724/724, jest 12 bộ / 73, `tsc` sạch, eslint 0 lỗi.
+- Dữ liệu để lại: một dòng nhật ký trao đổi trên P12 ("KKiem thu 14B8 tu mobile" — chữ lặp do adb), một ghi chú nội bộ trên
+  "E2E Partner e2e_202609140420000", các dòng audit tương ứng (tạm khoá / bỏ tạm khoá / buộc đăng xuất / xem như đối tác / đặt lại mật khẩu).
+
+**Sửa kèm phía web (Ngài cho phép 6/10):** `AdminPartnersPage` → "Sửa hồ sơ": chiết khấu riêng nhập theo **%** (0–100, chấp nhận dấu
+phẩy), đổi sang tỉ lệ 0–1 khi gửi; ngoài khoảng thì báo lỗi dưới ô và khoá nút Lưu; ô thống kê hiện 1 chữ số thập phân (7,5% không còn
+làm tròn thành 8%). REAL BROWSER (Playwright, `gymcoach-web-dev` đã khởi động lại, admin, "E2E Partner e2e_202609140420000"): nhập 8 →
+DB `0.08`, ô "Chiết khấu riêng 8%"; mở lại → ô điền sẵn "8"; nhập 800 → lỗi "Chiết khấu riêng phải từ 0 đến 100%" + nút Lưu bị khoá; xoá
+trống → lưu → DB về null. `vite build` thành công. Backend vẫn không tự kiểm tra khoảng (chưa sửa, ngoài phạm vi được cho phép).
