@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Dumbbell, MapPin, Pencil, Plus, QrCode, Star, Users } from "lucide-react-native";
+import { Building2, Check, ChevronRight, Dumbbell, MapPin, Pencil, Plus, QrCode, Star, Users } from "lucide-react-native";
 import { router } from "expo-router";
 
 import {
@@ -380,62 +380,69 @@ function BranchCard({ gym }: { gym: OwnedGym }) {
   const op = operationalStatus(gym.operationalStatus);
   const stats = showsBranchStats(gym);
   return (
-    <Card className="gap-2 p-4">
-      <View className="flex-row items-start gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-          <Dumbbell size={18} color={designTokens.mutedForeground} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-            {branchName(gym)}
-          </Text>
-          <View className="mt-0.5 flex-row items-center gap-1">
-            <MapPin size={11} color={designTokens.mutedForeground} />
-            <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
-              {branchAddress(gym)}
-            </Text>
+    // 14B.5 — the card opens the branch's own screen (settings, photos, documents, status, members).
+    <Tappable accessibilityLabel={`Quản lý ${branchName(gym)}`} onPress={() => router.push({ pathname: "/gym-owner/branch", params: { gymId: gym.id } })}>
+      <Card className="gap-2 p-4">
+        <View className="flex-row items-start gap-3">
+          <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+            <Dumbbell size={18} color={designTokens.mutedForeground} />
           </View>
-        </View>
-        <Badge tone={st.tone}>{st.label}</Badge>
-      </View>
-      <View className="flex-row items-center gap-4 border-t border-border pt-2">
-        {gym.status === "PENDING_REVIEW" ? (
-          <Text className="font-body text-xs text-warning">Đang chờ Gymini duyệt…</Text>
-        ) : stats ? (
-          <>
-            <View className="flex-row items-center gap-1">
-              <Users size={12} color={designTokens.mutedForeground} />
-              <Text className="font-body text-xs text-muted-foreground">{gym.activeMemberCount ?? 0} hội viên</Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <Star size={12} color={designTokens.warning} />
-              <Text className="font-body text-xs text-muted-foreground">
-                {Number(gym.averageRating ?? 0).toFixed(1)}
-                {gym.reviewCount ? ` · ${gym.reviewCount} đánh giá` : ""}
+          <View className="min-w-0 flex-1">
+            <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+              {branchName(gym)}
+            </Text>
+            <View className="mt-0.5 flex-row items-center gap-1">
+              <MapPin size={11} color={designTokens.mutedForeground} />
+              <Text className="min-w-0 flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
+                {branchAddress(gym)}
               </Text>
             </View>
-            {op ? <Text className="font-body text-xs text-muted-foreground">{op.label}</Text> : null}
-          </>
-        ) : (
-          <Text className="font-body text-xs text-muted-foreground">
-            {gym.status === "REJECTED" ? "Chi nhánh bị từ chối" : "Chưa mở bán"}
-          </Text>
-        )}
-      </View>
-      {/* E1 — front-desk check-in QR; only a branch that is (or was) selling has members to scan it. */}
-      {stats ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={QrCode}
-          onPress={() =>
-            router.push({ pathname: "/gym-owner/checkin-qr", params: { gymId: gym.id, name: branchName(gym) } })
-          }
-        >
-          Mã QR check-in
-        </Button>
-      ) : null}
-    </Card>
+          </View>
+          <Badge tone={st.tone}>{st.label}</Badge>
+        </View>
+        <View className="flex-row items-center gap-4 border-t border-border pt-2">
+          {gym.status === "PENDING_REVIEW" ? (
+            <Text className="font-body text-xs text-warning">Đang chờ Gymini duyệt…</Text>
+          ) : stats ? (
+            <>
+              <View className="flex-row items-center gap-1">
+                <Users size={12} color={designTokens.mutedForeground} />
+                <Text className="font-body text-xs text-muted-foreground">{gym.activeMemberCount ?? 0} hội viên</Text>
+              </View>
+              <View className="flex-row items-center gap-1">
+                <Star size={12} color={designTokens.warning} />
+                <Text className="font-body text-xs text-muted-foreground">
+                  {Number(gym.averageRating ?? 0).toFixed(1)}
+                  {gym.reviewCount ? ` · ${gym.reviewCount} đánh giá` : ""}
+                </Text>
+              </View>
+              {op ? <Text className="font-body text-xs text-muted-foreground">{op.label}</Text> : null}
+            </>
+          ) : (
+            <Text className="font-body text-xs text-muted-foreground">
+              {gym.status === "REJECTED" ? "Chi nhánh bị từ chối" : "Chưa mở bán"}
+            </Text>
+          )}
+        </View>
+        {/* E1 — front-desk check-in QR; only a branch that is (or was) selling has members to scan it. */}
+        {stats ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={QrCode}
+            onPress={() =>
+              router.push({ pathname: "/gym-owner/checkin-qr", params: { gymId: gym.id, name: branchName(gym) } })
+            }
+          >
+            Mã QR check-in
+          </Button>
+        ) : null}
+        <View className="flex-row items-center justify-end gap-1">
+          <Text className="font-body-semibold text-xs text-primary">Quản lý chi nhánh</Text>
+          <ChevronRight size={14} color={designTokens.mutedForeground} />
+        </View>
+      </Card>
+    </Tappable>
   );
 }
 

@@ -166,7 +166,7 @@ export default function AdminGymDetailScreen() {
   const pendingRename = isRenameRequest(gym);
   const photos = (Array.isArray(photosQuery.data) ? photosQuery.data : []).map((p: any) => ({
     id: String(p.id),
-    url: p.url ? String(p.url) : gymPhotoUrl(String(p.fileName)),
+    url: gymPhotoUrl(String(p.fileName), p.url ? String(p.url) : null),
     category: p.category ?? null,
   }));
   const docs = branchDocuments(docsQuery.data);

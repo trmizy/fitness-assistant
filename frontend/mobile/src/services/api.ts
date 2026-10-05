@@ -46,8 +46,18 @@ export let API_URL = apiBaseUrl();
  */
 export const MOBILE_CHECKOUT = { headers: { Origin: "http://localhost" } } as const;
 
-export function gymPhotoUrl(fileName: string): string {
-  return `${API_URL}/uploads/gym-photos/${fileName}`;
+export function gymPhotoUrl(fileName: string, url?: string | null): string {
+  return absolutePhotoUrl(url) ?? `${API_URL}/uploads/gym-photos/${fileName}`;
+}
+
+/**
+ * The `url` gym-service puts on every photo (`resolvePhotoUrl`) is a signed S3 link for new photos
+ * but a bare `/uploads/gym-photos/<file>` path for disk-stored ones. A browser resolves that path
+ * against the page; an `<Image>` here cannot, so a relative one is joined to the server URL.
+ */
+export function absolutePhotoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
 // Exported so a screen can make an ad-hoc call without a dedicated service method — but always

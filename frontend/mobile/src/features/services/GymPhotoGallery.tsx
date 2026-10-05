@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react-native";
 
 import { Tappable } from "../../components/ui";
+import { absolutePhotoUrl } from "../../services/api";
 import { PHOTO_CATEGORY_LABEL, type GymPhoto } from "./gymDirectory";
 
 /**
@@ -29,7 +30,7 @@ export function GymPhotoGallery({ photos, title }: { photos: GymPhoto[]; title: 
     <View className="gap-2">
       <View className="overflow-hidden rounded-2xl border border-border bg-black" style={{ aspectRatio: 4 / 3 }}>
         <Tappable className="flex-1" onPress={() => setFull(true)} accessibilityLabel="Xem ảnh toàn màn hình">
-          <Image source={{ uri: cur.url }} contentFit="contain" style={{ flex: 1 }} transition={150} accessibilityLabel={`${title} — ${label ?? `ảnh ${safeIndex + 1}`}`} />
+          <Image source={{ uri: absolutePhotoUrl(cur.url) ?? undefined }} contentFit="contain" style={{ flex: 1 }} transition={150} accessibilityLabel={`${title} — ${label ?? `ảnh ${safeIndex + 1}`}`} />
         </Tappable>
         {n > 1 ? (
           <>
@@ -57,7 +58,7 @@ export function GymPhotoGallery({ photos, title }: { photos: GymPhoto[]; title: 
               accessibilityLabel={`Chọn ảnh ${i + 1}`}
               className={`h-14 w-20 overflow-hidden rounded-lg border-2 ${i === safeIndex ? "border-primary" : "border-transparent"}`}
             >
-              <Image source={{ uri: p.url }} contentFit="cover" style={{ flex: 1, opacity: i === safeIndex ? 1 : 0.7 }} />
+              <Image source={{ uri: absolutePhotoUrl(p.url) ?? undefined }} contentFit="cover" style={{ flex: 1, opacity: i === safeIndex ? 1 : 0.7 }} />
             </Tappable>
           ))}
         </ScrollView>
@@ -65,7 +66,7 @@ export function GymPhotoGallery({ photos, title }: { photos: GymPhoto[]; title: 
 
       <Modal visible={full} transparent animationType="fade" onRequestClose={() => setFull(false)}>
         <View className="flex-1 items-center justify-center bg-black/95">
-          <Image source={{ uri: cur.url }} contentFit="contain" style={{ width: "100%", height: "80%" }} />
+          <Image source={{ uri: absolutePhotoUrl(cur.url) ?? undefined }} contentFit="contain" style={{ width: "100%", height: "80%" }} />
           <Text className="mt-2 font-body text-xs text-white/70">
             {label ? `${label} · ` : ""}
             {`${safeIndex + 1}/${n}`}
