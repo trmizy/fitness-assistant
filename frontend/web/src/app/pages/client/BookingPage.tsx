@@ -547,16 +547,6 @@ export function BookingPage() {
             {!contract.eSignStatus && "Đang chuẩn bị yêu cầu ký..."}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
-            {contract.contractPdfPath && (
-              <a
-                href={contractService.getPdfUrl(contract.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <FileText className="w-3.5 h-3.5" /> Tải PDF hợp đồng
-              </a>
-            )}
             {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
               <button
                 onClick={() => handleResendESign(contract.id)}
