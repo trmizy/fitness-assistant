@@ -141,6 +141,18 @@ export function ClientDashboard() {
     queryFn: () => workoutService.getHistory(1, 4),
   });
 
+  // "Buổi tập · 30 ngày qua" must count the real 30-day window. It used to be
+  // workoutHistory.length — the 4-row page above — so the tile could never pass 4.
+  const monthAgo = new Date(todayStart);
+  monthAgo.setDate(monthAgo.getDate() - 30);
+  const tomorrow = new Date(todayStart);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { data: monthWorkouts, isLoading: monthLoading } = useQuery({
+    queryKey: ["workout-history", "30d", toDateInputValue(monthAgo)],
+    queryFn: () =>
+      workoutService.getInRange(toDateInputValue(monthAgo), toDateInputValue(tomorrow)),
+  });
+
   const { data: currentProgram = null, isLoading: programLoading } = useQuery({
     queryKey: ["current-workout-program"],
     queryFn: () => workoutService.getCurrentProgram(),
@@ -161,6 +173,7 @@ export function ClientDashboard() {
     profileLoading ||
     inbodyLoading ||
     workoutLoading ||
+    monthLoading ||
     programLoading ||
     schedulesLoading;
 
@@ -242,7 +255,7 @@ export function ClientDashboard() {
     },
     {
       label: "Buổi tập",
-      value: workoutHistory.length.toString(),
+      value: Array.isArray(monthWorkouts) ? String(monthWorkouts.length) : "---",
       change: "30 ngày qua",
       icon: Dumbbell,
       color: "text-emerald-400",
@@ -633,7 +646,7 @@ export function ClientDashboard() {
                   Thời gian
                 </th>
                 <th className="px-4 py-2 font-semibold uppercase tracking-wider">
-                  Trạng thái
+                  Bài tập
                 </th>
               </tr>
             </thead>
@@ -644,19 +657,21 @@ export function ClientDashboard() {
                     key={i}
                     className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors"
                   >
+                    {/* fitness-service Workout is `name` + `duration` (minutes). This read
+                        `title`/`durationMinutes`, which do not exist, so every row printed
+                        "Buổi tập · -- phút" and a blanket "Hoàn thành" (an in-progress session
+                        has a Workout row too) — the status column is now the exercise count. */}
                     <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">
-                      {w.title || "Buổi tập"}
+                      {w.name || "Buổi tập"}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-zinc-500">
                       {new Date(w.date).toLocaleDateString("vi-VN")}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-zinc-500">
-                      {w.durationMinutes || "--"} phút
+                      {w.duration ? `${w.duration} phút` : "--"}
                     </td>
-                    <td className="px-4 py-2.5">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
-                        Hoàn thành
-                      </span>
+                    <td className="px-4 py-2.5 text-sm text-zinc-500">
+                      {Array.isArray(w.exercises) ? `${w.exercises.length} bài` : "--"}
                     </td>
                   </tr>
                 ))

@@ -697,6 +697,12 @@ export const workoutService = {
     return data;
   },
 
+  /** `GET /workouts?startDate&endDate` — fitness-service filters by date (newest first). */
+  getInRange: async (startDate: string, endDate: string, limit: number = 200) => {
+    const { data } = await api.get("/workouts", { params: { startDate, endDate, limit } });
+    return data;
+  },
+
   getWorkout: async (id: string) => {
     const { data } = await api.get(`/workouts/${id}`);
     return data;
