@@ -436,15 +436,15 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-A5 | PT: thẻ thể lực + tiến độ học viên, duyệt/sửa/từ chối đề xuất dinh dưỡng, diet break | 14B.2 | **XONG code + kiểm máy ảo 4/10** — ADAPTERS §44; Duyệt/Sửa/Từ chối chỉ có component test (dev DB không có đề xuất đang chờ PT) |
 | PG-A6 | PT giao kế hoạch tập cho học viên | 14B.2 | **XONG 4/10** — §44 (giao thật cho John Doe theo lệnh Ngài, DB + thông báo khớp) |
 | PG-A7 | Chủ gym: quản lý chi nhánh (= GY-03) | 14B.5 | **XONG 5/10 (chưa commit)** — ADAPTERS §47; từng mục sửa thật trên P12 Mobile Quan 1 rồi trả lại, MANAGER bị chặn đúng chỗ (máy + API); GAP-27 (server trả ảnh thiếu `url` sau đặt bìa / sắp xếp) |
-| PG-B1 | Huỷ gói hội viên đang hoạt động | 14B.6 | OPEN |
-| PG-B2 | Viết/xoá đánh giá phòng gym | 14B.6 | OPEN |
-| PG-B3 | Chi tiết hợp đồng + PDF (+ gửi lại ký điện tử) | 14B.6 | OPEN |
+| PG-B1 | Huỷ gói hội viên đang hoạt động | 14B.6 | **XONG 5/10** — §48; huỷ thật gói Titan của hytrongbeou qua API (Ngài cho phép), DB + sổ cái khớp |
+| PG-B2 | Viết/xoá đánh giá phòng gym | 14B.6 | **XONG 5/10** — §48 (API viết/sửa/xoá + NOT_A_MEMBER; giao diện chưa bấm hết do máy ảo treo) |
+| PG-B3 | Chi tiết hợp đồng + PDF (+ gửi lại ký điện tử) | 14B.6 | **BỎ 5/10 (Ngài: không còn ký hợp đồng điện tử)** — không làm khối ký / PDF; web gỡ link PDF (GAP-28 khép) |
 | PG-B4 | PT đánh giá khách hàng | 14B.2 | **XONG 4/10** — §44 (đánh giá thật, DB khớp) |
-| PG-B5 | Chia sẻ mẫu buổi tập (CL-16 PARTIAL, GAP-8) | 14B.6 | OPEN |
-| PG-B6 | AI giải thích kế hoạch | 14B.6 | OPEN |
-| PG-B7 | Tạo/gỡ gói bán từ kế hoạch đã duyệt, "Gói bán của tôi" | 14B.6 | OPEN |
-| PG-B8 | Bộ lọc thư viện thực phẩm | 14B.6 | OPEN |
-| PG-B9 | Nhận lời mời làm quản lý chi nhánh (= WB-02) | 14B.6 | OPEN |
+| PG-B5 | Chia sẻ mẫu buổi tập (CL-16 PARTIAL, GAP-8) | 14B.6 | **XONG 5/10** — §48, máy ảo + DB; GAP-8 đóng |
+| PG-B6 | AI giải thích kế hoạch | 14B.6 | **ĐÃ CÓ từ Phase 8** — `plans/ai/[id].tsx` (`POST /plans/explain`); không đổi (§48) |
+| PG-B7 | Tạo/gỡ gói bán từ kế hoạch đã duyệt, "Gói bán của tôi" | 14B.6 | **CODE XONG 5/10** — §48; chưa tạo gói thật (không PT nào có kế hoạch được duyệt) |
+| PG-B8 | Bộ lọc thư viện thực phẩm | 14B.6 | **XONG 5/10** — §48, máy ảo (FNDDS 271 trang = API) |
+| PG-B9 | Nhận lời mời làm quản lý chi nhánh (= WB-02) | 14B.6 | **XONG 5/10** — §48 (máy: deep link + xem trước; nhận lời mời qua API vì máy ảo treo) |
 | PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | OPEN |
 | PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | **XONG 5/10** — ADAPTERS §46 (tab Nhật ký; số khớp hồ sơ + InBody) |
 | PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | OPEN |

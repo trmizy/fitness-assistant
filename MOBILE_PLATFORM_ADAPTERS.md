@@ -3560,3 +3560,66 @@ chụp trạng thái gốc trước khi sửa):**
 - Chưa bấm thật: đóng cửa vĩnh viễn (không thể hoàn tác trên dữ liệu thử), tải PDF giấy tờ, chụp ảnh bằng camera.
 - Dữ liệu thử để lại: tài khoản MANAGER `p12-manager-14b5@example.com` (thuộc đối tác P12), giấy tờ PCCC RECEIVED trên Quan 1.
 
+## 48. Phase 14B.6 — Huỷ gói, đánh giá phòng gym, ký hợp đồng + PDF, chia sẻ mẫu, gói bán, lọc thực phẩm, nhận lời mời quản lý (PG-B1/B2/B3/B5/B6/B7/B8/B9) (5/10)
+
+**Nguồn hành vi:** web `GymMembershipsPage` (huỷ gói đang hoạt động), `GymReviewsSection`, `BookingPage` (thẻ "Chờ ký" + PDF + gửi lại
+email ký), `TemplatesPage` (chia sẻ), `AIPlansPage` (giải thích kế hoạch), `PlanMarketplacePage` ("Gói bán"), `FoodLibraryPage` (lọc
+nguồn / dạng), `PartnerInviteAcceptPage`. Không đổi backend.
+
+**Đã làm (mobile):**
+- **PG-B1** — thẻ gói `ACTIVE` ở Dịch vụ → Gói hội viên có "Huỷ gói hội viên": hộp xác nhận nói rõ còn bao nhiêu ngày và **không hoàn
+  tiền** phần chưa dùng (đúng chính sách server — hoàn tiền theo tỉ lệ chỉ admin làm), gọi `cancel-membership`.
+- **PG-B2** — `src/features/services/GymReviews.tsx` ở cuối chi tiết phòng gym (phía khách): điểm trung bình, danh sách đánh giá, và
+  cho người **đang / từng là hội viên** (ACTIVE / EXPIRED — luật `NOT_A_MEMBER` của server, `reviewRules.ts`) viết / sửa / xoá đúng
+  một đánh giá của mình (xoá có xác nhận).
+- **PG-B3 — BỎ (Ngài 5/10: không còn ký hợp đồng điện tử).** Khối ký điện tử + "Tải PDF hợp đồng" đã viết rồi gỡ ra trước khi commit;
+  web cũng gỡ link "Tải PDF hợp đồng" ở `BookingPage` (GAP-28 khép lại bằng việc gỡ).
+- **PG-B5 (đóng GAP-8)** — mẫu buổi tập "Của tôi" có "Chia sẻ": chọn người nhận từ PT / học viên có hợp đồng ACTIVE (`templateShare.ts`
+  — gộp trùng, không có ô gõ user-id), hiện "đã chia sẻ với N người".
+- **PG-B6** — đã có sẵn từ Phase 8 (`plans/ai/[id].tsx` gọi `POST /plans/explain`, bản không stream mà web cũng dùng khi stream lỗi) —
+  không đổi gì; ghi lại để đóng dòng parity.
+- **PG-B7** — `src/features/plans/SellPackages.tsx` ở cuối "Của tôi" trong Chợ, **chỉ PT**: tạo gói bán từ kế hoạch đã được duyệt (tên
+  3–120, giá > 0, số tuần nguyên dương — `packageForm.ts` theo đúng `createPackageSchema`), "Gói bán của tôi" (Đang bán / Đã gỡ), gỡ có
+  xác nhận.
+- **PG-B8** — Thư viện thực phẩm thêm hàng chip lọc **nguồn** và **dạng** lấy từ `/food/filter-options`, tên dễ hiểu (web in mã thô
+  "sr_legacy"); mã vẫn là giá trị gửi lên.
+- **PG-B9 (= WB-02)** — `app/partner/invite.tsx` (công khai): xem trước lời mời, nhập họ / tên / mật khẩu (≥ 8, nhập lại khớp), tạo tài
+  khoản rồi đăng nhập. Mã nhận qua deep link `fitnessassistant://partner/invite?token=…`, hoặc dán link web `…/partner/invite/<mã>` /
+  dán mã (thư là link web; mở https thẳng vào app cần App Links — GAP-20). Lối vào: nút "Tôi được mời làm quản lý chi nhánh" ở màn
+  "Trở thành đối tác".
+
+**Khác web có chủ đích:** tên nguồn / dạng thực phẩm dịch sang tiếng Việt; xoá đánh giá và gỡ gói bán có hộp xác nhận.
+
+**Kiểm chứng:**
+- Máy ảo (dev client, backend dev):
+  - PG-B8: chip "USDA khảo sát (FNDDS)" → trang 1/271 (5.403 món ÷ 20 — đúng tổng REAL HTTP/API `?source=survey_fndds`).
+  - PG-B5 (testuser009): "Lưu thành mẫu" → chia sẻ → sheet hiện đúng **1** người nhận "Mai Cao — Huấn luyện viên" (6 hợp đồng ACTIVE với
+    cùng PT, đã gộp) → DB `workout_program_templates.shared_with_user_ids` = {testpt001}; nút đổi "đã chia sẻ với 1 người".
+  - PG-B9: deep link mở màn, xem trước đúng (P12 Mobile Fitness · Quản lý chi nhánh · email); kiểm "Mật khẩu không khớp" hiện đúng.
+    Bước bấm "Tạo tài khoản" không xong trên máy: máy ảo treo (Android báo "Gymini isn't responding") — host chỉ còn ~1,3 GB RAM trống
+    khi đang chạy một game nặng; trước đó một lần chạm phải chờ ~5 phút mới có phản hồi.
+- REAL HTTP/API (đúng các lời gọi app gửi):
+  - PG-B9: `POST /partner-invitations/:token/accept` → 201; DB `gym_partner_accounts` MANAGER ACTIVE phạm vi Quan 3; dùng lại mã → 409
+    "Thư mời này đã được sử dụng"; đăng nhập được.
+  - PG-B2 (hytrongbeou, hội viên Titan Gym): viết 5★ → 201; sửa 3★ (vẫn 1 đánh giá) → 201; xoá → 200, số đánh giá về như cũ;
+    testuser009 (không phải hội viên) → 403 `NOT_A_MEMBER`.
+  - (Trước khi gỡ PG-B3) `GET /contracts/:id/pdf` có token → 200, không token → 401 — bằng chứng của GAP-28.
+  - PG-B7: `GET /marketplace/packages/mine` → 200; tạo gói từ kế hoạch chưa duyệt → `PUBLISHED_PLAN_NOT_FOUND`.
+  - PG-B1 (Ngài cho phép 5/10): huỷ thật gói Titan Gym ACTIVE của hytrongbeou (500.000 đ, tới 28/10) bằng đúng lời gọi của nút "Huỷ gói
+    hội viên" → 200, DB `gym_membership_contracts` = CANCELLED; payment-service ghi `MEMBERSHIP_RELEASE` (phòng gym 450.000 đ + nền
+    tảng 50.000 đ được giải phóng, `refundedToClient` 0 — đúng "không hoàn tiền"); gọi lại → 409. Nút trên máy chưa bấm được (máy ảo
+    nhận chạm lệch / trễ).
+- Tự động: `cluster14b6.test.ts` 9 (node:test). Toàn bộ unit 690/690, jest 12 bộ / 73 test, `tsc` sạch, lint 0 lỗi (2 cảnh báo có từ trước).
+
+**GAP-27 sửa kèm (Ngài cho phép 5/10)** — gym-service `gym-photo.service.ts`: `setCover` / `reorder` trả danh sách qua `withUrls` như
+`list`. BACKEND INTEGRATION (`gymcoach_gym_test`): 14/14, thêm kiểm `url` cho setCover + test mới cho reorder. REAL HTTP/API sau khi
+khởi động lại gym-dev: đặt bìa / sắp xếp ảnh S3 của P12 Quan 1 → trả link S3 đã ký.
+
+**CHƯA kiểm / còn mở:**
+- hytrongbeou không còn gói hội viên ACTIVE nào (gói Titan đã huỷ ở PG-B1) — bài kiểm check-in / đánh giá sau này cần mua gói mới.
+- **PG-B7 tạo gói thật:** không có PT thật nào có kế hoạch được duyệt (13 kế hoạch APPROVED đều do bộ test sinh, chủ giả `pub-…`) — cần
+  PT đăng kế hoạch + admin duyệt rồi mới tạo được gói.
+- **PG-B2 / B7 / B9 giao diện trên máy** chưa bấm hết vì máy ảo treo (xem trên) — nên kiểm lại khi máy nhẹ hơn.
+- Dữ liệu thử để lại: mẫu "Chương trình của tôi" của testuser009 (đã chia sẻ với testpt001); tài khoản MANAGER
+  `p12-manager2-14b5@example.com` / `Quanly12345` (phạm vi Quan 3).
+

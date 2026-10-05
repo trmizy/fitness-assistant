@@ -255,6 +255,7 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
 - Mức ảnh hưởng: PARTIAL — tạo mẫu và áp mẫu vào lịch đều chạy thật; chỉ riêng chia sẻ bị hoãn.
 - Đề xuất: không cần backend mới; chỉ cần Phase 7/11 lên là nối được.
 - Trạng thái: HOÃN CÓ CHỦ ĐÍCH — không dựng ô nhập user-id tự do, vì đó là thứ không ai dùng đúng.
+- **ĐÃ ĐÓNG 5/10 (14B.6, PG-B5)** — chọn người nhận từ hợp đồng ACTIVE (cả hai chiều), kiểm máy ảo + DB (ADAPTERS §48).
 
 ## GAP-9 — InBody: thiếu `muscleMass` trả 500, và không có đường xoá phiếu đo
 
@@ -671,7 +672,7 @@ lọc thiết bị của hộp chọn bài cũng đủ 9 (trước: chỉ "Bodyw
 Lưu ý khi kiểm: container `gymcoach-web-dev` không nhận thay đổi file qua bind mount (Vite giữ bản đã nạp) → phải `docker restart
 gymcoach-web-dev` sau khi sửa `frontend/web/src` thì trang mới chạy code mới.
 
-## GAP-27 — gym-service: đặt ảnh bìa / sắp xếp ảnh trả danh sách ảnh thiếu `url` (14B.5) — CHỜ NGÀI
+## GAP-27 — gym-service: đặt ảnh bìa / sắp xếp ảnh trả danh sách ảnh thiếu `url` (14B.5) — ĐÃ SỬA 5/10
 
 `gym-photo.service.ts`: `list` và `upload` trả ảnh qua `withUrls` (thêm `url` = link ký tạm S3 hoặc `/uploads/gym-photos/…`), nhưng
 `setCover` và `reorder` trả thẳng `gymPhotoRepository.listByGym(gymId)` — **không có `url`**. CODE AUDIT + máy ảo (5/10): sau khi sắp
@@ -683,4 +684,21 @@ xếp, ảnh lưu trên S3 (có `s3Key`, tải lên qua hồ sơ đối tác) hi
   chưa chạy trình duyệt).
 
 **Cần Ngài quyết:** sửa backend (bọc `withUrls` cho `setCover`/`reorder`, 2 dòng) — hoặc sửa web cho tải lại như mobile.
+
+**Đã sửa 5/10 (Ngài cho phép):** `setCover` / `reorder` trả qua `withUrls`. BACKEND INTEGRATION 14/14 (`gymcoach_gym_test`, thêm test
+reorder + kiểm `url`); REAL HTTP/API trên P12 Quan 1 (ảnh S3) → có link đã ký. Web `StepPhotos` (dùng body trả về) hết vỡ ảnh theo.
+
+## GAP-28 — Web: nút "Tải PDF hợp đồng" là link trần, endpoint đòi token (14B.6) — KHÉP 5/10 (đã gỡ nút)
+
+`BookingPage.tsx` (thẻ "Chờ ký") gắn `<a href={contractService.getPdfUrl(id)} target="_blank">`. `GET /contracts/:id/pdf` ở
+user-service đứng sau `authMiddleware` (chỉ đọc header `Authorization`). Trình duyệt mở link mới không gửi header đó → REAL HTTP/API
+5/10: không token → **401**, có token → 200 `application/pdf`. Nên nút này trên web nhiều khả năng luôn lỗi (CODE AUDIT + API; chưa bấm
+trong trình duyệt vì ký điện tử đang tắt — không có hợp đồng nào ở `PENDING_SIGNATURE`).
+
+- **Mobile:** tải bằng `downloadAuthenticatedFile` (kèm token) rồi mở trình xem PDF của máy — đúng.
+- **Cần Ngài quyết:** sửa web cho tải bằng `api.get(..., { responseType: "blob" })` rồi mở object URL (giống `fetchBranchDocumentBlob`),
+  hoặc để nguyên vì e-sign đang tắt.
+
+**Khép 5/10 (Ngài):** "hiện tại không còn ký hợp đồng điện tử" → gỡ link "Tải PDF hợp đồng" khỏi web `BookingPage`; mobile không làm
+phần ký / PDF (PG-B3 bỏ). `vite build` qua.
 
