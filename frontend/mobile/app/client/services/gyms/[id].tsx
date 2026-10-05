@@ -35,6 +35,7 @@ import { BranchMap } from "../../../../src/features/services/BranchMap";
 import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { GymReviews } from "../../../../src/features/services/GymReviews";
 import {
   aboutText,
   daysRemaining,
@@ -416,10 +417,12 @@ export default function GymDetailScreen() {
                 </Button>
                 <Text className="text-center font-body text-xs text-muted-foreground">
                   {blocked ??
-                    "Gói sẽ được giữ ở trạng thái chờ thanh toán. Cổng thanh toán sẽ mở trong bản cập nhật tới."}
+                    "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
                 </Text>
               </>
             ) : null}
+            {/* 14B.6 (PG-B2) — reviews, and the member's own one to write / edit / delete. */}
+            {gymId ? <GymReviews gymId={gymId} /> : null}
           </View>
         )}
       </ScrollView>

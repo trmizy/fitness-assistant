@@ -352,8 +352,8 @@ export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
   const refresh = () => qc.invalidateQueries({ queryKey: key });
   const onError = (fallback: string) => (e: unknown) => toast.show(serverMessage(e, fallback), "danger");
   const remove = useMutation({ mutationFn: (id: string) => gymService.deleteGymPhoto(gymId, id), onSuccess: refresh, onError: onError("Không thể xoá ảnh") });
-  // Refetch rather than use the response: setCover/reorder answer with rows that lack `url`
-  // (gym-photo.service skips withUrls there), so a signed S3 photo would lose its link (GAP-27).
+  // Refetch after cover/reorder (the response has carried `url` since GAP-27 was fixed 5/10, but a
+  // refetch also picks up a fresh signed link, which expires after a few minutes).
   const cover = useMutation({
     mutationFn: (id: string) => gymService.setGymPhotoCover(gymId, id),
     onSuccess: refresh,

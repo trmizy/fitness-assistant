@@ -14,6 +14,9 @@ import {
   FOOD_SORTS,
   MIN_FOOD_QUERY,
   caloriesLabel,
+  foodFilterOptions,
+  foodFormLabel,
+  foodSourceLabel,
   foodTotalPages,
   gramLabel,
   normalizeFoods,
@@ -45,6 +48,9 @@ export default function FoodLibraryScreen() {
   const [sortBy, setSortBy] = useState<FoodSort>("name");
   const [supplement, setSupplement] = useState<"all" | "true" | "false">("all");
   const [onlyWithImage, setOnlyWithImage] = useState(false);
+  // 14B.6 (PG-B8) — web's source / food-form filters.
+  const [source, setSource] = useState("");
+  const [foodForm, setFoodForm] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -57,7 +63,7 @@ export default function FoodLibraryScreen() {
 
   useEffect(() => {
     setPage(1);
-  }, [sortBy, supplement, onlyWithImage]);
+  }, [sortBy, supplement, onlyWithImage, source, foodForm]);
 
   const isSearching = search.length >= MIN_FOOD_QUERY;
 
@@ -69,7 +75,7 @@ export default function FoodLibraryScreen() {
   });
 
   const browseQuery = useQuery({
-    queryKey: ["food-browse", page, sortBy, supplement, onlyWithImage],
+    queryKey: ["food-browse", page, sortBy, supplement, onlyWithImage, source, foodForm],
     queryFn: () =>
       foodService.list({
         page,
@@ -77,11 +83,21 @@ export default function FoodLibraryScreen() {
         sortBy,
         ...(supplement === "all" ? {} : { isSupplement: supplement === "true" }),
         ...(onlyWithImage ? { hasImage: true } : {}),
+        ...(source ? { source } : {}),
+        ...(foodForm ? { foodForm } : {}),
       }),
     enabled: !isSearching,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });
+
+  const optionsQuery = useQuery({
+    queryKey: ["food-filter-options"],
+    queryFn: () => foodService.getFilterOptions(),
+    enabled: !isSearching,
+    staleTime: 60 * 60_000,
+  });
+  const options = foodFilterOptions(optionsQuery.data);
 
   const foods = useMemo(
     () => normalizeFoods(isSearching ? searchQuery.data : browseQuery.data),
@@ -146,6 +162,19 @@ export default function FoodLibraryScreen() {
               <Chip active={onlyWithImage} label="Có ảnh" onPress={() => setOnlyWithImage((v) => !v)} />
             </ScrollView>
           </View>
+          {options.sources.length > 0 || options.foodForms.length > 0 ? (
+            <View className="pt-2">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="items-start gap-2 px-5">
+                <Chip active={!source && !foodForm} label="Mọi nguồn & dạng" onPress={() => { setSource(""); setFoodForm(""); }} />
+                {options.sources.map((v) => (
+                  <Chip key={`s-${v}`} active={source === v} label={foodSourceLabel(v)} onPress={() => setSource(source === v ? "" : v)} />
+                ))}
+                {options.foodForms.map((v) => (
+                  <Chip key={`f-${v}`} active={foodForm === v} label={foodFormLabel(v)} onPress={() => setFoodForm(foodForm === v ? "" : v)} />
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </>
       )}
 

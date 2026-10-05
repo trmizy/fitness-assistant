@@ -352,3 +352,31 @@ export function friendlyError(e: unknown, fallback = "Đã có lỗi xảy ra. V
   if (res.status >= 500) return fallback;
   return message || fallback;
 }
+
+// ── WB-02 / 14B.6 (PG-B9) — branch-manager invitation ───────────────────────────────────────────
+
+export const INVITE_ROLE_LABEL: Record<string, string> = { OWNER: "Chủ sở hữu", MANAGER: "Quản lý chi nhánh" };
+
+/**
+ * The invitation link gym-service emails is a WEB page — `…/partner/invite/<token>` (path segment,
+ * not a fragment). Accepts that link pasted whole, the app's own deep link
+ * (`fitnessassistant://partner/invite?token=…`), or the bare token.
+ */
+export function extractInviteToken(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const path = /\/partner\/invite\/([^/?#\s]+)/.exec(raw);
+  if (path) return decodeURIComponent(path[1]);
+  const q = /(?:^|[#&?])token=([^&#\s]+)/.exec(raw);
+  if (q) return decodeURIComponent(q[1]);
+  if (!/[\s/]/.test(raw) && raw.length >= 16) return raw;
+  return null;
+}
+
+/** The accept form: first name required, password ≥ 8 and confirmed — same checks as web's page. */
+export function inviteFormError(f: { firstName: string; password: string; confirm: string }): string | null {
+  if (!f.firstName.trim()) return "Nhập họ của bạn";
+  if (f.password.length < 8) return "Mật khẩu tối thiểu 8 ký tự";
+  if (f.password !== f.confirm) return "Mật khẩu nhập lại không khớp";
+  return null;
+}

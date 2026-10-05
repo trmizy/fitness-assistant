@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, LayoutTemplate, Plus, Users } from "lucide-react-native";
+import { CalendarClock, LayoutTemplate, Plus, Share2, Users } from "lucide-react-native";
 
 import {
   Badge,
@@ -18,7 +18,9 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { templateService, workoutService } from "../../../src/services/api";
+import { contractService, templateService, workoutService } from "../../../src/services/api";
+import { useApp } from "../../../src/context/AppContext";
+import { shareContacts, type ShareContact } from "../../../src/features/workout/templateShare";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { toDateInputValue } from "../../../src/utils/date";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -43,10 +45,8 @@ const WEEKDAYS = [
  * `TemplatesPage.tsx` — same three actions (create from the current program, import into the
  * calendar, list what was shared with me) against the same `templateService` endpoints.
  *
- * Sharing to a specific person is NOT here: web resolves the recipient from the user's active
- * PT/client contracts (`contractService.getByPT`/`getByClient`), which is the Phase 7/11 contract
- * domain. Until those screens exist on mobile there is no honest way to pick a recipient, so the
- * action is deferred rather than shipped with a free-text user-id field.
+ * Sharing (14B.6, PG-B5 — deferred as GAP-8 until the contract screens existed): the recipient is
+ * picked from the user's ACTIVE PT/client contracts, exactly as web does — never a typed user id.
  */
 export default function TemplatesScreen() {
   const accent = useWorkspaceAccent();
@@ -54,6 +54,7 @@ export default function TemplatesScreen() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("Của tôi");
   const [importing, setImporting] = useState<any | null>(null);
+  const [sharing, setSharing] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
 
   const programQuery = useQuery({
@@ -168,10 +169,17 @@ export default function TemplatesScreen() {
                         </Badge>
                       ) : null}
                     </View>
-                    <View className="mt-3">
+                    <View className="mt-3 gap-2">
                       <Button variant="secondary" full icon={CalendarClock} onPress={() => setImporting(t)}>
                         Áp dụng vào lịch
                       </Button>
+                      {tab === "Của tôi" ? (
+                        <Button variant="ghost" full icon={Share2} onPress={() => setSharing(t)}>
+                          {Array.isArray(t?.sharedWithUserIds) && t.sharedWithUserIds.length > 0
+                            ? `Chia sẻ · đã chia sẻ với ${t.sharedWithUserIds.length} người`
+                            : "Chia sẻ"}
+                        </Button>
+                      ) : null}
                     </View>
                   </Card>
                 </StaggerItem>
@@ -180,6 +188,17 @@ export default function TemplatesScreen() {
           )}
         </View>
       </ScrollView>
+
+      <ShareSheet
+        template={sharing}
+        onClose={() => setSharing(null)}
+        onShared={() => {
+          setSharing(null);
+          void queryClient.invalidateQueries({ queryKey: ["templates", "mine"] });
+          toast.show("Đã chia sẻ mẫu.", "success");
+        }}
+        onError={(message) => toast.show(message, "danger")}
+      />
 
       <ImportSheet
         template={importing}
@@ -282,3 +301,87 @@ function ImportSheet({
     </BottomSheet>
   );
 }
+
+function ShareSheet({
+  template,
+  onClose,
+  onShared,
+  onError,
+}: {
+  template: any | null;
+  onClose: () => void;
+  onShared: () => void;
+  onError: (message: string) => void;
+}) {
+  const accent = useWorkspaceAccent();
+  const { user } = useApp();
+  const open = template != null;
+  // A customer has no PT contracts and the other way round — whichever side 403s/empties just
+  // contributes nothing, as on web.
+  const ptQuery = useQuery({ queryKey: ["contracts", "pt", "active"], queryFn: () => contractService.getByPT("ACTIVE"), enabled: open, retry: false });
+  const clientQuery = useQuery({ queryKey: ["contracts", "client", "active"], queryFn: () => contractService.getByClient("ACTIVE"), enabled: open, retry: false });
+  const contacts: ShareContact[] = shareContacts(ptQuery.data, clientQuery.data, user?.id);
+  const alreadyShared = new Set<string>(Array.isArray(template?.sharedWithUserIds) ? template.sharedWithUserIds.map(String) : []);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const loading = ptQuery.isLoading || clientQuery.isLoading;
+
+  const send = async () => {
+    if (!picked || !template) return;
+    setSending(true);
+    try {
+      await templateService.share(String(template.id), picked);
+      setPicked(null);
+      onShared();
+    } catch (e: any) {
+      onError(e?.response?.data?.error || "Không thể chia sẻ mẫu.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <BottomSheet
+      open={open}
+      onClose={() => {
+        setPicked(null);
+        onClose();
+      }}
+      title="Chia sẻ mẫu"
+    >
+      <View className="gap-3 pb-2">
+        <Text className="font-body text-xs text-muted-foreground">
+          {`Chia sẻ “${template?.name ?? "mẫu"}” với huấn luyện viên hoặc học viên đang có hợp đồng với bạn. Người nhận thấy mẫu ở mục “Được chia sẻ”.`}
+        </Text>
+        {loading ? (
+          <Skeleton className="h-14 rounded-xl" />
+        ) : contacts.length === 0 ? (
+          <View className="flex-row items-center gap-2">
+            <Users size={14} color={accent.primary} />
+            <Text className="flex-1 font-body text-xs text-muted-foreground">Bạn chưa có PT hay học viên nào đang hoạt động để chia sẻ.</Text>
+          </View>
+        ) : (
+          contacts.map((c) => {
+            const on = picked === c.userId;
+            const done = alreadyShared.has(c.userId);
+            return (
+              <Tappable
+                key={c.userId}
+                disabled={done}
+                onPress={() => setPicked(c.userId)}
+                className={`flex-row items-center justify-between rounded-xl border px-3 py-3 ${on ? "border-primary bg-primary/10" : "border-border bg-panel"} ${done ? "opacity-50" : ""}`}
+              >
+                <Text className="font-body-semibold text-sm text-foreground">{c.name}</Text>
+                <Text className="font-body text-xs text-muted-foreground">{done ? "Đã chia sẻ" : c.role === "pt" ? "Huấn luyện viên" : "Học viên"}</Text>
+              </Tappable>
+            );
+          })
+        )}
+        <Button full icon={Share2} disabled={!picked || sending} onPress={() => void send()}>
+          {sending ? "Đang chia sẻ…" : "Chia sẻ"}
+        </Button>
+      </View>
+    </BottomSheet>
+  );
+}
+

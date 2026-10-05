@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -602,10 +602,30 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
       void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
       toast.show("Đã huỷ yêu cầu chờ thanh toán.", "success");
     },
-    onError: (error: any) => {
-      toast.show(error?.response?.data?.error ?? "Không huỷ được yêu cầu", "danger");
-    },
+    onError: (error: any) => toast.show(gymError(error, "Không huỷ được yêu cầu"), "danger"),
   });
+
+  // 14B.6 (PG-B1) — web's "Hủy membership" on an ACTIVE membership. The server forfeits the unused
+  // part (no refund — a prorated refund is an admin-only action), so the confirmation says so.
+  const cancelActiveMutation = useMutation({
+    mutationFn: (membershipId: string) => gymService.cancelActiveMembership(membershipId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
+      toast.show("Đã huỷ gói hội viên.", "success");
+    },
+    onError: (error: any) => toast.show(gymError(error, "Không huỷ được gói hội viên"), "danger"),
+  });
+  const confirmCancelActive = (membership: MembershipRow) => {
+    const left = daysRemaining(membership);
+    Alert.alert(
+      "Huỷ gói hội viên?",
+      `${left != null ? `Gói còn ${left}/${membership.durationDays} ngày. ` : ""}Bạn sẽ không được hoàn lại tiền của phần thời gian chưa dùng.`,
+      [
+        { text: "Giữ lại", style: "cancel" },
+        { text: "Xác nhận huỷ", style: "destructive", onPress: () => cancelActiveMutation.mutate(membership.id) },
+      ],
+    );
+  };
 
   return (
     <>
@@ -666,6 +686,11 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                   {membership.status === "ACTIVE" ? (
                     <Button size="sm" icon={QrCode} onPress={() => router.push("/client/services/checkin" as never)}>
                       Quét mã check-in
+                    </Button>
+                  ) : null}
+                  {membership.status === "ACTIVE" ? (
+                    <Button variant="ghost" size="sm" disabled={cancelActiveMutation.isPending} onPress={() => confirmCancelActive(membership)}>
+                      Huỷ gói hội viên
                     </Button>
                   ) : null}
 
@@ -1001,4 +1026,10 @@ function ContractCard({
       </View>
     </Card>
   );
+}
+
+/** gym-service answers `{ error: { code, message } }` (some older routes a bare string). */
+function gymError(error: any, fallback: string): string {
+  const e = error?.response?.data?.error;
+  return (typeof e === "string" ? e : e?.message) || fallback;
 }
