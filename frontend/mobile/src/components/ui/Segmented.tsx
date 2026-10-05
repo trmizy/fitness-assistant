@@ -71,12 +71,15 @@ export function Segmented({
               onChange(option);
             }}
           >
+            {/* One line, no break at spaces: Android can measure a label a hair narrower than it draws and
+                wrap "Đối soát" to "Đối" + a clipped second line (same fix as Badge, 14B.5/14B.8). */}
             <Text
+              numberOfLines={1}
               className={`text-sm font-body-semibold ${
                 selected ? "text-foreground" : "text-muted-foreground"
               }`}
             >
-              {option}
+              {option.replace(/ /g, "\u00A0")}
             </Text>
           </Pressable>
         );
