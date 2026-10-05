@@ -41,7 +41,13 @@ export function Badge({
       className={`flex-row items-center gap-1 self-start rounded-full px-2.5 py-0.5 ${container[tone]} ${className}`}
     >
       {isPlainText(children) ? (
-        <Text className={`text-xs font-body-semibold ${label[tone]}`}>{children}</Text>
+        // One unbreakable line. On Android screens with a fractional density (e.g. 2.625, 3.5) the native
+        // text view can get a sub-pixel less width than Yoga measured; with a space to break at, it wrapped
+        // the last word onto a second line the pill had no room for ("Đã duyệt" showed as "Đã"). With
+        // non-breaking spaces and clipping, the worst case is one invisible pixel.
+        <Text numberOfLines={1} ellipsizeMode="clip" className={`text-xs font-body-semibold ${label[tone]}`}>
+          {unbreakable(children)}
+        </Text>
       ) : (
         children
       )}
@@ -57,4 +63,8 @@ export function Badge({
 function isPlainText(node: ReactNode): boolean {
   if (typeof node === "string" || typeof node === "number") return true;
   return Array.isArray(node) && node.length > 0 && node.every((n) => typeof n === "string" || typeof n === "number");
+}
+
+function unbreakable(node: ReactNode): string {
+  return (Array.isArray(node) ? node.join("") : String(node)).replace(/ /g, "\u00A0");
 }

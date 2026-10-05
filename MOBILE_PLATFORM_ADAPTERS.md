@@ -3553,8 +3553,10 @@ chụp trạng thái gốc trước khi sửa):**
 
 **CHƯA làm / còn mở:**
 - GAP-27 (backend thiếu `url` sau đặt bìa / sắp xếp) — chờ Ngài.
-- Thấy khi kiểm, có từ trước, không sửa trong cụm này: ở 360 dp nhãn `Badge` dùng chung đôi lúc bị cắt ("Đã duyệt" → "Đã") trên thẻ
-  chi nhánh — chập chờn (cùng màn lúc đủ lúc cắt), xảy ra cả với bản HEAD.
+- ~~Nhãn `Badge` bị cắt ("Đã duyệt" → "Đã") ở 360 dp~~ — **đã sửa 5/10 (Ngài cho phép)**: trên màn mật độ lẻ (597 dpi = ×3.73; máy
+  thật cũng hay lẻ: ×2.625, ×3.5) view chữ native nhận hụt dưới 1 px so với lúc đo, nên bẻ từ cuối xuống dòng hai bị che. `Badge` giờ
+  vẽ nhãn chữ thành một dòng không ngắt (dấu cách → NBSP, `numberOfLines=1`, `ellipsizeMode="clip"`). Kiểm máy ảo ×3.73 sau khi khởi
+  động lại hẳn app: hai thẻ chi nhánh đều "Đã duyệt" (trước: thẻ thứ hai luôn "Đã"), đầu màn chi nhánh đủ cả hai nhãn; jest 73/73.
 - Chưa bấm thật: đóng cửa vĩnh viễn (không thể hoàn tác trên dữ liệu thử), tải PDF giấy tờ, chụp ảnh bằng camera.
 - Dữ liệu thử để lại: tài khoản MANAGER `p12-manager-14b5@example.com` (thuộc đối tác P12), giấy tờ PCCC RECEIVED trên Quan 1.
 
