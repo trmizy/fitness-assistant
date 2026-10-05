@@ -3623,3 +3623,73 @@ khởi động lại gym-dev: đặt bìa / sắp xếp ảnh S3 của P12 Quan 
 - Dữ liệu thử để lại: mẫu "Chương trình của tôi" của testuser009 (đã chia sẻ với testpt001); tài khoản MANAGER
   `p12-manager2-14b5@example.com` / `Quanly12345` (phạm vi Quan 3).
 
+## 49. Phase 14B.7 — Dữ liệu còn thiếu: trang chủ khách, InBody, chi tiết PT, tổng quan PT/admin (PG-C1/C3/C5/C6/C7) (5/10)
+
+**PG-C1 — Trang chủ khách** (`app/client/dashboard.tsx`, phần thuần `src/features/dashboard/dashboardBody.ts`):
+- Thêm theo web `ClientDashboard`: ô **Mỡ cơ thể** (% + chênh lần trước), ô **Buổi tập · 30 ngày qua**, thẻ **Xu hướng cơ thể**
+  (đường cân nặng + cơ bắp qua tối đa 12 lần đo, SVG `Polyline`, kèm chênh lần trước), thẻ **Kế hoạch đang dùng** (tên, số ngày, số bài →
+  mở danh sách chương trình), khối **Tập luyện gần đây** (4 buổi).
+- **Lệch web có chủ ý:**
+  - Số buổi 30 ngày: web đếm độ dài trang 4 dòng (`getHistory(1, 4)`), nên ô không bao giờ quá 4. Mobile gọi
+    `GET /workouts?startDate&endDate` (hàm mới `workoutService.getInRange`) và đếm đúng cửa sổ 30 ngày.
+  - Tập gần đây: model `Workout` của fitness-service có `name` + `duration` (phút). Web đọc `title` / `durationMinutes` (không tồn tại),
+    nên luôn in "Buổi tập · -- phút" và gắn "Hoàn thành" cho mọi dòng. Mobile đọc đúng trường và không gắn nhãn trạng thái (buổi chưa
+    xong cũng có dòng `Workout`).
+  - **Không chép** "Calories tuần này": trên web là ô giữ chỗ cố định "Không có dữ liệu".
+  - **Không chép** "AI Insights": hai câu ghép từ số InBody mới nhất, không gọi AI nào, nhưng gắn nhãn "AI · Trực tiếp". Chép sang
+    sẽ là khẳng định sản phẩm không làm.
+- Giá trị InBody lưu có nhiễu số thực (vd. `98.60000000000001`) — đường xu hướng làm tròn 1 chữ số.
+
+**PG-C3 — InBody** (`app/client/inbody/index.tsx`): `TrendBars` nhận `metric` (cân nặng / mỡ kg); thêm thẻ **Xu hướng mỡ cơ thể (kg)**;
+tab thứ ba **Lịch sử** liệt kê mọi lần đo (ngày, cân nặng, cơ, mỡ kg, % mỡ, nhãn "Đọc từ ảnh" / "Nhập tay", "Mới nhất"), nút "Thêm mới".
+**"Cân bằng cơ thể" làm lại theo chuẩn tham chiếu (Ngài chọn 5/10)** thay cho radar của web (web chia mỗi trục cho một hằng số tuỳ
+ý — cân nặng/100, cơ/50, mỡ/30, BMI/35, BMR/2500 — nên hình không mang ý nghĩa). Mỗi chỉ số là một thanh Thấp / Chuẩn / Cao có chấm
+đánh dấu, như phiếu InBody (`src/features/inbody/bodyBalance.ts`):
+- BMI — dải WHO 18,5 / 25 / 30 (25 trùng `BMI_OVERWEIGHT` của ai-service); lấy BMI trên phiếu, thiếu thì tính từ chiều cao trên phiếu
+  hoặc trong hồ sơ và ghi rõ.
+- % mỡ — khoảng chuẩn in trên phiếu InBody: nam 10–20 %, nữ 18–28 %; "Rất cao" từ 25 % / 32 %. Hai cận trên và mức "rất cao" chính là
+  `BF_HIGH_*` / `BF_OBESE_*` trong ai-service `body_composition_rules.ts` → app và AI Coach cùng gọi một cơ thể là "cao". Cần giới tính
+  trong hồ sơ; thiếu thì ghi "chưa đánh giá được".
+- Mỡ nội tạng — InBody khuyên dưới mức 10.
+- Cơ hai tay / hai chân lệch trái-phải — ngưỡng 5 % / 10 % của ai-service (`LIMB_ASYMMETRY_*`), nêu bên yếu hơn.
+- **Không** chấm điểm khối cơ và BMR: không có một chuẩn dân số đơn giản (InBody tự suy chuẩn cơ từ cân nặng chuẩn của máy) — bịa ra
+  sẽ là chuẩn giả. Thẻ ghi "chỉ để tham khảo, không phải chẩn đoán" và sai số của máy đo trở kháng. Chỉ hiển thị, không đi vào kế
+  hoạch / NutritionGoal / CycleAssessment. Web vẫn còn radar cũ (chưa sửa web).
+
+**PG-C5 — Chi tiết PT** (`app/client/services/pt/[id].tsx`, `ptDiscovery.ts`): trong "Giới thiệu" thêm **Kinh nghiệm & học vấn**,
+**Phương pháp huấn luyện**, **Đối tượng & mục tiêu** (Badge, nhãn tiếng Việt từ `TARGET_OPTIONS` / `GOAL_OPTIONS` của đơn ứng tuyển PT).
+`GET /profile/pts/:id` không trả `ptApplication`; các trường lấy từ dòng `GET /profile/pts` qua `mergePtSources` (cùng cơ chế bio / số năm
+kinh nghiệm đã có).
+
+**PG-C6 — Tổng quan PT** (`app/pt/dashboard.tsx`): thẻ **Tổng quan doanh thu** (2 thanh: hợp đồng đã hoàn thành / đang hoạt động, cùng
+hai số `/contracts/pt/earnings` của web, ghi rõ "trước phí nền tảng — số thực nhận ở ví"; thay dòng chữ cũ dưới thẻ ví) + **Buổi tập tuần
+này** (7 cột T2–CN từ danh sách buổi sắp tới — ngày đã qua = 0 như web). "Cảnh báo học viên" **đã có từ Phase 10** (`9df6072`) dưới tên
+"Cần bạn xử lý", còn rộng hơn web (thêm buổi chờ xác nhận).
+
+**PG-C7 — Tổng quan admin:** **không đổi gì.** Tăng trưởng người dùng, phân bổ vai trò, cảnh báo hệ thống, đăng ký gần đây (và quét
+InBody) đã có từ Phase 13 (`ac6f44b`, 28/9). Dòng C7 của `MOBILE_WEB_PARITY_AUDIT_2026-10-03.md` là **sai** (dương tính giả), cũng như
+nửa "cảnh báo học viên" của C6.
+
+**Kiểm chứng:**
+- REAL HTTP/API (đúng các lời gọi app gửi):
+  - testuser009: `GET /workouts?startDate=2026-09-05&endDate=2026-10-06&limit=200` → 12 buổi, mới nhất trước; dòng có `name`, `duration`,
+    `exercises` (không có `title`/`durationMinutes`).
+  - `GET /inbody` → 72 lần đo, có `bodyFat` (kg), `bodyFatPct`, `status` (`manual` / `extracted`); có giá trị `98.60000000000001`.
+  - `GET /profile/pts` → PT "E2E" có `trainingMethodsApproach`, `targetClientGroups` ["Beginners","Office workers"], `primaryTrainingGoals`
+    (khớp khoá của `TARGET_OPTIONS`/`GOAL_OPTIONS`); `GET /profile/pts/:id` không có `ptApplication`.
+  - testpt001 `GET /contracts/pt/earnings` → `totalEarned` 277.600.000, `activeRevenue` 182.800.000 (hai thanh của C6).
+- Máy ảo (lần đầu kẹt do host thiếu RAM; lần sau chạy được), số trên màn đối chiếu với các lời gọi API ở trên:
+  - C1 (testuser009 "Quân Võ"): Kế hoạch đang dùng "Chương trình của tôi · 2 ngày · 2 bài tập"; Mỡ cơ thể 24,4 % (−4,6 so với 29 %);
+    Buổi tập 12 · 30 ngày qua; Xu hướng cơ thể 05/09 → 04/10 (cân nặng −10,6 kg, cơ −3,3 kg); Tập luyện gần đây đúng 4 dòng API
+    ("Buổi 2 · 05/10/2026 · 1 bài", "Upper Body Power · 17/09/2026 · 60 phút · 3 bài"…).
+  - C3: Cân bằng cơ thể của testuser009 (nữ) — BMI 23,3 Bình thường, % mỡ 24,4 % Bình thường (chuẩn nữ 18–28), tay "Bên trái kém
+    18,5 %" Lệch rõ, chân 0,1 % Cân bằng; testpt001 — BMI 26,3 Thừa cân (chấm cam), % mỡ 12,2 % Thấp. Tab Lịch sử: "Lịch sử đo (72)",
+    nhãn Mới nhất / Nhập tay / Đọc từ ảnh đúng, 98,6 kg đã làm tròn. Lỗi bắt được khi kiểm: chấm đánh dấu dùng lớp `bg-foreground`
+    (không được sinh) nên hiện thành vạch đen → đổi sang màu theo kết quả (token theme) + viền `border-card`.
+  - C5: PT "E2E Trainer" — Kinh nghiệm & học vấn, Phương pháp huấn luyện, Đối tượng & mục tiêu ("Người mới tập", "Dân văn phòng",
+    "Tăng cơ", "Giảm mỡ & tái cấu trúc cơ thể").
+  - C6 (testpt001): 277.600.000 đ / 182.800.000 đ, "Buổi tập tuần này · 11 buổi còn lại", cột T2 (hôm nay) tô màu.
+  - 360 dp (`wm density 597`): tổng quan PT và thẻ Cân bằng cơ thể không tràn, ghi chú dài xuống dòng.
+  - Máy ảo để lại đang đăng nhập testpt001 (trước đó là testuser009).
+- Tự động: `cluster14b7.test.ts` 15 (node:test). Toàn bộ unit 708/708, jest 12 bộ / 73 test, `tsc` sạch, eslint 0 lỗi.
+

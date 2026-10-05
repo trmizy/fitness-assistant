@@ -445,13 +445,13 @@ ghi trạng thái + nơi có bằng chứng (ADAPTERS §…), không xoá dòng.
 | PG-B7 | Tạo/gỡ gói bán từ kế hoạch đã duyệt, "Gói bán của tôi" | 14B.6 | **CODE XONG 5/10** — §48; chưa tạo gói thật (không PT nào có kế hoạch được duyệt) |
 | PG-B8 | Bộ lọc thư viện thực phẩm | 14B.6 | **XONG 5/10** — §48, máy ảo (FNDDS 271 trang = API) |
 | PG-B9 | Nhận lời mời làm quản lý chi nhánh (= WB-02) | 14B.6 | **XONG 5/10** — §48 (máy: deep link + xem trước; nhận lời mời qua API vì máy ảo treo) |
-| PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | OPEN |
+| PG-C1 | Trang chủ khách: xu hướng cân nặng/cơ, calo tuần, kế hoạch đang dùng, AI Insights, tập gần đây, mỡ, số buổi | 14B.7 | **XONG 5/10** — §49 (máy ảo + API); số buổi 30 ngày + tập gần đây đọc đúng trường (web sai); không chép "Calories tuần này" (ô giữ chỗ) và "AI Insights" (câu ghép, không có AI) |
 | PG-C2 | Tập luyện: hành trình cân nặng, phân bổ nhóm cơ / loại bài tập | 14B.4 | **XONG 5/10** — ADAPTERS §46 (tab Nhật ký; số khớp hồ sơ + InBody) |
-| PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | OPEN |
+| PG-C3 | InBody: cân bằng cơ thể, xu hướng mỡ, danh sách mọi lần đo | 14B.7 | **XONG 5/10** — §49 (máy ảo + API); xu hướng mỡ + tab Lịch sử; "Cân bằng cơ thể" làm lại theo chuẩn tham chiếu (WHO / InBody), không chép radar tuỳ ý của web |
 | PG-C4 | Dinh dưỡng: nhận xét trong ngày, biểu đồ 7 ngày | 14B.3 | **XONG 4/10** — §45 |
-| PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | OPEN |
-| PG-C6 | Tổng quan PT: biểu đồ doanh thu, cảnh báo học viên | 14B.7 | OPEN |
-| PG-C7 | Tổng quan admin: tăng trưởng, vai trò, cảnh báo hệ thống, đăng ký gần đây | 14B.7 | OPEN |
+| PG-C5 | Chi tiết PT: phương pháp huấn luyện, đối tượng & mục tiêu | 14B.7 | **XONG 5/10** — §49 (máy ảo + API) |
+| PG-C6 | Tổng quan PT: biểu đồ doanh thu, cảnh báo học viên | 14B.7 | **XONG 5/10** — §49 (máy ảo + API); cảnh báo học viên đã có từ Phase 10 |
+| PG-C7 | Tổng quan admin: tăng trưởng, vai trò, cảnh báo hệ thống, đăng ký gần đây | 14B.7 | **ĐÃ CÓ từ Phase 13** (`ac6f44b`) — §49; dòng audit 3/10 là dương tính giả, không đổi gì |
 | PG-D1 | Admin: quản lý đối tác đang hoạt động | 14B.8 | OPEN — hỏi Ngài |
 | PG-D2 | Admin: tổng quan tài chính + đối soát | 14B.8 | OPEN — hỏi Ngài |
 
