@@ -103,6 +103,9 @@ integrationTest('gymPhotoService: setCover chuyển cờ đúng một ảnh, kh�
     const secondAfter = afterCoverChange.find((p) => p.id === second.id)!;
     assert.equal(firstAfter.isCover, false);
     assert.equal(secondAfter.isCover, true);
+    // GAP-27 — the returned list replaces the client's gallery, so every row must carry its url.
+    assert.equal(secondAfter.url, '/uploads/gym-photos/fake-b.jpg');
+    assert.ok(afterCoverChange.every((p) => typeof p.url === 'string' && p.url.length > 0));
 
     await assert.rejects(
       () => gymPhotoService.setCover(gymId, randomUUID(), first.id),
@@ -137,6 +140,28 @@ integrationTest('gymPhotoService: từ chối khi vượt quá giới hạn số
     await assert.rejects(
       () => gymPhotoService.upload(gymId, ownerId, 'fake-limit-overflow.jpg'),
       (e: any) => e.status === 400,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+integrationTest('gymPhotoService: reorder đổi thứ tự và trả danh sách kèm url (GAP-27)', async () => {
+  try {
+    const { ownerId, gymId } = await makeOwnerWithDraft();
+    const first = await gymPhotoService.upload(gymId, ownerId, 'fake-g.jpg');
+    const second = await gymPhotoService.upload(gymId, ownerId, 'fake-h.jpg');
+    const reordered = await gymPhotoService.reorder(gymId, ownerId, [second.id, first.id]);
+    assert.deepEqual(
+      reordered.map((p) => [p.id, p.sortOrder]),
+      [
+        [second.id, 0],
+        [first.id, 1],
+      ],
+    );
+    assert.deepEqual(
+      reordered.map((p) => p.url),
+      ['/uploads/gym-photos/fake-h.jpg', '/uploads/gym-photos/fake-g.jpg'],
     );
   } finally {
     await cleanup();
