@@ -3,13 +3,17 @@ import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Svg, { Polyline } from "react-native-svg";
 import {
   Activity,
   Apple,
   BarChart3,
   Bell,
   Beef,
+  CalendarCheck,
+  ChevronRight,
   ClipboardList,
+  Droplets,
   Dumbbell,
   Flame,
   Compass,
@@ -58,7 +62,17 @@ import {
   selectUpcomingSchedules,
 } from "../../src/features/dashboard/dashboardWeek";
 import { normalizeLogs, sumTotals } from "../../src/features/nutrition/nutritionMath";
+import {
+  bodySeries,
+  programSummary,
+  recentWorkouts,
+  seriesDelta,
+  sparklinePoints,
+  workoutDateLabel,
+  type TrendPoint,
+} from "../../src/features/dashboard/dashboardBody";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { designTokens } from "../../src/theme/colors";
 
 /**
  * CL-01 — client dashboard.
@@ -83,6 +97,12 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
  * "— / 3.0 L", the second nutrition tile shows protein, the macro the app does track, and the gap
  * is recorded in MOBILE_BACKEND_GAPS.md. The body pair (weight, muscle) web already shows on this
  * screen stays above it.
+ *
+ * 14B.7 (PG-C1) adds what web's dashboard has and this screen lacked: weight/muscle trend lines, body
+ * fat, the 30-day session count, the active program card and recent workouts. Two web blocks are NOT
+ * ported: "Calories tuần này" is a permanent "Không có dữ liệu" placeholder on web, and "AI Insights"
+ * is two sentences templated from the latest InBody numbers under an "AI · Trực tiếp" label — no AI
+ * call is made, so showing it here would claim something the product does not do.
  */
 export default function ClientDashboardScreen() {
   const { user } = useApp();
@@ -98,6 +118,9 @@ export default function ClientDashboardScreen() {
       startDate: toDateInputValue(todayStart),
       endDate: toDateInputValue(addDays(todayStart, 30)),
       weekStart: startOfWeek(todayStart),
+      monthAgo: toDateInputValue(addDays(todayStart, -30)),
+      // fitness-service compares `date <= endDate` at midnight, so tomorrow keeps today's sessions in.
+      tomorrow: toDateInputValue(addDays(todayStart, 1)),
     };
   }, [today]);
 
@@ -159,6 +182,17 @@ export default function ClientDashboardScreen() {
     queryFn: () => nutritionService.getDailyTask(range.startDate),
   });
 
+  // 14B.7 (PG-C1) — web's "Tập luyện gần đây" (4 rows) and the "Buổi tập · 30 ngày qua" tile. Web
+  // counts the 4-row page, so its tile can never pass 4; this counts the real 30-day window.
+  const recentQuery = useQuery({
+    queryKey: ["workout-history", "dashboard-recent"],
+    queryFn: () => workoutService.getHistory(1, 4),
+  });
+  const monthQuery = useQuery({
+    queryKey: ["workout-history", "dashboard-30d", range.monthAgo],
+    queryFn: () => workoutService.getInRange(range.monthAgo, range.tomorrow),
+  });
+
   // The dashboard is a tab root: it stays mounted while the user logs a meal on another screen, so
   // without this the tile would still show the figure from before the meal (global staleTime 30s).
   useFocusEffect(
@@ -177,6 +211,7 @@ export default function ClientDashboardScreen() {
     ["nutrition-goal"],
     ["nutrition-logs", range.startDate],
     ["nutrition-daily-task", range.startDate],
+    ["workout-history"],
   ]);
 
   // Prefer the server's own progress figure when a nutrition program is running, exactly as
@@ -199,6 +234,11 @@ export default function ClientDashboardScreen() {
   const latest: any = sortedInBody[0];
   const prev: any = sortedInBody[1];
 
+  const weightSeries = useMemo(() => bodySeries(inbodyQuery.data, "weight"), [inbodyQuery.data]);
+  const muscleSeries = useMemo(() => bodySeries(inbodyQuery.data, "muscleMass"), [inbodyQuery.data]);
+  const recent = useMemo(() => recentWorkouts(recentQuery.data), [recentQuery.data]);
+  const sessions30 = Array.isArray(monthQuery.data) ? monthQuery.data.length : null;
+
   const week = useMemo(() => buildActivityWeek(range.weekStart, activityQuery.data?.days), [
     range.weekStart,
     activityQuery.data,
@@ -209,6 +249,7 @@ export default function ClientDashboardScreen() {
   const streak = useMemo(() => currentStreak(activityQuery.data?.days), [activityQuery.data]);
 
   const program = programQuery.data as any;
+  const activeProgram = programSummary(program);
   // A started session stays "next" (it is the one to resume) and "Sắp tới" starts after it — both
   // rules live in selectUpcomingSchedules, where they are tested.
   const {
@@ -356,6 +397,29 @@ export default function ClientDashboardScreen() {
           </Card>
         </StaggerItem>
 
+        {/* 14B.7 (PG-C1) — web "Kế hoạch đang dùng". */}
+        {activeProgram ? (
+          <StaggerItem>
+            <Tappable onPress={() => router.push("/client/workout/programs")} accessibilityLabel="Kế hoạch đang dùng">
+              <Card className="flex-row items-center gap-3 p-4">
+                <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                  <ClipboardList size={19} color={accent.primary} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="font-body text-xs text-muted-foreground">Kế hoạch đang dùng</Text>
+                  <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+                    {activeProgram.name}
+                  </Text>
+                  <Text className="font-body text-xs text-muted-foreground">
+                    {`${activeProgram.days ?? "--"} ngày · ${activeProgram.exercises || "--"} bài tập`}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#8b9299" />
+              </Card>
+            </Tappable>
+          </StaggerItem>
+        ) : null}
+
         {/* Nutrition — the reference's own tile pair (calories; water has no data source, see the
             file header, so protein takes its place). Both open the nutrition screen. */}
         <StaggerItem>
@@ -410,6 +474,44 @@ export default function ClientDashboardScreen() {
             />
           </View>
         </StaggerItem>
+
+        {/* 14B.7 (PG-C1) — web's other two KPI tiles: body fat and sessions in the last 30 days. */}
+        <StaggerItem>
+          <View className="flex-row gap-3">
+            <StatTile
+              icon={Droplets}
+              tint={designTokens.warning}
+              label="Mỡ cơ thể"
+              value={latest?.bodyFatPct != null && Number(latest.bodyFatPct) > 0 ? `${latest.bodyFatPct}%` : "---"}
+              sub={changeLabel(latest?.bodyFatPct, prev?.bodyFatPct, "%")}
+              loading={inbodyQuery.isLoading}
+            />
+            <StatTile
+              icon={CalendarCheck}
+              tint={accent.primary}
+              label="Buổi tập"
+              value={sessions30 == null ? "---" : String(sessions30)}
+              sub="30 ngày qua"
+              loading={monthQuery.isLoading}
+            />
+          </View>
+        </StaggerItem>
+
+        {/* 14B.7 (PG-C1) — web "Xu hướng cân nặng" + "Cơ bắp" charts. */}
+        {weightSeries.length > 1 || muscleSeries.length > 1 ? (
+          <StaggerItem>
+            <Card className="gap-4 p-4">
+              <View className="flex-row items-center justify-between">
+                <Text className="font-display text-base text-foreground">Xu hướng cơ thể</Text>
+                <Tappable onPress={() => router.push("/client/inbody")} hitSlop={8}>
+                  <Text className="font-body-semibold text-xs text-primary">InBody</Text>
+                </Tappable>
+              </View>
+              {weightSeries.length > 1 ? <TrendLine title="Cân nặng" unit="kg" points={weightSeries} color={accent.chart2} lowerIsGood /> : null}
+              {muscleSeries.length > 1 ? <TrendLine title="Cơ bắp" unit="kg" points={muscleSeries} color={accent.chart3} /> : null}
+            </Card>
+          </StaggerItem>
+        ) : null}
 
         {/* Weekly activity */}
         <StaggerItem>
@@ -490,6 +592,39 @@ export default function ClientDashboardScreen() {
             </Card>
           </View>
         </StaggerItem>
+
+        {/* 14B.7 (PG-C1) — web "Tập luyện gần đây". */}
+        <StaggerItem>
+          <View>
+            <SectionHeader title="Tập luyện gần đây" action="Xem tất cả" onAction={() => router.push("/client/workout")} />
+            <Card>
+              {recentQuery.isLoading ? (
+                <View className="p-4">
+                  <Skeleton className="h-12 rounded-xl" />
+                </View>
+              ) : recent.length === 0 ? (
+                <View className="p-4">
+                  <Text className="font-body text-sm text-muted-foreground">Chưa có buổi tập nào được ghi lại.</Text>
+                </View>
+              ) : (
+                recent.map((w, i) => (
+                  <View key={w.id} className={`flex-row items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
+                        {w.name}
+                      </Text>
+                      <Text className="font-body text-xs text-muted-foreground">
+                        {[workoutDateLabel(w.date), w.minutes ? `${w.minutes} phút` : null, w.exercises ? `${w.exercises} bài` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </Card>
+          </View>
+        </StaggerItem>
       </Stagger>
     </ScrollView>
   );
@@ -498,6 +633,53 @@ export default function ClientDashboardScreen() {
 // ── helpers ────────────────────────────────────────────────────────────────────────────────
 
 // Week bars, streak, next/later schedules and change labels: src/features/dashboard/dashboardWeek.ts.
+
+/** Small line of one InBody field over the last measurements (oldest → newest), newest value + change. */
+function TrendLine({
+  title,
+  unit,
+  points,
+  color,
+  lowerIsGood,
+}: {
+  title: string;
+  unit: string;
+  points: TrendPoint[];
+  color: string;
+  lowerIsGood?: boolean;
+}) {
+  const W = 300;
+  const H = 64;
+  const delta = seriesDelta(points, unit);
+  const good = delta == null || delta.diff === 0 ? null : lowerIsGood ? delta.diff < 0 : delta.diff > 0;
+  return (
+    <View className="gap-1.5">
+      <View className="flex-row items-center justify-between">
+        <Text className="font-body text-xs text-muted-foreground">
+          {`${title} · `}
+          <Text className="font-body-semibold text-foreground">{`${points[points.length - 1].value} ${unit}`}</Text>
+        </Text>
+        {delta ? (
+          <Badge tone={good == null ? "neutral" : good ? "success" : "warning"}>{delta.text}</Badge>
+        ) : null}
+      </View>
+      <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <Polyline
+          points={sparklinePoints(points.map((p) => p.value), W, H)}
+          fill="none"
+          stroke={color}
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </Svg>
+      <View className="flex-row justify-between">
+        <Text className="font-body text-[10px] text-muted-foreground">{points[0].label}</Text>
+        <Text className="font-body text-[10px] text-muted-foreground">{points[points.length - 1].label}</Text>
+      </View>
+    </View>
+  );
+}
 
 function RoundButton({
   icon: Icon,
