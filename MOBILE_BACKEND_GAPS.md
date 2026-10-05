@@ -671,3 +671,16 @@ lọc thiết bị của hộp chọn bài cũng đủ 9 (trước: chỉ "Bodyw
 Lưu ý khi kiểm: container `gymcoach-web-dev` không nhận thay đổi file qua bind mount (Vite giữ bản đã nạp) → phải `docker restart
 gymcoach-web-dev` sau khi sửa `frontend/web/src` thì trang mới chạy code mới.
 
+## GAP-27 — gym-service: đặt ảnh bìa / sắp xếp ảnh trả danh sách ảnh thiếu `url` (14B.5) — CHỜ NGÀI
+
+`gym-photo.service.ts`: `list` và `upload` trả ảnh qua `withUrls` (thêm `url` = link ký tạm S3 hoặc `/uploads/gym-photos/…`), nhưng
+`setCover` và `reorder` trả thẳng `gymPhotoRepository.listByGym(gymId)` — **không có `url`**. CODE AUDIT + máy ảo (5/10): sau khi sắp
+xếp, ảnh lưu trên S3 (có `s3Key`, tải lên qua hồ sơ đối tác) hiện ô trống vì không còn link.
+
+- **Mobile:** đã né — sau đặt bìa / sắp xếp thì tải lại danh sách (`GET .../photos`) thay vì dùng body trả về.
+- **Web (`StepPhotos.tsx`):** `setQueryData(queryKey, updated)` dùng đúng body thiếu `url` → `gymPhotoUrl(fileName, undefined)` ghép
+  `/uploads/gym-photos/<fileName>` — sai với ảnh S3 → ảnh vỡ trên web sau khi đặt bìa / sắp xếp tới lần tải lại trang (suy từ code,
+  chưa chạy trình duyệt).
+
+**Cần Ngài quyết:** sửa backend (bọc `withUrls` cho `setCover`/`reorder`, 2 dòng) — hoặc sửa web cho tải lại như mobile.
+

@@ -3486,3 +3486,75 @@ nhóm), `workout-analytics.utils.ts` (phân bổ nhóm cơ / loại bài tập),
 - Triset / circuit (≥ 3 bài) và nhánh "Nghỉ sau vòng" chỉ có unit test; trên máy mới kiểm superset 2 bài.
 - GAP-26: 2 lỗi web ở trên — **đã sửa web 5/10** (Ngài cho phép; REAL BROWSER, xem GAP-26).
 
+## 47. Phase 14B.5 — Chủ gym: quản lý chi nhánh (PG-A7 = GY-03) (5/10)
+
+**Nguồn hành vi:** web `GymManagePage.tsx` (khối "Cài đặt") + các bước wizard nó dùng lại (`StepOpeningHours`, `StepFacilities`,
+`StepPhotos`, `StepVerification`), `RequestChangesPanel` (chế độ xem). Quyền theo `gym-service/src/routes/owner.routes.ts` ("tiền và
+người thì chỉ chủ sở hữu"). Không đổi backend.
+
+**Đã làm (mobile):**
+- `app/gym-owner/branch.tsx` (mới, ẩn khỏi tab) — bấm một chi nhánh ở "Phòng gym" (thẻ có thêm dòng "Quản lý chi nhánh ›"). Đầu màn:
+  trạng thái duyệt + vận hành, địa chỉ, sao đánh giá, tên/địa chỉ mới đang chờ duyệt, dòng đóng cửa (lý do + ngày dự kiến mở lại), ghi
+  chú "Gymini yêu cầu chỉnh sửa". Ba mục, mỗi mục chỉ tải khi mở:
+  - **Thông tin:** Tên & địa chỉ (chờ duyệt) · Giới thiệu ≤ 300 + điện thoại + email (có hiệu lực ngay) · Thương hiệu (chỉ đọc —
+    không có bộ chọn, đúng bất biến one-owner-one-brand) · Vị trí (tỉnh/phường, ghim bản đồ `MapPinPicker`, hướng dẫn tới nơi) · Giờ
+    hoạt động (Đóng cửa / Mở cửa / 24 giờ mỗi ngày, ô HH:MM, chép giờ Thứ 2 sang Thứ 3–6 hoặc cả tuần, kiểm như server) · Tiện ích
+    (18 mục, 4 nhóm).
+  - **Ảnh & giấy tờ:** thư viện ảnh (chọn nhiều ảnh một lần hoặc chụp, ≤ 20 ảnh / ≤ 8 MB, đưa lên trước / ra sau, đặt ảnh bìa, xoá có
+    xác nhận) · giấy tờ xác minh của chi nhánh (3 loại, ảnh / PDF, nộp lại; xem trước ảnh tải bằng phiên đăng nhập, PDF mở bằng trình
+    xem của máy) + giấy tờ cấp đối tác chỉ xem.
+  - **Vận hành:** tạm đóng cửa (lý do + ngày mở lại tuỳ chọn, chặn ngày quá khứ) / mở lại / đóng vĩnh viễn (hiện tác động: hội viên
+    đang có gói + giá trị chưa dùng, cộng tác PT, số dư ví; hỏi xác nhận) · lối sang Mã QR check-in, Cộng tác HLV, Gói hội viên · danh
+    sách hội viên của chi nhánh.
+- **MANAGER** chỉ thấy mục "Vận hành" (trạng thái vận hành, QR, hội viên) — mọi chỗ sửa thông tin / ảnh / giấy tờ là OWNER-only ở
+  server nên không hiện form để rồi bị từ chối.
+- `src/features/gymOwner/branchManage.ts` — phần thuần (giờ, tiện ích, giới thiệu, tên/địa chỉ, sắp xếp ảnh, trạng thái giấy tờ,
+  nút vận hành được phép theo `setOperationalStatus`, ngày mở lại). `BranchSections.tsx` — các khối giao diện.
+- `src/lib/pickFile.ts` thêm `pickImages(limit, maxBytes)` (chọn nhiều ảnh, khai đúng loại thật của tệp như `pickApplicationFile`).
+- `api.ts` thêm `absolutePhotoUrl` — `url` ảnh của server là link S3 đầy đủ với ảnh mới nhưng là đường dẫn `/uploads/gym-photos/…`
+  với ảnh lưu đĩa; trình duyệt tự ghép được, `<Image>` thì không. Dùng ở màn chi nhánh, màn admin chi nhánh và `GymPhotoGallery`
+  (chi tiết phòng gym phía khách) — ảnh lưu đĩa trước đây không hiện ở cả ba nơi.
+
+**Khác web có chủ đích:**
+1. Mỗi khối có nút lưu riêng — web lưu giờ hoạt động và tiện ích ngay mỗi lần bấm / gõ (mỗi thay đổi một toast, một request).
+2. Nhập giờ bằng ô HH:MM (cùng cách màn lịch PT) thay cho `<input type="time">`; ngày mở lại dạng YYYY-MM-DD.
+3. Xoá ảnh và đóng cửa vĩnh viễn có hộp xác nhận (web xoá ảnh ngay khi bấm).
+4. Ví, rút tiền, QR check-in, cộng tác PT, gói hội viên đã có màn riêng trên mobile (Phase 12) → màn chi nhánh dẫn sang, không lặp lại.
+5. Sau đặt bìa / sắp xếp ảnh thì tải lại danh sách thay vì dùng body server trả (thiếu `url` — GAP-27).
+
+**Kiểm chứng (máy ảo, dev client, backend dev; DB đối chiếu từng bước; chi nhánh thử "P12 Mobile Quan 1" của `p12-mobile@example.com`,
+chụp trạng thái gốc trước khi sửa):**
+- OWNER:
+  - Giới thiệu + email → `gyms.description`, `email` đổi.
+  - Đổi tên (thêm " X") → `name` = `pending_name` = "… X", `approved_name` giữ tên cũ; đầu màn hiện "Tên mới đang chờ duyệt". Trả tên
+    về trên máy, rồi admin `PATCH /admin/gyms/:id/approve-rename` để xoá `pending_name` → sạch như cũ.
+  - Hướng dẫn tới nơi "Cong sau tang 3" → `location_note`; tỉnh 79 / phường 26740 / toạ độ giữ nguyên.
+  - Giờ: Thứ 2 Mở cửa 05:30 → chép sang Thứ 3–6, Chủ nhật 24 giờ → `gym_operating_hours` T2–T6 OPEN 330–1320, T7 CLOSED, CN ALL_DAY;
+    nút lưu tự mờ khi không còn thay đổi.
+  - Tiện ích Tạ tự do / Phòng tắm / Wifi → `facilities` {FREE_WEIGHTS, SHOWER, WIFI}.
+  - Ảnh: chọn 2 ảnh một lần → 2 dòng `gym_photos` (thứ tự 1, 2); đưa ảnh lên trước → `sort_order` đổi; đặt ảnh bìa → `is_cover` chuyển;
+    trả bìa về ảnh cũ, xoá 2 ảnh thử (có xác nhận) → còn đúng 1 ảnh S3 làm bìa như gốc.
+  - Giấy tờ PCCC (ảnh) → `gym_branch_documents` FIRE_SAFETY_CERTIFICATE RECEIVED, thumbnail hiện; giấy tờ đối tác hiện chỉ xem.
+  - Đóng vĩnh viễn: tác động 0 hội viên / 0 cộng tác / 0 đ, huỷ không đóng. Tạm đóng: ngày 2026-10-01 bị chặn ("không thể ở quá khứ");
+    2026-10-20 → `TEMPORARILY_CLOSED`, lý do + `expected_reopen_at` lưu, đầu màn hiện dòng đóng cửa; Mở lại → `OPEN`, lý do xoá.
+  - Dọn: mô tả / email / hướng dẫn / tiện ích / giờ trả về trống qua đúng API (HTTP 200) — DB khớp bản chụp gốc, trừ giấy tờ PCCC
+    (không có API xoá — để lại, trạng thái RECEIVED).
+- MANAGER (`p12-manager-14b5@example.com` / `Quanly12345`, mời bằng đúng API của chủ gym + nhận lời mời, phạm vi = Quan 1):
+  - REAL HTTP/API: đọc chi nhánh / hội viên / tác động đóng cửa → 200; giờ / ảnh / giấy tờ / `PATCH` chi nhánh → 403
+    `OWNER_ROLE_REQUIRED`; chi nhánh Quan 3 (ngoài phạm vi) → 403 `GYM_OUT_OF_SCOPE`.
+  - Máy ảo: "Phòng gym" chỉ 1 chi nhánh, không có sửa tên thương hiệu / thêm chi nhánh; màn chi nhánh chỉ có "Vận hành"; tạm đóng →
+    `TEMPORARILY_CLOSED` "Quan ly kiem thu", mở lại → `OPEN`.
+- 360 dp (đổi `wm density`): màn chi nhánh, mục Thông tin và giờ hoạt động vừa khung, không tràn ngang.
+- Tự động: `branchManage.test.ts` 14 (node:test). Toàn bộ unit 681/681, jest xem dưới, `tsc` sạch, lint 0 lỗi.
+
+**Lỗi bắt được khi kiểm, đã sửa:** ảnh lưu đĩa không hiện (đường dẫn tương đối — sửa cả màn admin và chi tiết phòng gym của khách);
+ảnh S3 mất sau sắp xếp (GAP-27, né bằng tải lại); dòng "tên mới đang chờ duyệt" không hiện (server ghi `name` cùng `pending_name`);
+ô nhiều dòng chỉ cao một dòng (truyền chiều cao riêng, không sửa `Input` dùng chung).
+
+**CHƯA làm / còn mở:**
+- GAP-27 (backend thiếu `url` sau đặt bìa / sắp xếp) — chờ Ngài.
+- Thấy khi kiểm, có từ trước, không sửa trong cụm này: ở 360 dp nhãn `Badge` dùng chung đôi lúc bị cắt ("Đã duyệt" → "Đã") trên thẻ
+  chi nhánh — chập chờn (cùng màn lúc đủ lúc cắt), xảy ra cả với bản HEAD.
+- Chưa bấm thật: đóng cửa vĩnh viễn (không thể hoàn tác trên dữ liệu thử), tải PDF giấy tờ, chụp ảnh bằng camera.
+- Dữ liệu thử để lại: tài khoản MANAGER `p12-manager-14b5@example.com` (thuộc đối tác P12), giấy tờ PCCC RECEIVED trên Quan 1.
+
