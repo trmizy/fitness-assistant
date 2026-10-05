@@ -420,6 +420,7 @@ USB — không thấy thiết bị ADB/MTP nào) → dời lại.
 | E4 | Tin hệ thống cuộc gọi còn tiếng Anh | `callLogContent` ở chat-service | **XONG 1/10** — §41 (tin cũ trong DB giữ nguyên tiếng Anh) |
 | E5 | GAP-22 giao dịch cổng đã huỷ vẫn PENDING | `/payments/vnpay/return` đóng FAILED khi mã huỷ/từ chối có chữ ký | **XONG phần cổng 1/10** — §41; phần "huỷ gói hội viên" còn mở (GAP-22) |
 | E6 | **Buổi tập tự do không theo giáo án** (web `WorkoutLogPage` → `logWorkout` / `updateWorkout`: chọn bài tuỳ ý cho một ngày trống rồi lưu) — mobile chỉ thêm lịch từ buổi của chương trình | Ngài quyết có làm hay loại trừ (phát hiện khi làm 14B.4, ADAPTERS §46) | **CHỜ NGÀI — 5/10 Ngài: ghi lại, bàn sau** |
+| E7 | **"AI Insights" trên trang chủ web** (`ClientDashboard`) là hai câu ghép sẵn từ cân nặng / cơ InBody mới nhất dưới nhãn "AI · Trực tiếp" — không gọi AI nào, ai cũng nhận cùng một lời khuyên. Mobile không chép (ADAPTERS §49) | Gọi AI Coach thật, hoặc đổi tên thành "Tóm tắt" và bỏ nhãn AI — thuộc miền AI của partner | **CHỜ — 5/10 Ngài: ghi lại, bàn với partner sau** |
 
 
 ## Khoảng trống parity web → mobile — Phase 14B (ghi 3/10)

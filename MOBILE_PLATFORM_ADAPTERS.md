@@ -3693,3 +3693,13 @@ nửa "cảnh báo học viên" của C6.
   - Máy ảo để lại đang đăng nhập testpt001 (trước đó là testuser009).
 - Tự động: `cluster14b7.test.ts` 15 (node:test). Toàn bộ unit 708/708, jest 12 bộ / 73 test, `tsc` sạch, eslint 0 lỗi.
 
+**Sửa kèm phía web (Ngài cho phép 5/10):**
+- `ClientDashboard.tsx`: ô "Buổi tập · 30 ngày qua" đếm cửa sổ 30 ngày thật (`workoutService.getInRange`, hàm mới trong web `api.ts`)
+  thay vì độ dài trang 4 dòng; bảng "Tập luyện gần đây" đọc `name` / `duration`, cột "Trạng thái" (luôn "Hoàn thành") đổi thành
+  "Bài tập" (số bài).
+- `InBodyModule.tsx`: radar "Cân bằng cơ thể" thay bằng các thanh tham chiếu, logic ở `pages/client/body-balance.utils.ts` (giữ
+  giống hệt bản mobile) + test `__tests__/body-balance.utils.test.ts` (5, node:test).
+- REAL BROWSER (Playwright, `gymcoach-web-dev` đã khởi động lại, testuser009, 1366 px và 360 px): ô "12 · 30 ngày qua"; 4 dòng
+  "Upper Body Power · 17/9/2026 · 60 phút · 3 bài"…; thẻ Cân bằng cơ thể cùng kết quả như mobile; tràn ngang 0 px ở cả hai khổ; theme
+  sáng + tối đều hiển thị đúng. `vite build` thành công.
+- "AI Insights" của web: chưa sửa — ghi manifest E7, Ngài bàn với partner sau.
