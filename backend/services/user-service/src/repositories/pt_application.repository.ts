@@ -1,5 +1,6 @@
 import { PrismaClient, PTApplicationStatus } from "../generated/prisma";
 import { canonicalizePtDocumentUrl } from "../utils/ptDocumentUrl.util";
+import { normalizeCertDate } from "../utils/ptCertDate.util";
 
 const prisma = new PrismaClient();
 
@@ -78,9 +79,9 @@ function pickFields(
 
 function sanitizeCert(c: any): Record<string, any> {
   const clean = pickFields(c, CERT_WRITABLE_FIELDS);
-  // Convert empty date strings to null for Prisma DateTime fields
-  if (clean.issueDate === "") clean.issueDate = null;
-  if (clean.expirationDate === "") clean.expirationDate = null;
+  // Prisma DateTime fields: "" → null, bare "YYYY-MM-DD" → Date (raw strings were rejected)
+  if ("issueDate" in clean) clean.issueDate = normalizeCertDate(clean.issueDate, "Ngày cấp chứng chỉ");
+  if ("expirationDate" in clean) clean.expirationDate = normalizeCertDate(clean.expirationDate, "Ngày hết hạn chứng chỉ");
   if (clean.certificateFileUrl) clean.certificateFileUrl = canonicalizePtDocumentUrl(clean.certificateFileUrl);
   return clean;
 }
