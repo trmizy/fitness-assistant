@@ -54,7 +54,6 @@ const SERVICE_ICONS: Record<string, any> = {
   fitness: Activity,
   ai: Cpu,
   chat: Wifi,
-  n8n: RefreshCw,
 };
 
 const GRAFANA_URL = grafanaUrl();

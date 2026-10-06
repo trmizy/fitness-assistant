@@ -1,6 +1,5 @@
 param(
   [switch]$Build,
-  [switch]$WithAutomation,
   [switch]$WithObservability
 )
 
@@ -14,9 +13,6 @@ $composeFiles = @(
 )
 
 $profiles = @()
-if ($WithAutomation) {
-  $profiles += @("--profile", "automation")
-}
 if ($WithObservability) {
   $profiles += @("--profile", "observability")
 }
@@ -50,4 +46,4 @@ Write-Host "  Web:     http://localhost:5173"
 Write-Host "  Gateway: http://localhost:3000"
 Write-Host "  AI:      http://localhost:3003/health"
 Write-Host ""
-Write-Host "Optional services are not started. Add -WithAutomation for n8n, -WithObservability for Grafana/Prometheus."
+Write-Host "Optional services are not started. Add -WithObservability for Grafana/Prometheus."

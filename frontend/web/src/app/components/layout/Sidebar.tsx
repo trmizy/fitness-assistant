@@ -28,7 +28,6 @@ import {
   GyminiSystemIcon,
   GyminiUsersIcon,
   GyminiWalletIcon,
-  GyminiWorkflowIcon,
   GyminiWorkoutIcon,
 } from "../brand/GyminiLucide";
 
@@ -150,12 +149,6 @@ const adminNav = [
   // screen existed (GYM_MANAGEMENT_API_GAPS.md). Reuses GyminiDisputeIcon (already used for
   // session disputes below) — same underlying concept, different domain.
   { label: "Khiếu nại", icon: GyminiDisputeIcon, to: "/admin/complaints" },
-  {
-    label: "Workflows",
-    icon: GyminiWorkflowIcon,
-    to: "/admin/workflows",
-    sourceLang: "en" as const,
-  },
   {
     label: "AI Observability",
     icon: GyminiSystemIcon,

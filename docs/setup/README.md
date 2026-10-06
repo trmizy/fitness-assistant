@@ -136,7 +136,6 @@ docker compose -f infra/compose/docker-compose.dev.yml down -v
 | --- | --- | --- |
 | `local-ollama` | Ollama and model puller | `--profile local-ollama` |
 | `knowledge` | Background knowledge worker | `--profile knowledge` |
-| `automation` | n8n | `--profile automation` |
 | `observability` | Prometheus, Grafana, exporters | `--profile observability` |
 
 Profiles can be combined:

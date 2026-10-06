@@ -27,7 +27,7 @@
 #     so there's no CORS/mixed-content issue even without a domain/TLS yet).
 #   - Postgres container removed; DATABASE_URL points at the RDS endpoint
 #     from ../../.env instead. Redis/Qdrant/Ollama stay as containers.
-#   - chat-service, n8n / Prometheus / Grafana / exporters / db-seeder
+#   - chat-service, Prometheus / Grafana / exporters / db-seeder
 #     omitted — this is the MVP production surface.
 #
 # Required ../../.env keys (see ../../.env.example — same file, prod values):

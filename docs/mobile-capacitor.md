@@ -211,8 +211,6 @@ bộ cơ chế làm mới tắt ngóm. Số lần thử lại đã được ch�
   màn hình đăng nhập, **không nạp lại app**.
 - **Socket.IO** (`realtime/socketClient.ts`, `services/socket.ts`) đọc token trực tiếp vì
   nó không đi qua axios. Xem mục Hạn chế.
-- **`AdminWorkflowStudio.tsx`** đọc token để ghép vào URL của n8n studio, không phải để
-  gọi API. Xem mục Hạn chế.
 
 ---
 
@@ -473,8 +471,6 @@ rồi kết nối lại, có cờ chặn để phiên đã chết thật không 
 
 ## 8. Hạn chế còn lại
 
-- **`AdminWorkflowStudio.tsx`** nạp `accessToken` một lần lúc mount để ghép vào URL studio;
-  nếu token hết hạn sau đó, liên kết có thể mở ra trạng thái chưa đăng nhập.
 - **`CallOverlay`** cố ý **không** đăng ký với nút Back: Back là phản xạ, mà đóng lớp phủ
   cuộc gọi nghĩa là từ chối hoặc cúp máy với một người thật. Cúp máy vẫn phải là thao tác
   chạm có chủ đích.

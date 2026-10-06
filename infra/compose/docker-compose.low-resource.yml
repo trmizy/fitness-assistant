@@ -6,7 +6,7 @@
 #     -f infra/compose/docker-compose.low-resource.yml up -d
 #
 # This keeps the core app usable while reducing polling, CPU bursts, and memory
-# pressure. Optional n8n/monitoring services remain behind compose profiles.
+# pressure. Optional monitoring services remain behind compose profiles.
 ##############################################################################
 
 services:

@@ -3,7 +3,6 @@ $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $RepoRoot
 
 $containers = @(
-  "gymcoach-n8n",
   "gymcoach-prometheus",
   "gymcoach-grafana",
   "gymcoach-pg-exporter",

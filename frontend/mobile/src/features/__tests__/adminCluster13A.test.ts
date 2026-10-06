@@ -41,7 +41,7 @@ const REAL = {
     roleData: [{ name: "Clients", value: 143 }, { name: "Trainers", value: 8 }],
     systemAlerts: [
       { level: "warning", service: "Redis", message: "chậm", time: "06:00 AM" },
-      { level: "error", service: "n8n Workflow", message: "getaddrinfo ENOTFOUND n8n", time: "06:03 AM" },
+      { level: "error", service: "Chat Service", message: "connect ECONNREFUSED", time: "06:03 AM" },
     ],
     recentUsers: [{ name: "p12-mobile", email: "p12-mobile@example.com", role: "Client", joined: "Sep 27", status: "Active" }],
     ocrStats: { total: 101, extracted: 39, manual: 62, pending: 0 },

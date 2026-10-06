@@ -110,12 +110,6 @@ services:
       CHAT_SERVICE_URL: http://chat-service:3005
       PAYMENT_SERVICE_URL: http://payment-service:3007
       GYM_SERVICE_URL: http://gym-service:3006
-      N8N_BASE_URL: http://n8n:5678
-      N8N_EDITOR_BASE_PATH: /admin/workflows/studio
-      N8N_SMOKE_TEST_WEBHOOK_URL: http://n8n:5678/webhook/gym-smoke-test
-      N8N_E2E_WEBHOOK_URL: http://n8n:5678/webhook/gym-e2e-run
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
@@ -678,38 +672,6 @@ services:
     networks:
       - default
 
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: gymcoach-n8n
-    profiles:
-      - automation
-    ports:
-      - "5678:5678"
-    environment:
-      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
-      N8N_HOST: ${N8N_HOST:-localhost}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      N8N_PATH: ${N8N_PATH:-/}
-      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
-      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Ho_Chi_Minh}
-      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
-      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
-      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
-    volumes:
-      - n8n_data:/home/node/.n8n
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: "no"
-    networks:
-      - default
-
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: gymcoach-prometheus
@@ -1020,7 +982,6 @@ volumes:
   redis_data:
   qdrant_data:
   ollama_data:
-  n8n_data:
   prometheus_data:
   grafana_data:
   seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)
