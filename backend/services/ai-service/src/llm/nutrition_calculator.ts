@@ -110,6 +110,24 @@ export const nutritionCalculator = {
       : 1.375;
     const { bmr, formula } = estimateBmr(profile);
 
+    // Source of truth: the user's ACTIVE NutritionGoal (fitness-service) owns calories/macros. Chat must state exactly those
+    // numbers; the profile-based estimate below is only the fallback for a user who has no goal yet. (Found by the full chat
+    // verification: "Một ngày tôi cần bao nhiêu calo?" answered 2000 kcal while the stored goal was 2187 kcal.)
+    if (profile.nutritionGoal) {
+      const g = profile.nutritionGoal;
+      const maintenance = bmr && weight ? Math.round(bmr * activityFactor) : undefined;
+      return {
+        maintenanceCalories: maintenance,
+        targetCalories: g.calories,
+        proteinGrams: g.protein,
+        fatGrams: g.fat,
+        carbsGrams: g.carbs,
+        deficitOrSurplusKcal: maintenance !== undefined ? g.calories - maintenance : undefined,
+        formula: "NutritionGoal (ACTIVE)",
+        confidence: "high",
+      };
+    }
+
     if (!bmr || !weight) {
       return {
         formula,

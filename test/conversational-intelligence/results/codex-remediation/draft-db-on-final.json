@@ -1,0 +1,148 @@
+[
+  {
+    "variant": "A",
+    "setup": {
+      "workflow": "CREATE_WORKOUT_PLAN|COLLECTING_SLOTS|daysPerWeek",
+      "actions": []
+    },
+    "userId": "b1ec430b-4728-48d7-841b-80355cab8da2",
+    "sessionId": "0af06f85-cf84-4ddc-9f56-c0ba6de04442",
+    "http": 200,
+    "correlationId": "ai_1790499046287_ogpyw6",
+    "route": "CORRECTION",
+    "llmCalled": false,
+    "before": [
+      {
+        "id": "da8eccbe-7387-4ed0-a495-948af6cdb480",
+        "status": "PENDING",
+        "days": 3
+      }
+    ],
+    "after": [
+      {
+        "id": "da8eccbe-7387-4ed0-a495-948af6cdb480",
+        "status": "PENDING",
+        "days": 5
+      }
+    ],
+    "sameDraft": true,
+    "fiveDays": true,
+    "profileUnchanged": true,
+    "programs": "0",
+    "recommendations": "0",
+    "answer": "Mình đã đổi lịch tập sang 5 buổi/tuần (Thứ 2, Thứ 3, Thứ 4, Thứ 5, Thứ 7) (2 bài tập không khớp thư viện đã được bỏ qua).",
+    "traces": [
+      {
+        "level": 30,
+        "time": 1790499046309,
+        "pid": 6729,
+        "hostname": "b651b519503f",
+        "correlationId": "ai_1790499046287_ogpyw6",
+        "userId": "b1ec430b-4728-48d7-841b-80355cab8da2",
+        "sessionId": "0af06f85-cf84-4ddc-9f56-c0ba6de04442",
+        "proposalStored": false,
+        "pendingDraft": true,
+        "deterministicRoute": "CORRECTION",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "CORRECTION",
+        "reason": "correction cue with a new value for the pending draft",
+        "action": "pass-through to the existing pipeline",
+        "msg": "ci_global_trace"
+      },
+      {
+        "level": 30,
+        "time": 1790499049322,
+        "pid": 6729,
+        "hostname": "b651b519503f",
+        "correlationId": "ai_1790499046287_ogpyw6",
+        "userId": "b1ec430b-4728-48d7-841b-80355cab8da2",
+        "sessionId": "0af06f85-cf84-4ddc-9f56-c0ba6de04442",
+        "routeIntent": "fitness_agent",
+        "workflowBefore": null,
+        "workflowAfter": null,
+        "workflowTransition": "none",
+        "pendingDraftBefore": true,
+        "pendingDraftAfter": true,
+        "msg": "ci_turn_transition"
+      }
+    ]
+  },
+  {
+    "variant": "B",
+    "setup": {
+      "workflow": "",
+      "actions": [
+        {
+          "id": "784ad209-fef8-42a7-a453-4fc7556a962b",
+          "status": "PENDING",
+          "days": 3
+        }
+      ]
+    },
+    "userId": "265f3cf4-c258-40d2-b9b6-fa2faed927f6",
+    "sessionId": "245d8cc1-a1d8-4220-be4f-fa043db67c69",
+    "http": 200,
+    "correlationId": "ai_1790499053481_r4lu3a",
+    "route": "CORRECTION",
+    "llmCalled": false,
+    "before": [
+      {
+        "id": "784ad209-fef8-42a7-a453-4fc7556a962b",
+        "status": "PENDING",
+        "days": 3
+      }
+    ],
+    "after": [
+      {
+        "id": "784ad209-fef8-42a7-a453-4fc7556a962b",
+        "status": "PENDING",
+        "days": 5
+      }
+    ],
+    "sameDraft": true,
+    "fiveDays": true,
+    "profileUnchanged": true,
+    "programs": "0",
+    "recommendations": "0",
+    "answer": "Mình đã đổi lịch tập sang 5 buổi/tuần (Thứ 2, Thứ 3, Thứ 4, Thứ 5, Thứ 7) (2 bài tập không khớp thư viện đã được bỏ qua).",
+    "traces": [
+      {
+        "level": 30,
+        "time": 1790499053501,
+        "pid": 6729,
+        "hostname": "b651b519503f",
+        "correlationId": "ai_1790499053481_r4lu3a",
+        "userId": "265f3cf4-c258-40d2-b9b6-fa2faed927f6",
+        "sessionId": "245d8cc1-a1d8-4220-be4f-fa043db67c69",
+        "proposalStored": false,
+        "pendingDraft": true,
+        "deterministicRoute": "CORRECTION",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "CORRECTION",
+        "reason": "correction cue with a new value for the pending draft",
+        "action": "pass-through to the existing pipeline",
+        "msg": "ci_global_trace"
+      },
+      {
+        "level": 30,
+        "time": 1790499056549,
+        "pid": 6729,
+        "hostname": "b651b519503f",
+        "correlationId": "ai_1790499053481_r4lu3a",
+        "userId": "265f3cf4-c258-40d2-b9b6-fa2faed927f6",
+        "sessionId": "245d8cc1-a1d8-4220-be4f-fa043db67c69",
+        "routeIntent": "fitness_agent",
+        "workflowBefore": null,
+        "workflowAfter": null,
+        "workflowTransition": "none",
+        "pendingDraftBefore": true,
+        "pendingDraftAfter": true,
+        "msg": "ci_turn_transition"
+      }
+    ]
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "actionId": "6498596a-4f03-44c8-9b64-c58afb2e76db",
+  "totalRowsInSession": 11,
+  "pendingDetectedBeforeResolution": true,
+  "draftStillPendingBeforeResolution": true,
+  "confirmHttp": 200,
+  "draftStatusAfterConfirm": "COMPLETED",
+  "statusAnswerAfterResolution": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+  "noNewRowsCreated": true,
+  "nowTruthfulPositive": true
+}

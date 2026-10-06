@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-27T14:58:30.888Z",
+  "exit": 0,
+  "ms": 122425,
+  "cmd": "docker",
+  "args": [
+    "exec",
+    "-e",
+    "CONVERSATIONAL_INTELLIGENCE_V2=on",
+    "-e",
+    "CONVERSATIONAL_INTELLIGENCE_V2_LLM=off",
+    "gymcoach-ai-dev",
+    "sh",
+    "-c",
+    "cd /app/backend/services/ai-service && npx tsx --test src/__tests__/conversational-intelligence-*.test.ts src/__tests__/codex-remediation-boundary.test.ts src/__tests__/agent-workflow-*.test.ts src/__tests__/fitness-agent-*.test.ts src/__tests__/x4-confirmation-followup.test.ts"
+  ]
+}

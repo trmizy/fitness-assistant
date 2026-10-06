@@ -1,0 +1,55 @@
+{
+  "frozenAt": "2026-10-03T06:18:33.363Z",
+  "gitHead": "81d9f432fa856c4e4f06d6b412071f4dbd6c15be",
+  "files": [
+    {
+      "path": "test/research/workout-plan-bpm/run-frozen-150.mjs",
+      "sha256": "23d03b6823a411374959b8da5c646af697b3404854d57aa150501c34b5849fed"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/metrics.mjs",
+      "sha256": "897168b14094e88f23b6ec83aa10d5e573ad2b4e101c8db1a910473806b281e4"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/observe.mjs",
+      "sha256": "903ef867c1499abef6f1caa9c7b6de27c60254bc56e78816b605b82472648cd0"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/db-snapshot.mjs",
+      "sha256": "c1c3f71cef25a6f023347ebbbaf1baf2b6810a5aa8f34c332879280af7c34ba6"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/process-runner.mjs",
+      "sha256": "7c85ed89c0a943b9e0643e79f171a38efd9d08a49c489fd97800211113ae5867"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/fixtures.mjs",
+      "sha256": "5af64aa0f27e2b83094ff3d49c3a6bc286a36204884bb315232c0d06838bcc40"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/evidence.mjs",
+      "sha256": "d1d0256babdb3918b74e2e16210f1cbe5f90c7cb7fe1f22819a236445e2f7913"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/lib/source-snapshot.mjs",
+      "sha256": "e4e74095a221e2e860e57f0458c10df65d402f3bec36116ed1f5234903445a16"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/smoke/harness.test.mjs",
+      "sha256": "273d299655017f57b04a76ff99f5baa0c7d978ed17dbc02d7e74e71423b92c3a"
+    },
+    {
+      "path": "test/research/workout-plan-bpm/dataset/frozen-150.v1.jsonl",
+      "sha256": "eedb1adb16bd3a1284371118b5a03c05a883294a815aa0fb3d79cd76ef8cc849"
+    },
+    {
+      "path": "results/research/workout-plan-bpm/20261003T054521Z/route-vocabulary.json",
+      "sha256": "8e082fce62f915da55fabe39d0b53014d4ef5fc60840556011b06a27340160d8"
+    },
+    {
+      "path": "results/research/workout-plan-bpm/20261003T054521Z/annotation-guideline.md",
+      "sha256": "1ddb0226c23aed2f5436275e2847ee93424c0fae10dd861a77f2f8f3612239c4"
+    }
+  ],
+  "evaluatorSha256": "5739f5cdaafa1f0ff5952d3180a4c2255d3fc2f9df3023a7a08f83a22bcae640"
+}

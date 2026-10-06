@@ -3,7 +3,7 @@ dotenv.config();
 
 import app, { setQdrantAvailable } from "./app";
 import { prisma } from "./repositories/conversation.repository";
-import { aiWorker } from "./workers/ai.worker";
+import { aiWorker } from "./workers/ai.worker.runtime";
 import { closeAiQueue } from "./workers/ai.queue";
 import { logger } from "@gym-coach/shared";
 import { getVectorStore } from "./vector-store/provider";

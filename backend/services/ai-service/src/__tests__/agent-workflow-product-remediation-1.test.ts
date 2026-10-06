@@ -378,14 +378,19 @@ test("M6: 'Tôi không muốn deadlift.' matches BOTH Deadlift and Romanian Dead
   assert.equal(rig.calls.import.length, 0);
 });
 
-test("M6: 'tránh squat' / 'đổi squat' both work; a phrase naming nothing in the draft falls through (null), never a fake edit", async () => {
+test("M6: 'tránh squat' / 'đổi squat' both work; a phrase naming nothing in the draft gets a truthful no-op answer, never a fake edit", async () => {
   stubRig();
   const { userId, identity, sessionId } = await newSession();
   await fitnessAgent.tryTurn("Tạo lịch tập cho tôi", identity, sessionId);
   const r = await fitnessAgent.tryTurn("Tránh squat giúp tôi", identity, sessionId);
   assert.equal(r!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
   assert.equal(scheduleNames((await pendingAction(userId, "CREATE_WORKOUT_PLAN"))!.payload).filter((n) => /squat/i.test(n)).length, 0);
-  assert.equal(await fitnessAgent.tryTurn("Tôi không muốn kayak", identity, sessionId), null);
+  // Full-chat-verification refinement (was: falls through to null -> generic LLM chat, which then CLAIMED it would replace exercises
+  // although the draft was untouched). Still never a fake edit: the draft is unchanged, and the answer says so truthfully.
+  const before = JSON.stringify(((await pendingAction(userId, "CREATE_WORKOUT_PLAN"))!.payload as any).weeklySchedule);
+  const none = await fitnessAgent.tryTurn("Tôi không muốn kayak", identity, sessionId);
+  assert.match(none!.answer, /không có bài nào liên quan/i);
+  assert.equal(JSON.stringify(((await pendingAction(userId, "CREATE_WORKOUT_PLAN"))!.payload as any).weeklySchedule), before, "no exercise changed");
 });
 
 // ── M7 ────────────────────────────────────────────────────────────────────────

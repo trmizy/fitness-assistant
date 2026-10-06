@@ -1,0 +1,170 @@
+ D .agnes/artifacts/research/20260823_2/deep_research/20260823-2-ph-n-t-ch-s-u-d-n-fitness-assistant-ki-n-tr-c-services-frontend.json
+ D .agnes/artifacts/research/20260823_2/deep_research/20260823-2-ph-n-t-ch-s-u-d-n-fitness-assistant-ki-n-tr-c-services-frontend.md
+ D .agnes/artifacts/research/20260823_3/deep_research/20260823-3-fitness-assistant-deep-analysis-report.json
+ D .agnes/artifacts/research/20260823_3/deep_research/20260823-3-fitness-assistant-deep-analysis-report.md
+ M .env.example
+ M .github/workflows/docker-test.yml
+ M backend/services/ai-service/.env.example
+ M backend/services/ai-service/src/__tests__/agent-workflow-product-remediation-1.test.ts
+ M backend/services/ai-service/src/__tests__/agent-workflow-roadmap-e2e.test.ts
+ M backend/services/ai-service/src/__tests__/ai.flow.test.ts
+ M backend/services/ai-service/src/__tests__/plan-generation-equipment.integration.test.ts
+ M backend/services/ai-service/src/__tests__/x4-event-ordering.test.ts
+ M backend/services/ai-service/src/agent-workflow/orchestrator.ts
+ M backend/services/ai-service/src/agent-workflow/target-weight-safety.ts
+ M backend/services/ai-service/src/agent-workflow/workflows/roadmap.workflow.ts
+ M backend/services/ai-service/src/app.ts
+ M backend/services/ai-service/src/clients/auth-service.client.ts
+ M backend/services/ai-service/src/controllers/admin.controller.ts
+ M backend/services/ai-service/src/controllers/plan.controller.ts
+ M backend/services/ai-service/src/errors/api-error.ts
+ M backend/services/ai-service/src/evaluation/conversational-workflow-v2/results/conversational-workflow-evaluation-2.json
+ M backend/services/ai-service/src/generated/prisma/edge.js
+ M backend/services/ai-service/src/generated/prisma/index.js
+ M backend/services/ai-service/src/llm/intent_router.ts
+ M backend/services/ai-service/src/llm/json_llm_call.util.ts
+ M backend/services/ai-service/src/llm/nutrition_calculator.ts
+ M backend/services/ai-service/src/llm/orchestrator.service.ts
+ M backend/services/ai-service/src/llm/profile_extractor.ts
+ M backend/services/ai-service/src/llm/recommendation_engine.ts
+ M backend/services/ai-service/src/llm/types.ts
+ M backend/services/ai-service/src/llm/workout_schedule_context.ts
+ M backend/services/ai-service/src/middleware/auth.middleware.ts
+ M backend/services/ai-service/src/server.ts
+ M backend/services/ai-service/src/services/fitness-agent-intent.ts
+ M backend/services/ai-service/src/services/fitness-agent.service.ts
+ M backend/services/ai-service/src/services/llm.service.ts
+ M backend/services/ai-service/src/services/nutrition-plan-invariant.service.ts
+ M backend/services/ai-service/src/services/nutrition.processor.ts
+ M backend/services/ai-service/src/worker-lambda.ts
+ M backend/services/ai-service/src/workers/ai.worker.ts
+ M backend/services/ai-service/src/workers/queue-provider.ts
+ M backend/services/auth-service/prisma/seed.ts
+ M backend/services/auth-service/src/__tests__/login-and-refresh.test.ts
+ M backend/services/auth-service/src/generated/prisma/edge.js
+ M backend/services/auth-service/src/generated/prisma/index.js
+ M backend/services/auth-service/src/repositories/auth.repository.ts
+ M backend/services/auth-service/src/services/auth.service.ts
+ M backend/services/chat-service/Dockerfile
+ M backend/services/chat-service/src/app.ts
+ M backend/services/gym-service/src/generated/prisma/edge.js
+ M backend/services/gym-service/src/generated/prisma/index.js
+ M backend/services/user-service/scripts/build-lambda-artifact.js
+ M backend/services/user-service/src/services/agentic-fitness.service.ts
+ M docker-compose.test.yml
+ M docker/test/.env.test.example
+ M docs/aws-deployment/AWS_DEPLOYMENT_RUNBOOK.md
+ M frontend/web/.env.production.example
+ M frontend/web/src/app/components/agent/FitnessAgentBlocks.tsx
+ M frontend/web/src/app/config/serverUrl.ts
+ M frontend/web/src/app/pages/client/AIPlansPage.tsx
+ M frontend/web/src/app/services/api.ts
+ M frontend/web/src/app/services/fitnessAgent.ts
+ M frontend/web/src/app/services/socket.ts
+ M frontend/web/src/main.tsx
+ M infra/compose/docker-compose.prod.yml
+ M scripts/partner-application-e2e/browser-e2e-mobile.cjs
+ M scripts/partner-application-e2e/browser-e2e.cjs
+ M scripts/test-admin-e2e.mjs
+ M test/ai-coach-production-readiness/live-nutrition.ts
+?? .dev/
+?? backend/services/ai-service/src/__tests__/auth-middleware-token-rejection.test.ts
+?? backend/services/ai-service/src/__tests__/codex-final-closure-independent.test.ts
+?? backend/services/ai-service/src/__tests__/codex-remediation-boundary.test.ts
+?? backend/services/ai-service/src/__tests__/conversational-intelligence-global.test.ts
+?? backend/services/ai-service/src/__tests__/conversational-intelligence-v2.test.ts
+?? backend/services/ai-service/src/__tests__/cors-preflight.test.ts
+?? backend/services/ai-service/src/__tests__/fitness-agent-chat-verification-fixes.test.ts
+?? backend/services/ai-service/src/__tests__/fitness-agent-context-days.test.ts
+?? backend/services/ai-service/src/__tests__/fitness-agent-intent-coverage.test.ts
+?? backend/services/ai-service/src/__tests__/fitness-agent-profile-cache-invalidation.test.ts
+?? backend/services/ai-service/src/__tests__/fixtures/
+?? backend/services/ai-service/src/__tests__/nutrition-generation-repair.processor.test.ts
+?? backend/services/ai-service/src/__tests__/nutrition-goal-authority-in-chat.test.ts
+?? backend/services/ai-service/src/__tests__/nutrition-plan-repair.test.ts
+?? backend/services/ai-service/src/__tests__/queue-provider.test.ts
+?? backend/services/ai-service/src/__tests__/roadmap-multislot-extraction.test.ts
+?? backend/services/ai-service/src/agent-workflow/workflows/update-goal.workflow.ts
+?? backend/services/ai-service/src/conversational-intelligence/
+?? backend/services/ai-service/src/services/nutrition-plan-repair.ts
+?? backend/services/ai-service/src/workers/ai.worker.runtime.ts
+?? backend/services/auth-service/src/__tests__/credential-rotation-hardening.test.ts
+?? backend/services/auth-service/src/__tests__/credential-rotation-transaction.integration.test.ts
+?? backend/services/auth-service/src/scripts/seedGuard.ts
+?? backend/services/user-service/src/__tests__/agentic-fitness-optional-budget.test.ts
+?? backups/
+?? ce-ec2-other.json
+?? ce-usage-filter.json
+?? ce-vpc.json
+?? docs/CHAT_SERVICE_AWS_DEPLOYMENT_PLAN.md
+?? docs/CHAT_SERVICE_AWS_READINESS_REPORT.md
+?? docs/FULL_STACK_AWS_DEPLOYMENT_INVENTORY.md
+?? docs/FULL_STACK_AWS_RELEASE_SYNC_REPORT.md
+?? docs/ai-coach-live-provider-evaluation.md
+?? docs/codex-conversational-intelligence-final-closure-signoff.md
+?? docs/codex-conversational-intelligence-final-signoff.md
+?? docs/codex-conversational-intelligence-targeted-remediation-signoff.md
+?? docs/codex-full-conversational-intelligence-audit.md
+?? docs/codex-qwen3-4b-recheck.md
+?? docs/conversational-intelligence-evaluation.md
+?? docs/conversational-intelligence-final-defect-closure.md
+?? docs/conversational-intelligence-final-stabilization.md
+?? docs/conversational-intelligence-final-x4-runtime-closure.md
+?? docs/conversational-intelligence-global-coverage.md
+?? docs/conversational-intelligence-targeted-remediation.md
+?? docs/conversational-intelligence-v2.md
+?? docs/conversational-intelligence-x4-t10-final-fix.md
+?? docs/deployment/
+?? docs/nutrition-generation-invariant-remediation.md
+?? docs/research/workout-plan-bpm/
+?? infra/cloudformation/
+?? overrides-apply-prepatch.json
+?? overrides-restore.json
+?? scripts/auth-admin-rotation-helper.mock-server.mjs
+?? scripts/auth-admin-rotation-helper.ps1
+?? scripts/aws-dev-power.ps1
+?? scripts/aws/
+?? scripts/lib/
+?? test/ai-chat-full-verification/
+?? test/conversational-intelligence/build-corpus.mjs
+?? test/conversational-intelligence/build-global-blind.mjs
+?? test/conversational-intelligence/build-global-holdout2.mjs
+?? test/conversational-intelligence/build-holdout.mjs
+?? test/conversational-intelligence/codex-continued-probes.mjs
+?? test/conversational-intelligence/codex-draft-db.mjs
+?? test/conversational-intelligence/codex-final-closure-run.mjs
+?? test/conversational-intelligence/codex-final-confirmation-followup.mjs
+?? test/conversational-intelligence/codex-followup-evidence.mjs
+?? test/conversational-intelligence/codex-matrix-audit.mjs
+?? test/conversational-intelligence/codex-remediation-run.mjs
+?? test/conversational-intelligence/codex-security-http.mjs
+?? test/conversational-intelligence/codex-x4-edge-http.mjs
+?? test/conversational-intelligence/corpus.json
+?? test/conversational-intelligence/global-blind-2.json
+?? test/conversational-intelligence/global-blind-2.mjs
+?? test/conversational-intelligence/global-blind.frozen-input.json
+?? test/conversational-intelligence/global-blind.json
+?? test/conversational-intelligence/global-holdout2.json
+?? test/conversational-intelligence/holdout.json
+?? test/conversational-intelligence/live-global.mjs
+?? test/conversational-intelligence/live-golden.mjs
+?? test/conversational-intelligence/probe-route.ts
+?? test/conversational-intelligence/probe-scenarios.ts
+?? test/conversational-intelligence/results/
+?? test/conversational-intelligence/run-corpus.ts
+?? test/conversational-intelligence/run-global-2-live-v2.mjs
+?? test/conversational-intelligence/run-global-2-live.mjs
+?? test/conversational-intelligence/run-global-2.ts
+?? test/conversational-intelligence/run-global-holdout2.ts
+?? test/conversational-intelligence/run-global-holdout2b.ts
+?? test/conversational-intelligence/run-global-llm.ts
+?? test/conversational-intelligence/run-global.ts
+?? test/conversational-intelligence/run-llm.ts
+?? test/conversational-intelligence/stress-live.ts
+?? test/conversational-intelligence/test/
+?? test/conversational-intelligence/x4-t10-repro.mjs
+?? test/inbody_duy/
+?? test/model-4b-recheck/
+?? test/nutrition-invariant-remediation/
+?? test/research/
+?? tools/

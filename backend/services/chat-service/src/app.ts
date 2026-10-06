@@ -1,5 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import cors from "cors";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
@@ -9,8 +10,22 @@ import { callService } from "./services/call.service";
 const app: Express = express();
 
 app.use(helmet());
-// No CORS middleware here: this service is only reached via the gateway, which handles CORS.
-// Having it here clobbers the gateway's origin-scoped headers with a mismatch.
+// No CORS middleware in local dev/docker-compose: this service is only reached via
+// backend/gateway's own Express proxy there, which already sets origin-scoped CORS
+// headers on the proxied response — adding a second, independent set here (even with
+// an identical origin value) can leave the browser looking at two
+// Access-Control-Allow-Origin headers on the same response and rejecting it outright.
+//
+// AWS deployment readiness fix: on AWS, Chat's REST endpoints sit directly behind its
+// own ALB (see docs/CHAT_SERVICE_AWS_DEPLOYMENT_PLAN.md) — there is no Express gateway
+// proxy in front of it there, so nothing else will ever set that header, and the
+// browser blocks every cross-origin REST call without it. `ENABLE_REST_CORS` is a new,
+// deliberately separate flag from `CORS_ORIGIN` (already used by Socket.IO's own CORS
+// config below) precisely so enabling it is an explicit, AWS-only opt-in that changes
+// nothing about the existing local dev/docker-compose behavior by default.
+if (process.env.ENABLE_REST_CORS === "true") {
+  app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173", credentials: true }));
+}
 app.use(express.json());
 app.use(metricsMiddleware());
 

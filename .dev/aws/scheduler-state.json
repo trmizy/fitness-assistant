@@ -1,0 +1,16 @@
+{
+    "fitness-assistant-dev-ai-autoaccept": "ENABLED",
+    "fitness-assistant-dev-ai-pubmed": "ENABLED",
+    "fitness-assistant-dev-payment-reconciliation": "ENABLED",
+    "fitness-assistant-dev-user-session-auto-confirm": "ENABLED",
+    "fitness-assistant-dev-user-session-settlement": "ENABLED",
+    "fitness-assistant-dev-ai-rss": "ENABLED",
+    "fitness-assistant-dev-gym-partner-upload-sweep": "DISABLED",
+    "fitness-assistant-dev-workout-unfinished-reminder": "ENABLED",
+    "fitness-assistant-dev-ai-local-evidence": "ENABLED",
+    "fitness-assistant-dev-user-reschedule-expiry": "ENABLED",
+    "fitness-assistant-dev-ai-web": "ENABLED",
+    "fitness-assistant-dev-gym-membership-payout": "ENABLED",
+    "fitness-assistant-dev-gym-referral-settlement": "ENABLED",
+    "fitness-assistant-dev-workout-upcoming-reminder": "ENABLED"
+}

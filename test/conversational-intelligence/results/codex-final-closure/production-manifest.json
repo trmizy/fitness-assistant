@@ -1,0 +1,34 @@
+[
+  {
+    "path": "services/fitness-agent-tools.ts",
+    "sha256": "32748db44f5804466b2f35de06eefb9b91d4076086d534cda055d6f3aefe6dd9"
+  },
+  {
+    "path": "services/fitness-agent.service.ts",
+    "sha256": "3c9fe264a28aa0f0dc32083e16fe27c50aba0e76be7ac3ca29bec3e87e66cf62"
+  },
+  {
+    "path": "services/confirmation-boundary.ts",
+    "sha256": "ea7451301e1dbf566ecad0e3a33b10d8b573b15999f925b70abdc3dbbf150797"
+  },
+  {
+    "path": "conversational-intelligence/global/profile-errors.ts",
+    "sha256": "217629f31176f4c8fc56c6fd85550ebe9689fdffa718704a33e3cb90a1d52241"
+  },
+  {
+    "path": "conversational-intelligence/global/global-turn.ts",
+    "sha256": "39cce2cc90b2a940a5987b74e0b732bc91b97ebc9ca2e0d5d8e94b2e77bf3a83"
+  },
+  {
+    "path": "conversational-intelligence/global/llm-route.ts",
+    "sha256": "0d65bd7c3a4a60a742afe6e477dffa04f17bf44659b4871d52692d14b17c5aa6"
+  },
+  {
+    "path": "llm/json_llm_call.util.ts",
+    "sha256": "2f9e407275b3311872e342c151b372790cadafc5eb3ce64b043644eb383cf8f0"
+  },
+  {
+    "path": "conversational-intelligence/index.ts",
+    "sha256": "62eeb3e6d3904e55a8cf14dd47ea640d5f9c8eac3054be3f6e756446025551c8"
+  }
+]

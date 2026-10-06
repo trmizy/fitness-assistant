@@ -14,7 +14,7 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@gym-coach/shared";
 import { conversationRepository } from "../repositories/conversation.repository";
-import { aiQueue } from "../workers/ai.queue";
+import { getAiQueueStats } from "../workers/queue-provider";
 import {
   enqueueLocalEvidenceRefresh,
   enqueuePubMedRefresh,
@@ -90,15 +90,10 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const [dbStats, waiting, active, completed, failed, delayed] =
-        await Promise.all([
-          conversationRepository.adminGetOverviewStats(),
-          aiQueue.getWaitingCount().catch(() => null),
-          aiQueue.getActiveCount().catch(() => null),
-          aiQueue.getCompletedCount().catch(() => null),
-          aiQueue.getFailedCount().catch(() => null),
-          aiQueue.getDelayedCount().catch(() => null),
-        ]);
+      const [dbStats, queue] = await Promise.all([
+        conversationRepository.adminGetOverviewStats(),
+        getAiQueueStats(),
+      ]);
 
       res.json(
         formatSuccessResponse({
@@ -108,14 +103,9 @@ export const adminController = {
           languages: dbStats.languages,
           plans: {
             ...dbStats.plans,
-            // BullMQ live counts (may be null if Redis is down)
-            queue: {
-              waiting: waiting ?? null,
-              active: active ?? null,
-              completed: completed ?? null,
-              failed: failed ?? null,
-              delayed: delayed ?? null,
-            },
+            // Live queue counts (BullMQ or SQS depending on QUEUE_PROVIDER) — individual
+            // fields are null when that backend doesn't expose the count or is unreachable.
+            queue,
           },
         }),
       );
@@ -190,20 +180,15 @@ export const adminController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const [plans, waiting, active, completed, failed, delayed] =
-        await Promise.all([
-          conversationRepository.adminListPlans(30),
-          aiQueue.getWaitingCount().catch(() => null),
-          aiQueue.getActiveCount().catch(() => null),
-          aiQueue.getCompletedCount().catch(() => null),
-          aiQueue.getFailedCount().catch(() => null),
-          aiQueue.getDelayedCount().catch(() => null),
-        ]);
+      const [plans, queue] = await Promise.all([
+        conversationRepository.adminListPlans(30),
+        getAiQueueStats(),
+      ]);
 
       res.json(
         formatSuccessResponse({
           generatedAt: new Date().toISOString(),
-          queue: { waiting, active, completed, failed, delayed },
+          queue,
           plans,
         }),
       );

@@ -1,0 +1,225 @@
+{
+ "description": "Real qwen3:30b template that yields an invariant-failing 3-meal plan (fat_target_mismatch + calorie_target_mismatch) before repair",
+ "mealsPerDay": 3,
+ "dailyCaloriesTarget": 1992,
+ "proteinTargetG": 128,
+ "carbTargetG": 246,
+ "fatTargetG": 55,
+ "excludedFoodKeys": [
+  "fish",
+  "beef"
+ ],
+ "llmTemplateAnswer": "{\n  \"meals\": [\n    {\n      \"mealType\": \"BREAKFAST\",\n      \"title\": \"Bữa sáng giàu protein\",\n      \"items\": [\n        { \"foodId\": \"49e24152-19cd-4ed5-8760-756da41eac8c\", \"quantity\": 120, \"note\": \"Dễ chuẩn bị\" }\n      ]\n    },\n    {\n      \"mealType\": \"LUNCH\",\n      \"title\": \"Bữa trưa cân bằng\",\n      \"items\": [\n        { \"foodId\": \"f8e1b5e5-b6c8-4869-a434-3a4b4662556c\", \"quantity\": 100, \"note\": \"Soybeans khô, rang, không muối\" }\n      ]\n    },\n    {\n      \"mealType\": \"DINNER\",\n      \"title\": \"Bữa tối nhẹ nhàng\",\n      \"items\": [\n        { \"foodId\": \"4adf7689-940e-48f3-8f47-376c25abbcf3\", \"quantity\": 110, \"note\": \"Soy flour full-fat, raw\" }\n      ]\n    }\n  ],\n  \"nutritionNotes\": [\"Ưu tiên đủ protein và chia đều năng lượng trong ngày.\"]\n}",
+ "foods": [
+  {
+   "id": "49e24152-19cd-4ed5-8760-756da41eac8c",
+   "name": "Soy flour, defatted",
+   "calories": 327,
+   "protein": 51.5,
+   "carbs": 33.9,
+   "fat": 1.2,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "f8e1b5e5-b6c8-4869-a434-3a4b4662556c",
+   "name": "Soybeans, mature seeds, dry roasted",
+   "calories": 449,
+   "protein": 43.3,
+   "carbs": 29,
+   "fat": 21.6,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "4adf7689-940e-48f3-8f47-376c25abbcf3",
+   "name": "Soy flour, full-fat, raw",
+   "calories": 434,
+   "protein": 37.8,
+   "carbs": 31.9,
+   "fat": 20.6,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "c7dccd89-d17d-48f0-9f87-c26ee30a1259",
+   "name": "Turkey, drumstick, from whole bird, meat only, roasted",
+   "calories": 139,
+   "protein": 30.1,
+   "carbs": 0,
+   "fat": 2.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "f5e67187-c2ae-429b-b5b5-4da695108296",
+   "name": "Turkey, retail parts, breast, meat only, cooked, roasted",
+   "calories": 136,
+   "protein": 29.5,
+   "carbs": 0,
+   "fat": 2,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "45884b22-4263-44be-8f94-68d5fda36202",
+   "name": "Turkey, light meat, skin not eaten",
+   "calories": 139,
+   "protein": 28.8,
+   "carbs": 0,
+   "fat": 2.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "a186002f-111d-40f4-bcca-28664afcb2ad",
+   "name": "Turkey, NFS",
+   "calories": 139,
+   "protein": 28.8,
+   "carbs": 0,
+   "fat": 2.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "3fc40168-4e6f-4de4-8a9c-08b0bc63d91f",
+   "name": "Turkey, light meat, roasted, skin not eaten",
+   "calories": 139,
+   "protein": 28.8,
+   "carbs": 0,
+   "fat": 2.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "f852ae5b-d23a-4e8e-8964-327199f9dd75",
+   "name": "Turkey, wing, cooked, skin not eaten",
+   "calories": 139,
+   "protein": 28.8,
+   "carbs": 0,
+   "fat": 2.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "d155afa2-0617-4d0d-a166-a4816889d4c2",
+   "name": "Apples, dehydrated (low moisture), sulfured, uncooked",
+   "calories": 346,
+   "protein": 1.3,
+   "carbs": 93.5,
+   "fat": 0.6,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "9598e961-806e-4e64-99d6-a674568f4302",
+   "name": "Puddings, banana, dry mix, regular",
+   "calories": 366,
+   "protein": 0,
+   "carbs": 93,
+   "fat": 0.4,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "b2edf5de-6021-492b-9c64-39819750be46",
+   "name": "Milk, malted, dry mix, not reconstituted",
+   "calories": 372,
+   "protein": 0,
+   "carbs": 93,
+   "fat": 0,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "7d765c86-573d-4532-adcf-a7cd8364d462",
+   "name": "Puddings, banana, dry mix, instant",
+   "calories": 367,
+   "protein": 0,
+   "carbs": 92.7,
+   "fat": 0.6,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "62f390ea-f888-4588-95a6-02633da4f127",
+   "name": "Toppings, pineapple",
+   "calories": 253,
+   "protein": 0.1,
+   "carbs": 66.4,
+   "fat": 0.1,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "18c80677-9b2f-4d96-b21e-20917dd08271",
+   "name": "Marmalade, orange",
+   "calories": 246,
+   "protein": 0.3,
+   "carbs": 66.3,
+   "fat": 0,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "e53a31d1-8a30-4154-be83-acc6e2b6caa5",
+   "name": "Pork, cured, separable fat (from ham and arm picnic), roasted",
+   "calories": 591,
+   "protein": 7.6,
+   "carbs": 0,
+   "fat": 61.9,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "a6d4b896-3e09-49de-847d-7eaddb093ac7",
+   "name": "Pork, cured, separable fat (from ham and arm picnic), unheated",
+   "calories": 579,
+   "protein": 5.7,
+   "carbs": 0.1,
+   "fat": 61.4,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "0092cca2-0af8-435b-b13d-af48f5bdd97c",
+   "name": "Pork, cured, ham, separable fat, boneless, unheated",
+   "calories": 515,
+   "protein": 7.5,
+   "carbs": 1.9,
+   "fat": 53,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "b8cfff12-14a4-4c44-ada2-786897af60b3",
+   "name": "Pork, fresh, composite of separable fat, with added solution, raw",
+   "calories": 508,
+   "protein": 9.3,
+   "carbs": 0,
+   "fat": 52.3,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "85bb5211-950c-4cbb-9f0f-b388dc61ac37",
+   "name": "Spinach dip, regular",
+   "calories": 345,
+   "protein": 2.4,
+   "carbs": 3.4,
+   "fat": 35.8,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  },
+  {
+   "id": "5664aa1e-c04d-49ed-8e53-85b49224c817",
+   "name": "Margarine-like spread with yogurt, approximately 40% fat, tub, with salt",
+   "calories": 330,
+   "protein": 2,
+   "carbs": 2,
+   "fat": 35,
+   "foodForm": null,
+   "realisticServingMaxG": null
+  }
+ ]
+}

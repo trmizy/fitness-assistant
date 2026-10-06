@@ -1,0 +1,1374 @@
+[
+  {
+    "state": "S0 nothing pending",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Hiện chưa có bản nháp hay thao tác nào đang chờ xác nhận, nên mình chưa lưu gì cả.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Hiện chưa có bản nháp hay thao tác nào đang chờ xác nhận, nên mình chưa lưu gì cả.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Hiện chưa có bản nháp hay thao tác nào đang chờ xác nhận, nên mình chưa lưu gì cả.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Hiện chưa có bản nháp hay thao tác nào đang chờ xác nhận, nên mình chưa lưu gì cả.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Hiện chưa có bản nháp hay thao tác nào đang chờ xác nhận, nên mình chưa lưu gì cả.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Chưa có thay đổi nào được lưu trong cuộc trò chuyện này — hiện không có thao tác nào đang chờ xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S0 nothing pending",
+    "id": "U7-knowledge",
+    "text": "Giải thích cơ chế xác nhận cập nhật là gì.",
+    "http": 200,
+    "answer": "Câu hỏi của bạn: *\"Giải thích cơ chế xác nhận cập nhật là gì\"* — đây là một câu hỏi về **cơ chế vận hành của hệ thống**, chứ không liên quan trực tiếp đến tập luyện, dinh dưỡng, phục hồi hay sức khỏe thể chất.\n\n👉 Vì vậy",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "claim": true,
+    "wroteToDb": true,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": [
+      "ACTION_RESULT"
+    ]
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "claim": true,
+    "wroteToDb": true,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": [
+      "ACTION_RESULT"
+    ]
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "claim": true,
+    "wroteToDb": true,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": [
+      "ACTION_RESULT"
+    ]
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "claim": true,
+    "wroteToDb": true,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": [
+      "ACTION_RESULT"
+    ]
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "claim": true,
+    "wroteToDb": true,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": [
+      "ACTION_RESULT"
+    ]
+  },
+  {
+    "state": "S1 profile card pending (workflow AWAITING_SLOT_CONFIRMATION)",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Bạn xác nhận cập nhật, cho mình một giá trị khác, hay muốn hủy?",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "after": {
+      "goal": "MUSCLE_GAIN",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:AWAITING_SLOT_CONFIRMATION"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Mình chưa lưu gì cả. Việc lưu chỉ được thực hiện khi bạn bấm nút **Xác nhận** trên thẻ xem trước đang chờ (hoặc **Bỏ qua** để hủy). Bạn vẫn có thể tiếp tục chỉnh sửa bản nháp bằng lời trước khi xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Mình chưa lưu gì cả. Việc lưu chỉ được thực hiện khi bạn bấm nút **Xác nhận** trên thẻ xem trước đang chờ (hoặc **Bỏ qua** để hủy). Bạn vẫn có thể tiếp tục chỉnh sửa bản nháp bằng lời trước khi xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Mình chưa lưu gì cả. Việc lưu chỉ được thực hiện khi bạn bấm nút **Xác nhận** trên thẻ xem trước đang chờ (hoặc **Bỏ qua** để hủy). Bạn vẫn có thể tiếp tục chỉnh sửa bản nháp bằng lời trước khi xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Mình chưa lưu gì cả. Việc lưu chỉ được thực hiện khi bạn bấm nút **Xác nhận** trên thẻ xem trước đang chờ (hoặc **Bỏ qua** để hủy). Bạn vẫn có thể tiếp tục chỉnh sửa bản nháp bằng lời trước khi xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Mình chưa lưu gì cả. Việc lưu chỉ được thực hiện khi bạn bấm nút **Xác nhận** trên thẻ xem trước đang chờ (hoặc **Bỏ qua** để hủy). Bạn vẫn có thể tiếp tục chỉnh sửa bản nháp bằng lời trước khi xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Chưa — mình chưa lưu gì cả. Thay đổi vẫn đang chờ bạn bấm nút **Xác nhận** trên thẻ xem trước (hoặc **Bỏ qua** để hủy).",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S2 workout draft pending",
+    "id": "U7-knowledge",
+    "text": "Giải thích cơ chế xác nhận cập nhật là gì.",
+    "http": 200,
+    "answer": "Cơ chế xác nhận cập nhật trong kế hoạch thể hình là quá trình **kiểm tra và điều chỉnh** kế hoạch tập luyện hoặc dinh dưỡng dựa trên **dữ liệu thực tế** mà người dùng cung cấp, nhằm đảm bảo rằng chương trình phù hợp với ",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S3 draft already CONFIRMED (completed)",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "1",
+      "actions": "CREATE_WORKOUT_PLAN:COMPLETED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S4 draft DISMISSED (cancelled)",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Chưa — bản gần nhất đã được bỏ qua nên mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S5 draft EXPIRED",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Yêu cầu chờ xác nhận gần nhất đã hết hạn nên mình chưa lưu gì cả và cũng không thể lưu nữa. Bạn nhắn lại yêu cầu để mình soạn bản mới nhé.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:PENDING",
+      "workflows": ""
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S7 profile workflow COMPLETED (no FitnessAgentAction rows)",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu rồi, nên hiện không còn gì đang chờ bạn xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S8 profile workflow COMPLETED behind 6 newer unrelated terminal workflows",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "expectationFailed": false,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "",
+      "workflows": "UPDATE_GOAL:COMPLETED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED,CREATE_WORKOUT_PLAN:CANCELLED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U1",
+    "text": "Xác nhận cập nhật.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U2",
+    "text": "Xác nhận.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U3",
+    "text": "Ok lưu đi.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U4",
+    "text": "Tôi đồng ý.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U5",
+    "text": "Coi như tôi đã xác nhận.",
+    "http": 200,
+    "answer": "Bản gần nhất đã được bỏ qua nên hiện không còn gì để xác nhận, và mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S9 action created, profile confirmed, action cancelled via real dismiss afterwards",
+    "id": "U6",
+    "text": "Đã lưu thành công chưa?",
+    "http": 200,
+    "answer": "Chưa — bản gần nhất đã được bỏ qua nên mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "claim": false,
+    "wroteToDb": false,
+    "claimWithoutWrite": false,
+    "expectationChecked": true,
+    "before": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "after": {
+      "goal": "WEIGHT_LOSS",
+      "programs": "0",
+      "actions": "CREATE_WORKOUT_PLAN:CANCELLED",
+      "workflows": "UPDATE_GOAL:COMPLETED"
+    },
+    "blocks": []
+  },
+  {
+    "state": "S6 cross-user",
+    "id": "U1",
+    "http": 404,
+    "answer": "{\"success\":false,\"error\":{\"code\":\"SESSION_NOT_FOUND\",\"message\":\"Session 23bbe2b0-b3fd-477f-84d0-33f60318aab1 not found\"}}",
+    "aDraftStillPending": true,
+    "expectationChecked": true,
+    "expectationFailed": false
+  }
+]

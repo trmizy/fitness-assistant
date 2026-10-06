@@ -1,0 +1,23 @@
+{
+  "model": "qwen3:30b-a3b-instruct-2507-q4_K_M",
+  "unknownTurns": 9,
+  "correctOrSafePassThrough": "8/9",
+  "noRoute": 1,
+  "unsafeRoutes": 0,
+  "latencyMs": {
+    "p50": 728,
+    "max": 1311,
+    "min": 585
+  },
+  "rows": [
+    "OK  mình đang tập với ai vậy nhỉ → READ_STATE(PT_STATUS)  [expected READ_STATE(PT_STATUS)]",
+    "OK  bao nhiêu gram đạm mỗi ngày là mục tiêu của tôi → READ_STATE(NUTRITION_TARGET)  [expected READ_STATE(NUTRITION_TARGET)]",
+    "OK  tôi nặng bao nhiêu theo hồ sơ → READ_STATE(PROFILE_FACT)  [expected READ_STATE(PROFILE_FACT)]",
+    "OK  hợp đồng nào của tôi còn hiệu lực → READ_STATE(CONTRACT_STATUS)  [expected READ_STATE(CONTRACT_STATUS)]",
+    "OK  do i have a trainer yet → READ_STATE(PT_STATUS)  [expected READ_STATE(PT_STATUS)]",
+    "BAD tôi nên tăng hay giảm cân → RECOMMEND(TARGET_WEIGHT)  [expected RECOMMEND(GOAL)]",
+    "OK  what does RPE mean → KNOWLEDGE_QA  [expected KNOWLEDGE_QA]",
+    "OK  ăn bao nhiêu protein là đủ vậy → KNOWLEDGE_QA  [expected KNOWLEDGE_QA]",
+    "OK  thôi bỏ đi → no-route(pass-through)  [expected CANCEL]"
+  ]
+}

@@ -1,0 +1,2 @@
+{"id":"EV-CMD-001","command":"preflight: required docs/paths/globs, source hashes, git state","startedAt":"2026-10-03T05:40:58.619Z","endedAt":"2026-10-03T05:40:58.824Z","classification":"PREFLIGHT_OK"}
+{"id":"EV-CMD-002","command":"parse 11-qwen3-4b-evaluation-plan.md dataset contract","startedAt":"2026-10-03T05:40:58.619Z","endedAt":"2026-10-03T05:40:58.826Z","classification":"DATASET_CONSTRUCTION_BLOCKED"}

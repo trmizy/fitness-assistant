@@ -3533,6 +3533,13 @@ export const planService = {
 };
 
 function aiFriendlyErrorMessage(status?: number): string {
+  // 401 falls through to here only after api.ts's interceptor already attempted a silent
+  // refresh-and-retry and either the session is genuinely over or /auth/refresh itself could
+  // not be reached — either way "Không thể kết nối AI Coach" (the old fallback) told the user
+  // nothing actionable. See AIPlansPage.tsx's summarizeApiError for the same 401 case.
+  if (status === 401) {
+    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  }
   if (status === 408 || status === 504) {
     return "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
   }

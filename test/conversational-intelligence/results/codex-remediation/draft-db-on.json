@@ -1,0 +1,146 @@
+[
+  {
+    "variant": "A",
+    "setup": {
+      "workflow": "CREATE_WORKOUT_PLAN|COLLECTING_SLOTS|daysPerWeek",
+      "actions": []
+    },
+    "userId": "aa960849-7881-45b1-95fa-1146ebf2e878",
+    "sessionId": "7c14119d-6ace-4a57-92c8-fa4e93299d04",
+    "http": 200,
+    "correlationId": "ai_1790484697503_42bznw",
+    "route": "CORRECTION",
+    "llmCalled": false,
+    "before": [
+      {
+        "id": "3e373750-2cfc-49f3-9c7d-84bef66bf003",
+        "status": "PENDING",
+        "days": 3
+      }
+    ],
+    "after": [
+      {
+        "id": "3e373750-2cfc-49f3-9c7d-84bef66bf003",
+        "status": "PENDING",
+        "days": 5
+      }
+    ],
+    "sameDraft": true,
+    "fiveDays": true,
+    "profileUnchanged": true,
+    "programs": "0",
+    "recommendations": "0",
+    "answer": "Mình đã đổi lịch tập sang 5 buổi/tuần (Thứ 2, Thứ 3, Thứ 4, Thứ 5, Thứ 7) (2 bài tập không khớp thư viện đã được bỏ qua).",
+    "traces": [
+      {
+        "level": 30,
+        "time": 1790484697656,
+        "pid": 157,
+        "hostname": "fbcbdeac972e",
+        "correlationId": "ai_1790484697503_42bznw",
+        "userId": "aa960849-7881-45b1-95fa-1146ebf2e878",
+        "sessionId": "7c14119d-6ace-4a57-92c8-fa4e93299d04",
+        "proposalStored": false,
+        "pendingDraft": true,
+        "deterministicRoute": "CORRECTION",
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "CORRECTION",
+        "reason": "correction cue with a new value for the pending draft",
+        "action": "pass-through to the existing pipeline",
+        "msg": "ci_global_trace"
+      },
+      {
+        "level": 30,
+        "time": 1790484709253,
+        "pid": 157,
+        "hostname": "fbcbdeac972e",
+        "correlationId": "ai_1790484697503_42bznw",
+        "userId": "aa960849-7881-45b1-95fa-1146ebf2e878",
+        "sessionId": "7c14119d-6ace-4a57-92c8-fa4e93299d04",
+        "routeIntent": "fitness_agent",
+        "workflowBefore": null,
+        "workflowAfter": null,
+        "workflowTransition": "none",
+        "pendingDraftBefore": true,
+        "pendingDraftAfter": true,
+        "msg": "ci_turn_transition"
+      }
+    ]
+  },
+  {
+    "variant": "B",
+    "setup": {
+      "workflow": "",
+      "actions": [
+        {
+          "id": "4a3ddcb4-dbd1-4f34-98f6-879abc806cf9",
+          "status": "PENDING",
+          "days": 3
+        }
+      ]
+    },
+    "userId": "edcd58e6-f08e-4230-b113-d685daa4e6d0",
+    "sessionId": "ea2cb596-12a9-4838-acf4-6d8bf4cd6da5",
+    "http": 200,
+    "correlationId": "ai_1790484721535_yzd3vd",
+    "route": "CORRECTION",
+    "llmCalled": false,
+    "before": [
+      {
+        "id": "4a3ddcb4-dbd1-4f34-98f6-879abc806cf9",
+        "status": "PENDING",
+        "days": 3
+      }
+    ],
+    "after": [
+      {
+        "id": "4a3ddcb4-dbd1-4f34-98f6-879abc806cf9",
+        "status": "PENDING",
+        "days": 5
+      }
+    ],
+    "sameDraft": true,
+    "fiveDays": true,
+    "profileUnchanged": true,
+    "programs": "0",
+    "recommendations": "0",
+    "answer": "Mình đã đổi lịch tập sang 5 buổi/tuần (Thứ 2, Thứ 3, Thứ 4, Thứ 5, Thứ 7) (2 bài tập không khớp thư viện đã được bỏ qua).",
+    "traces": [
+      {
+        "level": 30,
+        "time": 1790484721631,
+        "pid": 157,
+        "hostname": "fbcbdeac972e",
+        "correlationId": "ai_1790484721535_yzd3vd",
+        "userId": "edcd58e6-f08e-4230-b113-d685daa4e6d0",
+        "sessionId": "ea2cb596-12a9-4838-acf4-6d8bf4cd6da5",
+        "proposalStored": false,
+        "pendingDraft": true,
+        "deterministicRoute": "CORRECTION",
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "CORRECTION",
+        "reason": "correction cue with a new value for the pending draft",
+        "action": "pass-through to the existing pipeline",
+        "msg": "ci_global_trace"
+      },
+      {
+        "level": 30,
+        "time": 1790484732235,
+        "pid": 157,
+        "hostname": "fbcbdeac972e",
+        "correlationId": "ai_1790484721535_yzd3vd",
+        "userId": "edcd58e6-f08e-4230-b113-d685daa4e6d0",
+        "sessionId": "ea2cb596-12a9-4838-acf4-6d8bf4cd6da5",
+        "routeIntent": "fitness_agent",
+        "workflowBefore": null,
+        "workflowAfter": null,
+        "workflowTransition": "none",
+        "pendingDraftBefore": true,
+        "pendingDraftAfter": true,
+        "msg": "ci_turn_transition"
+      }
+    ]
+  }
+]

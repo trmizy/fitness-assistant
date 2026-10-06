@@ -27,12 +27,20 @@ import { findPtWorkflow, findTrainingProgramWorkflow, resolveBudgetPreference } 
 import { createWorkoutPlanWorkflow } from "../agent-workflow/workflows/create-workout-plan.workflow";
 import { createNutritionPlanWorkflow } from "../agent-workflow/workflows/create-nutrition-plan.workflow";
 import { updateGoalWorkflow, UPDATE_GOAL_INTENT_KIND } from "../agent-workflow/workflows/update-goal.workflow";
-import { ciMode } from "../conversational-intelligence";
+import { ciMode, unifiedCoachMode } from "../conversational-intelligence";
 import { runGlobalTurn } from "../conversational-intelligence/global/global-turn";
 import { profileFailureAnswer } from "../conversational-intelligence/global/profile-errors";
 import { classifyConfirmationUtterance, confirmationBoundaryAnswer, deriveConfirmationState, mergeConfirmationState } from "./confirmation-boundary";
 import { GOAL_LABEL } from "../conversational-intelligence/responses";
 import type { Goal } from "../conversational-intelligence";
+import { fromConfirmationBoundary, fromGlobalRouteResult, fromLegacyIntentKind } from "./turn-understanding/adapters";
+import type { UnifiedTurnUnderstanding } from "./turn-understanding/types";
+import { planBoundedTurn } from "./bounded-turn/planner";
+import { executeBoundedTurn } from "./bounded-turn/executor";
+import type { BoundedTurnPlan } from "./bounded-turn/types";
+import { tryReviseRecommendation } from "./revision/pt-program-revision";
+import { tryReviseNutritionTarget } from "./revision/nutrition-revision";
+import { tryExplainUnsupportedPermanentSwap } from "./revision/workout-guards";
 
 registerWorkflow(createRoadmapWorkflow);
 registerWorkflow(findPtWorkflow);
@@ -142,6 +150,37 @@ function applyWeekdayLabels(schedule: any[], weekdays: number[]): any[] {
     ...d, day: `${weekdayLabel(weekdays[i])} ${String(d.day).replace(/^(?:Thứ\s*\d|Chủ nhật|CN)\s*/i, "").trim()}`.trim(),
   }));
 }
+// Phase 3 Batch 2 (docs/ai-product/phase3-batch2-unified-turn.md) — diagnostic-only structured
+// trace of the canonical turn understanding. Never raw message text, never full entity values
+// (same discipline as the existing ci_global_trace/ci_v2_turn events). Wrapped so a logging bug
+// can never affect the real turn — this function itself has no authority over anything.
+function logTurnUnderstanding(correlationId: string | undefined, identity: AgentIdentity, sessionId: string, u: UnifiedTurnUnderstanding): void {
+  try {
+    logger.info({
+      correlationId, userId: identity.userId, sessionId,
+      primaryIntent: u.primaryIntent, domain: u.domain, routeClassKind: u.routeClass.kind,
+      interpretationSource: u.interpretationSource, confidence: u.confidence,
+      hasCorrection: u.corrections.length > 0, hasReference: u.references.length > 0,
+      ambiguityCount: u.ambiguity.length, mutationIntent: u.mutationIntent,
+    }, "turn_understanding");
+  } catch {
+    // diagnostic only
+  }
+}
+// Phase 3 Batch 3 — diagnostic-only, same discipline as logTurnUnderstanding above: no raw
+// message text, no entity values. Logged for EVERY MULTI turn regardless of feature-flag state
+// (shadow observability by default), never read back by anything downstream.
+function logBoundedTurnPlan(correlationId: string | undefined, identity: AgentIdentity, sessionId: string, plan: BoundedTurnPlan): void {
+  try {
+    logger.info({
+      correlationId, userId: identity.userId, sessionId,
+      compositionType: plan.compositionType, readCount: plan.reads.length, hasRecommendation: !!plan.recommendation,
+      supported: plan.supported, reasonUnsupported: plan.reasonUnsupported, handledBy: plan.handledBy,
+    }, "bounded_turn_plan");
+  } catch {
+    // diagnostic only
+  }
+}
 const todayHcm = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 /** Same rule as fitness-service nextDateForWeekday(start, weekday, 0). */
 function firstDateForWeekday(startDate: string, weekday: number): string {
@@ -150,9 +189,61 @@ function firstDateForWeekday(startDate: string, weekday: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Phase 2 (docs/research/workout-plan-bpm, FR09/EX03/AC25/AC09) — closes the
+// named gap "equipment compatibility is checked too late": the only
+// equipment-aware step before this ran on free-text profile strings against a
+// hardcoded name dictionary (recommendation_engine.ts's filterExercisesByEquipment),
+// before any canonical exerciseId existed. This re-checks the RESOLVED draft
+// against the user's REAL UserEquipment rows, via the exact same
+// planEquipmentValidatorService.validate fitness-service already runs at
+// confirm time (validateAiPlanExerciseEquipment) — reused, not reinvented —
+// and repairs violations with the exact same substitution service the "Đổi
+// bài tập" UI already uses. Confirm-time validation is untouched and remains
+// the hard backstop (defense in depth, not a replacement).
+async function applyEquipmentFiltering(identity: AgentIdentity, weeklySchedule: any[]): Promise<{
+  weeklySchedule: any[]; equipmentSubstitutedCount: number; equipmentDroppedCount: number;
+}> {
+  if (!weeklySchedule.length) return { weeklySchedule, equipmentSubstitutedCount: 0, equipmentDroppedCount: 0 };
+  let validation: { valid: boolean; violations: Array<{ exerciseId: string }>; skippedNoUserEquipment: boolean } | null = null;
+  try {
+    validation = await fitnessAgentDeps.tools.validatePlanEquipment(identity, weeklySchedule);
+  } catch {
+    // Downstream (confirm-time) validation is still the hard backstop — a
+    // failed draft-time check here can only mean a missed preview-time
+    // improvement this one time, never an unsafe persist.
+    return { weeklySchedule, equipmentSubstitutedCount: 0, equipmentDroppedCount: 0 };
+  }
+  if (!validation || validation.valid || validation.skippedNoUserEquipment || !validation.violations.length) {
+    return { weeklySchedule, equipmentSubstitutedCount: 0, equipmentDroppedCount: 0 };
+  }
+  const violatingIds = new Set(validation.violations.map((v) => v.exerciseId));
+  let equipmentSubstitutedCount = 0;
+  let equipmentDroppedCount = 0;
+  const updatedDays = await Promise.all(weeklySchedule.map(async (day: any) => {
+    // Tracks every exerciseId already present in THIS day (original +
+    // substitutes already chosen earlier in this same loop) so a repair
+    // never introduces a duplicate exercise into one day.
+    const usedIds = new Set<string>(day.exercises.map((e: any) => e.exerciseId));
+    const keptExercises: any[] = [];
+    for (const exercise of day.exercises) {
+      if (!violatingIds.has(exercise.exerciseId)) { keptExercises.push(exercise); continue; }
+      const substitute = await fitnessAgentDeps.tools.getExerciseSubstitute(identity, exercise.exerciseId, [...usedIds]);
+      if (substitute) {
+        equipmentSubstitutedCount += 1;
+        usedIds.add(substitute.id);
+        keptExercises.push({ ...exercise, exerciseId: substitute.id, name: substitute.exerciseName });
+      } else {
+        equipmentDroppedCount += 1;
+      }
+    }
+    return { ...day, exercises: keptExercises };
+  }));
+  return { weeklySchedule: updatedDays.filter((d: any) => d.exercises.length > 0), equipmentSubstitutedCount, equipmentDroppedCount };
+}
+
 async function generateWorkoutDraft(
   identity: AgentIdentity, profile: any, daysPerWeek: number, sessionMinutes: number, preferredWeekdays?: number[],
-): Promise<{ weeklySchedule: any[]; selectedWeekdays: number[]; unmatchedCount: number }> {
+): Promise<{ weeklySchedule: any[]; selectedWeekdays: number[]; unmatchedCount: number; equipmentSubstitutedCount: number; equipmentDroppedCount: number }> {
   const syntheticQuestion = `Tạo lịch tập ${daysPerWeek} buổi mỗi tuần cho tôi`;
   const routedIntent = intentRouter.route(syntheticQuestion, profile);
   const parsedInput = inputParser.parse(syntheticQuestion, profile);
@@ -167,7 +258,7 @@ async function generateWorkoutDraft(
     resolutions.set(name, await fitnessAgentDeps.tools.searchExerciseByName(identity, name).catch(() => null));
   }));
   let unmatchedCount = 0;
-  const weeklySchedule = rawDays.map((day: any) => ({
+  const resolvedSchedule = rawDays.map((day: any) => ({
     day: day.day, goal: day.goal,
     exercises: day.exercises.flatMap((e: any) => {
       const match = resolutions.get(e.name);
@@ -175,8 +266,12 @@ async function generateWorkoutDraft(
       return [{ exerciseId: match.id, name: match.exerciseName, order: e.order, sets: e.sets, reps: e.reps, restSeconds: e.restSeconds, note: e.note }];
     }),
   })).filter((d: any) => d.exercises.length > 0);
+  const { weeklySchedule, equipmentSubstitutedCount, equipmentDroppedCount } = await applyEquipmentFiltering(identity, resolvedSchedule);
   const selectedWeekdays = resolveSelectedWeekdays(weeklySchedule, preferredWeekdays);
-  return { weeklySchedule: applyWeekdayLabels(weeklySchedule, selectedWeekdays), selectedWeekdays, unmatchedCount };
+  return {
+    weeklySchedule: applyWeekdayLabels(weeklySchedule, selectedWeekdays), selectedWeekdays, unmatchedCount,
+    equipmentSubstitutedCount, equipmentDroppedCount,
+  };
 }
 
 function workoutSafetyWarnings(profile: any): string[] {
@@ -230,7 +325,7 @@ function buildWorkoutPlanPreviewBlock(
 // names (never against arbitrary catalog text) in
 // tryReviseWorkoutPlanDraft. Deliberately simple/bounded rather than an
 // LLM extractor — same "deterministic first" precedent as slot-values.ts.
-function extractExerciseRevisionKeyword(rawMessage: string): string | null {
+export function extractExerciseRevisionKeyword(rawMessage: string): string | null {
   // M6: longest carrier phrases FIRST — the old single alternation
   // (`khong|khong the|khong co|khong muon`) let the shorter "khong" win, so
   // "co"/"muon" survived as the extracted keyword.
@@ -445,6 +540,148 @@ function classifyDraftDomains(text: string): DraftDomain[] {
   return out;
 }
 
+/**
+ * The real retrieval -> score (unmodified scorePT/scoreTrainingProgramV2) -> narrate -> persist-new-
+ * fitnessRecommendation-row pipeline. Factored out of tryTurnUnguarded's own PT/PROGRAM dispatch
+ * (Phase 3 Batch 4 — docs/ai-product/phase3-batch4-conversational-revision.md) so the new revision
+ * module (services/revision/pt-program-revision.ts) can call the EXACT same pipeline for a candidate-
+ * exclusion/constraint-refinement follow-up, instead of a second implementation. The original call
+ * site (below) passes excludeIds=[] by default — zero behavior change for every existing caller.
+ */
+async function buildAndPersistRecommendation(
+  identity: AgentIdentity, sessionId: string, effectiveKind: "PT" | "PROGRAM",
+  preferences: AgentPreferences, context: { profile: any; coach: any }, excludeIds: string[] = [],
+): Promise<{ answer: string; blocks: AgentBlock[] }> {
+  const evidence = fitnessAgentDeps.tools.getScientificEvidence(preferences.goal!);
+  const recommendationId = randomUUID();
+  let block: AgentBlock;
+  let historyAuditId: string | null = null;
+  const excluded = new Set(excludeIds);
+  if (effectiveKind === "PT") {
+    const retrieval = await fitnessAgentDeps.tools.findPTCandidates(identity, preferences);
+    historyAuditId = retrieval.historyAuditId;
+    const ranked = retrieval.candidates
+      .filter(pt => !excluded.has(pt.id))
+      .map(pt => ({ pt, compatibility: scorePT(pt, preferences) }))
+      .sort((a, b) => b.compatibility.total - a.compatibility.total || a.pt.id.localeCompare(b.pt.id))
+      .slice(0, 5);
+    // Recommendation Narrator (docs/ai-agent-system-target-architecture.md
+    // §3/§6) — the ONE new LLM capability in this flow. It never re-ranks
+    // or re-scores `ranked` above; it only explains it. Never allowed to
+    // break the recommendation itself: any failure (timeout, disabled,
+    // validation rejection) degrades to the original static why[] strings
+    // per-candidate, never a thrown error or an empty result.
+    // Image -> GoalContext -> Recommendation loop closure (docs/
+    // ai-agent-implementation-report.md's own named gap, closed
+    // 2026-09-14): context.profile.goalIntent is the confirmed
+    // GoalIntentSchema-shaped object from the goal-image/text-goal flow
+    // (fitness-goal-vision.service.ts -> POST /profile/agent/goal),
+    // already flowing through getUserFitnessContext() via HTTP
+    // passthrough but never read until now. Only categorical fields are
+    // extracted (extractGoalIntentGrounding) — never anything numeric —
+    // and it informs narration only, never scorePT's ranking formula.
+    const goalIntent = extractGoalIntentGrounding((context.profile as { goalIntent?: unknown }).goalIntent);
+    const narrationResult = await fitnessAgentDeps.narrateRecommendations(
+      ranked.map(r => ({ candidate: r.pt, compatibility: r.compatibility, history: r.pt.history })),
+      evidence,
+      { userId: identity.userId, goalIntent },
+    ).catch(err => {
+      logger.warn({ err: (err as Error)?.message, userId: identity.userId }, "[fitness-agent] recommendation narration failed; using static why[] fallback");
+      return { narrations: [], usedFallback: true };
+    });
+    // Observability (docs/ai-agent-system-target-architecture.md §7):
+    // narrationUsed/narrationFallbackCount/historicalCohortsAvailable let
+    // an evaluator (or the eval suite) distinguish "narration ran and
+    // passed validation" from "silently fell back to templates" without
+    // needing a live LLM to reproduce the run — same log-line discipline
+    // as the rest of this file's structured logger.warn calls.
+    logger.info({
+      userId: identity.userId, candidateCount: ranked.length,
+      narratedCount: narrationResult.narrations.length,
+      narrationFallbackCount: ranked.length - narrationResult.narrations.length,
+      usedNarrationFallback: narrationResult.usedFallback,
+      historicalCohortsAvailable: ranked.filter(r => r.pt.history.count > 0).length,
+      evidenceCount: evidence.length,
+    }, "[fitness-agent] PT recommendation narration summary");
+    const narrationById = new Map(narrationResult.narrations.map(n => [n.candidateId, n]));
+    const candidates = ranked.map(({ pt, compatibility }) => {
+      const narration = narrationById.get(pt.id) ?? null;
+      return {
+        ...pt, compatibility,
+        why: narration ? [narration.summary, ...narration.strengths] : [
+          "Chuyên môn phù hợp mục tiêu đã chọn", "Có lịch trống và gói trong giới hạn ngân sách",
+          pt.history.note,
+        ],
+        narration,
+      };
+    });
+    block = { type: "PT_RECOMMENDATIONS", recommendationId, candidates, evidence,
+      warnings: context.profile.reviewRequired ? ["Bạn đã báo cáo yếu tố sức khỏe cần chuyên gia xem xét."] : [],
+      truncated: retrieval.truncated, usedNarrationFallback: narrationResult.usedFallback };
+  } else {
+    const retrieval = await fitnessAgentDeps.tools.findTrainingPrograms(identity, preferences);
+    const goalIntent = extractGoalIntentGrounding((context.profile as { goalIntent?: unknown }).goalIntent);
+    const ranked = retrieval.programs
+      .filter(program => !excluded.has(program.id))
+      .map(program => ({
+        program,
+        compatibility: scoreTrainingProgramV2(program, preferences, {
+          userExperience: context.profile.experience,
+          goalIntentFocusMuscles: goalIntent?.focusMuscles,
+        }),
+      }))
+      .sort((a, b) => b.compatibility.total - a.compatibility.total || a.program.id.localeCompare(b.program.id))
+      .slice(0, 5);
+    const narrationResult = await fitnessAgentDeps.narrateProgramRecommendations(
+      ranked.map(r => ({ program: r.program, compatibility: r.compatibility })),
+      evidence,
+      { userId: identity.userId },
+    ).catch(err => {
+      logger.warn({ err: (err as Error)?.message, userId: identity.userId }, "[fitness-agent] program narration failed; using static why[] fallback");
+      return { narrations: [], usedFallback: true };
+    });
+    logger.info({
+      userId: identity.userId, candidateCount: ranked.length,
+      narratedCount: narrationResult.narrations.length,
+      narrationFallbackCount: ranked.length - narrationResult.narrations.length,
+      usedNarrationFallback: narrationResult.usedFallback,
+      evidenceCount: evidence.length,
+    }, "[fitness-agent] program recommendation narration summary");
+    const narrationById = new Map(narrationResult.narrations.map(n => [n.candidateId, n]));
+    const candidates = ranked.map(({ program, compatibility }) => {
+      const narration = narrationById.get(program.id) ?? null;
+      return {
+        ...program,
+        compatibility,
+        why: narration ? [narration.summary, ...narration.strengths] : [
+          "Mục tiêu, trình độ, thiết bị và số ngày phù hợp với dữ liệu hồ sơ hiện tại.",
+          "Thời lượng ước tính nằm trong giới hạn bạn đã đưa ra.",
+          "Chưa có cohort kết quả đủ tin cậy cho từng template chương trình; điểm này không phải dự đoán kết quả cá nhân.",
+        ],
+        narration,
+        history: {
+          count: 0,
+          note: "No sufficiently grounded program-template outcome cohort is available yet.",
+          dataOrigin: program.dataOrigin,
+        },
+      };
+    });
+    block = { type: "PROGRAM_RECOMMENDATIONS", recommendationId, candidates, evidence, warnings: retrieval.warnings, usedNarrationFallback: narrationResult.usedFallback };
+  }
+  const candidates = block.candidates as Array<{ id: string }>;
+  await prisma.fitnessRecommendation.create({ data: {
+    id: recommendationId, userId: identity.userId, sessionId, type: effectiveKind,
+    contextSnapshot: { preferences, experience: context.profile.experience, reviewRequired: context.profile.reviewRequired, historyAuditId,
+      excludeIds: [...excluded],
+      trainingSummary: { ...context.coach.training_summary }, nutritionSummary: { ...context.coach.nutrition_summary } },
+    candidateIds: candidates.map(c => c.id), scoringVersion: effectiveKind === "PT" ? FITNESS_SCORING.version : PROGRAM_SCORING_V2.version,
+    similarityVersion: FITNESS_SCORING.similarityVersion, evidenceIds: evidence.map(e => e.id), historicalJourneyIds: [], result: block as any,
+  } });
+  return { answer: candidates.length
+    ? "Đây là các lựa chọn phù hợp từ dữ liệu Gymini. Compatibility Score là điểm phù hợp, không phải xác suất thành công. Mở từng thẻ để xem lý do và nguồn bằng chứng."
+    : "Chưa có lựa chọn phù hợp với các điều kiện hiện tại. Bạn có thể đổi lịch, ngân sách hoặc hình thức tập rồi thử lại.", blocks: [block] };
+}
+
 export const fitnessAgent = {
   /**
    * The agent-turn boundary. A user with no profile row makes the profile read fail with a well-formed 422 ("Complete your profile first") —
@@ -476,6 +713,12 @@ export const fitnessAgent = {
     // never happened) and never by an unrelated legacy classifier (the intent parser can match "lưu"/"xác nhận" into an unconnected kind,
     // e.g. a cycle handler, well before the null-intent dispatch). Phrases naming a specific artifact ("lưu lịch tập này", "lưu thực đơn
     // này") are deliberately NOT matched by the classifier — those keep their own existing, collision-aware redirect unshadowed.
+    // Phase 3 Batch 2 (docs/ai-product/phase3-batch2-unified-turn.md) — diagnostic-only canonical
+    // turn-understanding log. Observes whichever representation this turn actually produces;
+    // never influences dispatch (fromConfirmationBoundary/logTurnUnderstanding are pure, and the
+    // existing confirmationBoundary/g/intent-driven branches below are completely untouched).
+    const confirmationIntentForDiagnostics = classifyConfirmationUtterance(question);
+    if (confirmationIntentForDiagnostics) logTurnUnderstanding(correlationId, identity, sessionId, fromConfirmationBoundary(confirmationIntentForDiagnostics));
     const confirmationBoundary = await this.tryConfirmationBoundary(question, identity, sessionId, correlationId);
     if (confirmationBoundary) return confirmationBoundary;
     // Final remediation M1: nutritionConstraints is an ACCUMULATING set, but the
@@ -493,14 +736,38 @@ export const fitnessAgent = {
     // CI-V2 GLOBAL coverage (flag CONVERSATIONAL_INTELLIGENCE_V2=on): understand what the turn WANTS before any workflow/RAG routing —
     // authoritative READs, standalone recommendations, goal-change PROPOSALS, and side questions that must not destroy a waiting workflow.
     let intentKindOverride: string | null = null;
+    let loggedTurnUnderstanding = false;
     if (ciMode() === "on") {
       const g = await runGlobalTurn(question, identity, sessionId, intent.kind, {
         getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext, updateProfileFields: fitnessAgentDeps.tools.updateProfileFields,
       }, correlationId, isLikelyFoodSubstitutionMessage(question) || isLikelyMealLogMessage(question));
+      if (g) {
+        // "typed LLM fallback" is the exact reason string llm-route.ts's own accepted result
+        // carries (global/llm-route.ts) — reused as the signal, not a new call to find out.
+        logTurnUnderstanding(correlationId, identity, sessionId, fromGlobalRouteResult(g.route, { llmInvoked: g.route.reason === "typed LLM fallback" }));
+        loggedTurnUnderstanding = true;
+        // Phase 3 Batch 3 (docs/ai-product/phase3-batch3-multi-intent.md) — bounded multi-intent.
+        // Always planned+logged for observability (shadow mode default); the executor only ever
+        // RUNS when GYMINI_UNIFIED_AI_COACH="on", and only overrides g.result for the one real
+        // gap it covers (READ + RECOMMEND(PT/PROGRAM)) — every other composition is untouched,
+        // still answered entirely by the existing MULTI composer above.
+        const boundedPlan = g.route.route === "MULTI" ? planBoundedTurn(g.route) : null;
+        if (boundedPlan) {
+          logBoundedTurnPlan(correlationId, identity, sessionId, boundedPlan);
+          if (boundedPlan.handledBy === "BOUNDED_EXECUTOR" && unifiedCoachMode() === "on") {
+            const executed = await executeBoundedTurn(boundedPlan, identity, question, sessionId, fitnessAgentDeps).catch((err) => {
+              logger.warn({ err: (err as Error)?.message }, "[bounded-turn] executor failed; falling back to existing MULTI answer");
+              return null;
+            });
+            if (executed) g.result = executed as { answer: string; blocks: AgentBlock[] };
+          }
+        }
+      }
       if (g?.result) return g.result as { answer: string; blocks: AgentBlock[] };
       if (g?.skipAgent) return null;
       if (g?.overrideIntentKind) intentKindOverride = g.overrideIntentKind;
     }
+    if (!loggedTurnUnderstanding) logTurnUnderstanding(correlationId, identity, sessionId, fromLegacyIntentKind(intent.kind));
     const workflowResult = await runWorkflowTurn(question, identity, sessionId, intentKindOverride ?? intent.kind, {
       getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext,
       updateProfileFields: fitnessAgentDeps.tools.updateProfileFields,
@@ -542,6 +809,25 @@ export const fitnessAgent = {
         // draft > ask) instead of a fixed first-match order.
         const draftResult = await this.routePendingDraftTurn(question, identity, sessionId);
         if (draftResult) return draftResult;
+        // Phase 3 Batch 4 (docs/ai-product/phase3-batch4-conversational-revision.md) — conversational
+        // revision of the latest PT/PROGRAM recommendation or nutrition target, and the honest
+        // permanent-exercise-swap guard, for turns that reach here with no other recognized intent.
+        // Flag-gated (default off) — with GYMINI_UNIFIED_AI_COACH off/shadow this block never runs,
+        // so the turn falls through to the exact same pre-Batch-4 behavior.
+        if (unifiedCoachMode() === "on") {
+          const recommendationRevision = await tryReviseRecommendation(question, identity, sessionId, {
+            getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext, build: buildAndPersistRecommendation,
+          }).catch((err) => { logger.warn({ err: (err as Error)?.message }, "[revision] PT/PROGRAM revision failed"); return null; });
+          if (recommendationRevision) return recommendationRevision;
+          const nutritionRevision = await tryReviseNutritionTarget(question, identity, { resolveNutritionTarget })
+            .catch((err) => { logger.warn({ err: (err as Error)?.message }, "[revision] nutrition revision failed"); return null; });
+          if (nutritionRevision) return nutritionRevision;
+          const hasPendingWorkoutDraft = await prisma.fitnessAgentAction.findFirst({
+            where: { userId: identity.userId, sessionId, kind: "CREATE_WORKOUT_PLAN", status: "PENDING", expiresAt: { gt: new Date() } },
+          }) !== null;
+          const permanentSwapGuard = tryExplainUnsupportedPermanentSwap(question, hasPendingWorkoutDraft, extractExerciseRevisionKeyword);
+          if (permanentSwapGuard) return permanentSwapGuard;
+        }
         // Not PT/PROGRAM/SELECT — check for a food-substitution request
         // before falling through to the normal RAG/LLM chat pipeline (see
         // docs/agentic-fitness/01_NUTRITION_AGENT_TOOLS_PLAN.md). Cheap
@@ -617,130 +903,10 @@ export const fitnessAgent = {
     if (!preferences.goal || !preferences.days?.length || (effectiveKind === "PT" && !preferences.budgetVnd && !noBudgetCap)) {
       return { answer: "Để tìm lựa chọn phù hợp, hãy cho biết mục tiêu, các ngày bạn tập được (ví dụ T2-T4-T6), thời lượng mỗi buổi và ngân sách nếu cần PT.", blocks: [] };
     }
-    const evidence = fitnessAgentDeps.tools.getScientificEvidence(preferences.goal);
-    const recommendationId = randomUUID();
-    let block: AgentBlock;
-    let historyAuditId: string | null = null;
-    if (effectiveKind === "PT") {
-      const retrieval = await fitnessAgentDeps.tools.findPTCandidates(identity, preferences);
-      historyAuditId = retrieval.historyAuditId;
-      const ranked = retrieval.candidates
-        .map(pt => ({ pt, compatibility: scorePT(pt, preferences) }))
-        .sort((a, b) => b.compatibility.total - a.compatibility.total || a.pt.id.localeCompare(b.pt.id))
-        .slice(0, 5);
-      // Recommendation Narrator (docs/ai-agent-system-target-architecture.md
-      // §3/§6) — the ONE new LLM capability in this flow. It never re-ranks
-      // or re-scores `ranked` above; it only explains it. Never allowed to
-      // break the recommendation itself: any failure (timeout, disabled,
-      // validation rejection) degrades to the original static why[] strings
-      // per-candidate, never a thrown error or an empty result.
-      // Image -> GoalContext -> Recommendation loop closure (docs/
-      // ai-agent-implementation-report.md's own named gap, closed
-      // 2026-09-14): context.profile.goalIntent is the confirmed
-      // GoalIntentSchema-shaped object from the goal-image/text-goal flow
-      // (fitness-goal-vision.service.ts -> POST /profile/agent/goal),
-      // already flowing through getUserFitnessContext() via HTTP
-      // passthrough but never read until now. Only categorical fields are
-      // extracted (extractGoalIntentGrounding) — never anything numeric —
-      // and it informs narration only, never scorePT's ranking formula.
-      const goalIntent = extractGoalIntentGrounding((context.profile as { goalIntent?: unknown }).goalIntent);
-      const narrationResult = await fitnessAgentDeps.narrateRecommendations(
-        ranked.map(r => ({ candidate: r.pt, compatibility: r.compatibility, history: r.pt.history })),
-        evidence,
-        { userId: identity.userId, goalIntent },
-      ).catch(err => {
-        logger.warn({ err: (err as Error)?.message, userId: identity.userId }, "[fitness-agent] recommendation narration failed; using static why[] fallback");
-        return { narrations: [], usedFallback: true };
-      });
-      // Observability (docs/ai-agent-system-target-architecture.md §7):
-      // narrationUsed/narrationFallbackCount/historicalCohortsAvailable let
-      // an evaluator (or the eval suite) distinguish "narration ran and
-      // passed validation" from "silently fell back to templates" without
-      // needing a live LLM to reproduce the run — same log-line discipline
-      // as the rest of this file's structured logger.warn calls.
-      logger.info({
-        userId: identity.userId, candidateCount: ranked.length,
-        narratedCount: narrationResult.narrations.length,
-        narrationFallbackCount: ranked.length - narrationResult.narrations.length,
-        usedNarrationFallback: narrationResult.usedFallback,
-        historicalCohortsAvailable: ranked.filter(r => r.pt.history.count > 0).length,
-        evidenceCount: evidence.length,
-      }, "[fitness-agent] PT recommendation narration summary");
-      const narrationById = new Map(narrationResult.narrations.map(n => [n.candidateId, n]));
-      const candidates = ranked.map(({ pt, compatibility }) => {
-        const narration = narrationById.get(pt.id) ?? null;
-        return {
-          ...pt, compatibility,
-          why: narration ? [narration.summary, ...narration.strengths] : [
-            "Chuyên môn phù hợp mục tiêu đã chọn", "Có lịch trống và gói trong giới hạn ngân sách",
-            pt.history.note,
-          ],
-          narration,
-        };
-      });
-      block = { type: "PT_RECOMMENDATIONS", recommendationId, candidates, evidence,
-        warnings: context.profile.reviewRequired ? ["Bạn đã báo cáo yếu tố sức khỏe cần chuyên gia xem xét."] : [],
-        truncated: retrieval.truncated, usedNarrationFallback: narrationResult.usedFallback };
-    } else {
-      const retrieval = await fitnessAgentDeps.tools.findTrainingPrograms(identity, preferences);
-      const goalIntent = extractGoalIntentGrounding((context.profile as { goalIntent?: unknown }).goalIntent);
-      const ranked = retrieval.programs
-        .map(program => ({
-          program,
-          compatibility: scoreTrainingProgramV2(program, preferences, {
-            userExperience: context.profile.experience,
-            goalIntentFocusMuscles: goalIntent?.focusMuscles,
-          }),
-        }))
-        .sort((a, b) => b.compatibility.total - a.compatibility.total || a.program.id.localeCompare(b.program.id))
-        .slice(0, 5);
-      const narrationResult = await fitnessAgentDeps.narrateProgramRecommendations(
-        ranked.map(r => ({ program: r.program, compatibility: r.compatibility })),
-        evidence,
-        { userId: identity.userId },
-      ).catch(err => {
-        logger.warn({ err: (err as Error)?.message, userId: identity.userId }, "[fitness-agent] program narration failed; using static why[] fallback");
-        return { narrations: [], usedFallback: true };
-      });
-      logger.info({
-        userId: identity.userId, candidateCount: ranked.length,
-        narratedCount: narrationResult.narrations.length,
-        narrationFallbackCount: ranked.length - narrationResult.narrations.length,
-        usedNarrationFallback: narrationResult.usedFallback,
-        evidenceCount: evidence.length,
-      }, "[fitness-agent] program recommendation narration summary");
-      const narrationById = new Map(narrationResult.narrations.map(n => [n.candidateId, n]));
-      const candidates = ranked.map(({ program, compatibility }) => {
-        const narration = narrationById.get(program.id) ?? null;
-        return {
-          ...program,
-          compatibility,
-          why: narration ? [narration.summary, ...narration.strengths] : [
-            "Mục tiêu, trình độ, thiết bị và số ngày phù hợp với dữ liệu hồ sơ hiện tại.",
-            "Thời lượng ước tính nằm trong giới hạn bạn đã đưa ra.",
-            "Chưa có cohort kết quả đủ tin cậy cho từng template chương trình; điểm này không phải dự đoán kết quả cá nhân.",
-          ],
-          narration,
-          history: {
-            count: 0,
-            note: "No sufficiently grounded program-template outcome cohort is available yet.",
-            dataOrigin: program.dataOrigin,
-          },
-        };
-      });
-      block = { type: "PROGRAM_RECOMMENDATIONS", recommendationId, candidates, evidence, warnings: retrieval.warnings, usedNarrationFallback: narrationResult.usedFallback };
-    }
-    const candidates = block.candidates as Array<{ id: string }>;
-    await prisma.fitnessRecommendation.create({ data: {
-      id: recommendationId, userId: identity.userId, sessionId, type: effectiveKind,
-      contextSnapshot: { preferences, experience: context.profile.experience, reviewRequired: context.profile.reviewRequired, historyAuditId,
-        trainingSummary: { ...context.coach.training_summary }, nutritionSummary: { ...context.coach.nutrition_summary } },
-      candidateIds: candidates.map(c => c.id), scoringVersion: effectiveKind === "PT" ? FITNESS_SCORING.version : PROGRAM_SCORING_V2.version,
-      similarityVersion: FITNESS_SCORING.similarityVersion, evidenceIds: evidence.map(e => e.id), historicalJourneyIds: [], result: block as any,
-    } });
-    return { answer: candidates.length
-      ? "Đây là các lựa chọn phù hợp từ dữ liệu Gymini. Compatibility Score là điểm phù hợp, không phải xác suất thành công. Mở từng thẻ để xem lý do và nguồn bằng chứng."
-      : "Chưa có lựa chọn phù hợp với các điều kiện hiện tại. Bạn có thể đổi lịch, ngân sách hoặc hình thức tập rồi thử lại.", blocks: [block] };
+    // Phase 3 Batch 4 — exclusions carry forward only from a recommendation of the SAME kind (a PT
+    // exclusion must never leak into a PROGRAM search's candidate filter, and vice versa).
+    const carriedExcludeIds = previous && previous.type === effectiveKind ? ((previous.contextSnapshot as any)?.excludeIds ?? []) : [];
+    return buildAndPersistRecommendation(identity, sessionId, effectiveKind as "PT" | "PROGRAM", preferences, context, carriedExcludeIds);
   },
   async prepare(identity: AgentIdentity, recommendationId: string, candidateId: string, packageId?: string): Promise<AgentBlock> {
     const rec = await prisma.fitnessRecommendation.findFirst({ where: { id: recommendationId, userId: identity.userId } });
@@ -1486,7 +1652,7 @@ export const fitnessAgent = {
 
     // The user's real weekly availability (agent numbering 1=Mon..7=Sun) wins
     // over the engine's hardcoded weekday labels when it matches the day count.
-    const { weeklySchedule, selectedWeekdays, unmatchedCount } = await generateWorkoutDraft(identity, profile, daysPerWeek, sessionMinutes, agentDaysToWeekdays(contextProfile.days));
+    const { weeklySchedule, selectedWeekdays, unmatchedCount, equipmentSubstitutedCount, equipmentDroppedCount } = await generateWorkoutDraft(identity, profile, daysPerWeek, sessionMinutes, agentDaysToWeekdays(contextProfile.days));
     if (!weeklySchedule.length) {
       return { answer: "Mình chưa tạo được lịch tập phù hợp lúc này. Bạn có thể thử lại, hoặc nêu rõ hơn mục tiêu/số buổi tập.", blocks: [] };
     }
@@ -1500,8 +1666,13 @@ export const fitnessAgent = {
       },
     });
     const unmatchedNote = unmatchedCount > 0 ? ` Lưu ý: ${unmatchedCount} bài tập không khớp được với thư viện bài tập nên đã được bỏ qua.` : "";
+    const equipmentNote = equipmentDroppedCount > 0
+      ? ` Có ${equipmentDroppedCount} bài tập không phù hợp với thiết bị hiện có của bạn và mình không tìm được bài thay thế nên đã bỏ qua.`
+      : equipmentSubstitutedCount > 0
+        ? ` Mình đã đổi ${equipmentSubstitutedCount} bài tập sang phiên bản phù hợp với thiết bị bạn có.`
+        : "";
     return {
-      answer: `Đây là lịch tập mình đề xuất (${weeklySchedule.length} buổi/tuần, khoảng ${sessionMinutes} phút/buổi).${unmatchedNote} Bạn có thể yêu cầu chỉnh sửa (ví dụ đổi bài, đổi thời lượng) hoặc xác nhận để lưu.`,
+      answer: `Đây là lịch tập mình đề xuất (${weeklySchedule.length} buổi/tuần, khoảng ${sessionMinutes} phút/buổi).${unmatchedNote}${equipmentNote} Bạn có thể yêu cầu chỉnh sửa (ví dụ đổi bài, đổi thời lượng) hoặc xác nhận để lưu.`,
       blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)],
     };
   },
@@ -1621,12 +1792,17 @@ export const fitnessAgent = {
     if (mentionsDaysUnit) {
       const daysResult = parseSessionsPerWeek(trimmed);
       if (daysResult.ok) {
-        const { weeklySchedule, selectedWeekdays, unmatchedCount } = await regenerate(daysResult.value);
+        const { weeklySchedule, selectedWeekdays, unmatchedCount, equipmentSubstitutedCount, equipmentDroppedCount } = await regenerate(daysResult.value);
         if (!weeklySchedule.length) {
           return { answer: "Mình chưa tạo lại được lịch tập với số buổi này. Bạn có thể thử số buổi khác.", blocks: [buildWorkoutPlanPreviewBlock(action.id, action.risk, action.expiresAt, payload, warnings)] };
         }
         const unmatchedNote = unmatchedCount > 0 ? ` (${unmatchedCount} bài tập không khớp thư viện đã được bỏ qua)` : "";
-        return respond(weeklySchedule, payload.sessionMinutes, `Mình đã đổi lịch tập sang ${weeklySchedule.length} buổi/tuần (${selectedWeekdays.map(weekdayLabel).join(", ")})${unmatchedNote}.`, { selectedWeekdays });
+        const equipmentNote = equipmentDroppedCount > 0
+          ? ` (${equipmentDroppedCount} bài không phù hợp thiết bị đã được bỏ qua)`
+          : equipmentSubstitutedCount > 0
+            ? ` (đã đổi ${equipmentSubstitutedCount} bài theo thiết bị bạn có)`
+            : "";
+        return respond(weeklySchedule, payload.sessionMinutes, `Mình đã đổi lịch tập sang ${weeklySchedule.length} buổi/tuần (${selectedWeekdays.map(weekdayLabel).join(", ")})${unmatchedNote}${equipmentNote}.`, { selectedWeekdays });
       }
     }
 
@@ -1915,17 +2091,45 @@ export const fitnessAgent = {
     const intent = classifyConfirmationUtterance(question);
     if (!intent) return null;
     if (await workflowStateRepository.findActive(identity.userId, sessionId)) return null;
-    const actions = await prisma.fitnessAgentAction.findMany({ where: { userId: identity.userId, sessionId }, orderBy: { createdAt: "desc" }, take: 10, select: { status: true, expiresAt: true, updatedAt: true } });
-    const actionState = deriveConfirmationState(actions);
+    // X4-T10 fix (docs/conversational-intelligence-x4-t10-final-fix.md), Codex's final sign-off "New Blocking
+    // Finding: X4-T10": the prior version fetched `take: 10` rows ordered by `updatedAt desc` and relied on
+    // `deriveConfirmationState`'s "any live PENDING/EXECUTING wins" scan over that fetched array — but a still-
+    // live action ranked 11th (behind 10 newer terminal rows in the same session) was excluded from the fetched
+    // set entirely, so the scan never saw it. This was not a precedence bug (the scan logic itself is correct);
+    // it was a VISIBILITY bug — no `take: N` window, however large, can be proven safe, since an adversarial (or
+    // just long-lived) session can always accumulate more than N terminal rows.
+    //
+    // Fixed with two targeted, semantically-scoped queries instead of one windowed one:
+    //  1. Any row that is currently LIVE (EXECUTING, or PENDING with expiresAt still in the future) — the WHERE
+    //     clause itself bounds this to the small live subset, so no window is needed or possible to exceed.
+    //  2. Only when (1) finds nothing, the single most-recently-updated row overall (`findFirst`, inherently
+    //     take:1) — correct for "the latest terminal event" regardless of how many other terminal rows exist,
+    //     since by definition none of them are live if we reached this branch.
+    // This also preserves the event-ordering fix (docs/conversational-intelligence-final-x4-runtime-closure.md):
+    // both queries order by `updatedAt`, never `createdAt`. A PENDING row's `updatedAt` is set at creation and
+    // never advances merely because its TTL elapses (expiry is computed from `expiresAt` at read time, never
+    // persisted) — query 1's `expiresAt: { gt: now }` filter is what correctly excludes a stale-but-still-
+    // literally-"PENDING" row from the live set, not an `updatedAt` comparison.
+    const now = new Date();
+    const liveAction = await prisma.fitnessAgentAction.findFirst({
+      where: { userId: identity.userId, sessionId, OR: [{ status: "EXECUTING" }, { status: "PENDING", expiresAt: { gt: now } }] },
+      orderBy: { updatedAt: "desc" }, select: { status: true, expiresAt: true, updatedAt: true },
+    });
+    const terminalAction = liveAction ? null : await prisma.fitnessAgentAction.findFirst({
+      where: { userId: identity.userId, sessionId },
+      orderBy: { updatedAt: "desc" }, select: { status: true, expiresAt: true, updatedAt: true },
+    });
+    const actions = liveAction ? [liveAction] : terminalAction ? [terminalAction] : [];
+    const actionState = deriveConfirmationState(actions, now);
     // X4 follow-up (docs/conversational-intelligence-x4-followup-fix.md): FitnessAgentAction and
     // AgentWorkflowSession (e.g. a completed UPDATE_GOAL profile confirmation) are two independent,
     // separately-scoped state sources — merge them by recency so a real, already-saved profile
     // change is never falsely denied just because no action row happens to represent it.
     // X4 event-ordering fix, Defect B (docs/conversational-intelligence-x4-event-ordering-fix.md):
-    // `actions[0]` (newest by createdAt) is the SAME row whose status determines `actionState` in
+    // `actions[0]` (now newest by updatedAt) is the SAME row whose status determines `actionState` in
     // every non-PENDING/EXECUTING branch of deriveConfirmationState — its `updatedAt` (real last
-    // transition time: confirm/cancel/execute), not its immutable `createdAt` (creation time),
-    // is what must be compared against the profile workflow's own `updatedAt`.
+    // transition time: confirm/cancel/execute) is what must be compared against the profile workflow's
+    // own `updatedAt`.
     const profileWorkflow = await workflowStateRepository.findLatestProfileConfirmation(identity.userId, sessionId);
     const state = mergeConfirmationState(actionState, actions[0]?.updatedAt ?? null, profileWorkflow);
     logger.info({ correlationId, userId: identity.userId, sessionId, intent, state, actionState, hasProfileWorkflow: !!profileWorkflow }, "ci_confirmation_boundary");

@@ -1,0 +1,148 @@
+{
+  "at": "2026-09-27T15:58:05.550Z",
+  "evidence": "REAL HTTP/API (Docker ai-service, CONVERSATIONAL_INTELLIGENCE_V2=on, isolated test DBs, configured qwen3:30b)",
+  "results": [
+    {
+      "name": "READ: 'Tôi đang có PT chưa?' returns the real contract state (not a PT search)",
+      "pass": true,
+      "detail": "Bạn đã gửi yêu cầu hợp đồng với PT Linh Phạm — Gói 10 buổi, hiện đang chờ PT duyệt; chưa phải hợp đồng đang hoạt động."
+    },
+    {
+      "name": "READ: it matches the DB contract (package name present)",
+      "pass": true,
+      "detail": "PENDING_REVIEW|Gói 10 buổi | Bạn đã gửi yêu cầu hợp đồng với PT Linh Phạm — Gói 10 buổi, hiện đang chờ PT duyệt; chưa phải hợp đồng đang hoạt động."
+    },
+    {
+      "name": "READ: no workflow created for the read",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "READ: a user with no contract hears 'chưa có PT' and nothing starts/writes",
+      "pass": true,
+      "detail": "Hiện bạn chưa có PT nào. Nếu muốn, bạn nhắn \"tìm PT cho tôi\" để mình lọc PT phù hợp — mình sẽ không tự đăng ký giúp bạn khi chưa được xác nhận."
+    },
+    {
+      "name": "RECOMMEND: 'PT nào hợp với tôi?' starts the PT recommendation workflow",
+      "pass": true,
+      "detail": "Mình còn cần thêm 2 thông tin: các ngày tập được, ngân sách cho PT. Bạn tập được những ngày nào trong tuần (ví dụ T2-T4-T6)?"
+    },
+    {
+      "name": "WRITE stays behind confirmation: nothing written by the search",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "PENDING: the calorie question is answered from the ACTIVE NutritionGoal",
+      "pass": true,
+      "detail": " | Bạn chưa có mục tiêu dinh dưỡng đã lưu. Khi bạn tạo lộ trình hoặc thực đơn, mình sẽ tính giúp và lưu lại sau khi bạn xác nhận.\n\nBạn vẫn đang"
+    },
+    {
+      "name": "PENDING: the PT workflow survives untouched (same row, same status, same slot)",
+      "pass": true,
+      "detail": "f0d6a7bc-e4c9-4890-827c-7c7cd318aaf7|COLLECTING_SLOTS|budgetVnd -> f0d6a7bc-e4c9-4890-827c-7c7cd318aaf7|COLLECTING_SLOTS|budgetVnd"
+    },
+    {
+      "name": "PENDING: the reply reminds how to continue",
+      "pass": true,
+      "detail": "iếp tục: Ngân sách của bạn cho PT khoảng bao nhiêu (ví dụ 1.5 triệu), hoặc nói \"không giới hạn\" nếu ngân sách không quan trọng? (hoặc nhắn \"hủy\" nếu muốn dừng)."
+    },
+    {
+      "name": "PENDING: answering the slot afterwards resumes the workflow (no restart, no lost state)",
+      "pass": true,
+      "detail": "Chưa có lựa chọn phù hợp với các điều kiện hiện tại. Bạn có thể đổi lịch, ngân sách hoặc hình thức tập rồi thử lại."
+    },
+    {
+      "name": "RECOMMEND (standalone): loads real context and explains (173cm, 80kg, BMI) without any write",
+      "pass": true,
+      "detail": "Với 173cm và 80kg (BMI khoảng 26,7), BMI đang cao hơn khoảng bình thường (18,5–24,9), nên giảm mỡ (cut) trước rồi mới tăng cơ thường hợp lý hơn. Mục tiêu đang lưu của bạn là tăng cơ. Đây là gợi ý tham khảo, không phải ch"
+    },
+    {
+      "name": "ASK → ACTION: 'ok đổi theo đề xuất đó' produces a PROFILE_UPDATE_CONFIRMATION (no write yet)",
+      "pass": true,
+      "detail": "[{\"field\":\"goal\",\"oldValue\":\"MUSCLE_GAIN\",\"newValue\":\"WEIGHT_LOSS\"}]"
+    },
+    {
+      "name": "CONFIRM: the goal is written once after the explicit confirmation",
+      "pass": true,
+      "detail": "WEIGHT_LOSS | Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ."
+    },
+    {
+      "name": "FRESH: 'mục tiêu hiện tại' immediately returns the NEW authoritative goal",
+      "pass": true,
+      "detail": "Mục tiêu hiện tại của bạn là giảm mỡ."
+    },
+    {
+      "name": "READ: program status returns the real saved program (not a program search)",
+      "pass": true,
+      "detail": "Lịch tập do AI Coach tạo | Bạn đang theo chương trình \"Lịch tập do AI Coach tạo\", khoảng 4 buổi/tuần."
+    },
+    {
+      "name": "READ: 'Hôm nay tôi tập gì?' is answered from the schedule and does NOT start CREATE_WORKOUT_PLAN",
+      "pass": true,
+      "detail": "Theo lịch tập đã lưu, Chủ Nhật 2026-09-27 của bạn là **Core + Cardio** trong plan **Lịch tập do AI Coach tạo**.\n**Nhóm c"
+    },
+    {
+      "name": "READ: calorie question equals the ACTIVE NutritionGoal in the DB",
+      "pass": true,
+      "detail": "2187 | Mục tiêu dinh dưỡng đang áp dụng của bạn là 2.187 kcal/ngày — đạm 193g, carb 201g, béo 68g."
+    },
+    {
+      "name": "FRESH(before hire): no PT yet",
+      "pass": true,
+      "detail": "Hiện bạn chưa có PT nào. Nếu muốn, bạn nhắn \"tìm PT cho tôi\" để mình lọc PT phù hợp — mình sẽ không tự đăng ký giúp bạn khi chưa được xác nhận."
+    },
+    {
+      "name": "WRITE: 'Thuê PT này.' only PROPOSES (confirmation card) — no contract yet",
+      "pass": true,
+      "detail": "ACTION_CONFIRMATION"
+    },
+    {
+      "name": "FRESH(after hire): the very next read reflects the new contract",
+      "pass": true,
+      "detail": "Bạn đã gửi yêu cầu hợp đồng với PT Phương Bùi — Gói 10 buổi, hiện đang chờ PT duyệt; chưa phải hợp đồng đang hoạt động."
+    },
+    {
+      "name": "PURE Q&A: no profile/program/nutrition/contract/action/workflow writes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SECURITY: user A's contract read never contains another user's contract/PT",
+      "pass": true,
+      "detail": "Hiện bạn chưa có PT nào. Nếu muốn, bạn nhắn \"tìm PT cho tôi\" để mình lọc PT phù hợp — mình sẽ không tự đăng ký giúp bạn khi chưa được xác nh"
+    },
+    {
+      "name": "SECURITY: writing into another user's session id does not run under that user's identity",
+      "pass": true,
+      "detail": "404"
+    }
+  ],
+  "traces": {
+    "pt_read": [],
+    "interruption": [],
+    "recommendation": [],
+    "proposal": [],
+    "pass": [
+      {
+        "level": 30,
+        "time": 1790524587349,
+        "pid": 133,
+        "hostname": "77e9cecfff08",
+        "correlationId": "ai_1790524587314_ixu2jt",
+        "userId": "7d7136ed-906a-4a10-aa6f-d271151e04a2",
+        "sessionId": "66667d1c-85aa-45ef-9236-227459e453bd",
+        "proposalStored": false,
+        "pendingDraft": false,
+        "deterministicRoute": "KNOWLEDGE_QA",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "KNOWLEDGE_QA",
+        "reason": "impersonal knowledge question",
+        "action": "knowledge question → existing RAG pipeline (no CI-V2 involvement needed)",
+        "msg": "ci_global_trace"
+      }
+    ]
+  }
+}

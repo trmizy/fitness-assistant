@@ -406,7 +406,11 @@ export const fitnessAgentTools = {
   // for every other tool here, so no new auth wiring is needed.
   async getExerciseSubstitute(identity: AgentIdentity, exerciseId: string, excludeExerciseIds: string[] = []): Promise<{ id: string; exerciseName: string } | null> {
     const query = new URLSearchParams();
-    if (excludeExerciseIds.length) query.set("excludeExerciseIds", excludeExerciseIds.join(","));
+    // exercise.controller.ts::getSubstitute only reads `req.query.exclude`
+    // (singular) — the plural `excludeExerciseIds` param name this used to
+    // send was silently ignored server-side, so an exclusion list never
+    // actually excluded anything.
+    if (excludeExerciseIds.length) query.set("exclude", excludeExerciseIds.join(","));
     query.set("limit", "1");
     try {
       const result = await domain(identity, "fitness", "GET",
@@ -421,6 +425,27 @@ export const fitnessAgentTools = {
       // swap this one", never fabricate a replacement.
       return null;
     }
+  },
+  // CREATE_WORKOUT_PLAN draft-time equipment gate — wraps the EXISTING
+  // `planEquipmentValidatorService.validate` fitness-service already runs
+  // at CONFIRM time (`validateAiPlanExerciseEquipment`), via the SAME
+  // internal endpoint Pipeline B's worker already calls
+  // (`/internal/exercises/validate-plan-equipment`). Not a second
+  // implementation — just an earlier call to the one that already exists,
+  // so a user can see an equipment-compatible draft before confirming,
+  // instead of only finding out at confirm time.
+  async validatePlanEquipment(identity: AgentIdentity, weeklySchedule: Array<{ day: string; exercises: Array<{ exerciseId: string; name?: string }> }>): Promise<{
+    valid: boolean;
+    violations: Array<{ exerciseId: string; exerciseName?: string; day?: string; dayIndex?: number; required?: string[]; alternatives?: string[]; available?: string[] }>;
+    skippedNoUserEquipment: boolean;
+  }> {
+    const result = await domain(identity, "fitness", "POST", "/internal/exercises/validate-plan-equipment", { weeklySchedule },
+      z.object({ success: z.boolean(), data: z.object({
+        valid: z.boolean(),
+        violations: z.array(z.object({ exerciseId: z.string(), exerciseName: z.string().optional(), day: z.string().optional(), dayIndex: z.number().optional(), required: z.array(z.string()).optional(), alternatives: z.array(z.string()).optional(), available: z.array(z.string()).optional() }).passthrough()),
+        skippedNoUserEquipment: z.boolean(),
+      }).passthrough() }).passthrough());
+    return result.data;
   },
   substituteMealItem(identity: AgentIdentity, payload: {
     currentFoodMention: string; desiredFoodMention?: string | null; mode?: "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";

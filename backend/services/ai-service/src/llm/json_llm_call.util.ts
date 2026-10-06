@@ -1,6 +1,6 @@
 import { logger } from "@gym-coach/shared";
 import { z } from "zod";
-import { llmService } from "../services/llm.service";
+import { llmService, type LlmCallPurpose } from "../services/llm.service";
 
 /** Extracts the first balanced top-level {...} object, respecting string
  * literals so braces inside strings don't throw off the depth count. Needed
@@ -32,6 +32,10 @@ export function extractFirstJsonObject(text: string): string | null {
   return null;
 }
 
+function errorForLog(err: unknown, redact?: boolean): string | undefined {
+  return redact ? `redacted:${(err as Error)?.name ?? "Error"}` : (err as Error)?.message;
+}
+
 /** Calls the LLM in JSON mode, extracts + Zod-validates the output, retries
  * on failure, and returns null (never throws) once attempts are exhausted so
  * callers can fall back to a deterministic template. Shared by
@@ -39,10 +43,21 @@ export function extractFirstJsonObject(text: string): string | null {
  * one JSON-mode-LLM-call-with-retry-and-fallback pattern in ai-service that
  * evidence-aware structured flows should use, rather than each reimplementing
  * their own retry/parse loop. */
+/**
+ * R1.1 - narration is PRESENTATION only: it chooses claim ids inside a candidate's own catalog. The structured recommendation,
+ * candidate ids, order, scores and actions are decided upstream and never by the model. Its budget is deliberately small: one attempt
+ * and a short timeout. On failure the deterministic renderer already produces the explanation. Override with
+ * RECOMMENDATION_NARRATION_TIMEOUT_MS (default 20 s).
+ */
+export const NARRATION_BUDGET = {
+  timeoutMs: Number(process.env.RECOMMENDATION_NARRATION_TIMEOUT_MS ?? 20000),
+  attempts: 1,
+} as const;
+
 export async function callLlmJson<T>(
   prompt: string,
   schema: z.ZodType<T, z.ZodTypeDef, any>,
-  opts: { userId: string; phase: string; numPredict: number; attempts?: number; logPrefix?: string },
+  opts: { userId: string; phase: string; numPredict: number; attempts?: number; logPrefix?: string; /** log only the error KIND, never its message (zod/JSON.parse messages quote the untrusted model output) */ redactErrorDetail?: boolean; /** Phase 3 R1: an explicit per-call budget. Callers that do not pass it keep the historical CYCLE_ANALYSIS_LLM_TIMEOUT_MS default, so no other flow changes. */ timeoutMs?: number; /** Phase 3 R1: why this call is made (telemetry only; never changes the request). */ purpose?: LlmCallPurpose },
 ): Promise<T | null> {
   const attempts = opts.attempts ?? 2;
   const prefix = opts.logPrefix ?? "[llm-json-call]";
@@ -53,7 +68,8 @@ export async function callLlmJson<T>(
         responseFormat: "json",
         temperature: 0.2,
         numPredict: opts.numPredict,
-        timeoutMs: Number(process.env.CYCLE_ANALYSIS_LLM_TIMEOUT_MS ?? 80_000),
+        timeoutMs: opts.timeoutMs ?? Number(process.env.CYCLE_ANALYSIS_LLM_TIMEOUT_MS ?? 80_000),
+        purpose: opts.purpose,
       });
       const jsonText = extractFirstJsonObject(result.answer);
       if (!jsonText) throw new Error("No JSON object found in LLM response");
@@ -62,13 +78,13 @@ export async function callLlmJson<T>(
     } catch (err) {
       lastError = err;
       logger.warn(
-        { err: (err as Error).message, attempt, userId: opts.userId, phase: opts.phase },
+        { err: errorForLog(err, opts.redactErrorDetail), attempt, userId: opts.userId, phase: opts.phase },
         `${prefix} LLM output validation failed, retrying`,
       );
     }
   }
   logger.error(
-    { err: (lastError as Error)?.message, userId: opts.userId, phase: opts.phase },
+    { err: errorForLog(lastError, opts.redactErrorDetail), userId: opts.userId, phase: opts.phase },
     `${prefix} phase failed after retries, using fallback for this phase`,
   );
   return null;

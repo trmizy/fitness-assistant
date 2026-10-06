@@ -1,0 +1,11 @@
+{
+  "at": "2026-09-27T04:55:58.701Z",
+  "exit": 0,
+  "ms": 495646,
+  "cmd": "node",
+  "args": [
+    "test/ai-chat-full-verification/browser-e2e.mjs",
+    "remediation",
+    "remediationmobile"
+  ]
+}

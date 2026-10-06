@@ -10,6 +10,7 @@ import {
 import type { NutritionPlanContent } from "../schemas/nutrition-plan.schemas";
 import { safeParseJsonCandidate } from "../utils/json";
 import { validateNutritionPlanInvariants } from "./nutrition-plan-invariant.service";
+import { repairNutritionPlanQuantities } from "./nutrition-plan-repair";
 import { filterFoodsByExclusions, findExclusionViolations, isKnownExclusionKey } from "./nutrition-food-constraints";
 
 type AiFood = {
@@ -354,11 +355,46 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       );
       return;
     }
-    const nutritionInvariant = validateNutritionPlanInvariants({
+    let finalContent = content;
+    let nutritionInvariant = validateNutritionPlanInvariants({
       content,
       mealsPerDay,
       allowedFoodIds,
     });
+    if (!nutritionInvariant.ok) {
+      // Deterministic numeric repair (no LLM): re-size ONLY the gram quantities of the foods the plan already
+      // contains so the authoritative kcal/macro targets are met. Invariants, tolerances and exclusions are
+      // unchanged: the repaired plan must pass the SAME checks below, otherwise the plan still fails closed.
+      const foodById = new Map(allowedFoods.map((f) => [String(f.id), f]));
+      const repair = repairNutritionPlanQuantities(content, {
+        foodById,
+        capG: (f) => realisticServingCapG(f.name, f.realisticServingMaxG),
+      });
+      const repairedInvariant = repair.report.changed
+        ? validateNutritionPlanInvariants({ content: repair.content, mealsPerDay, allowedFoodIds })
+        : nutritionInvariant;
+      const repairedExclusions = repair.report.changed ? findExclusionViolations(repair.content, excludedFoodKeys) : [];
+      const repairOk = repairedInvariant.ok && repairedExclusions.length === 0;
+      logger.info(
+        {
+          jobId: job.id,
+          planId,
+          repairInvoked: true,
+          repairSucceeded: repairOk,
+          repairedDays: repair.report.repairedDays.length,
+          failedDays: repair.report.failedDays.length,
+          violationsBefore: [...new Set(nutritionInvariant.violations.map((v) => v.code))],
+          before: repair.report.before,
+          after: repair.report.after,
+          repairMs: repair.report.ms,
+        },
+        "[nutrition-repair] deterministic quantity repair after invariant failure",
+      );
+      if (repairOk) {
+        finalContent = repair.content;
+        nutritionInvariant = repairedInvariant;
+      }
+    }
     if (!nutritionInvariant.ok) {
       logger.error(
         { jobId: job.id, planId, violations: nutritionInvariant.violations },
@@ -371,7 +407,7 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       return;
     }
     // 7. Complete plan
-    await conversationRepository.updateNutritionPlanCompletion(planId, content);
+    await conversationRepository.updateNutritionPlanCompletion(planId, finalContent);
     logger.info(
       { jobId: job.id, planId, userId },
       "Nutrition plan generation completed successfully",
@@ -383,7 +419,7 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     // succeeds, and the user's deterministic NutritionGoal already makes
     // Nutrition usable even if this fails (spec §LI fallback rule).
     if (autoSaveOnComplete) {
-      await autoSaveCompletedNutritionPlan(planId, userId, goal, content, fitnessServiceUrl, internalSecret);
+      await autoSaveCompletedNutritionPlan(planId, userId, goal, finalContent, fitnessServiceUrl, internalSecret);
     }
   } catch (err: any) {
     logger.error(
@@ -559,7 +595,7 @@ JSON:
 }`;
 }
 
-function parseNutritionTemplate(
+export function parseNutritionTemplate(
   raw: string,
 ): { ok: true; template: NutritionTemplate } | { ok: false; reason: string } {
   const parsed = safeParseJsonCandidate(raw);

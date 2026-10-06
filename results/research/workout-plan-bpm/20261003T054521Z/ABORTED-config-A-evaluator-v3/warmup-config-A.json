@@ -1,0 +1,399 @@
+{
+  "excludedFromMetrics": true,
+  "config": "A",
+  "case_id": "WARMUP",
+  "category": "warmup",
+  "fixture": "F_MG_DAYS",
+  "attempt": 1,
+  "status": "COMPLETED",
+  "userId": "60470d94-df51-4296-9979-52162831bd0c",
+  "startedAt": "2026-10-03T06:20:24.370Z",
+  "finishedAt": "2026-10-03T06:23:23.093Z",
+  "seed": {
+    "fixtureId": "F_MG_DAYS",
+    "putStatus": 200,
+    "requested": {
+      "hasCompletedOnboarding": true,
+      "goal": "MUSCLE_GAIN",
+      "currentWeight": 95,
+      "heightCm": 172,
+      "age": 28,
+      "preferredTrainingDays": [
+        1,
+        3,
+        5
+      ],
+      "sessionDurationMinutes": 60
+    }
+  },
+  "isolation": {
+    "baselineRows": 0,
+    "crossUserRows": 0,
+    "profileAtBaseline": [
+      {
+        "id": "bc9d81f9-a11d-4545-bafe-b99b479c1769",
+        "age": 28,
+        "goal": "MUSCLE_GAIN",
+        "isPT": false,
+        "email": null,
+        "gender": null,
+        "gym_id": null,
+        "region": null,
+        "userId": "60470d94-df51-4296-9979-52162831bd0c",
+        "heightCm": 172,
+        "injuries": null,
+        "lastName": null,
+        "createdAt": "2026-10-03T06:20:24.67",
+        "firstName": null,
+        "photo_url": null,
+        "data_origin": "REAL",
+        "energy_unit": "kcal",
+        "goal_intent": null,
+        "search_city": null,
+        "search_ward": null,
+        "specialties": null,
+        "unit_system": "metric",
+        "pt_suspended": false,
+        "targetWeight": null,
+        "activityLevel": null,
+        "currentWeight": 95,
+        "date_of_birth": null,
+        "pt_budget_vnd": null,
+        "referral_code": null,
+        "startingWeight": 95,
+        "experienceLevel": null,
+        "preferred_split": null,
+        "search_district": null,
+        "competes_in_sport": false,
+        "availableEquipment": null,
+        "dietary_preference": null,
+        "is_accepting_clients": true,
+        "last_name_normalized": null,
+        "not_accepting_reason": null,
+        "startingWeightSource": "ONBOARDING",
+        "first_name_normalized": null,
+        "preferredTrainingDays": [
+          1,
+          3,
+          5
+        ],
+        "nutrition_budget_level": null,
+        "safety_screening_flags": [],
+        "safety_screening_status": "UNKNOWN",
+        "has_completed_onboarding": true,
+        "session_duration_minutes": 60
+      }
+    ]
+  },
+  "caseErrors": [],
+  "turns": [
+    {
+      "turn_id": "W1",
+      "action": "TEXT",
+      "text": "Chào bạn, hôm nay tôi nên làm gì?",
+      "t0Iso": "2026-10-03T06:20:23.999Z",
+      "t1Iso": "2026-10-03T06:20:25.528Z",
+      "http": {
+        "status": 200,
+        "ms": 529,
+        "timedOut": false,
+        "error": null
+      },
+      "traceId": "ai_1791008425035_j21mkf",
+      "sessionId": "c46c93b1-8e82-4af7-8453-4f505a34199b",
+      "answer": "Mình chưa thấy lịch tập cụ thể được lưu cho Thứ Bảy 2026-10-03.",
+      "control": null,
+      "diff": {
+        "newActions": [],
+        "statusChanges": [],
+        "newPrograms": 0,
+        "profileChanged": false,
+        "workflowsChanged": 0
+      },
+      "observed": {
+        "route": "RECOMMEND",
+        "intent": null,
+        "write": "NO_WRITE",
+        "endState": "NONE",
+        "slots": {}
+      },
+      "llm": {
+        "called": false,
+        "rawRoute": null,
+        "accepted": false,
+        "acceptedRoute": null,
+        "latencyMs": null,
+        "resultReturned": false,
+        "noResult": false
+      },
+      "interpreter": {
+        "calls": 0,
+        "latencyMs": []
+      },
+      "qwenChatCalls": 0,
+      "embedCalls": 0,
+      "evidence": {
+        "trace": {
+          "route": "RECOMMEND",
+          "topic": null,
+          "workflow": null,
+          "deterministicRoute": "RECOMMEND",
+          "llmCalled": false,
+          "llmAccepted": null,
+          "workflowStatus": null
+        },
+        "boundaryIntent": null,
+        "llmRoute": null
+      },
+      "scored": {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 529,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": false,
+        "familyCorrect": false,
+        "intentCorrect": false,
+        "intentObserved": false,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": true,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": false,
+        "endCorrect": null,
+        "endObserved": "NONE",
+        "slotKeys": [],
+        "slotResults": {},
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": false,
+        "turnCorrect": false
+      }
+    },
+    {
+      "turn_id": "W2",
+      "action": "TEXT",
+      "text": "Tạo lịch tập 3 buổi mỗi tuần, 45 phút.",
+      "t0Iso": "2026-10-03T06:20:25.082Z",
+      "t1Iso": "2026-10-03T06:20:27.948Z",
+      "http": {
+        "status": 200,
+        "ms": 1866,
+        "timedOut": false,
+        "error": null
+      },
+      "traceId": "ai_1791008426119_lyvmow",
+      "sessionId": "c46c93b1-8e82-4af7-8453-4f505a34199b",
+      "answer": "Đây là lịch tập mình đề xuất (3 buổi/tuần, khoảng 60 phút/buổi). Bạn có thể yêu cầu chỉnh sửa (ví dụ đổi bài, đổi thời lượng) hoặc xác nhận để lưu.",
+      "control": null,
+      "diff": {
+        "newActions": [
+          {
+            "id": "f1e1e1e7-5d68-4019-b25b-00e36da59de0",
+            "kind": "CREATE_WORKOUT_PLAN",
+            "status": "PENDING"
+          }
+        ],
+        "statusChanges": [],
+        "newPrograms": 0,
+        "profileChanged": false,
+        "workflowsChanged": 0
+      },
+      "observed": {
+        "route": "START_WORKFLOW",
+        "intent": "CREATE_WORKOUT_PLAN",
+        "write": "PENDING_ONLY",
+        "endState": "END_C",
+        "slots": {}
+      },
+      "llm": {
+        "called": false,
+        "rawRoute": null,
+        "accepted": false,
+        "acceptedRoute": null,
+        "latencyMs": null,
+        "resultReturned": false,
+        "noResult": false
+      },
+      "interpreter": {
+        "calls": 0,
+        "latencyMs": []
+      },
+      "qwenChatCalls": 0,
+      "embedCalls": 0,
+      "evidence": {
+        "trace": {
+          "route": "START_WORKFLOW",
+          "topic": null,
+          "workflow": "CREATE_WORKOUT_PLAN",
+          "deterministicRoute": "START_WORKFLOW",
+          "llmCalled": false,
+          "llmAccepted": null,
+          "workflowStatus": null
+        },
+        "boundaryIntent": null,
+        "llmRoute": null
+      },
+      "scored": {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 1866,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": false,
+        "familyCorrect": false,
+        "intentCorrect": false,
+        "intentObserved": true,
+        "writeObserved": "PENDING_ONLY",
+        "writeCorrect": false,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": true,
+        "endScored": false,
+        "endCorrect": null,
+        "endObserved": "END_C",
+        "slotKeys": [],
+        "slotResults": {},
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": true,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": false,
+        "turnCorrect": false
+      }
+    },
+    {
+      "turn_id": "W3",
+      "action": "TEXT",
+      "text": "Hủy kế hoạch này nhé.",
+      "t0Iso": "2026-10-03T06:20:27.586Z",
+      "t1Iso": "2026-10-03T06:23:21.295Z",
+      "http": {
+        "status": 200,
+        "ms": 172709,
+        "timedOut": false,
+        "error": null
+      },
+      "traceId": "ai_1791008428618_wox4q7",
+      "sessionId": "c46c93b1-8e82-4af7-8453-4f505a34199b",
+      "answer": "Tạm thời AI chưa sẵn sàng để phân tích chi tiết. Tôi đã ghi nhận yêu cầu phân tích InBody của bạn. Hãy thử lại sau khi AI service hoặc Ollama sẵn sàng.",
+      "control": null,
+      "diff": {
+        "newActions": [],
+        "statusChanges": [],
+        "newPrograms": 0,
+        "profileChanged": false,
+        "workflowsChanged": 0
+      },
+      "observed": {
+        "route": "WRITE_ACTION",
+        "intent": null,
+        "write": "NO_WRITE",
+        "endState": "END_C",
+        "slots": {}
+      },
+      "llm": {
+        "called": false,
+        "rawRoute": null,
+        "accepted": false,
+        "acceptedRoute": null,
+        "latencyMs": null,
+        "resultReturned": false,
+        "noResult": false
+      },
+      "interpreter": {
+        "calls": 0,
+        "latencyMs": []
+      },
+      "qwenChatCalls": 0,
+      "embedCalls": 0,
+      "evidence": {
+        "trace": {
+          "route": "WRITE_ACTION",
+          "topic": null,
+          "workflow": null,
+          "deterministicRoute": "WRITE_ACTION",
+          "llmCalled": false,
+          "llmAccepted": null,
+          "workflowStatus": null
+        },
+        "boundaryIntent": null,
+        "llmRoute": null
+      },
+      "scored": {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 172709,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": false,
+        "familyCorrect": false,
+        "intentCorrect": false,
+        "intentObserved": false,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": true,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": false,
+        "endCorrect": null,
+        "endObserved": "END_C",
+        "slotKeys": [],
+        "slotResults": {},
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": false,
+        "turnCorrect": false
+      }
+    }
+  ],
+  "sessionId": "c46c93b1-8e82-4af7-8453-4f505a34199b",
+  "nonSemanticQwenChatCalls": 0
+}

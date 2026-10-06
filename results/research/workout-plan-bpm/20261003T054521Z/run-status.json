@@ -1,0 +1,31 @@
+{
+  "runId": "20261003T054521Z",
+  "stage": "config-A-stopped",
+  "overall": "STOPPED_CONFIG_A_QWEN_INVOCATION",
+  "startedAt": "2026-10-03T05:52:16.847Z",
+  "preflightRun": "20261003T054058Z",
+  "datasetFrozen": {
+    "result": "PASS",
+    "cases": 150,
+    "turns": 244,
+    "sha256": "eedb1adb16bd3a1284371118b5a03c05a883294a815aa0fb3d79cd76ef8cc849",
+    "gitHead": "81d9f432fa856c4e4f06d6b412071f4dbd6c15be"
+  },
+  "notStarted": [
+    "warmup",
+    "config-A",
+    "config-B",
+    "optional-diagnostic",
+    "metrics-aggregation",
+    "existing-http-evidence",
+    "reference-verification",
+    "charts-and-mermaid",
+    "report-markdown",
+    "report-docx",
+    "reproducibility-manifest"
+  ],
+  "note": "Freeze complete. Execution is resumable via per-case JSONL checkpoints (not yet implemented in this run).",
+  "stoppedAt": "2026-10-03T06:30:03.551Z",
+  "stopReason": "Qwen /api/chat invoked in Config A (3 calls, 500 after 170000 ms), see ABORTED-config-A-evaluator-v3/README.md. Config B NOT started. Decision required (STOP-REPORT.md).",
+  "evaluatorSha256Current": "45712c437f1c99b26197f7cdc465ed60662947cf9076a733a8386254752ddcbe"
+}

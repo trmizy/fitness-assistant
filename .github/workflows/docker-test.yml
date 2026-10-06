@@ -143,7 +143,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: "6379"
           DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_ai_test?schema=public
-        run: npx tsx --test --test-force-exit src/__tests__/agent-workflow-*.test.ts src/__tests__/nutrition-food-exclusion.test.ts src/__tests__/slot-values-parsers.test.ts
+        run: npx tsx --test --test-force-exit src/__tests__/agent-workflow-*.test.ts src/__tests__/nutrition-food-exclusion.test.ts src/__tests__/nutrition-plan-repair.test.ts src/__tests__/nutrition-generation-repair.processor.test.ts src/__tests__/slot-values-parsers.test.ts
       - name: AI Coach core gates - foundation evaluator (Codex conversational-workflow v2, must stay 30/30)
         env:
           NODE_ENV: test

@@ -141,6 +141,11 @@ export interface PersonalizationContext {
   currentWorkoutProgram?: Record<string, unknown> | null;
   /** Current active nutrition program (name, goal, dailyCaloriesTarget, macro targets) */
   currentNutritionProgram?: Record<string, unknown> | null;
+  /** Phase 3 Batch 1 (docs/ai-product/phase3-batch1-context-foundation.md) — `profile.nutritionGoal`
+   * being undefined is ambiguous on its own: it means EITHER "fetched fine, no ACTIVE goal exists"
+   * OR "the /nutrition/goals call itself failed." This field disambiguates the second case so
+   * enterprise-data/nutrition.reader.ts can report an explicit error instead of a false absence. */
+  nutritionGoalFetchFailed?: boolean;
   /**
    * Durable facts saved across sessions via the `remember_user_fact` tool
    * (Phase 3 memory). Not fetched by `profileExtractor.extract()` itself —
@@ -221,6 +226,14 @@ const profileCache = new Map<string, CacheEntry>();
 // so the TTL alone bounds staleness. Kept short so "just updated my InBody,
 // immediately asked the AI" never sees pre-update data in practice.
 const PROFILE_CACHE_TTL_MS = 15000;
+// Phase 3 Batch 1 (docs/ai-product/phase3-batch1-context-foundation.md) — request-scoped
+// deduplication. The TTL cache above only coalesces a call that arrives AFTER a previous one
+// finished; two Enterprise Data Layer readers invoked moments apart in the same chat turn can
+// both start their own 8-call HTTP batch before either completes. This additionally coalesces
+// calls that genuinely overlap while one is still in flight — never shared across users (keyed by
+// userId) and removed as soon as the fetch settles either way, so a failure is never "cached"
+// here (only the TTL cache may do that, unchanged/pre-existing behavior for a completed result).
+const inFlight = new Map<string, Promise<PersonalizationContext>>();
 
 export const profileExtractor = {
   /** Call this when user updates InBody / profile so the cache is immediately invalidated */
@@ -232,31 +245,42 @@ export const profileExtractor = {
     userId?: string,
     authorizationHeader?: string,
   ): Promise<PersonalizationContext> {
-    const fallbackProfile: UserProfile = {
-      userId,
-      training: {
-        trainingDaysPerWeek: undefined,
-        availableEquipment: [],
-        injuries: [],
-        preferredTrainingDays: [],
-      },
-    };
-
     if (!userId || !authorizationHeader) {
       return {
-        profile: fallbackProfile,
+        profile: {
+          userId,
+          training: {
+            trainingDaysPerWeek: undefined,
+            availableEquipment: [],
+            injuries: [],
+            preferredTrainingDays: [],
+          },
+        },
         inBodyHistory: [],
         workoutHistory: [],
         nutritionHistory: [],
       };
     }
 
-    const now = Date.now();
     const cached = profileCache.get(userId);
-    if (cached && cached.expiresAt > now) {
+    if (cached && cached.expiresAt > Date.now()) {
       return cached.data;
     }
+    const pending = inFlight.get(userId);
+    if (pending) return pending;
 
+    const fetchPromise = fetchAndCache(userId, authorizationHeader).finally(() => {
+      inFlight.delete(userId);
+    });
+    inFlight.set(userId, fetchPromise);
+    return fetchPromise;
+  },
+};
+
+async function fetchAndCache(
+  userId: string,
+  authorizationHeader: string,
+): Promise<PersonalizationContext> {
     // 3 s per call keeps total latency bounded; allSettled means any failure falls back gracefully.
     const [
       profileRes,
@@ -266,6 +290,7 @@ export const profileExtractor = {
       dailyConsumptionRes,
       workoutProgramRes,
       nutritionProgramRes,
+      nutritionGoalRes,
     ] = await Promise.allSettled([
       axios.get<ProfileResponse>(`${USER_SERVICE_URL}/profile/me`, {
         headers: authHeaders(authorizationHeader),
@@ -301,7 +326,21 @@ export const profileExtractor = {
         headers: authHeaders(authorizationHeader),
         timeout: 3000,
       }),
+      // The ACTIVE NutritionGoal: authoritative daily calories/macros (NutritionGoal owns them; nothing else may re-derive them).
+      axios.get(`${FITNESS_SERVICE_URL}/nutrition/goals`, {
+        headers: authHeaders(authorizationHeader),
+        timeout: 3000,
+      }),
     ]);
+    const rawGoal =
+      nutritionGoalRes.status === "fulfilled"
+        ? ((nutritionGoalRes.value.data as any)?.data ?? (nutritionGoalRes.value.data as any))
+        : null;
+    const nutritionGoal =
+      rawGoal && typeof rawGoal.id === "string" /* a real stored row — the API returns an id-less DEFAULT when none exists */ && [rawGoal.calories, rawGoal.protein, rawGoal.carbs, rawGoal.fat].every((n: unknown) => typeof n === "number" && Number.isFinite(n) && (n as number) > 0)
+        && (rawGoal.status === undefined || rawGoal.status === "ACTIVE")
+        ? { calories: rawGoal.calories, protein: rawGoal.protein, carbs: rawGoal.carbs, fat: rawGoal.fat }
+        : undefined;
 
     const profileData =
       profileRes.status === "fulfilled" ? profileRes.value.data.profile : null;
@@ -387,6 +426,7 @@ export const profileExtractor = {
 
     const profile: UserProfile = {
       userId,
+      nutritionGoal,
       age: profileData?.age,
       gender: profileData?.gender,
       heightCm: profileData?.heightCm,
@@ -457,6 +497,7 @@ export const profileExtractor = {
       dailyConsumptionHistory: dailyConsumptionData,
       currentWorkoutProgram,
       currentNutritionProgram,
+      nutritionGoalFetchFailed: nutritionGoalRes.status === "rejected",
     };
 
     profileCache.set(userId, {
@@ -465,5 +506,4 @@ export const profileExtractor = {
     });
 
     return finalContext;
-  },
-};
+}

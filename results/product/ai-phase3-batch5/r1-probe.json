@@ -1,0 +1,86 @@
+{
+  "measuredAt": "2026-10-06T08:21:12.485Z",
+  "runs": "single run per turn",
+  "turns": [
+    {
+      "label": "PT READ",
+      "text": "PT hiện tại của tôi là ai?",
+      "http": 200,
+      "httpMs": 718,
+      "answerChars": 143,
+      "answer": "Hiện bạn chưa có PT nào. Nếu muốn, bạn nhắn \"tìm PT cho tôi\" để mình lọc PT phù hợp — mình sẽ không tự đăng ký giúp bạn ",
+      "route": "READ_STATE",
+      "deterministicRoute": "READ_STATE",
+      "llmCalled": false,
+      "modelCalls": [],
+      "routing": []
+    },
+    {
+      "label": "Macro READ",
+      "text": "Macro hiện tại của tôi bao nhiêu?",
+      "http": 200,
+      "httpMs": 389,
+      "answerChars": 126,
+      "answer": "Bạn chưa có mục tiêu dinh dưỡng đã lưu. Khi bạn tạo lộ trình hoặc thực đơn, mình sẽ tính giúp và lưu lại sau khi bạn xác",
+      "route": "READ_STATE",
+      "deterministicRoute": "READ_STATE",
+      "llmCalled": false,
+      "modelCalls": [],
+      "routing": []
+    },
+    {
+      "label": "Revision (no draft)",
+      "text": "Buổi chân hơi nặng.",
+      "http": 200,
+      "httpMs": 58002,
+      "answerChars": 115,
+      "answer": "Tạm thời AI chưa sẵn sàng để trả lời câu hỏi này. Mình chưa ghi nhận hay thay đổi gì — bạn thử lại sau ít phút nhé.",
+      "route": "UNKNOWN",
+      "deterministicRoute": "UNKNOWN",
+      "llmCalled": true,
+      "modelCalls": [
+        {
+          "purpose": "SEMANTIC_ROUTING",
+          "outcome": "ok",
+          "latencyMs": 10519,
+          "timeoutMs": 15000
+        },
+        {
+          "purpose": "GENERAL_QA",
+          "outcome": "error",
+          "latencyMs": 45136,
+          "timeoutMs": 45000
+        }
+      ],
+      "routing": [
+        {
+          "accepted": false,
+          "acceptedRoute": null,
+          "llmRoute": "READ_STATE",
+          "rejectionReason": "topic_evidence_missing",
+          "latencyMs": 10522
+        }
+      ]
+    },
+    {
+      "label": "General QA",
+      "text": "Progressive overload là gì?",
+      "http": 200,
+      "httpMs": 47227,
+      "answerChars": 115,
+      "answer": "Tạm thời AI chưa sẵn sàng để trả lời câu hỏi này. Mình chưa ghi nhận hay thay đổi gì — bạn thử lại sau ít phút nhé.",
+      "route": "KNOWLEDGE_QA",
+      "deterministicRoute": "KNOWLEDGE_QA",
+      "llmCalled": false,
+      "modelCalls": [
+        {
+          "purpose": "GENERAL_QA",
+          "outcome": "error",
+          "latencyMs": 45008,
+          "timeoutMs": 45000
+        }
+      ],
+      "routing": []
+    }
+  ]
+}

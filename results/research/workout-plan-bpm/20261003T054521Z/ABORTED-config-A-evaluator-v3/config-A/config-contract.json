@@ -1,0 +1,20 @@
+{
+  "config": "A",
+  "llmFlag": "off",
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "timeouts": {
+    "httpTurnMs": 240000,
+    "serverLlmTimeoutMs": 170000,
+    "dockerLogsMs": 60000,
+    "containerReadyMs": 240000,
+    "composeMs": 600000
+  },
+  "retries": 0,
+  "substitution": "none",
+  "promptOrRouteChanges": "none (production aggregate unchanged; see preflight)",
+  "datasetSha256": "eedb1adb16bd3a1284371118b5a03c05a883294a815aa0fb3d79cd76ef8cc849",
+  "productionAggregateSha256": "bd9269003a03883e6b68a46c0cd14fbdf37c3a3d566e4723c7543e2b20de23ef",
+  "qwenManifestSha256": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+  "gitHead": "81d9f432fa856c4e4f06d6b412071f4dbd6c15be",
+  "frozenAt": "2026-10-03T06:23:35.295Z"
+}

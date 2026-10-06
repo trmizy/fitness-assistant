@@ -1,0 +1,26 @@
+{
+    "securityPolicyDetail": {
+        "type": "network",
+        "name": "auto-fitness-assistant-dev-ai-ve",
+        "policyVersion": "MTc4OTQ2MTQxNTcyNF8x",
+        "description": "fitness-assistant-dev-ai-vectors",
+        "policy": [
+            {
+                "Rules": [
+                    {
+                        "Resource": [
+                            "collection/fitness-assistant-dev-ai-vectors"
+                        ],
+                        "ResourceType": "collection"
+                    }
+                ],
+                "AllowFromPublic": false,
+                "SourceVPCEs": [
+                    "vpce-067d43742cdb6b4d4"
+                ]
+            }
+        ],
+        "createdDate": 1789461415724,
+        "lastModifiedDate": 1789461415724
+    }
+}

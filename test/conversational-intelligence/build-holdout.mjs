@@ -1,0 +1,57 @@
+// HELD-OUT set: written AFTER the development corpus was passing and NOT used to tune the parsers. Evaluated once; results are
+// reported separately from the development corpus. (Synthetic utterances only.)
+import fs from "node:fs";
+const cases = [];
+let n = 0;
+const c = (cat, text, exp = {}, ctx = {}) => cases.push({ id: `HO-${String(++n).padStart(3, "0")}`, cat, text, exp, ctx });
+
+c("units", "cao 1m68, nặng 62 ký", { ents: ["HEIGHT_CM=168", "WEIGHT_KG=62"], forbid: ["WEIGHT_KG=68", "TARGET_WEIGHT_KG=68"] });
+c("units", "mình 1m85 nặng 90kg", { ents: ["HEIGHT_CM=185", "WEIGHT_KG=90"], forbid: ["WEIGHT_KG=85"] });
+c("units", "cao 1.68 m", { ents: ["HEIGHT_CM=168"] });
+c("units", "chiều cao 165cm cân nặng 58kg", { ents: ["HEIGHT_CM=165", "WEIGHT_KG=58"] });
+c("units", "tôi 30 tuổi cao 1m82", { ents: ["AGE=30", "HEIGHT_CM=182"], forbid: ["WEIGHT_KG=82", "TARGET_WEIGHT_KG=82"] });
+c("units", "nặng 72kg cao 1m70", { ents: ["WEIGHT_KG=72", "HEIGHT_CM=170"], forbid: ["WEIGHT_KG=70", "TARGET_WEIGHT_KG=70"] });
+c("units", "1m60 45kg", { ents: ["HEIGHT_CM=160"], forbid: ["WEIGHT_KG=60", "TARGET_WEIGHT_KG=60", "WEIGHT_UNLABELED=60"] });
+c("units", "175cm 70kg", { ents: ["HEIGHT_CM=175"], forbid: ["WEIGHT_KG=75", "TARGET_WEIGHT_KG=75"] });
+c("units", "cân nặng 68 ký cao 172", { ents: ["WEIGHT_KG=68", "HEIGHT_CM=172"] });
+c("units", "tầm 1m7 thôi", { ents: ["HEIGHT_CM=170"] });
+c("targets", "mong muốn còn 65kg", { ents: ["TARGET_WEIGHT_KG=65"] });
+c("targets", "tôi định giảm xuống 70 ký", { ents: ["TARGET_WEIGHT_KG=70"] });
+c("targets", "muốn đạt 75kg", { ents: ["TARGET_WEIGHT_KG=75"] });
+c("targets", "mục tiêu của em là 60kg", { ents: ["TARGET_WEIGHT_KG=60"] });
+c("targets", "hiện tại 90kg, muốn xuống 80kg", { ents: ["WEIGHT_KG=90", "TARGET_WEIGHT_KG=80"] });
+c("targets", "nặng 85 muốn xuống còn 75", { ents: ["WEIGHT_KG=85", "TARGET_WEIGHT_KG=75"] });
+c("targets", "đặt mục tiêu 68kg", { ents: ["TARGET_WEIGHT_KG=68"] });
+c("goals", "tôi cần giảm béo", { goal: ["WEIGHT_LOSS:E"] });
+c("goals", "muốn xây cơ", { goal: ["MUSCLE_GAIN:E"] });
+c("goals", "chỉ cần giữ cân thôi", { goal: ["MAINTENANCE:E"] });
+c("goals", "muốn giảm cân nhanh", { goal: ["WEIGHT_LOSS:E"] });
+c("goals", "tôi thấy mình hơi thừa cân", { goal: ["WEIGHT_LOSS:I"] });
+c("corrections", "ối nhầm, tôi 27 tuổi", { corr: ["AGE>27"] });
+c("corrections", "không phải 80, tôi 82kg", { corr: ["WEIGHT_KG>82"], forbid: ["WEIGHT_KG=80"] }, { slot: "currentWeightKg" });
+c("corrections", "sai rồi, mục tiêu là 65kg", { corr: ["TARGET_WEIGHT_KG>65"] });
+c("corrections", "tôi đổi ý, tập 3 buổi thôi", { corr: ["SESSIONS_PER_WEEK>3"] });
+c("corrections", "cho tôi sửa lại: cao 1m78", { corr: ["HEIGHT_CM>178"] });
+c("recommend", "bạn đề xuất giúp tôi mức cân nặng", { rec: true });
+c("recommend", "mình không rõ nên chọn thế nào", { rec: true });
+c("recommend", "theo bạn tôi nên ăn mấy bữa?", { rec: true });
+c("recommend", "cho tôi lời khuyên về số buổi tập", { rec: true });
+c("recommend", "tự chọn hộ tôi nhé", { rec: true });
+c("references", "chọn cái thấp hơn", { ref: "LOWER_OPTION" });
+c("references", "lấy mức bạn vừa nói", { ref: "ACCEPT_PROPOSAL" });
+c("references", "chọn mức cao hơn đi", { ref: "HIGHER_OPTION" });
+c("negation", "tôi không muốn xuống 68", { neg: ["WEIGHT_UNLABELED=68"], forbid: ["TARGET_WEIGHT_KG=68"] });
+c("negation", "đừng lấy 75", { forbid: ["TARGET_WEIGHT_KG=75"] });
+c("negation", "không phải 65", { neg: ["WEIGHT_UNLABELED=65"], forbid: ["TARGET_WEIGHT_KG=65"] });
+c("qa", "Ăn tối muộn có béo không?", { intent: "ANSWER_QUESTION", noEnt: true });
+c("qa", "Bao nhiêu set mỗi nhóm cơ là đủ?", { intent: "ANSWER_QUESTION" });
+c("qa", "Tập bụng có giảm mỡ bụng không?", { intent: "ANSWER_QUESTION" });
+c("multi", "nam 27 tuổi 1m75 78kg muốn xuống 70kg", { ents: ["GENDER=MALE", "AGE=27", "HEIGHT_CM=175", "WEIGHT_KG=78", "TARGET_WEIGHT_KG=70"], forbid: ["WEIGHT_KG=75"] });
+c("multi", "tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần", { ents: ["GENDER=FEMALE", "HEIGHT_CM=158", "WEIGHT_KG=52", "SESSIONS_PER_WEEK=3"], forbid: ["WEIGHT_KG=58"] });
+c("noise", "hôm qua tôi ngủ 6 tiếng", { forbid: ["SESSION_MINUTES=360", "WEIGHT_KG=6"] });
+c("noise", "năm nay tôi 25 tuổi", { ents: ["AGE=25"], forbid: ["GENDER=MALE"] });
+c("noise", "tôi tập được 2 năm rồi", { noEnt: true, forbid: ["GENDER=MALE"] });
+c("noise", "kế hoạch trong 12 tuần", { noEnt: true });
+
+fs.writeFileSync("test/conversational-intelligence/holdout.json", JSON.stringify(cases, null, 1));
+console.log(`holdout.json: ${cases.length} cases`);

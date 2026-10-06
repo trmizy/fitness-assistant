@@ -1,0 +1,8 @@
+{
+  "runId": "20261003T054058Z",
+  "stage": "preflight",
+  "repoRoot": "<repo>",
+  "startedAt": "2026-10-03T05:40:58.619Z",
+  "finishedAt": "2026-10-03T05:40:58.827Z",
+  "node": "v24.14.1"
+}

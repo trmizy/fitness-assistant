@@ -1,4 +1,4 @@
-import { Job, Worker } from "bullmq";
+import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { requestService } from "../clients/service-lambda.client";
@@ -36,7 +36,6 @@ import {
 import type { CoachContext } from "../coach/coach_context.types";
 import type { UserProfile } from "../llm/types";
 import type { WorkerUserContext } from "./worker-user-context";
-import { redisConnection } from "./ai.queue";
 import { validateWorkoutPlanInvariants } from "../services/workout-plan-invariant.service";
 
 type AllowedExercise = AllowedExerciseItem;
@@ -1038,8 +1037,14 @@ type PlanJobData = z.infer<typeof PlanJobDataSchema>;
  * The actual "ai-tasks" job processor — extracted to a standalone, exported
  * function (rather than left as an inline arrow passed to `new Worker(...)`)
  * so it can be invoked two ways with zero behavior difference:
- *   1. The BullMQ Worker below (Redis-backed, used by the container/local
- *      deployment and by docker-compose.prod.yml's single-EC2 MVP).
+ *   1. The BullMQ Worker in `./ai.worker.runtime.ts` (Redis-backed, used by
+ *      the container/local deployment and by docker-compose.prod.yml's
+ *      single-EC2 MVP). Deliberately NOT in this file — see that file's own
+ *      header comment for why (AWS DEV live bug found 2026-09-30: any import
+ *      of a module — static or dynamic — runs its top-level code, so a
+ *      `new Worker(...)` here would open a Redis connection from the AI
+ *      Lambda the first time worker-lambda.ts dynamically imports this
+ *      module, even though QUEUE_PROVIDER=sqs never uses BullMQ).
  *   2. worker-lambda.ts's SQS-triggered Lambda handler (AWS deployment —
  *      see the AWS deployment audit, section 7). Only `.name`, `.data`,
  *      `.id`, and `.attemptsMade` are ever read from `job` in this function
@@ -2324,20 +2329,3 @@ export async function processAiTaskJob(job: Job): Promise<void> {
     // 5. Persist structured plan
     await completePlan(content, "Plan generation completed successfully");
 }
-
-export const aiWorker = new Worker(
-  "ai-tasks",
-  processAiTaskJob,
-  {
-    connection: redisConnection,
-    // Retry up to 2 times on transient LLM failures (network, timeout).
-    // Validation failures are NOT re-thrown, so they won't consume retries.
-  },
-);
-
-aiWorker.on("failed", (job, err) => {
-  logger.error(
-    { jobId: job?.id, err },
-    "AI worker job failed after all retries",
-  );
-});

@@ -1,6 +1,9 @@
 import { llmService, LLM_PROVIDER } from "../services/llm.service";
 import { runToolCallingTurn } from "./tools";
-import { fitnessAgent } from "../services/fitness-agent.service";
+import { fitnessAgent, fitnessAgentDeps } from "../services/fitness-agent.service";
+import { ciMode } from "../conversational-intelligence";
+import { reminder as pendingWorkflowReminder } from "../conversational-intelligence/global/global-turn";
+import { describeTransition, snapshotTurnState } from "../conversational-intelligence/global/turn-state";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { persistDeterministicMemoryCandidates } from "./memory_extraction";
 import { logger } from "@gym-coach/shared";
@@ -123,15 +126,17 @@ async function timeAsync<T>(
   }
 }
 
-function buildAiUnavailableFallback(language: LanguageDecision): string {
+export function buildAiUnavailableFallback(language: LanguageDecision): string {
   if (language.responseLanguage === "vi") {
+    // Batch 5 defect fix: this used to claim "Tôi đã ghi nhận yêu cầu phân tích InBody của bạn" for EVERY unavailable turn, a false
+    // statement for any other question. The fallback now says only what is true: no answer was generated, and nothing was recorded or changed.
     return [
-      "Tạm thời AI chưa sẵn sàng để phân tích chi tiết.",
-      "Tôi đã ghi nhận yêu cầu phân tích InBody của bạn. Hãy thử lại sau khi AI service hoặc Ollama sẵn sàng.",
+      "Tạm thời AI chưa sẵn sàng để trả lời câu hỏi này.",
+      "Mình chưa ghi nhận hay thay đổi gì — bạn thử lại sau ít phút nhé.",
     ].join(" ");
   }
 
-  return "The AI model is starting up or overloaded, so I cannot complete the detailed analysis right now. Please try again shortly.";
+  return "The AI model is starting up or overloaded, so I cannot answer this right now. Nothing was recorded or changed. Please try again shortly.";
 }
 
 function foldForIntent(text: string): string {
@@ -353,8 +358,7 @@ function makeEarlyPayload(
   };
 }
 
-export const llmOrchestrator = {
-  async run(
+async function runInner(
     question: string,
     userId?: string,
     authHeader?: string,
@@ -445,7 +449,7 @@ export const llmOrchestrator = {
 
     // Emit before any I/O - fires immediately after safety gate passes.
     if (userId && sessionId) {
-      const agentResult = await fitnessAgent.tryTurn(question, { userId, authorizationHeader: authHeader }, sessionId);
+      const agentResult = await fitnessAgent.tryTurn(question, { userId, authorizationHeader: authHeader }, sessionId, trace.traceId);
       if (agentResult) {
         traceLogger.end(trace, { retrievalEmpty: false, warningCount: 0, promptTokens: 0, completionTokens: 0, responseSource: "fitness_agent" });
         return { ...makeEarlyPayload(trace.traceId, agentResult.answer, language, "fitness_agent"), structuredBlocks: agentResult.blocks };
@@ -922,6 +926,8 @@ export const llmOrchestrator = {
       try {
         const llmCallOpts = {
           timeoutMs: LLM_TIMEOUT_MS,
+          // R1 telemetry label only (never changes the request)
+          purpose: routedIntent.intent === "general_fitness_knowledge" ? ("GENERAL_QA" as const) : ("GENERATION" as const),
           temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
           // These caps were tuned for the small local fine-tuned Ollama model
           // (fitness-coach-qwen2.5-1.5b), where ~420 tokens is a full answer.
@@ -1220,5 +1226,44 @@ export const llmOrchestrator = {
           ? bodyCompAnalysis.safetyNotes
           : undefined,
     };
+}
+
+export const llmOrchestrator = {
+  async run(
+    question: string,
+    userId?: string,
+    authHeader?: string,
+    sessionId?: string,
+    onProgress?: ProgressCallback,
+  ): Promise<FinalAnswerPayload> {
+    // CI-V2 diagnostics: the conversation state this turn starts from and ends in (ids/types/statuses only), joined to the
+    // request by traceId — so "which workflow did the router actually see?" is answerable per request, not by log order.
+    const stateBefore = userId && sessionId && ciMode() === "on" ? await snapshotTurnState(userId, sessionId).catch(() => null) : null;
+    const payload = await runInner(question, userId, authHeader, sessionId, onProgress);
+    if (stateBefore && userId && sessionId) {
+      const stateAfter = await snapshotTurnState(userId, sessionId).catch(() => null);
+      if (stateAfter) logger.info({ correlationId: payload.traceId, userId, sessionId, routeIntent: payload.routeIntent, ...describeTransition(stateBefore, stateAfter) }, "ci_turn_transition");
+    }
+    // CI-V2 Phase B — "pending workflow survives an interruption" must also hold when the interruption was answered by
+    // this file's own RAG/deterministic-shortcut chat pipeline (e.g. a knowledge question, or a nutrition/schedule lookup
+    // that CI-V2's own READ_STATE routing did not claim), not only when fitness-agent.service.ts's global-turn module
+    // answered it directly. runInner()'s early returns already cover the two cases that must NEVER get this reminder:
+    // fitness_agent (routeIntent === "fitness_agent", and structured CI-V2 answers already append their own copy of this
+    // same reminder — see global-turn.ts's reminder()) and the safety gate (never append conversational bookkeeping to a
+    // crisis/off-topic/emergency response). Everything else that reaches this point is a genuine chat-pipeline answer.
+    // safetyGuard.check() is synchronous/local (no I/O) — cheap enough to call again here rather than threading a flag
+    // through runInner()'s many internal return points.
+    if (userId && sessionId && ciMode() === "on" && payload.routeIntent !== "fitness_agent" && safetyGuard.check(question).type === "safe") {
+      try {
+        const text = await pendingWorkflowReminder({ userId, authorizationHeader: authHeader }, sessionId, {
+          getUserFitnessContext: fitnessAgentDeps.tools.getUserFitnessContext,
+          updateProfileFields: fitnessAgentDeps.tools.updateProfileFields,
+        });
+        if (text) payload.answer += text;
+      } catch (err) {
+        logger.warn({ err: safeErrorMessage(err), userId, sessionId }, "ci_v2_pending_workflow_reminder_failed");
+      }
+    }
+    return payload;
   },
 };

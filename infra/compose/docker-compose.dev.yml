@@ -401,6 +401,7 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      AI_CHAT_LLM_TIMEOUT_MS: ${AI_CHAT_LLM_TIMEOUT_MS:-45000}   # R1: bounded user-facing chat generation (was 300 s here)
       EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
       LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
       LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
@@ -646,6 +647,7 @@ services:
       NVIDIA_VISIBLE_DEVICES: void
       CUDA_VISIBLE_DEVICES: ""
       OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: "30m"   # R1: keep the approved model resident between turns; cold loads measured at 60-82 s
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]

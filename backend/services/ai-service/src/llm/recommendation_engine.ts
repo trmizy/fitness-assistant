@@ -1023,7 +1023,21 @@ function buildMealPlanTemplate(
     preference,
   );
 
-  const applyMealConstraints = (plan: MealPlanTemplate): MealPlanTemplate => {
+  // The header numbers of a chat meal plan must be the user's ACTIVE NutritionGoal (single source of truth), not the
+  // kcal of whichever dataset template happened to be the closest sample.
+  const withAuthoritativeTargets = (plan: MealPlanTemplate): MealPlanTemplate =>
+    profile.nutritionGoal
+      ? {
+          ...plan,
+          kcal: profile.nutritionGoal.calories,
+          proteinGrams: profile.nutritionGoal.protein,
+          carbsGrams: profile.nutritionGoal.carbs,
+          fatGrams: profile.nutritionGoal.fat,
+        }
+      : plan;
+
+  const applyMealConstraints = (rawPlan: MealPlanTemplate): MealPlanTemplate => {
+    const plan = withAuthoritativeTargets(rawPlan);
     if (!isDairyFree) return plan;
     return {
       ...plan,

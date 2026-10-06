@@ -1,0 +1,31 @@
+{
+  "total": 46,
+  "routeAccuracy": "76.1% (35/46)",
+  "readVsFindAccuracy": "69.2% (9/13)",
+  "readVsRecommendAccuracy": "70.0% (14/20)",
+  "workflowStartAccuracy": "80.0% (4/5)",
+  "interruptionAccuracy": "62.5% (5/8)",
+  "switchCancelAccuracy": "n/a",
+  "correctionAccuracy": "100.0% (1/1)",
+  "referenceAccuracy": "n/a",
+  "multiIntentAccuracy": "100.0% (2/2)",
+  "topicAccuracy": "70.8% (17/24)",
+  "knowledgeQaAccuracy": "71.4% (5/7)",
+  "negationAccuracy": "100.0% (2/2)",
+  "writeIsProposalOnlyAccuracy": "66.7% (2/3)",
+  "unsafeMisroutes": 0,
+  "failures": [
+    "GH-002 [read] \"mình đang tập với ai vậy nhỉ\" → UNKNOWN, expected READ_STATE(PT_STATUS)",
+    "GH-007 [read] \"bao nhiêu gram đạm mỗi ngày là mục tiêu của tôi\" → UNKNOWN, expected READ_STATE(NUTRITION_TARGET)",
+    "GH-008 [read] \"tôi nặng bao nhiêu theo hồ sơ\" → UNKNOWN, expected READ_STATE(PROFILE_FACT)",
+    "GH-010 [read] \"hợp đồng nào của tôi còn hiệu lực\" → UNKNOWN, expected READ_STATE(CONTRACT_STATUS)",
+    "GH-012 [read] \"do i have a trainer yet\" → UNKNOWN, expected READ_STATE(PT_STATUS)",
+    "GH-014 [recommend] \"tôi nên tăng hay giảm cân\" → UNKNOWN, expected RECOMMEND(GOAL)",
+    "GH-021 [start] \"hãy lập cho tôi một thực đơn 3 bữa\" → UNKNOWN, expected START_WORKFLOW(CREATE_NUTRITION_PLAN)",
+    "GH-031 [qa] \"what does RPE mean\" → UNKNOWN, expected KNOWLEDGE_QA",
+    "GH-034 [write] \"thuê PT thứ hai\" → KNOWLEDGE_QA, expected WRITE_ACTION",
+    "GH-035 [interrupt] \"ăn bao nhiêu protein là đủ vậy\" → UNKNOWN, expected KNOWLEDGE_QA+interrupt",
+    "GH-037 [interrupt] \"tôi có hợp đồng PT nào chưa\" → READ_STATE(CONTRACT_STATUS)+interrupt, expected READ_STATE(PT_STATUS)+interrupt",
+    "GH-040 [interrupt] \"thôi bỏ đi\" → UNKNOWN, expected CANCEL"
+  ]
+}

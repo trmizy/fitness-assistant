@@ -1,0 +1,26 @@
+{
+  "corpus": "corpus",
+  "totalCases": 171,
+  "categories": 16,
+  "intentAccuracy": "100.0% (35/35)",
+  "entityAccuracy": "100.0% (110/110)",
+  "goalAccuracy": "100.0% (26/26)",
+  "correctionAccuracy": "100.0% (16/16)",
+  "recommendationAccuracy": "100.0% (14/14)",
+  "referenceAccuracy": "100.0% (13/13)",
+  "ambiguityAccuracy": "100.0% (7/7)",
+  "negationAccuracy": "100.0% (6/6)",
+  "whyAccuracy": "100.0% (4/4)",
+  "workflowAccuracy": "100.0% (8/8)",
+  "noEntityAccuracy": "100.0% (4/4)",
+  "unitMistakes": 0,
+  "crossFieldContamination": 0,
+  "confirmationBypasses": 0,
+  "shadow": {
+    "entitiesCompared": 93,
+    "legacyCorrect": "76/93",
+    "newCorrect": "93/93",
+    "regressionsOldCorrectNewWrong": 0
+  },
+  "failures": []
+}

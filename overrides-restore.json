@@ -1,0 +1,13 @@
+{
+  "containerOverrides": [
+    {
+      "name": "db-migrator",
+      "environment": [
+        {
+          "name": "MODE",
+          "value": "restore"
+        }
+      ]
+    }
+  ]
+}

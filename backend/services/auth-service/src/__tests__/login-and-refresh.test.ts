@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authService } from "../services/auth.service";
-import { authRepository } from "../repositories/auth.repository";
+import { authRepository, prisma } from "../repositories/auth.repository";
 
 /**
  * Money-flow plan 5.4 — minimum auth-service test coverage: wrong-password login rejection and
@@ -215,6 +215,12 @@ test("changePassword() hashes the new password and revokes refresh tokens for th
     revokeCalls.push(userId);
     return { count: 2 };
   });
+  // changePassword now runs both writes inside prisma.$transaction() (see
+  // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md) — the real
+  // $transaction would open a real connection, so it's patched to just invoke the
+  // callback directly. The `tx` it hands in is unused by the two patches above (they
+  // ignore whatever client they're given), so any placeholder value is fine.
+  const restoreTx = patch(prisma, "$transaction", async (cb: any) => cb(prisma));
 
   try {
     const result = await authService.changePassword(signAccessToken("u1"), {
@@ -232,6 +238,7 @@ test("changePassword() hashes the new password and revokes refresh tokens for th
     restoreUser();
     restoreUpdate();
     restoreRevoke();
+    restoreTx();
   }
 });
 

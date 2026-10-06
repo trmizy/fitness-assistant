@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-27T04:47:58.202Z",
+  "exit": 0,
+  "ms": 277209,
+  "cmd": "node",
+  "args": [
+    "test/conversational-intelligence/live-golden.mjs"
+  ]
+}

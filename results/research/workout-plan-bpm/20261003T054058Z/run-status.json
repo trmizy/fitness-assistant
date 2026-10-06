@@ -1,0 +1,41 @@
+{
+  "runId": "20261003T054058Z",
+  "stage": "preflight",
+  "overall": "BLOCKED",
+  "startedAt": "2026-10-03T05:40:58.619Z",
+  "blockers": [
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "11-qwen3-4b-evaluation-plan.md per-category targets sum to 160, but the same document and the research brief require exactly 150"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "expected write behavior NO_WRITE|PENDING_ONLY|AUTHORIZED_WRITE per turn (not defined per utterance in any design document)"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "expected BPM route/state outcome per turn (only FR/EX/AC defined; no utterance-level gold route)"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "gold entity/slot values for ambiguous free-text categories (e.g. typo/slang, reference/anaphora) (no labeling rule defined)"
+    }
+  ],
+  "notes": [
+    "Preflight passed. Experiments A/B/C, frozen-150 execution, and report generation were NOT started: they depend on the frozen dataset, which cannot be built without the decisions listed in blockers."
+  ],
+  "preflight": {
+    "result": "PASS",
+    "functionalRequirements": 22,
+    "exceptions": 20,
+    "acceptanceCriteria": 42
+  },
+  "dataset": {
+    "result": "BLOCKED",
+    "reason": "DATASET_LABEL_UNDERSPECIFIED",
+    "categoryTargetSum": 160,
+    "unresolved": 4
+  },
+  "exitCode": 4,
+  "finishedAt": "2026-10-03T05:40:58.828Z"
+}

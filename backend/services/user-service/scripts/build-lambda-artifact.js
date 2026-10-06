@@ -293,6 +293,11 @@ function main() {
   ]) {
     fs.rmSync(path.join(ARTIFACT_ROOT, "dist", "generated", "prisma", engine), { force: true });
   }
+  for (const entry of fs.readdirSync(path.join(ARTIFACT_ROOT, "dist", "generated", "prisma"))) {
+    if (/^libquery_engine-.*\.tmp\d*$/.test(entry)) {
+      fs.rmSync(path.join(ARTIFACT_ROOT, "dist", "generated", "prisma", entry), { force: true });
+    }
+  }
 
   console.log("== 9: drop dev-only python OCR prototype (never invoked by the Node runtime — see impact analysis) ==");
   // inbody_extractor/ is a standalone Python CLI, not imported/spawned by any TypeScript source

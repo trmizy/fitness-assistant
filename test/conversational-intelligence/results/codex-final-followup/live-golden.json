@@ -1,0 +1,71 @@
+{
+  "at": "2026-09-27T15:15:35.349Z",
+  "evidence": "REAL HTTP/API (Docker ai-service, CONVERSATIONAL_INTELLIGENCE_V2=on, isolated test DBs, configured qwen3:30b)",
+  "results": [
+    {
+      "name": "T1 'mục tiêu 70kg': conflict question (no validator loop)",
+      "pass": true,
+      "detail": "Mức 70kg thấp hơn cân nặng hiện tại của bạn (80kg), trong khi mục tiêu đang lưu là tăng cơ. Bạn muốn (1) giảm xuống 70kg — mình sẽ đề xuất đổi mục tiêu chính sang giảm mỡ, hoặc (2) vẫn tăng cơ với một mức cao hơn 80kg? Nếu chưa chắc, bạn cứ nhờ mình đề xuất một mức phù hợp."
+    },
+    {
+      "name": "T2 'hãy đề xuất': a derived recommendation, NOT 'give me a number'",
+      "pass": true,
+      "detail": "Với chiều cao 173cm và cân nặng 80kg (BMI khoảng 26,7), mình đề xuất đi từng mốc 76kg → 72kg (khoảng 0,5kg/tuần, tức cỡ 16 tuần để tới 72kg). Giảm dần theo từng mốc (khoảng 0,5–0,75% cân nặng mỗi tuần) và không đi dưới ngưỡng BMI bình thường. Vì hướng này khác mục tiêu tăng cơ đang lưu, mình cũng sẽ đề xuất đổi mục tiêu chính sang giảm mỡ — bạn vẫn là người xác nhận.\n\nBạn đồng ý dùng 72kg làm mục tiêu không? Bạn cũng có thể chọn mốc thấp hơn/cao hơn hoặc nhập một con số khác."
+    },
+    {
+      "name": "T3 '74kg': proposed goal change + target behind a confirmation card",
+      "pass": true,
+      "detail": "[\"goal=WEIGHT_LOSS\",\"targetWeight=74\"]"
+    },
+    {
+      "name": "T3 nothing written before confirmation",
+      "pass": true,
+      "detail": "MUSCLE_GAIN|"
+    },
+    {
+      "name": "T4: target 72 (never 73), goal WEIGHT_LOSS proposed",
+      "pass": true,
+      "detail": "[\"goal=WEIGHT_LOSS\",\"targetWeight=72\"]"
+    },
+    {
+      "name": "T4: the stale muscle-gain validator message is gone",
+      "pass": true,
+      "detail": "Mình sẽ cập nhật mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất): Tăng cơ → Giảm mỡ; cân nặng mục tiêu: Chưa thiết lập → 72 kg. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?"
+    },
+    {
+      "name": "T4: no diagnosis from a casual remark",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "T4: still nothing written",
+      "pass": true,
+      "detail": "MUSCLE_GAIN|"
+    },
+    {
+      "name": "T5 confirm: goal + target written ONCE, roadmap request resumed into its own confirmable preview",
+      "pass": true,
+      "detail": "WEIGHT_LOSS|72 | ACTION_CONFIRMATION"
+    },
+    {
+      "name": "mid-workflow 'Thôi … đổi sang giảm mỡ': not cancelled, goal change proposed",
+      "pass": true,
+      "detail": "Hiểu rồi — thông tin mới của bạn khác với mục tiêu tăng cơ đang lưu. Từ những gì bạn vừa nói, có vẻ mục tiêu chính của bạn đã chuyển sang giảm mỡ. Mình chưa thay đổi gì cho tới khi bạn xác nhận; đây là thay đổi mình đề xuất:\n\nĐể xây lộ trình phù hợp, bạn muốn giảm xuống khoảng bao nhiêu kg?"
+    },
+    {
+      "name": "a bare 'thôi' still cancels",
+      "pass": true,
+      "detail": "Đã hủy yêu cầu này. Bạn có thể bắt đầu lại bất cứ lúc nào."
+    },
+    {
+      "name": "general Q&A does not start a workflow",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "canonical 'Gợi ý chương trình tập cho tôi' still starts the program workflow",
+      "pass": false,
+      "detail": ""
+    }
+  ]
+}

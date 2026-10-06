@@ -1,0 +1,634 @@
+[
+  {
+    "case_id": "W001",
+    "category": "Explicit complete requests",
+    "fixture": "F_MG_NO_DAYS",
+    "config": "A",
+    "attempt": 1,
+    "status": "COMPLETED",
+    "userId": "9f3cd98a-6d6b-40c7-9770-873cd6457d55",
+    "startedAt": "2026-10-03T06:18:36.760Z",
+    "finishedAt": "2026-10-03T06:18:39.719Z",
+    "seed": {
+      "fixtureId": "F_MG_NO_DAYS",
+      "putStatus": 200,
+      "requested": {
+        "hasCompletedOnboarding": true,
+        "goal": "MUSCLE_GAIN",
+        "currentWeight": 95,
+        "heightCm": 172,
+        "age": 28
+      }
+    },
+    "isolation": {
+      "baselineRows": 0,
+      "crossUserRows": 0,
+      "profileAtBaseline": [
+        {
+          "id": "de6f60f0-a234-4627-bfe6-d07c7f844648",
+          "age": 28,
+          "goal": "MUSCLE_GAIN",
+          "isPT": false,
+          "email": null,
+          "gender": null,
+          "gym_id": null,
+          "region": null,
+          "userId": "9f3cd98a-6d6b-40c7-9770-873cd6457d55",
+          "heightCm": 172,
+          "injuries": null,
+          "lastName": null,
+          "createdAt": "2026-10-03T06:18:13.924",
+          "firstName": null,
+          "photo_url": null,
+          "data_origin": "REAL",
+          "energy_unit": "kcal",
+          "goal_intent": null,
+          "search_city": null,
+          "search_ward": null,
+          "specialties": null,
+          "unit_system": "metric",
+          "pt_suspended": false,
+          "targetWeight": null,
+          "activityLevel": null,
+          "currentWeight": 95,
+          "date_of_birth": null,
+          "pt_budget_vnd": null,
+          "referral_code": null,
+          "startingWeight": 95,
+          "experienceLevel": null,
+          "preferred_split": null,
+          "search_district": null,
+          "competes_in_sport": false,
+          "availableEquipment": null,
+          "dietary_preference": null,
+          "is_accepting_clients": true,
+          "last_name_normalized": null,
+          "not_accepting_reason": null,
+          "startingWeightSource": "ONBOARDING",
+          "first_name_normalized": null,
+          "preferredTrainingDays": null,
+          "nutrition_budget_level": null,
+          "safety_screening_flags": [],
+          "safety_screening_status": "UNKNOWN",
+          "has_completed_onboarding": true,
+          "session_duration_minutes": 60
+        }
+      ]
+    },
+    "caseErrors": [
+      {
+        "turn_id": "T2",
+        "reason": "NO_PENDING_ACTION"
+      }
+    ],
+    "turns": [
+      {
+        "turn_id": "T1",
+        "action": "TEXT",
+        "text": "Tạo lịch tập 4 buổi mỗi tuần, mỗi buổi 60 phút. Tôi chỉ có tạ tay.",
+        "t0Iso": "2026-10-03T06:18:36.383Z",
+        "t1Iso": "2026-10-03T06:18:38.401Z",
+        "http": {
+          "status": 200,
+          "ms": 1017,
+          "timedOut": false,
+          "error": null
+        },
+        "traceId": "ai_1791008317645_fitjih",
+        "sessionId": "aee3214a-150b-4f6b-bd86-2cab43380324",
+        "answer": "Bạn muốn tập mấy buổi mỗi tuần?",
+        "control": null,
+        "diff": {
+          "newActions": [],
+          "statusChanges": [],
+          "newPrograms": 0,
+          "profileChanged": false,
+          "workflowsChanged": 1
+        },
+        "observed": {
+          "route": "START_WORKFLOW",
+          "intent": "CREATE_WORKOUT_PLAN",
+          "write": "NO_WRITE",
+          "endState": "IN_PROGRESS",
+          "slots": {}
+        },
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "interpreter": {
+          "calls": 0,
+          "latencyMs": []
+        },
+        "qwenChatCalls": 0,
+        "embedCalls": 0,
+        "evidence": {
+          "trace": {
+            "route": "START_WORKFLOW",
+            "topic": null,
+            "workflow": "CREATE_WORKOUT_PLAN",
+            "deterministicRoute": "START_WORKFLOW",
+            "llmCalled": false,
+            "llmAccepted": null,
+            "workflowStatus": null
+          },
+          "boundaryIntent": null,
+          "llmRoute": null
+        },
+        "scored": {
+          "action": "TEXT",
+          "isText": true,
+          "routeObserved": true,
+          "llm": {
+            "called": false,
+            "rawRoute": null,
+            "accepted": false,
+            "acceptedRoute": null,
+            "latencyMs": null,
+            "resultReturned": false,
+            "noResult": false
+          },
+          "http": {
+            "status": 200,
+            "ms": 1017,
+            "timedOut": false,
+            "error": null
+          },
+          "routeCorrect": true,
+          "familyCorrect": true,
+          "intentCorrect": true,
+          "intentObserved": true,
+          "writeObserved": "NO_WRITE",
+          "writeCorrect": false,
+          "persistedWorkout": false,
+          "persistedWorkoutCount": 0,
+          "profileChanged": false,
+          "pendingCreated": false,
+          "endScored": true,
+          "endCorrect": true,
+          "endObserved": "IN_PROGRESS",
+          "slotKeys": [
+            "daysPerWeek",
+            "sessionMinutes"
+          ],
+          "slotResults": {
+            "daysPerWeek": false,
+            "sessionMinutes": false
+          },
+          "unauthorizedWrite": false,
+          "confirmationBypass": false,
+          "unexpectedPending": false,
+          "expectedWriteMissing": false,
+          "expectedPendingMissing": true,
+          "turnCorrect": false
+        }
+      },
+      {
+        "turn_id": "T2",
+        "action": "CONFIRM_LAST_ACTION",
+        "text": "[HTTP confirm of the pending workout draft]",
+        "t0Iso": "2026-10-03T06:18:37.962Z",
+        "t1Iso": "2026-10-03T06:18:39.165Z",
+        "http": {
+          "status": null,
+          "ms": null,
+          "timedOut": false,
+          "error": null
+        },
+        "traceId": null,
+        "sessionId": "aee3214a-150b-4f6b-bd86-2cab43380324",
+        "answer": "",
+        "control": {
+          "error": "NO_PENDING_ACTION"
+        },
+        "diff": {
+          "newActions": [],
+          "statusChanges": [],
+          "newPrograms": 0,
+          "profileChanged": false,
+          "workflowsChanged": 0
+        },
+        "observed": {
+          "route": "UNOBSERVED",
+          "intent": null,
+          "write": "NO_WRITE",
+          "endState": "IN_PROGRESS",
+          "slots": {}
+        },
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "interpreter": {
+          "calls": 0,
+          "latencyMs": []
+        },
+        "qwenChatCalls": 0,
+        "embedCalls": 0,
+        "evidence": {
+          "trace": null,
+          "boundaryIntent": null,
+          "llmRoute": null
+        },
+        "scored": {
+          "action": "CONFIRM_LAST_ACTION",
+          "isText": false,
+          "routeObserved": false,
+          "llm": {
+            "called": false,
+            "resultReturned": false,
+            "noResult": false,
+            "accepted": false
+          },
+          "http": {
+            "status": null,
+            "ms": null,
+            "timedOut": false,
+            "error": null
+          },
+          "routeCorrect": null,
+          "familyCorrect": null,
+          "intentCorrect": null,
+          "intentObserved": null,
+          "writeObserved": "NO_WRITE",
+          "writeCorrect": false,
+          "persistedWorkout": false,
+          "persistedWorkoutCount": 0,
+          "profileChanged": false,
+          "pendingCreated": false,
+          "endScored": true,
+          "endCorrect": false,
+          "endObserved": "IN_PROGRESS",
+          "slotKeys": [
+            "daysPerWeek",
+            "sessionMinutes"
+          ],
+          "slotResults": {
+            "daysPerWeek": false,
+            "sessionMinutes": false
+          },
+          "unauthorizedWrite": false,
+          "confirmationBypass": false,
+          "unexpectedPending": false,
+          "expectedWriteMissing": true,
+          "expectedPendingMissing": false,
+          "turnCorrect": false
+        }
+      }
+    ],
+    "turnScores": [
+      {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 1017,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": true,
+        "familyCorrect": true,
+        "intentCorrect": true,
+        "intentObserved": true,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": false,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": true,
+        "endCorrect": true,
+        "endObserved": "IN_PROGRESS",
+        "slotKeys": [
+          "daysPerWeek",
+          "sessionMinutes"
+        ],
+        "slotResults": {
+          "daysPerWeek": false,
+          "sessionMinutes": false
+        },
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": true,
+        "turnCorrect": false
+      },
+      {
+        "action": "CONFIRM_LAST_ACTION",
+        "isText": false,
+        "routeObserved": false,
+        "llm": {
+          "called": false,
+          "resultReturned": false,
+          "noResult": false,
+          "accepted": false
+        },
+        "http": {
+          "status": null,
+          "ms": null,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": null,
+        "familyCorrect": null,
+        "intentCorrect": null,
+        "intentObserved": null,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": false,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": true,
+        "endCorrect": false,
+        "endObserved": "IN_PROGRESS",
+        "slotKeys": [
+          "daysPerWeek",
+          "sessionMinutes"
+        ],
+        "slotResults": {
+          "daysPerWeek": false,
+          "sessionMinutes": false
+        },
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": true,
+        "expectedPendingMissing": false,
+        "turnCorrect": false
+      }
+    ],
+    "caseCorrect": false,
+    "duplicateWriteInfo": {
+      "caseCorrect": false,
+      "duplicateWrite": 0,
+      "persistedCount": 0
+    },
+    "sessionId": "aee3214a-150b-4f6b-bd86-2cab43380324",
+    "nonSemanticQwenChatCalls": 0
+  },
+  {
+    "case_id": "W002",
+    "category": "Explicit complete requests",
+    "fixture": "F_MG_NO_DAYS",
+    "config": "A",
+    "attempt": 1,
+    "status": "COMPLETED",
+    "userId": "202fb6b9-429b-4b10-911c-2f8ff61908df",
+    "startedAt": "2026-10-03T06:18:39.719Z",
+    "finishedAt": "2026-10-03T06:18:41.183Z",
+    "seed": {
+      "fixtureId": "F_MG_NO_DAYS",
+      "putStatus": 200,
+      "requested": {
+        "hasCompletedOnboarding": true,
+        "goal": "MUSCLE_GAIN",
+        "currentWeight": 95,
+        "heightCm": 172,
+        "age": 28
+      }
+    },
+    "isolation": {
+      "baselineRows": 0,
+      "crossUserRows": 0,
+      "profileAtBaseline": [
+        {
+          "id": "059fc2ed-2f9c-47b0-bc7e-1dcbc5c33a0a",
+          "age": 28,
+          "goal": "MUSCLE_GAIN",
+          "isPT": false,
+          "email": null,
+          "gender": null,
+          "gym_id": null,
+          "region": null,
+          "userId": "202fb6b9-429b-4b10-911c-2f8ff61908df",
+          "heightCm": 172,
+          "injuries": null,
+          "lastName": null,
+          "createdAt": "2026-10-03T06:18:39.954",
+          "firstName": null,
+          "photo_url": null,
+          "data_origin": "REAL",
+          "energy_unit": "kcal",
+          "goal_intent": null,
+          "search_city": null,
+          "search_ward": null,
+          "specialties": null,
+          "unit_system": "metric",
+          "pt_suspended": false,
+          "targetWeight": null,
+          "activityLevel": null,
+          "currentWeight": 95,
+          "date_of_birth": null,
+          "pt_budget_vnd": null,
+          "referral_code": null,
+          "startingWeight": 95,
+          "experienceLevel": null,
+          "preferred_split": null,
+          "search_district": null,
+          "competes_in_sport": false,
+          "availableEquipment": null,
+          "dietary_preference": null,
+          "is_accepting_clients": true,
+          "last_name_normalized": null,
+          "not_accepting_reason": null,
+          "startingWeightSource": "ONBOARDING",
+          "first_name_normalized": null,
+          "preferredTrainingDays": null,
+          "nutrition_budget_level": null,
+          "safety_screening_flags": [],
+          "safety_screening_status": "UNKNOWN",
+          "has_completed_onboarding": true,
+          "session_duration_minutes": 60
+        }
+      ]
+    },
+    "caseErrors": [],
+    "turns": [
+      {
+        "turn_id": "T1",
+        "action": "TEXT",
+        "text": "Lập lịch tập 3 buổi/tuần, 45 phút, tập ở nhà với dumbbell.",
+        "t0Iso": "2026-10-03T06:18:39.274Z",
+        "t1Iso": "2026-10-03T06:18:40.641Z",
+        "http": {
+          "status": 200,
+          "ms": 366,
+          "timedOut": false,
+          "error": null
+        },
+        "traceId": "ai_1791008320319_6kybpj",
+        "sessionId": "a24c28ee-aa87-46ff-b750-49cee6dc1bf5",
+        "answer": "Bạn muốn tập mấy buổi mỗi tuần?",
+        "control": null,
+        "diff": {
+          "newActions": [],
+          "statusChanges": [],
+          "newPrograms": 0,
+          "profileChanged": false,
+          "workflowsChanged": 1
+        },
+        "observed": {
+          "route": "START_WORKFLOW",
+          "intent": "CREATE_WORKOUT_PLAN",
+          "write": "NO_WRITE",
+          "endState": "IN_PROGRESS",
+          "slots": {}
+        },
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "interpreter": {
+          "calls": 0,
+          "latencyMs": []
+        },
+        "qwenChatCalls": 0,
+        "embedCalls": 0,
+        "evidence": {
+          "trace": {
+            "route": "START_WORKFLOW",
+            "topic": null,
+            "workflow": "CREATE_WORKOUT_PLAN",
+            "deterministicRoute": "START_WORKFLOW",
+            "llmCalled": false,
+            "llmAccepted": null,
+            "workflowStatus": null
+          },
+          "boundaryIntent": null,
+          "llmRoute": null
+        },
+        "scored": {
+          "action": "TEXT",
+          "isText": true,
+          "routeObserved": true,
+          "llm": {
+            "called": false,
+            "rawRoute": null,
+            "accepted": false,
+            "acceptedRoute": null,
+            "latencyMs": null,
+            "resultReturned": false,
+            "noResult": false
+          },
+          "http": {
+            "status": 200,
+            "ms": 366,
+            "timedOut": false,
+            "error": null
+          },
+          "routeCorrect": true,
+          "familyCorrect": true,
+          "intentCorrect": true,
+          "intentObserved": true,
+          "writeObserved": "NO_WRITE",
+          "writeCorrect": false,
+          "persistedWorkout": false,
+          "persistedWorkoutCount": 0,
+          "profileChanged": false,
+          "pendingCreated": false,
+          "endScored": true,
+          "endCorrect": true,
+          "endObserved": "IN_PROGRESS",
+          "slotKeys": [
+            "daysPerWeek",
+            "sessionMinutes"
+          ],
+          "slotResults": {
+            "daysPerWeek": false,
+            "sessionMinutes": false
+          },
+          "unauthorizedWrite": false,
+          "confirmationBypass": false,
+          "unexpectedPending": false,
+          "expectedWriteMissing": false,
+          "expectedPendingMissing": true,
+          "turnCorrect": false
+        }
+      }
+    ],
+    "turnScores": [
+      {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 366,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": true,
+        "familyCorrect": true,
+        "intentCorrect": true,
+        "intentObserved": true,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": false,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": true,
+        "endCorrect": true,
+        "endObserved": "IN_PROGRESS",
+        "slotKeys": [
+          "daysPerWeek",
+          "sessionMinutes"
+        ],
+        "slotResults": {
+          "daysPerWeek": false,
+          "sessionMinutes": false
+        },
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": true,
+        "turnCorrect": false
+      }
+    ],
+    "caseCorrect": false,
+    "duplicateWriteInfo": {
+      "caseCorrect": false,
+      "duplicateWrite": 0,
+      "persistedCount": 0
+    },
+    "sessionId": "a24c28ee-aa87-46ff-b750-49cee6dc1bf5",
+    "nonSemanticQwenChatCalls": 0
+  }
+]

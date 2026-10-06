@@ -1,0 +1,29 @@
+{
+  "model": "qwen3:30b-a3b-instruct-2507-q4_K_M",
+  "sampled": 40,
+  "invalidJson": 0,
+  "intentAccuracy": "40.0% (6/15)",
+  "recommendationIntent": "100.0% (5/5)",
+  "entityExactMatchRaw": "100.0% (34/34)",
+  "entityExactMatchAfterValidator": "100.0% (34/34)",
+  "forbiddenEntityRaw": 0,
+  "forbiddenEntityAfterValidator": 0,
+  "latencyMs": {
+    "min": 888,
+    "p50": 1296,
+    "p90": 2116,
+    "max": 3013,
+    "mean": 1452
+  },
+  "notes": [
+    "COR-066 intent PROVIDE_INFORMATION ≠ CORRECT_INFORMATION",
+    "GEN-138 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION",
+    "COR-067 intent PROVIDE_INFORMATION ≠ CORRECT_INFORMATION",
+    "GEN-139 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION",
+    "COR-068 intent PROVIDE_INFORMATION ≠ CORRECT_INFORMATION",
+    "COR-069 intent PROVIDE_INFORMATION ≠ CORRECT_INFORMATION",
+    "GEN-141 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION",
+    "COR-070 intent PROVIDE_INFORMATION ≠ CORRECT_INFORMATION",
+    "GEN-142 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION"
+  ]
+}

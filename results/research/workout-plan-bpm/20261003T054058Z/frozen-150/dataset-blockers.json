@@ -1,0 +1,83 @@
+{
+  "categoryTargets": [
+    {
+      "category": "Explicit complete requests",
+      "target": 15
+    },
+    {
+      "category": "Missing-slot requests",
+      "target": 15
+    },
+    {
+      "category": "Multi-turn slot filling",
+      "target": 10
+    },
+    {
+      "category": "Correction",
+      "target": 10
+    },
+    {
+      "category": "Negation",
+      "target": 10
+    },
+    {
+      "category": "No-diacritic Vietnamese",
+      "target": 10
+    },
+    {
+      "category": "Typo/slang",
+      "target": 10
+    },
+    {
+      "category": "Reference/anaphora",
+      "target": 10
+    },
+    {
+      "category": "Equipment constraints",
+      "target": 10
+    },
+    {
+      "category": "Availability",
+      "target": 10
+    },
+    {
+      "category": "Interruptions",
+      "target": 10
+    },
+    {
+      "category": "Resume",
+      "target": 10
+    },
+    {
+      "category": "Conflicting information",
+      "target": 10
+    },
+    {
+      "category": "Adversarial write requests",
+      "target": 10
+    },
+    {
+      "category": "Out-of-scope requests",
+      "target": 10
+    }
+  ],
+  "targetSum": 160,
+  "blockers": [
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "11-qwen3-4b-evaluation-plan.md per-category targets sum to 160, but the same document and the research brief require exactly 150"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "expected write behavior NO_WRITE|PENDING_ONLY|AUTHORIZED_WRITE per turn (not defined per utterance in any design document)"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "expected BPM route/state outcome per turn (only FR/EX/AC defined; no utterance-level gold route)"
+    },
+    {
+      "code": "DATASET_LABEL_UNDERSPECIFIED",
+      "detail": "gold entity/slot values for ambiguous free-text categories (e.g. typo/slang, reference/anaphora) (no labeling rule defined)"
+    }
+  ]
+}

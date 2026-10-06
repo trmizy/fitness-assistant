@@ -172,3 +172,6 @@ infra/compose/runtime/*
 secret/
 secrets/
 *-firebase-adminsdk-*.json
+
+# Ảnh InBody cá nhân (dữ liệu cơ thể thật của người dùng) — không commit
+test/inbody_duy/

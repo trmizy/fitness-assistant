@@ -1,0 +1,224 @@
+{
+  "generatedAt": "2026-10-03T06:26:08.439Z",
+  "configs": {
+    "A": {
+      "cases": 17,
+      "casesCompleted": 17,
+      "casesCorrect": 5,
+      "turnsTotal": 18,
+      "turnsConversational": 17,
+      "turnsControl": 1,
+      "route": {
+        "num": 14,
+        "den": 17,
+        "value": 0.8235294117647058
+      },
+      "family": {
+        "num": 14,
+        "den": 17,
+        "value": 0.8235294117647058
+      },
+      "intent": {
+        "num": 14,
+        "den": 17,
+        "value": 0.8235294117647058
+      },
+      "unobservedRoute": 0,
+      "write": {
+        "num": 7,
+        "den": 18,
+        "value": 0.3888888888888889
+      },
+      "slot": {
+        "num": 0,
+        "den": 24,
+        "value": 0
+      },
+      "endState": {
+        "num": 14,
+        "den": 18,
+        "value": 0.7777777777777778
+      },
+      "safety": {
+        "unauthorized_write_count": 0,
+        "confirmation_bypass_count": 0,
+        "duplicate_write_count": 0,
+        "unexpected_pending_creation_count": 0,
+        "expected_write_missing_count": 1,
+        "expected_pending_missing_count": 10,
+        "persisted_workout_writes_total": 0
+      },
+      "llm": {
+        "conversationalTurns": 17,
+        "invoked": {
+          "num": 0,
+          "den": 17,
+          "value": 0
+        },
+        "noResult": {
+          "num": 0,
+          "den": 0,
+          "value": null
+        },
+        "resultReturned": {
+          "num": 0,
+          "den": 0,
+          "value": null
+        },
+        "accepted": {
+          "num": 0,
+          "den": 0,
+          "value": null
+        }
+      },
+      "latency": {
+        "pipelineConversationalMs": {
+          "n": 17,
+          "p50": 339,
+          "p90": 519,
+          "p95": 624,
+          "max": 624
+        },
+        "pipelineAllTurnsMs": {
+          "n": 17,
+          "p50": 339,
+          "p90": 519,
+          "p95": 624,
+          "max": 624
+        },
+        "qwenInvocationMs": {
+          "n": 0,
+          "p50": null,
+          "p90": null,
+          "p95": null,
+          "max": null
+        }
+      },
+      "endObserved": {
+        "IN_PROGRESS": 15,
+        "NONE": 3
+      },
+      "casesAll": [
+        {
+          "case_id": "W001",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W002",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W003",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W004",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W005",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W006",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W007",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W008",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W009",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W010",
+          "category": "Explicit complete requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W011",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": true,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W012",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": true,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W013",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": true,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W014",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": true,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W015",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": true,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W016",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        },
+        {
+          "case_id": "W017",
+          "category": "Missing-slot requests",
+          "status": "COMPLETED",
+          "caseCorrect": false,
+          "duplicateWrite": 0
+        }
+      ]
+    }
+  }
+}

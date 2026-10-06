@@ -19,8 +19,8 @@ const FIT_PORT = 4302, USER_PORT = 4304;
 Object.assign(process.env, {
   NODE_ENV: "test", DATABASE_URL: AI_DB, FITNESS_DATABASE_URL: FIT_DB, REDIS_HOST: "localhost", REDIS_PORT: "56379",
   USER_SERVICE_URL: `http://localhost:${USER_PORT}`, FITNESS_SERVICE_URL: `http://localhost:${FIT_PORT}`,
-  INTERNAL_SERVICE_SECRET: SECRET, LLM_PROVIDER: "ollama", LLM_MODEL: "qwen2.5:1.5b", LLM_TIMEOUT_MS: "170000",
-  OLLAMA_BASE_URL: DEAD ? "http://127.0.0.1:11999" : "http://127.0.0.1:11434", LLM_BASE_URL: DEAD ? "http://127.0.0.1:11999" : "http://127.0.0.1:11434",
+  INTERNAL_SERVICE_SECRET: SECRET, LLM_PROVIDER: "ollama", LLM_MODEL: process.env.LIVE_LLM_MODEL || "qwen2.5:1.5b", LLM_TIMEOUT_MS: "170000",
+  OLLAMA_BASE_URL: DEAD ? "http://127.0.0.1:11999" : (process.env.LIVE_LLM_BASE_URL || "http://127.0.0.1:11434"), LLM_BASE_URL: DEAD ? "http://127.0.0.1:11999" : (process.env.LIVE_LLM_BASE_URL || "http://127.0.0.1:11434"),
 });
 const out: Record<string, unknown>[] = [];
 const emit = (id: string, observed: unknown) => { const r = { id, observed }; out.push(r); console.log(JSON.stringify(r)); };
@@ -56,13 +56,24 @@ async function main() {
   const { getAiQueue } = await import("../../backend/services/ai-service/src/workers/ai.queue");
   const { llmService } = await import("../../backend/services/ai-service/src/services/llm.service");
   void PlanStatus;
+  if (process.env.LIVE_CAPTURE_FILE) {
+    // Optional capture of every real LLM prompt/answer (evidence for offline reproduction of invariant failures).
+    const fsMod = await import("node:fs");
+    const orig = llmService.callLLM.bind(llmService);
+    (llmService as any).callLLM = async (prompt: string, opts?: unknown) => {
+      const t0 = Date.now();
+      const r = await orig(prompt, opts as any);
+      fsMod.appendFileSync(process.env.LIVE_CAPTURE_FILE!, JSON.stringify({ at: new Date().toISOString(), ms: Date.now() - t0, prompt, answer: r.answer }) + String.fromCharCode(10));
+      return r;
+    };
+  }
   const identity = { userId } as any;
   const session = await prisma.chatSession.create({ data: { userId, title: "readiness live" } });
   const t0 = Date.now();
   const lat: Record<string, number> = {};
   try {
     const health = await llmService.getHealthStatus(3000);
-    emit("provider-health", { available: health.llmAvailable, provider: health.llmProvider, model: health.model, error: health.error, note: DEAD ? "deliberately dead endpoint" : "local small model, NOT the configured provider" });
+    emit("provider-health", { available: health.llmAvailable, provider: health.llmProvider, model: health.model, error: health.error, note: DEAD ? "deliberately dead endpoint" : process.env.LIVE_LLM_BASE_URL ? "configured model qwen3:30b via private tunnel" : "local small model, NOT the configured provider" });
 
     if (DEAD) {
       await fitnessAgent.tryTurn("Tạo thực đơn cho tôi", identity, session.id);

@@ -1,0 +1,28 @@
+{
+  "corpus": "holdout",
+  "totalCases": 47,
+  "categories": 10,
+  "intentAccuracy": "100.0% (3/3)",
+  "entityAccuracy": "97.1% (34/35)",
+  "goalAccuracy": "100.0% (5/5)",
+  "correctionAccuracy": "100.0% (5/5)",
+  "recommendationAccuracy": "100.0% (5/5)",
+  "referenceAccuracy": "100.0% (3/3)",
+  "ambiguityAccuracy": "n/a",
+  "negationAccuracy": "100.0% (2/2)",
+  "whyAccuracy": "n/a",
+  "workflowAccuracy": "n/a",
+  "noEntityAccuracy": "100.0% (3/3)",
+  "unitMistakes": 0,
+  "crossFieldContamination": 0,
+  "confirmationBypasses": 0,
+  "shadow": {
+    "entitiesCompared": 34,
+    "legacyCorrect": "25/34",
+    "newCorrect": "33/34",
+    "regressionsOldCorrectNewWrong": 0
+  },
+  "failures": [
+    "HO-043 [entity] tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần → missing WEIGHT_KG=52; got HEIGHT_CM=158,SESSIONS_PER_WEEK=3,WEIGHT_UNLABELED=52,GENDER=FEMALE"
+  ]
+}

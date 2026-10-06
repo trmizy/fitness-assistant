@@ -1,0 +1,231 @@
+{
+  "case_id": "W018",
+  "category": "Missing-slot requests",
+  "fixture": "F_MG_NO_DAYS",
+  "config": "A",
+  "attempt": 2,
+  "status": "COMPLETED",
+  "userId": "85967500-f034-4de8-9b22-0cbd32b4c6b7",
+  "startedAt": "2026-10-03T06:24:20.465Z",
+  "finishedAt": "2026-10-03T06:27:14.711Z",
+  "seed": {
+    "fixtureId": "F_MG_NO_DAYS",
+    "putStatus": 200,
+    "requested": {
+      "hasCompletedOnboarding": true,
+      "goal": "MUSCLE_GAIN",
+      "currentWeight": 95,
+      "heightCm": 172,
+      "age": 28
+    }
+  },
+  "isolation": {
+    "baselineRows": 0,
+    "crossUserRows": 0,
+    "profileAtBaseline": [
+      {
+        "id": "9239ab78-1c2d-4ca4-8fca-8e25173d4382",
+        "age": 28,
+        "goal": "MUSCLE_GAIN",
+        "isPT": false,
+        "email": null,
+        "gender": null,
+        "gym_id": null,
+        "region": null,
+        "userId": "85967500-f034-4de8-9b22-0cbd32b4c6b7",
+        "heightCm": 172,
+        "injuries": null,
+        "lastName": null,
+        "createdAt": "2026-10-03T06:24:20.901",
+        "firstName": null,
+        "photo_url": null,
+        "data_origin": "REAL",
+        "energy_unit": "kcal",
+        "goal_intent": null,
+        "search_city": null,
+        "search_ward": null,
+        "specialties": null,
+        "unit_system": "metric",
+        "pt_suspended": false,
+        "targetWeight": null,
+        "activityLevel": null,
+        "currentWeight": 95,
+        "date_of_birth": null,
+        "pt_budget_vnd": null,
+        "referral_code": null,
+        "startingWeight": 95,
+        "experienceLevel": null,
+        "preferred_split": null,
+        "search_district": null,
+        "competes_in_sport": false,
+        "availableEquipment": null,
+        "dietary_preference": null,
+        "is_accepting_clients": true,
+        "last_name_normalized": null,
+        "not_accepting_reason": null,
+        "startingWeightSource": "ONBOARDING",
+        "first_name_normalized": null,
+        "preferredTrainingDays": null,
+        "nutrition_budget_level": null,
+        "safety_screening_flags": [],
+        "safety_screening_status": "UNKNOWN",
+        "has_completed_onboarding": true,
+        "session_duration_minutes": 60
+      }
+    ]
+  },
+  "caseErrors": [],
+  "turns": [
+    {
+      "turn_id": "T1",
+      "action": "TEXT",
+      "text": "Tôi muốn tập luyện theo lịch.",
+      "t0Iso": "2026-10-03T06:24:21.366Z",
+      "t1Iso": "2026-10-03T06:27:13.975Z",
+      "http": {
+        "status": 200,
+        "ms": 171609,
+        "timedOut": false,
+        "error": null
+      },
+      "traceId": "ai_1791008662440_1spc6u",
+      "sessionId": "f6c4f428-04cb-4d93-be3b-d417da8e1b00",
+      "answer": "Tạm thời AI chưa sẵn sàng để phân tích chi tiết. Tôi đã ghi nhận yêu cầu phân tích InBody của bạn. Hãy thử lại sau khi AI service hoặc Ollama sẵn sàng.",
+      "control": null,
+      "diff": {
+        "newActions": [],
+        "statusChanges": [],
+        "newPrograms": 0,
+        "profileChanged": false,
+        "workflowsChanged": 0
+      },
+      "observed": {
+        "route": "UNKNOWN",
+        "intent": null,
+        "write": "NO_WRITE",
+        "endState": "NONE",
+        "slots": {}
+      },
+      "llm": {
+        "called": false,
+        "rawRoute": null,
+        "accepted": false,
+        "acceptedRoute": null,
+        "latencyMs": null,
+        "resultReturned": false,
+        "noResult": false
+      },
+      "interpreter": {
+        "calls": 0,
+        "latencyMs": []
+      },
+      "qwenChatCalls": 0,
+      "embedCalls": 0,
+      "evidence": {
+        "trace": {
+          "route": "UNKNOWN",
+          "topic": null,
+          "workflow": null,
+          "deterministicRoute": "UNKNOWN",
+          "llmCalled": false,
+          "llmAccepted": null,
+          "workflowStatus": null
+        },
+        "boundaryIntent": null,
+        "llmRoute": null
+      },
+      "scored": {
+        "action": "TEXT",
+        "isText": true,
+        "routeObserved": true,
+        "llm": {
+          "called": false,
+          "rawRoute": null,
+          "accepted": false,
+          "acceptedRoute": null,
+          "latencyMs": null,
+          "resultReturned": false,
+          "noResult": false
+        },
+        "http": {
+          "status": 200,
+          "ms": 171609,
+          "timedOut": false,
+          "error": null
+        },
+        "routeCorrect": false,
+        "familyCorrect": false,
+        "intentCorrect": false,
+        "intentObserved": false,
+        "writeObserved": "NO_WRITE",
+        "writeCorrect": true,
+        "persistedWorkout": false,
+        "persistedWorkoutCount": 0,
+        "profileChanged": false,
+        "pendingCreated": false,
+        "endScored": true,
+        "endCorrect": false,
+        "endObserved": "NONE",
+        "slotKeys": [],
+        "slotResults": {},
+        "unauthorizedWrite": false,
+        "confirmationBypass": false,
+        "unexpectedPending": false,
+        "expectedWriteMissing": false,
+        "expectedPendingMissing": false,
+        "turnCorrect": false
+      }
+    }
+  ],
+  "turnScores": [
+    {
+      "action": "TEXT",
+      "isText": true,
+      "routeObserved": true,
+      "llm": {
+        "called": false,
+        "rawRoute": null,
+        "accepted": false,
+        "acceptedRoute": null,
+        "latencyMs": null,
+        "resultReturned": false,
+        "noResult": false
+      },
+      "http": {
+        "status": 200,
+        "ms": 171609,
+        "timedOut": false,
+        "error": null
+      },
+      "routeCorrect": false,
+      "familyCorrect": false,
+      "intentCorrect": false,
+      "intentObserved": false,
+      "writeObserved": "NO_WRITE",
+      "writeCorrect": true,
+      "persistedWorkout": false,
+      "persistedWorkoutCount": 0,
+      "profileChanged": false,
+      "pendingCreated": false,
+      "endScored": true,
+      "endCorrect": false,
+      "endObserved": "NONE",
+      "slotKeys": [],
+      "slotResults": {},
+      "unauthorizedWrite": false,
+      "confirmationBypass": false,
+      "unexpectedPending": false,
+      "expectedWriteMissing": false,
+      "expectedPendingMissing": false,
+      "turnCorrect": false
+    }
+  ],
+  "caseCorrect": false,
+  "duplicateWriteInfo": {
+    "caseCorrect": false,
+    "duplicateWrite": 0,
+    "persistedCount": 0
+  },
+  "sessionId": "f6c4f428-04cb-4d93-be3b-d417da8e1b00",
+  "nonSemanticQwenChatCalls": 0
+}

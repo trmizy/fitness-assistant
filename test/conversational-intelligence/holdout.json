@@ -1,0 +1,557 @@
+[
+ {
+  "id": "HO-001",
+  "cat": "units",
+  "text": "cao 1m68, nặng 62 ký",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=168",
+    "WEIGHT_KG=62"
+   ],
+   "forbid": [
+    "WEIGHT_KG=68",
+    "TARGET_WEIGHT_KG=68"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-002",
+  "cat": "units",
+  "text": "mình 1m85 nặng 90kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=185",
+    "WEIGHT_KG=90"
+   ],
+   "forbid": [
+    "WEIGHT_KG=85"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-003",
+  "cat": "units",
+  "text": "cao 1.68 m",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=168"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-004",
+  "cat": "units",
+  "text": "chiều cao 165cm cân nặng 58kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=165",
+    "WEIGHT_KG=58"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-005",
+  "cat": "units",
+  "text": "tôi 30 tuổi cao 1m82",
+  "exp": {
+   "ents": [
+    "AGE=30",
+    "HEIGHT_CM=182"
+   ],
+   "forbid": [
+    "WEIGHT_KG=82",
+    "TARGET_WEIGHT_KG=82"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-006",
+  "cat": "units",
+  "text": "nặng 72kg cao 1m70",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=72",
+    "HEIGHT_CM=170"
+   ],
+   "forbid": [
+    "WEIGHT_KG=70",
+    "TARGET_WEIGHT_KG=70"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-007",
+  "cat": "units",
+  "text": "1m60 45kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=160"
+   ],
+   "forbid": [
+    "WEIGHT_KG=60",
+    "TARGET_WEIGHT_KG=60",
+    "WEIGHT_UNLABELED=60"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-008",
+  "cat": "units",
+  "text": "175cm 70kg",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=175"
+   ],
+   "forbid": [
+    "WEIGHT_KG=75",
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-009",
+  "cat": "units",
+  "text": "cân nặng 68 ký cao 172",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=68",
+    "HEIGHT_CM=172"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-010",
+  "cat": "units",
+  "text": "tầm 1m7 thôi",
+  "exp": {
+   "ents": [
+    "HEIGHT_CM=170"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-011",
+  "cat": "targets",
+  "text": "mong muốn còn 65kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=65"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-012",
+  "cat": "targets",
+  "text": "tôi định giảm xuống 70 ký",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=70"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-013",
+  "cat": "targets",
+  "text": "muốn đạt 75kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-014",
+  "cat": "targets",
+  "text": "mục tiêu của em là 60kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=60"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-015",
+  "cat": "targets",
+  "text": "hiện tại 90kg, muốn xuống 80kg",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=90",
+    "TARGET_WEIGHT_KG=80"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-016",
+  "cat": "targets",
+  "text": "nặng 85 muốn xuống còn 75",
+  "exp": {
+   "ents": [
+    "WEIGHT_KG=85",
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-017",
+  "cat": "targets",
+  "text": "đặt mục tiêu 68kg",
+  "exp": {
+   "ents": [
+    "TARGET_WEIGHT_KG=68"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-018",
+  "cat": "goals",
+  "text": "tôi cần giảm béo",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-019",
+  "cat": "goals",
+  "text": "muốn xây cơ",
+  "exp": {
+   "goal": [
+    "MUSCLE_GAIN:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-020",
+  "cat": "goals",
+  "text": "chỉ cần giữ cân thôi",
+  "exp": {
+   "goal": [
+    "MAINTENANCE:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-021",
+  "cat": "goals",
+  "text": "muốn giảm cân nhanh",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:E"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-022",
+  "cat": "goals",
+  "text": "tôi thấy mình hơi thừa cân",
+  "exp": {
+   "goal": [
+    "WEIGHT_LOSS:I"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-023",
+  "cat": "corrections",
+  "text": "ối nhầm, tôi 27 tuổi",
+  "exp": {
+   "corr": [
+    "AGE>27"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-024",
+  "cat": "corrections",
+  "text": "không phải 80, tôi 82kg",
+  "exp": {
+   "corr": [
+    "WEIGHT_KG>82"
+   ],
+   "forbid": [
+    "WEIGHT_KG=80"
+   ]
+  },
+  "ctx": {
+   "slot": "currentWeightKg"
+  }
+ },
+ {
+  "id": "HO-025",
+  "cat": "corrections",
+  "text": "sai rồi, mục tiêu là 65kg",
+  "exp": {
+   "corr": [
+    "TARGET_WEIGHT_KG>65"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-026",
+  "cat": "corrections",
+  "text": "tôi đổi ý, tập 3 buổi thôi",
+  "exp": {
+   "corr": [
+    "SESSIONS_PER_WEEK>3"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-027",
+  "cat": "corrections",
+  "text": "cho tôi sửa lại: cao 1m78",
+  "exp": {
+   "corr": [
+    "HEIGHT_CM>178"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-028",
+  "cat": "recommend",
+  "text": "bạn đề xuất giúp tôi mức cân nặng",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-029",
+  "cat": "recommend",
+  "text": "mình không rõ nên chọn thế nào",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-030",
+  "cat": "recommend",
+  "text": "theo bạn tôi nên ăn mấy bữa?",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-031",
+  "cat": "recommend",
+  "text": "cho tôi lời khuyên về số buổi tập",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-032",
+  "cat": "recommend",
+  "text": "tự chọn hộ tôi nhé",
+  "exp": {
+   "rec": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-033",
+  "cat": "references",
+  "text": "chọn cái thấp hơn",
+  "exp": {
+   "ref": "LOWER_OPTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-034",
+  "cat": "references",
+  "text": "lấy mức bạn vừa nói",
+  "exp": {
+   "ref": "ACCEPT_PROPOSAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-035",
+  "cat": "references",
+  "text": "chọn mức cao hơn đi",
+  "exp": {
+   "ref": "HIGHER_OPTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-036",
+  "cat": "negation",
+  "text": "tôi không muốn xuống 68",
+  "exp": {
+   "neg": [
+    "WEIGHT_UNLABELED=68"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=68"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-037",
+  "cat": "negation",
+  "text": "đừng lấy 75",
+  "exp": {
+   "forbid": [
+    "TARGET_WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-038",
+  "cat": "negation",
+  "text": "không phải 65",
+  "exp": {
+   "neg": [
+    "WEIGHT_UNLABELED=65"
+   ],
+   "forbid": [
+    "TARGET_WEIGHT_KG=65"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-039",
+  "cat": "qa",
+  "text": "Ăn tối muộn có béo không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION",
+   "noEnt": true
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-040",
+  "cat": "qa",
+  "text": "Bao nhiêu set mỗi nhóm cơ là đủ?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-041",
+  "cat": "qa",
+  "text": "Tập bụng có giảm mỡ bụng không?",
+  "exp": {
+   "intent": "ANSWER_QUESTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-042",
+  "cat": "multi",
+  "text": "nam 27 tuổi 1m75 78kg muốn xuống 70kg",
+  "exp": {
+   "ents": [
+    "GENDER=MALE",
+    "AGE=27",
+    "HEIGHT_CM=175",
+    "WEIGHT_KG=78",
+    "TARGET_WEIGHT_KG=70"
+   ],
+   "forbid": [
+    "WEIGHT_KG=75"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-043",
+  "cat": "multi",
+  "text": "tôi nữ, 1m58, 52kg, tập 3 buổi mỗi tuần",
+  "exp": {
+   "ents": [
+    "GENDER=FEMALE",
+    "HEIGHT_CM=158",
+    "WEIGHT_KG=52",
+    "SESSIONS_PER_WEEK=3"
+   ],
+   "forbid": [
+    "WEIGHT_KG=58"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-044",
+  "cat": "noise",
+  "text": "hôm qua tôi ngủ 6 tiếng",
+  "exp": {
+   "forbid": [
+    "SESSION_MINUTES=360",
+    "WEIGHT_KG=6"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-045",
+  "cat": "noise",
+  "text": "năm nay tôi 25 tuổi",
+  "exp": {
+   "ents": [
+    "AGE=25"
+   ],
+   "forbid": [
+    "GENDER=MALE"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-046",
+  "cat": "noise",
+  "text": "tôi tập được 2 năm rồi",
+  "exp": {
+   "noEnt": true,
+   "forbid": [
+    "GENDER=MALE"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "HO-047",
+  "cat": "noise",
+  "text": "kế hoạch trong 12 tuần",
+  "exp": {
+   "noEnt": true
+  },
+  "ctx": {}
+ }
+]

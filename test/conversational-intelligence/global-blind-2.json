@@ -1,0 +1,2185 @@
+[
+ {
+  "id": "GB2-001",
+  "cat": "standalone-read",
+  "text": "Giờ tôi có huấn luyện viên nào theo không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-002",
+  "cat": "standalone-read",
+  "text": "Dạo này hệ thống đang ghi cân nặng tôi bao nhiêu?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-003",
+  "cat": "standalone-read",
+  "text": "Người hướng dẫn tôi chọn lúc nãy đang ở trạng thái gì?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-004",
+  "cat": "standalone-read",
+  "text": "Cái plan tôi đang theo là plan nào?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-005",
+  "cat": "standalone-read",
+  "text": "Số calo mỗi ngày Gymini đang tính cho tôi là bao nhiêu vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-006",
+  "cat": "standalone-read",
+  "text": "Thực đơn tôi lưu gần nhất tên gì?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-007",
+  "cat": "standalone-read",
+  "text": "Trên hệ thống mục tiêu tập luyện của tôi đang để là gì?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-008",
+  "cat": "standalone-read",
+  "text": "Buổi tập sáng nay theo lịch là bài gì?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-009",
+  "cat": "standalone-read",
+  "text": "Tuần sau lịch của tôi sắp xếp thế nào?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-010",
+  "cat": "standalone-read",
+  "text": "Tôi ký hợp đồng với PT nào rồi nhỉ?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-011",
+  "cat": "standalone-read",
+  "text": "Có hợp đồng huấn luyện nào của tôi còn giá trị không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-012",
+  "cat": "standalone-read",
+  "text": "Trọng lượng cơ thể tôi ghi nhận lần cuối là bao nhiêu?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-013",
+  "cat": "standalone-read",
+  "text": "Tôi để chiều cao bao nhiêu trong hồ sơ nhỉ?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-014",
+  "cat": "standalone-read",
+  "text": "Đạm mỗi ngày hệ thống đang khuyến nghị cho tôi là bao nhiêu gram?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-015",
+  "cat": "standalone-read",
+  "text": "Am I currently working with any trainer?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-016",
+  "cat": "standalone-read",
+  "text": "What program am I currently following?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-017",
+  "cat": "standalone-read",
+  "text": "toi dang dung goi tap nao vay",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-018",
+  "cat": "standalone-read",
+  "text": "hlv cua toi ten gi",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-019",
+  "cat": "standalone-read",
+  "text": "gio la muc tieu can nang cua toi bao nhieu",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-020",
+  "cat": "standalone-read",
+  "text": "tuoi toi luu trong ho so la bao nhieu",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-021",
+  "cat": "read-vs-find",
+  "text": "Tôi đã ký hợp đồng với ai chưa hay vẫn chưa có?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-022",
+  "cat": "read-vs-find",
+  "text": "Trước khi tìm PT mới, cho tôi biết tôi đang có PT không đã",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-023",
+  "cat": "read-vs-find",
+  "text": "Đừng tìm chương trình mới, tôi chỉ muốn biết đang theo cái nào",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-024",
+  "cat": "read-vs-find",
+  "text": "Tôi từng đăng ký gói huấn luyện nào chưa vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-025",
+  "cat": "read-vs-find",
+  "text": "Không cần gợi ý PT mới đâu, ai đang huấn luyện tôi vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-026",
+  "cat": "read-vs-find",
+  "text": "Tìm PT phù hợp với thể trạng của tôi giúp mình.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "FIND_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-027",
+  "cat": "read-vs-find",
+  "text": "Lọc giúp tôi vài chương trình tập phù hợp.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "FIND_TRAINING_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-028",
+  "cat": "read-vs-find",
+  "text": "Chọn giúp tôi một huấn luyện viên phù hợp.",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-029",
+  "cat": "read-vs-recommend",
+  "text": "Nếu theo tình trạng của tôi thì nên siết hay tăng?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-030",
+  "cat": "read-vs-recommend",
+  "text": "Mục tiêu hiện tại tôi đang để trên hệ thống là gì?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-031",
+  "cat": "read-vs-recommend",
+  "text": "Nhìn số liệu của tôi, bạn thấy nên đi hướng nào?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-032",
+  "cat": "read-vs-recommend",
+  "text": "Chỉ số dinh dưỡng hiện tại của tôi đang set ở đâu?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-033",
+  "cat": "read-vs-recommend",
+  "text": "Theo bạn thì tôi cần bao nhiêu protein mỗi ngày là vừa?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "MEALS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-034",
+  "cat": "read-vs-recommend",
+  "text": "Tôi có cần đổi huấn luyện viên không nhỉ?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "HIRE_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-035",
+  "cat": "read-vs-recommend",
+  "text": "Tần suất tập hiện tại tôi đang để mấy buổi vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-036",
+  "cat": "read-vs-recommend",
+  "text": "Theo dữ liệu của tôi thì tập mấy buổi là hợp lý?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "SESSIONS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-037",
+  "cat": "general-qa",
+  "text": "Cho hỏi ké, protein có tác dụng gì?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-038",
+  "cat": "general-qa",
+  "text": "RIR nghĩa là sao vậy mọi người?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-039",
+  "cat": "general-qa",
+  "text": "Tại sao tập nặng lại cần ngủ đủ giấc?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-040",
+  "cat": "general-qa",
+  "text": "Deload week là như thế nào?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-041",
+  "cat": "general-qa",
+  "text": "Ăn trước hay sau khi tập thì tốt hơn?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-042",
+  "cat": "general-qa",
+  "text": "Vì sao nhiều người bị đau lưng khi deadlift sai form?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-043",
+  "cat": "general-qa",
+  "text": "Creatine dùng lâu dài có hại thận không?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-044",
+  "cat": "general-qa",
+  "text": "Sự khác nhau giữa tạ tự do và máy tập là gì?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-045",
+  "cat": "general-qa",
+  "text": "Một chu kỳ giảm mỡ nên kéo dài bao lâu?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-046",
+  "cat": "general-qa",
+  "text": "why does progressive overload matter",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-047",
+  "cat": "general-qa",
+  "text": "tai sao phai khoi dong truoc khi tap",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-048",
+  "cat": "personalized-qa",
+  "text": "Với chiều cao và cân nặng hiện tại, tôi có đang thừa cân không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-049",
+  "cat": "personalized-qa",
+  "text": "Lịch trống của tôi hôm nay có buổi tập nào không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-050",
+  "cat": "personalized-qa",
+  "text": "Xem giúp tôi đang follow gói ăn nào.",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-051",
+  "cat": "personalized-qa",
+  "text": "Kiểm tra giúp tôi hợp đồng PT còn hạn không.",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-052",
+  "cat": "personalized-qa",
+  "text": "Show tôi cân nặng mục tiêu đang lưu trong hệ thống.",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-053",
+  "cat": "recommendation-request",
+  "text": "Tôi không biết nên đặt mục tiêu cân nặng bao nhiêu, bạn tư vấn giúp.",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "TARGET_WEIGHT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-054",
+  "cat": "recommendation-request",
+  "text": "Cho tôi lời khuyên xem có nên thuê PT lúc này không.",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "HIRE_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-055",
+  "cat": "recommendation-request",
+  "text": "Bạn nghĩ chương trình nào hợp với người mới như tôi?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-056",
+  "cat": "recommendation-request",
+  "text": "Tôi phân vân giữa siết cân với tăng cơ, bạn thấy sao?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-057",
+  "cat": "recommendation-request",
+  "text": "Ăn bao nhiêu bữa một ngày thì vừa sức với tôi?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "MEALS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-058",
+  "cat": "correction",
+  "text": "à khoan, tôi nói nhầm, phải là 3 buổi",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-059",
+  "cat": "correction",
+  "text": "ý tôi là ngân sách 5 triệu chứ không phải 2",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-060",
+  "cat": "correction",
+  "text": "sửa lại giúp mình: mục tiêu 65kg",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_ROADMAP",
+    "slot": "targetWeight"
+   }
+  }
+ },
+ {
+  "id": "GB2-061",
+  "cat": "correction",
+  "text": "không phải vậy đâu, tôi ăn 5 bữa mới đúng",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-062",
+  "cat": "correction",
+  "text": "thật ra tôi 26 tuổi chứ không phải 28",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_ROADMAP",
+    "slot": "targetWeight"
+   }
+  }
+ },
+ {
+  "id": "GB2-063",
+  "cat": "correction",
+  "text": "đổi lại thành thứ 2 4 6 giúp mình",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_TRAINING_PROGRAM",
+    "slot": "days"
+   }
+  }
+ },
+ {
+  "id": "GB2-064",
+  "cat": "negation",
+  "text": "Tôi muốn nghe lời khuyên thôi, chưa cần thay đổi gì.",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-065",
+  "cat": "negation",
+  "text": "Nếu thấy hợp thì đề xuất, đừng lưu vội.",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-066",
+  "cat": "negation",
+  "text": "Đừng thuê PT giúp tôi, tôi tự cân nhắc trước đã.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-067",
+  "cat": "negation",
+  "text": "Khoan hãy đổi mục tiêu, để tôi suy nghĩ thêm.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-068",
+  "cat": "negation",
+  "text": "Tôi chưa muốn lưu thực đơn này đâu.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-069",
+  "cat": "reference",
+  "text": "Giải thích trước rồi tôi mới quyết định.",
+  "exp": {
+   "route": "EXPLAIN_AND_PROPOSE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-070",
+  "cat": "reference",
+  "text": "Cứ theo mức bạn vừa gợi ý đi.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-071",
+  "cat": "reference",
+  "text": "Chốt theo cái đề xuất lúc nãy giúp mình.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-072",
+  "cat": "reference",
+  "text": "Người bạn nhắc ở trên đó, thuê giúp mình.",
+  "exp": {
+   "route": "WRITE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-073",
+  "cat": "reference",
+  "text": "Giữ nguyên phương án cũ, đừng đổi.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-074",
+  "cat": "multi-intent",
+  "text": "Người hướng dẫn tôi chọn lúc nãy đang ở trạng thái gì, và nếu chưa xong thì tìm giúp tôi người khác?",
+  "exp": {
+   "route": "MULTI",
+   "multi": [
+    "READ_STATE",
+    "START_WORKFLOW"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-075",
+  "cat": "multi-intent",
+  "text": "Cho tôi biết mục tiêu dinh dưỡng hiện tại, rồi nói xem có hợp với thể trạng tôi không.",
+  "exp": {
+   "route": "MULTI",
+   "multi": [
+    "READ_STATE",
+    "RECOMMEND"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-076",
+  "cat": "multi-intent",
+  "text": "Trước tiên giải thích RIR là gì, sau đó tạo lịch tập giúp tôi.",
+  "exp": {
+   "route": "MULTI",
+   "multi": [
+    "KNOWLEDGE_QA",
+    "START_WORKFLOW"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-077",
+  "cat": "multi-intent",
+  "text": "Xem giúp tôi lịch hôm nay, rồi tìm một huấn luyện viên phù hợp.",
+  "exp": {
+   "route": "MULTI",
+   "multi": [
+    "READ_STATE",
+    "START_WORKFLOW"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-078",
+  "cat": "interruption",
+  "text": "Khoan chuyện PT đã, hiện tôi ăn mục tiêu bao nhiêu calo?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-079",
+  "cat": "interruption",
+  "text": "Trước khi trả lời, cho hỏi progressive overload là gì?",
+  "exp": {
+   "route": "KNOWLEDGE_QA",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-080",
+  "cat": "interruption",
+  "text": "Nhân tiện, tôi có đang theo thực đơn nào không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_ROADMAP",
+    "slot": "targetWeight"
+   }
+  }
+ },
+ {
+  "id": "GB2-081",
+  "cat": "interruption",
+  "text": "3 triệu",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-082",
+  "cat": "interruption",
+  "text": "5 buổi mỗi tuần",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-083",
+  "cat": "interruption",
+  "text": "thứ hai, thứ tư, thứ sáu",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_TRAINING_PROGRAM",
+    "slot": "days"
+   }
+  }
+ },
+ {
+  "id": "GB2-084",
+  "cat": "interruption",
+  "text": "Mục tiêu hiện tại của tôi đang lưu là gì vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "GOAL",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-085",
+  "cat": "interruption",
+  "text": "không giới hạn ngân sách",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-086",
+  "cat": "interruption",
+  "text": "Tiện thể, hợp đồng PT của tôi còn hạn không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-087",
+  "cat": "workflow-switch",
+  "text": "Thôi khoan tìm PT, tạo thực đơn cho tôi trước đi",
+  "exp": {
+   "route": "SWITCH_WORKFLOW",
+   "wf": "CREATE_NUTRITION_PLAN"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-088",
+  "cat": "workflow-switch",
+  "text": "Đổi ý rồi, lập lộ trình cho tôi trước đã",
+  "exp": {
+   "route": "SWITCH_WORKFLOW",
+   "wf": "CREATE_ROADMAP"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-089",
+  "cat": "workflow-switch",
+  "text": "thôi không cần nữa",
+  "exp": {
+   "route": "CANCEL"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-090",
+  "cat": "workflow-switch",
+  "text": "dừng lại giúp mình",
+  "exp": {
+   "route": "CANCEL"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-091",
+  "cat": "workflow-switch",
+  "text": "hủy yêu cầu này đi",
+  "exp": {
+   "route": "CANCEL"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_ROADMAP",
+    "slot": "targetWeight"
+   }
+  }
+ },
+ {
+  "id": "GB2-092",
+  "cat": "confirmation-dismissal",
+  "text": "đồng ý, chốt vậy đi",
+  "exp": {
+   "route": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-093",
+  "cat": "confirmation-dismissal",
+  "text": "xác nhận luôn",
+  "exp": {
+   "route": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-094",
+  "cat": "confirmation-dismissal",
+  "text": "bỏ qua bản nháp này",
+  "exp": {
+   "route": "DISMISS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-095",
+  "cat": "confirmation-dismissal",
+  "text": "thôi bỏ qua đi",
+  "exp": {
+   "route": "DISMISS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-096",
+  "cat": "casual-vietnamese",
+  "text": "gio minh co huan luyen vien chua ta",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-097",
+  "cat": "casual-vietnamese",
+  "text": "check giup t lich hom nay",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-098",
+  "cat": "casual-vietnamese",
+  "text": "plan hien tai cua m la gi vay",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-099",
+  "cat": "casual-vietnamese",
+  "text": "t nen cut hay bulk day",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-100",
+  "cat": "casual-vietnamese",
+  "text": "cho e hoi protein la gi ạ",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-101",
+  "cat": "casual-vietnamese",
+  "text": "mình đang dùng gói pt nào ấy nhỉ",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-102",
+  "cat": "casual-vietnamese",
+  "text": "so far minh dang theo goal nao",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-103",
+  "cat": "typo-indirect",
+  "text": "toi dg co hlv khong ta",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-104",
+  "cat": "typo-indirect",
+  "text": "cho minh xin thong tin lich tap tuan nay voi",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-105",
+  "cat": "typo-indirect",
+  "text": "khong biet chuong trinh minh dang theo la gi nua",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-106",
+  "cat": "typo-indirect",
+  "text": "minh hoi kieu la calo muc tieu cua minh dg la bnhieu",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-107",
+  "cat": "long-sentence",
+  "text": "Dạo gần đây tôi khá bận nên chưa để ý lắm, không biết là hệ thống hiện đang ghi nhận tôi có huấn luyện viên riêng nào đồng hành hay chưa nhỉ?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-108",
+  "cat": "long-sentence",
+  "text": "Tôi đang cân nhắc xem có nên tiếp tục với mục tiêu tăng cơ hiện tại hay chuyển hướng sang giảm mỡ, dựa trên tình trạng cơ thể của tôi lúc này thì bạn nghĩ sao?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-109",
+  "cat": "long-sentence",
+  "text": "Trước khi quyết định có nên đổi chương trình tập hay không, tôi muốn biết là hiện tại mình đang theo chương trình cụ thể nào đã.",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-110",
+  "cat": "short-ambiguous",
+  "text": "hiện tại?",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-111",
+  "cat": "short-ambiguous",
+  "text": "vậy à",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-112",
+  "cat": "short-ambiguous",
+  "text": "được không",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-113",
+  "cat": "write-action",
+  "text": "Cập nhật giúp tôi mục tiêu thành duy trì cân nặng.",
+  "exp": {
+   "route": "WRITE_ACTION",
+   "topic": "GOAL_CHANGE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-114",
+  "cat": "write-action",
+  "text": "Chuyển mục tiêu của tôi sang tăng cơ luôn đi.",
+  "exp": {
+   "route": "WRITE_ACTION",
+   "topic": "GOAL_CHANGE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-115",
+  "cat": "write-action",
+  "text": "Thuê giúp tôi huấn luyện viên thứ hai trong danh sách.",
+  "exp": {
+   "route": "WRITE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-116",
+  "cat": "write-action",
+  "text": "Lưu chương trình này lại cho tôi.",
+  "exp": {
+   "route": "WRITE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-117",
+  "cat": "workflow-start",
+  "text": "Soạn giúp tôi một lộ trình tập trong 3 tháng.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_ROADMAP"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-118",
+  "cat": "workflow-start",
+  "text": "Lên giúp tôi thực đơn ăn kiêng.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_NUTRITION_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-119",
+  "cat": "workflow-start",
+  "text": "Xếp lịch tập 5 buổi mỗi tuần cho tôi.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_WORKOUT_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-120",
+  "cat": "workflow-start",
+  "text": "Tìm giúp tôi vài huấn luyện viên ở khu vực gần đây.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "FIND_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-121",
+  "cat": "workflow-start",
+  "text": "Kiếm giúp tôi chương trình tập phù hợp với người mới.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "FIND_TRAINING_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-122",
+  "cat": "standalone-read",
+  "text": "Trạng thái hợp đồng huấn luyện của tôi bây giờ ra sao?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-123",
+  "cat": "standalone-read",
+  "text": "Chiều nay lịch tập của tôi có gì không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-124",
+  "cat": "standalone-read",
+  "text": "Bao nhiêu gram carb mỗi ngày đang là mục tiêu của tôi?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-125",
+  "cat": "standalone-read",
+  "text": "Thực đơn hiện hành của tôi đang áp dụng là cái nào?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-126",
+  "cat": "standalone-read",
+  "text": "Số tuổi tôi khai trong hồ sơ hiện là bao nhiêu?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-127",
+  "cat": "standalone-read",
+  "text": "Tôi đang nặng bao nhiêu theo dữ liệu mới nhất?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-128",
+  "cat": "standalone-read",
+  "text": "Which trainer am I currently signed with?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-129",
+  "cat": "standalone-read",
+  "text": "What's my target weight saved as?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROFILE_FACT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-130",
+  "cat": "standalone-read",
+  "text": "hom nay minh co lich tap gi khong",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-131",
+  "cat": "standalone-read",
+  "text": "goi dinh duong minh dang theo la goi nao",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-132",
+  "cat": "recommendation-request",
+  "text": "Tôi nên chọn mức cân nặng mục tiêu nào cho phù hợp?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "TARGET_WEIGHT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-133",
+  "cat": "recommendation-request",
+  "text": "Có nên tìm huấn luyện viên riêng vào lúc này không?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "HIRE_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-134",
+  "cat": "recommendation-request",
+  "text": "Tập bao nhiêu buổi mỗi tuần là hợp với tôi?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "SESSIONS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-135",
+  "cat": "recommendation-request",
+  "text": "Should I bulk or cut given my current stats?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-136",
+  "cat": "recommendation-request",
+  "text": "Chương trình tập nào sẽ hợp với người mới bắt đầu như tôi?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-137",
+  "cat": "general-qa",
+  "text": "Tại sao phải tăng dần khối lượng tạ theo thời gian?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-138",
+  "cat": "general-qa",
+  "text": "Ăn nhiều bữa nhỏ có tốt hơn ba bữa lớn không?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-139",
+  "cat": "general-qa",
+  "text": "Superset là gì vậy?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-140",
+  "cat": "general-qa",
+  "text": "Tại sao càng tập lâu năm càng khó tăng cơ?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-141",
+  "cat": "general-qa",
+  "text": "what is a deload week",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-142",
+  "cat": "interruption",
+  "text": "Tiện thể cho hỏi, mục tiêu calo hiện tại của tôi bao nhiêu?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-143",
+  "cat": "interruption",
+  "text": "Khoan đã, protein có tác dụng gì trong việc tăng cơ?",
+  "exp": {
+   "route": "KNOWLEDGE_QA",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-144",
+  "cat": "interruption",
+  "text": "6 buổi",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-145",
+  "cat": "interruption",
+  "text": "1.5 triệu thôi",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-146",
+  "cat": "casual-vietnamese",
+  "text": "hop dong pt cua t con han khong",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-147",
+  "cat": "casual-vietnamese",
+  "text": "muc tieu dinh duong hien tai la bnhieu calo",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-148",
+  "cat": "casual-vietnamese",
+  "text": "e nen tap bao nhieu buoi 1 tuan a",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "SESSIONS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-149",
+  "cat": "casual-vietnamese",
+  "text": "recommend giup m 1 chuong trinh tap voi",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-150",
+  "cat": "long-sentence",
+  "text": "Vì công việc dạo này khá bận rộn nên tôi không theo dõi kỹ, không rõ hiện tại thực đơn tôi đang áp dụng có phải bản mới nhất mình từng lưu hay không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_PROGRAM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-151",
+  "cat": "long-sentence",
+  "text": "Tôi vừa đọc được vài thông tin về deload week nhưng chưa hiểu rõ lắm, không biết là nó hoạt động như thế nào trong một chu kỳ tập luyện dài hạn?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-152",
+  "cat": "workflow-start",
+  "text": "Giúp tôi dựng một chương trình tập tạ cho người mới.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_WORKOUT_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-153",
+  "cat": "workflow-start",
+  "text": "Build a nutrition plan for me please.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_NUTRITION_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-154",
+  "cat": "correction",
+  "text": "khoan, tôi 68kg chứ không phải 70",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_ROADMAP",
+    "slot": "targetWeight"
+   }
+  }
+ },
+ {
+  "id": "GB2-155",
+  "cat": "correction",
+  "text": "nhầm rồi, ngân sách của tôi là 1 triệu thôi",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-156",
+  "cat": "correction",
+  "text": "à không, mình ăn 4 bữa mới đúng",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-157",
+  "cat": "correction",
+  "text": "sai rồi, phải là 5 buổi mỗi tuần",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-158",
+  "cat": "correction",
+  "text": "thực ra tôi tập được thứ 2 4 6 thôi",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_TRAINING_PROGRAM",
+    "slot": "days"
+   }
+  }
+ },
+ {
+  "id": "GB2-159",
+  "cat": "reference",
+  "text": "Ừ dùng luôn mức đó cho tôi.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-160",
+  "cat": "reference",
+  "text": "Cứ để như cũ, không cần đổi.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-161",
+  "cat": "reference",
+  "text": "Lấy phương án đầu tiên giúp tôi.",
+  "exp": {
+   "route": "WRITE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-162",
+  "cat": "reference",
+  "text": "Đồng ý theo gợi ý bạn vừa đưa ra.",
+  "exp": {
+   "route": "REFERENCE"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-163",
+  "cat": "negation",
+  "text": "Tôi không cần đổi chương trình đâu, cứ để vậy.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-164",
+  "cat": "negation",
+  "text": "Không cần tìm huấn luyện viên nữa, tôi tự tập.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-165",
+  "cat": "negation",
+  "text": "Chưa cần lưu gì cả, để tôi xem thêm đã.",
+  "exp": {
+   "route": "NEGATE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-166",
+  "cat": "confirmation-dismissal",
+  "text": "được rồi, chốt luôn",
+  "exp": {
+   "route": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-167",
+  "cat": "confirmation-dismissal",
+  "text": "ok tôi đồng ý",
+  "exp": {
+   "route": "CONFIRM"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-168",
+  "cat": "confirmation-dismissal",
+  "text": "không dùng bản này",
+  "exp": {
+   "route": "DISMISS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-169",
+  "cat": "confirmation-dismissal",
+  "text": "bỏ bản nháp đi",
+  "exp": {
+   "route": "DISMISS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-170",
+  "cat": "workflow-switch",
+  "text": "Khoan, để tôi tìm chương trình tập trước đã",
+  "exp": {
+   "route": "SWITCH_WORKFLOW",
+   "wf": "FIND_TRAINING_PROGRAM"
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-171",
+  "cat": "workflow-switch",
+  "text": "Thôi dẹp qua một bên, không cần làm nữa",
+  "exp": {
+   "route": "CANCEL"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_WORKOUT_PLAN",
+    "slot": "daysPerWeek"
+   }
+  }
+ },
+ {
+  "id": "GB2-172",
+  "cat": "workflow-switch",
+  "text": "huỷ giúp tôi cái này",
+  "exp": {
+   "route": "CANCEL"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-173",
+  "cat": "short-ambiguous",
+  "text": "ừ",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-174",
+  "cat": "short-ambiguous",
+  "text": "thế à",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-175",
+  "cat": "short-ambiguous",
+  "text": "ok vậy",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-176",
+  "cat": "short-ambiguous",
+  "text": "không rõ nữa",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-177",
+  "cat": "typo-indirect",
+  "text": "co ai dang huan luyen cho toi khong ta",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-178",
+  "cat": "typo-indirect",
+  "text": "khong biet muc tieu dinh duong minh dang la bnhieu",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-179",
+  "cat": "typo-indirect",
+  "text": "minh nen tang hay giam day ta",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "GOAL"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-180",
+  "cat": "typo-indirect",
+  "text": "cho minh hoi la protein co quan trong khong",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-181",
+  "cat": "write-action",
+  "text": "Đổi giúp tôi mục tiêu sang hiệu suất thể thao.",
+  "exp": {
+   "route": "WRITE_ACTION",
+   "topic": "GOAL_CHANGE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-182",
+  "cat": "write-action",
+  "text": "Cập nhật cân nặng mục tiêu thành 75kg giúp tôi.",
+  "exp": {
+   "route": "WRITE_ACTION",
+   "topic": "GOAL_CHANGE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-183",
+  "cat": "write-action",
+  "text": "Chọn PT đầu tiên trong danh sách giúp tôi.",
+  "exp": {
+   "route": "WRITE_ACTION"
+  },
+  "ctx": {
+   "proposal": true
+  }
+ },
+ {
+  "id": "GB2-184",
+  "cat": "workflow-start",
+  "text": "Tạo giúp tôi lịch ăn cho cả tuần.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_NUTRITION_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-185",
+  "cat": "workflow-start",
+  "text": "Xây một lộ trình giảm mỡ dài hạn cho tôi.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_ROADMAP"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-186",
+  "cat": "workflow-start",
+  "text": "Find me a suitable personal trainer.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "FIND_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-187",
+  "cat": "read-vs-find",
+  "text": "Trước khi tìm gói tập mới, tôi đang dùng gói nào vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-188",
+  "cat": "read-vs-find",
+  "text": "Không cần đề xuất PT nữa, hợp đồng hiện tại của tôi ra sao rồi?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-189",
+  "cat": "read-vs-recommend",
+  "text": "Số liệu hiện tại của tôi đang lưu là gì, và có nên đổi mục tiêu không?",
+  "exp": {
+   "route": "MULTI",
+   "multi": [
+    "READ_STATE",
+    "RECOMMEND"
+   ]
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-190",
+  "cat": "standalone-read",
+  "text": "Coach hiện tại của tôi trên hệ thống là ai vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-191",
+  "cat": "standalone-read",
+  "text": "Ngày mai theo lịch tôi có buổi tập nào không?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-192",
+  "cat": "standalone-read",
+  "text": "Béo mỗi ngày hệ thống đang giới hạn cho tôi bao nhiêu gram?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "NUTRITION_TARGET"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-193",
+  "cat": "recommendation-request",
+  "text": "Bạn thấy tôi có nên đổi sang tập nặng hơn không?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "SESSIONS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-194",
+  "cat": "general-qa",
+  "text": "Nghỉ giữa các hiệp bao lâu là hợp lý?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-195",
+  "cat": "general-qa",
+  "text": "Tại sao ăn đủ nước lại quan trọng khi tập gym?",
+  "exp": {
+   "route": "KNOWLEDGE_QA"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-196",
+  "cat": "interruption",
+  "text": "Nhân tiện, tôi đang theo chương trình tập nào vậy?",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "PROGRAM_STATUS",
+   "interrupts": true
+  },
+  "ctx": {
+   "active": {
+    "wf": "FIND_PT",
+    "slot": "budgetVnd"
+   }
+  }
+ },
+ {
+  "id": "GB2-197",
+  "cat": "interruption",
+  "text": "2 bữa thôi",
+  "exp": {
+   "route": "SLOT_ANSWER"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-198",
+  "cat": "casual-vietnamese",
+  "text": "minh co dang ky goi pt nao chua ta",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "CONTRACT_STATUS"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-199",
+  "cat": "casual-vietnamese",
+  "text": "lich tap ngay mai co gi khong ta",
+  "exp": {
+   "route": "READ_STATE",
+   "topic": "SCHEDULE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-200",
+  "cat": "correction",
+  "text": "khoan đã, đúng ra tôi muốn 4 bữa",
+  "exp": {
+   "route": "CORRECTION"
+  },
+  "ctx": {
+   "active": {
+    "wf": "CREATE_NUTRITION_PLAN",
+    "slot": "mealsPerDay"
+   }
+  }
+ },
+ {
+  "id": "GB2-201",
+  "cat": "long-sentence",
+  "text": "Tôi đang phân vân không biết có nên tiếp tục thuê huấn luyện viên hiện tại hay không, dựa trên tiến độ tập luyện gần đây của mình thì bạn thấy thế nào?",
+  "exp": {
+   "route": "RECOMMEND",
+   "topic": "HIRE_PT"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-202",
+  "cat": "workflow-start",
+  "text": "Lên kế hoạch tập gym 4 buổi mỗi tuần cho tôi.",
+  "exp": {
+   "route": "START_WORKFLOW",
+   "wf": "CREATE_WORKOUT_PLAN"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-203",
+  "cat": "write-action",
+  "text": "Chuyển mục tiêu chính sang giảm mỡ giúp tôi.",
+  "exp": {
+   "route": "WRITE_ACTION",
+   "topic": "GOAL_CHANGE"
+  },
+  "ctx": {}
+ },
+ {
+  "id": "GB2-204",
+  "cat": "short-ambiguous",
+  "text": "hmm",
+  "exp": {
+   "route": "UNKNOWN"
+  },
+  "ctx": {}
+ }
+]

@@ -5,6 +5,7 @@ import { allowsUseOnce } from "./types";
 import { workflowStateRepository } from "./workflow-state.repository";
 import { missingRequiredSlots, buildMissingSlotsQuestion, buildKnownMissingSummary } from "./slot-resolver";
 import { normalizeAgentText } from "../services/fitness-agent-intent";
+import { ciMode, hasSemanticContent, interpretDeterministic, semanticTurn, withCiState, type PolicyDecision } from "../conversational-intelligence";
 
 /**
  * The deterministic orchestration layer described in
@@ -94,7 +95,11 @@ export async function runWorkflowTurn(
     const def = workflowByType(active.workflowType);
     if (!def) return null; // defensive — should never happen (registry is closed-world)
 
-    if (CANCEL_RE.test(normalizeAgentText(question))) {
+    // CI V2: "thôi" is also a discourse marker ("Thôi tôi thấy mình quá nặng, đổi sang giảm mỡ đi"). A cancel word only cancels
+    // when the turn carries nothing else the user is trying to say.
+    const cancelWord = CANCEL_RE.test(normalizeAgentText(question));
+    const carriesMeaning = cancelWord && ciMode() === "on" && hasSemanticContent(interpretDeterministic(question, { expectedSlot: active.expectedSlot }));
+    if (cancelWord && !carriesMeaning) {
       await workflowStateRepository.cancel(active.id);
       return { answer: "Đã hủy yêu cầu này. Bạn có thể bắt đầu lại bất cứ lúc nào.", blocks: [] };
     }
@@ -117,6 +122,10 @@ export async function runWorkflowTurn(
     // generic intent routing), regardless of what parseFitnessAgentIntent
     // thinks this message means.
     if (active.status === "COLLECTING_SLOTS" && active.expectedSlot) {
+      if (ciMode() !== "off") {
+        const semantic = await handleSemanticTurn(active, def, question, identity, deps);
+        if (semantic) return semantic;
+      }
       return handleSlotReply(active, def, question, identity, deps);
     }
     return null;
@@ -260,9 +269,26 @@ async function finalizeWorkflow(
 async function startWorkflow(
   def: WorkflowDefinition, initialMessage: string, identity: AgentIdentity, sessionId: string, deps: OrchestratorDeps,
 ): Promise<TurnResult | null> {
-  const extracted = await extractSafeKnownFromMessage(def, initialMessage, {}, identity, deps);
+  let extracted = await extractSafeKnownFromMessage(def, initialMessage, {}, identity, deps);
+  let semanticStart: PolicyDecision | null = null;
+  if (ciMode() !== "off") {
+    // The opening message may already contradict the stored profile ("tạo lộ trình… muốn xuống 72kg" while the goal is muscle
+    // gain): resolve that conversationally instead of letting the target validator drop the value silently.
+    const c0 = await buildContext(identity, deps, extracted);
+    const turn = await semanticTurn({ text: initialMessage, userId: identity.userId, profile: c0.enterpriseContext.profile, known: extracted, expectedSlot: null, slotKeys: new Set(def.slots.map((sl) => sl.key)) });
+    if (ciMode() === "on" && hasSemanticContent(turn.interp) && ["PROPOSE_PROFILE_CHANGE", "ASK_CLARIFICATION", "PROPOSE_VALUE"].includes(turn.decision.action)) semanticStart = turn.decision;
+  }
   const ctx = await buildContext(identity, deps, extracted);
   const missing = missingRequiredSlots(def.slots, ctx);
+  if (semanticStart) {
+    const row0 = await workflowStateRepository.create(identity.userId, sessionId, def.type, extracted);
+    if (row0) {
+      const expected = semanticStart.action === "ASK_CLARIFICATION" || semanticStart.action === "PROPOSE_VALUE" ? "targetWeight" : null;
+      if (expected && def.slots.some((sl) => sl.key === expected)) await workflowStateRepository.update(row0.id, { expectedSlot: expected });
+      const res = await applySemanticDecision(row0.id, def, extracted, semanticStart, identity, deps);
+      if (res) return res;
+    }
+  }
 
   if (missing.length === 0 && Object.keys(extracted).length === 0) {
     // Nothing to collect and nothing new was said — real context already
@@ -298,16 +324,98 @@ async function startWorkflow(
   };
 }
 
+/** Applies a semantic candidate patch: goal first (it changes how the other values are judged), each value still passes its own
+ * slot validator, and a rejection is REPORTED (never silently dropped) so the user is never left in a repeat loop. */
+async function applyPatch(
+  def: WorkflowDefinition, known: Record<string, unknown>, patch: Record<string, unknown>, identity: AgentIdentity, deps: OrchestratorDeps,
+): Promise<{ known: Record<string, unknown>; rejected?: string }> {
+  const out = { ...known };
+  const keys = Object.keys(patch).sort((a, b) => (a === "goal" ? -1 : b === "goal" ? 1 : 0));
+  for (const key of keys) {
+    const slot = def.slots.find((sl) => sl.key === key);
+    if (!slot) continue;
+    const value = patch[key];
+    if (key === "goal") { out.goal = value; continue; }
+    if (slot.validateContext) {
+      const safety = slot.validateContext(value, await buildContext(identity, deps, { ...out, [key]: value }));
+      if (!safety.ok) return { known: out, rejected: safety.clarifyingQuestion };
+    }
+    out[key] = value;
+  }
+  return { known: out };
+}
+
+async function applySemanticDecision(
+  workflowId: string, def: WorkflowDefinition, known: Record<string, unknown>, decision: PolicyDecision, identity: AgentIdentity, deps: OrchestratorDeps,
+): Promise<TurnResult | null> {
+  switch (decision.action) {
+    case "LEGACY":
+      return null;
+    case "ANSWER_WHY":
+    case "ASK_CLARIFICATION":
+    case "ASK_MISSING_INFO":
+    case "PROPOSE_VALUE": {
+      const expectedSlot = decision.action === "PROPOSE_VALUE" ? (decision.ci.proposal?.field === "goal" ? undefined : decision.ci.proposal?.field) : undefined;
+      await workflowStateRepository.update(workflowId, { slotsJson: withCiState(known, decision.ci), ...(expectedSlot ? { expectedSlot } : {}), extendExpiry: true });
+      return { answer: decision.text ?? "", blocks: [] };
+    }
+    case "APPLY_AND_CONTINUE":
+    case "PROPOSE_PROFILE_CHANGE": {
+      const applied = await applyPatch(def, known, decision.patch ?? {}, identity, deps);
+      const nextKnown = withCiState(applied.known, decision.ci);
+      if (applied.rejected) {
+        await workflowStateRepository.update(workflowId, { slotsJson: nextKnown, extendExpiry: true });
+        return { answer: [decision.preface, applied.rejected].filter(Boolean).join(String.fromCharCode(10).repeat(2)), blocks: [] };
+      }
+      const result = await finalizeWorkflow(workflowId, def, nextKnown, identity, deps);
+      return decision.preface ? { ...result, answer: decision.preface + String.fromCharCode(10).repeat(2) + result.answer } : result;
+    }
+    default:
+      return null;
+  }
+}
+
+async function handleSemanticTurn(
+  active: { id: string; slotsJson: unknown; expectedSlot: string | null },
+  def: WorkflowDefinition, question: string, identity: AgentIdentity, deps: OrchestratorDeps,
+): Promise<TurnResult | null> {
+  const known = (active.slotsJson as Record<string, unknown>) ?? {};
+  const ctx = await buildContext(identity, deps, known);
+  const turn = await semanticTurn({
+    text: question, userId: identity.userId, profile: ctx.enterpriseContext.profile, known,
+    expectedSlot: active.expectedSlot, slotKeys: new Set(def.slots.map((sl) => sl.key)),
+  });
+  if (ciMode() === "shadow") return null; // observe only
+  return applySemanticDecision(active.id, def, known, turn.decision, identity, deps);
+}
+
 async function handleSlotReply(
   active: { id: string; slotsJson: unknown; expectedSlot: string | null },
   def: WorkflowDefinition, question: string, identity: AgentIdentity, deps: OrchestratorDeps,
 ): Promise<TurnResult> {
-  const storedKnown = (active.slotsJson as Record<string, unknown>) ?? {};
+  const storedKnown0 = (active.slotsJson as Record<string, unknown>) ?? {};
   const slot = def.slots.find((s) => s.key === active.expectedSlot)!;
+  // A reply may CHANGE another slot instead of (or besides) answering the expected one — e.g. "đổi mục tiêu sang giảm
+  // mỡ" while the expected slot is the target weight. Take those slots first: they may be exactly what makes the expected
+  // value valid (a lower target weight is only wrong for the OLD goal), and they must not be lost when the expected
+  // slot cannot be parsed from this message.
+  const others = await extractSafeKnownFromMessage(def, question, storedKnown0, identity, deps);
+  delete others[slot.key];
+  const storedKnown = { ...storedKnown0, ...others };
   const ctx = await buildContext(identity, deps, storedKnown);
   const result = slot.parse(question, ctx);
   if (!result.ok) {
-    return { answer: result.clarifyingQuestion ?? "Mình chưa hiểu câu trả lời, bạn nói lại giúp mình nhé?", blocks: [] };
+    if (Object.keys(others).length > 0) return finalizeWorkflow(active.id, def, storedKnown, identity, deps);
+    // Always restate WHAT is being asked: a bare "Bạn có thể cho mình một con số cụ thể…" leaves a user who replies
+    // "số gì?" (or opens with a new request while this question is pending) with no idea which number is wanted.
+    const restated = slot.question(ctx);
+    const hint = result.clarifyingQuestion ?? "Mình chưa hiểu câu trả lời, bạn nói lại giúp mình nhé?";
+    // No number at all = the user said something else (a new request, "số gì?"), not a wrong number: don't scold them with
+    // "give me a specific number, e.g. 72 kg" — just say what is still needed and how to leave.
+    if (!/\d/.test(question)) {
+      return { answer: `Mình vẫn cần thông tin này để tiếp tục: ${restated} (Nhắn "hủy" nếu bạn muốn dừng.)`, blocks: [] };
+    }
+    return { answer: hint.includes(restated) ? hint : `${restated} ${hint}`, blocks: [] };
   }
   if (slot.validateContext) {
     const safety = slot.validateContext(result.value, ctx);
@@ -502,3 +610,53 @@ async function handleConfirmationReply(
   return { answer: RESUME_SENTINEL, blocks: [], resumeIntentKind: def.gatesIntentKind, resumeKnownSlots: knownSlots };
 }
 
+
+// ─────────────────────── GLOBAL conversation support (CI-V2 global coverage) ───────────────────────
+// Thin, read-mostly helpers the global conversation policy uses. They add NO new write path: a profile change still goes through the
+// workflow's PROFILE_UPDATE_CONFIRMATION card, the slot validators and the existing confirm → write → resume lifecycle.
+
+const WORKFLOW_LABEL: Record<string, string> = {
+  FIND_PT: "tìm PT", FIND_TRAINING_PROGRAM: "tìm chương trình tập", CREATE_ROADMAP: "tạo lộ trình", CREATE_WORKOUT_PLAN: "tạo lịch tập",
+  CREATE_NUTRITION_PLAN: "tạo thực đơn", UPDATE_GOAL: "đổi mục tiêu",
+};
+
+export async function peekActiveWorkflow(userId: string, sessionId: string): Promise<{ id: string; type: string; status: string; expectedSlot: string | null; slotsJson: Record<string, unknown> } | null> {
+  const a = await workflowStateRepository.findActive(userId, sessionId);
+  return a ? { id: a.id, type: a.workflowType, status: a.status as string, expectedSlot: a.expectedSlot, slotsJson: (a.slotsJson as Record<string, unknown>) ?? {} } : null;
+}
+
+/** What the waiting workflow is doing and the natural question it is waiting on — used for the "you were in the middle of…" reminder. */
+export async function describePendingWorkflow(identity: AgentIdentity, sessionId: string, deps: OrchestratorDeps): Promise<{ label: string; question: string | null; type: string } | null> {
+  const a = await peekActiveWorkflow(identity.userId, sessionId);
+  if (!a || a.status !== "COLLECTING_SLOTS") return null;
+  const def = workflowByType(a.type);
+  if (!def) return null;
+  const slot = a.expectedSlot ? def.slots.find((sl) => sl.key === a.expectedSlot) : undefined;
+  const question = slot ? slot.question(await buildContext(identity, deps, a.slotsJson)) : null;
+  return { label: WORKFLOW_LABEL[a.type] ?? "yêu cầu trước đó", question, type: a.type };
+}
+
+/** Standalone goal/target change: creates the tiny UPDATE_GOAL workflow with the candidate values and returns its confirmation card. */
+export async function startProfileChangeWorkflow(
+  identity: AgentIdentity, sessionId: string, patch: Record<string, unknown>, preface: string | undefined, deps: OrchestratorDeps,
+): Promise<TurnResult | null> {
+  const def = workflowByType("UPDATE_GOAL");
+  if (!def) return null;
+  const applied = await applyPatch(def, {}, patch, identity, deps);
+  if (applied.rejected) return { answer: [preface, applied.rejected].filter(Boolean).join(String.fromCharCode(10).repeat(2)), blocks: [] };
+  const row = await workflowStateRepository.create(identity.userId, sessionId, def.type, applied.known);
+  if (!row) return null;
+  const result = await finalizeWorkflow(row.id, def, applied.known, identity, deps);
+  if (result.answer === RESUME_SENTINEL) return { answer: "Mục tiêu của bạn đã đúng như vậy rồi nên mình không cần thay đổi gì.", blocks: [] };
+  return preface ? { ...result, answer: preface + String.fromCharCode(10).repeat(2) + result.answer } : result;
+}
+
+/** Remembers a standalone recommendation so "ok đổi theo đề xuất đó" can turn it into a confirmable change (conversation state, not memory). */
+export async function storeProposalWorkflow(identity: AgentIdentity, sessionId: string, proposal: { field: "goal"; recommended: string; goal: string; inputs?: Record<string, unknown> }): Promise<boolean> {
+  const def = workflowByType("UPDATE_GOAL");
+  if (!def) return false;
+  const row = await workflowStateRepository.create(identity.userId, sessionId, def.type, { __ci: { proposal } });
+  if (!row) return false;
+  await workflowStateRepository.update(row.id, { expectedSlot: "goal", extendExpiry: true });
+  return true;
+}

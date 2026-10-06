@@ -1,0 +1,147 @@
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T07:54:44.210Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T07:54:57.322Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T07:54:57.371Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T07:54:57.782Z","result":{"actionId":"a665fac5-899f-4c4b-b987-e74c88c93a66"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T07:55:13.285Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T07:55:29.410Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — insufficient_data"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T07:55:46.145Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T07:55:47.331Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T07:55:47.362Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T07:55:48.834Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"f9f0fafd-9fae-4f5e-bbff-4546a2e54f65"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T07:55:56.376Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T07:55:56.396Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T07:55:57.071Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T07:55:58.647Z"}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T07:55:59.327Z","result":{"goal":""}}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T08:07:07.218Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T08:07:20.677Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T08:07:20.740Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T08:07:21.168Z","result":{"actionId":"2e0b2fc0-50b9-4acb-9b6a-df4c3afedf92"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T08:07:36.192Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T08:07:51.801Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T08:08:08.484Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T08:08:09.678Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T08:08:09.709Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T08:08:11.218Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"73da4c63-96a7-4bb6-8afa-91de91db11aa"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T08:08:19.451Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T08:08:19.472Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T08:08:20.175Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T08:08:21.793Z"}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T08:08:22.520Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T08:08:22.574Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T08:08:49.693Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T08:09:03.169Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T08:09:15.671Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T08:09:16.575Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T09:16:05.242Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T09:16:18.696Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T09:16:18.833Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T09:16:19.954Z","result":{"actionId":"8a3496eb-d2ae-4d2a-a4e0-7a5e5f93f659"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T09:16:38.269Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T09:17:05.536Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T09:17:23.077Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T09:17:27.243Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T09:17:27.392Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T09:17:30.029Z","result":{}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T09:17:31.240Z","result":{"skipped":true}}
+{"step":12,"label":"hire PT","at":"2026-09-21T09:17:31.242Z","result":{"skipped":true}}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T09:17:31.243Z","result":{"skipped":true}}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T09:17:31.244Z","result":{"skipped":true}}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T09:17:31.246Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T09:17:49.770Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T09:17:50.102Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T09:18:04.689Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T09:18:13.428Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T09:18:15.500Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T09:38:38.239Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T09:38:52.694Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T09:38:52.826Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T09:38:53.814Z","result":{"actionId":"73092d57-7878-4e4e-8447-08f298fac85a"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T09:39:45.560Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T09:39:59.654Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T09:40:16.758Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T09:40:21.893Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T09:40:22.068Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T09:40:24.379Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"af1bfe16-e395-4b95-8996-1463ee94f526"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T09:40:33.209Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T09:40:33.282Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T10:25:12.808Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T10:25:31.669Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T10:25:32.145Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T10:25:33.097Z","result":{"actionId":"01787dd2-d7a9-4fc2-99c6-b9fd80f5099d"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T10:25:49.462Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T10:26:24.014Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T10:26:41.163Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T10:26:44.859Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T10:26:44.934Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T10:26:46.879Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"716a9df6-f8ed-4920-b7c8-e135d7900976"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T10:26:55.195Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T10:26:55.277Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T10:26:56.278Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T10:26:58.393Z"}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T10:26:59.536Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T10:26:59.670Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T10:27:21.232Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T10:27:35.196Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T10:27:43.817Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T10:27:45.110Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T14:01:37.614Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T14:01:39.856Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T14:01:39.962Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T14:01:40.936Z","result":{"actionId":"efcc6873-4586-4cbb-8e2d-da49653acc25"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T14:01:58.601Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T14:02:14.416Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T14:02:31.476Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T14:02:34.980Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T14:02:36.279Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T14:02:38.148Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"3861cb51-ed83-45e2-95fd-b86c039ddbc3"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T14:02:48.830Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T14:02:48.881Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T14:02:49.685Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T14:02:51.617Z"}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T14:02:52.411Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T14:02:52.526Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T14:02:52.808Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T14:03:09.141Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T14:03:23.057Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T14:03:24.434Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T14:28:42.079Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T14:28:44.015Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T14:28:44.128Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T14:28:45.165Z","result":{"actionId":"9b997292-ce04-4044-922b-e02220744e64"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T14:28:59.937Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T14:29:30.725Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T14:29:47.797Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T14:29:51.193Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T14:29:52.188Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T14:29:54.216Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"208bf840-cddf-4a96-b388-49027ba2d25c"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T14:30:03.073Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T14:30:03.113Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T14:30:04.006Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T14:30:06.181Z"}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T14:30:07.052Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T14:30:07.166Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T14:30:07.415Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T14:30:23.042Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T14:30:32.563Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T14:30:33.865Z"}
+{"step":1,"label":"goal statement (no workflow yet)","at":"2026-09-21T15:06:48.836Z"}
+{"step":2,"label":"create roadmap -> missing data","at":"2026-09-21T15:06:52.346Z"}
+{"step":3,"label":"provide missing data","at":"2026-09-21T15:06:52.458Z"}
+{"step":4,"label":"confirm profile","at":"2026-09-21T15:06:53.475Z","result":{"actionId":"88e53f93-f63d-46c1-9e22-21709f37ad43"}}
+{"step":5,"label":"revise roadmap","at":"2026-09-21T15:07:26.812Z"}
+{"step":6,"label":"confirm roadmap (button)","at":"2026-09-21T15:07:44.220Z","result":{"steps":["✅ Lộ trình","❌ Chương trình tập — Không có chương trình tập phù hợp để áp dụng","✅ Mục tiêu dinh dưỡng — created"]}}
+{"step":7,"label":"workout plan from that goal","at":"2026-09-21T15:08:01.315Z"}
+{"step":8,"label":"revise workout (unavailable weekday)","at":"2026-09-21T15:08:04.774Z"}
+{"step":9,"label":"confirm workout","at":"2026-09-21T15:08:06.143Z"}
+{"step":10,"label":"find PT","at":"2026-09-21T15:08:08.193Z","result":{"n":1,"ids":["452fdf49-f2ae-5b7f-adb7-6e390d3186f8"],"recommendationId":"06e6d1c9-de1c-4951-ba37-249def8ba8ca"}}
+{"step":11,"label":"why is PT #1 a fit","at":"2026-09-21T15:08:18.382Z"}
+{"step":12,"label":"hire PT","at":"2026-09-21T15:08:18.428Z"}
+{"step":13,"label":"confirm PT draft + contract","at":"2026-09-21T15:08:19.319Z"}
+{"step":14,"label":"PT/contract status question (KNOWN LIMITATION: no contract-status read intent; it re-enters the PT search)","at":"2026-09-21T15:08:21.501Z"}
+{"step":14.5,"label":"interruption: a calorie question while a PT search is pending (observed behaviour, then cancel the search)","at":"2026-09-21T15:08:22.384Z","result":{"hijacked":false}}
+{"step":15,"label":"TDEE / calorie question uses the authoritative goal","at":"2026-09-21T15:08:22.506Z","result":{"goal":"2391"}}
+{"step":16,"label":"nutrition plan (constraints in one message + count)","at":"2026-09-21T15:08:22.767Z"}
+{"step":18,"label":"revise to 3 meals","at":"2026-09-21T15:08:39.569Z"}
+{"step":19,"label":"confirm nutrition","at":"2026-09-21T15:08:53.173Z"}
+{"step":20,"label":"current schedule question uses the saved program","at":"2026-09-21T15:08:54.505Z"}

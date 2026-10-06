@@ -36,7 +36,7 @@ import axios from "axios";
 import { conversationService } from "../services/conversation.service";
 import { prisma, PlanStatus } from "../repositories/conversation.repository";
 import { closeAiQueue } from "../workers/ai.queue";
-import { aiWorker } from "../workers/ai.worker";
+import { aiWorker } from "../workers/ai.worker.runtime";
 
 const AI_DATABASE_URL = process.env.DATABASE_URL || "";
 const FITNESS_DATABASE_URL =

@@ -23,16 +23,27 @@ import {
  * ollama (default) | anthropic | bedrock | mock | anything else →
  * OpenAI-compatible /v1/chat/completions at LLM_BASE_URL.
  */
+/** R1: why a model call is made. SEMANTIC_ROUTING = placing a turn the deterministic router left UNKNOWN; RECOMMENDATION_NARRATION = wording an
+ *  already-chosen deterministic recommendation; GENERAL_QA = answering a general question; GENERATION = other structured generation; OTHER = not yet classified. */
+export type LlmCallPurpose = "SEMANTIC_ROUTING" | "RECOMMENDATION_NARRATION" | "GENERAL_QA" | "GENERATION" | "OTHER";
+export interface LlmCallOpts {
+  responseFormat?: "json" | "text";
+  timeoutMs?: number;
+  temperature?: number;
+  numPredict?: number;
+  purpose?: LlmCallPurpose;
+}
+
 export const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
 const DEFAULT_LLM_MODEL_BY_PROVIDER: Record<string, string> = {
-  ollama: "llama3.2:3b",
+  ollama: "qwen3:4b-instruct-2507-q4_K_M",
   anthropic: "claude-sonnet-5",
 };
 /**
  * Model id actually sent to the provider. On Bedrock this is always
  * BEDROCK_CHAT_MODEL and LLM_MODEL is ignored, so an Ollama tag left in a
- * shared .env/compose file (e.g. "llama3.2:3b") can never reach Bedrock as a
+ * shared .env/compose file (e.g. "qwen3:4b-instruct-2507-q4_K_M") can never reach Bedrock as a
  * model id.
  */
 export const LLM_MODEL =
@@ -40,7 +51,7 @@ export const LLM_MODEL =
     ? BEDROCK_CHAT_MODEL
     : process.env.LLM_MODEL ||
       DEFAULT_LLM_MODEL_BY_PROVIDER[LLM_PROVIDER] ||
-      "llama3.2:3b";
+      "qwen3:4b-instruct-2507-q4_K_M";
 
 // Embeddings are selected independently of chat by EMBEDDING_PROVIDER (see
 // embedding-config.ts): Bedrock Cohere Embed on AWS, Ollama /api/embeddings at
@@ -465,14 +476,30 @@ export const llmService = {
    * @throws {LlmError} when the provider is unreachable or returns an error.
    *   Callers must NOT expose or store LlmError.message as user-facing conversation content.
    */
-  async callLLM(
+  /**
+   * R1 telemetry wrapper: one structured line per model call. Records the call PURPOSE, provider, model, timeout, latency and outcome.
+   * It never logs the prompt, the answer, or any user text. Behaviour is identical to callLLMCore.
+   */
+  async callLLM(prompt: string, opts?: LlmCallOpts): Promise<LLMResponse> {
+    const started = Date.now();
+    const purpose: LlmCallPurpose = opts?.purpose ?? "OTHER";
+    const timeoutMs = opts?.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS;
+    try {
+      const r = await this.callLLMCore(prompt, opts);
+      logger.info({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome: "ok", promptTokens: r.promptTokens, completionTokens: r.completionTokens }, "llm_call");
+      return r;
+    } catch (err) {
+      const name = (err as { name?: string })?.name ?? "Error";
+      const message = (err as Error)?.message ?? "";
+      const outcome = /timeout|timedout|aborted|ETIMEDOUT/i.test(`${name} ${message}`) ? "timeout" : "error";
+      logger.warn({ callPurpose: purpose, provider: LLM_PROVIDER, model: LLM_MODEL, timeoutMs, latencyMs: Date.now() - started, outcome, errorName: name }, "llm_call");
+      throw err;
+    }
+  },
+
+  async callLLMCore(
     prompt: string,
-    opts?: {
-      responseFormat?: "json" | "text";
-      timeoutMs?: number;
-      temperature?: number;
-      numPredict?: number;
-    },
+    opts?: LlmCallOpts,
   ): Promise<LLMResponse> {
     try {
       if (LLM_PROVIDER === "mock") {

@@ -1,0 +1,55 @@
+{
+  "rows": [
+    {
+      "question": "với tình trạng hiện tại tôi nên cut hay bulk?",
+      "status": 200,
+      "answer": "Với 172cm và 95kg (BMI khoảng 32,1), BMI đang cao hơn khoảng bình thường (18,5–24,9), nên giảm mỡ (cut) trước rồi mới tăng cơ thường hợp lý hơn. Mục tiêu đang lưu của bạn là tăng cơ. Đây là gợi ý tham khảo, không phải chẩn đoán, và mình chưa thay đổi gì. Nếu bạn đồng ý, hãy nhắn \"ok đổi theo đề xuất đó\" — mình sẽ soạn thay đổi sang giảm mỡ để bạn xác nhận.",
+      "traceId": "ai_1790521053370_bpvpj3",
+      "sessionId": "519c87bc-e5ec-4769-b925-d8572f06b738",
+      "userId": "dc51b7ec-d938-4d44-b616-f00a82405088",
+      "goal": "MUSCLE_GAIN",
+      "workflow": "COLLECTING_SLOTS",
+      "actions": "0",
+      "profileSnapshot": "{\"id\":\"f6597bff-803f-4363-95c0-65fec2b10e7c\",\"userId\":\"dc51b7ec-d938-4d44-b616-f00a82405088\",\"age\":28,\"gender\":\"MALE\",\"heightCm\":172,\"goal\":\"MUSCLE_GAIN\",\"activityLevel\":null,\"experienceLevel\":null,\"preferredTrainingDays\":null,\"availableEquipment\":null,\"injuries\":null,\"currentWeight\":95,\"targetWeight\":null,\"createdAt\":\"2026-09-27T14:57:32.934\",\"updatedAt\":\"2026-09-27T14:57:32.934\",\"isPT\":false,\"session_duration_minutes\":60,\"firstName\":null,\"lastName\":null,\"email\":null,\"competes_in_sport\":false,\"preferred_split\":null,\"has_completed_onboarding\":true,\"date_of_birth\":null,\"dietary_preference\":null,\"first_name_normalized\":null,\"gym_id\":null,\"is_accepting_clients\":true,\"last_name_normalized\":null,\"not_accepting_reason\":null,\"photo_url\":null,\"pt_suspended\":false,\"referral_code\":null,\"search_city\":null,\"search_district\":null,\"search_ward\":null,\"specialties\":null,\"startingWeight\":95,\"startingWeightSource\":\"ONBOARDING\",\"safety_screening_flags\":[],\"safety_screening_status\":\"UNKNOWN\",\"energy_unit\":\"kcal\",\"unit_system\":\"metric\",\"nutrition_budget_level\":null,\"region\":null,\"data_origin\":\"REAL\",\"goal_intent\":null,\"pt_budget_vnd\":null}"
+    },
+    {
+      "question": "ok đổi theo đề xuất đó",
+      "status": 200,
+      "answer": "Hiểu rồi — thông tin mới của bạn khác với mục tiêu tăng cơ đang lưu. Từ những gì bạn vừa nói, có vẻ mục tiêu chính của bạn đã chuyển sang giảm mỡ. Mình chưa thay đổi gì cho tới khi bạn xác nhận; đây là thay đổi mình đề xuất:\n\nMình sẽ cập nhật mục tiêu (giảm mỡ/tăng cơ/duy trì/hiệu suất): Tăng cơ → Giảm mỡ. Gymini cần lưu thông tin này vào hồ sơ để lộ trình có thể sử dụng dữ liệu chính xác.\n\nXác nhận cập nhật, hay bạn muốn cho mình một giá trị khác?",
+      "traceId": "ai_1790521055643_myke2a",
+      "sessionId": "519c87bc-e5ec-4769-b925-d8572f06b738",
+      "userId": "dc51b7ec-d938-4d44-b616-f00a82405088",
+      "goal": "MUSCLE_GAIN",
+      "workflow": "AWAITING_SLOT_CONFIRMATION",
+      "actions": "0",
+      "profileSnapshot": "{\"id\":\"f6597bff-803f-4363-95c0-65fec2b10e7c\",\"userId\":\"dc51b7ec-d938-4d44-b616-f00a82405088\",\"age\":28,\"gender\":\"MALE\",\"heightCm\":172,\"goal\":\"MUSCLE_GAIN\",\"activityLevel\":null,\"experienceLevel\":null,\"preferredTrainingDays\":null,\"availableEquipment\":null,\"injuries\":null,\"currentWeight\":95,\"targetWeight\":null,\"createdAt\":\"2026-09-27T14:57:32.934\",\"updatedAt\":\"2026-09-27T14:57:32.934\",\"isPT\":false,\"session_duration_minutes\":60,\"firstName\":null,\"lastName\":null,\"email\":null,\"competes_in_sport\":false,\"preferred_split\":null,\"has_completed_onboarding\":true,\"date_of_birth\":null,\"dietary_preference\":null,\"first_name_normalized\":null,\"gym_id\":null,\"is_accepting_clients\":true,\"last_name_normalized\":null,\"not_accepting_reason\":null,\"photo_url\":null,\"pt_suspended\":false,\"referral_code\":null,\"search_city\":null,\"search_district\":null,\"search_ward\":null,\"specialties\":null,\"startingWeight\":95,\"startingWeightSource\":\"ONBOARDING\",\"safety_screening_flags\":[],\"safety_screening_status\":\"UNKNOWN\",\"energy_unit\":\"kcal\",\"unit_system\":\"metric\",\"nutrition_budget_level\":null,\"region\":null,\"data_origin\":\"REAL\",\"goal_intent\":null,\"pt_budget_vnd\":null}"
+    },
+    {
+      "question": "Xác nhận cập nhật.",
+      "status": 200,
+      "answer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+      "traceId": "ai_1790521057028_3od29e",
+      "sessionId": "519c87bc-e5ec-4769-b925-d8572f06b738",
+      "userId": "dc51b7ec-d938-4d44-b616-f00a82405088",
+      "goal": "WEIGHT_LOSS",
+      "workflow": "COMPLETED",
+      "actions": "0",
+      "profileSnapshot": "{\"id\":\"f6597bff-803f-4363-95c0-65fec2b10e7c\",\"userId\":\"dc51b7ec-d938-4d44-b616-f00a82405088\",\"age\":28,\"gender\":\"MALE\",\"heightCm\":172,\"goal\":\"WEIGHT_LOSS\",\"activityLevel\":null,\"experienceLevel\":null,\"preferredTrainingDays\":null,\"availableEquipment\":null,\"injuries\":null,\"currentWeight\":95,\"targetWeight\":null,\"createdAt\":\"2026-09-27T14:57:32.934\",\"updatedAt\":\"2026-09-27T14:57:37.192\",\"isPT\":false,\"session_duration_minutes\":60,\"firstName\":null,\"lastName\":null,\"email\":null,\"competes_in_sport\":false,\"preferred_split\":null,\"has_completed_onboarding\":true,\"date_of_birth\":null,\"dietary_preference\":null,\"first_name_normalized\":null,\"gym_id\":null,\"is_accepting_clients\":true,\"last_name_normalized\":null,\"not_accepting_reason\":null,\"photo_url\":null,\"pt_suspended\":false,\"referral_code\":null,\"search_city\":null,\"search_district\":null,\"search_ward\":null,\"specialties\":null,\"startingWeight\":95,\"startingWeightSource\":\"ONBOARDING\",\"safety_screening_flags\":[],\"safety_screening_status\":\"UNKNOWN\",\"energy_unit\":\"kcal\",\"unit_system\":\"metric\",\"nutrition_budget_level\":null,\"region\":null,\"data_origin\":\"REAL\",\"goal_intent\":null,\"pt_budget_vnd\":null}"
+    },
+    {
+      "question": "Đã lưu thành công chưa?",
+      "status": 200,
+      "answer": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+      "traceId": "ai_1790521058449_rr8ap7",
+      "sessionId": "519c87bc-e5ec-4769-b925-d8572f06b738",
+      "userId": "dc51b7ec-d938-4d44-b616-f00a82405088",
+      "goal": "WEIGHT_LOSS",
+      "workflow": "COMPLETED",
+      "actions": "0",
+      "profileSnapshot": "{\"id\":\"f6597bff-803f-4363-95c0-65fec2b10e7c\",\"userId\":\"dc51b7ec-d938-4d44-b616-f00a82405088\",\"age\":28,\"gender\":\"MALE\",\"heightCm\":172,\"goal\":\"WEIGHT_LOSS\",\"activityLevel\":null,\"experienceLevel\":null,\"preferredTrainingDays\":null,\"availableEquipment\":null,\"injuries\":null,\"currentWeight\":95,\"targetWeight\":null,\"createdAt\":\"2026-09-27T14:57:32.934\",\"updatedAt\":\"2026-09-27T14:57:37.192\",\"isPT\":false,\"session_duration_minutes\":60,\"firstName\":null,\"lastName\":null,\"email\":null,\"competes_in_sport\":false,\"preferred_split\":null,\"has_completed_onboarding\":true,\"date_of_birth\":null,\"dietary_preference\":null,\"first_name_normalized\":null,\"gym_id\":null,\"is_accepting_clients\":true,\"last_name_normalized\":null,\"not_accepting_reason\":null,\"photo_url\":null,\"pt_suspended\":false,\"referral_code\":null,\"search_city\":null,\"search_district\":null,\"search_ward\":null,\"specialties\":null,\"startingWeight\":95,\"startingWeightSource\":\"ONBOARDING\",\"safety_screening_flags\":[],\"safety_screening_status\":\"UNKNOWN\",\"energy_unit\":\"kcal\",\"unit_system\":\"metric\",\"nutrition_budget_level\":null,\"region\":null,\"data_origin\":\"REAL\",\"goal_intent\":null,\"pt_budget_vnd\":null}"
+    }
+  ],
+  "confirmedWrite": true,
+  "statusTruthful": true,
+  "noRepeatWrite": true
+}

@@ -34,6 +34,7 @@ export type ApiErrorCode =
   | "PERSONALIZED_SERVICE_ACTIVATION_FAILED"
   | "RATE_LIMITED"
   | "RATE_LIMIT_UNAVAILABLE"
+  | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR";
 
 export class ApiError extends Error {
