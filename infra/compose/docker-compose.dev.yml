@@ -427,7 +427,6 @@ services:
       AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-300000}
       AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-120000}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
-      AUTH_SERVICE_URL: http://auth-service:3001
       CHOKIDAR_USEPOLLING: "true"
     env_file:
       - ../../.env
