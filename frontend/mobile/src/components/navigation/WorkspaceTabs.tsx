@@ -56,6 +56,10 @@ export function WorkspaceTabs({
     <WorkspaceProvider value={workspace}>
       <View className="flex-1 bg-background" style={workspaceVars[workspace]}>
         <Tabs
+            // Back returns to the tab the user came from. The default ("firstRoute") sent Back from
+            // any screen opened out of another tab — the roadmap wizard from "Tập luyện" — to the
+            // first tab instead (real phone, 6/10).
+            backBehavior="history"
             screenOptions={{
               headerShown: false,
               // The root KeyboardAvoidingView shrinks the app above the keyboard; without this the
