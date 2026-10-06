@@ -1,4 +1,5 @@
 import { Building2, LayoutDashboard, UserRound, Wallet } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 
 import { RequireRole } from "../../src/components/guards/RequireRole";
 import { RequirePartnerAccess } from "../../src/components/guards/RequirePartnerAccess";
@@ -6,6 +7,9 @@ import {
   WorkspaceTabs,
   type WorkspaceTab,
 } from "../../src/components/navigation/WorkspaceTabs";
+import { useApp } from "../../src/context/AppContext";
+import { isManagerAccount } from "../../src/features/gymOwner/gymOwner";
+import { gymService } from "../../src/services/api";
 
 /**
  * Gym owner workspace. Three tabs, from the design prototype's `gymTabs` — deliberately fewer than
@@ -33,8 +37,27 @@ export default function GymOwnerLayout() {
   return (
     <RequireRole allow={["gym_owner"]}>
       <RequirePartnerAccess>
-        <WorkspaceTabs workspace="gym" tabs={gymTabs} hiddenRoutes={["plans", "collaborations", "managers", "checkin-qr", "branch"]} />
+        <GymTabs />
       </RequirePartnerAccess>
     </RequireRole>
+  );
+}
+
+const hiddenRoutes = ["plans", "collaborations", "managers", "checkin-qr", "branch"];
+
+/** The "Ví" tab is OWNER-only (gym-service 403s a manager), so a manager's bar leaves it out. */
+function GymTabs() {
+  const { user } = useApp();
+  const status = useQuery({
+    queryKey: ["partner-onboarding-status", user?.id ?? "guest"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const manager = isManagerAccount(status.data);
+  return (
+    <WorkspaceTabs
+      workspace="gym"
+      tabs={manager ? gymTabs.filter((t) => t.name !== "wallet") : gymTabs}
+      hiddenRoutes={manager ? [...hiddenRoutes, "wallet"] : hiddenRoutes}
+    />
   );
 }

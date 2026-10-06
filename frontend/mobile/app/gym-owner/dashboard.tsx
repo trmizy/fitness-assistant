@@ -32,6 +32,7 @@ import {
   branchName,
   checkinTrend,
   countByStatus,
+  isManagerAccount,
   memberLabel,
   membershipMix,
   ownedGyms,
@@ -68,10 +69,19 @@ export default function GymOwnerDashboardScreen() {
   const activeId = active?.id ?? "";
   const brandId = active?.brandId ?? null;
 
+  // Wallet and collaborations are OWNER-only on the server (403 OWNER_ROLE_REQUIRED); a manager's
+  // dashboard leaves them out, as web's nav does, instead of showing a load error.
+  const statusQuery = useQuery({
+    queryKey: ["partner-onboarding-status", uid],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const manager = isManagerAccount(statusQuery.data);
+  const ownerKnown = statusQuery.isSuccess && !manager;
+
   const walletQuery = useQuery({
     queryKey: ["owned-gym-wallet", activeId],
     queryFn: () => gymService.getOwnedWallet(activeId),
-    enabled: !!activeId,
+    enabled: !!activeId && ownerKnown,
   });
   const plansQuery = useQuery({
     queryKey: ["owned-brand-plans", brandId],
@@ -96,6 +106,7 @@ export default function GymOwnerDashboardScreen() {
   const collabQuery = useQuery({
     queryKey: ["owner-collaborations", uid],
     queryFn: () => collaborationService.listForOwner(),
+    enabled: ownerKnown,
   });
 
   const asList = (v: unknown): any[] => (Array.isArray(v) ? v : Array.isArray((v as any)?.data) ? (v as any).data : []);
@@ -195,6 +206,7 @@ export default function GymOwnerDashboardScreen() {
                 </StaggerItem>
               ) : null}
 
+              {manager ? null : (
               <StaggerItem>
                 <Card className="overflow-hidden p-5">
                   <View className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-primary/15" />
@@ -221,6 +233,7 @@ export default function GymOwnerDashboardScreen() {
                   ) : null}
                 </Card>
               </StaggerItem>
+              )}
 
               <StaggerItem>
                 <View className="flex-row flex-wrap gap-3">
@@ -343,6 +356,8 @@ export default function GymOwnerDashboardScreen() {
                       <ChevronRight size={15} color={designTokens.mutedForeground} />
                     </View>
                   </Tappable>
+                  {manager ? null : (
+                    <>
                   <Tappable
                     accessibilityLabel="Quản lý hợp tác huấn luyện viên"
                     onPress={() => router.push("/gym-owner/collaborations")}
@@ -367,6 +382,8 @@ export default function GymOwnerDashboardScreen() {
                       <ChevronRight size={15} color={designTokens.mutedForeground} />
                     </Tappable>
                   ) : null}
+                    </>
+                  )}
                 </Card>
               </StaggerItem>
 
