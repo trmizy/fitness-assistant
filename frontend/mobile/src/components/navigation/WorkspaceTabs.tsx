@@ -56,6 +56,9 @@ export function WorkspaceTabs({
         <Tabs
             screenOptions={{
               headerShown: false,
+              // The root KeyboardAvoidingView shrinks the app above the keyboard; without this the
+              // tab bar would ride up with it and eat the space a composer or form field needs.
+              tabBarHideOnKeyboard: true,
               tabBarActiveTintColor: accent.primary,
               tabBarInactiveTintColor: designTokens.mutedForeground,
               tabBarStyle: {

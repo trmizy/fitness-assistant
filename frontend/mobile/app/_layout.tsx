@@ -1,7 +1,7 @@
 import "../src/theme/global.css";
 
 import { useEffect } from "react";
-import { View } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Slot } from "expo-router";
@@ -85,9 +85,17 @@ export default function RootLayout() {
                   {/* Phase 14.4 — calls: the provider listens for call:* on chat-service's socket for
                       the whole session; the overlay is a full-screen Modal over any screen. */}
                   <CallProvider>
-                    <RequirePasswordChange>
-                      <Slot />
-                    </RequirePasswordChange>
+                    {/* One keyboard handler for every screen. The app is edge-to-edge (Android 15+
+                        enforces it), so adjustResize no longer shrinks the window when the keyboard
+                        opens and fields low on a screen — a chat composer, a wizard step — sat behind
+                        it (real phone, 6/10). Padding here gives back the resize; a focused input in
+                        a ScrollView is then scrolled into view by Android itself. Sheets are Modals
+                        (their own window) and handle the keyboard themselves. */}
+                    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "android" ? "padding" : undefined}>
+                      <RequirePasswordChange>
+                        <Slot />
+                      </RequirePasswordChange>
+                    </KeyboardAvoidingView>
                     <CallOverlay />
                   </CallProvider>
                   {/* Phase 14.2 — phone push: registers this device, routes taps. Renders nothing. */}
