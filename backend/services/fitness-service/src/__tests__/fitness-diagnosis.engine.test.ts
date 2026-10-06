@@ -147,6 +147,15 @@ test("buildDiagnosisReasoning: missing body-fat data never fabricates a comparis
   assert.ok(/Chưa đủ dữ liệu/.test(text));
 });
 
+test("buildDiagnosisReasoning: a measured body fat with no target says the TARGET is missing, not the data", () => {
+  const text = buildDiagnosisReasoning({
+    goal: "WEIGHT_LOSS", currentBodyFatPct: 45.3, targetBodyFatPct: null, currentFfmi: 19.99,
+    targetRealismWarnings: [], safetyReviewRequired: false,
+  });
+  assert.ok(/chưa đặt tỷ lệ mỡ mục tiêu/.test(text));
+  assert.ok(!/Chưa đủ dữ liệu tỷ lệ mỡ/.test(text));
+});
+
 test("buildDiagnosisReasoning: safety review required is surfaced explicitly", () => {
   const text = buildDiagnosisReasoning({
     goal: "WEIGHT_LOSS", currentBodyFatPct: null, targetBodyFatPct: null, currentFfmi: null,

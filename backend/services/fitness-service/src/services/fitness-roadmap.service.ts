@@ -549,7 +549,7 @@ export const fitnessRoadmapService = {
     // reached here in that case) covers LLM-level failures instead. Either
     // way, never half-empty, never throws, never fabricates a specific plan.
     const draft = aiResult ?? {
-      summary: "Không thể tạo bản nháp roadmap tự động lúc này (AI service không khả dụng).",
+      summary: "Gymini chưa cá nhân hoá được lộ trình bằng AI lúc này — dưới đây là giai đoạn khởi đầu an toàn, bạn có thể bắt đầu và điều chỉnh sau.",
       reasoningSummary:
         "Không kết nối được AI service — trả về một phase khởi đầu mặc định, an toàn, chưa cá nhân hóa.",
       confidence: 0,
