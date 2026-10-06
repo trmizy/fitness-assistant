@@ -103,7 +103,7 @@ function buildDeterministicFallback(req: GenerateRoadmapDraftRequest): GenerateR
   // return a single, safe, minimal-assumption starting phase and be
   // explicit that this is not a personalized proposal.
   return {
-    summary: "Không thể tạo bản nháp roadmap tự động lúc này.",
+    summary: "Gymini chưa cá nhân hoá được lộ trình bằng AI lúc này — dưới đây là giai đoạn khởi đầu an toàn, bạn có thể bắt đầu và điều chỉnh sau.",
     reasoningSummary:
       "AI không phản hồi hợp lệ — trả về một phase khởi đầu mặc định, an toàn, chưa cá nhân hóa. Vui lòng tự chỉnh sửa hoặc thử lại.",
     confidence: 0,

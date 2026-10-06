@@ -386,6 +386,10 @@ services:
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
+      # Without this the value comes from ../../.env (http://localhost:3001), which a container
+      # cannot reach: ai-service's own token check then fails and /ai/ask answers 503
+      # "Unable to verify session right now" (found on the partner's stack, 6/10).
+      AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       PAYMENT_SERVICE_URL: http://payment-service:3007

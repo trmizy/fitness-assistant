@@ -10,6 +10,7 @@ import {
   CloudOff,
   Dumbbell,
   Flame,
+  Info,
   Minus,
   Play,
   Plus,
@@ -65,6 +66,7 @@ import {
   type Swap,
 } from "../../../src/features/workout/exerciseActions";
 import { SessionSummaryCard, SetTypeSheet, SwapExerciseSheet } from "../../../src/features/workout/SessionExtras";
+import { ExerciseGuideSheet } from "../../../src/features/workout/ExerciseGuide";
 import {
   computeNextInterleavedWorkoutStep,
   findCurrentInterleavedWorkoutStep,
@@ -128,6 +130,7 @@ export default function WorkoutLogScreen() {
     blockKey: string;
     row: SetRow;
   } | null>(null);
+  const [guideFor, setGuideFor] = useState<{ exerciseId: string; name: string } | null>(null);
   const [blockBusy, setBlockBusy] = useState<string | null>(null);
   const hydratedFor = useRef<string | null>(null);
   const clockSeededFor = useRef<string | null>(null);
@@ -724,15 +727,31 @@ export default function WorkoutLogScreen() {
                 {(blocks ?? []).map((block, blockIndex) => (
                   <Card key={block.key} className="p-4">
                     <View className="mb-3 flex-row items-center gap-3">
+                      {/* Photo + name open the exercise guide (how to do it) without leaving the
+                          session — the substitute's guide when the exercise was swapped. */}
+                      <Tappable
+                        accessibilityLabel={`Xem cách tập ${swaps[block.key]?.name ?? block.name}`}
+                        className="flex-1 flex-row items-center gap-3"
+                        disabled={!(swaps[block.key]?.exerciseId ?? block.exerciseId)}
+                        onPress={() =>
+                          setGuideFor({
+                            exerciseId: swaps[block.key]?.exerciseId ?? block.exerciseId,
+                            name: swaps[block.key]?.name ?? block.name,
+                          })
+                        }
+                      >
                       <ExerciseMedia
                         videoUrl={block.mediaUrl}
                         className="h-12 w-12 shrink-0 rounded-xl"
                         iconSize={18}
                       />
                       <View className="flex-1">
-                        <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                          {swaps[block.key]?.name ?? block.name}
-                        </Text>
+                        <View className="flex-row items-center gap-1.5">
+                          <Text className="shrink font-body-semibold text-sm text-foreground" numberOfLines={1}>
+                            {swaps[block.key]?.name ?? block.name}
+                          </Text>
+                          <Info size={14} color={accent.primary} />
+                        </View>
                         {swaps[block.key] ? (
                           <Text
                             className="font-body text-[11px] text-primary"
@@ -799,6 +818,7 @@ export default function WorkoutLogScreen() {
                           );
                         })()}
                       </View>
+                      </Tappable>
                       <Text className="font-body text-xs text-muted-foreground">
                         {block.sets.filter((s) => s.completed).length}/{block.sets.length}
                       </Text>
@@ -1044,6 +1064,7 @@ export default function WorkoutLogScreen() {
             onSelect={pickSubstitute}
             onClose={() => setSwapFor(null)}
           />
+          <ExerciseGuideSheet target={guideFor} onClose={() => setGuideFor(null)} />
           <SetTypeSheet
             current={setTypeFor?.row.setType}
             open={setTypeFor != null}

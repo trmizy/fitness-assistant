@@ -76,6 +76,26 @@ function normalize(url: string): string {
   return clean;
 }
 
+const SERVER_URL_RE = /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?(\/[^\s]*)?$/i;
+
+/**
+ * Why a typed server address cannot be used, or null when it can. Saving used to accept anything:
+ * a stray key before a pasted link stored "https://lhttps://…" and every request then failed with
+ * nothing pointing at the address (real phone, 6/10). `allowHttp` is false in a release build,
+ * whose network config refuses cleartext — an http:// address there can only ever fail.
+ */
+export function serverUrlError(input: string, allowHttp: boolean = isDevBuild()): string | null {
+  const clean = normalize(input);
+  if (!clean) return null; // empty = back to the build's default
+  if (!SERVER_URL_RE.test(clean) || clean.indexOf("://", 8) !== -1) {
+    return "Địa chỉ không hợp lệ. Ví dụ đúng: https://ten-mien.trycloudflare.com";
+  }
+  if (!allowHttp && clean.startsWith("http://")) {
+    return "Bản phát hành chỉ kết nối được địa chỉ https://";
+  }
+  return null;
+}
+
 // Synchronous mirror of the stored override — see the doc comment above.
 let overrideCache = "";
 
