@@ -4,23 +4,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Apple,
-  BarChart3,
   CalendarClock,
   Check,
   ChevronRight,
-  ClipboardList,
   Dumbbell,
-  LayoutTemplate,
   Play,
   Plus,
   Repeat,
-  Upload,
-  type LucideIcon,
 } from "lucide-react-native";
 
 import { CyclePanel } from "../../../src/features/cycle/CyclePanel";
 import { DaySheet, scheduleTitle } from "../../../src/features/workout/DaySheet";
+import { WorkoutToolsMenu } from "../../../src/features/workout/WorkoutToolsMenu";
 import { BodyJourneyCard, TrainingDistributionCard } from "../../../src/features/workout/TrainingInsights";
 import type { TrainingDay } from "../../../src/features/workout/trainingWeek";
 import { RoadmapJourney } from "../../../src/features/roadmap/RoadmapJourney";
@@ -122,9 +117,11 @@ export default function WorkoutScreen() {
   const done = week.filter((d) => d.done).length;
 
   return (
+    <View className="flex-1 bg-background">
     <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 32 }}
+      className="flex-1"
+      // Bottom room so the last card clears the floating tool button.
+      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 96 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent.primary} colors={[accent.primary]} />
       }
@@ -132,25 +129,9 @@ export default function WorkoutScreen() {
       <View className="px-5">
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="mr-3 font-display text-2xl text-foreground">Tập luyện</Text>
-          {/* Seven round buttons no longer fit a 360dp row next to the title once Kế hoạch joined
-              (Phase 8), so the tool buttons scroll sideways instead of pushing off-screen; "+"
-              stays pinned outside the scroller as the primary action. */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-1"
-            contentContainerStyle={{ gap: 8, flexGrow: 1, justifyContent: "flex-end" }}
-          >
-            {/* Nutrition lives under this tab (doc 08 §4.2), so its door is here rather than a
-                sixth tab. */}
-            <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
-            <ToolButton icon={ClipboardList} onPress={() => router.push("/client/plans")} />
-            {/* 14B.4 — the current program: edit days / exercises / supersets, or build one by hand. */}
-            <ToolButton icon={Dumbbell} onPress={() => router.push("/client/workout/programs")} />
-            <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
-            <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />
-            <ToolButton icon={BarChart3} onPress={() => router.push("/client/stats/activity")} />
-          </ScrollView>
+          {/* The tool doors (nutrition, plans, programs, templates, import, stats) moved to
+              WorkoutToolsMenu at the bottom-left, where each has its name; "+" — start/log a
+              session — stays here as the primary action. */}
           <View className="ml-2">
             <Tappable
               className="h-10 w-10 items-center justify-center rounded-full bg-primary"
@@ -263,6 +244,8 @@ export default function WorkoutScreen() {
       </View>
       <DaySheet day={openDay} onClose={() => setOpenDay(null)} />
     </ScrollView>
+    <WorkoutToolsMenu />
+    </View>
   );
 }
 
@@ -325,16 +308,5 @@ function RecentWorkouts({ data }: { data: any }) {
         })}
       </Stagger>
     </View>
-  );
-}
-
-function ToolButton({ icon: Icon, onPress }: { icon: LucideIcon; onPress: () => void }) {
-  return (
-    <Tappable
-      className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-      onPress={onPress}
-    >
-      <Icon size={19} color="#8b9299" />
-    </Tappable>
   );
 }
