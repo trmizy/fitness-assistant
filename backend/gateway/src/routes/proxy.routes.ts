@@ -11,6 +11,7 @@ import {
 } from "../utils/internal-secret";
 import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
 import { adminRoleBreakdown, adminRoleLabel, adminUserStatus } from "../utils/adminUserView";
+import { relayRestChatMessage } from "../socket/chatRestRelay";
 import {
   partnerApplicationLimiter,
   partnerApplicationStartLimiter,
@@ -2145,6 +2146,8 @@ router.use(
       }
       proxyReq.setHeader("x-internal-token", INTERNAL_SERVICE_SECRET);
     },
+    // A message sent over REST is announced on the gateway socket too — see chatRestRelay.ts.
+    onProxyRes: (proxyRes, req) => relayRestChatMessage(proxyRes, req as typeof req & { originalUrl?: string }),
     onError: serviceUnavailable("Chat service"),
   }),
 );
