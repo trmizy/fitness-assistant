@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
 
@@ -49,6 +50,7 @@ export function WorkspaceTabs({
   fullScreenRoutes?: string[];
 }) {
   const accent = workspaceAccents[workspace];
+  const insets = useSafeAreaInsets();
 
   return (
     <WorkspaceProvider value={workspace}>
@@ -66,9 +68,13 @@ export function WorkspaceTabs({
                 borderTopColor: darkColors.border,
                 // RN's default is a hairline that reads as a smudge on a dark background.
                 borderTopWidth: 1,
-                height: 62,
+                // A fixed height replaces React Navigation's own inset handling, so the system bar
+                // inset is added back by hand: the app is edge-to-edge, and on a phone with 3-button
+                // navigation those buttons drew over the tabs (Galaxy S21 FE, 6/10). AiCoachFab sits
+                // at insets.bottom + 62 + 20 and relies on this.
+                height: 62 + insets.bottom,
                 paddingTop: 6,
-                paddingBottom: 8,
+                paddingBottom: 8 + insets.bottom,
               },
               tabBarLabelStyle: {
                 fontFamily: "Inter_500Medium",
