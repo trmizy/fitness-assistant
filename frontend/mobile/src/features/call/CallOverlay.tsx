@@ -160,9 +160,19 @@ function CountdownBadge({ remainingMs }: { remainingMs: number | null }) {
   );
 }
 
-function StreamView({ stream, mirror, fit = "cover" }: { stream: MediaStream | null; mirror?: boolean; fit?: "cover" | "contain" }) {
+function StreamView({
+  stream,
+  mirror,
+  fit = "cover",
+  zOrder = 0,
+}: {
+  stream: MediaStream | null;
+  mirror?: boolean;
+  fit?: "cover" | "contain";
+  zOrder?: number;
+}) {
   if (!stream) return null;
-  return <RTCView streamURL={stream.toURL()} objectFit={fit} mirror={mirror} style={{ flex: 1 }} zOrder={0} />;
+  return <RTCView streamURL={stream.toURL()} objectFit={fit} mirror={mirror} style={{ flex: 1 }} zOrder={zOrder} />;
 }
 
 // ── States ────────────────────────────────────────────────────────
@@ -304,6 +314,8 @@ function Connecting() {
 
 function ActiveCall() {
   const { state, endCall, switchCamera, localStream, remoteStream } = useCall();
+  // Self-view is mirrored only for the front camera — a mirrored back camera reads text backwards.
+  const [frontCamera, setFrontCamera] = useState(true);
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -329,7 +341,9 @@ function ActiveCall() {
             className="absolute right-4 h-44 w-32 overflow-hidden rounded-2xl border-2 border-border bg-panel"
             style={{ top: insets.top + 12 }}
           >
-            {!state.isVideoOff ? <StreamView stream={localStream} mirror /> : null}
+            {/* zOrder 1: two Android SurfaceViews at the same z-order are not guaranteed to stack in
+                layout order — the small self-view overlay must be declared above the full-screen one. */}
+            {!state.isVideoOff ? <StreamView stream={localStream} mirror={frontCamera} zOrder={1} /> : null}
             {state.isVideoOff ? (
               <View className="absolute inset-0 items-center justify-center">
                 <VideoOff size={22} color={designTokens.mutedForeground} />
@@ -373,7 +387,14 @@ function ActiveCall() {
         <View className="flex-row items-center gap-4">
           {isVideo ? <MediaToggles /> : <MediaTogglesAudioOnly />}
           {isVideo ? (
-            <RoundButton label="Đổi camera" size={48} onPress={switchCamera}>
+            <RoundButton
+              label="Đổi camera"
+              size={48}
+              onPress={() => {
+                switchCamera();
+                setFrontCamera((f) => !f);
+              }}
+            >
               <SwitchCamera size={20} color={darkColors.foreground} />
             </RoundButton>
           ) : null}

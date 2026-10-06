@@ -151,6 +151,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const isRelevant = (id?: string) => !!id && stateRef.current.callInfo?.callSessionId === id;
 
+    // The server's call id must be visible to the NEXT socket event at once. stateRef only catches up
+    // in a layout effect after React commits, and events can arrive back to back: on a session-room
+    // REJOIN the server sends `call:existing` (the id) and the peer's `call:offer` follows within
+    // milliseconds — the offer then failed isRelevant() and was dropped, leaving the phone on
+    // "Đang kết nối…" forever (real phone, 6/10). Apply the id to the ref synchronously as well.
+    const adoptCallSessionId = (callSessionId: string) => {
+      dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: callSessionId });
+      stateRef.current = callReducer(stateRef.current, { type: "UPDATE_CALL_SESSION_ID", payload: callSessionId });
+    };
+
     const giveUp = (callSessionId: string, reason: string) => {
       const isSession = stateRef.current.callInfo?.origin === "SESSION";
       socket.emit(isSession ? "call:leave_room" : "call:end", { callSessionId, ...(isSession ? {} : { reason }) });
@@ -190,7 +200,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const onInitiated = (data: any) => {
       iceServersRef.current = data.iceServers || [];
       isCallerRef.current = data.isCaller ?? true;
-      dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: data.callSessionId });
+      adoptCallSessionId(data.callSessionId);
       if (stateRef.current.callInfo?.origin === "SESSION") dispatch({ type: "SET_WAITING" });
     };
 
@@ -247,7 +257,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       isCallerRef.current = !!data.isCaller;
       iceServersRef.current = data.iceServers?.length ? data.iceServers : DEFAULT_ICE_SERVERS;
-      dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: data.callSessionId });
+      adoptCallSessionId(data.callSessionId);
       dispatch({ type: "SET_PEER_PRESENT", payload: true });
       if (data.isCaller) await sendFreshOffer(data.callSessionId);
       else dispatch({ type: "SET_CONNECTING" });
