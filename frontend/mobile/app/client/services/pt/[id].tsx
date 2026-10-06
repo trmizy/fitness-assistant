@@ -51,6 +51,7 @@ import {
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
 import { contractRequestError } from "../../../../src/features/services/contracts";
+import { GOAL_OPTIONS, TARGET_OPTIONS } from "../../../../src/features/ptApplication/ptApplication";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
 
@@ -269,6 +270,39 @@ export default function TrainerDetailScreen() {
                     </Text>
                   </View>
                 ) : null}
+                {/* 14B.7 (PG-C5) — web's remaining "Giới thiệu" blocks, only when the PT filled them in. */}
+                {pt.education || pt.workExperience ? (
+                  <View className="gap-1 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Kinh nghiệm & học vấn</Text>
+                    {pt.education ? <Text className="font-body text-sm leading-6 text-foreground">{`Học vấn: ${pt.education}`}</Text> : null}
+                    {pt.workExperience ? <Text className="font-body text-sm leading-6 text-foreground">{`Kinh nghiệm: ${pt.workExperience}`}</Text> : null}
+                  </View>
+                ) : null}
+                {pt.methods ? (
+                  <View className="gap-1 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Phương pháp huấn luyện</Text>
+                    <Text className="font-body text-sm leading-6 text-foreground">{pt.methods}</Text>
+                  </View>
+                ) : null}
+                {pt.targetGroups.length > 0 || pt.trainingGoals.length > 0 ? (
+                  <View className="gap-2 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Đối tượng & mục tiêu</Text>
+                    {pt.targetGroups.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {pt.targetGroups.map((g) => (
+                          <Badge key={`t-${g}`} tone="info">{optionLabel(TARGET_OPTIONS, g)}</Badge>
+                        ))}
+                      </View>
+                    ) : null}
+                    {pt.trainingGoals.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {pt.trainingGoals.map((g) => (
+                          <Badge key={`g-${g}`}>{optionLabel(GOAL_OPTIONS, g)}</Badge>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
               </Card>
             ) : null}
 
@@ -477,3 +511,9 @@ function PackageCard({
     </Tappable>
   );
 }
+
+/** The application form stores the English option value; show its Vietnamese label (unknown → as stored). */
+function optionLabel(options: { value: string; label: string }[], value: string): string {
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+

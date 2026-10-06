@@ -1,7 +1,7 @@
 import "../src/theme/global.css";
 
 import { useEffect } from "react";
-import { View } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Slot } from "expo-router";
@@ -17,6 +17,9 @@ import { AppProvider } from "../src/context/AppContext";
 import { RequirePasswordChange } from "../src/components/guards/RequirePasswordChange";
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
+import { PushManager } from "../src/features/push/PushManager";
+import { CallProvider } from "../src/features/call/CallProvider";
+import { CallOverlay } from "../src/features/call/CallOverlay";
 
 // GestureHandlerRootView must wrap the whole app (react-native-gesture-handler's own
 // requirement), and SafeAreaProvider must sit above every screen that reads insets.
@@ -79,9 +82,24 @@ export default function RootLayout() {
                   {/* WB-01 — mật khẩu tạm phải đổi trước khi dùng bất cứ thứ gì. Đặt TRONG
                       ToastProvider để chính màn chặn cũng hiện được thông báo, và bọc ngoài
                       `Slot` để không một route nào lọt qua. */}
-                  <RequirePasswordChange>
-                    <Slot />
-                  </RequirePasswordChange>
+                  {/* Phase 14.4 — calls: the provider listens for call:* on chat-service's socket for
+                      the whole session; the overlay is a full-screen Modal over any screen. */}
+                  <CallProvider>
+                    {/* One keyboard handler for every screen. The app is edge-to-edge (Android 15+
+                        enforces it), so adjustResize no longer shrinks the window when the keyboard
+                        opens and fields low on a screen — a chat composer, a wizard step — sat behind
+                        it (real phone, 6/10). Padding here gives back the resize; a focused input in
+                        a ScrollView is then scrolled into view by Android itself. Sheets are Modals
+                        (their own window) and handle the keyboard themselves. */}
+                    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "android" ? "padding" : undefined}>
+                      <RequirePasswordChange>
+                        <Slot />
+                      </RequirePasswordChange>
+                    </KeyboardAvoidingView>
+                    <CallOverlay />
+                  </CallProvider>
+                  {/* Phase 14.2 — phone push: registers this device, routes taps. Renders nothing. */}
+                  <PushManager />
                 </ToastProvider>
               </SocketProvider>
             </AppProvider>

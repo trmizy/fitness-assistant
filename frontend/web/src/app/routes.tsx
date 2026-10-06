@@ -111,7 +111,6 @@ const MarketplaceModeration = lazy(() => import("./pages/admin/MarketplaceModera
 const AdminExerciseReview = lazy(() => import("./pages/admin/AdminExerciseReview").then((m) => ({ default: m.AdminExerciseReview })));
 const AdminCatalogQuality = lazy(() => import("./pages/admin/AdminCatalogQuality").then((m) => ({ default: m.AdminCatalogQuality })));
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring").then((m) => ({ default: m.SystemMonitoring })));
-const AdminWorkflowStudio = lazy(() => import("./pages/admin/AdminWorkflowStudio").then((m) => ({ default: m.AdminWorkflowStudio })));
 const AdminAIObservability = lazy(() => import("./pages/admin/AdminAIObservability").then((m) => ({ default: m.AdminAIObservability })));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes").then((m) => ({ default: m.AdminDisputes })));
 const AdminGymModeration = lazy(() => import("./pages/admin/AdminGymModeration").then((m) => ({ default: m.AdminGymModeration })));
@@ -346,7 +345,6 @@ export const router = createBrowserRouter([
           { path: "gyms", Component: AdminGymModeration },
           { path: "partners", Component: AdminPartnersPage },
           { path: "complaints", Component: AdminComplaintsPage },
-          { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },
         ],
       },

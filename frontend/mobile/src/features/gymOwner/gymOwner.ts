@@ -120,6 +120,15 @@ export function isBrandOwner(onboardingStatus: unknown): boolean {
   return (onboardingStatus as any)?.role !== "MANAGER";
 }
 
+/**
+ * Known to be a MANAGER — unlike `!isBrandOwner`, false while the status is still loading. Gates the
+ * OWNER-only money/collaboration surfaces (gym-service answers 403 OWNER_ROLE_REQUIRED; web drops
+ * them from a manager's nav): hide them instead of showing a load error.
+ */
+export function isManagerAccount(onboardingStatus: unknown): boolean {
+  return (onboardingStatus as any)?.role === "MANAGER";
+}
+
 // ── Branches ───────────────────────────────────────────────────────────────────────────────
 
 export type OwnedGym = {

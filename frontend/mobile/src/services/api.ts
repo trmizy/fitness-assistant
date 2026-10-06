@@ -34,8 +34,30 @@ export let API_URL = apiBaseUrl();
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery, no auth. Web could return
 // a bare relative path because the browser resolves it against its own origin; an <Image source>
 // here needs a fully-qualified URL, so the gateway address is prefixed explicitly.
-export function gymPhotoUrl(fileName: string): string {
-  return `${API_URL}/uploads/gym-photos/${fileName}`;
+/**
+ * Checkout requests only (Phase 14.1). Where the gateway sends the payer afterwards is decided by
+ * payment-service from the `platform` stored on the transaction — the app's own deep link
+ * `fitnessassistant://client/payments/result` for mobile, the web result page otherwise — and every
+ * calling service (gym, user, ai) reads that platform off `Origin: http://localhost`, the fixed
+ * origin of the old Capacitor app (`detectPlatform` in each controller). This app keeps the same
+ * scheme, so it identifies itself the same way instead of the backend growing a second convention.
+ * Never set globally: the gateway also builds emailed links from a trusted Origin, and those must
+ * stay web links.
+ */
+export const MOBILE_CHECKOUT = { headers: { Origin: "http://localhost" } } as const;
+
+export function gymPhotoUrl(fileName: string, url?: string | null): string {
+  return absolutePhotoUrl(url) ?? `${API_URL}/uploads/gym-photos/${fileName}`;
+}
+
+/**
+ * The `url` gym-service puts on every photo (`resolvePhotoUrl`) is a signed S3 link for new photos
+ * but a bare `/uploads/gym-photos/<file>` path for disk-stored ones. A browser resolves that path
+ * against the page; an `<Image>` here cannot, so a relative one is joined to the server URL.
+ */
+export function absolutePhotoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
 // Exported so a screen can make an ad-hoc call without a dedicated service method — but always
@@ -686,6 +708,12 @@ export const workoutService = {
 
   getHistory: async (page: number = 1, limit: number = 50) => {
     const { data } = await api.get(`/workouts?page=${page}&limit=${limit}`);
+    return data;
+  },
+
+  /** 14B.7 — `GET /workouts?startDate&endDate` (fitness-service filters by date, newest first). */
+  getInRange: async (startDate: string, endDate: string, limit: number = 200) => {
+    const { data } = await api.get("/workouts", { params: { startDate, endDate, limit } });
     return data;
   },
 
@@ -1437,7 +1465,7 @@ export interface CycleAssessment {
   // Phase 2 — Adaptive Nutrition Decision Engine, an independent decision
   // space/lifecycle evaluated at the same touchpoint (see
   // docs/body-state-and-adaptive-planning.md).
-  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
+  nutritionDecision: "KEEP_PLAN" | "PROPOSE_ADJUSTMENT" | "PROPOSE_DIET_BREAK" | "REQUEST_MORE_DATA" | "EARLY_REVIEW" | "ESCALATE" | null;
   nutritionConfidence: "LOW" | "MEDIUM" | "HIGH" | null;
   nutritionSignals: Record<string, unknown> | null;
   nutritionProposedChanges: { calories?: number; protein?: number; carbs?: number; fat?: number } | null;
@@ -1552,6 +1580,19 @@ export const trainingCycleService = {
 
   getLatestAssessment: async (id: string) => {
     const { data } = await api.get<CycleAssessment>(`/training-cycles/${id}/assessments/latest`);
+    return data;
+  },
+
+  // 14B.1 (web TrainingCyclePage) — "how close am I to the next diet-break proposal", shown while
+  // nothing is proposed yet.
+  getDietBreakStatus: async (id: string) => {
+    const { data } = await api.get<{
+      applicable: boolean;
+      weeksSinceDeficitPhaseStarted: number | null;
+      thresholdWeeks: number;
+      weeksRemaining: number | null;
+      eligible: boolean;
+    }>(`/training-cycles/${id}/diet-break-status`);
     return data;
   },
 
@@ -2106,7 +2147,11 @@ export interface AgentChatBlock {
     | "SUBSTITUTE_RESULT"
     | "CYCLE_EVALUATION_RESULT"
     | "WORKFLOW_MISSING_DATA"
-    | "PROFILE_UPDATE_CONFIRMATION";
+    | "PROFILE_UPDATE_CONFIRMATION"
+    // WB-19 (web eba5a74): draft-only plans the coach generates in chat, saved via the same
+    // actionId/confirm() as ACTION_CONFIRMATION, or cancelled server-side via dismiss().
+    | "WORKOUT_PLAN_PREVIEW"
+    | "NUTRITION_PLAN_PREVIEW";
   recommendationId?: string;
   actionId?: string;
   kind?: string;
@@ -2146,6 +2191,39 @@ export interface AgentChatBlock {
   missing?: Array<string | { label?: string; value?: unknown }>;
   changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   allowUseOnce?: boolean;
+  // WORKOUT_PLAN_PREVIEW
+  goal?: string | null;
+  daysPerWeek?: number;
+  sessionMinutes?: number;
+  days?: Array<{
+    day: string;
+    goal: string;
+    firstDate?: string | null;
+    exercises: Array<{ name: string; sets: number; reps: string; restSeconds: number }>;
+  }>;
+  // NUTRITION_PLAN_PREVIEW
+  targetNote?: string;
+  excludedFoods?: string[];
+  softPreferences?: string[];
+  mealsPerDay?: number;
+  dailyCaloriesTarget?: number;
+  proteinTargetGrams?: number;
+  carbTargetGrams?: number;
+  fatTargetGrams?: number;
+  nutritionDays?: Array<{
+    dayNumber: number;
+    title: string;
+    totalCalories: number;
+    meals: Array<{
+      mealType: string;
+      title: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      items: Array<{ name: string; quantity: number; unit: string; calories: number }>;
+    }>;
+  }>;
 }
 
 export interface AgentReply {
@@ -2165,6 +2243,8 @@ export const fitnessAgentService = {
   choose: (id: string, candidateId: string, packageId?: string) =>
     agentPost(`/ai/agent/recommendations/${id}/choose`, { candidateId, packageId }),
   confirm: (id: string) => agentPost(`/ai/agent/actions/${id}/confirm`, { confirmed: true }),
+  // WB-19 — "Bỏ qua bản này": cancels a workout/nutrition DRAFT server-side (not the same as "Để sau").
+  dismiss: (id: string) => agentPost(`/ai/agent/actions/${id}/dismiss`, {}),
   confirmGoal: (sessionId: string, goal: unknown) => agentPost("/ai/agent/goal/confirm", { sessionId, goal }),
   image: (image: AgentImage, sessionId?: string) => agentPost("/ai/agent/goal-image", { image, sessionId }),
   imageChat: (image: AgentImage, question: string, sessionId?: string) =>
@@ -2876,7 +2956,7 @@ export const personalizedServiceApi = {
     const { data } = await api.post<{
       success: boolean;
       data: { order: PersonalizedServiceOrder; payment: PersonalizedServicePayment };
-    }>(`/marketplace/services/${id}/purchase`, provider ? { provider } : {});
+    }>(`/marketplace/services/${id}/purchase`, provider ? { provider } : {}, MOBILE_CHECKOUT);
     return data.data;
   },
   listMyOrders: async () => {
@@ -4537,8 +4617,10 @@ export const nutritionService = {
     const { data } = await api.post("/nutrition", log);
     return data;
   },
+  // 14B.3 — PATCH, the only method fitness-service routes for `/nutrition/:id`. Web (and this copy
+  // until now) sent PUT, which 404s ("Cannot PUT"), so editing a log has never worked on web.
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {
@@ -4942,7 +5024,11 @@ export const contractService = {
   // Phase 4 — pay a PENDING_PAYMENT contract via wallet
   // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
   pay: async (contractId: string, provider?: string) => {
-    const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
+    const { data } = await api.post(
+      `/contracts/${contractId}/pay`,
+      provider ? { provider } : {},
+      MOBILE_CHECKOUT,
+    );
     return data;
   },
   // Roadmap P4.1 "Notifications/reminders" (§27) — PT sends a feedback
@@ -4956,11 +5042,69 @@ export const contractService = {
 // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — PT/coach access to
 // a client's fitness data + plan assignment, built on the existing Contract
 // relationship (routed through the gateway's /coach -> fitness-service).
+// 14B.2 (PG-A5) — widened to web's shape: latest assessment, nutrition goal/plan/consistency and the
+// pending AI nutrition decision a coach may act on, plus the InBody trend for the progress card.
 export interface CoachClientSummary {
   activeCycle: TrainingCycle | null;
   cycleSummary: CycleSummary | null;
   feedbackSummary: CycleFeedbackSummary | null;
   priorDecisions: CycleDecision[];
+  // PT Coaching Workspace phase §21 — the training-side CycleAssessment's
+  // own reasoning (decision + AI-summary + reason codes), reusing exactly
+  // the fields the client's own Journey UI already reads. Never a new
+  // decision engine, never raw chain-of-thought.
+  latestAssessment?: {
+    decision: string | null;
+    aiSummary: string | null;
+    reasonCodes: string[] | null;
+    confidenceScore: number | null;
+  } | null;
+  // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
+  nutrition?: {
+    activeGoal: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      triggeredBy: string | null;
+      goalMode: string;
+      validFrom?: string;
+    } | null;
+    // PT Coaching Workspace phase §19 — the actual meal plan (distinct
+    // from the goal) plus its live consistency status against the
+    // current goal, reusing nutrition-goal-plan-consistency.service.ts
+    // verbatim (never a second consistency check).
+    activeProgram?: {
+      id: string;
+      name: string;
+      dailyCaloriesTarget: number | null;
+      proteinTargetGrams: number | null;
+      carbTargetGrams: number | null;
+      fatTargetGrams: number | null;
+      sourceGoalId: string | null;
+      createdAt: string;
+    } | null;
+    consistency?: NutritionGoalPlanConsistency | null;
+    latestNutritionDecision: {
+      assessmentId: string | null;
+      decision: string | null;
+      confidence: string | null;
+      headline: string | null;
+      explanation: string | null;
+      userDecision: string;
+      reviewedAt: string | null;
+      reviewedByRole: string | null;
+      ptNote: string | null;
+      // Phase 2 — true only when there's a real, still-actionable proposal
+      // (PENDING + proposedChanges present) for a PT to Approve/Modify/Reject.
+      canPtAct: boolean;
+    } | null;
+  };
+}
+
+export interface CoachClientProgress {
+  latest: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null } | null;
+  recent: { date: string; weight: number; bodyFatPct: number | null; muscleMass: number | null }[];
 }
 
 // Named ptCoachService (not coachService) — that name is already taken by
@@ -4968,6 +5112,11 @@ export interface CoachClientSummary {
 export const ptCoachService = {
   getClientSummary: async (clientId: string) => {
     const { data } = await api.get<CoachClientSummary>(`/coach/clients/${clientId}/summary`);
+    return data;
+  },
+  // §23/§32 — lazy-loaded only when the Progress tab is opened.
+  getClientProgress: async (clientId: string) => {
+    const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
   createAndAssignPlan: async (
@@ -5009,6 +5158,50 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  // 14B.2 (PG-A5) — ported from web. Each is an audited, server-checked coach action; only the
+  // diet-break trigger creates a new proposal, and that one still waits on the client.
+  // AI Nutrition Cycle Engine (Gymini) — Phase 2 PT Approve/Modify/Reject
+  // (spec §XXIII). `cycleId` is the client's cycle carrying the pending
+  // recommendation — read it off getClientSummary().activeCycle.id.
+  approveNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectNutritionRecommendation: async (clientId: string, cycleId: string, assessmentId?: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/reject`,
+      { assessmentId, note },
+    );
+    return data;
+  },
+  modifyNutritionRecommendation: async (
+    clientId: string,
+    cycleId: string,
+    modifiedGoal: { calories: number; protein: number; carbs: number; fat: number },
+    assessmentId?: string,
+    note?: string,
+  ) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/modify`,
+      { ...modifiedGoal, assessmentId, note },
+    );
+    return data;
+  },
+  // Diet break / maintenance-phase modeling — PT-initiated trigger
+  // (2026-09-07). Creates a real new PENDING nutrition recommendation (the
+  // client still accepts/rejects it through the normal review UI) proposing
+  // the client's real, freshly-computed maintenance calories.
+  triggerDietBreakRecommendation: async (clientId: string, cycleId: string, note?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/nutrition-recommendation/trigger-diet-break`,
+      { note },
+    );
     return data;
   },
 
@@ -5501,6 +5694,13 @@ export const notificationService = {
     const { data } = await api.put("/notifications/preferences", patch);
     return data;
   },
+  // Phase 14.2 — this phone's FCM token. The owner is whoever is signed in (server-side).
+  registerDevice: async (token: string) => {
+    await api.post("/notifications/devices", { token, platform: "android" });
+  },
+  unregisterDevice: async (token: string) => {
+    await api.delete(`/notifications/devices/${encodeURIComponent(token)}`, { timeout: 5000 });
+  },
 };
 
 // Roadmap P4.1 "Notifications/reminders" (§27).
@@ -5872,7 +6072,7 @@ export const gymService = {
       ...(provider ? { provider } : {}),
       ...(referralCode ? { referralCode } : {}),
       ...(acknowledgedMultiGymWarning ? { acknowledgedMultiGymWarning: true } : {}),
-    });
+    }, MOBILE_CHECKOUT);
     return data;
   },
   // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
@@ -5880,6 +6080,7 @@ export const gymService = {
     const { data } = await api.post(
       `/me/gym-memberships/${membershipId}/pay`,
       provider ? { provider } : {},
+      MOBILE_CHECKOUT,
     );
     return data?.data ?? data;
   },

@@ -32,7 +32,16 @@ export type PtRow = {
   gymAffiliation: string | null;
   bio: string | null;
   yearsOfExperience: string | null;
+  /** 14B.7 (PG-C5) — the rest of web's "Giới thiệu": education, past work, method, who / what for. */
+  education: string | null;
+  workExperience: string | null;
+  methods: string | null;
+  targetGroups: string[];
+  trainingGoals: string[];
 };
+
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()) : []);
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 const isValidPrice = (p: unknown): p is number => typeof p === "number" && p > 0;
 
@@ -82,6 +91,11 @@ export function normalizePt(raw: any): PtRow {
     gymAffiliation: app?.gymAffiliation ?? null,
     bio: app?.professionalBio ?? null,
     yearsOfExperience: app?.yearsOfExperience ?? null,
+    education: text(app?.educationBackground),
+    workExperience: text(app?.previousWorkExperience),
+    methods: text(app?.trainingMethodsApproach),
+    targetGroups: strList(app?.targetClientGroups),
+    trainingGoals: strList(app?.primaryTrainingGoals),
   };
 }
 
@@ -109,6 +123,11 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
     lowestPrice: fromDetail.lowestPrice ?? listRow.lowestPrice,
     bio: fromDetail.bio ?? listRow.bio,
     yearsOfExperience: fromDetail.yearsOfExperience ?? listRow.yearsOfExperience,
+    education: fromDetail.education ?? listRow.education,
+    workExperience: fromDetail.workExperience ?? listRow.workExperience,
+    methods: fromDetail.methods ?? listRow.methods,
+    targetGroups: fromDetail.targetGroups.length ? fromDetail.targetGroups : listRow.targetGroups,
+    trainingGoals: fromDetail.trainingGoals.length ? fromDetail.trainingGoals : listRow.trainingGoals,
     gymAffiliation: fromDetail.gymAffiliation ?? listRow.gymAffiliation,
     slots28: fromDetail.slots28 ?? listRow.slots28,
     specialties: fromDetail.specialties.length ? fromDetail.specialties : listRow.specialties,

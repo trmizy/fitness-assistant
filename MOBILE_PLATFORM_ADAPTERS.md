@@ -2993,3 +2993,772 @@ REJECTED.
 **Ghi chú:** phía PT hiện "(không có ghi chú)" vì lệnh chuẩn bị của tại hạ gửi `notes`, còn backend đọc
 `ptNotes` — lỗi của bước chuẩn bị, **không phải lỗi app**: `pt.completeSession` trong `api.ts` đã gửi đúng
 `ptNotes`.
+
+## 37. Phase 14.1 — thanh toán qua cổng thật (SH-06 + 4 lối vào) (28/9)
+
+**Quyết định của Ngài (28/9):** thông báo đẩy được phép sửa backend; chỉ có **1** điện thoại thật cho gọi
+video. Thứ tự làm: 14.1 → 14.3 → 14.2 → 14.4.
+
+### 37.1 Đã dựng
+
+| Phần | File | Ghi chú |
+|---|---|---|
+| Header nhận diện app | `src/services/api.ts` → `MOBILE_CHECKOUT` | Chỉ gắn vào **4 lời gọi tạo giao dịch**. Backend (gym/user/ai) suy `platform = mobile` từ `Origin: http://localhost` — quy ước sẵn có của app Capacitor cũ, app RN dùng chung scheme nên nhận diện y hệt, **không đổi backend**. Không gắn toàn cục vì gateway dựng link email từ Origin tin cậy. |
+| Chọn cổng | `src/components/payment/PaymentMethodSheet.tsx` | Danh sách của server (`/me/payments/methods`); cổng chưa cấu hình vẫn hiện, mờ, kèm lý do; chọn sẵn gợi ý của server; nút xác nhận chặn bấm đúp bằng ref (web từng bắt được 2 POST cho 1 lần chạm). |
+| Mở cổng | `src/features/payments/openGateway.ts` | `expo-web-browser` `openAuthSessionAsync` → Custom Tab, app vẫn sống phía dưới. Tab đóng (cổng trả deep link hoặc người dùng tự đóng) → luôn sang màn kết quả; không bao giờ tin `status` trên link. |
+| Luồng chung | `src/features/payments/useGatewayCheckout.ts` | 1 hook cho mọi nút "Thanh toán": chọn cổng → tạo giao dịch → mở cổng → kết quả. |
+| Màn kết quả | `app/client/payments/result.tsx` (+ `_layout.tsx`, ẩn khỏi tab bar) | Chỉ nhận `txnId`; phán quyết luôn là `POST /me/payments/:id/sync`; PAID → làm mới danh sách liên quan + nút tới đúng chỗ (`?tab=memberships` / `?tab=contracts` / đơn 1-1). |
+| Deep link | `app/+native-intent.tsx` | Viết lại `fitnessassistant://client/payments/result?txnId&status` → bỏ `status`, để link và app trỏ cùng một route. |
+| App bị tắt giữa chừng | `pendingCheckout.ts` + `ResumePendingCheckout.tsx` (gắn trong `app/client/_layout.tsx`) | Ghi `txnId` + `userId` trước khi mở tab; lần mở app sau (đúng người đó, trong 30 phút) tự vào màn kết quả; đọc là xoá. Xem 37.3 vì sao cần. |
+| 4 lối vào | Hội viên (trả gói đang chờ) · Hợp đồng (trả hợp đồng PENDING_PAYMENT) · Chi tiết phòng gym (mua gói: cảnh báo đa-gym **trước**, chọn cổng **sau**, như web) · Dịch vụ 1-1 (mua → thay màn bằng đơn → mở cổng) | Đơn 1-1 đang chờ **không** có nút trả lại — web cũng vậy (huỷ rồi mua lại); chỉ sửa câu chữ cho khớp web. |
+
+### 37.2 Kiểm chứng
+
+- **Tự động:** `payments.test.ts` 19/19; toàn bộ unit **573/573**, component **61/61**; `tsc` sạch; lint 0 lỗi, không cảnh báo mới (19 cảnh báo có sẵn).
+- **REAL HTTP/API + emulator (tài khoản `hytrongbeou@gmail.com`, VNPay sandbox thật, thẻ test công khai NCB):**
+
+| Ca | Kết quả | Bằng chứng DB |
+|---|---|---|
+| Mua gói Titan Gym 500.000 đ → chọn VNPay (chọn sẵn) → trả thẻ test + OTP | Giao dịch `33c11e1a…` ghi `platform = mobile`; VNPay trả về → **PAID** | `payment_transactions` PAID; `gym_membership_contracts 63268734…` **ACTIVE** 28/9 → 28/10 |
+| Mua gói Gymini Phú Nhuận khi đang có gói Titan | Cảnh báo "đang có gói ở gym khác" hiện trước, rồi mới tới bảng chọn cổng (320.000 đ) | — |
+| App **bị Android tắt** khi đang ở VNPay → bấm **Huỷ thanh toán** | App khởi động lại từ đầu, **tự vào màn kết quả** đúng `53f0cf45…` | Giao dịch vẫn PENDING — xem 37.4 |
+| Chọn **ZaloPay** | Tab đóng ngay (sandbox cố mở app ZaloPay, máy ảo không có); app **không bị tắt**, promise trả về → màn kết quả đúng `5241c15c…` | PENDING, `platform = mobile` |
+| App bị tắt → người dùng **tự bấm ✕** đóng tab (lối "Thanh toán" ở tab Hội viên) | App mở lại vào màn kết quả đúng `30f52af2…` | PENDING |
+| `?tab=memberships` | Tab Dịch vụ mở đúng tab Hội viên; gói Titan "Đang hiệu lực – còn 30 ngày" | — |
+
+Dọn dữ liệu thử: 2 gói chờ ở Phú Nhuận đã **huỷ qua giao diện** (CANCELLED). Còn lại có chủ ý: 1 gói Titan ACTIVE (trả thật bằng sandbox).
+
+### 37.3 Phát hiện: máy ảo 4 GB luôn tắt app khi mở trang cổng
+
+`lowmemorykiller` tắt `vn.fitnessassistant.app` (≈960 MB ở chế độ dev) ngay khi Chrome tải VNPay —
+thấy trong logcat ở **mọi** lần mở VNPay. Khi cổng trả về, app khởi động lại và **bản dev client làm rơi
+deep link** (nó tự mở lại bằng `fitnessassistant://expo-development-client/...`), nên lần đầu người dùng
+rơi về Trang chủ dù đã PAID. Đó là lý do có `pendingCheckout` — sửa đúng yêu cầu "quay lại khi app đã bị
+kill" của kế hoạch mà không phụ thuộc deep link. Lỗi Fast Refresh `ResumePendingCheckout doesn't exist`
+lúc sửa code là nhất thời (tải lại là hết), không phải lỗi code.
+
+### 37.4 Còn mở của 14.1
+
+- **Chưa kiểm được nhánh app còn sống lúc cổng trả deep link** (foreground/background) trên máy ảo — app
+  luôn bị tắt. Cần điện thoại thật hoặc bản release (nhẹ hơn nhiều) → làm cùng lúc cài lên máy thật.
+- **Hợp đồng PT và dịch vụ 1-1**: dùng chung hook đã kiểm, nhưng chưa bấm thật trên máy (hytrongbeou không có hợp đồng chờ) — `CODE AUDIT` + typecheck.
+- **Callback trùng (idempotency)**: do backend (`handleEvent` idempotent, chống cộng hai lần) — `CODE AUDIT`, không kiểm thêm.
+- **MoMo** chưa bấm thử.
+- Hai quan sát phía backend (không sửa) → `MOBILE_BACKEND_GAPS.md` GAP-22.
+
+## 38. Phase 14.2 — thông báo đẩy (FCM) (29–30/9)
+
+**Quyết định của Ngài (28/9):** cho sửa backend vì trước đó không có gì cho push (không lưu token, không gửi; web
+cũng chưa từng có push). Firebase project `gymini-8ea09` do Ngài tạo; `google-services.json` ở
+`frontend/mobile/`, khoá tài khoản dịch vụ ở `secret/` (gitignore) gắn chỉ-đọc vào user-service dev.
+
+### 38.1 Đã dựng
+
+| Phía | File | Ghi chú |
+|---|---|---|
+| Backend | `user-service`: model `PushDevice` + migration `20260929090000_push_devices`, `push-device.repository.ts`, `push.service.ts`, `POST /notifications/devices`, `DELETE /notifications/devices/:token` | Mọi thông báo đi qua `notificationService.create` → có push, không sửa từng nguồn. FCM HTTP v1 ký JWT bằng `node:crypto` (không thêm thư viện, không rebuild image). Best-effort, không bao giờ làm hỏng việc tạo thông báo. Token định danh MÁY: tài khoản khác đăng nhập → dòng chuyển sang họ. Chỉ xoá token khi FCM báo `UNREGISTERED`/404. Gateway đã proxy `/notifications/*` nên không đổi gateway. |
+| App | `src/features/push/{pushRouting.ts,pushDevice.ts,PushManager.tsx}`, `app/_layout.tsx`, `AppContext.logout`, `app.json` (`googleServicesFile`) | Xin quyền (Android 13+), kênh `default`, đăng ký token + đăng ký lại khi FCM xoay token. Push không dành cho người đang đăng nhập: không hiện banner, bấm không mở gì. Bấm → khách đi theo `notificationRoute` (như danh sách trong app), PT với link phía khách đi theo khách, vai trò khác về trang chủ vai trò; đánh dấu đã đọc. Đăng xuất: huỷ token (khi phiên còn hiệu lực) + xoá khay thông báo. |
+
+### 38.2 Kiểm chứng (máy ảo Pixel có Google Play, tài khoản `hytrongbeou@gmail.com`)
+
+- **Tự động:** backend `push-service.test.ts` 6/6 (JWT RS256 xác minh được bằng khoá công khai, dạng tin, token chết, đọc khoá); mobile `pushRouting.test.ts` 7/7; toàn bộ unit mobile 584/584; `tsc` sạch; lint không cảnh báo mới.
+- **REAL HTTP/API + máy ảo:** thông báo tạo qua `POST /internal/notifications` (đúng đường các service khác dùng), FCM thật.
+
+| Ca | Bản | Kết quả |
+|---|---|---|
+| Đăng nhập → xin quyền → đăng ký | dev | Hộp quyền Android hiện; bấm Allow → dòng `push_devices` đúng `user_id`, token 142 ký tự |
+| App đang mở | dev | Banner "Gymini · [Thử nghiệm] …" hiện trên màn hình |
+| App chạy nền → bấm | dev | Mở **Buổi tập** (`/client/booking` → `/client/services/booking`), `unread = false` |
+| App đã tắt (vuốt khỏi đa nhiệm, `pid` trống, `stopped=false`) → bấm | **release** | Khởi động lạnh → mở **Buổi tập**, `unread = false` |
+| Đăng xuất | release | `push_devices` của tài khoản → 0 dòng; push gửi sau đó **không tới máy** |
+
+### 38.3 Phát hiện trong lúc kiểm
+
+1. **Bản dev client làm rơi thao tác bấm thông báo khi khởi động lạnh** — trình khởi chạy của dev client mở lại app bằng
+   `fitnessassistant://expo-development-client/...` với cờ xoá task ngay sau intent của thông báo (logcat), cùng họ với
+   §37.3. Không phải lỗi code; bản release (không có trình khởi chạy đó) nhận đúng → ca "app đã tắt" chỉ kiểm được trên release.
+2. **Sửa thật:** ở bản release, bấm thông báo khi app tắt được xử lý (đánh dấu đã đọc) nhưng rồi app nằm ở Trang chủ —
+   chuyển hướng mặc định của `app/index` đè lên. `PushManager` giờ chỉ mở màn đích khi app đã rời `/`.
+3. **Bẫy công cụ:** Git Bash đổi `/client/booking` thành `C:/Program Files/Git/client/booking` khi truyền vào
+   `docker exec -e` → hai thông báo thử đầu có link hỏng (app mở danh sách thông báo, đúng hành vi với link lạ).
+   Script thử phải `export MSYS_NO_PATHCONV=1`.
+4. `am kill` không tắt được tiến trình vừa được đánh thức — muốn thử "app đã tắt" phải vuốt khỏi đa nhiệm (hoặc
+   kiểm `pid` trước khi gửi). `force-stop` thì chặn luôn FCM, không phản ánh thực tế.
+5. Build: bản debug cần `NODE_PATH` (lỗi worklets của Reanimated), bản release cần thêm `NODE_ENV=production` và lớp
+   manifest tạm cho HTTP thường (đã gỡ sau khi đo). Máy ảo x86_64 cần build riêng `-PreactNativeArchitectures=x86_64`.
+
+### 38.4 Còn mở của 14.2
+
+- Chưa kiểm trên **điện thoại thật** (ROG Phone 6 đã có bản arm64 có Firebase, chưa chạy lại ca nào) và chưa kiểm
+  **đổi tài khoản trên cùng máy** bằng tay (logic có test đơn vị + upsert theo token phía server).
+- Tin nhắn chat (chat-service) **không** đi qua `notificationService` nên chưa có push — ngoài phạm vi bảng
+  `notifications`; cần quyết nếu muốn.
+- Dữ liệu thử: 8 thông báo "[Thử nghiệm] …" tạo khi kiểm đã **xoá** khỏi danh sách của hytrongbeou (Ngài đồng ý, 30/9).
+
+## 39. Phase 14.3 — hội viên quét QR check-in (30/9)
+
+**Đã dựng:** nút "Quét mã check-in" trên gói hội viên ĐANG HIỆU LỰC (tab Dịch vụ → Hội viên, như web
+`GymMembershipsPage`) → màn `app/client/services/checkin.tsx`: `expo-camera` `CameraView` quét QR bằng bộ đọc mã gốc,
+camera chỉ chạy khi màn đang hiển thị; xin quyền camera, từ chối hẳn thì mở Cài đặt; một lần quét = một yêu cầu
+`POST /me/gym-checkins`, lỗi thì tự cho quét lại sau 2,5 s; chỉ gửi mã đúng dạng token check-in có chữ ký
+(`base64url.base64url`, `utils/checkinToken.ts` của gym-service) — link, mã vạch, Wi-Fi… bị bỏ qua tại máy. Thành công:
+thẻ cho lễ tân (tên, phòng gym, gói, lượt, hạn thẻ, giờ vào). Logic thuần ở `src/features/services/checkin.ts`.
+
+**Kiểm:** `checkin.test.ts` 5/5; `tsc` sạch; lint không cảnh báo mới. Trên máy ảo: nút chỉ hiện ở gói "Đang hiệu lực",
+màn xin quyền → cấp quyền → camera chạy với khung ngắm.
+
+**CHƯA kiểm:** camera đọc mã QR thật → check-in. Đã lấy mã QR thật của Titan Gym (`GET /owner/gyms/:id/checkin-qr`
+bằng chủ gym) và thử dán lên cảnh camera ảo (`-virtualscene-poster`, `emu virtualscene-image`) — bản emulator này không
+hiện ảnh dán (đã xoay đủ 360°). Cần điện thoại thật hoặc webcam.
+
+**Còn mở:** phía CHỦ GYM trên mobile chưa có chỗ hiện mã QR để in (web: `GymCheckinPanel` trong trang quản lý chi nhánh;
+mobile chưa có màn chi tiết chi nhánh — GY-03). Cần thư viện vẽ QR cho RN → hỏi Ngài.
+
+## 40. Phase 14.4 — gọi thoại/video (SH-05) (30/9)
+
+**Đã dựng** (`src/features/call/`): `callState.ts` (máy trạng thái y hệt `CallContext` của web + cửa sổ vào phòng
+`joinSessionState`: chỉ buổi ONLINE + CONFIRMED, từ 30 phút trước giờ bắt đầu tới 30 phút sau giờ kết thúc),
+`useRNWebRTC.ts` (`react-native-webrtc` 124: lấy media trước, VIDEO hỏng camera thì vào bằng âm thanh; xếp hàng ICE tới
+khi có remote description; đóng peer mà giữ media cho phòng mở), `CallProvider.tsx` (bắt `call:*` trên socket của
+chat-service suốt phiên; dọn khi đăng xuất), `CallOverlay.tsx` (Modal toàn màn: gọi đến / gọi đi / xem trước / chờ /
+đang kết nối / đang gọi, đếm ngược phòng, nút đổi camera trước↔sau). Lối vào: nút gọi thoại + video ở đầu khung chat;
+`JoinSessionButton` ở thẻ buổi tập của khách (`services/booking.tsx`) và lịch dạy PT (`pt/schedule.tsx`).
+
+**Khác web, có chủ đích:** (1) sau khi chờ xin quyền micro/camera, kiểm lại cuộc gọi còn đúng không — nếu đã bị nhỡ/huỷ
+trong lúc hộp thoại quyền mở thì nhả micro/camera ngay, không gửi `call:accept` (lỗi thật bắt được khi kiểm: cuộc gọi
+nhỡ nhưng camera vẫn sáng); bấm "Nghe" lần hai bị bỏ qua. (2) màn "Đang kết nối" có nút kết thúc — web không có, nhưng
+Modal của app chặn nút Back nên thiếu nút là kẹt vĩnh viễn nếu phía kia không trả lời.
+
+**Kiểm (REAL BROWSER + máy ảo, backend dev thật, pt@example.com trên Chrome có media giả ↔ hytrongbeou trên máy ảo):**
+- web gọi video → app đổ chuông → nghe → video 2 chiều (app thấy luồng Chrome, web thấy camera trước máy ảo 360×640);
+  tắt micro/camera trên app → web nhận `media_toggled` và hiện biểu tượng; app cúp → web `call:ended`, DB `ENDED/hangup`;
+- app gọi thoại → web nghe → nối; web cúp → app đóng. Nhật ký âm thanh Android: app ghi âm VOICE_COMMUNICATION mở/đóng
+  đúng lúc bắt đầu/kết thúc mỗi cuộc gọi; `dumpsys media.camera` không còn client sau khi cúp;
+- đổ chuông 30 s không nghe → `call:missed`, overlay tự đóng; nhỡ trong lúc hộp quyền mở → toast, camera được nhả.
+- `call.test.ts` 5/5, cả bộ unit 591/591; `tsc` sạch; lint 0 lỗi (19 cảnh báo cũ, không cái nào ở file mới).
+
+**Lưu ý kiểm:** `adb screencap` không chụp được SurfaceView của `RTCView` (ra màu đen) — dùng
+`adb emu screenrecord screenshot <thư mục>` để thấy video thật.
+
+**CHƯA kiểm:** (1) "Tham gia buổi học" vào phòng thật — không có buổi ONLINE + CONFIRMED nào trong khung giờ; hợp đồng
+ONLINE còn hiệu lực duy nhất là của PT huytronh4@gmail.com, cần đặt buổi + PT xác nhận (hỏi Ngài). (2) 2 máy thật, khác
+mạng (4G ↔ Wi-Fi) để thử TURN — server trả sẵn STUN/TURN metered.ca, chưa chứng minh qua NAT thật. (3) Loa ngoài/tai
+nghe: chưa có InCallManager, âm thanh đi theo mặc định của hệ thống. (4) Bị gián đoạn (cuộc gọi GSM đến), mất mạng giữa
+chừng, app ra nền trong khi gọi. (5) Thông báo cuộc gọi đến khi app đã tắt — chat-service không gửi push cho cuộc gọi.
+
+**Backend:** thời lượng cuộc gọi luôn 0:00 — GAP-23, **đã sửa 30/9** bằng sự kiện `call:connected` (chat-service +
+web + mobile). Máy ảo mất ~6–7 s từ lúc nghe tới lúc thông (riêng `setLocalDescription` của answer ~4 s — mã hoá video
+bằng CPU); cần đo lại trên điện thoại thật.
+
+## 41. Phase 14 — E1–E5 (Ngài cho làm cả năm, gồm sửa backend) (1/10)
+
+**E1 — chủ gym hiện mã QR check-in** (đối ứng của 14.3; web `GymCheckinPanel`). Màn `app/gym-owner/checkin-qr.tsx`, mở
+từ nút "Mã QR check-in" trên thẻ chi nhánh đã duyệt (tab Phòng gym). Vẽ bằng `qrcode@1.5.4` (đúng bản web, thêm vào mobile
+bằng pnpm rồi chạy lại `scripts/shorten-package-paths.js` vì pnpm gỡ các junction `D:/.rn*`) thành một `<Path>` của
+react-native-svg (`src/components/QrCode.tsx`). Thêm so với web: ngày hết hạn mã (server ký 365 ngày) và "Lưu ảnh để in"
+(SVG → PNG → bảng chia sẻ, có mục In). Danh sách "Check-in gần đây" làm mới 10 s như web.
+Kiểm (máy ảo, jane.smith): màn hiện đúng; **giải mã ảnh chụp màn hình bằng jsQR** → token đúng `gymId`, `purpose`,
+hạn 01/10/2027; gửi token đó lên `POST /me/gym-checkins` bằng hytrongbeou → **check-in thành công** (REAL HTTP/API), token
+sửa 1 ký tự → `INVALID_TOKEN`; lượt check-in hiện ngay trong danh sách của chủ gym; nút lưu ảnh mở bảng chia sẻ với PNG.
+⚠ Lượt check-in đó là thật (hytrongbeou có gói thương hiệu dùng được ở chi nhánh này): `gym_check_ins 908c5185…`.
+
+**E2 — cuộc gọi đến khi app không mở.** chat-service: người nhận offline không còn bị đánh dấu nhỡ ngay — vẫn đổ chuông
+30 s; mỗi cuộc gọi CHAT gửi push "<tên> — Đang gọi video/thoại cho bạn…" (tag `call-<id>`, ttl 30 s); hết giờ hoặc người
+gọi huỷ → push "Cuộc gọi … nhỡ" cùng tag (thay thế). Sự kiện mới `call:sync`: app hỏi cuộc gọi đang đổ chuông khi gắn xong
+listener và sau mỗi lần nối lại. `callerName` nay là tên thật (trước là email). user-service: `POST /internal/push`
+(service-secret, chỉ gửi push, không tạo dòng thông báo) + thử lại 1 lần khi lỗi mạng (đã thấy một push bị rơi vì
+"fetch failed").
+App: bấm push CALL/CHAT → mở thẳng cuộc trò chuyện (chỉ nhận link dạng `/client/messages/<id>`); đang ở trước thì không hiện
+banner (overlay/chat đã hiện) — **chỉ khi thật sự đang ở trước** (`AppState`), vì bộ xử lý của expo-notifications cũng chạy
+lúc app chạy nền (lỗi bắt được khi kiểm: push gọi bị nuốt sau khi bấm Home); nghe/từ chối trong app thì dọn push "đang gọi".
+
+**Lỗi 14.4 bắt được khi kiểm E2, đã sửa:** (1) socket chat-service của app (`services/socket.ts`, chỉ CallProvider dùng)
+**không bao giờ nối lại** sau khi Android cắt nó lúc chạy nền (hàm phục hồi có sẵn nhưng chưa gắn) → sau một lúc ở nền app
+không nhận cuộc gọi nào nữa. (2) **Cách ly tài khoản (P1):** socket đó không bị ngắt khi đăng xuất → tài khoản đăng nhập
+sau vẫn nhận cuộc gọi của người trước. Nay CallProvider gắn bộ phục hồi và ngắt/tạo lại socket theo `userId`.
+Kiểm: đăng xuất hytrongbeou, đăng nhập jane → PT gọi hytrongbeou → máy **không** đổ chuông, không push; `push_devices` chỉ
+còn máy của jane.
+
+**E3 — push tin nhắn chat.** Cả hai đường gửi (socket và REST) gọi `pushNewMessage` → mỗi người còn lại một push
+"<tên người gửi>: <nội dung ≤120 ký tự>" (tag `chat-<conversationId>`: cuộc trò chuyện chỉ giữ tin mới nhất trong khay).
+Kiểm: app chạy nền, PT gửi tin qua API thật → push "Professional Trainer / nội dung" → bấm → mở đúng cuộc trò chuyện.
+Sửa kèm: mở thẳng từ push, đầu khung chat từng chớp "Người dùng · Học viên" lúc danh sách chưa tải — nay để trống.
+
+**E4 — tin hệ thống tiếng Việt:** "📞 Cuộc gọi video/thoại nhỡ", "📞 Cuộc gọi … đã kết thúc (m:ss)" (`callLogContent`);
+app bỏ emoji khi hiển thị (đã có icon riêng), web giữ emoji làm icon. Tin cũ trong DB vẫn là tiếng Anh.
+
+**E5 — GAP-22 (phần cổng):** xem `MOBILE_BACKEND_GAPS.md` GAP-22.
+
+**Kiểm E2 trọn vòng (máy ảo + Chrome, REAL BROWSER/HTTP):** app ở nền ~1 phút → PT gọi video từ web → push đến sau ~1–5 s
+→ bấm → mở cuộc trò chuyện, màn đổ chuông hiện sau ~9 s (app quay lại + socket nối lại + `call:sync`) → nghe → offer/answer
+→ `call:connected` → cúp: DB `ENDED/hangup`, tin "📞 Cuộc gọi video đã kết thúc (1:03)"; push "đang gọi" đã được dọn.
+Không nghe → sau 30 s push đổi thành "Cuộc gọi video nhỡ".
+
+**Test:** mobile unit 600/600, tsc sạch, lint 0 lỗi; chat-service `push-relay` 4/4, `call-connected` 7/7, `call-membership`
+4/4, `chat-message-validation` 5/5 (gymcoach_chat_test); user-service `push-service` 8/8; payment-service
+`gateway-failure-closes-checkout` 6/6 + `webhook-security` 12/12 + `ledger-idempotency` 7/7 + `membership-ledger` 8/8
+(gymcoach_payment_test, chạy **từng file** — chạy song song nhiều file trên cùng DB test thì đụng nhau).
+
+**CHƯA kiểm:** app **tắt hẳn** + push gọi (bản dev nạp >40 s, quá 30 s đổ chuông → cần bản release / máy thật, D10);
+VNPay thật bấm "Huỷ" (D11); push trên máy thật (D7).
+
+## 42. WB-19 — AI Coach: thẻ xem trước lịch tập / thực đơn do AI tạo (vá Phase 9) (1/10)
+
+**Vì sao:** Ngài hỏi bản merge mới có cần cập nhật plan không. Rà lại: merge cuối cùng mang code web/backend vào nhánh là
+`e9a0cfe` (28/9), chứa đúng một commit `eba5a74` (trmizy, 20/9, "complete coach workflow readiness") — **sau** khi Phase 9
+(AI Coach, WB-12) đóng 24/9, và chưa tài liệu mobile nào đối chiếu. Remote không còn commit nào mới hơn nhánh (fetch 1/10).
+Phần backend (ai-service: luồng tạo lịch tập/thực đơn trong chat, ràng buộc món ăn; fitness-service: khởi tạo mục tiêu dinh
+dưỡng, `GET /nutrition/target-preview` — web không gọi) mobile dùng lại qua API sẵn có. Phần web mobile thiếu — vá ngay
+(Ngài chọn, 1/10):
+
+- Thẻ `WORKOUT_PLAN_PREVIEW` "Lịch tập do AI Coach tạo": số buổi/tuần · phút/buổi · mục tiêu, từng ngày mở/đóng (bài × hiệp
+  × lần · nghỉ), "Lưu lịch tập này" (`confirm`) / "Bỏ qua bản này" (**`POST /ai/agent/actions/:id/dismiss`**, mới — huỷ bản
+  nháp trên server), hết hạn thì khoá nút.
+- Thẻ `NUTRITION_PLAN_PREVIEW` "Thực đơn do AI Coach tạo": ghi chú mục tiêu, món đã loại trừ, gợi ý mềm, kcal/ngày · bữa ·
+  P/C/F, từng ngày → từng bữa → từng món; Lưu / Bỏ qua như trên.
+- **Lỗi web đã sửa mà mobile còn mang:** "Để sau" trên thẻ xác nhận đổi nút thành "Đã xác nhận" dù chưa làm gì. Nay chỉ hoãn tại
+  máy, ghi "Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.", nút Xác nhận vẫn bấm được.
+
+Code: `src/features/coach/AgentBlocks.tsx`, kiểu + `fitnessAgentService.dismiss` ở `src/services/api.ts`, hàm dựng chữ ở
+`src/features/coach/coach.ts` (`previewDayTitle`, `previewExerciseLine`, `workoutPreviewMeta`, `nutritionPreviewTargets`).
+Test: `coach.test.ts` 16/16; **component test** `AgentBlocks.test.tsx` 6/6 (jest-expo) với thẻ lịch tập **thật** server trả
+ngày 1/10 cho "Tạo lịch tập 3 buổi mỗi tuần cho tôi": mở ngày → bài tập; "Lưu" gọi `confirm`; "Bỏ qua" gọi `dismiss` rồi khoá
+thẻ; hết hạn không lưu được; thẻ thực đơn; "Để sau" không còn ghi "Đã xác nhận". Unit 603/603, tsc sạch, lint sạch.
+**REAL HTTP/API:** `/ai/ask` trả `structuredBlocks[0].type = WORKOUT_PLAN_PREVIEW` đúng hình dạng đã khai báo (lịch tập sinh
+theo luật + danh mục, **không cần LLM**); `POST /ai/agent/actions/:id/dismiss` → "Đã bỏ qua bản nháp này — chưa lưu gì vào hệ
+thống.", DB `CANCELLED` (2 bản nháp thử đều đã bỏ). Đường stream app dùng (`/ai/ask/stream`) có mang `structuredBlocks` ở
+sự kiện kết thúc.
+**CHƯA kiểm:** thẻ hiện trên máy (D12) — máy ảo quá chậm: câu trả lời văn bản của nút gợi ý "Lập lịch tập cho tôi" chạy chữ
+gần 1 giờ chưa xong (D13, ghi nhận, chưa điều tra); thực đơn cần LLM (Ollama không chạy trên máy dev).
+
+**Bài học (áp dụng từ nay):** trước khi đóng Phase 14 và trước Phase 15, rà mọi commit web/backend vào nhánh kể từ lần đối
+chiếu trước (`git log <mốc>..HEAD -- frontend/web backend`), không chỉ khi có merge mới.
+
+## 43. Phase 14B.1 — Chu kỳ tập & đánh giá chu kỳ (PG-A1) + phản hồi sau buổi / lý do bỏ buổi (PG-A2) (3–4/10)
+
+**Nguồn hành vi:** web `TrainingCyclePage.tsx` (đọc lại toàn bộ 3/10) và phần `SessionFeedbackModal` /
+`SkipCancelFeedbackModal` / `SessionFeedbackStatusRow` của `WorkoutLogPage.tsx`. Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/cycle/cycle.ts` — phần thuần: nhãn (xu hướng, quyết định cũ 4 mức, quyết định thích nghi 6 mức, quyết định
+  dinh dưỡng 6 mức, cảm nhận, cờ phản hồi, cờ báo cáo — chép đúng nhãn web), mức tin cậy Cao/Trung bình/Thấp (không hiện %),
+  "Cách tính" cho từng ô số, chọn chu kỳ liên quan (đang chạy, không thì chu kỳ đóng gần nhất), % thời gian đã qua, dòng "kế
+  hoạch so với thực tế" theo đúng một loại số liệu mỗi bài.
+- `src/features/cycle/CyclePanel.tsx` — thay đoạn `CycleTab` cũ (in `JSON.stringify(cycle.summary)` ra màn hình) trong tab
+  Tập luyện → "Chu kỳ". Cùng các khối, cùng thứ tự như web: chu kỳ đang chạy (bắt đầu / kết thúc / huỷ có xác nhận / xoá có
+  xác nhận, tuân thủ, volume, PR, cảnh báo), đề xuất cũ cho chu kỳ đóng gần nhất (thăm dò 4 giây khi đang phân tích, gợi ý sau
+  2 phút, NEW_PLAN chỉ giải thích chứ không có nút), tiến độ (4 ô bấm xem "Cách tính", xu hướng, cột volume tuần vẽ bằng View),
+  tóm tắt cảm nhận, đánh giá thích nghi (đánh giá / chấp nhận / giữ lịch / xem chi tiết / tạo lại) + thẻ dinh dưỡng riêng
+  (áp dụng / giữ, hoặc "Đã hiểu") + gợi ý diet break, lịch sử + báo cáo chu kỳ trong BottomSheet.
+- `src/features/workout/sessionFeedback.ts` + `SessionFeedbackSheets.tsx` — hộp cảm nhận (sao, độ khó, thích/không, 4 thang
+  có nút −/+, vị trí đau khi đau > 0, muốn tập lại, so với buổi trước, thẻ từng bài, ghi chú), hộp lý do bỏ buổi (8 lý do, muốn
+  điều chỉnh kế hoạch, ngày tập bù = 7 ngày tới thay ô ngày tự do của web, ghi chú), hàng "Đã ghi cảm nhận · Xem/sửa" /
+  "Chưa ghi cảm nhận · Thêm ngay". Payload giống hệt web.
+- `app/client/workout/log.tsx` — hàng trạng thái phản hồi khi buổi COMPLETED/PARTIALLY_COMPLETED; nút "Bỏ qua buổi tập này"
+  (có xác nhận) khi buổi NOT_STARTED, hoặc "Đã bỏ qua buổi này · Ghi lý do" khi SKIPPED/CANCELLED; tự mở hộp cảm nhận khi set
+  cuối đóng buổi nằm trong chu kỳ (luật web — dựa `progress.trainingCycleId` mà `PATCH /workouts/sets/:id` trả về).
+- `api.ts`: thêm `trainingCycleService.getDietBreakStatus`, thêm `PROPOSE_DIET_BREAK` vào kiểu `nutritionDecision`.
+
+**Khác web có chủ đích (đều là trình bày, không đổi nghiệp vụ):**
+1. "Bài tập được thích / ít được thích": server trả **Exercise.id**, web in nguyên UUID; mobile đổi sang tên qua danh mục bài
+   tập (cùng khoá cache với màn chi tiết bài tập), không đổi được thì bỏ qua.
+2. "Đã hiểu" ở thẻ dinh dưỡng đi qua cùng lệnh chấp nhận; web hiện toast "Đã áp dụng đề xuất dinh dưỡng — tạo phiên bản mục
+   tiêu calo/macro mới" cả khi không có gì được áp dụng (DB `applied_nutrition_goal_id = null`). Mobile hiện "Đã ghi nhận".
+3. "Xem/sửa" nạp lại bản phản hồi đã lưu; web luôn mở form với giá trị mặc định.
+4. Hộp cảm nhận tự mở ngay khi set cuối được tích (web cũng vậy). Lỗi thật bắt được khi kiểm: bản đầu chỉ mở trong nút
+   "Kết thúc buổi tập", nhưng server đóng buổi ngay ở set cuối nên nút đó đã biến mất — sửa theo đúng cách web làm.
+5. Đồng hồ nghỉ giữa set ẩn khi buổi đã hoàn thành (trước đây vẫn đếm trên màn tổng kết).
+6. Thêm khoảng đệm cuối tab Chu kỳ: nút AI Coach nổi che nút xoá của dòng lịch sử cuối.
+
+**Kiểm chứng:**
+- TEST FIXTURE (qua API thật, không phải luồng người dùng): tạo chương trình thủ công 3 buổi/tuần cho hytrongbeou
+  (`8601282c…`, 12 buổi, gắn chu kỳ) và một buổi 04/10 (`5995d96e…`, không gắn chu kỳ) — tạo chương trình trên app thuộc cụm
+  14B.4. Lần gọi đầu gửi tiếng Việt qua Git Bash sai mã hoá → tên chương trình/ngày/buổi bị lỗi ký tự; đã sửa lại bằng API
+  (UTF-8) và một câu UPDATE cột `workouts.name` của đúng buổi đó.
+- REAL BROWSER-tương đương trên **máy ảo** (dev client, backend dev), DB đối chiếu từng bước:
+  - "Bắt đầu chu kỳ mới" → `training_cycles` ACTIVE #1 03/10–02/11 (30 ngày).
+  - Bắt đầu buổi 03/10 → IN_PROGRESS; tích 4 set → COMPLETED, `training_cycle_id` có; bỏ tích → PARTIALLY_COMPLETED; tích lại
+    → hộp cảm nhận tự mở. Lưu → `cycle_session_feedback`: rating 4, just_right, high, RPE 7, đau 3, "vai", mệt 5, yes,
+    better_than_last_time, `cycle_id` đúng; `exercise_session_feedback`: Bench Press = liked, Squats = pain. Hàng trạng thái
+    đổi sang "Đã ghi cảm nhận · Xem/sửa".
+  - Tab Chu kỳ: tuân thủ 1/1, PR mới, volume 140 kg, chất lượng dữ liệu 25%, cảnh báo InBody; hộp "Cách tính"; tóm tắt cảm nhận
+    1/12, 4.0 sao, đau 3.0, cờ "Có bài tập gây đau cụ thể", tên bài tập đúng.
+  - "Đánh giá chu kỳ (nâng cao)" → `cycle_assessments` v1 COMPLETED, INSUFFICIENT_DATA, tin cậy 0.13 (hiện "Thấp"), 3 mã lý do,
+    dinh dưỡng REQUEST_MORE_DATA/LOW; câu dự phòng khi không có LLM hiện đúng. Chấp nhận → `user_decision` ACCEPTED +
+    `reviewed_at`. "Đã hiểu" → `nutrition_user_decision` ACCEPTED, `applied_nutrition_goal_id` null.
+  - Bỏ buổi 04/10 → xác nhận → SKIPPED, hộp lý do tự mở, nút Lưu khoá khi chưa chọn → chọn lý do + điều chỉnh + 06/10 → **400
+    từ server (GAP-24, lỗi backend có sẵn, web cũng hỏng)**.
+  - pt@example.com (chỉ xem): thẻ "AI đang phân tích chu kỳ #1… lâu hơn dự kiến" cho chu kỳ COMPLETED chưa đánh giá; lịch sử →
+    báo cáo chu kỳ mở trong sheet; hộp xác nhận xoá → "Không", DB chu kỳ còn nguyên.
+- Tự động: `cycle.test.ts` 9 + `sessionFeedback.test.ts` 6 (node:test); toàn bộ unit 618/618, component 67/67 (jest), tsc sạch,
+  lint: 0 lỗi, file đụng tới chỉ còn 2 cảnh báo cũ của `log.tsx`.
+
+**CHƯA kiểm / còn mở:**
+- "Kết thúc chu kỳ" và "Huỷ chu kỳ" chưa bấm thật (sẽ đóng chu kỳ duy nhất của hytrongbeou); thẻ đề xuất cũ KEEP/ADJUST/NEW_PLAN
+  và nút "mở chu kỳ tiếp theo" chưa có dữ liệu thật để hiện; đề xuất dinh dưỡng có số (áp dụng / giữ, diet break) cần dữ liệu cân
+  nặng nhiều tuần — dev DB chưa có.
+- "Xem/sửa" phản hồi của buổi đã qua: backend chỉ cho sửa buổi **hôm nay**, buổi 03/10 đã khoá khi sang 04/10 → phần nạp lại
+  chỉ có unit test.
+- Mã lý do của Decision Engine (`CYCLE_TOO_SHORT`…) và câu giải thích dinh dưỡng do server ghép (`INSUFFICIENT_WEIGHT_SAMPLES`)
+  hiện dạng mã thô — web y hệt; cần bảng nhãn chung (đề xuất làm cùng web, không tự đặt nhãn riêng cho mobile).
+- GAP-24: **đã sửa 4/10** (Ngài cho phép) — lý do bỏ buổi lưu được, kiểm lại trên máy ảo; chi tiết ở MOBILE_BACKEND_GAPS.md.
+
+## 44. Phase 14B.2 — PT: dữ liệu học viên, duyệt đề xuất dinh dưỡng, giao kế hoạch (PG-A5/PG-A6), đánh giá khách (PG-B4) (4/10)
+
+**Nguồn hành vi:** web `PTClientDetail.tsx` (tab + "Cần chú ý"), `ClientFitnessSummaryCard.tsx`, `ClientProgressCard.tsx`,
+`AssignPlanModal.tsx`, `PTServiceOrderPage.tsx`, phần "Đánh giá khách" của `PTContractsPage.tsx`. Không đổi backend.
+
+**Đã làm (mobile):**
+- `api.ts`: kiểu `CoachClientSummary` mở rộng theo web (`latestAssessment`, `nutrition` gồm mục tiêu, thực đơn, trạng thái khớp,
+  đề xuất AI gần nhất + `canPtAct`), `CoachClientProgress`; hàm `getClientProgress`, `approve/reject/modifyNutritionRecommendation`,
+  `triggerDietBreakRecommendation` (chép từ web).
+- `src/features/pt/coachClient.ts` — nhãn (web), "Cần chú ý" (chỉ suy từ dữ liệu đã tải), điều kiện được duyệt / được đề xuất
+  diet break, xu hướng cân nặng, kiểm form "Sửa".
+- `src/features/pt/ClientCoachCards.tsx` — thẻ Cần chú ý, Dữ liệu tập luyện, Dinh dưỡng (Duyệt / Sửa trong sheet / Từ chối, Đề
+  xuất diet break), Đo lường InBody. Cùng khoá query với web nên các thẻ dùng chung một lần gọi.
+- `app/pt/students/[id].tsx` — hợp đồng ACTIVE: thêm nút "Giao kế hoạch" và 4 tab Tổng quan / Tập luyện / Dinh dưỡng / Tiến độ
+  (buổi tập nằm ở tab Tập luyện như web); hợp đồng khác giữ trang cũ. Tab "Lịch sử" (hợp đồng khác của khách) không làm: ở mobile
+  mỗi hợp đồng là một dòng riêng trong danh sách học viên.
+- `src/features/pt/planDraft.ts` + `PlanDraftBuilder.tsx` — trình soạn kế hoạch **dùng chung** cho "Gửi bản nháp" của đơn 1-1
+  (PT-09, trước đây viết riêng trong màn đơn) và "Giao kế hoạch". Thêm chọn thứ trong tuần cho từng buổi (web có, bản mobile cũ
+  thiếu — mỗi thứ dùng một lần), tên buổi sửa được, ô mục tiêu (chỉ khi giao kế hoạch).
+- `app/pt/students/assign-plan.tsx` — màn "Giao kế hoạch" (web là modal; trình soạn dài nên làm thành màn).
+- `app/pt/contracts.tsx` — buổi COMPLETED chưa đánh giá có nút "Đánh giá khách" (sheet 1–5 sao + ghi chú); đã đánh giá thì hiện
+  số sao.
+
+**Khác web có chủ đích (trình bày, không đổi nghiệp vụ):**
+1. "Đề xuất diet break" chỉ hiện khi có chu kỳ đang chạy — web hiện cả khi không có chu kỳ và gửi `/cycles/undefined/…`.
+2. Cờ phản hồi hiện bằng nhãn tiếng Việt (web nối nguyên mã `HIGH_PAIN_REPORTED`…); thẻ tập luyện có thêm các cảnh báo chu kỳ
+   server đã trả (`cycleSummary.alerts`).
+3. Màn giao kế hoạch báo trước: **kế hoạch mới thay mọi buổi chưa tập của học viên** (backend `createManualProgram` mặc định
+   `replaceExisting`; web giao im lặng).
+4. Bản nháp AI không bao giờ gán trùng thứ (web giữ `prev[i]?.weekday ?? i`, có thể trùng).
+5. Form "Sửa" chặn ô trống/số âm trước khi gửi (web gửi nguyên).
+6. Sửa thêm 2 lỗi hiển thị cũ ở các màn đụng tới: tên gói dài tràn khỏi mép phải ở thẻ Hợp đồng; ô ghi chú đánh giá quá thấp.
+
+**Kiểm chứng (máy ảo, dev client, backend dev; pt@example.com → học viên John Doe, hợp đồng ACTIVE `3ad55e9a…`):**
+- Tab Tổng quan: "Cần chú ý" = "Chu kỳ mới chưa có lịch tập" + "Tuân thủ tập luyện đang thấp" — khớp `/coach/clients/:id/summary`
+  (adherence 0/3) và roadmap `NEEDS_GENERATION`.
+- Tập luyện: chu kỳ "Giai đoạn khởi đầu", tuân thủ 0% (0/3) + cảnh báo của server. Dinh dưỡng: 2000 kcal · 150g đạm "Người dùng tự
+  đặt", "Chưa có thực đơn". Tiến độ: 71.3 kg / 16.4% / 35.2 kg, "Giảm 17.4 kg qua 2 lần đo" — khớp `/progress`.
+- "Đề xuất diet break" → server 409 "Diet break chỉ áp dụng cho chu kỳ giảm cân (WEIGHT_LOSS)." hiện thành toast; DB
+  `cycle_assessments` của chu kỳ trước/sau = 0 (không ghi gì).
+- "Đánh giá khách" (hợp đồng đã chấm dứt `e200e8a0…`, buổi 31/08 11:25) → 4 sao "ok" → DB `client_reviews` có dòng mới, danh sách
+  đổi sang "Bạn đã đánh giá khách ★★★★"; buổi đã đánh giá từ trước hiện 5 sao.
+- Giao kế hoạch: màn mở đúng (lời nhắc thay lịch, tên/mục tiêu/số tuần/ngày bắt đầu, chọn thứ — thứ đã dùng bị mờ, thêm buổi tự
+  nhận thứ trống), bộ chọn bài tập lấy danh mục thật, "Nhờ AI soạn nháp" → server trả bản dự phòng (máy dev không có LLM), app hiện
+  "Thiếu dữ liệu…" đúng.
+- **Giao kế hoạch thật** (Ngài cho phép thay lịch của John Doe, 4/10): 2 buổi — Thứ 2 "3/4 Sit-Up", Thứ 5 "90/90 Hamstring", 4 tuần
+  → DB: chương trình "Kế hoạch cho John Doe", 8 buổi NOT_STARTED Thứ 2 + Thứ 5 từ 05/10 đến 29/10; 16 buổi chưa tập cũ đã bị thay,
+  buổi COMPLETED 15/09 giữ nguyên; `coach_client_action_audits` CREATE_AND_ASSIGN_PLAN; học viên nhận thông báo
+  "PT của bạn vừa gán chương trình tập luyện mới: Kế hoạch cho John Doe".
+- Màn đơn 1-1 (`e440d531…`, PT_REVIEWING) sau khi đổi sang trình soạn chung: render đúng, có chọn thứ, kiểm hợp lệ "Mỗi buổi cần ít
+  nhất một bài tập" khoá nút gửi.
+- Tự động: `ptCoach.test.ts` 10 (node:test) + `ClientCoachCards.test.tsx` 3 (jest: Duyệt / Từ chối gọi đúng endpoint + cycle +
+  assessment; Sửa gửi số của PT; không có đề xuất thì hiện diet break và hiện lỗi server).
+
+**CHƯA kiểm / còn mở:**
+- Duyệt / Sửa / Từ chối với một đề xuất thật — cần chu kỳ có đề xuất dinh dưỡng đang chờ (nhiều tuần cân nặng thật); dev DB không có.
+  E2E chéo vai trò "khách sinh đề xuất ở 14B.1 → PT duyệt → khách thấy" vì vậy chưa chạy được.
+
+## 45. Phase 14B.3 — Thực hiện thực đơn (PG-A4) + nhận xét dinh dưỡng trong ngày, biểu đồ 7 ngày (PG-C4) (4/10)
+
+**Nguồn hành vi:** web `NutritionPage.tsx` (phần thực đơn trong ngày, hộp "Ghi nhận lượng thực ăn", "Thêm món vào bữa", sửa món,
+sửa nhật ký, nhận xét theo luật, biểu đồ 7 ngày, banner lệch mục tiêu). Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/nutrition/mealPlan.ts` — phần thuần: chọn bữa của thực đơn theo loại bữa (chỉ khi thực đơn phủ ngày đó), trạng thái
+  bữa, khoá sửa/xoá khi đã ăn, xem trước "Một phần" theo %, dựng body hoàn thành (theo % / theo lượng ăn — luật web), body thêm món,
+  body sửa nhật ký (kiểm như web), nhận xét trong ngày (luật web, tối đa 2 dòng), dữ liệu 7 ngày.
+- `src/features/nutrition/MealPlanParts.tsx` — thẻ bữa của thực đơn (Hoàn thành / Một phần / Bỏ qua / Hoàn tác, xoá bữa có xác nhận,
+  thêm món, sửa lượng, xoá món có xác nhận), sheet "Ghi nhận lượng thực ăn" (2 chế độ), sheet sửa lượng, sheet sửa món đã ghi, thẻ nhận
+  xét, biểu đồ 7 ngày (vẽ bằng View), banner lệch mục tiêu ("Tạo lại thực đơn" mở AI Coach như web; "Vẫn giữ thực đơn này").
+- `app/client/workout/nutrition/index.tsx` — loại bữa có trong thực đơn hôm nay hiện thẻ bữa của thực đơn (mục của server, đã gồm cả
+  món tự ghi của bữa đó); loại bữa khác giữ danh sách nhật ký, giờ bấm vào để sửa. Thêm banner, nhận xét, biểu đồ.
+- `app/client/workout/nutrition/add.tsx` — có `planMealId` thì cùng màn tìm thực phẩm thêm món vào bữa của thực đơn
+  (`POST /nutrition/program-meals/:id/items`) thay vì ghi nhật ký.
+- `nutritionMath.ts`: dòng nhật ký giữ `quantity` (form sửa có ô khối lượng như web). `api.ts`: `updateLog` dùng **PATCH** (xem GAP-25).
+
+**Khác web có chủ đích:**
+1. Sửa lượng món trong thực đơn gửi kèm calo/macro tính lại (web chỉ gửi số gam → calo không đổi) — GAP-25 ý 2.
+2. Sửa nhật ký gọi PATCH (web gọi PUT → 404, chưa bao giờ chạy) — GAP-25 ý 1.
+3. Xoá món / xoá bữa có hộp xác nhận (web xoá món ngay khi bấm).
+4. Lịch tháng của web ở trang dinh dưỡng: mobile đã có màn "Tổng kết tháng" riêng (Phase 6), không lặp lại.
+
+**Kiểm chứng:**
+- TEST FIXTURE: thực đơn 7 ngày × 3 bữa × 3 món ("Thực đơn kiểm thử 14B.3", 63 món, thực phẩm USDA thật) tạo cho hytrongbeou qua đường
+  nhập của fitness-service mà ai-service gọi khi người dùng lưu thực đơn AI (`POST /nutrition/from-ai-plan`, token nội bộ đọc từ biến
+  môi trường container, không in ra) — máy dev không có LLM để sinh thực đơn thật.
+- Máy ảo (dev client, backend dev), DB đối chiếu từng bước:
+  - Sửa lượng Chuối 120 → 150 g → `nutrition_program_meal_items` 150 g, 134 kcal, 34.2 g tinh bột (bản đầu chỉ gửi gam như web → calo
+    giữ 107: lỗi bắt được khi kiểm, đã sửa).
+  - "Hoàn thành" bữa sáng → `nutrition_meal_completions` COMPLETED 100, món bị khoá; "Hoàn tác" → bản ghi bị xoá.
+  - "Một phần" bữa trưa: xem trước 50% = 272 kcal (543 × 0.5); chọn 75% → PARTIAL 75, `actualProgress` 407 kcal.
+  - Thêm món vào bữa sáng → dòng mới 100 g / 120 kcal; xoá (có xác nhận) → còn 3 món.
+  - "Bỏ qua" bữa tối → SKIPPED; xoá bữa tối khỏi kế hoạch → bữa + bản ghi hoàn thành đều không còn.
+  - Ghi nhật ký Bữa phụ (không thuộc thực đơn) → `nutrition_logs` dòng mới; sửa calo → 95 (sau khi đổi sang PATCH); biểu đồ 7 ngày
+    hiện 95 ở CN; nhận xét "Protein hôm nay còn thấp…" đúng luật.
+- Tự động: `mealPlan.test.ts` 14 (node:test, dùng dạng dữ liệu thật của `daily-task`), `GoalPlanMismatchBanner.test.tsx` 3 (jest).
+
+**CHƯA kiểm / còn mở:**
+- Banner lệch mục tiêu trên máy: server trả MATCHED cho tài khoản thử; muốn hiện phải đổi mục tiêu dinh dưỡng thật → chỉ component test.
+- Chế độ "Nhập lượng" của "Một phần" chỉ có unit test (đã kiểm chế độ %).
+- GAP-25: web vẫn còn 2 lỗi trên — chờ Ngài.
+
+## 46. Phase 14B.4 — Sửa lịch & chương trình tập (PG-A3) + chỉ số cơ thể, phân bổ tập luyện (PG-C2) (4–5/10)
+
+**Nguồn hành vi:** web `WorkoutLogPage.tsx` (chi tiết ngày, dời / ẩn / thêm lịch, hoàn thành / hoàn tác cả bài, đổi bài, loại set,
+tóm tắt buổi, chương trình thủ công, sửa bài trong ngày, superset, bài tự tạo), `exercise-group.utils.ts` (thứ tự tập xen kẽ trong
+nhóm), `workout-analytics.utils.ts` (phân bổ nhóm cơ / loại bài tập), khối "Chỉ số cơ thể". Không đổi backend.
+
+**Đã làm (mobile):**
+- `src/features/workout/scheduleActions.ts` + `DaySheet.tsx` — bấm một ngày trong Lịch tuần mở sheet: mở buổi hôm nay, **Dời lịch**
+  (14 ngày tới từ hôm nay + lý do), **Ẩn khỏi lịch** (có xác nhận), **Thêm lịch tập** (ngày nghỉ, chọn buổi của chương trình hiện tại;
+  chưa có chương trình → mở "Chương trình mới"). Nút chỉ hiện khi server sẽ cho phép (xem "Khác web" 1).
+- `src/features/workout/exerciseActions.ts` + `SessionExtras.tsx` + `log.tsx` — trong buổi tập: **Đổi bài** (bài thay thế của server,
+  chỉ buổi này; bài đã đổi hoàn thành bằng "Xong cả bài" vì lệnh đó mang theo bài thay), **Xong cả bài / Hoàn tác bài**, chip **loại set**
+  (Warm-up / Working / Top set / Back-off / Failure), **Tóm tắt buổi tập** (số của `GET /workouts/:id/summary`, kể cả PR).
+- `src/features/workout/exerciseGroups.ts` — chép hàm thuần của web cho superset / triset / circuit: nhãn "Superset · Bài 1/2 · Vòng 1/2";
+  tick một set trong nhóm → thời gian nghỉ là "nghỉ giữa bài" hoặc "nghỉ sau vòng" của nhóm, thanh nghỉ ghi "Tiếp theo: <bài> · set N".
+- `log.tsx` — bài **thêm vào giáo án sau khi buổi đã bắt đầu** hiện thành thẻ "Xong cả bài" (server tính nó vào tổng buổi; thiếu thẻ thì
+  buổi kẹt ở "làm một phần" — lỗi bắt được khi kiểm, xem dưới).
+- `app/client/workout/programs/index.tsx` ("Chương trình của tôi", mở từ nút quả tạ ở thanh công cụ Tập luyện) — từng buổi: **Sửa bài**
+  (hiệp / lần / nghỉ, xoá, thêm từ thư viện hoặc "Bài của tôi"), **Đổi tên buổi**, **Nhóm superset** (chọn ≥ 2 bài chưa nhóm, nghỉ giữa
+  bài / sau vòng), **Bỏ nhóm**, **Ẩn chương trình**. `programEdit.ts` dựng lệnh lưu (cập nhật / thêm / xoá; ngày trống bị chặn như web).
+- `app/client/workout/programs/new.tsx` — **chương trình thủ công** (dùng lại `PlanDraftBuilder`, bỏ phần AI), `replaceExisting: true`
+  như web, có câu cảnh báo "thay các buổi chưa tập". `ExercisePickerSheet.tsx` (dùng chung với PT) thêm mục "Bài của tôi": tạo bài tự
+  tạo (kèm hỏi lại khi trùng), lưu trữ.
+- `src/features/workout/workoutAnalytics.ts` + `TrainingInsights.tsx` — tab Nhật ký: **Chỉ số cơ thể** (bắt đầu = `startingWeight` của
+  hồ sơ, hiện tại = lần đo InBody mới nhất, đã thay đổi, còn lại tới mục tiêu; nút sang màn InBody) và **Phân bổ tập luyện** (nhóm cơ,
+  loại bài tập; Gần nhất / 7 ngày / 30 ngày / Tất cả).
+- Sửa kèm: tên buổi đọc `programDay.title` (trước đọc `.name` không tồn tại → mọi dòng hiện "Buổi tập") ở Lịch tuần, màn tập, Trang chủ
+  (thẻ "Hôm nay"), và tên ngày thực đơn ở màn Dinh dưỡng; Lịch tuần tính lại ngày khi mở lại màn / app quay lại (trước giữ ngày lúc mở
+  màn — để app qua nửa đêm thì "Hôm nay" vẫn là hôm qua; có từ Phase 5).
+
+**Khác web có chủ đích:**
+1. "Ẩn khỏi lịch" chỉ có ở buổi **hôm nay** chưa tập — web hiện nút ở mọi dòng nhưng server từ chối mọi ngày khác (GAP-26 ý 1).
+2. Danh sách thiết bị / nhóm cơ khi tạo bài tự tạo lấy từ `filter-options` đã bóc lớp `data` — web không bóc nên chỉ còn "BODYWEIGHT"
+   (GAP-26 ý 2).
+3. Phân bổ nhóm cơ tách các mục ghi gộp "Pectorals, Triceps, …" thành từng nhóm cơ (web đếm cả chuỗi là một nhóm).
+4. Mobile hiện mọi bài cùng lúc nên bước kế trong superset hiện bằng thời gian nghỉ + dòng "Tiếp theo", không tự nhảy sang bài kế như web.
+5. Biểu đồ phân bổ là thanh xếp chồng thay cho biểu đồ tròn (cùng số liệu).
+6. Nhãn nhóm trong màn chương trình theo web ("Superset · Bài 2"), không dùng chữ A/B.
+
+**Kiểm chứng (máy ảo, dev client, backend dev; DB đối chiếu từng bước):**
+- hytrongbeou (password123):
+  - Sheet ngày: buổi hôm nay đã bỏ qua chỉ hiện "Ẩn" → ẩn → `workout_schedules` mất dòng; "Thêm lịch tập" hôm nay → dòng mới (server
+    không gắn chu kỳ — đúng hành vi createSchedule); dời sang 05/10 (đã có lịch) → toast "Ngày này đã có lịch tập."; dời 04/10 → 08/10 lý
+    do "ban" → `date` 08/10, `original_planned_date` 04/10, `reschedule_reason` ban.
+  - Buổi tập: chip loại set → `workout_sets.set_type` TOP; Đổi bài Bench Press → Dumbbell Bench Press + Xong cả bài →
+    `workout_exercises.exercise_id` đổi, `notes` "Đã đổi từ "Bench Press" sang "Dumbbell Bench Press"", 2 set 10 kg × 8 hoàn thành;
+    Hoàn tác bài → 2 set `completed=false`, bài thay + ghi chú giữ nguyên; giáo án vẫn là Bench Press.
+  - Chương trình: Squats 2 → 3 hiệp; tạo bài tự tạo "Kiem thu Day ta don 14B4" (thân trên, tạ đơn) và thêm vào buổi A →
+    `workout_program_exercises` thứ tự 3, `exercises.owner_id` có giá trị; nhóm Squats + bài tự tạo → `workout_program_exercise_groups`
+    SUPERSET 30 / 90 s, 2 thành viên; Bỏ nhóm → 0 nhóm; đổi tên buổi B → DB đổi (sau đó trả tên cũ qua đúng API, HTTP 200); lưu trữ bài
+    tự tạo → `archived_at` có giá trị, biến khỏi "Bài của tôi".
+  - Superset trong buổi tập (Bench + Squats): nhãn "Superset · Bài 1/2 · Vòng 1/2" (vòng đổi theo set đang tập); tick Bench set 2 →
+    thanh nghỉ "Nghỉ giữa bài" (đếm từ 30 s), "Tiếp theo: Squats · set 2"; set cuối của nhóm → "Nghỉ giữa set" 90 s. Nhánh "Nghỉ sau
+    vòng" (90 s của nhóm) chỉ có unit test — trên máy chưa chụp được lúc nó hiện.
+  - Tab Nhật ký: Bắt đầu 80 kg / Hiện tại 110.2 kg / Đã thay đổi +30.2 kg / Còn lại 38.2 kg (mục tiêu 72) — khớp hồ sơ + InBody; Phân
+    bổ 7 ngày: 6 nhóm cơ 17%, Sức mạnh 100%.
+- testuser009 (Test@123456) — chuỗi "Xong khi" của cụm, từ đầu tới cuối:
+  - Chương trình mới "Chương trình của tôi" 4 tuần, Buổi 1 (CN) Barbell Bench Press, Buổi 2 (T2) Barbell Full Squat →
+    `workout_programs` MANUAL ACTIVE, PPL cũ ARCHIVED, 8 lịch 04/10–26/10; 193 lịch NOT_STARTED cũ (đều đã qua) bị thay.
+  - Dời Buổi 1 11/10 → 07/10 → DB `date` 07/10, `original_planned_date` 11/10; server gửi push "Đã dời lịch buổi tập…".
+  - Buổi 2 hôm nay (05/10): Bắt đầu → Đổi bài Barbell Full Squat → Goblet Squats, 12.5 kg × 10 → Xong cả bài → lịch COMPLETED 1/1, 3 set
+    Goblet Squats 12.5 × 10 kèm ghi chú đổi bài; Tóm tắt 1 bài / 3 set / 375 kg; giáo án Buổi 2 vẫn là Barbell Full Squat.
+- Tự động: `workoutEditing.test.ts` 25 (node:test: luật lịch, luật cả bài / đổi bài, bước superset, lệnh lưu chương trình, phân bổ, hành
+  trình cân nặng). Toàn bộ unit 667/667, jest 12 bộ / 73 test, `tsc` sạch, lint 0 lỗi (6 cảnh báo có sẵn từ trước).
+
+**Lỗi bắt được khi kiểm, đã sửa:**
+1. Bài thêm vào giáo án giữa buổi không hiện trong màn tập nhưng server vẫn tính → buổi kẹt "PARTIALLY_COMPLETED 2/3" dù mọi set hiện đã
+   xong (bấm "Kết thúc buổi tập" vẫn báo "Đã hoàn thành"). Thêm thẻ bài còn lại → COMPLETED 3/3.
+2. Tạo chương trình mới xong, màn "Chương trình của tôi" còn hiện chương trình cũ (cache) và chồng thêm một màn cùng loại lên stack →
+   reset cache + `dismissTo` thay cho `replace`.
+3. Bộ chọn bài giữ chữ tìm kiếm của lần trước sau khi chọn bài.
+4. Thanh nghỉ trong suốt, đè lên chữ bên dưới → thêm nền đặc.
+5. Tên buổi (`.name` → `.title`) và Lịch tuần giữ ngày cũ qua nửa đêm (xem trên).
+
+**CHƯA làm / còn mở:**
+- **Buổi tập tự do không theo giáo án** (web `logWorkout` / `updateWorkout`: chọn bài tuỳ ý cho một ngày trống rồi lưu) chưa có trên
+  mobile — mobile chỉ thêm lịch từ buổi của chương trình hiện có. **Ngài 5/10: ghi lại, bàn sau** — không làm trong 14B.4.
+- Chương trình thủ công khi đang có chu kỳ tập: tài khoản thử không có chu kỳ đang chạy nên chưa thấy lịch được gắn chu kỳ trên máy.
+- Triset / circuit (≥ 3 bài) và nhánh "Nghỉ sau vòng" chỉ có unit test; trên máy mới kiểm superset 2 bài.
+- GAP-26: 2 lỗi web ở trên — **đã sửa web 5/10** (Ngài cho phép; REAL BROWSER, xem GAP-26).
+
+## 47. Phase 14B.5 — Chủ gym: quản lý chi nhánh (PG-A7 = GY-03) (5/10)
+
+**Nguồn hành vi:** web `GymManagePage.tsx` (khối "Cài đặt") + các bước wizard nó dùng lại (`StepOpeningHours`, `StepFacilities`,
+`StepPhotos`, `StepVerification`), `RequestChangesPanel` (chế độ xem). Quyền theo `gym-service/src/routes/owner.routes.ts` ("tiền và
+người thì chỉ chủ sở hữu"). Không đổi backend.
+
+**Đã làm (mobile):**
+- `app/gym-owner/branch.tsx` (mới, ẩn khỏi tab) — bấm một chi nhánh ở "Phòng gym" (thẻ có thêm dòng "Quản lý chi nhánh ›"). Đầu màn:
+  trạng thái duyệt + vận hành, địa chỉ, sao đánh giá, tên/địa chỉ mới đang chờ duyệt, dòng đóng cửa (lý do + ngày dự kiến mở lại), ghi
+  chú "Gymini yêu cầu chỉnh sửa". Ba mục, mỗi mục chỉ tải khi mở:
+  - **Thông tin:** Tên & địa chỉ (chờ duyệt) · Giới thiệu ≤ 300 + điện thoại + email (có hiệu lực ngay) · Thương hiệu (chỉ đọc —
+    không có bộ chọn, đúng bất biến one-owner-one-brand) · Vị trí (tỉnh/phường, ghim bản đồ `MapPinPicker`, hướng dẫn tới nơi) · Giờ
+    hoạt động (Đóng cửa / Mở cửa / 24 giờ mỗi ngày, ô HH:MM, chép giờ Thứ 2 sang Thứ 3–6 hoặc cả tuần, kiểm như server) · Tiện ích
+    (18 mục, 4 nhóm).
+  - **Ảnh & giấy tờ:** thư viện ảnh (chọn nhiều ảnh một lần hoặc chụp, ≤ 20 ảnh / ≤ 8 MB, đưa lên trước / ra sau, đặt ảnh bìa, xoá có
+    xác nhận) · giấy tờ xác minh của chi nhánh (3 loại, ảnh / PDF, nộp lại; xem trước ảnh tải bằng phiên đăng nhập, PDF mở bằng trình
+    xem của máy) + giấy tờ cấp đối tác chỉ xem.
+  - **Vận hành:** tạm đóng cửa (lý do + ngày mở lại tuỳ chọn, chặn ngày quá khứ) / mở lại / đóng vĩnh viễn (hiện tác động: hội viên
+    đang có gói + giá trị chưa dùng, cộng tác PT, số dư ví; hỏi xác nhận) · lối sang Mã QR check-in, Cộng tác HLV, Gói hội viên · danh
+    sách hội viên của chi nhánh.
+- **MANAGER** chỉ thấy mục "Vận hành" (trạng thái vận hành, QR, hội viên) — mọi chỗ sửa thông tin / ảnh / giấy tờ là OWNER-only ở
+  server nên không hiện form để rồi bị từ chối.
+- `src/features/gymOwner/branchManage.ts` — phần thuần (giờ, tiện ích, giới thiệu, tên/địa chỉ, sắp xếp ảnh, trạng thái giấy tờ,
+  nút vận hành được phép theo `setOperationalStatus`, ngày mở lại). `BranchSections.tsx` — các khối giao diện.
+- `src/lib/pickFile.ts` thêm `pickImages(limit, maxBytes)` (chọn nhiều ảnh, khai đúng loại thật của tệp như `pickApplicationFile`).
+- `api.ts` thêm `absolutePhotoUrl` — `url` ảnh của server là link S3 đầy đủ với ảnh mới nhưng là đường dẫn `/uploads/gym-photos/…`
+  với ảnh lưu đĩa; trình duyệt tự ghép được, `<Image>` thì không. Dùng ở màn chi nhánh, màn admin chi nhánh và `GymPhotoGallery`
+  (chi tiết phòng gym phía khách) — ảnh lưu đĩa trước đây không hiện ở cả ba nơi.
+
+**Khác web có chủ đích:**
+1. Mỗi khối có nút lưu riêng — web lưu giờ hoạt động và tiện ích ngay mỗi lần bấm / gõ (mỗi thay đổi một toast, một request).
+2. Nhập giờ bằng ô HH:MM (cùng cách màn lịch PT) thay cho `<input type="time">`; ngày mở lại dạng YYYY-MM-DD.
+3. Xoá ảnh và đóng cửa vĩnh viễn có hộp xác nhận (web xoá ảnh ngay khi bấm).
+4. Ví, rút tiền, QR check-in, cộng tác PT, gói hội viên đã có màn riêng trên mobile (Phase 12) → màn chi nhánh dẫn sang, không lặp lại.
+5. Sau đặt bìa / sắp xếp ảnh thì tải lại danh sách thay vì dùng body server trả (thiếu `url` — GAP-27).
+
+**Kiểm chứng (máy ảo, dev client, backend dev; DB đối chiếu từng bước; chi nhánh thử "P12 Mobile Quan 1" của `p12-mobile@example.com`,
+chụp trạng thái gốc trước khi sửa):**
+- OWNER:
+  - Giới thiệu + email → `gyms.description`, `email` đổi.
+  - Đổi tên (thêm " X") → `name` = `pending_name` = "… X", `approved_name` giữ tên cũ; đầu màn hiện "Tên mới đang chờ duyệt". Trả tên
+    về trên máy, rồi admin `PATCH /admin/gyms/:id/approve-rename` để xoá `pending_name` → sạch như cũ.
+  - Hướng dẫn tới nơi "Cong sau tang 3" → `location_note`; tỉnh 79 / phường 26740 / toạ độ giữ nguyên.
+  - Giờ: Thứ 2 Mở cửa 05:30 → chép sang Thứ 3–6, Chủ nhật 24 giờ → `gym_operating_hours` T2–T6 OPEN 330–1320, T7 CLOSED, CN ALL_DAY;
+    nút lưu tự mờ khi không còn thay đổi.
+  - Tiện ích Tạ tự do / Phòng tắm / Wifi → `facilities` {FREE_WEIGHTS, SHOWER, WIFI}.
+  - Ảnh: chọn 2 ảnh một lần → 2 dòng `gym_photos` (thứ tự 1, 2); đưa ảnh lên trước → `sort_order` đổi; đặt ảnh bìa → `is_cover` chuyển;
+    trả bìa về ảnh cũ, xoá 2 ảnh thử (có xác nhận) → còn đúng 1 ảnh S3 làm bìa như gốc.
+  - Giấy tờ PCCC (ảnh) → `gym_branch_documents` FIRE_SAFETY_CERTIFICATE RECEIVED, thumbnail hiện; giấy tờ đối tác hiện chỉ xem.
+  - Đóng vĩnh viễn: tác động 0 hội viên / 0 cộng tác / 0 đ, huỷ không đóng. Tạm đóng: ngày 2026-10-01 bị chặn ("không thể ở quá khứ");
+    2026-10-20 → `TEMPORARILY_CLOSED`, lý do + `expected_reopen_at` lưu, đầu màn hiện dòng đóng cửa; Mở lại → `OPEN`, lý do xoá.
+  - Dọn: mô tả / email / hướng dẫn / tiện ích / giờ trả về trống qua đúng API (HTTP 200) — DB khớp bản chụp gốc, trừ giấy tờ PCCC
+    (không có API xoá — để lại, trạng thái RECEIVED).
+- MANAGER (`p12-manager-14b5@example.com` / `Quanly12345`, mời bằng đúng API của chủ gym + nhận lời mời, phạm vi = Quan 1):
+  - REAL HTTP/API: đọc chi nhánh / hội viên / tác động đóng cửa → 200; giờ / ảnh / giấy tờ / `PATCH` chi nhánh → 403
+    `OWNER_ROLE_REQUIRED`; chi nhánh Quan 3 (ngoài phạm vi) → 403 `GYM_OUT_OF_SCOPE`.
+  - Máy ảo: "Phòng gym" chỉ 1 chi nhánh, không có sửa tên thương hiệu / thêm chi nhánh; màn chi nhánh chỉ có "Vận hành"; tạm đóng →
+    `TEMPORARILY_CLOSED` "Quan ly kiem thu", mở lại → `OPEN`.
+- 360 dp (đổi `wm density`): màn chi nhánh, mục Thông tin và giờ hoạt động vừa khung, không tràn ngang.
+- Tự động: `branchManage.test.ts` 14 (node:test). Toàn bộ unit 681/681, jest xem dưới, `tsc` sạch, lint 0 lỗi.
+
+**Lỗi bắt được khi kiểm, đã sửa:** ảnh lưu đĩa không hiện (đường dẫn tương đối — sửa cả màn admin và chi tiết phòng gym của khách);
+ảnh S3 mất sau sắp xếp (GAP-27, né bằng tải lại); dòng "tên mới đang chờ duyệt" không hiện (server ghi `name` cùng `pending_name`);
+ô nhiều dòng chỉ cao một dòng (truyền chiều cao riêng, không sửa `Input` dùng chung).
+
+**CHƯA làm / còn mở:**
+- GAP-27 (backend thiếu `url` sau đặt bìa / sắp xếp) — chờ Ngài.
+- ~~Nhãn `Badge` bị cắt ("Đã duyệt" → "Đã") ở 360 dp~~ — **đã sửa 5/10 (Ngài cho phép)**: trên màn mật độ lẻ (597 dpi = ×3.73; máy
+  thật cũng hay lẻ: ×2.625, ×3.5) view chữ native nhận hụt dưới 1 px so với lúc đo, nên bẻ từ cuối xuống dòng hai bị che. `Badge` giờ
+  vẽ nhãn chữ thành một dòng không ngắt (dấu cách → NBSP, `numberOfLines=1`, `ellipsizeMode="clip"`). Kiểm máy ảo ×3.73 sau khi khởi
+  động lại hẳn app: hai thẻ chi nhánh đều "Đã duyệt" (trước: thẻ thứ hai luôn "Đã"), đầu màn chi nhánh đủ cả hai nhãn; jest 73/73.
+- Chưa bấm thật: đóng cửa vĩnh viễn (không thể hoàn tác trên dữ liệu thử), tải PDF giấy tờ, chụp ảnh bằng camera.
+- Dữ liệu thử để lại: tài khoản MANAGER `p12-manager-14b5@example.com` (thuộc đối tác P12), giấy tờ PCCC RECEIVED trên Quan 1.
+
+## 48. Phase 14B.6 — Huỷ gói, đánh giá phòng gym, ký hợp đồng + PDF, chia sẻ mẫu, gói bán, lọc thực phẩm, nhận lời mời quản lý (PG-B1/B2/B3/B5/B6/B7/B8/B9) (5/10)
+
+**Nguồn hành vi:** web `GymMembershipsPage` (huỷ gói đang hoạt động), `GymReviewsSection`, `BookingPage` (thẻ "Chờ ký" + PDF + gửi lại
+email ký), `TemplatesPage` (chia sẻ), `AIPlansPage` (giải thích kế hoạch), `PlanMarketplacePage` ("Gói bán"), `FoodLibraryPage` (lọc
+nguồn / dạng), `PartnerInviteAcceptPage`. Không đổi backend.
+
+**Đã làm (mobile):**
+- **PG-B1** — thẻ gói `ACTIVE` ở Dịch vụ → Gói hội viên có "Huỷ gói hội viên": hộp xác nhận nói rõ còn bao nhiêu ngày và **không hoàn
+  tiền** phần chưa dùng (đúng chính sách server — hoàn tiền theo tỉ lệ chỉ admin làm), gọi `cancel-membership`.
+- **PG-B2** — `src/features/services/GymReviews.tsx` ở cuối chi tiết phòng gym (phía khách): điểm trung bình, danh sách đánh giá, và
+  cho người **đang / từng là hội viên** (ACTIVE / EXPIRED — luật `NOT_A_MEMBER` của server, `reviewRules.ts`) viết / sửa / xoá đúng
+  một đánh giá của mình (xoá có xác nhận).
+- **PG-B3 — BỎ (Ngài 5/10: không còn ký hợp đồng điện tử).** Khối ký điện tử + "Tải PDF hợp đồng" đã viết rồi gỡ ra trước khi commit;
+  web cũng gỡ link "Tải PDF hợp đồng" ở `BookingPage` (GAP-28 khép lại bằng việc gỡ).
+- **PG-B5 (đóng GAP-8)** — mẫu buổi tập "Của tôi" có "Chia sẻ": chọn người nhận từ PT / học viên có hợp đồng ACTIVE (`templateShare.ts`
+  — gộp trùng, không có ô gõ user-id), hiện "đã chia sẻ với N người".
+- **PG-B6** — đã có sẵn từ Phase 8 (`plans/ai/[id].tsx` gọi `POST /plans/explain`, bản không stream mà web cũng dùng khi stream lỗi) —
+  không đổi gì; ghi lại để đóng dòng parity.
+- **PG-B7** — `src/features/plans/SellPackages.tsx` ở cuối "Của tôi" trong Chợ, **chỉ PT**: tạo gói bán từ kế hoạch đã được duyệt (tên
+  3–120, giá > 0, số tuần nguyên dương — `packageForm.ts` theo đúng `createPackageSchema`), "Gói bán của tôi" (Đang bán / Đã gỡ), gỡ có
+  xác nhận.
+- **PG-B8** — Thư viện thực phẩm thêm hàng chip lọc **nguồn** và **dạng** lấy từ `/food/filter-options`, tên dễ hiểu (web in mã thô
+  "sr_legacy"); mã vẫn là giá trị gửi lên.
+- **PG-B9 (= WB-02)** — `app/partner/invite.tsx` (công khai): xem trước lời mời, nhập họ / tên / mật khẩu (≥ 8, nhập lại khớp), tạo tài
+  khoản rồi đăng nhập. Mã nhận qua deep link `fitnessassistant://partner/invite?token=…`, hoặc dán link web `…/partner/invite/<mã>` /
+  dán mã (thư là link web; mở https thẳng vào app cần App Links — GAP-20). Lối vào: nút "Tôi được mời làm quản lý chi nhánh" ở màn
+  "Trở thành đối tác".
+
+**Khác web có chủ đích:** tên nguồn / dạng thực phẩm dịch sang tiếng Việt; xoá đánh giá và gỡ gói bán có hộp xác nhận.
+
+**Kiểm chứng:**
+- Máy ảo (dev client, backend dev):
+  - PG-B8: chip "USDA khảo sát (FNDDS)" → trang 1/271 (5.403 món ÷ 20 — đúng tổng REAL HTTP/API `?source=survey_fndds`).
+  - PG-B5 (testuser009): "Lưu thành mẫu" → chia sẻ → sheet hiện đúng **1** người nhận "Mai Cao — Huấn luyện viên" (6 hợp đồng ACTIVE với
+    cùng PT, đã gộp) → DB `workout_program_templates.shared_with_user_ids` = {testpt001}; nút đổi "đã chia sẻ với 1 người".
+  - PG-B9: deep link mở màn, xem trước đúng (P12 Mobile Fitness · Quản lý chi nhánh · email); kiểm "Mật khẩu không khớp" hiện đúng.
+    Bước bấm "Tạo tài khoản" không xong trên máy: máy ảo treo (Android báo "Gymini isn't responding") — host chỉ còn ~1,3 GB RAM trống
+    khi đang chạy một game nặng; trước đó một lần chạm phải chờ ~5 phút mới có phản hồi.
+- REAL HTTP/API (đúng các lời gọi app gửi):
+  - PG-B9: `POST /partner-invitations/:token/accept` → 201; DB `gym_partner_accounts` MANAGER ACTIVE phạm vi Quan 3; dùng lại mã → 409
+    "Thư mời này đã được sử dụng"; đăng nhập được.
+  - PG-B2 (hytrongbeou, hội viên Titan Gym): viết 5★ → 201; sửa 3★ (vẫn 1 đánh giá) → 201; xoá → 200, số đánh giá về như cũ;
+    testuser009 (không phải hội viên) → 403 `NOT_A_MEMBER`.
+  - (Trước khi gỡ PG-B3) `GET /contracts/:id/pdf` có token → 200, không token → 401 — bằng chứng của GAP-28.
+  - PG-B7: `GET /marketplace/packages/mine` → 200; tạo gói từ kế hoạch chưa duyệt → `PUBLISHED_PLAN_NOT_FOUND`.
+  - PG-B1 (Ngài cho phép 5/10): huỷ thật gói Titan Gym ACTIVE của hytrongbeou (500.000 đ, tới 28/10) bằng đúng lời gọi của nút "Huỷ gói
+    hội viên" → 200, DB `gym_membership_contracts` = CANCELLED; payment-service ghi `MEMBERSHIP_RELEASE` (phòng gym 450.000 đ + nền
+    tảng 50.000 đ được giải phóng, `refundedToClient` 0 — đúng "không hoàn tiền"); gọi lại → 409. Nút trên máy chưa bấm được (máy ảo
+    nhận chạm lệch / trễ).
+- Tự động: `cluster14b6.test.ts` 9 (node:test). Toàn bộ unit 690/690, jest 12 bộ / 73 test, `tsc` sạch, lint 0 lỗi (2 cảnh báo có từ trước).
+
+**GAP-27 sửa kèm (Ngài cho phép 5/10)** — gym-service `gym-photo.service.ts`: `setCover` / `reorder` trả danh sách qua `withUrls` như
+`list`. BACKEND INTEGRATION (`gymcoach_gym_test`): 14/14, thêm kiểm `url` cho setCover + test mới cho reorder. REAL HTTP/API sau khi
+khởi động lại gym-dev: đặt bìa / sắp xếp ảnh S3 của P12 Quan 1 → trả link S3 đã ký.
+
+**CHƯA kiểm / còn mở:**
+- hytrongbeou không còn gói hội viên ACTIVE nào (gói Titan đã huỷ ở PG-B1) — bài kiểm check-in / đánh giá sau này cần mua gói mới.
+- **PG-B7 tạo gói thật:** không có PT thật nào có kế hoạch được duyệt (13 kế hoạch APPROVED đều do bộ test sinh, chủ giả `pub-…`) — cần
+  PT đăng kế hoạch + admin duyệt rồi mới tạo được gói.
+- **PG-B2 / B7 / B9 giao diện trên máy** chưa bấm hết vì máy ảo treo (xem trên) — nên kiểm lại khi máy nhẹ hơn.
+- Dữ liệu thử để lại: mẫu "Chương trình của tôi" của testuser009 (đã chia sẻ với testpt001); tài khoản MANAGER
+  `p12-manager2-14b5@example.com` / `Quanly12345` (phạm vi Quan 3).
+
+## 49. Phase 14B.7 — Dữ liệu còn thiếu: trang chủ khách, InBody, chi tiết PT, tổng quan PT/admin (PG-C1/C3/C5/C6/C7) (5/10)
+
+**PG-C1 — Trang chủ khách** (`app/client/dashboard.tsx`, phần thuần `src/features/dashboard/dashboardBody.ts`):
+- Thêm theo web `ClientDashboard`: ô **Mỡ cơ thể** (% + chênh lần trước), ô **Buổi tập · 30 ngày qua**, thẻ **Xu hướng cơ thể**
+  (đường cân nặng + cơ bắp qua tối đa 12 lần đo, SVG `Polyline`, kèm chênh lần trước), thẻ **Kế hoạch đang dùng** (tên, số ngày, số bài →
+  mở danh sách chương trình), khối **Tập luyện gần đây** (4 buổi).
+- **Lệch web có chủ ý:**
+  - Số buổi 30 ngày: web đếm độ dài trang 4 dòng (`getHistory(1, 4)`), nên ô không bao giờ quá 4. Mobile gọi
+    `GET /workouts?startDate&endDate` (hàm mới `workoutService.getInRange`) và đếm đúng cửa sổ 30 ngày.
+  - Tập gần đây: model `Workout` của fitness-service có `name` + `duration` (phút). Web đọc `title` / `durationMinutes` (không tồn tại),
+    nên luôn in "Buổi tập · -- phút" và gắn "Hoàn thành" cho mọi dòng. Mobile đọc đúng trường và không gắn nhãn trạng thái (buổi chưa
+    xong cũng có dòng `Workout`).
+  - **Không chép** "Calories tuần này": trên web là ô giữ chỗ cố định "Không có dữ liệu".
+  - **Không chép** "AI Insights": hai câu ghép từ số InBody mới nhất, không gọi AI nào, nhưng gắn nhãn "AI · Trực tiếp". Chép sang
+    sẽ là khẳng định sản phẩm không làm.
+- Giá trị InBody lưu có nhiễu số thực (vd. `98.60000000000001`) — đường xu hướng làm tròn 1 chữ số.
+
+**PG-C3 — InBody** (`app/client/inbody/index.tsx`): `TrendBars` nhận `metric` (cân nặng / mỡ kg); thêm thẻ **Xu hướng mỡ cơ thể (kg)**;
+tab thứ ba **Lịch sử** liệt kê mọi lần đo (ngày, cân nặng, cơ, mỡ kg, % mỡ, nhãn "Đọc từ ảnh" / "Nhập tay", "Mới nhất"), nút "Thêm mới".
+**"Cân bằng cơ thể" làm lại theo chuẩn tham chiếu (Ngài chọn 5/10)** thay cho radar của web (web chia mỗi trục cho một hằng số tuỳ
+ý — cân nặng/100, cơ/50, mỡ/30, BMI/35, BMR/2500 — nên hình không mang ý nghĩa). Mỗi chỉ số là một thanh Thấp / Chuẩn / Cao có chấm
+đánh dấu, như phiếu InBody (`src/features/inbody/bodyBalance.ts`):
+- BMI — dải WHO 18,5 / 25 / 30 (25 trùng `BMI_OVERWEIGHT` của ai-service); lấy BMI trên phiếu, thiếu thì tính từ chiều cao trên phiếu
+  hoặc trong hồ sơ và ghi rõ.
+- % mỡ — khoảng chuẩn in trên phiếu InBody: nam 10–20 %, nữ 18–28 %; "Rất cao" từ 25 % / 32 %. Hai cận trên và mức "rất cao" chính là
+  `BF_HIGH_*` / `BF_OBESE_*` trong ai-service `body_composition_rules.ts` → app và AI Coach cùng gọi một cơ thể là "cao". Cần giới tính
+  trong hồ sơ; thiếu thì ghi "chưa đánh giá được".
+- Mỡ nội tạng — InBody khuyên dưới mức 10.
+- Cơ hai tay / hai chân lệch trái-phải — ngưỡng 5 % / 10 % của ai-service (`LIMB_ASYMMETRY_*`), nêu bên yếu hơn.
+- **Không** chấm điểm khối cơ và BMR: không có một chuẩn dân số đơn giản (InBody tự suy chuẩn cơ từ cân nặng chuẩn của máy) — bịa ra
+  sẽ là chuẩn giả. Thẻ ghi "chỉ để tham khảo, không phải chẩn đoán" và sai số của máy đo trở kháng. Chỉ hiển thị, không đi vào kế
+  hoạch / NutritionGoal / CycleAssessment. Web vẫn còn radar cũ (chưa sửa web).
+
+**PG-C5 — Chi tiết PT** (`app/client/services/pt/[id].tsx`, `ptDiscovery.ts`): trong "Giới thiệu" thêm **Kinh nghiệm & học vấn**,
+**Phương pháp huấn luyện**, **Đối tượng & mục tiêu** (Badge, nhãn tiếng Việt từ `TARGET_OPTIONS` / `GOAL_OPTIONS` của đơn ứng tuyển PT).
+`GET /profile/pts/:id` không trả `ptApplication`; các trường lấy từ dòng `GET /profile/pts` qua `mergePtSources` (cùng cơ chế bio / số năm
+kinh nghiệm đã có).
+
+**PG-C6 — Tổng quan PT** (`app/pt/dashboard.tsx`): thẻ **Tổng quan doanh thu** (2 thanh: hợp đồng đã hoàn thành / đang hoạt động, cùng
+hai số `/contracts/pt/earnings` của web, ghi rõ "trước phí nền tảng — số thực nhận ở ví"; thay dòng chữ cũ dưới thẻ ví) + **Buổi tập tuần
+này** (7 cột T2–CN từ danh sách buổi sắp tới — ngày đã qua = 0 như web). "Cảnh báo học viên" **đã có từ Phase 10** (`9df6072`) dưới tên
+"Cần bạn xử lý", còn rộng hơn web (thêm buổi chờ xác nhận).
+
+**PG-C7 — Tổng quan admin:** **không đổi gì.** Tăng trưởng người dùng, phân bổ vai trò, cảnh báo hệ thống, đăng ký gần đây (và quét
+InBody) đã có từ Phase 13 (`ac6f44b`, 28/9). Dòng C7 của `MOBILE_WEB_PARITY_AUDIT_2026-10-03.md` là **sai** (dương tính giả), cũng như
+nửa "cảnh báo học viên" của C6.
+
+**Kiểm chứng:**
+- REAL HTTP/API (đúng các lời gọi app gửi):
+  - testuser009: `GET /workouts?startDate=2026-09-05&endDate=2026-10-06&limit=200` → 12 buổi, mới nhất trước; dòng có `name`, `duration`,
+    `exercises` (không có `title`/`durationMinutes`).
+  - `GET /inbody` → 72 lần đo, có `bodyFat` (kg), `bodyFatPct`, `status` (`manual` / `extracted`); có giá trị `98.60000000000001`.
+  - `GET /profile/pts` → PT "E2E" có `trainingMethodsApproach`, `targetClientGroups` ["Beginners","Office workers"], `primaryTrainingGoals`
+    (khớp khoá của `TARGET_OPTIONS`/`GOAL_OPTIONS`); `GET /profile/pts/:id` không có `ptApplication`.
+  - testpt001 `GET /contracts/pt/earnings` → `totalEarned` 277.600.000, `activeRevenue` 182.800.000 (hai thanh của C6).
+- Máy ảo (lần đầu kẹt do host thiếu RAM; lần sau chạy được), số trên màn đối chiếu với các lời gọi API ở trên:
+  - C1 (testuser009 "Quân Võ"): Kế hoạch đang dùng "Chương trình của tôi · 2 ngày · 2 bài tập"; Mỡ cơ thể 24,4 % (−4,6 so với 29 %);
+    Buổi tập 12 · 30 ngày qua; Xu hướng cơ thể 05/09 → 04/10 (cân nặng −10,6 kg, cơ −3,3 kg); Tập luyện gần đây đúng 4 dòng API
+    ("Buổi 2 · 05/10/2026 · 1 bài", "Upper Body Power · 17/09/2026 · 60 phút · 3 bài"…).
+  - C3: Cân bằng cơ thể của testuser009 (nữ) — BMI 23,3 Bình thường, % mỡ 24,4 % Bình thường (chuẩn nữ 18–28), tay "Bên trái kém
+    18,5 %" Lệch rõ, chân 0,1 % Cân bằng; testpt001 — BMI 26,3 Thừa cân (chấm cam), % mỡ 12,2 % Thấp. Tab Lịch sử: "Lịch sử đo (72)",
+    nhãn Mới nhất / Nhập tay / Đọc từ ảnh đúng, 98,6 kg đã làm tròn. Lỗi bắt được khi kiểm: chấm đánh dấu dùng lớp `bg-foreground`
+    (không được sinh) nên hiện thành vạch đen → đổi sang màu theo kết quả (token theme) + viền `border-card`.
+  - C5: PT "E2E Trainer" — Kinh nghiệm & học vấn, Phương pháp huấn luyện, Đối tượng & mục tiêu ("Người mới tập", "Dân văn phòng",
+    "Tăng cơ", "Giảm mỡ & tái cấu trúc cơ thể").
+  - C6 (testpt001): 277.600.000 đ / 182.800.000 đ, "Buổi tập tuần này · 11 buổi còn lại", cột T2 (hôm nay) tô màu.
+  - 360 dp (`wm density 597`): tổng quan PT và thẻ Cân bằng cơ thể không tràn, ghi chú dài xuống dòng.
+  - Máy ảo để lại đang đăng nhập testpt001 (trước đó là testuser009).
+- Tự động: `cluster14b7.test.ts` 15 (node:test). Toàn bộ unit 708/708, jest 12 bộ / 73 test, `tsc` sạch, eslint 0 lỗi.
+
+**Sửa kèm phía web (Ngài cho phép 5/10):**
+- `ClientDashboard.tsx`: ô "Buổi tập · 30 ngày qua" đếm cửa sổ 30 ngày thật (`workoutService.getInRange`, hàm mới trong web `api.ts`)
+  thay vì độ dài trang 4 dòng; bảng "Tập luyện gần đây" đọc `name` / `duration`, cột "Trạng thái" (luôn "Hoàn thành") đổi thành
+  "Bài tập" (số bài).
+- `InBodyModule.tsx`: radar "Cân bằng cơ thể" thay bằng các thanh tham chiếu, logic ở `pages/client/body-balance.utils.ts` (giữ
+  giống hệt bản mobile) + test `__tests__/body-balance.utils.test.ts` (5, node:test).
+- REAL BROWSER (Playwright, `gymcoach-web-dev` đã khởi động lại, testuser009, 1366 px và 360 px): ô "12 · 30 ngày qua"; 4 dòng
+  "Upper Body Power · 17/9/2026 · 60 phút · 3 bài"…; thẻ Cân bằng cơ thể cùng kết quả như mobile; tràn ngang 0 px ở cả hai khổ; theme
+  sáng + tối đều hiển thị đúng. `vite build` thành công.
+- "AI Insights" của web: chưa sửa — ghi manifest E7, Ngài bàn với partner sau.
+
+## 50. Phase 14B.8 — Admin: quản lý đối tác + tài chính (PG-D1/D2) (5/10)
+
+Ngài chọn (5/10) làm **toàn bộ** trên mobile, không để lại cho bản máy tính như WB-05..10.
+
+**PG-D1 — Đối tác** (`app/admin/partners/index.tsx`, `[id].tsx`, `src/features/admin/{adminPartners.ts,PartnerSections.tsx}`), theo
+web `AdminPartnersPage`:
+- Danh sách: "Cần bạn xử lý" (hồ sơ chờ thẩm định → lọc; chi nhánh / tên thương hiệu chờ duyệt → màn duyệt chi nhánh), tìm theo tên /
+  email / MST, lọc trạng thái. Hồ sơ tự đăng ký còn PROSPECT mở ở "Duyệt hồ sơ đối tác" (WB-17), như web.
+- Chi tiết: menu Hành động (xem dưới góc nhìn đối tác, tạm khoá kèm bảng "sẽ xảy ra / vẫn tiếp tục", bỏ tạm khoá, chấm dứt kèm xem trước
+  hệ quả + chọn cách xử lý hội viên) theo đúng điều kiện trạng thái của web; 8 tab: Tổng quan (thẩm định, sửa hồ sơ), Tài khoản (sửa
+  tên, đặt lại mật khẩu → sao chép link, buộc đăng xuất, chuyển quyền sở hữu, thu hồi — chủ sở hữu cuối cùng không thu hồi được; thư mời
+  đang chờ: gửi lại / thu hồi, cảnh báo quá 7 ngày), Chi nhánh (mở màn duyệt chi nhánh), Giấy tờ + nhật ký trao đổi, Tiền (mức chung +
+  xem trước hệ quả chấm dứt), Nhật ký kiểm toán, Ghi chú nội bộ, Khiếu nại (dùng chung sheet với hàng đợi "Xử lý" — tách thành
+  `ComplaintSheet.tsx`).
+- **Khác web có chủ ý:**
+  - Thu hồi / buộc đăng xuất / chuyển quyền có hộp xác nhận (web bấm là chạy).
+  - Chiết khấu riêng nhập theo **%** (0–100) và đổi sang tỉ lệ 0–1. Web là ô chữ tự do "(0-1)" và gym-service không kiểm tra: nhập "8"
+    với ý 8% sẽ lưu 8 (= 800%), rồi `commission-rate.service` lặng lẽ thay bằng mức sàn khi tính tiền.
+  - Nhật ký kiểm toán có nhãn tiếng Việt cho **mọi** giá trị `PartnerAuditAction`; web dừng ở VIEWED_AS_PARTNER nên các sự kiện hồ sơ
+    tự đăng ký ("APPLICATION_APPROVED", "DOCUMENT_ACCEPTED"…) hiện nguyên mã.
+  - Với đối tác **tự đăng ký**, gym-service trả 409 `SELF_SERVICE_APPLICATION` cho sửa hồ sơ, ghi nhận / xác minh giấy tờ bằng URL, đặt
+    trạng thái thẩm định (chủ ý: một vòng đời duy nhất, có nhật ký). Web vẫn hiện các nút đó và bấm thì lỗi; mobile ẩn chúng và đưa
+    sang "Duyệt hồ sơ đối tác". **Hệ quả cần Ngài biết:** hiện không có chỗ nào đặt chiết khấu riêng cho đối tác tự đăng ký.
+- Màn chi tiết gắn `key` theo id: expo-router dùng lại màn khi chỉ đổi id (deep link sang đối tác khác) và giữ tab đang mở của đối tác cũ.
+
+**PG-D2 — Tài chính** (`app/admin/finance.tsx`), theo web `AdminFinancePage`: Tổng quan (Ngày / Tuần / Tháng / Quý, khoảng ngày nhập
+YYYY-MM-DD như các màn mobile khác, 3 tổng, biểu đồ cột thu/chi/ròng, bảng theo kỳ) + Đối soát (tự làm mới 30 s, thêm số dư **đang
+khoá** của PT / phòng gym mà web không hiện, ví âm). Rút tiền và hoàn tiền 1-1 đã có hàng đợi riêng trên mobile → chỉ là link.
+Lối vào: khối "Đối tác" / "Tài chính" trên Tổng quan admin.
+
+**Sửa kèm (chung):** `Segmented` + các chip mới hiển thị một dòng, không ngắt ở dấu cách — Android đo chữ hụt nên "Đối soát" còn "Đối",
+"Tổng quan" còn "Tổng" (cùng lỗi Badge ở 14B.5).
+
+**Kiểm chứng (admin@example.com):**
+- Máy ảo: danh sách 52 đối tác + "Cần bạn xử lý" 15/3/2 (khớp `GET /admin/partners/queue`); P12 — Tổng quan, Tài khoản (3 tài khoản,
+  chủ sở hữu không có nút Thu hồi), Giấy tờ, Tiền (5%, hệ quả 0 hội viên · 2/2 chi nhánh), Nhật ký (toàn tiếng Việt), xem dưới góc nhìn
+  đối tác; đối tác "Chain_X_Premium" — tab Khiếu nại 10 dòng, sheet chi tiết; Tài chính — Ngày (thu 18.400.000 ₫ / chi 10.000 ₫), Tháng
+  (148.491.500 / 16.653.126 / 4.090.450 ₫ = API), Đối soát (106.947.000 ₫ cân bằng); hàng đợi "Xử lý → Khiếu nại" sau khi tách sheet;
+  360 dp.
+- Thao tác thật trên máy (đối chiếu DB/API ngay sau):
+  - Buộc đăng xuất Quan Ly2 (P12) → `SESSIONS_REVOKED` đúng tài khoản.
+  - Thêm nhật ký trao đổi (Email) trên P12; thêm ghi chú nội bộ trên "E2E Partner …0420000".
+  - Tạm khoá P12 → `SUSPENDED` + lý do, menu đổi thành Bỏ tạm khoá / Chấm dứt → bỏ tạm khoá → `ACTIVE`, chủ gym đăng nhập lại được.
+  - Sửa hồ sơ "E2E Partner …0420000": chiết khấu riêng 8 → lưu `0.08`; trả lại null bằng đúng lời gọi PATCH (REAL HTTP/API).
+  - Sheet chấm dứt: hiển thị hệ quả + 2 chính sách, nút khoá tới khi đủ — **không bấm xác nhận** (không đảo lại được).
+- REAL HTTP/API: `POST /admin/partner-accounts/:id/reset-password` → `{ resetLink, emailSent: true, expiresAt }` (đúng các trường app dùng);
+  `PATCH /admin/partners/:id` với đối tác tự đăng ký → 409 `SELF_SERVICE_APPLICATION`.
+- Chưa bấm thật: chuyển quyền sở hữu, thu hồi tài khoản, gửi lại / thu hồi thư mời (P12 không có thư mời PENDING), ghi nhận / xác minh
+  giấy tờ bằng URL (chỉ còn với hồ sơ cũ), chấm dứt hợp tác.
+- Tự động: `cluster14b8.test.ts` 16 (node:test). Unit 724/724, jest 12 bộ / 73, `tsc` sạch, eslint 0 lỗi.
+- Dữ liệu để lại: một dòng nhật ký trao đổi trên P12 ("KKiem thu 14B8 tu mobile" — chữ lặp do adb), một ghi chú nội bộ trên
+  "E2E Partner e2e_202609140420000", các dòng audit tương ứng (tạm khoá / bỏ tạm khoá / buộc đăng xuất / xem như đối tác / đặt lại mật khẩu).
+
+**Sửa kèm phía web (Ngài cho phép 6/10):** `AdminPartnersPage` → "Sửa hồ sơ": chiết khấu riêng nhập theo **%** (0–100, chấp nhận dấu
+phẩy), đổi sang tỉ lệ 0–1 khi gửi; ngoài khoảng thì báo lỗi dưới ô và khoá nút Lưu; ô thống kê hiện 1 chữ số thập phân (7,5% không còn
+làm tròn thành 8%). REAL BROWSER (Playwright, `gymcoach-web-dev` đã khởi động lại, admin, "E2E Partner e2e_202609140420000"): nhập 8 →
+DB `0.08`, ô "Chiết khấu riêng 8%"; mở lại → ô điền sẵn "8"; nhập 800 → lỗi "Chiết khấu riêng phải từ 0 đến 100%" + nút Lưu bị khoá; xoá
+trống → lưu → DB về null. `vite build` thành công. Backend vẫn không tự kiểm tra khoảng (chưa sửa, ngoài phạm vi được cho phép).

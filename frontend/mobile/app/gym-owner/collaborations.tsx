@@ -40,6 +40,7 @@ import {
   collabRows,
   gymCollabStatus,
   isBrandOwner,
+  isManagerAccount,
   ownedGyms,
   sortCollabsForOwner,
 } from "../../src/features/gymOwner/gymOwner";
@@ -75,16 +76,23 @@ export default function GymOwnerCollaborationsScreen() {
   const [respondTo, setRespondTo] = useState<CollabRow | null>(null);
   const [counter, setCounter] = useState<RateForm>(DEFAULT_RATES);
 
-  const query = useQuery({ queryKey: ["owner-collaborations", uid], queryFn: () => collaborationService.listForOwner() });
-  const rows = sortCollabsForOwner(collabRows(query.data));
-
-  const gymsQuery = useQuery({ queryKey: ["owned-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
-  const gyms = ownedGyms(gymsQuery.data);
   const statusQuery = useQuery({
     queryKey: ["partner-onboarding-status", uid],
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const isOwner = isBrandOwner(statusQuery.data);
+  // GET /owner/collaborations is OWNER-only (403 OWNER_ROLE_REQUIRED); web hides the page from a manager.
+  const manager = isManagerAccount(statusQuery.data);
+
+  const query = useQuery({
+    queryKey: ["owner-collaborations", uid],
+    queryFn: () => collaborationService.listForOwner(),
+    enabled: statusQuery.isSuccess && !manager,
+  });
+  const rows = sortCollabsForOwner(collabRows(query.data));
+
+  const gymsQuery = useQuery({ queryKey: ["owned-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
+  const gyms = ownedGyms(gymsQuery.data);
 
   const ptsQuery = useQuery({
     queryKey: ["pt-directory"],
@@ -220,8 +228,10 @@ export default function GymOwnerCollaborationsScreen() {
           </Button>
         ) : null}
 
-        {query.isLoading ? (
+        {statusQuery.isLoading || query.isLoading ? (
           <ActivityIndicator className="mt-6" color={accent.primary} />
+        ) : manager ? (
+          <EmptyState icon={Handshake} title="Chỉ dành cho chủ phòng gym" description="Hợp tác với huấn luyện viên do chủ phòng gym quản lý." />
         ) : query.isError ? (
           <Text className="font-body text-sm text-destructive">
             Không tải được danh sách hợp tác. Kéo xuống để thử lại.

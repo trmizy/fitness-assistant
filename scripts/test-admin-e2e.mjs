@@ -84,7 +84,6 @@ async function run() {
     process.exit(1);
   }
 
-  const workflows = await call('/admin/workflows', { token: admin.token });
 
   const appBuild = [];
   for (const actor of PT_FLOW_USERS) {
@@ -232,20 +231,6 @@ async function run() {
   const output = {
     success: true,
     baseUrl: BASE_URL,
-    n8nWorkflowsTest: {
-      endpoint: '/admin/workflows',
-      status: workflows.status,
-      ok: workflows.ok,
-      summary: workflows.body?.data
-        ? {
-            total: workflows.body.data.total,
-            active: workflows.body.data.active,
-            inactive: workflows.body.data.inactive,
-            workflowsIsArray: Array.isArray(workflows.body.data.workflows),
-          }
-        : null,
-      error: workflows.body?.error || null,
-    },
     ptApplicationBuild: appBuild,
     ptReviewFlow: reviewDetails,
     approvedUserRoleAfterApprove: approvedLogin.user?.role || null,

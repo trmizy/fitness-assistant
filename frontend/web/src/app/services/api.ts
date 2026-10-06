@@ -39,7 +39,7 @@ export function gymPhotoUrl(fileName: string, url?: string | null): string {
 // through THIS instance. Its request interceptor is what reads the token correctly (via
 // @capacitor/preferences); reaching for a bare `axios` import and `localStorage.getItem`
 // instead skips both, silently sends every request unauthenticated, and is exactly what put
-// AdminDashboard.tsx and AdminWorkflowStudio.tsx into a permanent "failed to load" state.
+// AdminDashboard.tsx into a permanent "failed to load" state.
 export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -694,6 +694,12 @@ export const workoutService = {
 
   getHistory: async (page: number = 1, limit: number = 50) => {
     const { data } = await api.get(`/workouts?page=${page}&limit=${limit}`);
+    return data;
+  },
+
+  /** `GET /workouts?startDate&endDate` — fitness-service filters by date (newest first). */
+  getInRange: async (startDate: string, endDate: string, limit: number = 200) => {
+    const { data } = await api.get("/workouts", { params: { startDate, endDate, limit } });
     return data;
   },
 
@@ -3875,47 +3881,6 @@ export const adminService = {
     return data?.data ?? data;
   },
 
-  getWorkflowMeta: async () => {
-    const { data } = await api.get("/admin/workflows/meta");
-    return data;
-  },
-
-  getStudioAuthState: async () => {
-    const { data } = await api.get("/admin/workflows/studio-auth-state", {
-      withCredentials: true,
-    });
-    return data;
-  },
-
-  listWorkflows: async () => {
-    const { data } = await api.get("/admin/workflows");
-    return data;
-  },
-
-  getWorkflowExecutions: async (workflowId: string, limit = 20) => {
-    const { data } = await api.get(
-      `/admin/workflows/${workflowId}/executions?limit=${limit}`,
-    );
-    return data;
-  },
-
-  getExecutionDetail: async (executionId: string) => {
-    const { data } = await api.get(
-      `/admin/workflows/executions/${executionId}`,
-    );
-    return data;
-  },
-
-  runSmokeTest: async () => {
-    const { data } = await api.post("/admin/workflows/smoke-test", {});
-    return data;
-  },
-
-  setupSampleWorkflows: async () => {
-    const { data } = await api.post("/admin/workflows/setup-samples", {});
-    return data;
-  },
-
   listPTProfiles: async () => {
     const { data } = await api.get("/profile/pts");
     return data;
@@ -3930,15 +3895,6 @@ export const adminService = {
     const { data } = await api.patch(
       `/profile/admin/users/${userId}/pt-status`,
       { isPT },
-    );
-    return data;
-  },
-
-  runFullSystemTest: async () => {
-    const { data } = await api.post(
-      "/admin/workflows/full-system-test",
-      {},
-      { timeout: 120000 },
     );
     return data;
   },
@@ -4432,8 +4388,10 @@ export const nutritionService = {
     const { data } = await api.post("/nutrition", log);
     return data;
   },
+  // GAP-25 (4/10): PATCH — the only method fitness-service routes for /nutrition/:id; PUT 404'd
+  // ("Cannot PUT"), so editing a log never saved.
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {

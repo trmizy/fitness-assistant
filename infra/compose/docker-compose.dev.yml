@@ -110,12 +110,6 @@ services:
       CHAT_SERVICE_URL: http://chat-service:3005
       PAYMENT_SERVICE_URL: http://payment-service:3007
       GYM_SERVICE_URL: http://gym-service:3006
-      N8N_BASE_URL: http://n8n:5678
-      N8N_EDITOR_BASE_PATH: /admin/workflows/studio
-      N8N_SMOKE_TEST_WEBHOOK_URL: http://n8n:5678/webhook/gym-smoke-test
-      N8N_E2E_WEBHOOK_URL: http://n8n:5678/webhook/gym-e2e-run
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
@@ -277,6 +271,7 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      FIREBASE_CREDENTIALS_DIR: /app/secret
       # TEMPORARY (requested to unblock local testing): this dev environment has no public
       # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
       # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
@@ -290,6 +285,10 @@ services:
       - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
+      # Mobile Phase 14.2 — Firebase service-account key for phone push (push.service.ts reads
+      # the first service_account JSON in FIREBASE_CREDENTIALS_DIR). Read-only; the folder is
+      # git-ignored and never baked into an image. Missing folder = push simply off.
+      - ../../secret:/app/secret:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -673,38 +672,6 @@ services:
     networks:
       - default
 
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: gymcoach-n8n
-    profiles:
-      - automation
-    ports:
-      - "5678:5678"
-    environment:
-      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
-      N8N_HOST: ${N8N_HOST:-localhost}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      N8N_PATH: ${N8N_PATH:-/}
-      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
-      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Ho_Chi_Minh}
-      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
-      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
-      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
-    volumes:
-      - n8n_data:/home/node/.n8n
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: "no"
-    networks:
-      - default
-
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: gymcoach-prometheus
@@ -1015,7 +982,6 @@ volumes:
   redis_data:
   qdrant_data:
   ollama_data:
-  n8n_data:
   prometheus_data:
   grafana_data:
   seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)

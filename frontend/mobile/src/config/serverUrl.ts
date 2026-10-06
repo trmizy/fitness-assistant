@@ -32,8 +32,24 @@ const STORAGE_KEY = "serverUrl";
  */
 const DEFAULT_GATEWAY_URL = "http://10.0.2.2:3000";
 
+/**
+ * Expo inlines EXPO_PUBLIC_* at build time only for the literal `process.env.EXPO_PUBLIC_X` form —
+ * a dynamic `process.env[key]` reads an empty object in a release bundle. That silently dropped
+ * every build flag in release (realtime/chat stayed off however the APK was built; dev hid it
+ * because the defaults follow __DEV__). Each key is therefore read statically, behind a getter so
+ * tests can still set process.env at runtime.
+ */
+const ENV_READERS: Record<string, () => string | undefined> = {
+  EXPO_PUBLIC_API_URL: () => process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_SOCKET_URL: () => process.env.EXPO_PUBLIC_SOCKET_URL,
+  EXPO_PUBLIC_CHAT_WS_URL: () => process.env.EXPO_PUBLIC_CHAT_WS_URL,
+  EXPO_PUBLIC_ENABLE_REALTIME: () => process.env.EXPO_PUBLIC_ENABLE_REALTIME,
+  EXPO_PUBLIC_ENABLE_CHAT: () => process.env.EXPO_PUBLIC_ENABLE_CHAT,
+  EXPO_PUBLIC_ENABLE_CHAT_WS: () => process.env.EXPO_PUBLIC_ENABLE_CHAT_WS,
+};
+
 function env(key: string): string {
-  return (process.env[key] as string | undefined)?.trim() || "";
+  return ENV_READERS[key]?.()?.trim() || "";
 }
 
 function envFlag(key: string, defaultValue: boolean): boolean {

@@ -28,7 +28,7 @@ have dedicated role-based workspaces.
 | Coaching | PT applications, contracts, client management, schedules, plan review, realtime chat |
 | Gym platform | Gym discovery and management, membership plans, trainer listings, owner workspace |
 | Commerce | Wallet, top-up and withdrawal flows, service payments, marketplace packages, provider adapters |
-| Operations | Health checks, seed data, admin monitoring, n8n automation, Prometheus/Grafana profiles, Docker test stack |
+| Operations | Health checks, seed data, admin monitoring, Prometheus/Grafana profiles, Docker test stack |
 | Mobile | Expo application sharing the same backend contracts, with offline-oriented workout logging foundations |
 
 ## Architecture
@@ -89,7 +89,7 @@ See [AI architecture](docs/ai-rag-architecture.md) and
 | Backend | Node.js, Express, TypeScript, Prisma, Zod, BullMQ, Socket.IO |
 | Data | PostgreSQL, Redis, Qdrant |
 | AI | Ollama, custom Qwen model, `nomic-embed-text`, retrieval-augmented generation |
-| Platform | Docker Compose, n8n, Prometheus, Grafana |
+| Platform | Docker Compose, Prometheus, Grafana |
 | Quality | Unit/integration tests, isolated Docker tests, external Playwright E2E harness |
 
 ## Quick Start
@@ -198,7 +198,7 @@ data/                              Catalog, RAG, research, and evaluation data
 docs/                              Architecture, operations, QA, and decision records
 fitnessassistant-playwright-e2e/   External Playwright E2E harness
 frontend/web/                      React web application
-infra/                             Compose, monitoring, n8n, and deployment assets
+infra/                             Compose, monitoring, and deployment assets
 training/                          Optional model fine-tuning research pipeline
 ```
 

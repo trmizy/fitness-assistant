@@ -360,7 +360,7 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
             <StatCard label="Chi nhánh" value={String(gyms?.length ?? 0)} />
             <StatCard label="Thương hiệu" value={brand?.name ?? "Chưa đặt tên"} />
             <StatCard label="Tài khoản" value={String(partner.accounts?.filter((a: any) => a.status === "ACTIVE").length ?? 0)} />
-            <StatCard label="Chiết khấu riêng" value={partner.commissionRateOverride != null ? `${(Number(partner.commissionRateOverride) * 100).toFixed(0)}%` : "Mức chung"} />
+            <StatCard label="Chiết khấu riêng" value={partner.commissionRateOverride != null ? `${Math.round(Number(partner.commissionRateOverride) * 1000) / 10}%` : "Mức chung"} />
           </div>
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-zinc-500">Email liên hệ</span><span className="text-zinc-300">{partner.contactEmail ?? "—"}</span></div>
@@ -422,16 +422,25 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
   const [form, setForm] = useState({
     legalName: partner.legalName ?? "", contactEmail: partner.contactEmail ?? "", contactPhone: partner.contactPhone ?? "",
     taxCode: partner.taxCode ?? "", businessLicenseNo: partner.businessLicenseNo ?? "",
-    commissionRateOverride: partner.commissionRateOverride != null ? String(partner.commissionRateOverride) : "",
+    // Typed as a PERCENT (e.g. "8"); stored as a 0–1 fraction. The box used to take the raw fraction
+    // with no check, so "8" meant to be 8% was saved as 8 (= 800%), which commission-rate.service then
+    // silently replaced with the floor rate at checkout.
+    commissionPercent: partner.commissionRateOverride != null ? String(Math.round(Number(partner.commissionRateOverride) * 10000) / 100) : "",
     expectedBranchCount: partner.expectedBranchCount != null ? String(partner.expectedBranchCount) : "",
     negotiationNotes: partner.negotiationNotes ?? "",
   });
+  const commissionText = form.commissionPercent.trim().replace(",", ".");
+  const commissionPct = commissionText ? Number(commissionText) : null;
+  const commissionError =
+    commissionPct != null && (!Number.isFinite(commissionPct) || commissionPct < 0 || commissionPct > 100)
+      ? "Chiết khấu riêng phải từ 0 đến 100%"
+      : null;
   const saveMutation = useMutation({
     mutationFn: () =>
       adminService.updatePartner(partner.id, {
         legalName: form.legalName.trim(), contactEmail: form.contactEmail.trim(), contactPhone: form.contactPhone.trim() || null,
         taxCode: form.taxCode.trim() || null, businessLicenseNo: form.businessLicenseNo.trim() || null,
-        commissionRateOverride: form.commissionRateOverride ? Number(form.commissionRateOverride) : null,
+        commissionRateOverride: commissionPct == null ? null : Math.round(commissionPct * 100) / 10000,
         expectedBranchCount: form.expectedBranchCount ? Number(form.expectedBranchCount) : null,
         negotiationNotes: form.negotiationNotes.trim() || null,
       }),
@@ -454,12 +463,13 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
         <input value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} placeholder="Email" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
         <input value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} placeholder="Điện thoại" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
         <input value={form.taxCode} onChange={(e) => setForm({ ...form, taxCode: e.target.value })} placeholder="Mã số thuế" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
-        <input value={form.commissionRateOverride} onChange={(e) => setForm({ ...form, commissionRateOverride: e.target.value })} placeholder="Chiết khấu riêng (0-1)" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
+        <input value={form.commissionPercent} onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })} inputMode="decimal" placeholder="Chiết khấu riêng (%) — trống = mức chung" title="Nhập theo phần trăm, ví dụ 8 = 8%" className={`px-3 py-2 bg-zinc-800 border rounded-lg text-sm text-zinc-200 ${commissionError ? "border-red-500/60" : "border-zinc-700/60"}`} />
         <input value={form.expectedBranchCount} onChange={(e) => setForm({ ...form, expectedBranchCount: e.target.value })} placeholder="Số chi nhánh dự kiến" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
       </div>
+      {commissionError && <p className="text-xs text-red-400">{commissionError}</p>}
       <textarea value={form.negotiationNotes} onChange={(e) => setForm({ ...form, negotiationNotes: e.target.value })} placeholder="Ghi chú đàm phán" rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
       <div className="flex gap-2">
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !!commissionError} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
           {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Lưu
         </button>
         <button onClick={() => setExpanded(false)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">Huỷ</button>

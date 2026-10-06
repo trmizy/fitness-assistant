@@ -29,6 +29,7 @@ import {
   EMPTY_BRANCH_FORM,
   isApplicant,
   isBrandOwner,
+  isManagerAccount,
   memberLabel,
   membershipMix,
   needsBrandFirst,
@@ -111,6 +112,12 @@ describe("access state gate", () => {
     // Status not loaded yet: web shows the owner controls, and the server refuses a manager
     // anyway — so the default must match web rather than hiding a real owner's own buttons.
     assert.equal(isBrandOwner(undefined), true);
+  });
+
+  it("isManagerAccount is only true once the status says MANAGER (owner-only money/collab surfaces)", () => {
+    assert.equal(isManagerAccount({ role: "MANAGER" }), true);
+    assert.equal(isManagerAccount({ role: "OWNER" }), false);
+    assert.equal(isManagerAccount(undefined), false);
   });
 });
 

@@ -14,6 +14,7 @@ import {
   type WorkspaceTab,
 } from "../../src/components/navigation/WorkspaceTabs";
 import { AiCoachFab } from "../../src/features/coach/AiCoachFab";
+import { ResumePendingCheckout } from "../../src/features/payments/ResumePendingCheckout";
 
 /**
  * Client workspace — the app's largest actor.
@@ -59,10 +60,12 @@ export default function ClientLayout() {
               "plans",
               "roadmap",
               "ai-coach",
+              "payments",
             ]}
             fullScreenRoutes={["onboarding", "ai-coach"]}
           />
           <AiCoachFab />
+          <ResumePendingCheckout />
         </View>
       </RequireOnboarding>
     </RequireRole>

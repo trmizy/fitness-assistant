@@ -1,4 +1,4 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,9 @@ import {
   CircleCheck,
   CircleX,
   FileText,
+  Handshake,
+  Landmark,
+  LogOut,
   ScanLine,
   TriangleAlert,
   UserCheck,
@@ -20,6 +23,7 @@ import {
 import { Badge, Button, Card, CountUp, Stagger, StaggerItem, Tappable } from "../../src/components/ui";
 import { adminPartnerApplications, adminService } from "../../src/services/api";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { useApp } from "../../src/context/AppContext";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import {
@@ -81,6 +85,15 @@ function Metric({
 export default function AdminDashboardScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
+  const { logout, user } = useApp();
+
+  // Không gian quản trị không có tab Hồ sơ (4 tab theo bản thiết kế), nên đây là lối đăng xuất duy
+  // nhất — trước Phase 13 nó nằm trên màn giữ chỗ, dựng màn Tổng quan thật đã làm mất nó.
+  const confirmLogout = () =>
+    Alert.alert("Đăng xuất?", user?.email ? `Bạn đang đăng nhập bằng ${user.email}.` : undefined, [
+      { text: "Không", style: "cancel" },
+      { text: "Đăng xuất", style: "destructive", onPress: () => void logout() },
+    ]);
 
   const query = useQuery({ queryKey: ["admin-dashboard"], queryFn: () => adminService.getDashboard() });
   const withdrawalsQuery = useQuery({
@@ -133,7 +146,17 @@ export default function AdminDashboardScreen() {
             <Text className="font-display text-xl text-foreground">Tổng quan</Text>
             <Text className="mt-0.5 font-body text-xs capitalize text-muted-foreground">{today}</Text>
           </View>
-          {health ? <Badge tone={health.tone}>{health.label}</Badge> : null}
+          <View className="items-end gap-2">
+            <Tappable
+              accessibilityLabel="Đăng xuất"
+              hitSlop={8}
+              onPress={confirmLogout}
+              className="h-9 w-9 items-center justify-center rounded-full border border-border bg-panel"
+            >
+              <LogOut size={16} color={designTokens.mutedForeground} />
+            </Tappable>
+            {health ? <Badge tone={health.tone}>{health.label}</Badge> : null}
+          </View>
         </View>
 
         {query.isLoading ? (
@@ -228,6 +251,28 @@ export default function AdminDashboardScreen() {
                 <Metric icon={FileText} label="Hợp đồng đang hiệu lực" value={kpis.activeContracts} />
                 <Metric icon={CalendarCheck} label="Buổi tập hôm nay" value={kpis.sessionsToday} />
               </View>
+            </StaggerItem>
+
+            {/* 14B.8 (PG-D1/D2) — web's "Đối tác" and "Tài chính" pages. */}
+            <StaggerItem>
+              <Card className="overflow-hidden p-0">
+                <Tappable accessibilityLabel="Đối tác" onPress={() => router.push("/admin/partners" as never)} className="flex-row items-center gap-3 p-4">
+                  <Handshake size={17} color={accent.primary} />
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-body-semibold text-sm text-foreground">Đối tác</Text>
+                    <Text className="font-body text-xs text-muted-foreground">Tạm khoá, chấm dứt, tài khoản, giấy tờ, nhật ký</Text>
+                  </View>
+                  <ChevronRight size={16} color={designTokens.mutedForeground} />
+                </Tappable>
+                <Tappable accessibilityLabel="Tài chính" onPress={() => router.push("/admin/finance" as never)} className="flex-row items-center gap-3 border-t border-border p-4">
+                  <Landmark size={17} color={accent.primary} />
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-body-semibold text-sm text-foreground">Tài chính</Text>
+                    <Text className="font-body text-xs text-muted-foreground">Thu, chi, doanh thu ròng, đối soát</Text>
+                  </View>
+                  <ChevronRight size={16} color={designTokens.mutedForeground} />
+                </Tappable>
+              </Card>
             </StaggerItem>
 
             {alerts.length > 0 ? (

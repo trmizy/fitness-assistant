@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { Gavel, HandCoins, MessageSquareWarning, ReceiptText, TriangleAlert } from "lucide-react-native";
 
 import {
@@ -23,6 +22,7 @@ import { formatVND } from "../../src/utils/currency";
 import { friendlyError } from "../../src/features/partnerApplication/partnerApplication";
 import { money, parseAmountInput } from "../../src/features/wallet/wallet";
 import { gymRows } from "../../src/features/admin/adminGyms";
+import { ComplaintSheet } from "../../src/features/admin/ComplaintSheet";
 import {
   COMPLAINT_FILTERS,
   COMPLAINT_ISSUE_LABEL,
@@ -31,8 +31,6 @@ import {
   DISPUTE_TYPE_LABEL,
   MEMBERSHIP_REFUND_REASONS,
   RULINGS,
-  complaintNextSteps,
-  complaintResponseError,
   complaintRows,
   disputeRows,
   membershipIdError,
@@ -290,29 +288,11 @@ function RefundCase({ order }: { order: RefundOrder }) {
 
 // ── 3. Khiếu nại phòng gym ────────────────────────────────────────────────────────────────────
 
-function ComplaintPhoto({ token }: { token: string }) {
-  const q = useQuery({
-    queryKey: ["admin-complaint-photo", token],
-    queryFn: () => adminService.fetchComplaintPhotoFile(token),
-    staleTime: Infinity,
-  });
-  return q.data ? (
-    <Image source={{ uri: q.data }} contentFit="cover" style={{ width: 88, height: 88, borderRadius: 10 }} />
-  ) : (
-    <View className="h-[88px] w-[88px] items-center justify-center rounded-[10px] bg-panel">
-      {q.isError ? <Text className="font-body text-[10px] text-muted-foreground">Lỗi ảnh</Text> : <ActivityIndicator />}
-    </View>
-  );
-}
-
 function Complaints() {
-  const toast = useToast();
-  const fail = useFail();
   const qc = useQueryClient();
   const accent = useWorkspaceAccent();
   const [filter, setFilter] = useState("OPEN");
   const [selected, setSelected] = useState<Complaint | null>(null);
-  const [response, setResponse] = useState("");
 
   const q = useQuery({
     queryKey: ["admin-complaints", filter],
@@ -321,17 +301,6 @@ function Complaints() {
   const gymsQuery = useQuery({ queryKey: ["admin-gyms-all"], queryFn: () => adminService.listGymsForAdmin() });
   const gymName = new Map(gymRows(gymsQuery.data).map((g) => [g.id, g.approvedName ?? g.name]));
   const rows = complaintRows(q.data);
-
-  const update = useMutation({
-    mutationFn: (status: "IN_PROGRESS" | "RESOLVED") =>
-      adminService.updateComplaintStatus(selected!.id, { status, ...(response.trim() ? { adminResponse: response.trim() } : {}) }),
-    onSuccess: async (_r, status) => {
-      toast.show(status === "RESOLVED" ? "Đã đóng khiếu nại" : "Đã nhận xử lý", "success");
-      setSelected(null);
-      await qc.invalidateQueries({ queryKey: ["admin-complaints"] });
-    },
-    onError: (e) => fail(e, "Không cập nhật được khiếu nại"),
-  });
 
   return (
     <>
@@ -351,10 +320,7 @@ function Complaints() {
             <Tappable
               key={c.id}
               accessibilityLabel="Mở khiếu nại"
-              onPress={() => {
-                setResponse(c.adminResponse ?? "");
-                setSelected(c);
-              }}
+              onPress={() => setSelected(c)}
             >
               <Card className="gap-1.5 p-4">
                 <View className="flex-row items-start justify-between gap-2">
@@ -375,56 +341,12 @@ function Complaints() {
         })
       )}
 
-      <BottomSheet open={!!selected} onClose={() => setSelected(null)} title="Khiếu nại">
-        {selected ? (
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
-            <View className="gap-1">
-              <Text className="font-body-semibold text-sm text-foreground">{gymName.get(selected.gymId) ?? "Phòng gym"}</Text>
-              <Text className="font-body text-xs text-muted-foreground">
-                {COMPLAINT_ISSUE_LABEL[selected.issueType] ?? selected.issueType} ·{" "}
-                {COMPLAINT_SOURCE_LABEL[selected.source] ?? selected.source}
-              </Text>
-            </View>
-            <Text className="font-body text-sm leading-5 text-foreground">{selected.description}</Text>
-            {Array.isArray(selected.photoTokens) && selected.photoTokens.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {selected.photoTokens.map((t: string) => (
-                  <ComplaintPhoto key={t} token={t} />
-                ))}
-              </ScrollView>
-            ) : null}
-            {complaintNextSteps(selected.status).length > 0 ? (
-              <>
-                <Input
-                  label="Phản hồi cho đối tác"
-                  value={response}
-                  onChangeText={setResponse}
-                  multiline
-                  numberOfLines={3}
-                  placeholder="Kết quả xử lý, yêu cầu khắc phục…"
-                  placeholderTextColor={inputPlaceholderColor}
-                />
-                {complaintNextSteps(selected.status).map((s) => (
-                  <Button
-                    key={s.value}
-                    variant={s.value === "RESOLVED" ? "primary" : "secondary"}
-                    disabled={!!complaintResponseError(s.value, response) || update.isPending}
-                    onPress={() => update.mutate(s.value)}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-                <Text className="font-body text-[11px] text-muted-foreground">Đã xử lý là điểm cuối — không mở lại được.</Text>
-              </>
-            ) : (
-              <View className="gap-1 rounded-xl bg-panel p-3">
-                <Text className="font-body text-xs text-muted-foreground">Xử lý xong lúc {when(selected.resolvedAt)}</Text>
-                {selected.adminResponse ? <Text className="font-body text-xs text-foreground">{selected.adminResponse}</Text> : null}
-              </View>
-            )}
-          </ScrollView>
-        ) : null}
-      </BottomSheet>
+      <ComplaintSheet
+        complaint={selected}
+        gymName={selected ? gymName.get(selected.gymId) : undefined}
+        onClose={() => setSelected(null)}
+        onUpdated={() => qc.invalidateQueries({ queryKey: ["admin-complaints"] })}
+      />
     </>
   );
 }

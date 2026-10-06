@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ImageIcon,
   Pencil,
+  Plus,
   ScanLine,
   TrendingDown,
   TrendingUp,
@@ -26,7 +27,10 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { inbodyService } from "../../../src/services/api";
+import { inbodyService, profileService } from "../../../src/services/api";
+import { useApp } from "../../../src/context/AppContext";
+import { bodyBalance, gaugePosition, type BalanceRow } from "../../../src/features/inbody/bodyBalance";
+import { darkColors, designTokens } from "../../../src/theme/colors";
 import { haptics } from "../../../src/lib/haptics";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
@@ -59,7 +63,8 @@ import {
  * the same two doors web's `<input type="file" accept="image/*">` opens on a phone.
  */
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const TABS = ["Tổng quan", "So sánh"] as const;
+// 14B.7 (PG-C3) — "Lịch sử" lists every scan, as web's history tab does.
+const TABS = ["Tổng quan", "So sánh", "Lịch sử"] as const;
 
 export default function InBodyScreen() {
   const accent = useWorkspaceAccent();
@@ -87,6 +92,14 @@ export default function InBodyScreen() {
       );
     }, [queryClient]),
   );
+
+  // Gender + height for the reference ranges — same key as the dashboard, so it is usually cached.
+  const { user } = useApp();
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => (await profileService.getProfile()).profile,
+    enabled: !!user?.id,
+  });
 
   const history = useMemo(() => normalizeHistory(historyQuery.data), [historyQuery.data]);
   const latest = history[0] ?? null;
@@ -185,6 +198,7 @@ export default function InBodyScreen() {
         >
           {tab === "Tổng quan" ? (
             <Overview
+              profile={profileQuery.data as any}
               latest={latest}
               previous={previous}
               history={history}
@@ -193,8 +207,10 @@ export default function InBodyScreen() {
               onPickImage={() => void upload("library")}
               onManual={() => router.push("/client/inbody/entry")}
             />
-          ) : (
+          ) : tab === "So sánh" ? (
             <Compare history={history} />
+          ) : (
+            <HistoryList history={history} onAdd={() => router.push("/client/inbody/entry")} />
           )}
         </ScrollView>
       )}
@@ -203,6 +219,7 @@ export default function InBodyScreen() {
 }
 
 function Overview({
+  profile,
   latest,
   previous,
   history,
@@ -211,6 +228,7 @@ function Overview({
   onPickImage,
   onManual,
 }: {
+  profile?: { gender?: string | null; heightCm?: number | null } | null;
   latest: InBodyEntry | null;
   previous: InBodyEntry | null;
   history: InBodyEntry[];
@@ -304,6 +322,8 @@ function Overview({
         </View>
       ) : null}
 
+      {latest ? <BodyBalanceCard entry={latest} profile={profile} /> : null}
+
       {/* Segmental lean/fat — web shows this and mobile did not, which was a parity hole, not a
           decision. Only drawn when the sheet actually carried the numbers: a manual entry or a
           bathroom scale has none, and empty limbs would read as zeros. */}
@@ -317,7 +337,14 @@ function Overview({
       {history.length > 1 ? (
         <Card className="p-4">
           <Text className="font-display mb-3 text-base text-foreground">Cân nặng qua các lần đo</Text>
-          <TrendBars entries={history} />
+          <TrendBars entries={history} metric="weight" />
+        </Card>
+      ) : null}
+      {/* 14B.7 (PG-C3) — web's "Xu hướng mỡ cơ thể" (fat mass, kg). */}
+      {history.filter((h) => h.bodyFat > 0).length > 1 ? (
+        <Card className="p-4">
+          <Text className="font-display mb-3 text-base text-foreground">Xu hướng mỡ cơ thể (kg)</Text>
+          <TrendBars entries={history.filter((h) => h.bodyFat > 0)} metric="bodyFat" color={designTokens.warning} />
         </Card>
       ) : null}
 
@@ -465,10 +492,10 @@ function SegmentLabel({
 }
 
 /** Oldest → newest, so the bars read left-to-right like a timeline. */
-function TrendBars({ entries }: { entries: InBodyEntry[] }) {
+function TrendBars({ entries, metric, color }: { entries: InBodyEntry[]; metric: "weight" | "bodyFat"; color?: string }) {
   const accent = useWorkspaceAccent();
   const points = [...entries].slice(0, 8).reverse();
-  const values = points.map((p) => p.weight);
+  const values = points.map((p) => p[metric]);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min || 1;
@@ -477,10 +504,10 @@ function TrendBars({ entries }: { entries: InBodyEntry[] }) {
     <View className="flex-row items-end justify-between gap-2">
       {points.map((point, index) => {
         // A floor of 18% keeps the smallest bar readable instead of collapsing it to a line.
-        const height = 18 + ((point.weight - min) / span) * 82;
+        const height = 18 + ((point[metric] - min) / span) * 82;
         return (
           <View key={point.id} className="flex-1 items-center gap-1.5">
-            <Text className="font-body text-[10px] text-muted-foreground">{point.weight}</Text>
+            <Text className="font-body text-[10px] text-muted-foreground">{oneDecimal(point[metric])}</Text>
             {/* A fixed height, not flex-1: the row aligns to its baseline (items-end), so a flexed
                 column takes its height from its content — and a percentage height inside it resolves
                 to zero. The bars were invisible until this was a real number. */}
@@ -488,7 +515,7 @@ function TrendBars({ entries }: { entries: InBodyEntry[] }) {
               <Animated.View
                 entering={FadeIn.delay(index * 60).duration(260)}
                 className="w-full rounded-md"
-                style={{ height: `${height}%`, backgroundColor: `${accent.primary}b3` }}
+                style={{ height: `${height}%`, backgroundColor: `${color ?? accent.primary}b3` }}
               />
             </View>
             <Text className="font-body text-[10px] text-muted-foreground">
@@ -497,6 +524,123 @@ function TrendBars({ entries }: { entries: InBodyEntry[] }) {
           </View>
         );
       })}
+    </View>
+  );
+}
+
+/**
+ * 14B.7 (PG-C3) — web's "Cân bằng cơ thể" radar, redone against published reference ranges (Ngài 5/10):
+ * each rated metric is a Thấp / Chuẩn / Cao gauge with a marker, like the bars on a real InBody sheet.
+ * Ranges and sources: src/features/inbody/bodyBalance.ts.
+ */
+function BodyBalanceCard({ entry, profile }: { entry: InBodyEntry; profile?: { gender?: string | null; heightCm?: number | null } | null }) {
+  const { rows, missing } = bodyBalance(entry, profile);
+  if (rows.length === 0 && missing.length === 0) return null;
+  return (
+    <Card className="gap-4 p-4">
+      <View>
+        <Text className="font-display text-base text-foreground">Cân bằng cơ thể</Text>
+        <Text className="font-body text-xs text-muted-foreground">Lần đo mới nhất, đối chiếu với khoảng tham chiếu</Text>
+      </View>
+      {rows.map((row) => (
+        <BalanceGauge key={row.key} row={row} />
+      ))}
+      {missing.map((m) => (
+        <Text key={m} className="font-body text-xs text-muted-foreground">{`Chưa đánh giá được ${m}`}</Text>
+      ))}
+      <Text className="font-body text-[11px] leading-4 text-muted-foreground">
+        Chỉ để tham khảo, không phải chẩn đoán. Máy đo trở kháng (InBody) có sai số theo lượng nước, bữa ăn và giờ đo.
+      </Text>
+    </Card>
+  );
+}
+
+function BalanceGauge({ row }: { row: BalanceRow }) {
+  const accent = useWorkspaceAccent();
+  const [lo, hi] = row.scale;
+  const span = hi - lo;
+  const lowPart = Math.max(0, (row.normal[0] - lo) / span);
+  const normalPart = Math.max(0, (Math.min(row.normal[1], hi) - Math.max(row.normal[0], lo)) / span);
+  const pos = gaugePosition(row.value, row.scale);
+  const tone = row.verdict === "normal" ? "success" : row.verdict === "low" ? "info" : row.verdict === "high" ? "warning" : "danger";
+  const markerColor =
+    row.verdict === "normal"
+      ? accent.primary
+      : row.verdict === "low"
+        ? designTokens.mutedForeground
+        : row.verdict === "high"
+          ? designTokens.warning
+          : darkColors.destructive;
+  return (
+    <View className="gap-1.5">
+      <View className="flex-row items-center justify-between gap-2">
+        <Text className="min-w-0 flex-1 font-body text-sm text-muted-foreground" numberOfLines={1}>
+          {`${row.label} · `}
+          <Text className="font-body-semibold text-foreground">{row.valueText}</Text>
+        </Text>
+        <Badge tone={tone}>{row.verdictLabel}</Badge>
+      </View>
+      <View className="h-2.5 justify-center">
+        <View className="h-2 flex-row overflow-hidden rounded-full">
+          <View className="bg-panel" style={{ flex: lowPart }} />
+          <View style={{ flex: normalPart, backgroundColor: `${accent.primary}66` }} />
+          <View style={{ flex: Math.max(0, 1 - lowPart - normalPart), backgroundColor: `${designTokens.warning}40` }} />
+        </View>
+        <View
+          className="absolute h-4 w-4 rounded-full border-2 border-card"
+          style={{ left: `${pos * 100}%`, marginLeft: -8, backgroundColor: markerColor }}
+        />
+      </View>
+      <Text className="font-body text-[11px] text-muted-foreground">{row.note}</Text>
+    </View>
+  );
+}
+
+/** Stored readings carry float noise (98.60000000000001); show one decimal. */
+function oneDecimal(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** 14B.7 (PG-C3) — every scan, newest first (web's history table, as cards for a phone). */
+function HistoryList({ history, onAdd }: { history: InBodyEntry[]; onAdd: () => void }) {
+  return (
+    <View className="gap-3">
+      <View className="flex-row items-center justify-between">
+        <Text className="font-display text-base text-foreground">{`Lịch sử đo (${history.length})`}</Text>
+        <Button size="sm" variant="ghost" icon={Plus} onPress={onAdd}>
+          Thêm mới
+        </Button>
+      </View>
+      {history.length === 0 ? (
+        <Text className="font-body text-sm text-muted-foreground">Chưa có lần đo nào.</Text>
+      ) : (
+        history.map((h, i) => (
+          <Card key={h.id} className={`gap-2 p-4 ${i === 0 ? "border-primary/40" : ""}`}>
+            <View className="flex-row items-center justify-between gap-2">
+              <Text className="font-body-semibold text-sm text-foreground">
+                {`${h.dateOnly.slice(8, 10)}/${h.dateOnly.slice(5, 7)}/${h.dateOnly.slice(0, 4)}`}
+              </Text>
+              <View className="flex-row gap-1.5">
+                {i === 0 ? <Badge tone="success">Mới nhất</Badge> : null}
+                <Badge tone={h.status === "extracted" ? "info" : "neutral"}>{h.status === "extracted" ? "Đọc từ ảnh" : "Nhập tay"}</Badge>
+              </View>
+            </View>
+            <View className="flex-row justify-between">
+              {[
+                ["Cân nặng", `${oneDecimal(h.weight)} kg`],
+                ["Cơ bắp", `${oneDecimal(h.muscleMass)} kg`],
+                ["Mỡ", `${oneDecimal(h.bodyFat)} kg`],
+                ["% Mỡ", h.bodyFatPct != null ? `${oneDecimal(h.bodyFatPct)}%` : "—"],
+              ].map(([label, value]) => (
+                <View key={label} className="items-center">
+                  <Text className="font-body text-[11px] text-muted-foreground">{label}</Text>
+                  <Text className="font-body-semibold text-sm text-foreground">{value}</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
+        ))
+      )}
     </View>
   );
 }

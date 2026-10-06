@@ -167,3 +167,8 @@ fitnessassistant-playwright-e2e/
 # Địa chỉ tunnel web hiện tại (Khoi-dong-Tunnel-Web.bat ghi, gateway đọc) — chỉ có ý nghĩa trên máy này
 infra/compose/runtime/*
 !infra/compose/runtime/.gitkeep
+
+# Khoá tài khoản dịch vụ Firebase (gửi thông báo đẩy, Phase 14.2) — bí mật, không bao giờ commit
+secret/
+secrets/
+*-firebase-adminsdk-*.json

@@ -80,6 +80,11 @@ export default function PartnerApplyScreen() {
                 được — hãy dùng một email khác.
               </Text>
             </Card>
+
+            {/* 14B.6 (PG-B9) — someone invited to MANAGE a branch does not apply; they accept the invite. */}
+            <Button variant="ghost" className="mt-3" onPress={() => router.push("/partner/invite")}>
+              Tôi được mời làm quản lý chi nhánh
+            </Button>
           </>
         ) : (
           <Card className="gap-3 p-5">

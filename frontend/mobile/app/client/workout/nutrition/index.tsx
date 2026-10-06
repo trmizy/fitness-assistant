@@ -7,7 +7,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import {
   ChevronLeft,
   Coffee,
-  Compass,
   Flame,
   Moon,
   Plus,
@@ -47,6 +46,14 @@ import {
   type MealType,
 } from "../../../../src/features/nutrition/nutritionMath";
 import { BeginnerNutritionSummary } from "../../../../src/components/nutrition/BeginnerNutritionSummary";
+import { dayFeedback, planMealFor, weeklyCalories } from "../../../../src/features/nutrition/mealPlan";
+import {
+  DayFeedbackCard,
+  EditLogSheet,
+  GoalPlanMismatchBanner,
+  PlanMealCard,
+  WeeklyCaloriesCard,
+} from "../../../../src/features/nutrition/MealPlanParts";
 
 /**
  * CL-03 — the nutrition day.
@@ -65,6 +72,10 @@ import { BeginnerNutritionSummary } from "../../../../src/components/nutrition/B
  *
  * Route: under the Tập luyện tab, per doc 08 §4.2 and Ngài's 2026-09-13 decision that nutrition is
  * sub-navigation of a larger tab rather than a tab of its own.
+ *
+ * 14B.3 — a meal type the running plan covers today shows the plan meal (server items, which already
+ * include that meal's logged foods) with web's completion / edit actions; other meal types keep the
+ * logged rows, now tappable to edit. Plus web's goal↔plan mismatch banner, day feedback and 7-day chart.
  */
 const MEAL_ICONS: Record<MealType, LucideIcon> = {
   breakfast: Coffee,
@@ -98,10 +109,24 @@ export default function NutritionScreen() {
     staleTime: 0,
   });
 
+  // Read the clock once per mount — a render-time Date.now() makes the query key drift.
+  const [weekStart] = useState(() => toDateInputValue(new Date(Date.now() - 6 * 86_400_000)));
+  const weeklyQuery = useQuery({
+    queryKey: ["nutrition-weekly"],
+    queryFn: () => nutritionService.getLogs(weekStart, today),
+  });
+  const activeStateQuery = useQuery({
+    queryKey: ["nutrition-active-state"],
+    queryFn: () => nutritionService.getActiveState(),
+  });
+  const [editLog, setEditLog] = useState<ReturnType<typeof normalizeLogs>[number] | null>(null);
+
   const { refreshing, onRefresh } = usePullToRefresh([
     ["nutrition-goal"],
     ["nutrition-logs", today],
     ["nutrition-daily-task", today],
+    ["nutrition-weekly"],
+    ["nutrition-active-state"],
   ]);
 
   // This screen stays mounted in the Tập luyện tab's Stack, so returning to it — from the add
@@ -113,6 +138,8 @@ export default function NutritionScreen() {
       void queryClient.refetchQueries({ queryKey: ["nutrition-logs", today], type: "active" }, { cancelRefetch: false });
       void queryClient.refetchQueries({ queryKey: ["nutrition-daily-task", today], type: "active" }, { cancelRefetch: false });
       void queryClient.refetchQueries({ queryKey: ["nutrition-goal"], type: "active" }, { cancelRefetch: false });
+      void queryClient.refetchQueries({ queryKey: ["nutrition-weekly"], type: "active" }, { cancelRefetch: false });
+      void queryClient.refetchQueries({ queryKey: ["nutrition-active-state"], type: "active" }, { cancelRefetch: false });
     }, [queryClient, today]),
   );
 
@@ -169,6 +196,13 @@ export default function NutritionScreen() {
   };
 
   const loading = goalQuery.isLoading || logsQuery.isLoading;
+  const planMeals = useMemo(
+    () => Object.fromEntries(MEAL_TYPES.map((m) => [m, planMealFor(dailyTask, m)])) as Record<MealType, ReturnType<typeof planMealFor>>,
+    [dailyTask],
+  );
+  const hasPlanMeals = MEAL_TYPES.some((m) => planMeals[m]);
+  const feedback = dayFeedback(goal, loggedTotals, logs.length > 0);
+  const week = useMemo(() => weeklyCalories(normalizeLogs(weeklyQuery.data)), [weeklyQuery.data]);
 
   return (
     <View className="flex-1 bg-background">
@@ -180,12 +214,6 @@ export default function NutritionScreen() {
           <ChevronLeft size={20} color="#8b9299" />
         </Tappable>
         <Text className="flex-1 font-display text-2xl text-foreground">Dinh dưỡng</Text>
-        <Tappable
-          className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-          onPress={() => router.push("/client/library")}
-        >
-          <Compass size={19} color="#8b9299" />
-        </Tappable>
         <Tappable
           className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
           onPress={() => router.push("/client/workout/nutrition/goals")}
@@ -255,6 +283,15 @@ export default function NutritionScreen() {
             </View>
           </Card>
 
+          <GoalPlanMismatchBanner
+            state={activeStateQuery.data}
+            onKeep={() =>
+              activeStateQuery.data &&
+              queryClient.setQueryData(["nutrition-active-state"], { ...activeStateQuery.data, status: "MATCHED" })
+            }
+          />
+          <DayFeedbackCard items={feedback} />
+
           {/* WB-14 — web places it between the day's totals and the program card. */}
           <BeginnerNutritionSummary dailySummary={dailyTask?.dailySummary} dateStr={today} />
 
@@ -269,7 +306,7 @@ export default function NutritionScreen() {
                   {dailyTask?.program?.name ?? "Chương trình dinh dưỡng"}
                 </Text>
                 <Text className="mt-0.5 font-body text-xs text-muted-foreground">
-                  {dailyTask?.day?.name ? `${dailyTask.day.name} · ` : ""}
+                  {dailyTask?.day?.title ?? dailyTask?.day?.name ? `${dailyTask.day.title ?? dailyTask.day.name} · ` : ""}
                   {Array.isArray(dailyTask?.meals) ? `${dailyTask.meals.length} bữa theo kế hoạch` : "Theo kế hoạch"}
                 </Text>
               </View>
@@ -285,7 +322,7 @@ export default function NutritionScreen() {
             </Tappable>
           </View>
 
-          {logs.length === 0 ? (
+          {logs.length === 0 && !hasPlanMeals ? (
             <EmptyState
               icon={UtensilsCrossed}
               title="Hôm nay chưa ghi món nào"
@@ -299,6 +336,8 @@ export default function NutritionScreen() {
                 const rows = groups[meal];
                 const Icon = MEAL_ICONS[meal];
                 const kcal = rows.reduce((sum, row) => sum + row.calories, 0);
+                const planMeal = planMeals[meal];
+                if (planMeal) return <PlanMealCard key={meal} meal={planMeal} mealType={meal} today={today} icon={Icon} />;
                 if (rows.length === 0) return null;
                 return (
                   <View key={meal}>
@@ -327,7 +366,7 @@ export default function NutritionScreen() {
                           actionIcon={Trash2}
                           onAction={() => void removeLog(row.id)}
                         >
-                          <Card className="flex-row items-center gap-3 p-3.5">
+                          <Card className="flex-row items-center gap-3 p-3.5" onPress={() => setEditLog(row)}>
                             <View className="flex-1">
                               <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
                                 {row.foodName}
@@ -350,6 +389,8 @@ export default function NutritionScreen() {
             </View>
           )}
 
+          <WeeklyCaloriesCard days={week} goal={goalCalories} />
+
           {hasProgram ? (
             <Tappable
               className="mt-6 flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5"
@@ -363,6 +404,8 @@ export default function NutritionScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      <EditLogSheet log={editLog} today={today} onClose={() => setEditLog(null)} />
 
       {/* No text input in here, so a sheet is still the right shape for it. */}
       <BottomSheet open={confirmOff} onClose={() => setConfirmOff(false)} title="Huỷ chương trình?">

@@ -27,6 +27,7 @@ import { money, parseAmountInput, withdrawFormError, withdrawalStatus } from "..
 import { BranchSwitcher } from "../../src/features/gymOwner/BranchSwitcher";
 import {
   branchName,
+  isManagerAccount,
   openWithdrawals,
   ownedGyms,
   savedPayoutLine,
@@ -62,19 +63,23 @@ export default function GymOwnerWalletScreen() {
   const active = gyms.find((g) => g.id === selectedId) ?? gyms[0] ?? null;
   const activeId = active?.id ?? "";
 
+  const onboardingQuery = useQuery({
+    queryKey: ["partner-onboarding-status", uid],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  // Wallet + withdrawals are OWNER-only on the server; a manager reaching this by link sees why.
+  const manager = isManagerAccount(onboardingQuery.data);
+  const canSeeMoney = !!activeId && onboardingQuery.isSuccess && !manager;
+
   const walletQuery = useQuery({
     queryKey: ["owned-gym-wallet", activeId],
     queryFn: () => gymService.getOwnedWallet(activeId),
-    enabled: !!activeId,
+    enabled: canSeeMoney,
   });
   const withdrawalsQuery = useQuery({
     queryKey: ["owned-gym-withdrawals", activeId],
     queryFn: () => gymService.listGymWithdrawals(activeId),
-    enabled: !!activeId,
-  });
-  const onboardingQuery = useQuery({
-    queryKey: ["partner-onboarding-status", uid],
-    queryFn: () => gymService.getOnboardingStatus(),
+    enabled: canSeeMoney,
   });
 
   const rows = withdrawalRows(withdrawalsQuery.data);
@@ -120,8 +125,12 @@ export default function GymOwnerWalletScreen() {
           <Text className="mt-0.5 font-body text-xs text-muted-foreground">Số dư và yêu cầu rút tiền theo chi nhánh</Text>
         </View>
 
-        {gymsQuery.isLoading ? (
+        {gymsQuery.isLoading || onboardingQuery.isLoading ? (
           <ActivityIndicator className="mt-10" color={accent.primary} />
+        ) : manager ? (
+          <View className="px-5 pt-8">
+            <EmptyState icon={WalletIcon} title="Chỉ dành cho chủ phòng gym" description="Ví và rút tiền của chi nhánh do chủ phòng gym quản lý." />
+          </View>
         ) : gyms.length === 0 ? (
           <View className="px-5 pt-8">
             <EmptyState icon={Building2} title="Chưa có chi nhánh nào" description="Ví xuất hiện khi bạn có chi nhánh." />

@@ -44,6 +44,7 @@ import {
 } from "./marketplace";
 import { ORDER_STATUS_LABEL, orderStatusTone } from "./personalizedOrder";
 import { FieldLabel, TextArea } from "./PlanWidgets";
+import { SellPackagesSection } from "./SellPackages";
 
 /**
  * CL-18, "Chợ kế hoạch" half — the design's three MarketSections (Cộng đồng miễn phí / Gói tập PT
@@ -605,6 +606,8 @@ function MineSection() {
           </Button>
         </View>
       </BottomSheet>
+      {/* 14B.6 (PG-B7) — a PT can sell an approved plan as a paid package (web "Gói bán" tab). */}
+      {user?.isPT || user?.role === "PT" ? <SellPackagesSection /> : null}
     </ScrollView>
   );
 }

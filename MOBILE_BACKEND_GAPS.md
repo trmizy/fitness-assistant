@@ -255,6 +255,7 @@ GAP-14 nếu backend làm mới token theo từng lần gọi thì cách vá c�
 - Mức ảnh hưởng: PARTIAL — tạo mẫu và áp mẫu vào lịch đều chạy thật; chỉ riêng chia sẻ bị hoãn.
 - Đề xuất: không cần backend mới; chỉ cần Phase 7/11 lên là nối được.
 - Trạng thái: HOÃN CÓ CHỦ ĐÍCH — không dựng ô nhập user-id tự do, vì đó là thứ không ai dùng đúng.
+- **ĐÃ ĐÓNG 5/10 (14B.6, PG-B5)** — chọn người nhận từ hợp đồng ACTIVE (cả hai chiều), kiểm máy ảo + DB (ADAPTERS §48).
 
 ## GAP-9 — InBody: thiếu `muscleMass` trả 500, và không có đường xoá phiếu đo
 
@@ -545,3 +546,159 @@ câu trả lời.
 nhãn "Gym Owner", lát "Gym owners" trong `roleData`, `status` từ `isActive`, bỏ "Pending" cho PT. Test 3 ca
 mới, gateway 41/41; `REAL HTTP/API` sau `docker compose restart api-gateway`. Chi tiết:
 `MOBILE_PLATFORM_ADAPTERS.md` §35.1. Trạng thái: **ĐÃ SỬA**.
+
+## GAP-22 — Giao dịch cổng đã huỷ vẫn nằm PENDING (Phase 14.1) — ĐÃ SỬA ý 1 (1/10), ý 2 còn mở
+
+**Thấy 28/9 khi kiểm thanh toán trên mobile** (không phải lỗi app — app hiện đúng lời server):
+
+1. Bấm **Huỷ thanh toán** trên VNPay sandbox → cổng trả về app với mã huỷ, nhưng `/payments/vnpay/return`
+   chỉ xử lý nhánh PAID; `POST /me/payments/:id/sync` hỏi VNPay thì cổng vẫn trả `PENDING`. Người dùng thấy
+   "Đang chờ xác nhận" thay vì "chưa thành công". Ví dụ: `53f0cf45…`, `30f52af2…`.
+2. **Huỷ gói hội viên đang chờ** (`/me/gym-memberships/:id/cancel`) → gói CANCELLED nhưng giao dịch cổng đi
+   kèm vẫn PENDING.
+
+**Mobile đang làm gì:** màn kết quả nói "Đang chờ xác nhận … nếu bạn đã trả tiền, kiểm tra lại sau" và có
+nút "Kiểm tra lại" — đúng như web. Không tự suy ra "thất bại" từ `status` trên deep link.
+
+**Cần Ngài quyết (backend, không gấp):** có cho `vnpay/return` ghi FAILED khi chữ ký hợp lệ và mã là huỷ
+(như nó đã ghi PAID), và cho việc huỷ gói/hợp đồng huỷ luôn giao dịch PENDING đi kèm không. Nếu không, các
+giao dịch này chỉ đóng khi quét đối soát làm hết hạn.
+
+**1/10 — Ngài cho sửa (E5), đã sửa ý 1:** `/payments/vnpay/return` có chữ ký hợp lệ và `vnp_ResponseCode` là thất bại
+dứt khoát (24 huỷ, 11 hết hạn, 09/10/12/13/79 thẻ/OTP/mật khẩu, 51 không đủ tiền, 65 vượt hạn mức, 75 ngân hàng bảo
+trì) → `failFromSignedGatewayResult` đưa giao dịch PENDING/PROCESSING sang FAILED (cùng luật tra theo cổng + khớp cổng
+như `handleEvent`). Không đụng mã 07 (đã trừ tiền nhưng bị nghi ngờ) và 99. PAID không bao giờ bị hạ; một PAID đến
+muộn vẫn lật FAILED → PAID. Test `gateway-failure-closes-checkout.integration.test.ts` 6/6 (gymcoach_payment_test, gồm
+route với chữ ký thật + chữ ký bị sửa). **Ý 2 (huỷ gói hội viên thì huỷ luôn giao dịch PENDING) chưa làm:** nếu khách
+vừa trả tiền ở cổng đúng lúc bấm huỷ gói, đánh CANCELLED giao dịch sẽ khiến PAID đến sau bị bỏ qua — cần thiết kế
+riêng (hỏi cổng trước khi huỷ), để lại.
+
+## GAP-23 — Tin nhắn "cuộc gọi đã kết thúc" luôn ghi thời lượng 0:00 (Phase 14.4) — ĐÃ SỬA 30/9
+
+**Thấy 30/9 khi kiểm gọi video máy ảo ↔ web** (web bị y hệt — không phải lỗi app): cuộc gọi dài ~2 phút vẫn sinh
+tin hệ thống "Video call ended (0:00)". `call.handler.ts` tính thời lượng bằng `endedAt − startedAt`, nhưng
+`startedAt` chỉ được ghi trong `callService.setActive()` — hàm này không có chỗ nào gọi, nên `call_sessions.status`
+cũng không bao giờ lên `ACTIVE` (đi thẳng CONNECTING → ENDED). Ví dụ: `8c82c3e0…`.
+
+**Mobile đang làm gì:** hiển thị nguyên văn tin hệ thống như web; đồng hồ trong màn gọi là đồng hồ tại máy.
+
+**Cần Ngài quyết (backend, không gấp):** thêm một sự kiện kiểu `call:connected` (client gửi khi ICE "connected")
+để server gọi `setActive`, hoặc cho server ghi `startedAt` ngay lúc chấp nhận — cả web lẫn mobile phải cùng đổi.
+Tin hệ thống còn là tiếng Anh ("Video call ended", "Missed video call").
+
+**Đã sửa 30/9 (Ngài chọn cách 2):** client gửi `call:connected` khi RTCPeerConnection lên "connected" (web
+`CallContext.tsx` + mobile `CallProvider.tsx`); chat-service `call:connected` → `callService.markConnected`: chỉ
+caller/callee được gửi; lần đầu ghi `startedAt` + `ACTIVE` bằng câu UPDATE có điều kiện `startedAt IS NULL` (hai bên
+báo cùng lúc thì chỉ một bên thắng), các lần sau (bên kia, vào lại phòng buổi học) chỉ đưa lại `ACTIVE`, không đổi
+`startedAt`; cuộc gọi đã kết thúc/còn đổ chuông không bị "hồi sinh". Cuộc gọi không bao giờ thông vẫn ghi 0:00 — đúng.
+Bản Capacitor cũ không gửi sự kiện này: nếu một bên còn bản cũ thì bên kia vẫn gửi; cả hai bản cũ thì như trước.
+Kiểm: `src/__tests__/call-connected.test.ts` 6/6 + `call-membership.test.ts` 4/4 trên `gymcoach_chat_test` (DB test
+mới tạo 30/9); gọi thật máy ảo ↔ Chrome → DB `started_at` 08:55:09, `ended_at` 08:55:26, tin "Video call ended (0:17)".
+Tin hệ thống vẫn là tiếng Anh (chưa đổi).
+
+## GAP-24 — Lý do bỏ buổi tập không bao giờ lưu được (14B.1, PG-A2) — ĐÃ SỬA 4/10 (Ngài cho phép)
+
+**Thấy 4/10 khi kiểm trên máy ảo** (web bị y hệt — cùng endpoint, không phải lỗi app): bỏ một buổi rồi chọn lý do →
+`POST /workouts/schedules/:id/feedback` luôn trả 400 "skipReason is required for a skipped/cancelled session", dù body
+có `skipReason`. Nguyên nhân (fitness-service `models/session-feedback.models.ts`): `sessionFeedbackInputSchema =
+z.union([completionFeedbackSchema, skipCancelFeedbackSchema])`. Zod thử schema "hoàn thành" trước; schema đó toàn trường
+tuỳ chọn và không `.strict()`, nên body bỏ buổi **khớp luôn** và bị lột mất `skipReason`, `shouldAdjustPlan`,
+`userAvailableMakeupDay` (parse ra `{}`). Service thấy buổi SKIPPED mà không có lý do → 400. Test hiện có không bắt được vì
+chỉ kiểm từng schema riêng và gọi service trực tiếp, bỏ qua `z.union` của controller.
+
+**Hệ quả:** lý do bỏ buổi, "muốn điều chỉnh kế hoạch", ngày tập bù chưa từng được lưu ở cả web lẫn mobile; các cờ dựa trên
+chúng trong tóm tắt phản hồi chu kỳ (bỏ buổi do bận / thiếu động lực / quá khó…) không bao giờ bật.
+
+**Bằng chứng:** REAL HTTP/API — body `{"skipReason":"schedule_conflict","shouldAdjustPlan":true,"userAvailableMakeupDay":"2026-10-06"}`
+lên buổi `5995d96e…` (SKIPPED) → 400 như trên, DB không có dòng; parse cục bộ `sessionFeedbackInputSchema` cùng body → `{}`.
+
+**Mobile đang làm gì:** hộp "Vì sao bạn bỏ buổi tập này?" giống web; bấm Lưu hiện lỗi "Không thể ghi nhận. Vui lòng chọn
+lý do." (đúng thông báo của web). Không lách ở phía app.
+
+**Đề xuất sửa (backend, 1 dòng, miền Tập luyện — cần Ngài cho phép theo quyết định Phase 0.3):** đảo thứ tự
+`z.union([skipCancelFeedbackSchema, completionFeedbackSchema])` — schema bỏ buổi bắt buộc có `skipReason` nên body hoàn
+thành vẫn rơi về schema hoàn thành — kèm một test gọi đúng `sessionFeedbackInputSchema`/controller với body bỏ buổi.
+
+**Đã sửa 4/10 (Ngài cho phép sửa backend):** `models/session-feedback.models.ts` đảo thứ tự thành
+`z.union([skipCancelFeedbackSchema, completionFeedbackSchema])` (có chú thích lý do). Web và mobile cùng được sửa vì cùng
+endpoint; không đổi client. Kiểm: `session-feedback.models.test.ts` 13/13 (thêm 3 test gọi đúng schema của controller — body bỏ
+buổi giữ đủ lý do / cờ điều chỉnh / ngày tập bù, body hoàn thành vẫn là phản hồi hoàn thành); `session-feedback.integration.test.ts`
+10/10 trên DB test mới tạo `gymcoach_fitness_test` (trước đây không có DB test cho fitness nên bộ này luôn bị bỏ qua); máy ảo:
+hytrongbeou ghi lý do cho buổi 04/10 đã bỏ → "Đã ghi nhận lý do bỏ buổi tập", DB `cycle_session_feedback` = schedule_conflict,
+should_adjust_plan = true, makeup 2026-10-06.
+
+## GAP-25 — Web: sửa nhật ký ăn luôn lỗi; sửa lượng món trong thực đơn không tính lại calo (14B.3) — ĐÃ SỬA cả web 4/10
+
+Hai lỗi của **web** (không phải backend) thấy 4/10 khi chép phần thực đơn sang mobile. Ghi ở đây vì cùng sổ theo dõi khác biệt
+web ↔ mobile; mobile không đổi backend.
+
+1. **Sửa món đã ghi (nhật ký ăn) không bao giờ lưu được.** `nutritionService.updateLog` của web gọi **PUT** `/nutrition/:id`, nhưng
+   fitness-service chỉ có `router.patch("/:id")` → 404 "Cannot PUT /nutrition/…". REAL HTTP/API: PUT → trang lỗi Express; PATCH cùng
+   body → 200, DB đổi. Mobile (bản chép của web) bị y hệt cho tới 4/10 — **đã đổi sang PATCH**, kiểm trên máy ảo: calo 100 → 95, DB
+   `nutrition_logs.updated_at` đổi.
+2. **Sửa lượng một món trong thực đơn chỉ đổi số gam.** Web gửi `{ quantity }` một mình; server chỉ cập nhật trường được gửi →
+   calo/macro giữ nguyên lượng cũ (máy ảo: Chuối 120 → 150 g mà vẫn 107 kcal). Mobile gửi kèm calo/macro tính lại theo giá trị /100 g
+   của thực phẩm (hoặc theo tỉ lệ nếu món không có trong danh mục) → 150 g = 134 kcal, DB khớp.
+
+**Cần Ngài quyết:** sửa web cho giống (1: `api.patch`; 2: gửi kèm macro tính lại) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
+**Đã sửa web 4/10 (Ngài cho phép):** `frontend/web/src/app/services/api.ts` `updateLog` → `api.patch`; `NutritionPage.tsx`
+`updateItemMutation` gửi kèm calo/macro tính lại (theo /100 g của thực phẩm, hoặc theo tỉ lệ). `vite build` qua. REAL BROWSER
+(Playwright, web dev, hytrongbeou): sửa món đã ghi → `PATCH /nutrition/:id → 200`, DB 95 → 90 kcal; sửa lượng Yến mạch trong thực
+đơn 60 → 80 g → `PATCH /nutrition/program-meal-items/:id → 200`, DB 80 g / 303 kcal / 10.6 g đạm / 54.2 g tinh bột / 5.2 g béo.
+
+## GAP-26 — Web: nút "Ẩn" lịch ở ngày không xoá được; danh sách thiết bị bài tự tạo chỉ còn BODYWEIGHT (14B.4) — ĐÃ SỬA web 5/10
+
+Hai lỗi của **web** (không phải backend) thấy 4–5/10 khi chép phần sửa lịch / chương trình sang mobile. CODE AUDIT (đọc code web +
+backend); mobile đã làm đúng theo server, web chưa sửa.
+
+1. **"Ẩn" (xoá) lịch tập hiện ở mọi dòng "Buổi tập sắp tới", server chỉ cho xoá buổi hôm nay.** `WorkoutLogPage.tsx` (~dòng 4940) có
+   nút "Ẩn" (hộp xác nhận "Xóa lịch tập này…") không kèm điều kiện ngày; fitness-service `deleteSchedule` gọi `assertScheduleDateEditable` — từ chối cả ngày **đã qua** lẫn
+   **tương lai** (`schedule-lock.util.ts`, giờ Việt Nam). Người dùng bấm "Ẩn" một buổi tuần sau → hộp xác nhận → lỗi. Mobile chỉ hiện
+   "Ẩn khỏi lịch" ở buổi hôm nay chưa tập (`scheduleActions.canDeleteSchedule`).
+2. **Thiết bị / nhóm cơ khi tạo bài tự tạo không lấy được từ server.** `workoutService.getExerciseFilterOptions` trả nguyên
+   `{ success, data: { bodyParts, equipments, … } }`; trang gán thẳng vào `exerciseOptions` rồi đọc `exerciseOptions.equipments` →
+   `undefined` → form bài tự tạo rơi về `["BODYWEIGHT"]` (dòng ~1623), bộ lọc thiết bị của hộp chọn bài trống (~8494). Mobile bóc lớp
+   `data` (`programEdit.filterOptions`) → đủ danh sách (đã tạo bài "Tạ đơn" trên máy).
+
+**Cần Ngài quyết:** sửa web cho giống (1: chỉ hiện "Xóa" khi buổi là hôm nay và chưa có workout; 2: `return data?.data ?? data` ở
+`getExerciseFilterOptions`) — thay đổi nhỏ ở `frontend/web`, không đụng backend.
+
+**Đã sửa web 5/10 (Ngài cho phép):** `WorkoutLogPage.tsx` — nút "Ẩn" chỉ hiện khi buổi là hôm nay và chưa có workout; chỗ nhận
+`getExerciseFilterOptions` bóc lớp `data` (giống `ExerciseLibraryPage`, không đổi hàm dùng chung trong `api.ts`). `vite build` qua.
+REAL BROWSER (Playwright, web dev, hytrongbeou, chỉ quan sát — không bấm xoá / lưu): "Buổi tập sắp tới" 5 dòng → "Ẩn" chỉ ở 05/10
+(hôm nay, chưa tập), không có ở 07, 08, 10, 12/10; form "Tạo bài tập tùy chỉnh" → Thiết bị 9 lựa chọn (Bodyweight … Foam Roller), bộ
+lọc thiết bị của hộp chọn bài cũng đủ 9 (trước: chỉ "Bodyweight" / trống).
+Lưu ý khi kiểm: container `gymcoach-web-dev` không nhận thay đổi file qua bind mount (Vite giữ bản đã nạp) → phải `docker restart
+gymcoach-web-dev` sau khi sửa `frontend/web/src` thì trang mới chạy code mới.
+
+## GAP-27 — gym-service: đặt ảnh bìa / sắp xếp ảnh trả danh sách ảnh thiếu `url` (14B.5) — ĐÃ SỬA 5/10
+
+`gym-photo.service.ts`: `list` và `upload` trả ảnh qua `withUrls` (thêm `url` = link ký tạm S3 hoặc `/uploads/gym-photos/…`), nhưng
+`setCover` và `reorder` trả thẳng `gymPhotoRepository.listByGym(gymId)` — **không có `url`**. CODE AUDIT + máy ảo (5/10): sau khi sắp
+xếp, ảnh lưu trên S3 (có `s3Key`, tải lên qua hồ sơ đối tác) hiện ô trống vì không còn link.
+
+- **Mobile:** đã né — sau đặt bìa / sắp xếp thì tải lại danh sách (`GET .../photos`) thay vì dùng body trả về.
+- **Web (`StepPhotos.tsx`):** `setQueryData(queryKey, updated)` dùng đúng body thiếu `url` → `gymPhotoUrl(fileName, undefined)` ghép
+  `/uploads/gym-photos/<fileName>` — sai với ảnh S3 → ảnh vỡ trên web sau khi đặt bìa / sắp xếp tới lần tải lại trang (suy từ code,
+  chưa chạy trình duyệt).
+
+**Cần Ngài quyết:** sửa backend (bọc `withUrls` cho `setCover`/`reorder`, 2 dòng) — hoặc sửa web cho tải lại như mobile.
+
+**Đã sửa 5/10 (Ngài cho phép):** `setCover` / `reorder` trả qua `withUrls`. BACKEND INTEGRATION 14/14 (`gymcoach_gym_test`, thêm test
+reorder + kiểm `url`); REAL HTTP/API trên P12 Quan 1 (ảnh S3) → có link đã ký. Web `StepPhotos` (dùng body trả về) hết vỡ ảnh theo.
+
+## GAP-28 — Web: nút "Tải PDF hợp đồng" là link trần, endpoint đòi token (14B.6) — KHÉP 5/10 (đã gỡ nút)
+
+`BookingPage.tsx` (thẻ "Chờ ký") gắn `<a href={contractService.getPdfUrl(id)} target="_blank">`. `GET /contracts/:id/pdf` ở
+user-service đứng sau `authMiddleware` (chỉ đọc header `Authorization`). Trình duyệt mở link mới không gửi header đó → REAL HTTP/API
+5/10: không token → **401**, có token → 200 `application/pdf`. Nên nút này trên web nhiều khả năng luôn lỗi (CODE AUDIT + API; chưa bấm
+trong trình duyệt vì ký điện tử đang tắt — không có hợp đồng nào ở `PENDING_SIGNATURE`).
+
+- **Mobile:** tải bằng `downloadAuthenticatedFile` (kèm token) rồi mở trình xem PDF của máy — đúng.
+- **Cần Ngài quyết:** sửa web cho tải bằng `api.get(..., { responseType: "blob" })` rồi mở object URL (giống `fetchBranchDocumentBlob`),
+  hoặc để nguyên vì e-sign đang tắt.
+
+**Khép 5/10 (Ngài):** "hiện tại không còn ký hợp đồng điện tử" → gỡ link "Tải PDF hợp đồng" khỏi web `BookingPage`; mobile không làm
+phần ký / PDF (PG-B3 bỏ). `vite build` qua.
+

@@ -104,3 +104,30 @@ export function foodSubtitle(food: FoodItem): string {
   if (food.isSupplement) bits.push("supplement");
   return bits.join(" · ");
 }
+
+/**
+ * 14B.6 (PG-B8) — the `/food/filter-options` source and food-form values, named for people. Web prints
+ * the raw codes ("sr_legacy", "powder"); the codes are still what is sent back as the filter. An
+ * unknown code falls back to itself rather than being hidden.
+ */
+const FOOD_SOURCE_LABEL: Record<string, string> = {
+  sr_legacy: "USDA SR Legacy",
+  survey_fndds: "USDA khảo sát (FNDDS)",
+  foundation: "USDA Foundation",
+  branded: "Có thương hiệu",
+};
+const FOOD_FORM_LABEL: Record<string, string> = {
+  cheese: "Phô mai",
+  dried: "Sấy khô",
+  nuts_seeds: "Hạt",
+  oil: "Dầu",
+  powder: "Dạng bột",
+};
+export const foodSourceLabel = (v: string) => FOOD_SOURCE_LABEL[v] ?? v;
+export const foodFormLabel = (v: string) => FOOD_FORM_LABEL[v] ?? v.replace(/_/g, " ");
+
+export function foodFilterOptions(raw: unknown): { sources: string[]; foodForms: string[] } {
+  const r = (raw as any)?.data ?? raw;
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x) : []);
+  return { sources: list(r?.sources), foodForms: list(r?.foodForms) };
+}

@@ -5,7 +5,7 @@
  *
  * Hai chỗ lệch web, có chủ ý:
  * - **Sức khoẻ hệ thống nói bằng số đếm**, không bằng `healthScore`. Đã thấy thật: `healthScore 100`
- *   trong khi `healthyCount 6 / serviceCount 7` và có cảnh báo lỗi n8n — web in "All Systems
+ *   trong khi `healthyCount 6 / serviceCount 7` và có một dịch vụ báo lỗi — web in "All Systems
  *   Operational" cho đúng trường hợp đó. "6/7 dịch vụ" thì không nói dối được.
  * - Nhãn tiếng Việt, không in tên enum hay tiếng Anh của gateway ra màn hình.
  */

@@ -16,6 +16,7 @@ import {
   normalizeMessages,
   peerName,
   peerRoleLabel,
+  systemMessageText,
   threadTime,
 } from "../chat/chat";
 
@@ -82,5 +83,13 @@ describe("chat", () => {
     assert.equal(canSend("  "), false);
     assert.equal(canSend("ok"), true);
     assert.equal(canSend("x".repeat(MAX_MESSAGE_LENGTH + 1)), false);
+  });
+});
+
+describe("systemMessageText", () => {
+  it("drops the server's 📞 prefix (the bubble has its own icon), leaves other text alone", () => {
+    assert.equal(systemMessageText("📞 Cuộc gọi video nhỡ"), "Cuộc gọi video nhỡ");
+    assert.equal(systemMessageText("📞 Video call ended (0:00)"), "Video call ended (0:00)");
+    assert.equal(systemMessageText("Không có biểu tượng"), "Không có biểu tượng");
   });
 });

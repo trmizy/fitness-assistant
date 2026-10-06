@@ -34,8 +34,10 @@ import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { money } from "../../src/features/wallet/wallet";
 import {
+  DAY_LABELS,
   clientName,
   liveSessionCount,
+  mondayOf,
   sellerNeedsAction,
   ptAlerts,
   ptSessionStatus,
@@ -43,6 +45,7 @@ import {
   sessionTimeLabel,
   sessionsOf,
   studentsFromContracts,
+  weekSessionCounts,
 } from "../../src/features/pt/pt";
 
 /**
@@ -58,6 +61,11 @@ import {
  *
  * The design's "Thu nhập tháng 9" is not drawn: no endpoint returns a per-month figure and
  * inventing one from contract dates would be a second, drifting source of truth.
+ *
+ * 14B.7 (PG-C6) — web's two charts: "Tổng quan doanh thu" (completed vs running contract value, the
+ * same two `/contracts/pt/earnings` figures, labelled as pre-commission) and "Buổi tập tuần này"
+ * (sessions per weekday from the upcoming list, so days already past read 0 — as on web). Web's
+ * "Cảnh báo học viên" was already here as "Cần bạn xử lý" (a superset: it also lists sessions to confirm).
  */
 export default function PtDashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -82,6 +90,13 @@ export default function PtDashboardScreen() {
   const sellingNeedsAction = sellerNeedsAction(sellingQuery.data).length;
   const pendingPlans = Array.isArray(plansQuery.data) ? plansQuery.data.length : 0;
   const alerts = ptAlerts(contractsQuery.data, sessions);
+
+  const weekCounts = weekSessionCounts(sessions, mondayOf(new Date()));
+  const weekMax = Math.max(1, ...weekCounts);
+  const todayIndex = (new Date().getDay() + 6) % 7;
+  const completedValue = Number(earnings.totalEarned ?? 0);
+  const activeValue = Number(earnings.activeRevenue ?? 0);
+  const revenueMax = Math.max(completedValue, activeValue, 1);
 
   const upcoming = [...sessions]
     .filter((s) => s.status === "REQUESTED" || s.status === "CONFIRMED")
@@ -149,12 +164,59 @@ export default function PtDashboardScreen() {
                 <MiniStat value={activeStudents.length} label="Học viên" />
                 <MiniStat value={Number(earnings.completedContracts ?? 0)} label="HĐ hoàn thành" />
               </View>
-              <View className="mt-3 flex-row items-center gap-1.5">
-                <TrendingUp size={14} color={designTokens.mutedForeground} />
-                <Text className="flex-1 font-body text-xs text-muted-foreground">
-                  Giá trị hợp đồng đã hoàn thành: {formatVND(Number(earnings.totalEarned ?? 0))} · đang chạy{" "}
-                  {formatVND(Number(earnings.activeRevenue ?? 0))}
-                </Text>
+            </Card>
+          </StaggerItem>
+
+          {/* 14B.7 (PG-C6) — web "Tổng quan doanh thu" + "Buổi tập tuần này". */}
+          <StaggerItem>
+            <Card className="gap-4 p-4">
+              <View className="flex-row items-center gap-2">
+                <TrendingUp size={16} color={accent.primary} />
+                <Text className="font-display text-base text-foreground">Tổng quan doanh thu</Text>
+              </View>
+              {earningsQuery.isLoading ? (
+                <ActivityIndicator color={accent.primary} />
+              ) : earningsQuery.isError ? (
+                <Text className="font-body text-sm text-destructive">Không tải được doanh thu. Kéo xuống để thử lại.</Text>
+              ) : (
+                <View className="gap-3">
+                  <RevenueBar label="Đã hoàn thành" value={completedValue} max={revenueMax} color={accent.primary} />
+                  <RevenueBar label="Đang hoạt động" value={activeValue} max={revenueMax} color={accent.chart2} />
+                  <Text className="font-body text-[11px] text-muted-foreground">
+                    Giá trị hợp đồng, trước phí nền tảng. Số tiền bạn thực nhận nằm ở ví.
+                  </Text>
+                </View>
+              )}
+
+              <View className="border-t border-border pt-4">
+                <View className="mb-3 flex-row items-center justify-between">
+                  <Text className="font-body-semibold text-sm text-foreground">Buổi tập tuần này</Text>
+                  <Text className="font-body text-xs text-muted-foreground">
+                    {`${weekCounts.reduce((a, b) => a + b, 0)} buổi còn lại`}
+                  </Text>
+                </View>
+                {sessionsQuery.isLoading ? (
+                  <ActivityIndicator color={accent.primary} />
+                ) : (
+                  <View className="h-24 flex-row items-end gap-2">
+                    {weekCounts.map((n, i) => (
+                      <View key={DAY_LABELS[i]} className="flex-1 items-center gap-1.5">
+                        <Text className="font-body text-[10px] text-muted-foreground">{n > 0 ? n : ""}</Text>
+                        <View className="w-full flex-1 justify-end">
+                          <View
+                            className={`w-full rounded-md ${n > 0 ? "bg-primary" : "bg-primary/20"}`}
+                            style={{ height: `${Math.max((n / weekMax) * 100, 6)}%` }}
+                          />
+                        </View>
+                        <Text
+                          className={`font-body text-[11px] ${i === todayIndex ? "text-primary" : "text-muted-foreground"}`}
+                        >
+                          {DAY_LABELS[i]}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </Card>
           </StaggerItem>
@@ -316,6 +378,20 @@ export default function PtDashboardScreen() {
           ) : null}
         </Stagger>
       </ScrollView>
+    </View>
+  );
+}
+
+function RevenueBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  return (
+    <View className="gap-1">
+      <View className="flex-row items-center justify-between">
+        <Text className="font-body text-xs text-muted-foreground">{label}</Text>
+        <Text className="font-body-semibold text-xs text-foreground">{formatVND(value)}</Text>
+      </View>
+      <View className="h-2.5 overflow-hidden rounded-full bg-panel">
+        <View className="h-full rounded-full" style={{ width: `${(value / max) * 100}%`, backgroundColor: color }} />
+      </View>
     </View>
   );
 }

@@ -29,6 +29,7 @@ import {
 import { availabilityService, contractService, sessionService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
+import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton";
 import { normalizeContracts, sessionsLeft } from "../../../src/features/services/contracts";
 import {
   bookableSlots,
@@ -544,6 +545,8 @@ function SessionCard({ session, onPress }: { session: SessionRow; onPress: () =>
             {session.location}
           </Text>
         ) : null}
+        {/* Phase 14.4 — ONLINE + CONFIRMED only; the button hides itself otherwise. */}
+        <JoinSessionButton session={session} />
       </Card>
     </Tappable>
   );

@@ -4,12 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import { ChevronLeft, PhoneOff, Send } from "lucide-react-native";
+import { ChevronLeft, Phone, PhoneOff, Send, Video } from "lucide-react-native";
 
 import { Avatar, inputPlaceholderColor, inputTextColor, useToast } from "../../../src/components/ui";
 import { chatService } from "../../../src/services/api";
 import { useApp } from "../../../src/context/AppContext";
 import { useSocketContext } from "../../../src/context/SocketContext";
+import { useCall } from "../../../src/features/call/CallProvider";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { darkColors } from "../../../src/theme/colors";
 import { REALTIME_EVENTS } from "../../../src/realtime/events";
@@ -17,6 +18,7 @@ import {
   canSend,
   dayDivider,
   isSystemMessage,
+  systemMessageText,
   MAX_MESSAGE_LENGTH,
   messageTime,
   normalizeConversations,
@@ -32,7 +34,8 @@ import { conversationsKey, messagesKey, useRealtimeChat } from "../../../src/fea
  * gateway persists before broadcasting) with a REST fallback when disconnected.
  *
  * Not drawn, because the backend has no data for them: read receipts (the design's ✓✓), online
- * presence. The video-call button of the design belongs to Phase 14 (WebRTC) and is not shown yet.
+ * presence. Voice/video call buttons (Phase 14.4) start a CHAT-origin call through CallProvider —
+ * the call itself is the global CallOverlay, not this screen.
  */
 export default function ConversationScreen() {
   const insets = useSafeAreaInsets();
@@ -107,7 +110,12 @@ export default function ConversationScreen() {
     }
   };
 
-  const name = peerName(conv);
+  // Opened straight from a push (E3) the conversation list may still be loading: show nothing
+  // rather than the "Người dùng · Học viên" fallback, which names the wrong role for a PT.
+  const loadingPeer = !conv && convQuery.isLoading;
+  const name = loadingPeer ? "" : peerName(conv);
+  const { initiateCall } = useCall();
+  const peerId = conv?.otherUser?.id ?? null;
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -125,8 +133,28 @@ export default function ConversationScreen() {
             <Text className="font-display text-base text-foreground" numberOfLines={1}>
               {name}
             </Text>
-            <Text className="font-body text-xs text-primary">{typing ? "Đang soạn tin…" : peerRoleLabel(conv?.otherUser?.role)}</Text>
+            <Text className="font-body text-xs text-primary">{typing ? "Đang soạn tin…" : loadingPeer ? "" : peerRoleLabel(conv?.otherUser?.role)}</Text>
           </View>
+          {peerId ? (
+            <>
+              <Pressable
+                accessibilityLabel="Gọi thoại"
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
+                onPress={() => initiateCall(peerId, "VOICE", id, name)}
+              >
+                <Phone size={18} color={darkColors.foreground} />
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Gọi video"
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
+                onPress={() => initiateCall(peerId, "VIDEO", id, name)}
+              >
+                <Video size={18} color={darkColors.foreground} />
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </View>
 
@@ -146,7 +174,7 @@ export default function ConversationScreen() {
                   <Animated.View entering={FadeInDown.springify().stiffness(400).damping(30)} className="items-center">
                     <View className="flex-row items-center gap-1.5 rounded-full bg-panel px-3 py-1.5">
                       <PhoneOff size={12} color={darkColors.mutedForeground} />
-                      <Text className="font-body text-xs text-muted-foreground">{m.content}</Text>
+                      <Text className="font-body text-xs text-muted-foreground">{systemMessageText(m.content)}</Text>
                     </View>
                   </Animated.View>
                 ) : (

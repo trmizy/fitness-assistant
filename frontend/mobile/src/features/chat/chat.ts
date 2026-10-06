@@ -89,6 +89,11 @@ export function isSystemMessage(m: ChatMessage): boolean {
   return m.authorId === "system";
 }
 
+/** The server prefixes call-log lines with 📞 (web's only icon for them); the app draws its own icon. */
+export function systemMessageText(content: string): string {
+  return content.replace(/^📞\s*/u, "");
+}
+
 /** "09:16" today, "Hôm qua", "3 ngày" within a week, else dd/mm — the design's thread timestamps. */
 export function threadTime(iso: string | null | undefined, now = new Date()): string {
   if (!iso) return "";

@@ -73,7 +73,9 @@ export const gymPhotoService = {
     const photo = await gymPhotoRepository.findById(photoId);
     if (!photo || photo.gymId !== gymId) throw err('Không tìm thấy ảnh', 404);
     await gymPhotoRepository.setCover(gymId, photoId);
-    return gymPhotoRepository.listByGym(gymId);
+    // Same shape as listForOwner — clients replace their gallery with this list, so it must carry
+    // `url` too (without it an S3-stored photo lost its link after a cover change — GAP-27).
+    return withUrls(await gymPhotoRepository.listByGym(gymId));
   },
 
   async reorder(gymId: string, ownerId: string, orderedPhotoIds: string[]) {
@@ -83,6 +85,6 @@ export const gymPhotoService = {
       throw err('Danh sách sắp xếp phải chứa đúng các ảnh hiện có', 400);
     }
     await Promise.all(orderedPhotoIds.map((id, index) => gymPhotoRepository.updateSortOrder(id, index)));
-    return gymPhotoRepository.listByGym(gymId);
+    return withUrls(await gymPhotoRepository.listByGym(gymId));
   },
 };

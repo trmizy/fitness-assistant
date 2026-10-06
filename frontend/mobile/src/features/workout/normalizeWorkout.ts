@@ -13,6 +13,8 @@ export type SetRow = {
   completed: boolean;
   /** Set locally but the PATCH never reached the server — shown as "chờ đồng bộ", retryable. */
   unsynced?: boolean;
+  /** 14B.4 — WARMUP / WORKING / TOP / BACKOFF / FAILURE (null = not set, shown as working). */
+  setType?: string | null;
 };
 
 export type ExerciseBlock = {
@@ -23,6 +25,10 @@ export type ExerciseBlock = {
   /** The catalog's demo frame for this movement (`exercises.video_url`), null when it has none. */
   mediaUrl: string | null;
   sets: SetRow[];
+  /** 14B.4 — the plan slot this exercise fills; needed for exercise-level complete / undo / swap. */
+  programExerciseId?: string | null;
+  /** The logged note (a session-only swap is recorded here: "Đã đổi từ …"). */
+  notes?: string | null;
 };
 
 export const DEFAULT_REST_SECONDS = 90;
@@ -119,6 +125,8 @@ export function normalizeWorkout(raw: any): ExerciseBlock[] | null {
         "Bài tập",
       restSeconds: Number(ex?.restSeconds ?? ex?.restBetweenSetsSeconds ?? DEFAULT_REST_SECONDS),
       mediaUrl: ex?.exercise?.videoUrl ?? ex?.videoUrl ?? null,
+      programExerciseId: ex?.programExerciseId ?? null,
+      notes: ex?.notes ?? null,
       sets: sets.map((s: any, i: number) => ({
         id: String(s?.id ?? `${index}-${i}`),
         setNumber: Number(s?.setNumber ?? i + 1),
@@ -127,6 +135,7 @@ export function normalizeWorkout(raw: any): ExerciseBlock[] | null {
         targetReps: s?.targetReps != null ? Number(s.targetReps) : null,
         targetRpe: s?.targetRpe != null ? Number(s.targetRpe) : null,
         completed: !!s?.completed,
+        setType: s?.setType ?? null,
       })),
     };
   });

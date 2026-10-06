@@ -100,7 +100,9 @@ export function Button({
         "flex-row items-center justify-center",
         sizeContainer[size],
         container[variant],
-        full ? "w-full" : "self-start",
+        // A caller that aligns the button itself (e.g. EmptyState's `self-center`) must win —
+        // two self-* classes on one view resolve by stylesheet order, not by intent.
+        full ? "w-full" : /(^|\s)self-/.test(className) ? "" : "self-start",
         disabled ? "opacity-40" : "",
         className,
       ]

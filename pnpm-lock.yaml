@@ -728,6 +728,9 @@ importers:
       nativewind:
         specifier: 4.2.6
         version: 4.2.6(react-native-reanimated@4.5.1)(react-native-safe-area-context@5.7.0)(react-native-svg@15.15.4)(react-native@0.86.3)(react@19.2.3)(tailwindcss@3.4.19)
+      qrcode:
+        specifier: 1.5.4
+        version: 1.5.4
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -777,6 +780,9 @@ importers:
       '@types/node':
         specifier: 20.19.30
         version: 20.19.30
+      '@types/qrcode':
+        specifier: 1.5.5
+        version: 1.5.5
       '@types/react':
         specifier: ~19.2.2
         version: 19.2.18

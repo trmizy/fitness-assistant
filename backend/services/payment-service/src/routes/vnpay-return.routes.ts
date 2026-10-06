@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { getProvider } from '../services/payment.service';
-import { buildSimulatedReturnQuery } from '../providers/vnpay.provider';
+import { buildSimulatedReturnQuery, isDefinitiveVnpayFailure } from '../providers/vnpay.provider';
 import { transactionRepository } from '../repositories/transaction.repository';
-import { handleEvent } from '../services/webhook.service';
+import { failFromSignedGatewayResult, handleEvent } from '../services/webhook.service';
 
 const router = Router();
 
@@ -76,6 +76,13 @@ router.get('/vnpay/return', async (req: Request, res: Response) => {
           providerTransactionId: normalized.providerTransactionId,
           payload: normalized.raw ?? {},
           status: 'PAID',
+        });
+      } else if (isDefinitiveVnpayFailure((normalized.raw as Record<string, unknown> | undefined)?.vnp_ResponseCode)) {
+        // Signed "cancelled / expired / declined" — close the checkout instead of leaving it
+        // PENDING until the stale sweep (GAP-22).
+        await failFromSignedGatewayResult({
+          provider: 'VNPAY',
+          providerTransactionId: normalized.providerTransactionId,
         });
       }
     }

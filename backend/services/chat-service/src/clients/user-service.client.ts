@@ -88,3 +88,30 @@ export async function getSession(coachingSessionId: string, authToken: string): 
   );
   return data;
 }
+
+/**
+ * Mobile E2/E3 — ask user-service to send a phone push (no notifications row). Fire-and-forget
+ * from the caller's point of view; errors are the caller's to swallow.
+ */
+export async function sendPush(
+  payload: {
+    userId: string;
+    title: string;
+    body: string;
+    kind: "CALL" | "CHAT";
+    link?: string;
+    data?: Record<string, string>;
+    tag?: string;
+    ttlSeconds?: number;
+  },
+  internalSecret: string,
+): Promise<void> {
+  const headers = { "x-service-secret": internalSecret };
+  const functionName = process.env.USER_LAMBDA_NAME;
+  if (functionName) {
+    const result = await invokeHttpLambda({ functionName, method: "POST", path: "/internal/push", headers, body: payload });
+    throwForLambdaHttpError(result);
+    return;
+  }
+  await axios.post(`${USER_SERVICE_URL}/internal/push`, payload, { headers, timeout: 3000 });
+}
