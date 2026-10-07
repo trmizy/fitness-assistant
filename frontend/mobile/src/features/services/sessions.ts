@@ -313,21 +313,24 @@ export function normalizeSlots(raw: any): string[] {
   return list.map((slot: any) => String(slot)).filter((slot: string) => /^\d{2}:\d{2}$/.test(slot));
 }
 
+/** BR-30 — the server refuses a NEW booking that starts less than this many hours from now. */
+export const BOOKING_LEAD_HOURS = 24;
+
 /**
- * A slot earlier today is offered by the endpoint (it works per day, not per minute) but cannot be
- * booked — dropping it here saves the user a refusal they can do nothing about.
+ * The endpoint offers a whole day's slots (it works per day, not per minute); the ones that cannot
+ * be taken are dropped here, which saves the user a refusal they can do nothing about. With no
+ * `leadHours` that means slots already past. A new booking passes BOOKING_LEAD_HOURS: every slot
+ * inside the next 24 hours used to be shown and then rejected on tap — all of today, and
+ * tomorrow's early ones (real phone, 7/10).
  */
-export function bookableSlots(slots: string[], date: string, now: Date = new Date()): string[] {
-  const today = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("-");
-  if (date !== today) return slots;
-  const minutesNow = now.getHours() * 60 + now.getMinutes();
+export function bookableSlots(slots: string[], date: string, now: Date = new Date(), leadHours = 0): string[] {
+  const [y, mo, d] = date.split("-").map(Number);
+  if (!y || !mo || !d) return [];
+  const earliest = now.getTime() + leadHours * 3_600_000;
   return slots.filter((slot) => {
     const [h, m] = slot.split(":").map(Number);
-    return h * 60 + m > minutesNow;
+    const start = new Date(y, mo - 1, d, h, m).getTime();
+    return leadHours > 0 ? start >= earliest : start > earliest;
   });
 }
 

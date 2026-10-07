@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -77,6 +77,14 @@ export default function PtContractsScreen() {
   const [feedbackText, setFeedbackText] = useState("");
 
   const contractsQuery = useQuery({ queryKey: ["pt-contracts", uid], queryFn: () => contractService.getByPT() });
+  // Coming back to this screen shows what changed while it sat in the stack (a request that
+  // arrived, a client who paid) — react-query refetches on mount, and a screen left open never
+  // remounts. An in-flight fetch is left alone.
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.refetchQueries({ queryKey: ["pt-contracts", uid], type: "active" }, { cancelRefetch: false });
+    }, [queryClient, uid]),
+  );
   const counts = contractTabCounts(contractsQuery.data);
   const visible = contractsInTab(contractsQuery.data, tab);
 

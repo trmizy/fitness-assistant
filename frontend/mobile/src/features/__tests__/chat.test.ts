@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 
 import {
   canSend,
+  conversationIdOf,
   dayDivider,
   MAX_MESSAGE_LENGTH,
   mergeMessage,
@@ -91,5 +92,16 @@ describe("systemMessageText", () => {
     assert.equal(systemMessageText("📞 Cuộc gọi video nhỡ"), "Cuộc gọi video nhỡ");
     assert.equal(systemMessageText("📞 Video call ended (0:00)"), "Video call ended (0:00)");
     assert.equal(systemMessageText("Không có biểu tượng"), "Không có biểu tượng");
+  });
+});
+
+describe("conversationIdOf", () => {
+  // The real reply to POST /chat/conversations/direct (7/10): `{ id, conversation: { id, … } }`.
+  it("reads the id wherever the endpoint puts it, and null when there is none", () => {
+    assert.equal(conversationIdOf({ id: "c1", conversation: { id: "c1" } }), "c1");
+    assert.equal(conversationIdOf({ conversation: { id: "c2" } }), "c2");
+    assert.equal(conversationIdOf({ data: { id: "c3" } }), "c3");
+    assert.equal(conversationIdOf({}), null);
+    assert.equal(conversationIdOf(undefined), null);
   });
 });

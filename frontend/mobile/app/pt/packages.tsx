@@ -126,8 +126,10 @@ export default function PtPackagesScreen() {
           />
         }
       >
-        <View className="mb-4 flex-row items-center justify-between">
-          <Text className="font-body text-sm text-muted-foreground">
+        {/* The sentence wraps; the button never does. Unconstrained, the text took the whole row on
+            a 360dp phone and pushed "Thêm" — the only way to create a package — off the edge. */}
+        <View className="mb-4 flex-row items-center justify-between gap-3">
+          <Text className="flex-1 font-body text-sm text-muted-foreground">
             Khách chọn một gói ở đây khi gửi yêu cầu hợp đồng.
           </Text>
           <Tappable
@@ -136,7 +138,7 @@ export default function PtPackagesScreen() {
               setForm(EMPTY_PACKAGE);
               setSheet(true);
             }}
-            className="flex-row items-center gap-1"
+            className="shrink-0 flex-row items-center gap-1 py-2 pl-2"
           >
             <Plus size={14} color={accent.primary} />
             <Text className="font-body-semibold text-xs text-primary">Thêm</Text>

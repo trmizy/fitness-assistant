@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ClipboardList, Dumbbell, FileText, MessageCircle, Route, Sparkles } from "lucide-react-native";
+import { useOpenChat } from "../../../src/features/chat/useOpenChat";
 
 import {
   Avatar,
@@ -81,6 +82,9 @@ export default function PtStudentDetailScreen() {
     .sort((a: any, b: any) => String(b.scheduledStartAt ?? "").localeCompare(String(a.scheduledStartAt ?? "")));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/pt/students"));
+  // "Nhắn tin" opens the conversation WITH this student (creating it the first time) — it used to
+  // open the message list, which is empty when the two have never talked.
+  const { openChat, opening } = useOpenChat();
 
   if (contractsQuery.isLoading) {
     return (
@@ -146,7 +150,8 @@ export default function PtStudentDetailScreen() {
                   size="sm"
                   icon={MessageCircle}
                   className="flex-1"
-                  onPress={() => router.push("/client/messages")}
+                  disabled={opening}
+                  onPress={() => openChat(contract.clientUserId)}
                 >
                   Nhắn tin
                 </Button>

@@ -142,6 +142,44 @@ export function normalizePts(raw: any): PtRow[] {
   return list.map(normalizePt).filter((pt: PtRow) => pt.userId);
 }
 
+/**
+ * The list is paged. The server answers 50 trainers when asked for no page at all, and the screen
+ * used to ask exactly that once — with 107 trainers on the server, the other 57 could not be
+ * reached by browsing (7/10). A full page means "there may be more"; a short one is the end.
+ */
+export const PT_PAGE_SIZE = 50;
+
+export function hasMorePts(lastPage: unknown): boolean {
+  return normalizePts(lastPage).length >= PT_PAGE_SIZE;
+}
+
+/**
+ * The page to ask for next, or undefined at the end. Besides a short page, a page that brought
+ * NOTHING new also ends it: some server orderings ignore paging and answer the whole list every
+ * time, and "Xem thêm" must not then stay on screen fetching the same rows forever.
+ */
+export function nextPtPage(pages: unknown[]): number | undefined {
+  const last = pages[pages.length - 1];
+  if (!hasMorePts(last)) return undefined;
+  if (pages.length > 1 && mergePtPages(pages).length === mergePtPages(pages.slice(0, -1)).length) return undefined;
+  return pages.length + 1;
+}
+
+/** Pages → one list, first occurrence wins: a trainer who shifts between pages while more are
+ * being loaded must not appear twice (duplicate keys) or push anyone else out. */
+export function mergePtPages(pages: unknown[] | undefined): PtRow[] {
+  const seen = new Set<string>();
+  const rows: PtRow[] = [];
+  for (const page of pages ?? []) {
+    for (const row of normalizePts(page)) {
+      if (seen.has(row.userId)) continue;
+      seen.add(row.userId);
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
 /** The chip filter runs on the client, on the same field the server searches. */
 export function matchesSpecialty(pt: PtRow, chip: string): boolean {
   if (!chip || chip === "Tất cả") return true;

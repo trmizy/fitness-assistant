@@ -1,7 +1,8 @@
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   BellRing,
@@ -79,6 +80,17 @@ export default function PtDashboardScreen() {
   const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming() });
   const plansQuery = useQuery({ queryKey: ["pt-pending-plans", uid], queryFn: () => ptPlanReviewService.getPendingReviews() });
   const sellingQuery = useQuery({ queryKey: ["pt-selling-orders", uid], queryFn: () => personalizedServiceApi.listOrdersForSeller() });
+
+  // A tab root never remounts, so its counts would stay as they were when the app opened — the
+  // "Hợp đồng" tile went on reading "Không có yêu cầu" after a request had arrived (7/10).
+  const queryClient = useQueryClient();
+  useFocusEffect(
+    useCallback(() => {
+      for (const name of ["pt-contracts", "pt-sessions-upcoming", "pt-selling-orders"]) {
+        void queryClient.refetchQueries({ queryKey: [name, uid], type: "active" }, { cancelRefetch: false });
+      }
+    }, [queryClient, uid]),
+  );
 
   const available = money((walletQuery.data as any)?.availableBalance);
   const earnings: any = earningsQuery.data ?? {};

@@ -59,6 +59,17 @@ export const profileRepository = {
       create: { userId, isPT },
     }),
 
+  /** Fills the name columns ONLY while both are still empty — never overwrites what the user or
+   * a seed already put there. See profileName.util.ts for why they matter (name search). */
+  backfillNames: (
+    userId: string,
+    names: { firstName: string | null; lastName: string | null; firstNameNormalized: string | null; lastNameNormalized: string | null },
+  ) =>
+    prisma.userProfile.updateMany({
+      where: { userId, firstName: null, lastName: null },
+      data: names,
+    }),
+
   setIsPTByUserId: (userId: string, isPT: boolean) =>
     prisma.userProfile.upsert({
       where: { userId },

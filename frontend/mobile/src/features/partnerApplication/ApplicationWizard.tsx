@@ -427,7 +427,9 @@ function BranchStep({ view, onSaved, fail, editable }: StepProps) {
       <Input label="Tên chi nhánh" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} editable={editable} placeholderTextColor={inputPlaceholderColor} />
       <Input label="Số nhà, tên đường" value={form.address} onChangeText={(v) => setForm({ ...form, address: v })} editable={editable} placeholderTextColor={inputPlaceholderColor} />
       <Input label="Thành phố hiển thị (tuỳ chọn)" value={form.city} onChangeText={(v) => setForm({ ...form, city: v })} editable={editable} placeholderTextColor={inputPlaceholderColor} />
-      <Input label="Điện thoại chi nhánh (tuỳ chọn)" value={form.phone} onChangeText={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" editable={editable} placeholderTextColor={inputPlaceholderColor} />
+      {/* Not optional: the server refuses to submit an application whose branch has no phone
+          ("Chưa nhập số điện thoại chi nhánh") — the old "(tuỳ chọn)" sent people to step 9 to find out. */}
+      <Input label="Điện thoại chi nhánh" value={form.phone} onChangeText={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" editable={editable} placeholderTextColor={inputPlaceholderColor} />
       <Input label="Email chi nhánh (tuỳ chọn)" value={form.email} onChangeText={(v) => setForm({ ...form, email: v })} autoCapitalize="none" keyboardType="email-address" editable={editable} placeholderTextColor={inputPlaceholderColor} />
       <Input
         label={`Giới thiệu (tuỳ chọn) · ${form.description.length}/${ABOUT_MAX}`}

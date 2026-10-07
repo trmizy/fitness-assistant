@@ -22,6 +22,7 @@ import {
   MEAL_LABELS,
   MEAL_TYPES,
   buildLogPayload,
+  logDateForDay,
   isValidQuantity,
   scaleFood,
   type MealType,
@@ -108,6 +109,7 @@ export default function AddFoodScreen() {
           carbs: preview.carbs,
           fats: preview.fats,
           notes: `${Math.round(gramsNumber)}g`,
+          date: logDateForDay(today),
         }),
       );
       await queryClient.refetchQueries({ queryKey: ["nutrition-logs", today] }).catch(() => {});

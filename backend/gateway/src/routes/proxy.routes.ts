@@ -1250,10 +1250,19 @@ router.use(
 // connection to chat-service on :3005. Routing chat's websocket through the gateway
 // keeps that setup down to one public URL. No authMiddleware: Socket.IO carries its
 // own token in the connection handshake, which chat-service verifies itself.
+//
+// `ws` stays OFF on purpose. With `ws: true` http-proxy-middleware subscribes ITSELF to the raw
+// server's "upgrade" event on the first plain HTTP request that reaches this middleware — and
+// because this proxy has no path context of its own (the "/chat-socket.io" prefix is Express's
+// mount, which a raw upgrade never passes through), that listener claims EVERY upgrade,
+// including the gateway's own "/socket.io". One unauthenticated polling GET here was enough to
+// break realtime for everyone until the gateway restarted ("Invalid WebSocket frame: RSV1 must
+// be clear", 6/10). server.ts forwards "/chat-socket.io" upgrades explicitly via `.upgrade`,
+// which works without the option.
 export const chatSocketProxy = createProxyMiddleware({
   target: CHAT_SERVICE_URL,
   changeOrigin: true,
-  ws: true,
+  ws: false,
   pathRewrite: { "^/chat-socket.io": "/socket.io" },
   onError: serviceUnavailable("Chat service (socket)"),
 });

@@ -18,6 +18,7 @@ describe("readPushData", () => {
       userId: null,
       link: null,
       entityType: null,
+      eventType: null,
       kind: null,
       callSessionId: null,
     });

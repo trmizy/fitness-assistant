@@ -258,7 +258,7 @@ export const bookingService = {
 
     // BR-30: must be booked at least 24 hours in advance
     if (startAt.getTime() - Date.now() < CANCEL_WINDOW_MS) {
-      throw err("Sessions must be booked at least 24 hours in advance", 400);
+      throw err("Buổi tập cần được đặt trước ít nhất 24 giờ", 400);
     }
 
     // Check contract date range
@@ -361,7 +361,7 @@ export const bookingService = {
     await notificationService
       .create({
         userId: contract.ptUserId,
-        text: "New session booking request",
+        text: "Học viên vừa gửi yêu cầu đặt buổi tập",
         eventType: "SESSION_BOOKED",
         entityType: "SESSION",
         entityId: session.id,
@@ -454,7 +454,7 @@ export const bookingService = {
     await notificationService
       .create({
         userId: session.clientUserId,
-        text: "Your session has been confirmed",
+        text: "Huấn luyện viên đã xác nhận buổi tập của bạn",
         eventType: "SESSION_CONFIRMED",
         entityType: "SESSION",
         entityId: sessionId,
