@@ -7,6 +7,7 @@ import {
   isScheduleDateLocked,
   assertScheduleDateEditable,
   currentWeekRange,
+  cycleStartScheduleDate,
   ScheduleLockedError,
   APP_SCHEDULE_TIME_ZONE,
 } from "../utils/schedule-lock.util";
@@ -237,4 +238,23 @@ test("currentWeekRange: timezone matters at the day boundary — a UTC instant j
   const now = new Date("2026-07-19T17:01:00Z");
   const { start } = currentWeekRange(now, "Asia/Ho_Chi_Minh");
   assert.equal(scheduledDateLabel(start), "2026-07-20");
+});
+
+test("cycleStartScheduleDate: with no start date, a cycle starts today in the app's timezone — not the server's UTC day", () => {
+  // Regression (real phone, 7/10): 02:02 on 07/10 in Vietnam is 19:02 on 06/10 in UTC, and the
+  // cycle was stored as starting 06/10 while the roadmap that created it read "Bắt đầu 07/10".
+  const now = new Date("2026-10-06T19:02:19Z");
+  assert.equal(scheduledDateLabel(cycleStartScheduleDate(undefined, now)!), "2026-10-07");
+  assert.equal(scheduledDateLabel(cycleStartScheduleDate(null, now)!), "2026-10-07");
+});
+
+test("cycleStartScheduleDate: an explicit date label is kept as given, whatever the clock says", () => {
+  const now = new Date("2026-10-06T19:02:19Z");
+  const start = cycleStartScheduleDate("2026-10-12", now)!;
+  assert.equal(scheduledDateLabel(start), "2026-10-12");
+  assert.equal(start.getUTCHours(), 0);
+});
+
+test("cycleStartScheduleDate: an unparseable start date is rejected, not silently replaced by today", () => {
+  assert.equal(cycleStartScheduleDate("not-a-date", new Date("2026-10-06T19:02:19Z")), null);
 });

@@ -122,6 +122,23 @@ export function todayAsScheduleDate(
   return new Date(Date.UTC(y, m - 1, d));
 }
 
+/** The date-only label a training cycle starts on, in the same UTC-midnight-as-a-label
+ * convention as `WorkoutSchedule.date`. An explicit `startDate` is a calendar label already
+ * ("2026-10-07", or an instant whose UTC day the caller chose on purpose) and is kept as given;
+ * with none, the cycle starts "today" where the user is — NOT the UTC day of the server's clock,
+ * which in Vietnam is still yesterday until 07:00 (a cycle started at 02:02 on 07/10 was stored
+ * as starting 06/10 — real phone, 7/10). Returns null for an unparseable `startDate`. */
+export function cycleStartScheduleDate(
+  startDate: string | undefined | null,
+  now: Date = new Date(),
+  userTimeZone: string = APP_SCHEDULE_TIME_ZONE,
+): Date | null {
+  if (!startDate) return todayAsScheduleDate(now, userTimeZone);
+  const raw = new Date(startDate);
+  if (Number.isNaN(raw.getTime())) return null;
+  return new Date(Date.UTC(raw.getUTCFullYear(), raw.getUTCMonth(), raw.getUTCDate()));
+}
+
 /** Real bug found via direct user report: a FUTURE-dated schedule (e.g.
  * viewing tomorrow's plan and clicking "Bắt đầu tập") was rejected with
  * "Không thể chỉnh sửa buổi tập của ngày đã qua." — literally "cannot edit

@@ -5,6 +5,7 @@ import { trainingCycleService } from "./training-cycle.service";
 import { generateRoadmapDraftSafe } from "../clients/ai.client";
 import { fetchLatestInBodyOnOrBefore, fetchUserProfile } from "../clients/user.client";
 import { RoadmapPhaseTypeSchema } from "../models/fitness-roadmap.models";
+import { APP_SCHEDULE_TIME_ZONE, calendarDateLabel } from "../utils/schedule-lock.util";
 import { nutritionBootstrapScreening } from "./nutrition-bootstrap-screening";
 import {
   computeEnergyBreakdown,
@@ -228,7 +229,10 @@ async function activatePhaseInTransaction(
   const cycle = await trainingCycleService.startCycle(
     userId,
     null,
-    input.startDate ?? phase.plannedStartAt.toISOString().slice(0, 10),
+    // The phase's planned start is a real instant; its calendar day is the one the user sees
+    // (app timezone), not its UTC day — an activation at 02:02 on 07/10 used to start the cycle
+    // on 06/10 while the roadmap itself read "Bắt đầu 07/10".
+    input.startDate ?? calendarDateLabel(phase.plannedStartAt, APP_SCHEDULE_TIME_ZONE),
     durationDays,
     {
       name: input.name ?? phase.name,
