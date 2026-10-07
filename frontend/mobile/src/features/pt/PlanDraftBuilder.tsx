@@ -7,6 +7,7 @@ import { Button, Card, Input, Tappable, useToast } from "../../components/ui";
 import { ptCoachService } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import { darkColors } from "../../theme/colors";
+import { toDateInputValue } from "../../utils/date";
 import { ExercisePickerSheet } from "../workout/ExercisePickerSheet";
 import {
   WEEKDAYS,
@@ -21,7 +22,9 @@ import {
   type PlanDraftPayload,
 } from "./planDraft";
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+// The LOCAL calendar day: `toISOString()` is UTC, which in Vietnam is still yesterday until 07:00,
+// so a plan drafted after midnight defaulted to starting the day before (real phone, 7/10).
+const todayIso = () => toDateInputValue(new Date());
 
 function apiError(e: any, fallback: string): string {
   return e?.response?.data?.error?.message || e?.response?.data?.error || e?.message || fallback;

@@ -126,6 +126,18 @@ export function isValidQuantity(grams: number): boolean {
 }
 
 /**
+ * The `date` a log for local calendar day `day` (YYYY-MM-DD) must carry — noon UTC of that day,
+ * web's own convention (NutritionPage). The server buckets a log by the UTC date of this stamp and
+ * `GET /nutrition?startDate=day&endDate=day` reads UTC midnight→midnight, so noon lands in the
+ * right day from any timezone. Sending no date lets the server stamp "now": in Vietnam that is
+ * still yesterday in UTC until 07:00, and a meal logged before then vanished from today's diary
+ * (real phone, 7/10).
+ */
+export function logDateForDay(day: string): string {
+  return `${day}T12:00:00.000Z`;
+}
+
+/**
  * The body for `POST /nutrition`. Zero macros are left out entirely: the endpoint's schema demands
  * a positive number, so sending `protein: 0` fails the whole save with a 400 — and a food with no
  * protein is a fact about the food, not an error the user should have to resolve.

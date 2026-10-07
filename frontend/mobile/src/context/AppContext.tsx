@@ -171,6 +171,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setActiveView("client");
   };
 
+  // A user handed over from outside this file — registration's OTP step, which has just stored
+  // that account's tokens — IS a signed-in session. Exposing the bare state setter left
+  // `isAuthenticated` false, so the role guard bounced a freshly verified account from onboarding
+  // back to the login screen (real phone, 6/10). Same cache hygiene as login().
+  const adoptUser = useCallback(
+    (next: User | null) => {
+      if (next) queryClient.clear();
+      setUser(next);
+      setIsAuth(!!next);
+    },
+    [queryClient],
+  );
+
   const updateUser = useCallback(
     async (updates: Partial<User>) => {
       if (!user) return;
@@ -208,7 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         login,
         logout,
-        setUser,
+        setUser: adoptUser,
         updateUser,
       }}
     >

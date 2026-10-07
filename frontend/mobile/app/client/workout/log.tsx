@@ -258,6 +258,16 @@ export default function WorkoutLogScreen() {
     [],
   );
 
+  // Everything OUTSIDE this screen that summarizes sessions — Home's "today" card and weekly ring,
+  // the week list, history, the heatmaps. They used to be refreshed only by "Kết thúc buổi tập",
+  // but the exercise that completes a session removes that button, so Home went on offering
+  // "Bắt đầu buổi tập" for a session already done until the app was restarted (real phone, 7/10).
+  const refreshSessionSummaries = useCallback(() => {
+    for (const queryKey of [["workout-schedules"], ["workout-history"], ["activity-heatmap"]]) {
+      void queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
+
   const persist = useCallback(
     async (blockKey: string, row: SetRow, completed: boolean) => {
       try {
@@ -271,11 +281,12 @@ export default function WorkoutLogScreen() {
         // right away, as web does: the server flips the session to COMPLETED on this very call, so
         // the "Kết thúc buổi tập" button is already gone by the time the user would press it.
         const progress = res?.progress ?? res?.data?.progress;
-        if (
+        const closesSession =
           completed &&
-          progress?.trainingCycleId &&
-          (progress.progressPercent >= 100 || progress.completedExercises >= progress.totalExercises)
-        ) {
+          !!progress &&
+          (progress.progressPercent >= 100 || progress.completedExercises >= progress.totalExercises);
+        if (closesSession) refreshSessionSummaries();
+        if (closesSession && progress.trainingCycleId) {
           setRest(null);
           setBackAfterFeedback(false);
           setFeedbackOpen(true);
@@ -292,7 +303,7 @@ export default function WorkoutLogScreen() {
         }
       }
     },
-    [patchRow, toast],
+    [patchRow, toast, refreshSessionSummaries],
   );
 
   const toggleSet = useCallback(
@@ -403,7 +414,8 @@ export default function WorkoutLogScreen() {
       queryClient.refetchQueries({ queryKey: ["workout-schedules", "today"] }),
       queryClient.refetchQueries({ queryKey: ["workout", workoutId] }),
     ]).catch(() => {});
-  }, [queryClient, workoutId]);
+    refreshSessionSummaries();
+  }, [queryClient, workoutId, refreshSessionSummaries]);
 
   // "Xong cả bài" / a swapped exercise — web's exercise-level completion (applies a swap server-side).
   const completeWhole = useCallback(
@@ -531,10 +543,18 @@ export default function WorkoutLogScreen() {
       queryClient.refetchQueries({ queryKey: ["workout-schedules", "week"] }),
       queryClient.refetchQueries({ queryKey: ["activity-heatmap", "dashboard-week"] }),
     ]).catch(() => {});
-    toast.show("Đã hoàn thành buổi tập!", "success");
     // Web asks for feedback right after a session that closed inside a training cycle.
     const fresh: any[] = queryClient.getQueryData(["workout-schedules", "today"]) ?? [];
     const closed = fresh[0];
+    // Say what is true. A session only closes when every exercise is done (there is no "end
+    // early" on the server), so leaving with exercises open is saved progress, not a finished
+    // session — the old unconditional "Đã hoàn thành buổi tập!" claimed otherwise (7/10).
+    toast.show(
+      closed?.status === "COMPLETED"
+        ? "Đã hoàn thành buổi tập!"
+        : "Đã lưu tiến độ. Buổi tập còn bài chưa xong — bạn có thể quay lại tập tiếp trong hôm nay.",
+      "success",
+    );
     if (closed?.trainingCycleId && FEEDBACK_COMPLETION_STATUSES.includes(closed.status)) {
       setBackAfterFeedback(true);
       setFeedbackOpen(true);

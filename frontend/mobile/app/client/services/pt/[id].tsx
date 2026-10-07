@@ -8,6 +8,7 @@ import {
   Check,
   ChevronLeft,
   MapPin,
+  MessageCircle,
   MessageSquare,
   ShieldCheck,
   Star,
@@ -34,6 +35,7 @@ import {
   ptServicePackageService,
 } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
+import { useOpenChat } from "../../../../src/features/chat/useOpenChat";
 import { formatVND } from "../../../../src/utils/currency";
 import {
   buildContractRequestPayload,
@@ -121,6 +123,7 @@ export default function TrainerDetailScreen() {
   const reviews: any[] = Array.isArray((raw as any)?.recentReviews) ? (raw as any).recentReviews : [];
 
   const blocked = pt ? requestBlockedReason(pt, selected) : "Đang tải huấn luyện viên...";
+  const { openChat, opening } = useOpenChat();
 
   const requestMutation = useMutation({
     mutationFn: (acknowledged: boolean) =>
@@ -232,6 +235,18 @@ export default function TrainerDetailScreen() {
                   <Badge tone="info">{`${pt.slots28} khung giờ trống / 28 ngày`}</Badge>
                 ) : null}
               </View>
+
+              {/* Web's "Nhắn tin" on the trainer card — the way to ask before (or after) signing up. */}
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={MessageCircle}
+                className="mt-3 self-start"
+                disabled={opening}
+                onPress={() => openChat(pt.userId)}
+              >
+                Nhắn tin
+              </Button>
 
               {pt.suspended || !pt.acceptingClients ? (
                 <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-border bg-panel p-3">

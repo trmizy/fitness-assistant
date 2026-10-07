@@ -12,6 +12,7 @@ import {
   MACRO_CALORIE_TOLERANCE_KCAL,
   buildLogPayload,
   goalProgress,
+  logDateForDay,
   groupByMeal,
   isValidQuantity,
   macroCalories,
@@ -116,6 +117,15 @@ describe("isValidQuantity", () => {
     assert.equal(isValidQuantity(0), false);
     assert.equal(isValidQuantity(5001), false);
     assert.equal(isValidQuantity(NaN), false);
+  });
+});
+
+describe("logDateForDay", () => {
+  it("stamps noon UTC of the local day, so the server's UTC day bucket is that same day", () => {
+    // 01:51 on 07/10 in Vietnam is 18:51 on 06/10 in UTC — "now" would file the meal under 06/10.
+    const stamp = logDateForDay("2026-10-07");
+    assert.equal(stamp, "2026-10-07T12:00:00.000Z");
+    assert.equal(new Date(stamp).toISOString().slice(0, 10), "2026-10-07");
   });
 });
 

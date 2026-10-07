@@ -14,6 +14,8 @@ export type PushData = {
   userId: string | null;
   link: string | null;
   entityType: string | null;
+  /** What happened ("CONTRACT_REQUESTED", …) — says which lists the push has made stale. */
+  eventType: string | null;
   /** E2/E3 — chat-service's realtime nudges (no notifications row): "CALL" | "CHAT", else null. */
   kind: "CALL" | "CHAT" | null;
   callSessionId: string | null;
@@ -28,6 +30,7 @@ export function readPushData(raw: unknown): PushData {
     userId: str(data.userId),
     link: str(data.link),
     entityType: str(data.entityType),
+    eventType: str(data.eventType),
     kind: data.kind === "CALL" || data.kind === "CHAT" ? data.kind : null,
     callSessionId: str(data.callSessionId),
   };

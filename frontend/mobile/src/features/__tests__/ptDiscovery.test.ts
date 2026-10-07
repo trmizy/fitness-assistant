@@ -10,14 +10,18 @@ import assert from "node:assert/strict";
 
 import {
   EMPTY_PT_FILTERS,
+  PT_PAGE_SIZE,
   activeFilterCount,
   buildContractRequestPayload,
   buildListParams,
   filterError,
   lowAvailabilityMessage,
+  hasMorePts,
   lowestPerSessionPrice,
   matchesSpecialty,
+  mergePtPages,
   mergePtSources,
+  nextPtPage,
   normalizePackages,
   normalizePartnerGyms,
   normalizePt,
@@ -337,5 +341,33 @@ describe("normalizePartnerGyms", () => {
     assert.equal(gym.gymRate, 0.35);
     assert.equal(ratesLabel(gym), "PT 55% · gym 35%");
     assert.equal(ratesLabel({ gymId: "g", name: "n", city: null, ptRate: null, gymRate: null }), null);
+  });
+});
+
+describe("paging the trainer list", () => {
+  const page = (from: number, count: number) => ({
+    pts: Array.from({ length: count }, (_, i) => ({ ...REAL_ROW, userId: `pt-${from + i}`, firstName: `PT ${from + i}` })),
+  });
+
+  // Regression (7/10): the server held 107 trainers and the screen showed the first 50, with no
+  // way to reach the rest — a newly approved trainer sat at position 51.
+  it("a full page means there may be more; a short or empty one is the end", () => {
+    assert.equal(hasMorePts(page(0, PT_PAGE_SIZE)), true);
+    assert.equal(hasMorePts(page(0, PT_PAGE_SIZE - 1)), false);
+    assert.equal(hasMorePts({ pts: [] }), false);
+    assert.equal(hasMorePts(undefined), false);
+  });
+
+  it("asks for the next page after a full one, and stops when a page brings nothing new", () => {
+    assert.equal(nextPtPage([page(0, PT_PAGE_SIZE)]), 2);
+    assert.equal(nextPtPage([page(0, PT_PAGE_SIZE), page(PT_PAGE_SIZE, 7)]), undefined);
+    // A server that ignores paging answers the same full list again — that is the end, not page 3.
+    assert.equal(nextPtPage([page(0, PT_PAGE_SIZE), page(0, PT_PAGE_SIZE)]), undefined);
+  });
+
+  it("merges pages in order and drops a trainer who shows up on two of them", () => {
+    const rows = mergePtPages([page(0, 3), { pts: [...page(2, 1).pts, ...page(3, 2).pts] }]);
+    assert.deepEqual(rows.map((r) => r.userId), ["pt-0", "pt-1", "pt-2", "pt-3", "pt-4"]);
+    assert.deepEqual(mergePtPages(undefined), []);
   });
 });

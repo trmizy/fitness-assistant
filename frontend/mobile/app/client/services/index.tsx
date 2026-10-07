@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CalendarClock,
@@ -67,8 +67,10 @@ import {
   activeFilterCount,
   buildListParams,
   filterError,
+  PT_PAGE_SIZE,
   matchesSpecialty,
-  normalizePts,
+  mergePtPages,
+  nextPtPage,
   type PtFilters,
   type PtRow,
 } from "../../../src/features/services/ptDiscovery";
@@ -168,14 +170,17 @@ function FindPtTab() {
   const applied = useMemo<PtFilters>(() => ({ ...filters, q: query }), [filters, query]);
   const params = useMemo(() => buildListParams(applied), [applied]);
 
-  const ptsQuery = useQuery({
-    queryKey: ["pts-list", params],
-    queryFn: () => profileService.listPTs(params),
+  // Its own key: the detail screen keeps an unpaged copy under ["pts-list", {}].
+  const ptsQuery = useInfiniteQuery({
+    queryKey: ["pts-list-pages", params],
+    queryFn: ({ pageParam }) => profileService.listPTs({ ...params, page: pageParam, limit: PT_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (_last, pages) => nextPtPage(pages),
   });
 
-  const { refreshing, onRefresh } = usePullToRefresh([["pts-list", params]]);
+  const { refreshing, onRefresh } = usePullToRefresh([["pts-list-pages", params]]);
 
-  const trainers = useMemo(() => normalizePts(ptsQuery.data), [ptsQuery.data]);
+  const trainers = useMemo(() => mergePtPages(ptsQuery.data?.pages), [ptsQuery.data]);
   const visible = useMemo(
     () => trainers.filter((pt) => matchesSpecialty(pt, chip)),
     [trainers, chip],
@@ -275,6 +280,18 @@ function FindPtTab() {
             ))}
           </Stagger>
         )}
+        {ptsQuery.hasNextPage && !ptsQuery.isLoading && !ptsQuery.isError ? (
+          <View className="mt-4 px-5">
+            <Button
+              variant="secondary"
+              full
+              disabled={ptsQuery.isFetchingNextPage}
+              onPress={() => void ptsQuery.fetchNextPage()}
+            >
+              {ptsQuery.isFetchingNextPage ? "Đang tải…" : "Xem thêm huấn luyện viên"}
+            </Button>
+          </View>
+        ) : null}
       </ScrollView>
 
       <FilterSheet

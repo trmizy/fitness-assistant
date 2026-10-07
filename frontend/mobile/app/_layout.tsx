@@ -18,6 +18,7 @@ import { RequirePasswordChange } from "../src/components/guards/RequirePasswordC
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
 import { PushManager } from "../src/features/push/PushManager";
+import { RealtimeRefresh } from "../src/features/notifications/RealtimeRefresh";
 import { CallProvider } from "../src/features/call/CallProvider";
 import { CallOverlay } from "../src/features/call/CallOverlay";
 
@@ -100,6 +101,8 @@ export default function RootLayout() {
                   </CallProvider>
                   {/* Phase 14.2 — phone push: registers this device, routes taps. Renders nothing. */}
                   <PushManager />
+                  {/* Server events (socket or foreground push) refresh the lists they touch. */}
+                  <RealtimeRefresh />
                 </ToastProvider>
               </SocketProvider>
             </AppProvider>

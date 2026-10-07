@@ -85,6 +85,7 @@ export function notificationMeta(eventType: string | null): { title: string; ico
     case "REFUND_NEEDS_MANUAL_SETTLEMENT":
       return { title: "Hoàn tiền", icon: "money", tone: "warning" };
     case "PT_APPLICATION_SUBMITTED":
+    case "PT_APPLICATION_REVIEWED":
       return { title: "Đơn ứng tuyển PT", icon: "shield", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
@@ -101,6 +102,7 @@ const LINK_MAP: Record<string, string> = {
   "/client/nutrition": "/client/workout/nutrition",
   "/client/wallet": "/client/profile/wallet",
   "/client/dashboard": "/client/dashboard",
+  "/client/pt-application": "/client/profile/pt-application",
 };
 
 /** Where tapping a notification goes on mobile, or null when there is nothing to open. */

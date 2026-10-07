@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 
 import {
   acceptedMoves,
+  BOOKING_LEAD_HOURS,
   bookableSlots,
   bookingBlockedReason,
   buildBookingPayload,
@@ -217,6 +218,17 @@ describe("slots and booking", () => {
     const now = new Date(2026, 8, 17, 10, 30);
     assert.deepEqual(bookableSlots(["08:00", "10:00", "11:00"], "2026-09-17", now), ["11:00"]);
     assert.deepEqual(bookableSlots(["08:00", "10:00"], "2026-09-18", now), ["08:00", "10:00"]);
+  });
+
+  it("a new booking only offers slots at least 24 hours away — none today, tomorrow's from this hour on", () => {
+    // Regression (real phone, 7/10): 02:50 on 07/10 offered 08:00…21:00 today, and every one of
+    // them was refused by the server's 24-hour rule.
+    const now = new Date(2026, 9, 7, 2, 50);
+    const day = ["08:00", "09:00", "21:00"];
+    assert.deepEqual(bookableSlots(day, "2026-10-07", now, BOOKING_LEAD_HOURS), []);
+    assert.deepEqual(bookableSlots(["02:00", "02:50", "03:00", "08:00"], "2026-10-08", now, BOOKING_LEAD_HOURS), ["02:50", "03:00", "08:00"]);
+    assert.deepEqual(bookableSlots(day, "2026-10-09", now, BOOKING_LEAD_HOURS), day);
+    assert.deepEqual(bookableSlots(day, "not-a-date", now, BOOKING_LEAD_HOURS), []);
   });
 
   it("sends a date and a time, and omits what was left blank", () => {

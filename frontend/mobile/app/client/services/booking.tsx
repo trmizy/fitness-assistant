@@ -32,6 +32,7 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton";
 import { normalizeContracts, sessionsLeft } from "../../../src/features/services/contracts";
 import {
+  BOOKING_LEAD_HOURS,
   bookableSlots,
   bookingBlockedReason,
   buildBookingPayload,
@@ -923,11 +924,12 @@ function BookingSheet({
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0] ?? null;
 
   // Fourteen days is what fits a phone without a full calendar, and matches how far ahead the
-  // availability endpoint is useful in practice.
+  // availability endpoint is useful in practice. They start TOMORROW: a new booking needs 24 hours'
+  // notice (BOOKING_LEAD_HOURS), so today can never hold a slot the server would accept.
   const days = useMemo(() => {
     const today = new Date();
     return Array.from({ length: 14 }, (_, index) => {
-      const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + index);
+      const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1 + index);
       return { key: toDateKey(day), label: dateLabel(day.toISOString()) };
     });
   }, []);
@@ -939,7 +941,7 @@ function BookingSheet({
   });
 
   const slots = useMemo(
-    () => (date ? bookableSlots(normalizeSlots(slotsQuery.data), date) : []),
+    () => (date ? bookableSlots(normalizeSlots(slotsQuery.data), date, new Date(), BOOKING_LEAD_HOURS) : []),
     [slotsQuery.data, date],
   );
 
@@ -1052,7 +1054,7 @@ function BookingSheet({
                 <ActivityIndicator color={accent.primary} />
               ) : slots.length === 0 ? (
                 <Text className="font-body text-xs text-muted-foreground">
-                  Huấn luyện viên không còn khung giờ trống trong ngày này.
+                  Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất {BOOKING_LEAD_HOURS} giờ.
                 </Text>
               ) : (
                 <View className="flex-row flex-wrap gap-2">

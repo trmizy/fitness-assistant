@@ -134,3 +134,9 @@ export function canSend(text: string): boolean {
   const t = text.trim();
   return t.length > 0 && t.length <= MAX_MESSAGE_LENGTH;
 }
+
+/** The conversation id out of `POST /chat/conversations/direct` (`{ id, conversation }`). */
+export function conversationIdOf(reply: any): string | null {
+  const id = reply?.id ?? reply?.conversation?.id ?? reply?.data?.id;
+  return typeof id === "string" && id ? id : null;
+}
