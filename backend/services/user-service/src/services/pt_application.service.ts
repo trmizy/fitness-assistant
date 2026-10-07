@@ -8,6 +8,9 @@ import { signPtApplicationDocumentUrls } from "../utils/ptDocumentUrl.util";
 import { assignReferralCodeIfMissing } from "../utils/referralCode";
 import { availabilityService } from "./availability.service";
 import { authServiceClient } from "../clients/auth-service.client";
+import { notificationService } from "./notification.service";
+import { ptApplicationReviewNotice } from "../utils/ptApplicationNotice.util";
+import { profileNameFields } from "../utils/profileName.util";
 
 const prisma = new PrismaClient();
 
@@ -379,6 +382,18 @@ export const ptApplicationService = {
       await profileRepository.setIsPT(app.userProfile.userId, true);
       await assignReferralCodeIfMissing(app.userProfile.userId);
 
+      // A new trainer must be findable by name: copy it from auth-service into the profile's
+      // own (searchable) columns if they are still empty. Best-effort — approval never fails on it.
+      if (!app.userProfile.firstName && !app.userProfile.lastName) {
+        const authInfo = await fetchAuthUserInfo(app.userProfile.userId);
+        const names = profileNameFields(authInfo?.firstName, authInfo?.lastName);
+        if (names) {
+          await profileRepository
+            .backfillNames(app.userProfile.userId, names)
+            .catch((err: any) => logger.warn({ err: err?.message }, "PT approval: could not backfill profile name"));
+        }
+      }
+
       // Create PTTrainingLocation records from application (idempotent)
       const rawLocations: any[] =
         (app as any).applicationTrainingLocations ?? [];
@@ -414,6 +429,19 @@ export const ptApplicationService = {
 
     ptApplicationsTotal.inc({ status: normalizedAction });
     await ptApplicationRepository.updateStatus(id, status, extra);
+
+    // Tell the applicant — the result they were promised a notification for.
+    const notice = ptApplicationReviewNotice(normalizedAction);
+    if (notice) {
+      notificationService.pushTransient({
+        userId: app.userProfile.userId,
+        text: notice.text,
+        eventType: "PT_APPLICATION_REVIEWED",
+        entityType: "PT_APPLICATION",
+        entityId: id,
+        link: notice.link,
+      });
+    }
     // Fetch full application with userProfile and enrich with auth-service data
     const updated = await ptApplicationRepository.findById(id);
     if (!updated) throw new Error("Application not found after update");

@@ -14,6 +14,7 @@ import {
 } from "../repositories/ptReview.repository";
 import { enrichForDiscovery } from "../services/pt-discovery.service";
 import { auditService, auditMeta } from "../services/audit.service";
+import { profileNameFields } from "../utils/profileName.util";
 import { AuditEntityType } from "../generated/prisma";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
@@ -226,7 +227,20 @@ export const profileController = {
           return 0;
         });
       }
+      // Trainers approved before names were copied at approval time still have empty name
+      // columns, so `q` cannot find them. Whatever auth-service fills in below is written back
+      // (only into still-empty columns) — the list heals itself the first time it is loaded.
+      const nameless = (profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId);
       await enrichProfilesWithAuthNames(profiles as any[]);
+      if (nameless.length > 0) {
+        const healed = (profiles as any[]).filter((p) => nameless.includes(p.userId));
+        void Promise.all(
+          healed.map((p) => {
+            const names = profileNameFields(p.firstName, p.lastName);
+            return names ? profileRepository.backfillNames(p.userId, names) : null;
+          }),
+        ).catch(() => undefined);
+      }
 
       // One grouped query for the whole list, never one per PT.
       let rated = await attachPtRatings(profiles as any[]);

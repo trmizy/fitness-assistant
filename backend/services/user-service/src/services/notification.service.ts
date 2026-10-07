@@ -94,6 +94,35 @@ export const notificationService = {
     return notification;
   },
 
+  /**
+   * A nudge that is NOT a row in the notifications table: the same two live channels as create()
+   * (socket + phone push), for an event the NotificationEventType enum has no value for. Adding
+   * one is a schema migration; this keeps a result the user is waiting on from going unannounced
+   * in the meantime. Best-effort, never throws.
+   */
+  pushTransient(data: {
+    userId: string;
+    text: string;
+    eventType: string;
+    entityType: string;
+    entityId: string;
+    link?: string;
+  }) {
+    const notification = {
+      id: `${data.eventType.toLowerCase()}-${data.entityId}-${Date.now()}`,
+      userId: data.userId,
+      text: data.text,
+      eventType: data.eventType,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      link: data.link ?? null,
+      unread: true,
+      createdAt: new Date().toISOString(),
+    };
+    pushToSocket({ userId: data.userId, notification });
+    void pushService.sendToUser(notification).catch(() => undefined);
+  },
+
   async getPreferences(userId: string): Promise<NotificationPreferenceRow> {
     const pref = await notificationRepository.findPreference(userId);
     if (!pref) return { ...DEFAULT_PREFERENCES };

@@ -428,7 +428,7 @@ export const contractService = {
     await notificationService
       .create({
         userId: data.ptUserId,
-        text: "New coaching request received",
+        text: "Bạn có yêu cầu huấn luyện mới từ học viên",
         eventType: "CONTRACT_REQUESTED",
         entityType: "CONTRACT",
         entityId: contract.id,
@@ -606,12 +606,14 @@ export const contractService = {
       .create({
         userId: contract.clientUserId,
         text: REQUIRE_CONTRACT_ESIGN
-          ? "Your coaching request was accepted! Please check your email to sign the contract."
-          : "Your coaching request was accepted! You can proceed to payment.",
+          ? "Huấn luyện viên đã chấp nhận yêu cầu của bạn. Vui lòng kiểm tra email để ký hợp đồng."
+          : "Huấn luyện viên đã chấp nhận yêu cầu của bạn. Bạn có thể thanh toán ngay.",
         eventType: "CONTRACT_ACCEPTED",
         entityType: "CONTRACT",
         entityId: contractId,
-        link: "/client/schedule",
+        // Where the client pays. "/client/schedule" was never a route on web — the bell opened
+        // a blank page (mobile happened to map it).
+        link: "/client/contracts",
       })
       .catch(() => {});
 
@@ -644,7 +646,7 @@ export const contractService = {
     await notificationService
       .create({
         userId: contract.clientUserId,
-        text: "Your coaching request was declined",
+        text: "Huấn luyện viên đã từ chối yêu cầu huấn luyện của bạn",
         eventType: "CONTRACT_REJECTED",
         entityType: "CONTRACT",
         entityId: contractId,
