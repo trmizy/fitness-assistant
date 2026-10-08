@@ -77,14 +77,25 @@ export const notificationService = {
       }
     }
 
-    const notification = await notificationRepository.create({
-      userId: data.userId,
-      text: data.text,
-      eventType: data.eventType as NotificationEventType,
-      entityType: data.entityType as NotificationEntityType,
-      entityId: data.entityId,
-      link: data.link,
-    });
+    // Callers treat a notification as best-effort and swallow its failure — which is how seven
+    // event types the enum did not have went unsent for months without a trace. Whatever the
+    // caller does with the error, it is logged here first.
+    const notification = await notificationRepository
+      .create({
+        userId: data.userId,
+        text: data.text,
+        eventType: data.eventType as NotificationEventType,
+        entityType: data.entityType as NotificationEntityType,
+        entityId: data.entityId,
+        link: data.link,
+      })
+      .catch((error: unknown) => {
+        logger.error(
+          { eventType: data.eventType, entityType: data.entityType, entityId: data.entityId, message: (error as Error)?.message?.slice(0, 300) },
+          "Failed to store notification",
+        );
+        throw error;
+      });
 
     // Push real-time (non-blocking)
     pushToSocket({ userId: data.userId, notification });
@@ -92,35 +103,6 @@ export const notificationService = {
     void pushService.sendToUser(notification);
 
     return notification;
-  },
-
-  /**
-   * A nudge that is NOT a row in the notifications table: the same two live channels as create()
-   * (socket + phone push), for an event the NotificationEventType enum has no value for. Adding
-   * one is a schema migration; this keeps a result the user is waiting on from going unannounced
-   * in the meantime. Best-effort, never throws.
-   */
-  pushTransient(data: {
-    userId: string;
-    text: string;
-    eventType: string;
-    entityType: string;
-    entityId: string;
-    link?: string;
-  }) {
-    const notification = {
-      id: `${data.eventType.toLowerCase()}-${data.entityId}-${Date.now()}`,
-      userId: data.userId,
-      text: data.text,
-      eventType: data.eventType,
-      entityType: data.entityType,
-      entityId: data.entityId,
-      link: data.link ?? null,
-      unread: true,
-      createdAt: new Date().toISOString(),
-    };
-    pushToSocket({ userId: data.userId, notification });
-    void pushService.sendToUser(notification).catch(() => undefined);
   },
 
   async getPreferences(userId: string): Promise<NotificationPreferenceRow> {

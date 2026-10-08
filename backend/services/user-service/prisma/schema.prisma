@@ -491,6 +491,21 @@ enum NotificationEventType {
   // and sent it back for the owner to fix. Same "direct reply to something the recipient
   // initiated" reasoning as GYM_COMPLAINT_RESOLVED — no opt-out preference entry either.
   GYM_BRANCH_CHANGES_REQUESTED
+  // Session settlement and contract unwinding. The code had been sending every one of these
+  // for months, but none was a value of this enum, so the insert failed and the caller's
+  // `.catch` hid it — a client was never told "your trainer reported the session, please
+  // confirm" (found on a real phone, 7/10). Like every CONTRACT_*/SESSION_* above they are
+  // direct consequences of the recipient's own booking, so no opt-out preference entry.
+  SESSION_PENDING_CONFIRMATION
+  SESSION_AUTO_CONFIRMED
+  SESSION_DISPUTED
+  SESSION_DISPUTE_RESOLVED
+  SESSION_PT_NO_SHOW_REPORTED
+  CONTRACT_CANCELLED_PT_DEACTIVATED
+  REFUND_NEEDS_MANUAL_SETTLEMENT
+  // Admin approved / rejected / asked for more on a trainer application — the result the
+  // applicant's own status screen promises a notification for.
+  PT_APPLICATION_REVIEWED
 }
 
 enum NotificationEntityType {
@@ -515,6 +530,8 @@ enum NotificationEntityType {
   GYM_COMPLAINT
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — entityId = gym-service's Gym.id (the branch itself).
   GYM_BRANCH
+  // PT_APPLICATION_REVIEWED's entityId (this service's own PTApplication.id).
+  PT_APPLICATION
 }
 
 enum RescheduleStatus {

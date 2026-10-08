@@ -433,14 +433,18 @@ export const ptApplicationService = {
     // Tell the applicant — the result they were promised a notification for.
     const notice = ptApplicationReviewNotice(normalizedAction);
     if (notice) {
-      notificationService.pushTransient({
-        userId: app.userProfile.userId,
-        text: notice.text,
-        eventType: "PT_APPLICATION_REVIEWED",
-        entityType: "PT_APPLICATION",
-        entityId: id,
-        link: notice.link,
-      });
+      // Stored as well as pushed, so an applicant who was offline still finds the result in
+      // their notification list. Never allowed to fail the review itself.
+      await notificationService
+        .create({
+          userId: app.userProfile.userId,
+          text: notice.text,
+          eventType: "PT_APPLICATION_REVIEWED",
+          entityType: "PT_APPLICATION",
+          entityId: id,
+          link: notice.link,
+        })
+        .catch(() => undefined);
     }
     // Fetch full application with userProfile and enrich with auth-service data
     const updated = await ptApplicationRepository.findById(id);
