@@ -21,6 +21,15 @@ import { profileRepository, prisma } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService, getRemainingEntitlements } from "./contract.service";
 import { auditService } from "./audit.service";
+import { endOpenRoomCall } from "./open-room-call.service";
+
+/**
+ * An online session that is no longer CONFIRMED has no room any more — end the call row its
+ * room may have left behind (see open-room-call.service.ts for what happens when nobody does).
+ */
+function closeRoomOf(session: { id: string; sessionMode: SessionMode | null }, reason: string): void {
+  if (session.sessionMode === SessionMode.ONLINE) endOpenRoomCall(session.id, reason);
+}
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: DayOfWeek.SUNDAY,
@@ -496,6 +505,7 @@ export const bookingService = {
         clientConfirmDeadline: deadline,
       },
     );
+    closeRoomOf(session, "session_completed_by_pt");
 
     await notificationService
       .create({
@@ -780,6 +790,7 @@ export const bookingService = {
       },
     );
     if (!won) throw err("Buổi tập đã được xử lý", 409);
+    closeRoomOf(session, "session_cancelled");
 
     // Same order deductQuotaOnce uses (charge, then release/compensate, then check
     // completion) so a contract that finishes on its very last session settles with this
@@ -874,6 +885,7 @@ export const bookingService = {
           ptAtFault: true,
         },
       );
+      closeRoomOf(session, "pt_no_show");
 
       // The client is owed one session's value in cash, charged back to the three parties.
       // Money-flow plan 1.6: this used to be uncaught on the theory that surfacing the error
@@ -908,6 +920,7 @@ export const bookingService = {
       SessionStatus.PENDING_CLIENT_CONFIRMATION,
       { ptNotes: "Client no-show", clientConfirmDeadline: deadline },
     );
+    closeRoomOf(session, "client_no_show_reported");
 
     await notificationService
       .create({
@@ -949,6 +962,7 @@ export const bookingService = {
       SessionStatus.PT_NO_SHOW_REPORTED,
       { disputeReason: reason.trim(), disputedAt: new Date() },
     );
+    closeRoomOf(session, "pt_no_show_reported");
 
     await notificationService
       .create({
@@ -1430,6 +1444,8 @@ export const bookingService = {
           tx,
         );
       });
+      // The room that may already have opened belonged to the OLD time slot.
+      closeRoomOf(session, "session_rescheduled");
     } else {
       await sessionRepository.updateRescheduleRequestStatus(
         requestId,
