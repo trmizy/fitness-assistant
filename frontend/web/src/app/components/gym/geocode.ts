@@ -34,7 +34,7 @@ const wait = (ms: number, signal: AbortSignal) =>
 const HOUSE_TYPES = new Set(["building", "house", "amenity", "shop", "office", "leisure", "place"]);
 const ROAD_TYPES = new Set(["road", "neighbourhood", "quarter", "hamlet"]);
 
-async function search(q: string, signal: AbortSignal): Promise<{ lat: number; lon: number; type: string } | null> {
+async function searchNominatim(q: string, signal: AbortSignal): Promise<{ lat: number; lon: number; type: string } | null> {
   const params = new URLSearchParams({ q, format: "jsonv2", limit: "1", countrycodes: "vn", "accept-language": "vi" });
   const res = await fetch(`${ENDPOINT}?${params}`, { signal, headers: { Accept: "application/json" } });
   if (!res.ok) return null;
@@ -43,6 +43,57 @@ async function search(q: string, signal: AbortSignal): Promise<{ lat: number; lo
   const lat = Number(rows[0].lat);
   const lon = Number(rows[0].lon);
   return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon, type: rows[0].addresstype ?? "" } : null;
+}
+
+/**
+ * Bộ tra dự phòng: Photon (komoot) — cũng là dữ liệu OpenStreetMap, miễn phí, không cần khoá.
+ * Cần vì DNS của mạng di động VinaPhone không phân giải được `openstreetmap.org`: trên mạng đó
+ * Nominatim hỏng ở MỌI lần tra, người dùng phải ghim mù (đo trên điện thoại thật, 8/10).
+ */
+const PHOTON_ENDPOINT = "https://photon.komoot.io/api/";
+/** Khung bao Việt Nam (kinh độ tây, vĩ độ nam, kinh độ đông, vĩ độ bắc) — thay cho `countrycodes=vn`. */
+const VN_BBOX = "102.1,8.1,109.6,23.5";
+
+type Hit = { lat: number; lon: number; type: string };
+
+/** Kết quả Photon → cùng hình dạng với Nominatim; `type` quy về các loại mà bảng mức chính xác đã biết. */
+export function photonHit(body: unknown): Hit | null {
+  const feature = (
+    body as {
+      features?: { geometry?: { coordinates?: unknown[] }; properties?: { type?: string; countrycode?: string; housenumber?: string } }[];
+    }
+  )?.features?.[0];
+  const [lon, lat] = (feature?.geometry?.coordinates ?? []).map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (feature?.properties?.countrycode && feature.properties.countrycode !== "VN") return null;
+  const kind = feature?.properties?.type;
+  // Photon khớp lỏng: "house" có thể là một toà nhà trùng tên đường. Chỉ coi là đúng địa chỉ khi kết
+  // quả mang số nhà; còn lại hạ xuống mức đường để người dùng được nhắc kéo ghim cho đúng cửa.
+  const exact = kind === "house" && !!feature?.properties?.housenumber;
+  return { lat, lon, type: exact ? "house" : kind === "house" || kind === "street" ? "road" : "" };
+}
+
+async function searchPhoton(q: string, signal: AbortSignal): Promise<Hit | null> {
+  const params = new URLSearchParams({ q, limit: "1", bbox: VN_BBOX });
+  const res = await fetch(`${PHOTON_ENDPOINT}?${params}`, { signal, headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`Photon ${res.status}`);
+  return photonHit(await res.json());
+}
+
+/** Nominatim đã hỏng một lần trong phiên này thì các lần sau hỏi thẳng bộ dự phòng. */
+let nominatimUnreachable = false;
+
+async function search(q: string, signal: AbortSignal): Promise<Hit | null> {
+  if (!nominatimUnreachable) {
+    try {
+      return await searchNominatim(q, signal);
+    } catch (e) {
+      // Người dùng gõ tiếp (huỷ) không phải là Nominatim hỏng.
+      if ((e as { name?: string })?.name === "AbortError") throw e;
+      nominatimUnreachable = true;
+    }
+  }
+  return searchPhoton(q, signal);
 }
 
 /** Bỏ số nhà / hẻm ở đầu ("123/4 Lê Lợi" → "Lê Lợi") để thử lại ở mức tên đường. */

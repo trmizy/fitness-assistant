@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CircleNotchIcon as Loader2, MapPinIcon as MapPin } from "@phosphor-icons/react";
+import { addBaseTiles } from "./mapTiles";
 
 interface Props {
   latitude: number | null;
@@ -38,10 +39,7 @@ export function MapLocationPicker({ latitude, longitude, onChange }: Props) {
           hasPos ? [latitude, longitude] : DEFAULT_CENTER,
           hasPos ? 16 : 12,
         );
-        Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
+        addBaseTiles(Lf, map);
 
         const icon = Lf.divIcon({
           className: "",
