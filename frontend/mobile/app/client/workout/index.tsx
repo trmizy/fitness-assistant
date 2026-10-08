@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarClock,
@@ -34,6 +34,7 @@ import {
 import { workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../../src/utils/date";
+import { useCalendarDay } from "../../../src/hooks/useCalendarDay";
 import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -64,13 +65,7 @@ export default function WorkoutScreen() {
 
   // Re-read the calendar day on focus / foreground: left open past midnight, the week and its
   // "Hôm nay" row (and so the day sheet's actions) would otherwise stay on yesterday.
-  const [dayKey, setDayKey] = useState(() => toDateInputValue(new Date()));
-  const syncDay = useCallback(() => setDayKey(toDateInputValue(new Date())), []);
-  useFocusEffect(syncDay);
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", (s) => s === "active" && syncDay());
-    return () => sub.remove();
-  }, [syncDay]);
+  const { dayKey } = useCalendarDay();
   const weekStart = useMemo(() => startOfWeek(parseApiDateOnly(dayKey)), [dayKey]);
   // 14B.4 — tapping a day opens its sheet (start today's session, reschedule, hide, add a session).
   const [openDay, setOpenDay] = useState<TrainingDay | null>(null);
