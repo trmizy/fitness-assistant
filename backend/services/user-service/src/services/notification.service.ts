@@ -10,21 +10,53 @@ import { pushService } from "./push.service";
 
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
+// Historical naming inconsistency: chat-service's own routes validate this
+// against INTERNAL_API_SECRET, while every Lambda (including this one) is
+// actually configured with INTERNAL_SERVICE_SECRET - same fallback
+// precedence chat-service's own chat.policy.ts/push-relay.ts already use
+// for the identical reason, so both sides agree on the same value.
+// BUG FIX (found Phase 13C-A, fixed Phase 14A): this used to read ONLY
+// INTERNAL_API_SECRET, which no Lambda here has ever been configured with -
+// every call was silently sending an empty string as the auth header,
+// always rejected by chat-service, always swallowed by the .catch() below.
+const CHAT_INTERNAL_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || process.env.INTERNAL_API_SECRET || "";
 
 function pushToSocket(payload: {
   userId?: string;
   adminBroadcast?: boolean;
   notification: any;
 }) {
+  if (!CHAT_INTERNAL_SECRET) {
+    // A missing secret is a configuration bug, not "chat-service is down" -
+    // must stay observable and must never be sent as an empty/undefined
+    // auth header (chat-service would just reject it anyway).
+    logger.error(
+      "[notification] INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET not configured - skipping real-time push to chat-service",
+    );
+    return;
+  }
   axios
     .post(`${CHAT_SERVICE_URL}/internal/push-notification`, payload, {
       timeout: 3000,
-      headers: { "x-internal-secret": INTERNAL_API_SECRET },
+      headers: { "x-internal-secret": CHAT_INTERNAL_SECRET },
     })
-    .catch((err) =>
-      logger.warn({ err }, "Failed to push realtime notification"),
-    );
+    .catch((err) => {
+      if (err?.response?.status === 401) {
+        // Secret configured but rejected - the shared value is out of sync
+        // between this service and chat-service. A real defect; must stay
+        // observable, never collapsed into the generic "unreachable" case.
+        logger.error(
+          { status: err.response.status },
+          "[notification] chat-service rejected internal auth - INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET may be out of sync",
+        );
+        return;
+      }
+      logger.warn(
+        { err: err?.message },
+        "Failed to push realtime notification",
+      );
+    });
 }
 
 // Roadmap P4.1 "Notifications/reminders" (§27) — "Need preference

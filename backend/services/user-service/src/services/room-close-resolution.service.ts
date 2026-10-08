@@ -14,7 +14,13 @@ const NO_SHOW_GRACE_MS = Number(process.env.NO_SHOW_GRACE_MINUTES ?? "15") * 60 
 const AUTO_CONFIRM_MS = Number(process.env.SESSION_AUTO_CONFIRM_DAYS ?? "3") * 24 * 60 * 60 * 1000;
 
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
+// Same naming inconsistency / fallback precedence as notification.service.ts's
+// pushToSocket (see its comment) — chat-service validates against
+// INTERNAL_API_SECRET, but this Lambda is actually configured with
+// INTERNAL_SERVICE_SECRET. BUG FIX (Phase 14A): this previously read ONLY
+// INTERNAL_API_SECRET and always sent an empty auth header.
+const CHAT_INTERNAL_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || process.env.INTERNAL_API_SECRET || "";
 
 /**
  * Best-effort, fire-and-forget: tells chat-service to force-end any lingering CallSession row
@@ -26,15 +32,28 @@ const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
  * this call just leaves one harmless stale row, not an incorrect session outcome.
  */
 function endOpenRoomCall(coachingSessionId: string, reason: string): void {
+  if (!CHAT_INTERNAL_SECRET) {
+    logger.error(
+      "[RoomCloseResolution] INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET not configured - skipping chat-service call-end notice",
+    );
+    return;
+  }
   axios
     .post(
       `${CHAT_SERVICE_URL}/internal/calls/end-by-session`,
       { coachingSessionId, reason },
-      { timeout: 3000, headers: { "x-internal-secret": INTERNAL_API_SECRET } },
+      { timeout: 3000, headers: { "x-internal-secret": CHAT_INTERNAL_SECRET } },
     )
-    .catch((err) =>
-      logger.warn({ err: err.message, coachingSessionId }, "Failed to end lingering call for a closed room"),
-    );
+    .catch((err) => {
+      if (err?.response?.status === 401) {
+        logger.error(
+          { status: err.response.status, coachingSessionId },
+          "[RoomCloseResolution] chat-service rejected internal auth - INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET may be out of sync",
+        );
+        return;
+      }
+      logger.warn({ err: err?.message, coachingSessionId }, "Failed to end lingering call for a closed room");
+    });
 }
 
 /**
