@@ -44,12 +44,14 @@ import {
   statsService,
   workoutService,
 } from "../../src/services/api";
+import { useCalendarDay } from "../../src/hooks/useCalendarDay";
 import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
 import { useUnreadNotifications } from "../../src/features/notifications/useNotifications";
 import {
   addDays,
   formatScheduleDate,
   greetingForHour,
+  parseApiDateOnly,
   sortInBodyNewestFirst,
   startOfWeek,
   toDateInputValue,
@@ -110,9 +112,10 @@ export default function ClientDashboardScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
-  const today = useMemo(() => new Date(), []);
+  // Not read once at mount: this tab outlives midnight (see useCalendarDay).
+  const { now: today, dayKey } = useCalendarDay();
   const range = useMemo(() => {
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayStart = parseApiDateOnly(dayKey);
     return {
       todayStart,
       startDate: toDateInputValue(todayStart),
@@ -122,7 +125,7 @@ export default function ClientDashboardScreen() {
       // fitness-service compares `date <= endDate` at midnight, so tomorrow keeps today's sessions in.
       tomorrow: toDateInputValue(addDays(todayStart, 1)),
     };
-  }, [today]);
+  }, [dayKey]);
 
   const profileQuery = useQuery({
     // Must match the key the InBody upload flow invalidates — see the web file's comment.

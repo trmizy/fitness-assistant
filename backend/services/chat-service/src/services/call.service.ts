@@ -1,6 +1,37 @@
 import { CallStatus, CallType, CallOrigin } from "@prisma/client";
 import { callRepository } from "../repositories/call.repository";
 
+/**
+ * How long an online session's room can possibly live: it opens 15 minutes before a session
+ * that lasts at most 4 hours. A SESSION call row older than this is not a room any more.
+ */
+const SESSION_ROOM_MAX_AGE_MS = Number(process.env.SESSION_ROOM_MAX_AGE_HOURS ?? "6") * 60 * 60 * 1000;
+
+/** A room row nobody ended (user-service's "this session is over" notice never arrived). */
+export function isAbandonedRoomCall(
+  call: { origin: CallOrigin | string; createdAt: Date },
+  now: number = Date.now(),
+): boolean {
+  return call.origin === "SESSION" && now - call.createdAt.getTime() > SESSION_ROOM_MAX_AGE_MS;
+}
+
+/**
+ * The call that really keeps this user busy, if any. A room row is never ended by its people
+ * leaving, so one that outlived its session used to make both of them "already in a call" for
+ * good — it is ended here instead of being believed.
+ */
+async function findBlockingCall(userId: string) {
+  for (let i = 0; i < 5; i++) {
+    const call = await callRepository.findActiveCallForUser(userId);
+    if (!call || !isAbandonedRoomCall(call)) return call;
+    await callRepository.updateStatus(call.id, CallStatus.ENDED, {
+      endedAt: new Date(),
+      endReason: "room_abandoned",
+    });
+  }
+  return callRepository.findActiveCallForUser(userId);
+}
+
 export const callService = {
   async initiateCall(data: {
     conversationId?: string;
@@ -29,8 +60,8 @@ export const callService = {
     // Check if either party is already in a call — a genuinely different, unrelated one, now
     // that a rejoin into this same session's own room was already handled above.
     const [callerBusy, calleeBusy] = await Promise.all([
-      callRepository.findActiveCallForUser(data.callerId),
-      callRepository.findActiveCallForUser(data.calleeId),
+      findBlockingCall(data.callerId),
+      findBlockingCall(data.calleeId),
     ]);
 
     if (callerBusy) {

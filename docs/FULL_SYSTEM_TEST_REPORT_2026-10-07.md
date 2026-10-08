@@ -43,7 +43,7 @@ Nhãn bằng chứng: REAL DEVICE (điện thoại thật), REAL BROWSER (Chromi
 
 Chi tiết từng lỗi (bước tái hiện, số liệu) nằm ở mục 6.
 
-## 2b. Sửa lỗi — chiều 07/10 (chưa commit)
+## 2b. Sửa lỗi — chiều 07/10 (đã commit, HEAD `f93b03e`; kiểm lại trên máy thật ở mục 2c)
 
 Nguồn gốc: mọi lỗi dưới đây nằm trong MÃ DÙNG CHUNG (hai máy chạy cùng commit), không phải do cấu hình riêng của máy partner — trừ các dòng ghi rõ. Máy partner chỉ làm lộ một số lỗi mà máy này không lộ: lưu ảnh trên đĩa (LỖI-12), có tài khoản đăng ký thật không qua seed (LỖI-16), có AI thật (LỖI-10).
 
@@ -83,6 +83,119 @@ Nhãn kiểm: MÁY ẢO = máy ảo Android, bản dev, backend laptop này (ch�
 - Thông báo kết quả đơn PT hiện KHÔNG lưu vào danh sách thông báo (chỉ đẩy tức thời + push), vì lưu cần thêm giá trị enum = một migration trên cả hai máy. Cần Ngài quyết có thêm migration không.
 - Một lần trên máy ảo (ngay sau khi máy tính khởi động lại) nút "Xong cả bài" kẹt ở "Đang lưu…" và yêu cầu không tới máy chủ; sau khi mở lại app thì chạy bình thường, gọi thẳng API cũng bình thường. Chưa tái hiện lại được — cần để ý khi kiểm trên máy thật.
 - Dữ liệu thử thêm vào DB máy này: testuser008 có buổi tập hôm nay đã hoàn thành; đơn PT của testuser009 chuyển sang "cần bổ sung"; 2 yêu cầu hợp đồng testuser011 → pt@example.com đã huỷ; vài tin nhắn thử.
+
+## 2c. Đợt 2 — kiểm lại trên backend partner (tối 07/10 → rạng 08/10)
+
+Mã được kiểm: `f93b03e` (máy partner chạy `71d2adf7`, đã gồm `f93b03e`; gateway, user-service, fitness-service đã khởi động lại). Trong đợt này KHÔNG sửa mã nào.
+
+| | |
+|---|---|
+| Backend | Máy partner qua tunnel Cloudflare (AI thật, FCM thật, ảnh lưu đĩa, bật OTP thử) |
+| Điện thoại | ROG Phone 6 (Android 12, 1080×2448), bản release build 15:42 ngày 07/10, mạng di động VinaPhone 5G |
+| Web | Web của laptop này trỏ về tunnel, Chromium không giao diện, camera/mic giả |
+| Tài khoản | qa.c1006a (khách), qa.c1006b (PT), testuser011, admin, và 2 tài khoản tạo mới trong buổi |
+
+### Kết quả kiểm lại các lỗi đã sửa
+
+| Mã | Kết quả đợt 2 | Bằng chứng |
+|---|---|---|
+| LỖI-1 | ĐẠT trên gateway partner: chuỗi tái hiện cũ nối được cả 5 bước; web PT chat/gọi không còn lỗi socket | REAL HTTP/API + REAL BROWSER |
+| LỖI-2 | ĐẠT: máy còn phiên cũ trỏ về máy chủ không tới được → mở ra Trang chủ, không màn đen | REAL DEVICE |
+| LỖI-3 | ĐẠT: đăng ký → OTP → "Xác minh email thành công" → vào thẳng onboarding bước 1/6 | REAL DEVICE |
+| LỖI-9 | ĐẠT: món ghi lúc 22:42 lưu `2026-10-07T12:00:00Z`; ghi sau nửa đêm xem mục "Kiểm sau nửa đêm" | REAL DEVICE + REAL HTTP/API |
+| LỖI-12 | ĐẠT: ảnh đại diện (partner lưu trên đĩa) hiện ở tab Cá nhân | REAL DEVICE |
+| LỖI-15 | ĐẠT: nút "+ Thêm" ở Gói dịch vụ hiện đủ chữ trên màn 1080 px | REAL DEVICE |
+| LỖI-16 | ĐẠT: tìm "QA" ra đúng PT mới duyệt; "Xem thêm huấn luyện viên" nạp trang 2, trang 3 rồi biến mất (107 PT) | REAL DEVICE + REAL HTTP/API |
+| LỖI-17 | ĐẠT: thông báo và push mới đều tiếng Việt (đặt buổi, PT xác nhận, yêu cầu huấn luyện, từ chối) | REAL DEVICE + REAL HTTP/API |
+| LỖI-18 + LỖI-25 | ĐẠT cả hai vai: PT xác nhận buổi → thẻ trên máy khách tự đổi "Đã xác nhận" trong 7 giây; khách gửi yêu cầu → tab của PT tự đổi "Yêu cầu · 0 → 1" | REAL DEVICE |
+| LỖI-19 | ĐẠT: bảng đặt buổi bắt đầu từ ngày mai; ngày chưa đủ 24 giờ báo đúng câu tiếng Việt; đặt 14/10 10:00 thành công | REAL DEVICE + REAL HTTP/API |
+| LỖI-20 | ĐẠT cả hai vai: "Nhắn tin" ở chi tiết PT và ở trang học viên của PT đều mở thẳng hội thoại | REAL DEVICE |
+| LỖI-11, LỖI-8 | Xem mục "Kiểm sau nửa đêm" | |
+| LỖI-10 | Chưa sửa — đo lại y như cũ: 200 sau 90,6 s, "Không kết nối được AI service", bản dự phòng | REAL HTTP/API |
+| LỖI-23 | Chưa sửa — đã TÁI HIỆN trên ROG và tìm ra nguyên nhân (xem dưới) | REAL DEVICE |
+| LỖI-4, 5, 6, 13, 21, 24 | Không kiểm lại trong đợt này (đã kiểm trên máy ảo / trình duyệt / đọc mã ở mục 2b) | |
+
+### Lỗi mới tìm được trong đợt 2
+
+| Mã | Mức | Thuộc | Tóm tắt | Bằng chứng |
+|---|---|---|---|---|
+| LỖI-26 | P1 | user-service (mã dùng chung) | 7 loại thông báo không bao giờ tới người dùng: mã gọi `notificationService.create` với `eventType` không có trong enum `NotificationEventType` (SESSION_PENDING_CONFIRMATION, SESSION_DISPUTED, SESSION_DISPUTE_RESOLVED, SESSION_PT_NO_SHOW_REPORTED, SESSION_AUTO_CONFIRMED, REFUND_NEEDS_MANUAL_SETTLEMENT, CONTRACT_CANCELLED_PT_DEACTIVATED — 12 chỗ gọi; đính chính 08/10: PT_APPLICATION_SUBMITTED là thông báo phát thẳng cho admin, không đi qua bảng nên không dính lỗi này), Prisma ném lỗi và bị `.catch(() => {})` nuốt. Thực tế tối nay: PT báo hoàn thành buổi → khách không có thông báo, không có push, danh sách "Cần xử lý" không tự hiện; khách chỉ biết khi tự kéo làm mới. Toàn bộ thông báo về xác nhận buổi / khiếu nại / PT vắng / tự xác nhận / hoàn tiền thủ công đều mất. | REAL DEVICE + REAL HTTP/API + CODE AUDIT + SELECT enum trên DB laptop |
+| LỖI-27 | P1 | chat-service + user-service (mã dùng chung) | Sau một buổi học trực tuyến, nếu PT bấm "hoàn thành" (hoặc huỷ / báo vắng) trước lượt quét đóng phòng (5 phút/lần), bản ghi cuộc gọi của phòng không bao giờ được kết thúc. Từ đó cả PT lẫn khách bị coi là "đang trong cuộc gọi" vô thời hạn: mọi cuộc gọi sau bị từ chối ("You are already in a call" / "User is busy"), kể cả phòng của buổi học kế tiếp. Tối nay PT gọi lại sau 35 phút vẫn bị chặn; kết thúc tay bản ghi treo thì gọi được ngay. | REAL BROWSER + REAL DEVICE + CODE AUDIT (`call.service.ts`, `call.handler.ts`, `room-close-resolution.service.ts`) |
+| LỖI-28 | P2 | mobile | Mở một đường dẫn không tồn tại trong app → trang mặc định tiếng Anh "Unmatched Route" có liên kết "Sitemap"; bấm "Sitemap" thì app sập (`TypeError: Cannot read property 'origin' of undefined`). Chưa có màn "không tìm thấy" riêng, chưa tắt sitemap. Thông báo trong app không dẫn tới đây (đường dẫn lạ đã bị lọc), nên chỉ gặp qua liên kết ngoài / liên kết cũ. | REAL DEVICE (logcat) |
+| LỖI-29 | P2 | mobile | Trang chủ không sang ngày mới khi app đang mở qua nửa đêm: sau 00:01, đã ghi món của ngày 08/10, Trang chủ vẫn ghi "Calo hôm nay 181 · Đạm 18g" (số của 07/10); tắt hẳn app mở lại mới đúng (283 · 10g). `dashboard.tsx:113` đóng băng "hôm nay" lúc dựng tab, mà tab sống suốt đời tiến trình → người để app qua đêm, sáng mở lại thấy số hôm qua dưới nhãn "hôm nay". | REAL DEVICE + CODE AUDIT |
+
+**LỖI-23 — nguyên nhân.** Bản đồ trống nền tái hiện trên ROG (bước "Vị trí" của hồ sơ đối tác). Đo ngay trên máy: DNS của nhà mạng VinaPhone không phân giải được `tile.openstreetmap.org`, `openstreetmap.org`, `nominatim.openstreetmap.org` ("unknown host"); cùng máy cùng mạng, các tên miền khác (cdnjs, basemaps.cartocdn.com, tile.openstreetmap.fr, tiles.stadiamaps.com) phân giải bình thường, và hỏi DNS qua Cloudflare (DoH) thì tải được đúng ô bản đồ đó (HTTP 200). Vậy không phải lỗi máy TECNO, không phải backend nào: app và web gọi thẳng openstreetmap.org từ thiết bị, mà tên miền này không dùng được trên mạng di động VinaPhone. Ảnh hưởng: nền bản đồ và tự ghim theo địa chỉ, trên mobile lẫn web. Hướng sửa cần Ngài quyết: đổi / thêm nhà cung cấp ô bản đồ dự phòng (vd. CARTO), và chuyển tra địa chỉ về backend.
+
+### Luồng đã chạy trọn trong đợt 2
+
+- **Phòng buổi học** (ROG 5G ↔ web): vào phòng trước giờ 15 phút, nối sau 2 giây, hình hai chiều, rời rồi vào lại nối sau 1 giây; sau giờ kết thúc máy chủ đóng phòng, app báo "Phòng học đã đóng — buổi tập đã kết thúc".
+- **Kết thúc buổi → tiền**: PT báo hoàn thành → khách xác nhận trên máy ("Xác nhận đã tập") → buổi COMPLETED, hợp đồng 1/4 buổi → ví PT: chờ 360.000 → 270.000, khả dụng 0 → 90.000 → PT xin rút 50.000 (rút quá số dư bị từ chối đúng) → admin duyệt (khoá 50.000) → đánh dấu đã chi → ví còn 40.000. Khách gọi API duyệt bị 403. Ví trên app PT và web PT khớp API.
+- **Chat**: điện thoại ↔ web qua socket của backend partner, tức thời; push tin nhắn tới máy khi app đã tắt hẳn.
+- **Gọi thoại**: cuộc gọi đến khi app tắt hẳn có push "Đang gọi thoại cho bạn…", mở app ra thấy hộp cuộc gọi; nghe máy nối sau 2 giây, âm thanh 25 giây liên tục, kết thúc sạch, hội thoại ghi "Cuộc gọi thoại đã kết thúc (0:28)".
+- **Hợp đồng**: khách gửi yêu cầu → PT thấy ngay trên máy → từ chối kèm lý do → khách nhận thông báo tiếng Việt.
+- **Đối tác phòng gym**: tạo ứng viên bằng magic link, đăng nhập trên máy vào đúng bước còn thiếu; tải ảnh qua tunnel (presign → POST → confirm) đạt; tệp sai loại / giả PDF bị từ chối đúng; ảnh hiện trên máy.
+- **Cách ly tài khoản**: đổi 5 lượt tài khoản trên cùng máy (khách → mới đăng ký → ứng viên → khách → PT) không lẫn dữ liệu.
+- **Quét web trên backend partner**: PT 8 route, admin 9 route, khách 16 route. PT và admin: 0 yêu cầu lỗi, 0 lỗi console. Khách: 14 route sạch; `/client/workout/cycle` gọi `assessments/latest` nhận 404 khi chu kỳ chưa có đánh giá (trang vẫn hiển thị, chỉ đỏ console); ảnh đại diện ở `/client/profile` vỡ là do cách kiểm (web local trỏ API sang tunnel, đường `/uploads` vẫn qua proxy của web local).
+
+### Kiểm sau nửa đêm (khung 00:00–06:59 giờ VN — đúng tình huống gây lỗi ngày)
+
+| Mã | Kết quả lúc 00:01–00:04 ngày 08/10 (UTC vẫn là 07/10) | Bằng chứng |
+|---|---|---|
+| LỖI-9 | ĐẠT: món ghi lúc 00:01:39 lưu `2026-10-08T12:00:00Z`; màn Dinh dưỡng "hôm nay" hiện đúng món, 283 kcal | REAL DEVICE + REAL HTTP/API |
+| LỖI-8 | ĐẠT: "Chương trình mới" điền sẵn ngày bắt đầu 2026-10-08 | REAL DEVICE |
+| LỖI-11 | ĐẠT trên backend partner: chu kỳ tạo lúc 00:03:55 có `startDate 2026-10-08` (chu kỳ thử đã huỷ) | REAL HTTP/API |
+| LỖI-19 | Bảng đặt buổi bắt đầu từ Th 6, 09/10 — đúng | REAL DEVICE |
+
+Phát hiện thêm trong lúc kiểm: **LỖI-29** (bảng lỗi mới ở trên).
+
+### Ghi nhận nhỏ (chưa xếp thành lỗi)
+
+- Nút "Tham gia buổi học" (app và web) còn sáng tới 30 phút sau giờ kết thúc trong khi máy chủ đóng phòng đúng giờ kết thúc → bấm luôn bị từ chối.
+- Đổi tab trong "Buổi tập" không tải lại; phải kéo làm mới.
+- PT không nhận thông báo khi yêu cầu rút tiền được duyệt / đã chi.
+- Trang chủ ghi "Tuần này 1/1 buổi · 100%" trong khi tab Tập luyện ghi "1 / 2 buổi theo kế hoạch".
+- Ảnh đại diện nhỏ ở góc Trang chủ vẫn hiện chữ cái, không hiện ảnh (tab Cá nhân hiện ảnh).
+- Ví PT trên web: tiêu đề tiếng Anh dù chọn Tiếng Việt, mô tả bút toán là chuỗi nội bộ kèm mã UUID, không hiện số tiền đang chờ. Bản app thì tiếng Việt và có "Đang tạm giữ".
+- PT mở hội thoại từ chế độ PT thì thanh tab dưới đổi sang bộ tab của khách.
+- Hồ sơ đối tác đang mở không có cách làm mới (phải mở lại app).
+- Nghe máy lần đầu: thời gian đọc hộp xin quyền ghi âm bị tính vào 30 giây đổ chuông.
+- Dữ liệu partner: 38 PT không có tên ở cả hồ sơ lẫn tài khoản → hiện "Huấn luyện viên".
+- Hai thông báo tạo trước khi cập nhật mã vẫn tiếng Anh (dữ liệu cũ, không tự đổi).
+- AI Coach trên partner lúc 23:52 và 23:53: 2/2 lần trả câu dự phòng tiếng Anh sau 52 s ("The AI model is starting up or overloaded…"); đợt 1 trả lời được sau 60–69 s. Thuộc máy AI của partner; câu dự phòng chưa Việt hoá.
+- Web dev trên laptop này nạp rất chậm (30–55 s/trang, 2 lần hết 120 s) — do máy, không phải backend partner.
+
+### Chưa kiểm trong đợt 2
+
+- LỖI-13 trên backend partner: đơn PT duy nhất đang chờ duyệt ở đó không thuộc tài khoản thử nên không đụng.
+- Chọn ảnh/tệp từ thư viện của máy (tránh ảnh cá nhân); bấm vào thông báo trong khay; quét QR; "Dùng vị trí hiện tại"; gọi video; nạp ví; đơn dịch vụ 1-1 (134 đơn kẹt của partner không dùng làm bằng chứng); AI Coach có ảnh.
+
+### Dữ liệu thử để lại trên DB partner
+
+qa.c1006a, qa.c1006b (hợp đồng `08dbf885…` 1/4 buổi; buổi `019ac900…` COMPLETED; buổi `f7ca3290…` CONFIRMED 14/10 10:00; yêu cầu rút `4f9a726a…` PAID 50.000; vài tin nhắn và 5 bản ghi cuộc gọi); yêu cầu hợp đồng `28b99c9a…` của testuser011 (REJECTED); tài khoản mới qa.r2reg1007@example.com; ứng viên đối tác qa.gymr2b.1007@example.com (thương hiệu "QA Gym R2 1007", 1 chi nhánh nháp, 1 ảnh) và một magic link chưa dùng cho qa.gymr2.1007@example.com; 1 món ăn trong nhật ký của qa.c1006a.
+
+## 2d. Sửa các lỗi của đợt 2 — rạng 08/10 (commit `34682ea`, `314cc7d`, `917203b`, `fc3dd1b`)
+
+Ngài cho phép sửa hết các lỗi đã nêu ở mục 2c. Dưới đây là cách sửa và mức đã kiểm của từng lỗi.
+
+| Mã | Sửa ở | Cách sửa | Đã kiểm |
+|---|---|---|---|
+| LỖI-26 | user-service | Thêm 8 giá trị vào enum `NotificationEventType` (7 loại bị mất + `PT_APPLICATION_REVIEWED`) và `PT_APPLICATION` vào `NotificationEntityType` bằng migration `20261008010000_session_settlement_notification_types` (chỉ cộng thêm). Kết quả duyệt đơn PT nay được LƯU vào danh sách thông báo, không chỉ đẩy tức thời. `notificationService.create` ghi log lỗi trước khi nơi gọi nuốt. | Test mới quét mọi chỗ gửi thông báo và đối chiếu với enum (đỏ khi bỏ sửa: liệt kê đủ 12 chỗ gọi). BACKEND INTEGRATION trên DB `gymcoach_user_test`: cả 8 loại lưu được. REAL HTTP/API trên backend laptop: admin yêu cầu bổ sung đơn PT → người nộp có bản ghi `PT_APPLICATION_REVIEWED` trong danh sách. Migration đã áp trên DB laptop khi user-service khởi động. CHƯA kiểm bằng một buổi tập thật (cần buổi đã tới giờ). |
+| LỖI-27 | user-service + chat-service | (a) Mọi đường tự tay đưa buổi trực tuyến ra khỏi CONFIRMED — PT báo hoàn thành, huỷ, báo vắng (cả hai chiều), dời lịch được chấp nhận — nay đều báo chat-service kết thúc bản ghi cuộc gọi của phòng (trước đây chỉ job quét làm). (b) Lớp dự phòng ở chat-service: bản ghi phòng cũ hơn 6 giờ (phòng dài nhất 4 giờ 15 phút) không còn được tính là "đang bận", và bị kết thúc ngay khi gặp. | 4 test mới ở user-service + 3 test mới ở chat-service; 66 test liên quan đặt buổi vẫn qua. CHƯA kiểm bằng phòng buổi học thật. |
+| LỖI-28 | mobile | Thêm màn "Không tìm thấy trang" tiếng Việt (`app/+not-found.tsx`, nút "Về trang chính") và thay trang sitemap dựng sẵn bằng chuyển hướng về trang gốc (`app/_sitemap.tsx`). | REAL DEVICE (ROG, bản release build 01:11 ngày 08/10): đường dẫn lạ → màn tiếng Việt; `fitnessassistant://_sitemap` → về màn đăng nhập, không sập. |
+| LỖI-29 | mobile | Hook dùng chung `useCalendarDay` đọc lại ngày mỗi khi màn hình được mở lại hoặc app trở lại tiền cảnh; Trang chủ và tab Tập luyện cùng dùng. | Test component mới (2 ca: quay lại màn sau nửa đêm, mở lại app sáng hôm sau). CHƯA kiểm trên máy thật qua nửa đêm. |
+| LỖI-23 | mobile + web | Nền bản đồ có 3 nguồn theo thứ tự: OpenStreetMap → OSM Đức → OSM Pháp; nguồn đang dùng hỏng 2 ô liền mà chưa hiện được ô nào thì tự chuyển nguồn kế. Tra địa chỉ: Nominatim hỏng thì hỏi Photon (komoot). Đều miễn phí, không cần khoá. | 6 test mới. REAL DEVICE trên mạng VinaPhone (bản build 02:55 ngày 08/10): chi tiết phòng gym và bảng ghim vị trí hiện nền bản đồ từ nguồn Đức ("OSM Deutschland" ở góc), tên đường tiếng Việt. REAL BROWSER: chặn openstreetmap.org → 6 ô tải từ nguồn Đức; không chặn → vẫn dùng OpenStreetMap. Tra địa chỉ trong app (REAL DEVICE, mạng VinaPhone, hộp "Thêm chi nhánh" của chủ gym thử trên backend laptop): nhập "65 Le Loi" + TP. Hồ Chí Minh + Phường An Hội Tây → bản đồ tự ghim (10.85503, 106.64753) và phóng tới nơi; không bấm tạo chi nhánh. Sau lần kiểm này bộ dự phòng được chỉnh thêm: chỉ báo "đã ghim theo địa chỉ" khi kết quả có số nhà, còn lại báo mức tên đường (Photon khớp lỏng hơn Nominatim). |
+
+Bộ kiểm tự động sau khi sửa: mobile 749 test đơn vị + 78 test component, kiểu và lint sạch; user-service và chat-service kiểm kiểu sạch.
+
+**Đính chính mục 2c:** LỖI-26 là 7 loại thông báo chứ không phải 8 — `PT_APPLICATION_SUBMITTED` được phát thẳng cho admin, không đi qua bảng nên không dính lỗi.
+
+**Ghi nhận khi sửa bản đồ:** nguồn Pháp vẽ tên đường bằng tiếng Pháp ở trung tâm TP.HCM ("Rue Lê Lợi", "Boulevard Hàm Nghi" — thấy trên ROG) nên được xếp sau nguồn Đức, là nguồn giữ tên địa phương. Cả ba nguồn đều là máy chủ cộng đồng "dùng vừa phải": đủ cho lưu lượng hiện tại, không hợp khi app có nhiều người dùng.
+
+**Partner cần làm sau khi kéo mã:** khởi động lại user-service (tự chạy `prisma migrate deploy`, áp migration enum) và chat-service. Gateway, fitness-service, web không đổi ở phía máy chủ.
+
+**Chưa sửa:** LỖI-10 (đề xuất gửi partner ở cuối lượt trao đổi 08/10); các mục "Ghi nhận nhỏ" của 2c.
+
+**Đợt kiểm kế tiếp phải kiểm lại trên máy thật / backend partner:** LỖI-26 (PT báo hoàn thành một buổi thật → khách có thông báo + push + danh sách "Cần xử lý" tự hiện; thông báo duyệt đơn PT nằm lại trong danh sách), LỖI-27 (xong phòng buổi học, PT báo hoàn thành ngay → gọi thoại được ngay sau đó), LỖI-28, LỖI-29 (để app mở qua nửa đêm), LỖI-23 (nền bản đồ và tự ghim theo địa chỉ trên mạng VinaPhone, cả bước "Vị trí" của hồ sơ đối tác).
 
 ## 3. Phần đã đạt (tóm tắt)
 
@@ -310,3 +423,104 @@ Client: web local (REAL BROWSER) + TECNO SPARK 40 Pro bản release 22:37 (REAL 
 - Học viên → John Doe: thẻ đầu (trạng thái, "Nhắn tin", "Lịch dạy", "Giao kế hoạch") + 4 tab Tổng quan (hợp đồng, lộ trình "chỉ học viên mới đổi được giai đoạn") / Tập luyện (chu kỳ, tuân thủ 0% có cảnh báo, cảm nhận, buổi tập) / Dinh dưỡng (mục tiêu 2000 kcal · 150g đạm "Người dùng tự đặt", "Đề xuất diet break") / Tiến độ (InBody 31/08/2026: 71.3 kg, mỡ 16.4%, cơ 35.2 kg) — tải đúng dữ liệu thật — ĐẠT.
 - "Giao kế hoạch": mở trình soạn (tên, mục tiêu, số tuần, ngày bắt đầu, "Gợi ý bằng AI", các buổi) — ngày bắt đầu điền sẵn 2026-10-06 lúc máy là 04:02 ngày 07/10 → xác nhận LỖI-8 ở phía PT.
 - Bổ sung LỖI-20: nút "Nhắn tin" ở trang học viên của PT chỉ mở DANH SÁCH tin nhắn (`router.push("/client/messages")`), không tạo/mở hội thoại với học viên đó → nếu chưa từng có hội thoại thì cả PT lẫn khách đều không bắt đầu được cuộc trò chuyện từ điện thoại (trên backend partner, hợp đồng ACTIVE xong danh sách hội thoại vẫn rỗng).
+
+### ĐỢT 2 — backend partner (commit 71d2adf7 = gồm f93b03e), tunnel sustainability-exclusively-scout-conversion, 07/10 tối
+
+#### R2-0 — Thiết lập (REAL DEVICE: ROG Phone 6 của chủ máy, Android 12, 1080×2448, bản release build 15:42 7/10)
+- Cài đè bản release mới lên bản dev cũ (adb install -r: Success). Máy còn phiên đăng nhập cũ (hytrongbeou) trỏ về http://localhost:3000 không tới được → app mở ra Trang chủ (trống, không lỗi) thay vì màn đen: LỖI-2 ĐẠT trên máy thật. Đã đăng xuất phiên đó để dùng tài khoản thử.
+- Công cụ đọc màn hình (uiautomator) không chạy trên máy này ("null root node") → điều khiển bằng ảnh chụp + toạ độ.
+- Bàn phím Laban Key và Gboard tiếng Việt đều biến chữ gõ qua adb (telex) → tạm chuyển sang Gboard tiếng Anh (sẽ trả lại Laban Key).
+- Cấu hình máy chủ: lưu địa chỉ tunnel mới → "ĐANG DÙNG" đổi đúng. Đăng nhập qa.c1006a → mở lại đúng màn "Cài đặt" (màn cuối của phiên trước — ghi nhận cũ).
+- LỖI-12 ĐẠT (REAL DEVICE, backend partner lưu ảnh trên đĩa): tab Cá nhân hiện ảnh đại diện (ảnh thử màu xanh) thay cho vòng tròn trống.
+
+#### R2-1 — Phòng buổi học (REAL DEVICE ROG qua 5G ↔ REAL BROWSER headless media giả; backend partner; buổi được agent partner dời về 21:52–22:52)
+- Điện thoại (khách qa.c1006a): Buổi tập → tab "Sắp tới" có buổi "Th 4, 07/10 · 21:52–22:52 · Online · Đã xác nhận" + nút "Tham gia buổi học" (phòng mở trước giờ 15 phút) → xin quyền ghi âm (chọn "Chỉ lần này") → hộp "Sẵn sàng vào phòng?" có xem trước camera, nút mic/camera → "Vào phòng".
+- Web (PT qa.c1006b): Dashboard → "Tham gia buổi học" → "Vào phòng" → "Đang chờ người còn lại tham gia buổi tập", đồng hồ đếm ngược thời lượng.
+- Kết nối: khách bấm vào 21:51:49 → `call:connected` 21:51:51 (2 giây). Web nhận hình từ điện thoại (360×640 → 720×1280, chạy đều); điện thoại hiện hình của web toàn màn, khung xem trước của mình ở góc, "00:10 · Còn 60:40", 4 nút (mic, camera, đổi camera, rời phòng) — ĐẠT.
+- Rời phòng trên điện thoại → về danh sách buổi; web nhận `call:peer_left_room` và tiếp tục chờ. Vào lại → `call:peer_rejoined` → nối lại sau 1 giây, hình hai chiều trở lại — ĐẠT (bản sửa vào-lại-phòng 6/10 chạy đúng trên máy thật thứ hai).
+- Backend ghi `roomPtJoinedAt` và `roomClientJoinedAt`.
+
+#### R2-2 — Kiểm lại các bản sửa backend trên máy partner (REAL HTTP/API qua tunnel)
+- LỖI-1 ĐẠT: chuỗi tái hiện cũ (ws /socket.io → 1 GET polling /chat-socket.io → ws /socket.io, /chat-socket.io) nay nối được cả 5 bước trên gateway partner.
+- LỖI-16 ĐẠT: `GET /profile/pts?q=QA` và `?q=Hai` trả đúng PT "QA Hoc Vien Hai" (trước đây 0 kết quả); hồ sơ của PT này nay có tên + bản chuẩn hoá ("qa", "hoc vien hai"). Phân trang: trang 1 = 50, trang 2 = 50, trang 3 = 7 (tổng 107). GHI NHẬN dữ liệu partner: 38 PT ở trang 2–3 không có tên ở cả hồ sơ lẫn auth-service (dữ liệu cũ) → vẫn hiện không tên.
+
+#### R2-3 — Tìm PT, nhắn tin (REAL DEVICE ROG + REAL BROWSER, backend partner)
+- LỖI-16 ĐẠT trên máy: Dịch vụ → gõ "QA" → ra đúng 1 thẻ "QA Hoc Vien Hai · 200.000 ₫/buổi" (đêm qua tìm không ra).
+- LỖI-20 ĐẠT trên máy: chi tiết PT có nút "Nhắn tin" → mở thẳng hội thoại với PT. Ô nhập nằm trên bàn phím (Android 12).
+- Chat qua backend partner: điện thoại gửi "Chao PT tu ROG" (22:27) → web PT mở hội thoại thấy tin; web PT trả lời 22:30:05 qua SOCKET (không có POST REST, 0 lỗi socket trên console → LỖI-1 hết trên gateway partner) → điện thoại hiện "PT tra loi tu web" ngay trong lúc đang mở hội thoại, không làm mới — ĐẠT chiều web → điện thoại. Chiều điện thoại → web tức thời chưa đo được ở lượt này (tin đã có sẵn khi web mở); đã đạt trên backend laptop hôm nay.
+- GHI NHẬN: ảnh đại diện nhỏ ở góc phải Trang chủ vẫn hiện chữ "Q" chứ không hiện ảnh (tab Cá nhân thì hiện ảnh).
+
+#### R2-4 — Đặt buổi, thông báo, tự làm mới (REAL DEVICE ROG + REAL HTTP/API, backend partner)
+- LỖI-19 ĐẠT trên máy: bảng "Đặt buổi tập" bắt đầu từ Th 5 08/10 (ngày mai); chọn ngày mai (khung 08:00 còn dưới 24 giờ) → "Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất 24 giờ."; chọn Th 4 14/10 → 08:00…21:00 → đặt 10:00 → backend có buổi REQUESTED 2026-10-14T03:00Z.
+- LỖI-17 ĐẠT: thông báo cho PT nay là "Học viên vừa gửi yêu cầu đặt buổi tập" (bản ghi đêm qua cùng loại vẫn là "New session booking request"); push tới điện thoại khách khi PT xác nhận: "Gymini — Huấn luyện viên đã xác nhận buổi tập của bạn".
+- LỖI-18 + LỖI-25 ĐẠT trên máy: đang mở tab "Sắp tới", PT xác nhận buổi (qua API) → trong 7 giây thẻ buổi 14/10 tự đổi từ "Chờ PT xác nhận" sang "Đã xác nhận" + nút "Tham gia buổi học" (mờ, "Chưa đến giờ học"), không kéo làm mới.
+- LỖI-16 (phần tải thêm) ĐẠT trên máy (REAL DEVICE): Dịch vụ → cuối danh sách có nút "Xem thêm huấn luyện viên"; bấm lần 1 nạp thêm trang 2, lần 2 nạp trang 3, hết thì nút biến mất (tổng 107 PT của partner). PT không tên (dữ liệu cũ của partner) hiện "Huấn luyện viên" + "Chưa cập nhật chuyên môn".
+- GHI NHẬN (ngoài app): trên máy đang có bong bóng trò chuyện của ứng dụng khác đè lên tab "Tìm PT" — người kiểm không chạm vào.
+
+#### R2-5 — Dinh dưỡng (REAL DEVICE ROG + REAL HTTP/API, backend partner)
+- LỖI-9: Thêm món ăn → tìm "rice" → "Adobo, with rice" 100 g → "Thêm vào bữa sáng" (22:42 giờ VN) → backend lưu `date: 2026-10-07T12:00:00.000Z` (bản ghi đêm qua của cùng tài khoản là `2026-10-06T18:51:24Z` = giờ bấm theo UTC). Định dạng mới ĐẠT; khung 00:00–06:59 chưa tới nên chưa kiểm lại được đúng tình huống gây lỗi trên máy thật (đã có unit test + kiểm trên máy ảo).
+
+#### R2-6 — Kết thúc buổi học → khách xác nhận → giải ngân (REAL DEVICE ROG + REAL HTTP/API, backend partner)
+- Sau giờ kết thúc (22:52:41): nút "Tham gia buổi học" của buổi 07/10 vẫn sáng; bấm → app báo "Phòng học đã đóng — buổi tập đã kết thúc" (đúng lời máy chủ, HTTP 400). GHI NHẬN nhỏ: app (và web) cho nút sáng tới 30 phút sau giờ kết thúc trong khi máy chủ đóng phòng đúng giờ kết thúc → nút sáng nhưng bấm luôn bị từ chối.
+- PT báo hoàn thành (PATCH /sessions/:id/complete, 22:54:59) → PENDING_CLIENT_CONFIRMATION, hạn tự xác nhận 10/10.
+- **LỖI-26 (MỚI, mã dùng chung)**: khách KHÔNG nhận được thông báo "PT đã báo hoàn thành buổi tập. Vui lòng xác nhận…" — không có trong danh sách thông báo (GET /notifications: bản mới nhất vẫn là SESSION_CONFIRMED 22:33), không có push, danh sách trên điện thoại không tự đổi. Nguyên nhân (CODE AUDIT + SELECT enum trên DB laptop): `eventType: "SESSION_PENDING_CONFIRMATION"` không có trong enum `NotificationEventType` → `notificationService.create` ném lỗi Prisma và bị `.catch(() => {})` nuốt. Cùng lỗi cho 6 loại khác đang được gọi `.create`: SESSION_DISPUTED, SESSION_DISPUTE_RESOLVED, SESSION_PT_NO_SHOW_REPORTED, SESSION_AUTO_CONFIRMED, REFUND_NEEDS_MANUAL_SETTLEMENT, CONTRACT_CANCELLED_PT_DEACTIVATED (12 chỗ gọi; PT_APPLICATION_SUBMITTED phát thẳng cho admin nên không dính ở booking.service, room-close-resolution, session-autoconfirm, pt-deactivation, pt_application). Hệ quả: toàn bộ thông báo về xác nhận buổi / khiếu nại / PT vắng mặt / tự xác nhận / hoàn tiền thủ công không bao giờ tới người dùng, ở cả hai backend.
+- Trên điện thoại: tab "Cần xử lý" vẫn trống cho tới khi kéo làm mới (đổi tab không tải lại) → hiện thẻ "Th 4, 07/10 · Chờ bạn xác nhận · Tự động xác nhận sau khoảng 3 ngày nữa" → bấm thẻ → bảng "Xác nhận đã tập" / "Khiếu nại buổi này" → "Xác nhận đã tập" → hộp xác nhận ("Buổi sẽ được tính vào gói và phần tiền tương ứng được giải ngân cho huấn luyện viên") → "Xác nhận" → "Đã cập nhật buổi tập.", thẻ biến mất — ĐẠT.
+- Backend sau khi xác nhận (22:58:32): buổi COMPLETED, sessionDeducted=true; hợp đồng usedSessions 0→1/4; ví PT: chờ 360.000 → 270.000, khả dụng 0 → 90.000 (2 bút toán "release to available" + "session earned") — ĐẠT, đúng 1/4 của 360.000 (400.000 trừ 10% phí).
+- PT nhận thông báo "Khách hàng đã xác nhận buổi tập" (SESSION_COMPLETED, lưu trong danh sách).
+- Rút tiền (REAL HTTP/API): PT xin rút 100.000 khi khả dụng 90.000 → 400 "Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)"; xin rút 50.000 → PENDING; khách gọi API duyệt → 403; admin duyệt → APPROVED, ví: khả dụng 90.000→40.000, khoá 0→50.000; admin đánh dấu đã chi (mã QA-TEST-1007) → PAID, khoá 50.000→0. 4 bút toán đúng — ĐẠT. GHI NHẬN: PT không nhận thông báo nào khi yêu cầu rút được duyệt / đã chi.
+
+#### R2-7 — Đăng ký tài khoản mới trên máy thật (REAL DEVICE ROG, backend partner có devOtp)
+- LỖI-3 ĐẠT: Đăng nhập → "Đăng ký" → nhập họ tên/email (qa.r2reg1007@example.com)/mật khẩu → "Tiếp tục" → màn "Xác thực email" (6 ô, đếm ngược gửi lại 60 giây) → "Gửi lại" trên máy: xoá các ô + "Đã gửi mã mới — mã cũ không còn dùng được" → nhập mã (lấy mã thử qua API gửi lại, chỉ có khi partner bật devOtp) → "Xác nhận" → "Xác minh email thành công" → vào thẳng onboarding "Trình độ & mục tiêu · Bước 1/6" (hôm qua bị đá về màn đăng nhập).
+
+#### R2-8 — Bản đồ (LỖI-23) — TÁI HIỆN + TÌM RA NGUYÊN NHÂN (REAL DEVICE ROG, mạng di động VinaPhone)
+- Tạo ứng viên đối tác thử qa.gymr2b.1007@example.com trên backend partner (magic link qua DEV_ECHO → verify → đặt mật khẩu → bootstrap; khai đại diện/thương hiệu/quy mô/chi nhánh qua API). Đăng nhập trên ROG → app đưa thẳng vào "Hồ sơ đối tác · Bước 6/9: Vị trí · hoàn thành 63%" (đúng bước đầu tiên còn thiếu) — ĐẠT phần điều hướng theo trạng thái hồ sơ.
+- Khung bản đồ: có dòng "Leaflet | © OpenStreetMap" nhưng KHÔNG có nền bản đồ (trống) — đúng triệu chứng LỖI-23 đêm qua trên TECNO.
+- Nguyên nhân (đo ngay trên máy bằng `adb shell curl/ping`): DNS của nhà mạng (VinaPhone, DNS 10.202.116.253 / 2001:ee0:…) KHÔNG phân giải được `tile.openstreetmap.org`, `openstreetmap.org`, `nominatim.openstreetmap.org` (ping "unknown host", curl exit 6). Cùng máy, cùng mạng: `cdnjs.cloudflare.com`, `basemaps.cartocdn.com`, `tile.openstreetmap.fr`, `tiles.stadiamaps.com` phân giải bình thường; và nếu hỏi DNS qua Cloudflare (DoH 1.1.1.1) thì tải được đúng tile đó (HTTP 200). Máy tính (Wi-Fi) tải tile 200.
+- Kết luận: không phải lỗi máy TECNO, không phải backend nào; là do app (và cả web) gọi thẳng tên miền openstreetmap.org từ thiết bị — tên miền này không dùng được trên mạng di động VinaPhone. Ảnh hưởng: nền bản đồ (chi tiết phòng gym, ghim vị trí chi nhánh, hồ sơ đối tác) và tự ghim theo địa chỉ (nominatim) trên mobile lẫn web khi người dùng ở mạng đó. Hướng sửa (chờ quyết): đổi nhà cung cấp tile (vd. CARTO) / thêm tile dự phòng, và chuyển geocoding về backend.
+
+#### R2-9 — Hồ sơ đối tác: tải tệp qua tunnel (REAL HTTP/API + REAL DEVICE ROG, backend partner)
+- presign ảnh (PNG 1.952 byte) → URL ký trỏ về chính tunnel (`/gymini-partner-private`, đi qua gateway của partner) → POST multipart 204 → confirm 200 (photoId) → hồ sơ có 1 ảnh EXTERIOR, là ảnh bìa — ĐẠT.
+- Từ chối đúng: presign `text/html` → 415 "Ảnh chỉ nhận JPEG, PNG hoặc WebP"; tệp khai `application/pdf` nhưng nội dung là HTML → confirm 422 "Nội dung tệp không phải định dạng đã khai báo" — ĐẠT.
+- Trên ROG: tắt hẳn app rồi mở lại → vào lại đúng hồ sơ đối tác (75%), bước "Ảnh cơ sở" hiện ảnh vừa tải (tải ảnh bằng link ký qua tunnel) + nhãn "Ảnh bìa"; bước "Xem lại & gửi" liệt kê mục thiếu bằng tiếng Việt (tên giấy tờ đã dịch) — ĐẠT.
+- GHI NHẬN: hồ sơ đang mở không tự cập nhật khi dữ liệu đổi từ nơi khác (không có kéo-làm-mới ở wizard) — chỉ thấy sau khi mở lại app. Không đụng bộ chọn ảnh của máy (tránh ảnh cá nhân) nên phần chọn tệp trên máy thật chưa kiểm ở lượt này.
+
+#### R2-10 — Thông báo đẩy khi app tắt hẳn; LỖI-10 đo lại (REAL DEVICE ROG + REAL HTTP/API, backend partner)
+- Đăng nhập lại qa.c1006a sau khi dùng 2 tài khoản khác trên cùng máy: Trang chủ hiện đúng dữ liệu của qa.c1006a (calo hôm nay 181/2.800 — đã tính món vừa ghi), không lẫn dữ liệu tài khoản trước — ĐẠT cách ly tài khoản.
+- Về màn hình chính + kết thúc tiến trình app (`am kill`, không còn pid) → PT gửi tin qua REST lúc 23:21:24 → trong 8 giây máy có thông báo của app: tiêu đề "QA Hoc Vien Hai", nội dung "QA: tin nhan khi app da tat" (đọc bằng dumpsys, chỉ lọc gói của app; không mở khay thông báo) — ĐẠT push tin nhắn khi app tắt, qua FCM của backend partner. Chưa bấm vào thông báo (tránh mở khay thông báo cá nhân).
+- GHI NHẬN: Trang chủ ghi "Tuần này 1/1 buổi đã hoàn thành · 100%" trong khi tab Tập luyện ghi "Đã hoàn thành 1 / 2 buổi theo kế hoạch" (buổi Thứ 6 chưa tới) — hai nơi đếm khác nhau.
+- LỖI-10 (chưa sửa, đo lại): `POST /fitness-roadmaps/ai-draft` trên partner trả 200 sau 90,6 s với "Không kết nối được AI service — trả về một phase khởi đầu mặc định", confidence 0, 1 giai đoạn — y như đợt 1.
+
+#### R2-11 — Quét web trên backend partner (REAL BROWSER, web local trỏ về tunnel)
+- PT (qa.c1006b): 8 route (/pt/dashboard, clients, contracts, plans, schedule, profile, chat, wallet) — 0 yêu cầu lỗi, 0 lỗi console (kể cả lỗi socket), không có chuỗi lỗi trên trang. Ví PT trên web: khả dụng 40.000 ₫ + 6 bút toán đúng như API.
+- Admin: 9 route (dashboard, users, pts, finance, withdrawals→finance, disputes, partners, gyms, complaints) — 0 yêu cầu lỗi, 0 lỗi console.
+- Khách: lượt quét không chạy được vì web dev trên laptop này nạp quá chậm (2 lần hết 120 s ở trang đăng nhập — do máy, không phải backend partner); chạy lại sau.
+- GHI NHẬN (web, ví PT): tiêu đề "Earnings Wallet / Revenue from your coaching contracts / Available Balance / Transaction History" bằng tiếng Anh dù đang chọn Tiếng Việt; mô tả bút toán là chuỗi nội bộ tiếng Anh kèm mã UUID ("Withdrawal 4f9a… approved — locked for payout"); không hiện số tiền đang chờ (270.000).
+
+#### R2-12 — Gọi thoại qua backend partner + cuộc gọi đến khi app tắt (REAL DEVICE ROG 5G ↔ REAL BROWSER headless, media giả)
+- **LỖI-27 (MỚI, mã dùng chung, P1)**: lần gọi đầu (23:27, PT gọi từ web) bị máy chủ từ chối `call:error "You are already in a call"`. Nguyên nhân (CODE AUDIT chat-service `call.service.ts`, `call.handler.ts`; user-service `room-close-resolution.service.ts`): bản ghi cuộc gọi của PHÒNG BUỔI HỌC (origin SESSION) cố ý không bao giờ kết thúc khi một bên rời phòng / mất kết nối; chỉ job quét đóng phòng (5 phút/lần) mới kết thúc nó — và chỉ khi CHÍNH job đó chuyển buổi khỏi CONFIRMED. Tối nay PT bấm "hoàn thành" lúc 22:54:59 (2 phút sau giờ kết thúc, trước lượt quét) → job bỏ qua buổi → bản ghi cuộc gọi 36c13072… vẫn "đang hoạt động" 35 phút sau. Hệ quả: cả PT lẫn khách bị coi là "đang trong cuộc gọi" vô thời hạn — không gọi/nhận được cuộc gọi nào, và phòng của buổi học KẾ TIẾP cũng không tạo được. Cùng đường với huỷ buổi / báo vắng mặt bằng tay. Người kiểm đã gỡ bản ghi treo của mình bằng đúng sự kiện `call:end` của PT (người tham gia) để kiểm tiếp; sau đó gọi được ngay → xác nhận nguyên nhân.
+- Cuộc gọi đến khi app TẮT HẲN: PT gọi 23:30:54 → máy có thông báo "QA Hoc Vien Hai — Đang gọi thoại cho bạn…" (tag call-<id>); mở app trong lúc còn đổ chuông → hộp cuộc gọi đến hiện ngay trên Trang chủ (tên, "Đang gọi thoại cho bạn…", nút từ chối / nghe) — ĐẠT.
+- Nghe máy: bấm nghe → Android hỏi quyền ghi âm (quyền "chỉ lần này" đã hết khi app bị tắt) → cuộc gọi chưa được nhận cho tới khi cấp quyền; hết 30 giây đổ chuông thì thành "nhỡ". GHI NHẬN nhỏ: thời gian đọc hộp xin quyền bị tính vào 30 giây đổ chuông.
+- Lần gọi có sẵn quyền: nhận 23:36:02 → nối 23:36:04 (2 giây) → web nhận âm thanh từ điện thoại liên tục 25 giây; điện thoại hiện màn cuộc gọi (tên, đồng hồ 00:04 → 00:15, nút mic, nút kết thúc) → kết thúc trên điện thoại → web nhận `call:ended (hangup)`. Tin hệ thống trong hội thoại bằng tiếng Việt ("Cuộc gọi thoại nhỡ 23:31") — ĐẠT.
+
+#### R2-13 — Vai PT trên máy thật (REAL DEVICE ROG, qa.c1006b, backend partner)
+- Đăng nhập PT ngay sau tài khoản khách: Trang chủ hiện dữ liệu của chính PT (0 ngày, 0 calo) — không lẫn.
+- LỖI-15 ĐẠT: Gói dịch vụ — nút "+ Thêm" hiện đủ chữ, dòng mô tả tự xuống dòng (màn 1080 px như TECNO).
+- Ví thu nhập trên app: khả dụng 40.000 ₫, "Đang tạm giữ 270.000 ₫", yêu cầu rút "50.000 ₫ · Đã chi trả", lịch sử giao dịch tiếng Việt ("Rút tiền", "Thu nhập buổi tập", "Chuyển sang số dư khả dụng") — khớp API, và rõ hơn bản web.
+- LỖI-18 + LỖI-25 ĐẠT phía PT: đang mở Hợp đồng ("Yêu cầu · 0"), testuser011 gửi yêu cầu (API 23:39:08) → trong 7 giây tab đổi "Yêu cầu · 1" + thẻ "Linh Bùi · Bạn cần duyệt", không kéo. LỖI-17: push "Gymini — Bạn có yêu cầu huấn luyện mới từ học viên".
+- Từ chối trên máy: "Từ chối" → bảng lý do (4 lý do có sẵn + ô tự viết) → chọn "Lịch dạy đã kín" → "Từ chối yêu cầu" → danh sách về "Yêu cầu · 0, Kết thúc · 1"; backend REJECTED + lý do; khách nhận "Huấn luyện viên đã từ chối yêu cầu huấn luyện của bạn" (link /client/contracts) — ĐẠT.
+- Trang học viên (QA Hoc Vien Mot): "Đang hiệu lực · 1/4 buổi", hợp đồng "Buổi tập 1/4 · Còn lại 3 buổi" — khớp backend sau khi khách xác nhận buổi.
+- LỖI-20 ĐẠT phía PT: "Nhắn tin" mở thẳng hội thoại với học viên; thấy đủ tin + 3 dòng "Cuộc gọi thoại nhỡ" + "Cuộc gọi thoại đã kết thúc (0:28)" (thời lượng ghi đúng). GHI NHẬN: vào hội thoại từ chế độ PT thì thanh tab dưới đổi sang bộ tab của khách (Trang chủ / Tập luyện / … màu xanh) vì màn chat nằm trong vùng khách.
+
+#### R2-14 — Thông báo trên máy; đường dẫn lạ làm sập app (REAL DEVICE ROG, bản release)
+- Màn Thông báo của khách: chỉ có 3 mục (PT xác nhận buổi ×2, hợp đồng được nhận) — không có mục "PT đã báo hoàn thành buổi tập" → LỖI-26 nhìn thấy được trên máy. Hai mục cũ (tạo trước khi cập nhật mã) vẫn tiếng Anh; mục mới tiếng Việt.
+- **LỖI-28 (MỚI, mobile)**: mở một đường dẫn không tồn tại trong app (người kiểm gõ nhầm `fitnessassistant://client/services/contracts`) → bản release hiện trang mặc định tiếng Anh của expo-router "Unmatched Route — Page could not be found" với hai liên kết "Go back · Sitemap"; bấm "Sitemap" → APP SẬP (logcat: `FATAL EXCEPTION … TypeError: Cannot read property 'origin' of undefined … at SystemInfo`, tiến trình chết, về màn hình chính của máy). App chưa có màn "không tìm thấy" riêng (`app/+not-found.tsx` không tồn tại) và chưa tắt trang sitemap. Người dùng thật gặp khi bấm một thông báo/liên kết trỏ tới đường dẫn mà mobile không có.
+- Quét web vai khách (qa.c1006a, 16 route): 14 route sạch. 2 ghi nhận: (a) /client/workout/cycle gọi `GET /training-cycles/<id>/assessments/latest` → 404 khi chu kỳ chưa có đánh giá (trang vẫn hiển thị bình thường; chỉ là lỗi đỏ trong console); (b) /client/profile: ảnh đại diện vỡ — do cách kiểm (web local trỏ API sang tunnel bằng `serverUrl`, còn đường `/uploads` vẫn đi qua proxy của web local) chứ không phải lỗi sản phẩm khi web và backend cùng một máy chủ.
+
+#### R2-15 — Kiểm sau nửa đêm 08/10 (REAL DEVICE ROG + REAL HTTP/API, backend partner) — đúng khung 00:00–06:59 từng gây lỗi
+- LỖI-9 ĐẠT: ghi món lúc 00:01:39 (giờ VN; UTC vẫn là 07/10 17:01) → backend lưu `date 2026-10-08T12:00:00Z`; màn Dinh dưỡng "hôm nay" hiện 283 kcal với đúng món vừa ghi.
+- LỖI-8 ĐẠT: "Chương trình mới" lúc 00:03 điền sẵn "Bắt đầu 2026-10-08".
+- LỖI-19: bảng đặt buổi lúc 00:03 ngày 08/10 bắt đầu từ "Th 6, 09/10", "còn 3 buổi" — đúng.
+- LỖI-11 ĐẠT trên backend partner: tạo chu kỳ lúc 00:03:55 (UTC 07/10 17:03) → `startDate 2026-10-08`, `endDate 2026-11-07` (đã huỷ chu kỳ thử này).
+- **LỖI-29 (MỚI, mobile)**: Trang chủ không sang ngày mới khi app đang mở qua nửa đêm. Sau 00:01, đã ghi món của ngày 08/10, Trang chủ vẫn ghi "Calo hôm nay 181 · Đạm 18g" (số của ngày 07/10); tắt hẳn app mở lại mới ra 283 · 10g. Nguyên nhân (CODE AUDIT `app/client/dashboard.tsx:113`): `const today = useMemo(() => new Date(), [])` — "hôm nay" bị đóng băng lúc tab Trang chủ được dựng, mà tab sống suốt đời tiến trình app. Người để app qua đêm rồi mở lại buổi sáng sẽ thấy số liệu hôm qua dưới nhãn "hôm nay".
+- AI Coach trên partner lúc 23:52 và 23:53 (REAL HTTP/API `POST /ai/ask`): cả 2 lần trả 200 sau 52 s với câu dự phòng TIẾNG ANH "The AI model is starting up or overloaded, so I cannot answer this right now…" (đợt 1 trả lời được sau 60–69 s). Thuộc máy AI của partner; câu dự phòng chưa Việt hoá.
+- Đơn dịch vụ 1-1 (REAL HTTP/API, chỉ đọc): danh sách của khách và của PT trả 200 (rỗng).

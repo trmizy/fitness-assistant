@@ -7,6 +7,7 @@ import { Expand, LocateFixed, MapPin, X } from "lucide-react-native";
 
 import { Button, Tappable, useToast } from "../../components/ui";
 import { darkColors, designTokens } from "../../theme/colors";
+import { baseTilesScript } from "../services/mapTiles";
 
 /**
  * Ghim vị trí chi nhánh trên bản đồ — bản kéo-thả của `BranchMap` (Phase 7, quyết định 21/9:
@@ -38,7 +39,7 @@ function html(lat: number | null, lng: number | null, interactive: boolean) {
 (function(){
   var d = ${data};
   var map = L.map("m",{zoomControl:${interactive},attributionControl:true,dragging:${interactive},touchZoom:${interactive},doubleClickZoom:${interactive},scrollWheelZoom:false,boxZoom:false,keyboard:false});
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  ${baseTilesScript()}
   map.setView([d.start.lat,d.start.lng],d.start.zoom);
   var icon = L.divIcon({className:"",html:'<div style="width:26px;height:26px;border-radius:9999px;background:#22C55E;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.6)"></div>',iconSize:[26,26],iconAnchor:[13,13]});
   var marker = null;

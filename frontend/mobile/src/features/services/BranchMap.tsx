@@ -7,6 +7,7 @@ import { Expand, MapPin, X } from "lucide-react-native";
 import { Tappable } from "../../components/ui";
 
 import type { BranchPin } from "./gymDirectory";
+import { baseTilesScript } from "./mapTiles";
 
 /**
  * Bản đồ CHỈ XEM các chi nhánh của một thương hiệu — cùng cách với web (`components/gym/BranchMap.tsx`):
@@ -39,7 +40,7 @@ function html(pins: BranchPin[], currentId: string, interactive: boolean) {
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c];});}
   function dot(color,size){return L.divIcon({className:"",html:'<div style="width:'+size+'px;height:'+size+'px;border-radius:9999px;background:'+color+';border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5)"></div>',iconSize:[size,size],iconAnchor:[size/2,size/2]});}
   var map = L.map("m",{zoomControl:${interactive},attributionControl:true,dragging:${interactive},touchZoom:${interactive},doubleClickZoom:${interactive},scrollWheelZoom:false,boxZoom:false,keyboard:false});
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  ${baseTilesScript()}
   var ll=[];
   d.pins.forEach(function(b){
     var cur = b.id===d.currentId, p=[b.latitude,b.longitude]; ll.push(p);
