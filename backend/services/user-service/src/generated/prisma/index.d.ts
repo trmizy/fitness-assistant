@@ -8646,6 +8646,7 @@ export namespace Prisma {
     price: Decimal | null
     pricePerSession: Decimal | null
     validityDays: number | null
+    ptHoldbackRate: Decimal | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -8665,6 +8666,7 @@ export namespace Prisma {
     price: Decimal | null
     pricePerSession: Decimal | null
     validityDays: number | null
+    ptHoldbackRate: Decimal | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -8719,6 +8721,9 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    paymentDueAt: Date | null
+    ptHoldbackRate: Decimal | null
+    holdbackReleasedAt: Date | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -8780,6 +8785,9 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    paymentDueAt: Date | null
+    ptHoldbackRate: Decimal | null
+    holdbackReleasedAt: Date | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -8841,6 +8849,9 @@ export namespace Prisma {
     gymId: number
     source: number
     paymentTransactionId: number
+    paymentDueAt: number
+    ptHoldbackRate: number
+    holdbackReleasedAt: number
     platformRate: number
     ptRate: number
     gymRate: number
@@ -8869,6 +8880,7 @@ export namespace Prisma {
     price?: true
     pricePerSession?: true
     validityDays?: true
+    ptHoldbackRate?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -8888,6 +8900,7 @@ export namespace Prisma {
     price?: true
     pricePerSession?: true
     validityDays?: true
+    ptHoldbackRate?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -8942,6 +8955,9 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    paymentDueAt?: true
+    ptHoldbackRate?: true
+    holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -9003,6 +9019,9 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    paymentDueAt?: true
+    ptHoldbackRate?: true
+    holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -9064,6 +9083,9 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    paymentDueAt?: true
+    ptHoldbackRate?: true
+    holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -9212,6 +9234,9 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource
     paymentTransactionId: string | null
+    paymentDueAt: Date | null
+    ptHoldbackRate: Decimal
+    holdbackReleasedAt: Date | null
     platformRate: Decimal
     ptRate: Decimal
     gymRate: Decimal
@@ -9292,6 +9317,9 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    paymentDueAt?: boolean
+    ptHoldbackRate?: boolean
+    holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
@@ -9358,6 +9386,9 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    paymentDueAt?: boolean
+    ptHoldbackRate?: boolean
+    holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
@@ -9419,6 +9450,9 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    paymentDueAt?: boolean
+    ptHoldbackRate?: boolean
+    holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
@@ -9497,6 +9531,9 @@ export namespace Prisma {
       gymId: string | null
       source: $Enums.ContractSource
       paymentTransactionId: string | null
+      paymentDueAt: Date | null
+      ptHoldbackRate: Prisma.Decimal
+      holdbackReleasedAt: Date | null
       platformRate: Prisma.Decimal
       ptRate: Prisma.Decimal
       gymRate: Prisma.Decimal
@@ -9957,6 +9994,9 @@ export namespace Prisma {
     readonly gymId: FieldRef<"Contract", 'String'>
     readonly source: FieldRef<"Contract", 'ContractSource'>
     readonly paymentTransactionId: FieldRef<"Contract", 'String'>
+    readonly paymentDueAt: FieldRef<"Contract", 'DateTime'>
+    readonly ptHoldbackRate: FieldRef<"Contract", 'Decimal'>
+    readonly holdbackReleasedAt: FieldRef<"Contract", 'DateTime'>
     readonly platformRate: FieldRef<"Contract", 'Decimal'>
     readonly ptRate: FieldRef<"Contract", 'Decimal'>
     readonly gymRate: FieldRef<"Contract", 'Decimal'>
@@ -30128,6 +30168,9 @@ export namespace Prisma {
     gymId: 'gymId',
     source: 'source',
     paymentTransactionId: 'paymentTransactionId',
+    paymentDueAt: 'paymentDueAt',
+    ptHoldbackRate: 'ptHoldbackRate',
+    holdbackReleasedAt: 'holdbackReleasedAt',
     platformRate: 'platformRate',
     ptRate: 'ptRate',
     gymRate: 'gymRate',
@@ -31748,6 +31791,9 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    paymentDueAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    ptHoldbackRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -31813,6 +31859,9 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    paymentDueAt?: SortOrderInput | SortOrder
+    ptHoldbackRate?: SortOrder
+    holdbackReleasedAt?: SortOrderInput | SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -31881,6 +31930,9 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    paymentDueAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    ptHoldbackRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -31946,6 +31998,9 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    paymentDueAt?: SortOrderInput | SortOrder
+    ptHoldbackRate?: SortOrder
+    holdbackReleasedAt?: SortOrderInput | SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -32015,6 +32070,9 @@ export namespace Prisma {
     gymId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     source?: EnumContractSourceWithAggregatesFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    paymentDueAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    ptHoldbackRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     platformRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -34776,6 +34834,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -34841,6 +34902,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -34906,6 +34970,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -34971,6 +35038,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -35036,6 +35106,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -35097,6 +35170,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -35158,6 +35234,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -38231,6 +38310,9 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    paymentDueAt?: SortOrder
+    ptHoldbackRate?: SortOrder
+    holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -38257,6 +38339,7 @@ export namespace Prisma {
     price?: SortOrder
     pricePerSession?: SortOrder
     validityDays?: SortOrder
+    ptHoldbackRate?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -38311,6 +38394,9 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    paymentDueAt?: SortOrder
+    ptHoldbackRate?: SortOrder
+    holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -38372,6 +38458,9 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    paymentDueAt?: SortOrder
+    ptHoldbackRate?: SortOrder
+    holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -38398,6 +38487,7 @@ export namespace Prisma {
     price?: SortOrder
     pricePerSession?: SortOrder
     validityDays?: SortOrder
+    ptHoldbackRate?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -43590,6 +43680,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -43654,6 +43747,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -43818,6 +43914,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -43882,6 +43981,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44109,6 +44211,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -44173,6 +44278,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -44330,6 +44438,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44394,6 +44505,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44529,6 +44643,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -44593,6 +44710,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -44750,6 +44870,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44814,6 +44937,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -45986,6 +46112,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -46050,6 +46179,9 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
@@ -46251,6 +46383,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -46315,6 +46450,9 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string

@@ -624,6 +624,22 @@ model Contract {
   gymId              String?        @map("gym_id")
   source             ContractSource @default(INDEPENDENT)
   paymentTransactionId String?      @map("payment_transaction_id")
+  // Hạn thanh toán: đặt = lúc hợp đồng VÀO PENDING_PAYMENT + CONTRACT_PAYMENT_DEADLINE_HOURS (12h).
+  // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
+  // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
+  paymentDueAt         DateTime?      @map("payment_due_at")
+
+  // ── PT holdback (rule decided by the product owner; OFF until the terms-acceptance feature exists) ──
+  // Snapshot, like the three rates above: the share of `price` whose first earnings the PT does
+  // not get to withdraw until the contract ends well (COMPLETED / EXPIRED / CLIENT_CANCELLED /
+  // MUTUAL) or sits idle for PT_HOLDBACK_IDLE_DAYS. A PT-fault ending (PT_CANCELLED / PT_BANNED /
+  // PT_REPEATED_NO_SHOW) pays the client compensation out of the held amount ONLY. 0 = no
+  // holdback — every contract that exists today, and every new one until resolvePtHoldbackRate
+  // (pt-holdback-rate.ts) starts returning 0.10. Existing rows get 0 from the column default.
+  ptHoldbackRate       Decimal        @default("0") @db.Decimal(6, 4) @map("pt_holdback_rate")
+  // Set (once) when the idle-release sweep handed the held amount to the PT. From then on the
+  // contract carries NO holdback: release-session/terminate calls send an effective rate of 0.
+  holdbackReleasedAt   DateTime?      @map("holdback_released_at")
 
   // ── Revenue split, frozen at signing ──────────────────────────────────────
   // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,

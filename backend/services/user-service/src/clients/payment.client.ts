@@ -93,6 +93,12 @@ export const paymentClient = {
     return data.data;
   },
 
+  /** Idle contract: hand the PT the amount held back on it (payment-service reads the amount from its ledger). */
+  async releaseHoldback(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-holdback`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
   async moneyBreakdown(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/money-breakdown`, body, { headers, timeout: 10_000 });
     return data.data;

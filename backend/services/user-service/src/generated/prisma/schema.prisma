@@ -491,6 +491,21 @@ enum NotificationEventType {
   // and sent it back for the owner to fix. Same "direct reply to something the recipient
   // initiated" reasoning as GYM_COMPLAINT_RESOLVED — no opt-out preference entry either.
   GYM_BRANCH_CHANGES_REQUESTED
+  // Session settlement and contract unwinding. The code had been sending every one of these
+  // for months, but none was a value of this enum, so the insert failed and the caller's
+  // `.catch` hid it — a client was never told "your trainer reported the session, please
+  // confirm" (found on a real phone, 7/10). Like every CONTRACT_*/SESSION_* above they are
+  // direct consequences of the recipient's own booking, so no opt-out preference entry.
+  SESSION_PENDING_CONFIRMATION
+  SESSION_AUTO_CONFIRMED
+  SESSION_DISPUTED
+  SESSION_DISPUTE_RESOLVED
+  SESSION_PT_NO_SHOW_REPORTED
+  CONTRACT_CANCELLED_PT_DEACTIVATED
+  REFUND_NEEDS_MANUAL_SETTLEMENT
+  // Admin approved / rejected / asked for more on a trainer application — the result the
+  // applicant's own status screen promises a notification for.
+  PT_APPLICATION_REVIEWED
 }
 
 enum NotificationEntityType {
@@ -515,6 +530,8 @@ enum NotificationEntityType {
   GYM_COMPLAINT
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — entityId = gym-service's Gym.id (the branch itself).
   GYM_BRANCH
+  // PT_APPLICATION_REVIEWED's entityId (this service's own PTApplication.id).
+  PT_APPLICATION
 }
 
 enum RescheduleStatus {
@@ -607,6 +624,22 @@ model Contract {
   gymId                String?        @map("gym_id")
   source               ContractSource @default(INDEPENDENT)
   paymentTransactionId String?        @map("payment_transaction_id")
+  // Hạn thanh toán: đặt = lúc hợp đồng VÀO PENDING_PAYMENT + CONTRACT_PAYMENT_DEADLINE_HOURS (12h).
+  // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
+  // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
+  paymentDueAt         DateTime?      @map("payment_due_at")
+
+  // ── PT holdback (rule decided by the product owner; OFF until the terms-acceptance feature exists) ──
+  // Snapshot, like the three rates above: the share of `price` whose first earnings the PT does
+  // not get to withdraw until the contract ends well (COMPLETED / EXPIRED / CLIENT_CANCELLED /
+  // MUTUAL) or sits idle for PT_HOLDBACK_IDLE_DAYS. A PT-fault ending (PT_CANCELLED / PT_BANNED /
+  // PT_REPEATED_NO_SHOW) pays the client compensation out of the held amount ONLY. 0 = no
+  // holdback — every contract that exists today, and every new one until resolvePtHoldbackRate
+  // (pt-holdback-rate.ts) starts returning 0.10. Existing rows get 0 from the column default.
+  ptHoldbackRate     Decimal   @default("0") @map("pt_holdback_rate") @db.Decimal(6, 4)
+  // Set (once) when the idle-release sweep handed the held amount to the PT. From then on the
+  // contract carries NO holdback: release-session/terminate calls send an effective rate of 0.
+  holdbackReleasedAt DateTime? @map("holdback_released_at")
 
   // ── Revenue split, frozen at signing ──────────────────────────────────────
   // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,

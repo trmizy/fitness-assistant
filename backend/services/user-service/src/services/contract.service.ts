@@ -22,8 +22,9 @@ import { generateContractPdf } from "./contractPdf.service";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
-import { auditService } from "./audit.service";
-import { terminateContractMoney } from "./contract-payout.service";
+import { auditService, SYSTEM_ACTOR } from "./audit.service";
+import { releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
+import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
 import { settleTracked } from "./session-settlement.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
 
@@ -31,10 +32,103 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** Machine-readable code of the 409 activate-after-payment answers when the contract cannot be
+ * activated by the payment that just landed. payment-service matches on it to refund the
+ * client — keep the two in step (payment-service reconciliation.service.ts). */
+export const CONTRACT_NOT_ACTIVATABLE = "CONTRACT_NOT_ACTIVATABLE";
+
 /** Vòng 4 / Phase E2 — how many confirmed PT no-shows on one contract earn the client the
  * right to terminate it themselves for a full refund (TerminationReason PT_REPEATED_NO_SHOW,
  * enforced in contract.controller.ts's terminate()). */
 export const PT_REPEATED_NO_SHOW_THRESHOLD = 3;
+
+/** Hạn thanh toán: một hợp đồng phải được trả trong vòng bao nhiêu giờ kể từ lúc nó VÀO
+ * PENDING_PAYMENT. Quá hạn mà chưa trả thì contract-expiry-sweep tự huỷ (và `pay` từ chối từ
+ * lúc quá hạn, không đợi sweep). Cấu hình qua env, mặc định 12 giờ. */
+export const CONTRACT_PAYMENT_DEADLINE_HOURS = (() => {
+  const n = Number(process.env.CONTRACT_PAYMENT_DEADLINE_HOURS ?? 12);
+  return Number.isFinite(n) && n > 0 ? n : 12;
+})();
+
+/** Thời gian (phút) mà một checkout cổng thanh toán đã khởi tạo vẫn có thể được hoàn tất. `pay`
+ * đẩy `paymentDueAt` tới ít nhất `now + giá trị này` để sweep không huỷ hợp đồng khi học viên còn
+ * đang ở trang ngân hàng (tiền về sau khi hợp đồng đã CANCELLED = đã trả mà bị huỷ). Phải >= hạn
+ * checkout dài nhất của các cổng trong payment-service + độ trễ webhook/polling (5 phút).
+ * VNPay đặt vnp_ExpireDate = +15 phút; ZaloPay/PayOS/MoMo không truyền hạn nên dùng mặc định của
+ * cổng (không đọc được từ code). Mặc định 60 phút, cấu hình qua env. */
+export const CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES = (() => {
+  const n = Number(process.env.CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES ?? 60);
+  return Number.isFinite(n) && n > 0 ? n : 60;
+})();
+
+/** Giá trị `paymentDueAt` cho một hợp đồng vừa vào PENDING_PAYMENT lúc `from`. Mọi đường đi vào
+ * PENDING_PAYMENT (PT chấp nhận, webhook ký xong, admin bỏ qua e-sign) phải đặt cột này. */
+export function computePaymentDueAt(from: Date = new Date()): Date {
+  return new Date(from.getTime() + CONTRACT_PAYMENT_DEADLINE_HOURS * 60 * 60 * 1000);
+}
+
+/** Lỗi mang mã máy đọc được (`code`) — controller chuyển `code` ra response. */
+function codedErr(message: string, status: number, code: string) {
+  return Object.assign(err(message, status), { code });
+}
+
+export const GYM_NOT_ACCEPTING_CONTRACTS = "GYM_NOT_ACCEPTING_CONTRACTS";
+export const GYM_TERMS_CHANGED = "GYM_TERMS_CHANGED";
+export const PAYMENT_DEADLINE_PASSED = "PAYMENT_DEADLINE_PASSED";
+
+/**
+ * Hợp đồng gắn phòng gym: hỏi lại gym-service xem thoả thuận PT–gym còn dùng được cho hợp đồng
+ * MỚI không. `requestContract` chỉ hỏi một lần lúc tạo yêu cầu; trong lúc chờ PT chấp nhận /
+ * khách thanh toán, gym có thể bị đóng / ngừng hoạt động hoặc thoả thuận bắt đầu bị chấm dứt.
+ * Chỉ hợp đồng ĐÃ TRẢ TIỀN mới là cam kết đã có — hợp đồng chưa trả vẫn là "mới".
+ *
+ *  - gym-service không với tới được → 503 (không bao giờ coi "không kiểm tra được" là hợp lệ
+ *    hay không hợp lệ).
+ *  - không còn thoả thuận → 409 GYM_NOT_ACCEPTING_CONTRACTS, hợp đồng giữ nguyên trạng thái.
+ *  - còn thoả thuận nhưng 3 tỷ lệ khác bản đã chụp vào hợp đồng → 409 GYM_TERMS_CHANGED; không
+ *    bao giờ ghi đè tỷ lệ của hợp đồng, không bao giờ đi tiếp với tỷ lệ lệch.
+ * Hợp đồng không có gymId: không gọi gym-service.
+ */
+async function assertGymStillAcceptsContract(contract: {
+  gymId: string | null;
+  ptUserId: string;
+  platformRate: Prisma.Decimal | string;
+  ptRate: Prisma.Decimal | string;
+  gymRate: Prisma.Decimal | string;
+}): Promise<void> {
+  if (!contract.gymId) return;
+  let collab;
+  try {
+    collab = await gymClient.getActiveCollaboration(contract.gymId, contract.ptUserId);
+  } catch (e) {
+    if (e instanceof GymServiceUnavailableError) {
+      throw err(
+        "Không thể xác nhận thoả thuận hợp tác với phòng gym lúc này, vui lòng thử lại",
+        503,
+      );
+    }
+    throw e;
+  }
+  if (!collab) {
+    throw codedErr(
+      "Phòng gym này hiện không còn nhận hợp đồng PT mới. Vui lòng chọn phòng gym khác hoặc hình thức tập khác.",
+      409,
+      GYM_NOT_ACCEPTING_CONTRACTS,
+    );
+  }
+  // So sánh dạng số thập phân, không so chuỗi ("0.5" bằng "0.5000").
+  const same =
+    new Prisma.Decimal(collab.platformRate).equals(contract.platformRate) &&
+    new Prisma.Decimal(collab.ptRate).equals(contract.ptRate) &&
+    new Prisma.Decimal(collab.gymRate).equals(contract.gymRate);
+  if (!same) {
+    throw codedErr(
+      "Điều khoản hợp tác giữa PT và phòng gym đã thay đổi kể từ lúc yêu cầu được tạo. Vui lòng huỷ yêu cầu này và tạo yêu cầu mới.",
+      409,
+      GYM_TERMS_CHANGED,
+    );
+  }
+}
 
 /**
  * Money-flow plan 1.5 — the single shared formula for "how many sessions does this contract
@@ -413,6 +507,9 @@ export const contractService = {
       platformRate: rates.platformRate,
       ptRate: rates.ptRate,
       gymRate: rates.gymRate,
+      // PT holdback — a snapshot like the rates above, from the one place that decides it
+      // (today always "0": the rule is built but switched off).
+      ptHoldbackRate: await resolvePtHoldbackRate(data.ptUserId),
       // Package audit trail + slot warning evidence
       ...({
         packageId: snapshot.packageId,
@@ -485,6 +582,9 @@ export const contractService = {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
 
+    // 0. Gym-tied: the partnership may have been closed/terminated since the request was made.
+    await assertGymStillAcceptsContract(contract);
+
     // 1. Fetch real emails + names (fail-fast: e-sign requires real emails)
     const [ptInfo, clientInfo] = await Promise.all([
       getUserInfo(ptUserId),
@@ -513,7 +613,9 @@ export const contractService = {
         clientSignerEmail: clientInfo.email,
         ptSignerEmail: ptInfo.email,
         eSignTestMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
-        ...(REQUIRE_CONTRACT_ESIGN ? {} : { eSignStatus: "SKIPPED" }),
+        ...(REQUIRE_CONTRACT_ESIGN
+          ? {}
+          : { eSignStatus: "SKIPPED", paymentDueAt: computePaymentDueAt() }),
       },
     );
     if (affected.count === 0) {
@@ -682,14 +784,21 @@ export const contractService = {
       );
     }
 
-    const updated = await contractRepository.updateStatus(
+    // Ghi có điều kiện theo đúng trạng thái vừa đọc: nếu trong lúc đó một khoản thanh toán đã kích
+    // hoạt hợp đồng (PENDING_PAYMENT -> ACTIVE), lệnh huỷ này KHÔNG được đè lên — sẽ thành một
+    // hợp đồng đã trả tiền mà bị huỷ không hoàn tiền. Hợp đồng ACTIVE phải đi qua terminate.
+    const updated = await contractRepository.updateStatusIfCurrent(
       contractId,
+      contract.status,
       ContractStatus.CANCELLED,
       {
         cancelledBy: userId,
         cancellationReason: reason.trim(),
       },
     );
+    if (!updated) {
+      throw err("The contract changed while you were cancelling it — reload and check its status", 409);
+    }
 
     await auditContractStatus(userId, contractId, contract.status, ContractStatus.CANCELLED, {
       reason: reason.trim(),
@@ -922,7 +1031,7 @@ export const contractService = {
       return contractRepository.updateStatus(
         id,
         ContractStatus.PENDING_PAYMENT,
-        {},
+        { paymentDueAt: computePaymentDueAt() },
       );
     }
 
@@ -1122,6 +1231,121 @@ export const contractService = {
     return count;
   },
 
+  /**
+   * Huỷ hợp đồng PENDING_PAYMENT quá hạn thanh toán (paymentDueAt đã qua). Chưa có đồng nào
+   * được chuyển cho hợp đồng ở trạng thái này nên đây là huỷ thường — cùng dạng với
+   * cancelContract (status CANCELLED + cancelledBy + cancellationReason + audit + thông báo),
+   * không đi qua terminateContractMoney.
+   *
+   * Cập nhật có điều kiện (xem contractRepository.cancelIfPaymentOverdue): chỉ ăn nếu dòng vẫn
+   * là PENDING_PAYMENT, chưa có paymentTransactionId và vẫn quá hạn ở thời điểm ghi — nên một
+   * lần thanh toán vừa thành công không bao giờ bị biến thành "đã huỷ mà đã trả tiền".
+   * Lỗi từng hợp đồng được bắt riêng để không chặn cả lượt.
+   */
+  async cancelOverduePaymentContracts(): Promise<number> {
+    const overdue = await contractRepository.findOverduePendingPayment(new Date());
+    let count = 0;
+    for (const c of overdue) {
+      try {
+        const reason = `Quá hạn thanh toán ${CONTRACT_PAYMENT_DEADLINE_HOURS} giờ kể từ khi PT chấp nhận`;
+        const { count: affected } = await contractRepository.cancelIfPaymentOverdue(
+          c.id,
+          new Date(),
+          reason,
+        );
+        if (affected === 0) continue; // vừa được trả / huỷ ở nơi khác — không động vào
+        count++;
+        await auditContractStatus(
+          SYSTEM_ACTOR,
+          c.id,
+          ContractStatus.PENDING_PAYMENT,
+          ContractStatus.CANCELLED,
+          { reason, cancelledBy: "SYSTEM", paymentDueAt: c.paymentDueAt?.toISOString() ?? null },
+        );
+        await Promise.all([
+          notificationService
+            .create({
+              userId: c.clientUserId,
+              text: "Hợp đồng PT của bạn đã bị huỷ vì quá hạn thanh toán. Bạn có thể gửi yêu cầu mới.",
+              eventType: "CONTRACT_CANCELLED",
+              entityType: "CONTRACT",
+              entityId: c.id,
+              link: "/client/contracts",
+            })
+            .catch(() => {}),
+          notificationService
+            .create({
+              userId: c.ptUserId,
+              text: "Hợp đồng đã bị huỷ vì học viên không thanh toán trong thời hạn.",
+              eventType: "CONTRACT_CANCELLED",
+              entityType: "CONTRACT",
+              entityId: c.id,
+              link: "/pt/contracts",
+            })
+            .catch(() => {}),
+        ]);
+      } catch (e) {
+        logger.error({
+          error: "Failed to cancel a payment-overdue contract",
+          contractId: c.id,
+          message: (e as Error).message,
+        });
+      }
+    }
+    return count;
+  },
+
+  /**
+   * Idle release of the PT holdback: a contract with a holdback that has had no session for
+   * PT_HOLDBACK_IDLE_DAYS (the exact rule is contractRepository.findIdleHoldbackCandidates) hands
+   * the held-back amount to the PT, and carries on WITHOUT a holdback from then on.
+   *
+   * Per contract and in this order, so a failure at any step is retried by the next tick and
+   * nothing can fire twice:
+   *   1. re-check that the contract still qualifies (a session may have been booked since the
+   *      candidate list was read);
+   *   2. payment-service releases the held amount — idempotent per contract, so a repeat call (a
+   *      crash before step 3, or an overlapping run) replays the first result;
+   *   3. a guarded update records holdbackReleasedAt and adds what was released to releasedToPt in
+   *      the same statement — it affects 0 rows if anyone got there first, so the amount is counted
+   *      once.
+   * Errors are caught per contract so one bad contract does not block the rest of the batch.
+   * Returns how many contracts THIS run released.
+   */
+  async releaseIdleHoldbacks(now: Date = new Date()): Promise<number> {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const cutoff = new Date(now.getTime() - PT_HOLDBACK_IDLE_DAYS * dayMs);
+    const window = { activatedBefore: cutoff, sessionsSince: cutoff };
+    const candidates = await contractRepository.findIdleHoldbackCandidates(window);
+    let count = 0;
+    for (const c of candidates) {
+      try {
+        const stillIdle = await contractRepository.findIdleHoldbackCandidates({ ...window, id: c.id, limit: 1 });
+        if (stillIdle.length === 0) continue;
+
+        const result = await releaseHoldbackMoney(c.id);
+        if (!result) continue; // not payable (no transaction) — nothing to release
+        const { count: marked } = await contractRepository.markHoldbackReleased(
+          c.id,
+          new Prisma.Decimal(result.released),
+          now,
+        );
+        if (marked === 0) continue; // someone else recorded it first
+        count++;
+        logger.info(
+          `[HoldbackSweep] Contract ${c.id} idle for ${PT_HOLDBACK_IDLE_DAYS}+ days — released ${result.released} to the PT, holdback ended`,
+        );
+      } catch (e) {
+        logger.error({
+          error: "Failed to release an idle contract's PT holdback",
+          contractId: c.id,
+          message: (e as Error).message,
+        });
+      }
+    }
+    return count;
+  },
+
   // ── Check relationship (for call permission) ─────────────────────
   async checkRelationship(userAId: string, userBId: string) {
     // Calls no longer require a contract — only block if either account is deactivated.
@@ -1248,6 +1472,19 @@ export const contractService = {
     }
     if (!contract.price) throw err("Contract has no price set", 400);
 
+    // Quá hạn thanh toán thì từ chối ngay, không đợi sweep kịp huỷ.
+    if (contract.paymentDueAt && contract.paymentDueAt.getTime() <= Date.now()) {
+      throw codedErr(
+        `Hợp đồng đã quá hạn thanh toán (${CONTRACT_PAYMENT_DEADLINE_HOURS} giờ kể từ khi PT chấp nhận) nên không thể thanh toán. Vui lòng tạo yêu cầu mới.`,
+        409,
+        PAYMENT_DEADLINE_PASSED,
+      );
+    }
+
+    // Gym-tied: re-check the partnership BEFORE any money can move (the checkout below is the
+    // first point at which the client's money is touched).
+    await assertGymStillAcceptsContract(contract);
+
     // Each attempt gets its own key: an abandoned checkout must not block a fresh one, and
     // the gateway itself dedupes a genuine double-submit by transaction id.
     const attemptId = randomUUID();
@@ -1274,6 +1511,23 @@ export const contractService = {
       returnBaseUrl,
     });
 
+    // Checkout đã khởi tạo thành công: từ giờ học viên có thể trả tiền thêm một lúc nữa, nên dời
+    // hạn tới ít nhất now + grace (không bao giờ lùi hạn). Cập nhật có điều kiện — chỉ khi hợp
+    // đồng còn PENDING_PAYMENT. Thất bại ở đây KHÔNG làm hỏng yêu cầu thanh toán (checkout đã
+    // tạo, học viên cần link): chỉ log; hậu quả là hạn cũ giữ nguyên và sweep có thể huỷ hợp đồng
+    // trong lúc checkout còn mở.
+    if (contract.paymentDueAt) {
+      try {
+        const extendTo = new Date(Date.now() + CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES * 60 * 1000);
+        await contractRepository.extendPaymentDueAt(contract.id, extendTo);
+      } catch (e) {
+        logger.error(
+          { contractId: contract.id, err: (e as Error)?.message },
+          "pay: failed to extend paymentDueAt after checkout creation",
+        );
+      }
+    }
+
     return {
       contract: await contractRepository.findById(contract.id),
       payment: result,
@@ -1291,16 +1545,41 @@ export const contractService = {
     ) {
       throw err("Transaction verification failed", 400);
     }
-    const before = await contractRepository.findById(contractId);
-    const wasAlreadyActive = before?.status === ContractStatus.ACTIVE;
-    const activated = await contractRepository.activateIfPending(contractId, transactionId);
+    // Một lần ghi có điều kiện (WHERE status = PENDING_PAYMENT) thay cho đọc-rồi-ghi: một lệnh huỷ
+    // chen vào giữa không thể bị ghi đè thành ACTIVE. `flipped` chỉ đúng cho lần gọi thực sự
+    // chuyển trạng thái — các lần webhook/sweep gọi lại không gửi lại email.
+    const { contract: current, flipped } = await contractRepository.activateIfPendingGuarded(
+      contractId,
+      transactionId,
+    );
+
+    // Câu trả lời PHẢI phân biệt được cho payment-service (nó đã chuyển tiền vào escrow TRƯỚC khi
+    // gọi tới đây): chỉ coi là kích hoạt khi hợp đồng đang ACTIVE bằng đúng giao dịch NÀY (vừa
+    // chuyển, hoặc phát lại cùng giao dịch). Mọi trường hợp khác — đã huỷ/từ chối/hết hạn/hoàn
+    // thành, chưa tới bước thanh toán, hoặc ACTIVE bằng một giao dịch KHÁC — là câu trả lời dứt
+    // khoát "không kích hoạt được" (409), không phải lỗi 5xx, để payment-service hoàn tiền cho
+    // học viên thay vì đánh dấu đã kích hoạt rồi để tiền kẹt.
+    const activatedByThisPayment =
+      current?.status === ContractStatus.ACTIVE && current.paymentTransactionId === transactionId;
+    if (!activatedByThisPayment) {
+      const currentStatus = current?.status ?? "NOT_FOUND";
+      logger.warn(
+        { contractId, transactionId, currentStatus, activePaymentTransactionId: current?.paymentTransactionId ?? null },
+        "activate-after-payment: contract cannot be activated by this payment — payment-service will refund it",
+      );
+      throw Object.assign(
+        err(`Contract cannot be activated by this payment (status ${currentStatus})`, 409),
+        { code: CONTRACT_NOT_ACTIVATABLE, currentStatus },
+      );
+    }
+    const activated = current;
 
     // Payment confirmation is where the two parties currently have the least confirmation
     // they've actually got a deal — send the notice here rather than at signing, since
     // signing may itself be bypassed (REQUIRE_CONTRACT_ESIGN). Only on the transition that
     // actually just happened: activateIfPending is called again on webhook retries, and a
     // retry must not re-email both parties.
-    if (activated && !wasAlreadyActive && activated.status === ContractStatus.ACTIVE) {
+    if (flipped) {
       const [ptInfo, clientInfo] = await Promise.all([
         getUserInfo(activated.ptUserId),
         getUserInfo(activated.clientUserId),

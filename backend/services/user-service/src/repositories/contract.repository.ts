@@ -1,4 +1,4 @@
-import { ContractStatus, ContractSource, PackageType, SessionMode, Prisma } from "../generated/prisma";
+import { ContractStatus, ContractSource, PackageType, SessionMode, SessionStatus, Prisma } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
 /** Vòng 4 / Phase A3 — same reasoning as session.repository.ts's own Db type: findById needs
@@ -35,6 +35,8 @@ export const contractRepository = {
     platformRate?: Prisma.Decimal | string;
     ptRate?: Prisma.Decimal | string;
     gymRate?: Prisma.Decimal | string;
+    // PT holdback rate, snapshotted at creation (see pt-holdback-rate.ts). Omitted → schema default 0.
+    ptHoldbackRate?: Prisma.Decimal | string;
     paymentTransactionId?: string;
   }) => prisma.contract.create({ data }),
 
@@ -163,6 +165,117 @@ export const contractRepository = {
       },
     }),
 
+  /** PENDING_PAYMENT contracts whose payment deadline has passed (candidates for the sweep). */
+  findOverduePendingPayment: (now: Date) =>
+    prisma.contract.findMany({
+      where: {
+        status: ContractStatus.PENDING_PAYMENT,
+        paymentTransactionId: null,
+        paymentDueAt: { lte: now },
+      },
+    }),
+
+  /**
+   * Guarded cancel: ONE UPDATE ... WHERE, so it only lands if the row is still PENDING_PAYMENT,
+   * still unpaid and still overdue at write time. Racing activateIfPending, exactly one wins:
+   * the loser sees status/paymentTransactionId changed and affects 0 rows.
+   */
+  cancelIfPaymentOverdue: (id: string, now: Date, reason: string) =>
+    prisma.contract.updateMany({
+      where: {
+        id,
+        status: ContractStatus.PENDING_PAYMENT,
+        paymentTransactionId: null,
+        paymentDueAt: { lte: now },
+      },
+      data: { status: ContractStatus.CANCELLED, cancelledBy: "SYSTEM", cancellationReason: reason },
+    }),
+
+  /**
+   * Guarded extension of the payment deadline: ONE UPDATE ... WHERE, only while the row is still
+   * PENDING_PAYMENT, unpaid and its current deadline is EARLIER than `to` — so it can never pull a
+   * deadline back, never revives a CANCELLED contract, and never gives a deadline to a legacy row
+   * that has none (NULL does not match `lt`). Racing the sweep, exactly one wins.
+   */
+  extendPaymentDueAt: (id: string, to: Date) =>
+    prisma.contract.updateMany({
+      where: {
+        id,
+        status: ContractStatus.PENDING_PAYMENT,
+        paymentTransactionId: null,
+        paymentDueAt: { lt: to },
+      },
+      data: { paymentDueAt: to },
+    }),
+
+  /**
+   * Contracts whose PT holdback is due for release because nothing has happened on them for a
+   * long time (the idle-release sweep's candidates; also re-run per id right before the money call).
+   *
+   * The rule, exactly. A contract qualifies when ALL of:
+   *   · status ACTIVE, paid (paymentTransactionId set), ptHoldbackRate > 0, holdbackReleasedAt null;
+   *   · activated at least `idleDays` ago (startDate is stamped at activation by
+   *     activateIfPendingGuarded; there is no separate activatedAt);
+   *   · NO session counts as activity, where a session counts when it is
+   *       - in a state that still holds the contract's entitlement — REQUESTED, CONFIRMED,
+   *         PENDING_CLIENT_CONFIRMATION, DISPUTED, PT_NO_SHOW_REPORTED (docs/money-flow.md
+   *         "business-rules-session-lifecycle" §1.1), whatever its start time, future included; or
+   *       - COMPLETED or NO_SHOW with a start time inside the last `idleDays` days.
+   *     CANCELLED never counts: nothing happened and the slot no longer holds anything.
+   * It is deliberately a SUPERSET of "a holding-state session starting in the last N days or in the
+   * future": a session left unresolved for longer (a dispute waiting for an admin, say) must keep
+   * the money held, and a PT who has stopped turning up (NO_SHOW) must not have the holdback
+   * released as if the contract had merely been quiet.
+   */
+  findIdleHoldbackCandidates: (opts: { activatedBefore: Date; sessionsSince: Date; limit?: number; id?: string }) =>
+    prisma.contract.findMany({
+      where: {
+        ...(opts.id ? { id: opts.id } : {}),
+        status: ContractStatus.ACTIVE,
+        holdbackReleasedAt: null,
+        ptHoldbackRate: { gt: 0 },
+        paymentTransactionId: { not: null },
+        startDate: { lte: opts.activatedBefore },
+        sessions: {
+          none: {
+            OR: [
+              {
+                status: {
+                  in: [
+                    SessionStatus.REQUESTED,
+                    SessionStatus.CONFIRMED,
+                    SessionStatus.PENDING_CLIENT_CONFIRMATION,
+                    SessionStatus.DISPUTED,
+                    SessionStatus.PT_NO_SHOW_REPORTED,
+                  ],
+                },
+              },
+              {
+                status: { in: [SessionStatus.COMPLETED, SessionStatus.NO_SHOW] },
+                scheduledStartAt: { gte: opts.sessionsSince },
+              },
+            ],
+          },
+        },
+      },
+      orderBy: { startDate: "asc" },
+      take: opts.limit ?? 200,
+    }),
+
+  /**
+   * Guarded mark: ONE UPDATE ... WHERE, so a contract's holdback is recorded as released exactly
+   * once even if two sweeps overlap (two instances, or a retry after a crash) — the loser sees
+   * holdbackReleasedAt already set and affects 0 rows. What the release actually moved is added to
+   * releasedToPt IN THE SAME UPDATE, so it is counted once and only by the winner: termination
+   * hands releasedToPt back to payment-service as `alreadyReleased`, and an uncounted release
+   * would be paid to the PT a second time out of the client's refund.
+   */
+  markHoldbackReleased: (id: string, released: Prisma.Decimal, now: Date) =>
+    prisma.contract.updateMany({
+      where: { id, status: ContractStatus.ACTIVE, holdbackReleasedAt: null },
+      data: { holdbackReleasedAt: now, releasedToPt: { increment: released } },
+    }),
+
   /** Admin: list all contracts with pagination */
   findAll: (skip = 0, take = 50, status?: ContractStatus) =>
     prisma.contract.findMany({
@@ -231,12 +344,46 @@ export const contractRepository = {
       data: { ...data, status: newStatus },
     }),
 
+  /**
+   * Guarded cancel for the manual path (cancelContract): ONE UPDATE ... WHERE status = <the
+   * status the caller just read>, so a contract that became ACTIVE (a payment landed) between
+   * the read and this write is not overwritten with CANCELLED — that would be a paid contract
+   * cancelled with no refund. Returns the updated row, or null when the row had moved on.
+   */
+  async updateStatusIfCurrent(
+    id: string,
+    expectedStatus: ContractStatus,
+    status: ContractStatus,
+    extra?: Record<string, any>,
+  ) {
+    const { count } = await prisma.contract.updateMany({
+      where: { id, status: expectedStatus },
+      data: { status, ...extra },
+    });
+    if (count === 0) return null;
+    return prisma.contract.findUnique({ where: { id } });
+  },
+
   /** Idempotent activation: only flips PENDING_PAYMENT -> ACTIVE; a repeat call is a no-op. */
   async activateIfPending(id: string, paymentTransactionId: string) {
+    return (await contractRepository.activateIfPendingGuarded(id, paymentTransactionId)).contract;
+  },
+
+  /**
+   * The activation itself: ONE UPDATE ... WHERE status = PENDING_PAYMENT, decided by the
+   * affected-row count. The previous read-then-update let a cancel that landed between the two
+   * be overwritten with ACTIVE. Racing a cancel (manual or the payment-deadline sweep), exactly
+   * one wins and the loser changes nothing.
+   *
+   * Returns the row as it is AFTER this call plus `flipped`: true only for the call that
+   * actually performed PENDING_PAYMENT -> ACTIVE. The caller decides what the final state means
+   * (activated by this payment / replay of the same payment / not activatable) — this function
+   * never claims success for a row it did not flip.
+   */
+  async activateIfPendingGuarded(id: string, paymentTransactionId: string) {
     const contract = await prisma.contract.findUnique({ where: { id } });
-    if (!contract) return null;
-    if (contract.status === ContractStatus.ACTIVE) return contract; // already done — no-op
-    if (contract.status !== ContractStatus.PENDING_PAYMENT) return contract;
+    if (!contract) return { contract: null, flipped: false };
+    if (contract.status !== ContractStatus.PENDING_PAYMENT) return { contract, flipped: false };
     const startDate = contract.startDate ?? new Date();
     // Money-flow plan 3.6: validityDays (frozen at signing from the package) applies to
     // endDate here, the moment the contract actually activates — not at signing time, when
@@ -246,10 +393,12 @@ export const contractRepository = {
       contract.validityDays != null
         ? new Date(startDate.getTime() + contract.validityDays * 24 * 60 * 60 * 1000)
         : contract.endDate;
-    return prisma.contract.update({
-      where: { id },
+    const { count } = await prisma.contract.updateMany({
+      where: { id, status: ContractStatus.PENDING_PAYMENT },
       data: { status: ContractStatus.ACTIVE, startDate, endDate, paymentTransactionId },
     });
+    // Re-read either way: after a lost race the row is whatever the winner made it.
+    return { contract: await prisma.contract.findUnique({ where: { id } }), flipped: count > 0 };
   },
 
   /** Idempotent: only cancels an ACTIVE contract (a repeat call after it's already CANCELLED is a no-op). */

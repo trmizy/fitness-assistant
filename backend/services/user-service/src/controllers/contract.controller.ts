@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
-import { contractService } from "../services/contract.service";
+import { contractService, CONTRACT_NOT_ACTIVATABLE } from "../services/contract.service";
 import {
   moneyBreakdown,
   terminateContractMoney,
@@ -58,9 +58,10 @@ export const contractController = {
       res.json(contract);
     } catch (error: any) {
       logger.error(error, "Accept contract error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to accept contract" });
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to accept contract",
+        ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+      });
     }
   },
 
@@ -186,9 +187,10 @@ export const contractController = {
       res.json(contract);
     } catch (error: any) {
       logger.error(error, "Update contract status error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to update status" });
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to update status",
+        ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+      });
     }
   },
 
@@ -529,7 +531,10 @@ export const contractController = {
         return;
       }
       logger.error(error, 'Contract pay error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+      res.status(error.status || 500).json({
+        error: error.message || 'Failed to pay contract',
+        ...(error.status && typeof error.code === 'string' ? { code: error.code } : {}),
+      });
     }
   },
 
@@ -676,6 +681,15 @@ export const contractController = {
       const contract = await contractService.activateAfterPayment(req.params.id, transactionId);
       res.json({ success: true, data: contract });
     } catch (error: any) {
+      // 409 CONTRACT_NOT_ACTIVATABLE is a definite answer, not a failure (payment-service refunds
+      // the client on it) — log it at warn level in the service, not as an error here.
+      if (error.code === CONTRACT_NOT_ACTIVATABLE) {
+        res.status(409).json({
+          success: false,
+          error: { code: CONTRACT_NOT_ACTIVATABLE, message: error.message, currentStatus: error.currentStatus },
+        });
+        return;
+      }
       logger.error(error, 'Internal activate-after-payment error');
       res.status(error.status || 500).json({ success: false, error: { message: error.message } });
     }

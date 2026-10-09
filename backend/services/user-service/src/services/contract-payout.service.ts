@@ -30,6 +30,21 @@ function ratesOf(c: ContractRow) {
   };
 }
 
+/**
+ * The PT holdback rate to send payment-service for this contract — and NOTHING when there is none.
+ *
+ * The contract's own snapshot (ptHoldbackRate), or 0 once the holdback has been released for
+ * inactivity: from then on the contract carries on without one. The key is left off the request
+ * entirely at rate 0, not sent as "0", so for every contract that exists today the bodies
+ * user-service sends are byte-for-byte what they were before the holdback existed (pinned by
+ * contract-holdback.test.ts).
+ */
+export function holdbackArgOf(c: ContractRow): { ptHoldbackRate?: string } {
+  if (c.holdbackReleasedAt || c.ptHoldbackRate == null) return {};
+  const rate = new Prisma.Decimal(c.ptHoldbackRate);
+  return rate.greaterThan(0) ? { ptHoldbackRate: rate.toString() } : {};
+}
+
 function partiesOf(c: ContractRow) {
   return { ptUserId: c.ptUserId, gymId: c.gymId, clientUserId: c.clientUserId };
 }
@@ -77,6 +92,9 @@ export async function releaseSessionMoney(contractId: string, sessionId: string)
       // failed before returning (or before the caller recorded success) must not release
       // the same session's money twice.
       idempotencyKey,
+      // The PT holdback, if this contract carries one: the PT's first earnings are kept back, so
+      // `result.released.pt` below can be less than a full session (0 for the first one).
+      ...holdbackArgOf(contract),
     });
 
     // Track what has actually been paid out so termination can top each party up to their
@@ -246,6 +264,9 @@ export async function terminateContractMoney(
         // Money-flow redesign plan 1.1: a contract only ever terminates once, regardless of
         // which reason triggers it — this key is stable across retries of the SAME termination.
         idempotencyKey: `CONTRACT_TERMINATE:${contract.id}`,
+        // The PT holdback: returned to the PT on a normal ending, partly paid to the client as
+        // compensation on a PT-fault one — payment-service decides, from its own ledger.
+        ...holdbackArgOf(contract),
       })
     : null;
 
@@ -255,6 +276,28 @@ export async function terminateContractMoney(
   });
 
   return result;
+}
+
+/**
+ * The contract has had no session for PT_HOLDBACK_IDLE_DAYS: hand the PT the amount held back on
+ * it. Called by the idle-release sweep (contractService.releaseIdleHoldbacks), which has already
+ * decided the contract qualifies.
+ *
+ * Returns what payment-service really moved to the PT's available balance (it reads the amount
+ * from its own ledger — nothing here computes or sends one). Idempotent on payment-service's side
+ * (`HOLDBACK_RELEASE:<contractId>`), so a retry after a crash replays instead of paying twice.
+ * Throws on failure, unlike the best-effort session release: the sweep leaves the contract
+ * un-marked and tries again on its next tick.
+ */
+export async function releaseHoldbackMoney(contractId: string): Promise<{ released: string } | null> {
+  const contract = payableOrNull(await contractRepository.findById(contractId));
+  if (!contract) return null;
+  return paymentClient.releaseHoldback({
+    transactionId: contract.paymentTransactionId,
+    parties: partiesOf(contract),
+    label: `Contract ${contract.id} holdback`,
+    idempotencyKey: `HOLDBACK_RELEASE:${contract.id}`,
+  });
 }
 
 /** What the client would get back if they cancelled right now, and where the money stands. */

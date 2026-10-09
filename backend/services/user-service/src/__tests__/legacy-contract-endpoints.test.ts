@@ -36,7 +36,7 @@ test("cancelContract refuses an ACTIVE (paid) contract — that money must go th
   let updateStatusCalled = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updateStatusCalled = true;
       return {} as any;
     }),
@@ -60,7 +60,7 @@ test("cancelContract still works for a PENDING_REVIEW contract — nothing was e
   let updated = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updated = true;
       return { ...contract, status: ContractStatus.CANCELLED } as any;
     }),
@@ -80,7 +80,7 @@ test("cancelContract still works for a PENDING_PAYMENT contract — signed but n
   let updated = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updated = true;
       return { ...contract, status: ContractStatus.CANCELLED } as any;
     }),
