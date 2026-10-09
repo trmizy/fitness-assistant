@@ -128,3 +128,31 @@ test("location.controller.ts getProvinces logs via logDbError and still returns 
   assert.strictEqual(capturedLog!.errorCode, "P1001");
   assert.strictEqual(capturedLog!.context, "locationController.getProvinces");
 });
+
+/**
+ * Regression (partner tunnel, 8/10): `POST /pt-applications/me/draft` with a number where the
+ * schema wants a string answered 400 with Prisma's whole validation dump — query, arguments and
+ * the source path inside the container. A database error must never be what the client reads.
+ */
+test("a Prisma error is replaced by the fallback; a service's own message is passed on", async () => {
+  const { clientErrorMessage, isDatabaseError } = await import("../utils/db-error.util");
+  const fallback = "Dữ liệu gửi lên không hợp lệ.";
+
+  const validation = new Prisma.PrismaClientValidationError(
+    "\nInvalid `tx.pTApplication.upsert()` invocation in\n/app/backend/services/user-service/src/repositories/pt_application.repository.ts:146:50\n\nArgument `yearsOfExperience`: Invalid value provided. Expected String or Null, provided Int.",
+    { clientVersion: "5.22.0" },
+  );
+  assert.equal(isDatabaseError(validation), true);
+  assert.equal(clientErrorMessage(validation, fallback), fallback);
+
+  const known = new Prisma.PrismaClientKnownRequestError("Unique constraint failed on the fields: (`userId`)", {
+    code: "P2002",
+    clientVersion: "5.22.0",
+  });
+  assert.equal(clientErrorMessage(known, fallback), fallback);
+
+  // What services throw on purpose is written for the user and still reaches them.
+  assert.equal(clientErrorMessage(new Error("Rejection reason is required"), fallback), "Rejection reason is required");
+  assert.equal(isDatabaseError(new Error("x")), false);
+  assert.equal(clientErrorMessage(undefined, fallback), fallback);
+});
