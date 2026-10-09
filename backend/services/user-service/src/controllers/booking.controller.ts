@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
+import { clientErrorMessage } from "../utils/db-error.util";
 import { bookingService } from "../services/booking.service";
 
 export const bookingController = {
@@ -187,7 +188,7 @@ export const bookingController = {
       res.json(await bookingService.listNoShowReportsForPT(ptUserId));
     } catch (error: any) {
       logger.error(error, "List no-show reports error");
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });
     }
   },
 
@@ -198,7 +199,7 @@ export const bookingController = {
       res.json(await bookingService.listPendingConfirmation(clientUserId));
     } catch (error: any) {
       logger.error(error, "List pending-confirmation sessions error");
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });
     }
   },
 
@@ -208,7 +209,7 @@ export const bookingController = {
       res.json(await bookingService.listDisputed());
     } catch (error: any) {
       logger.error(error, "List disputed sessions error");
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });
     }
   },
 

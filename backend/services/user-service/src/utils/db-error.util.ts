@@ -92,3 +92,30 @@ export function logDbError(err: unknown, context: string): void {
     `Unexpected error in ${context}`,
   );
 }
+
+/** True for every error Prisma itself raises — as opposed to an `Error` a service threw on purpose. */
+export function isDatabaseError(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientValidationError ||
+    err instanceof Prisma.PrismaClientKnownRequestError ||
+    err instanceof Prisma.PrismaClientUnknownRequestError ||
+    err instanceof Prisma.PrismaClientInitializationError ||
+    err instanceof Prisma.PrismaClientRustPanicError
+  );
+}
+
+/**
+ * What the caller of an API may be told about a caught error.
+ *
+ * Services throw plain `Error`s whose message is written for the user ("Rejection reason is
+ * required"), and controllers pass that message on. A Prisma error's message is something else
+ * entirely — the failing query, the argument it choked on and the source file path inside the
+ * container — and went out verbatim through the same line (seen through the partner tunnel,
+ * 8/10: a draft with a number where a string belongs). Those get `fallback` instead; the detail
+ * stays in the server log, which every caller already writes.
+ */
+export function clientErrorMessage(err: unknown, fallback: string): string {
+  if (isDatabaseError(err)) return fallback;
+  const message = (err as { message?: unknown } | null | undefined)?.message;
+  return typeof message === "string" && message.trim() ? message : fallback;
+}
