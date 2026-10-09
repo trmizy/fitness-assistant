@@ -197,6 +197,30 @@ Bộ kiểm tự động sau khi sửa: mobile 749 test đơn vị + 78 test com
 
 **Đợt kiểm kế tiếp phải kiểm lại trên máy thật / backend partner:** LỖI-26 (PT báo hoàn thành một buổi thật → khách có thông báo + push + danh sách "Cần xử lý" tự hiện; thông báo duyệt đơn PT nằm lại trong danh sách), LỖI-27 (xong phòng buổi học, PT báo hoàn thành ngay → gọi thoại được ngay sau đó), LỖI-28, LỖI-29 (để app mở qua nửa đêm), LỖI-23 (nền bản đồ và tự ghim theo địa chỉ trên mạng VinaPhone, cả bước "Vị trí" của hồ sơ đối tác).
 
+## 2e. Đợt 3 — kiểm lại các bản sửa của mục 2d trên backend partner (tối 08/10 → 00:05 ngày 09/10)
+
+Backend partner đã gộp `dd42451`, khởi động lại user-service (migration enum tự áp) và chat-service. Máy khách: ROG Phone 6, bản release build 03:34 ngày 08/10, mạng di động VinaPhone 5G; web của laptop này trỏ về tunnel. Không sửa mã nào trong đợt này.
+
+| Mã | Kết quả | Bằng chứng |
+|---|---|---|
+| LỖI-26 | ĐẠT. Buổi học thật 22:41–23:41: PT báo hoàn thành lúc 23:41:54 → khách có bản ghi `SESSION_PENDING_CONFIRMATION` trong danh sách, có push "PT đã báo hoàn thành buổi tập. Vui lòng xác nhận trước 11/10/2026…", và thẻ "Chờ bạn xác nhận" tự hiện ở tab "Cần xử lý" trong 7 giây. Thông báo kết quả duyệt đơn PT nay được lưu: 2 bản ghi `PT_APPLICATION_REVIEWED` hiện trên máy dù lúc admin duyệt tài khoản không đăng nhập; bấm vào mở đúng màn trạng thái đơn. | REAL DEVICE + REAL HTTP/API (đơn PT thử dựng bằng API = TEST FIXTURE) |
+| LỖI-27 | **CHƯA ĐẠT trên backend partner.** 35 giây sau khi PT báo hoàn thành, PT gọi thoại vẫn bị `"You are already in a call"`. Bản ghi cuộc gọi của phòng vẫn còn hoạt động (máy chủ nhận lệnh `call:end` cho nó), tức lời gọi đóng phòng trong `completeSession` không có tác dụng ở máy partner. Trên backend laptop cùng mã: yêu cầu user-service → chat-service `/internal/calls/end-by-session` trả 200 và `booking.service.ts` có đủ 7 chỗ `closeRoomOf`. Nghi phần sửa bị rơi khi partner gộp tay tệp xung đột, hoặc cấu hình nội bộ ở máy họ — chờ agent partner kiểm. Gỡ tay bản ghi xong thì gọi được ngay (máy chủ nhận cuộc gọi tức thì; khách nghe máy sau 24 giây vì phải cấp lại quyền ghi âm, nối sau 1 giây). | REAL BROWSER + REAL DEVICE + REAL HTTP/API |
+| LỖI-28 | ĐẠT: đường dẫn lạ → "Không tìm thấy trang" → "Về trang chính" → Trang chủ. | REAL DEVICE |
+| LỖI-29 | ĐẠT: app mở liên tục qua nửa đêm; quay lại Trang chủ thì "Calo hôm nay" từ 283 (số của 08/10) về 0, không cần tắt app. Trước khi quay lại màn (đang nhìn sẵn Trang chủ lúc 00:01) số cũ vẫn còn — ngày chỉ được đọc lại khi mở lại màn hoặc app trở lại tiền cảnh. | REAL DEVICE |
+| LỖI-23 | ĐẠT trên đúng màn từng hỏng: bước "Vị trí" của hồ sơ đối tác hiện nền bản đồ (nguồn dự phòng tự vào thay) và tự ghim theo "123 Lê Lợi, Phường Bến Thành, TP. Hồ Chí Minh"; lưu bước → backend có toạ độ 10.7724246, 106.6996781. Web trỏ về partner hiện đúng ghim đó. | REAL DEVICE + REAL HTTP/API + REAL BROWSER |
+
+Luồng kèm theo đã chạy lại: phòng buổi học (PT web + khách trên máy, nối được, backend ghi đủ hai mốc vào phòng); khách xác nhận buổi → COMPLETED, ví PT khả dụng 40.000 → 130.000, chờ 270.000 → 180.000.
+
+Ghi nhận mới: `POST /pt-applications/me/draft` nhận sai kiểu dữ liệu (vd. `yearsOfExperience` là số) thì trả 400 kèm nguyên văn lỗi Prisma, lộ đường dẫn tệp trong container. App không gặp vì luôn gửi chuỗi. Chưa sửa.
+
+**Sửa tiếp sau đợt 3 (tối 09/10):**
+
+- Lỗi lộ nguyên văn lỗi Prisma: các chỗ trả `error.message` không có điều kiện ở `pt_application.controller` (lưu nháp, nộp, admin duyệt) và `booking.controller` (3 danh sách) nay thay lỗi của cơ sở dữ liệu bằng một câu chung; thông báo do service chủ động ném vẫn giữ nguyên. Test mới trong `db-error-classification.test.ts`; 76/76 test liên quan của user-service qua (DB `_test`).
+- LỖI-29, phần còn thiếu: Trang chủ nay tự sang ngày mới 1 giây sau 00:00 kể cả khi người dùng đang nhìn sẵn màn hình. Test component mới (3/3). CHƯA kiểm trên máy thật qua nửa đêm.
+- LỖI-27: nguyên nhân do agent partner tìm ra nằm ở máy họ — một bản vá khác của họ đổi user-service sang gửi `INTERNAL_SERVICE_SECRET` trong khi chat-service chỉ kiểm `INTERNAL_API_SECRET`, hai giá trị khác nhau trên máy đó nên yêu cầu đóng phòng (và cả đẩy thông báo qua socket) bị 401. Mã ở nhánh này gửi đúng `INTERNAL_API_SECRET`. Chờ họ sửa rồi kiểm lại.
+
+Dữ liệu thử thêm trên DB partner: buổi `f7ca3290…` COMPLETED (hợp đồng `08dbf885…` thành 2/4 buổi); đơn PT thử của qa.r2reg1007 (REJECTED) và 3 tệp ảnh thử; ứng viên qa.gymr2b.1007 có địa chỉ + toạ độ; 2 bản ghi cuộc gọi.
+
 ## 3. Phần đã đạt (tóm tắt)
 
 - Điện thoại, vai khách: giới thiệu, kiểm tra địa chỉ máy chủ, đăng ký + OTP, onboarding, quét 38 màn, buổi tập + hướng dẫn bài tập + cảm nhận sau buổi, ghi món ăn, mục tiêu dinh dưỡng, InBody nhập tay, thuật sĩ lộ trình + kích hoạt, sửa hồ sơ, tải ảnh đại diện, thư viện, cài đặt, xuất dữ liệu, báo cáo vấn đề, đánh giá phòng gym.
@@ -524,3 +548,36 @@ Client: web local (REAL BROWSER) + TECNO SPARK 40 Pro bản release 22:37 (REAL 
 - **LỖI-29 (MỚI, mobile)**: Trang chủ không sang ngày mới khi app đang mở qua nửa đêm. Sau 00:01, đã ghi món của ngày 08/10, Trang chủ vẫn ghi "Calo hôm nay 181 · Đạm 18g" (số của ngày 07/10); tắt hẳn app mở lại mới ra 283 · 10g. Nguyên nhân (CODE AUDIT `app/client/dashboard.tsx:113`): `const today = useMemo(() => new Date(), [])` — "hôm nay" bị đóng băng lúc tab Trang chủ được dựng, mà tab sống suốt đời tiến trình app. Người để app qua đêm rồi mở lại buổi sáng sẽ thấy số liệu hôm qua dưới nhãn "hôm nay".
 - AI Coach trên partner lúc 23:52 và 23:53 (REAL HTTP/API `POST /ai/ask`): cả 2 lần trả 200 sau 52 s với câu dự phòng TIẾNG ANH "The AI model is starting up or overloaded, so I cannot answer this right now…" (đợt 1 trả lời được sau 60–69 s). Thuộc máy AI của partner; câu dự phòng chưa Việt hoá.
 - Đơn dịch vụ 1-1 (REAL HTTP/API, chỉ đọc): danh sách của khách và của PT trả 200 (rỗng).
+
+### ĐỢT 3 — kiểm lại các bản sửa rạng 08/10 trên backend partner (đã gộp dd42451), tunnel guestbook-consortium-model-leg, tối 08/10
+Máy khách: ROG Phone 6, bản release build 03:34 ngày 08/10, mạng di động VinaPhone 5G. Web: web của laptop này trỏ về tunnel (chỉ chạy container web).
+
+#### R3-1 — Thiết lập, LỖI-28, vào phòng buổi học (REAL DEVICE + REAL BROWSER)
+- Đặt địa chỉ máy chủ = tunnel mới, đăng nhập qa.c1006a: Trang chủ hiện "Calo hôm nay 283" (món ghi lúc 00:01 ngày 08/10).
+- LỖI-28 ĐẠT trên backend partner: đường dẫn lạ → "Không tìm thấy trang · Liên kết này không còn dùng được hoặc không có trong ứng dụng." → "Về trang chính" → Trang chủ.
+- Buổi f7ca3290 (22:41:49–23:41:49 giờ VN): danh sách "Sắp tới" có nút "Tham gia buổi học" → xin quyền ghi âm (chỉ lần này) → hộp xem trước (tắt camera trước khi vào) → "Vào phòng". PT vào từ web 22:44:14 (bản ghi cuộc gọi của phòng 515cf35d…), nối 22:44:41, điện thoại hiện hình của web, "00:05 · Còn 56:59". Cả hai rời phòng lúc 22:45; backend ghi roomPtJoinedAt và roomClientJoinedAt, buổi vẫn CONFIRMED.
+
+#### R3-2 — LỖI-23 trên đúng màn từng hỏng (REAL DEVICE ROG, mạng VinaPhone, backend partner, ứng viên qa.gymr2b.1007)
+- "Hồ sơ đối tác · Bước 6/9: Vị trí": khung bản đồ hiện nền (góc ghi "OpenStreetMap · OSM Deutschland" = nguồn dự phòng tự vào thay).
+- Tự ghim theo địa chỉ: địa chỉ chi nhánh "123 Lê Lợi" (đặt qua API vì bước "Chi nhánh" là nơi nhập số nhà/đường), chọn "Thành phố Hồ Chí Minh" → "Phường Bến Thành" (ô tìm gõ không dấu "Thanh" ra đúng) → sau vài giây bản đồ phóng tới và ghim, dòng "Đã ghim theo địa chỉ bạn nhập · 10.77242, 106.69968" → "Lưu bước này" → backend lưu latitude 10.7724246, longitude 106.6996781, provinceCode 79, wardCode 26743; tiến độ 75% → 88% — ĐẠT.
+- Ghi chú người kiểm: lần đặt địa chỉ đầu bằng curl trong Git Bash làm hỏng dấu tiếng Việt (lỗi công cụ kiểm, không phải sản phẩm) — đã ghi lại đúng bằng yêu cầu UTF-8.
+
+#### R3-3 — Thông báo kết quả duyệt đơn PT được LƯU (REAL HTTP/API, backend partner; TEST FIXTURE: đơn thử dựng bằng API)
+- Dựng đơn PT thử cho qa.r2reg1007 (nội dung ghi rõ "QA test", 3 tệp ảnh thử tải qua `/pt-applications/me/upload`) → SUBMITTED.
+- Admin "cần bổ sung" → danh sách thông báo của người nộp từ 0 lên 1: `PT_APPLICATION_REVIEWED · PT_APPLICATION · "Đơn ứng tuyển huấn luyện viên của bạn cần bổ sung thông tin. Mở đơn để xem yêu cầu." · /client/pt-application`. Admin từ chối → bản ghi thứ 2 "…chưa được chấp nhận. Mở đơn để xem lý do." — ĐẠT (trước bản sửa: chỉ đẩy tức thời, không lưu). Đơn thử kết thúc ở REJECTED để không nằm lại hàng chờ duyệt.
+- GHI NHẬN: `POST /pt-applications/me/draft` với `yearsOfExperience` là số (đúng ra là chuỗi) trả 400 kèm nguyên văn lỗi Prisma ("Invalid `tx.pTApplication.upsert()` invocation in /app/backend/services/user-service/src/repositories/…") — lộ đường dẫn và chi tiết nội bộ cho máy khách; app không gặp vì luôn gửi chuỗi.
+- Trên điện thoại (qa.r2reg1007): màn Thông báo có 2 mục "Đơn ứng tuyển PT" (chưa được chấp nhận / cần bổ sung) dù lúc admin duyệt tài khoản này không đăng nhập ở đâu; bấm mục mới nhất → mở "Trạng thái đơn ứng tuyển · Đã từ chối · Lý do từ chối: …" — ĐẠT (REAL DEVICE).
+- Web trỏ về backend partner (REAL BROWSER, ứng viên qa.gymr2b.1007): bước "Vị trí" hiện "123 Lê Lợi · Thành phố Hồ Chí Minh · Phường Bến Thành", ghim đúng chỗ vừa lưu từ điện thoại, nền bản đồ tải bình thường (mạng máy tính dùng nguồn chính).
+
+#### R3-4 — Buổi học thật kết thúc: LỖI-26 ĐẠT, LỖI-27 CHƯA ĐẠT trên backend partner (REAL DEVICE + REAL HTTP/API + REAL BROWSER)
+- 23:41:54 (5 giây sau giờ kết thúc, trước lượt quét đóng phòng) PT báo hoàn thành → PENDING_CLIENT_CONFIRMATION.
+- LỖI-26 ĐẠT: bản ghi `SESSION_PENDING_CONFIRMATION` có trong danh sách thông báo của khách (16:41:58Z); máy có push "Gymini — PT đã báo hoàn thành buổi tập. Vui lòng xác nhận trước 11/10/2026 — quá hạn hệ thống sẽ tự xác nhận."; tab "Cần xử lý" đang mở tự hiện thẻ "Th 5, 08/10 · Chờ bạn xác nhận" trong 7 giây, không kéo.
+- LỖI-27 CHƯA ĐẠT: 23:42:29 PT gọi thoại từ web → `call:error "You are already in a call"`. Gửi `call:end` cho bản ghi phòng 515cf35d… với tư cách PT thì máy chủ nhận (không báo lỗi "not in an active state") → bản ghi phòng vẫn còn hoạt động sau khi PT báo hoàn thành, tức lời gọi đóng phòng trong `completeSession` KHÔNG có tác dụng trên máy partner. Chưa rõ nguyên nhân từ phía này: hoặc phần sửa trong `booking.service.ts` bị rơi khi partner gộp tay 2 tệp xung đột, hoặc yêu cầu nội bộ user-service → chat-service `/internal/calls/end-by-session` thất bại ở máy họ. Cần agent partner kiểm mã sau gộp và log.
+- Sau khi gỡ tay bản ghi phòng: 23:43:51 PT gọi lại → `call:initiated` ngay; điện thoại hỏi quyền ghi âm → cấp "chỉ lần này" → nhận 23:44:15, nối 23:44:16, web có âm thanh; kết thúc trên điện thoại → web nhận `call:ended`. Xác nhận đúng bản ghi phòng là thứ chặn.
+- Kiểm dây nối trên backend laptop (REAL HTTP/API trong container user-service, cùng biến môi trường thật): `POST chat-service/internal/calls/end-by-session` → 200 `{"ok":true}`; `booking.service.ts` trong container có đủ 7 chỗ `closeRoomOf`. Vậy bản sửa chạy đúng dây ở máy này; lỗi còn lại nằm ở máy partner (mã sau gộp hoặc cấu hình).
+- Khách xác nhận buổi trên máy ("Xác nhận đã tập" → "Xác nhận", 23:45:50) → buổi COMPLETED, sessionDeducted=true; ví PT khả dụng 40.000 → 130.000, chờ 270.000 → 180.000; PT có thông báo "Khách hàng đã xác nhận buổi tập" — ĐẠT.
+
+#### R3-5 — LỖI-29: Trang chủ sang ngày mới (REAL DEVICE ROG, app mở liên tục từ 22:53 ngày 08/10 qua nửa đêm)
+- 23:55 (08/10): Trang chủ ghi "Calo hôm nay 283 · Đạm 10g", thẻ buổi tập ghi "Th 6, 09/10".
+- 00:01 (09/10), chưa chạm máy: thẻ buổi tập đã đổi thành "Hôm nay", nhưng "Calo hôm nay" vẫn 283 (số của 08/10) — đúng như thiết kế bản sửa: ngày được đọc lại khi màn hình được mở lại / app trở lại tiền cảnh, không tự nhảy khi đang nhìn.
+- Chuyển sang tab Tập luyện rồi quay lại Trang chủ (không tắt app): "Calo hôm nay 0 · Đạm 0g" — ĐẠT (hôm trước phải tắt hẳn app mới đổi).
