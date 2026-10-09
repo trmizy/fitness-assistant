@@ -406,6 +406,7 @@ exports.Prisma.GymScalarFieldEnum = {
   closureReason: 'closureReason',
   expectedReopenAt: 'expectedReopenAt',
   closedAt: 'closedAt',
+  closedBy: 'closedBy',
   reopenedAt: 'reopenedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -495,8 +496,44 @@ exports.Prisma.GymPtCollaborationScalarFieldEnum = {
   terminatedBy: 'terminatedBy',
   effectiveAt: 'effectiveAt',
   note: 'note',
+  supersededByAgreementId: 'supersededByAgreementId',
+  supersededAt: 'supersededAt',
+  terminationInitiatedAt: 'terminationInitiatedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymBrandPtAgreementScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  ptUserId: 'ptUserId',
+  proposedPtRate: 'proposedPtRate',
+  proposedGymRate: 'proposedGymRate',
+  platformRate: 'platformRate',
+  status: 'status',
+  proposedBy: 'proposedBy',
+  round: 'round',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  terminationInitiatedAt: 'terminationInitiatedAt',
+  effectiveAt: 'effectiveAt',
+  terminatedAt: 'terminatedAt',
+  terminatedBy: 'terminatedBy',
+  origin: 'origin',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPtAgreementConflictScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  ptUserId: 'ptUserId',
+  legacyCollaborationIds: 'legacyCollaborationIds',
+  status: 'status',
+  resolvedAgreementId: 'resolvedAgreementId',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt'
 };
 
 exports.Prisma.GymMembershipReferralScalarFieldEnum = {
@@ -848,6 +885,8 @@ exports.Prisma.ModelName = {
   GymCheckIn: 'GymCheckIn',
   GymReview: 'GymReview',
   GymPtCollaboration: 'GymPtCollaboration',
+  GymBrandPtAgreement: 'GymBrandPtAgreement',
+  GymPtAgreementConflict: 'GymPtAgreementConflict',
   GymMembershipReferral: 'GymMembershipReferral'
 };
 

@@ -27,7 +27,8 @@ type Kind =
   | 'terminated'
   | 'activeUnverified'
   | 'payoutPending'
-  | 'active';
+  | 'active'
+  | 'manager';
 
 const USERS: Record<Kind, string> = {
   orphan: 'u-orphan',
@@ -40,7 +41,11 @@ const USERS: Record<Kind, string> = {
   activeUnverified: 'u-active-unverified',
   payoutPending: 'u-payout-pending',
   active: 'u-active',
+  manager: 'u-manager',
 };
+
+// Chi nhánh mà tài khoản `manager` được phân công — thuộc đối tác của `active` (chủ sở hữu).
+const GYM_IN_SCOPE = 'gym-in-scope';
 
 function account(userId: string, partnerStatus: string, verificationStatus: string, onboardingDone: boolean) {
   return {
@@ -68,6 +73,13 @@ const ACCOUNTS: Record<string, ReturnType<typeof account> | null> = {
   [USERS.activeUnverified]: account(USERS.activeUnverified, 'ACTIVE', 'IN_REVIEW', true),
   [USERS.payoutPending]: account(USERS.payoutPending, 'ACTIVE', 'VERIFIED', false),
   [USERS.active]: account(USERS.active, 'ACTIVE', 'VERIFIED', true),
+  // Quản lý chi nhánh của CÙNG đối tác với `active`: qua được cổng vận hành, phạm vi một chi nhánh.
+  [USERS.manager]: {
+    ...account(USERS.manager, 'ACTIVE', 'VERIFIED', true),
+    partnerId: `p-${USERS.active}`,
+    role: 'MANAGER',
+    scopedGymIds: [GYM_IN_SCOPE],
+  },
 };
 
 // Vùng ứng viên: hai prefix này là thứ DUY NHẤT được phép dùng khi chưa được duyệt.
@@ -112,6 +124,10 @@ test.before(async () => {
   patch(partnerRepository, 'findAccountByUserId', async (userId: string) => ACCOUNTS[userId] ?? null);
   // Không user nào trong bảng trên đứng tên Gym/Brand nào → không ai chứng minh được là legacy.
   patch(partnerRepository, 'userHasLegacyOwnership', async () => false);
+  // Chỉ tài khoản `manager` cần tới: phân giải ra chủ sở hữu (principal) của đối tác mình.
+  patch(partnerRepository, 'findActiveOwnerAccount', async (partnerId: string) =>
+    partnerId === `p-${USERS.active}` ? ACCOUNTS[USERS.active] : null,
+  );
   patch(onboardingService, 'getProgress', async () => ({ completed: false, currentStep: 4 }));
 
   const ownerRoutes = (await import('../routes/owner.routes')).default;
@@ -268,4 +284,122 @@ test('không có token / token sai → 401, không lộ gì', async () => {
   assert.equal(anon.status, 401);
   const bad = await fetch(`${baseUrl}/owner/gyms`, { headers: { authorization: 'Bearer nope' } });
   assert.equal(bad.status, 401);
+});
+
+// ── Đóng cửa chi nhánh: quản lý chỉ được TẠM đóng / mở lại, đóng VĨNH VIỄN là của chủ sở hữu ────
+//
+// Cổng vận hành cho cả OWNER lẫn MANAGER đi qua; `requireGymScope` chỉ trả lời "chi nhánh này có
+// trong phạm vi không". Luật theo TRẠNG THÁI ĐÍCH nằm ở server (gymService.setOperationalStatus),
+// không phải ở việc giao diện ẩn nút. Vẫn không đụng DB: thay tạm ba truy vấn mà việc đóng cửa chạm.
+
+async function withGymStub(
+  gymOverrides: Record<string, unknown>,
+  run: (writes: any[]) => Promise<void>,
+): Promise<void> {
+  const { gymRepository } = await import('../repositories/gym.repository');
+  const { membershipRepository } = await import('../repositories/membership.repository');
+  const gym = {
+    id: GYM_IN_SCOPE, ownerId: USERS.active, name: 'Chi nhánh thử', operationalStatus: 'OPEN',
+    closureReason: null, closedAt: null, closedBy: null, reopenedAt: null, ...gymOverrides,
+  };
+  const writes: any[] = [];
+  const originals: Array<() => void> = [];
+  const swap = (obj: any, key: string, impl: unknown) => {
+    const original = obj[key];
+    obj[key] = impl;
+    originals.push(() => {
+      obj[key] = original;
+    });
+  };
+  swap(gymRepository, 'findById', async (id: string) => (id === gym.id ? gym : null));
+  swap(gymRepository, 'setOperationalStatus', async (_id: string, status: string, extra: any) => {
+    writes.push({ status, ...extra });
+    return { ...gym, operationalStatus: status, ...extra };
+  });
+  swap(membershipRepository, 'findByGym', async () => []);
+  try {
+    await run(writes);
+  } finally {
+    originals.forEach((r) => r());
+  }
+}
+
+async function setStatus(kind: Kind, gymId: string, body: Record<string, unknown>) {
+  const res = await fetch(`${baseUrl}/owner/gyms/${gymId}/operational-status`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer tok-${kind}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json: any = await res.json().catch(() => null);
+  return { status: res.status, code: json?.error?.code as string | undefined, data: json?.data };
+}
+
+test('MANAGER đóng cửa VĨNH VIỄN chi nhánh trong phạm vi của mình → 403 OWNER_ROLE_REQUIRED, không ghi gì', async () => {
+  await withGymStub({}, async (writes) => {
+    const r = await setStatus('manager', GYM_IN_SCOPE, { operationalStatus: 'PERMANENTLY_CLOSED', reason: 'Hết hợp đồng thuê' });
+    assert.equal(r.status, 403);
+    assert.equal(r.code, 'OWNER_ROLE_REQUIRED');
+    assert.equal(writes.length, 0, 'chi nhánh không được đổi trạng thái');
+  });
+});
+
+test('MANAGER vẫn TẠM đóng cửa được chi nhánh trong phạm vi; closedBy là chính người quản lý chứ không phải chủ sở hữu', async () => {
+  await withGymStub({}, async (writes) => {
+    const r = await setStatus('manager', GYM_IN_SCOPE, { operationalStatus: 'TEMPORARILY_CLOSED', reason: 'Bảo trì' });
+    assert.equal(r.status, 200);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].status, 'TEMPORARILY_CLOSED');
+    assert.equal(writes[0].closedBy, USERS.manager, 'principalUserId là chủ sở hữu — dấu vết phải là người thực sự bấm');
+    assert.equal(writes[0].closureReason, 'Bảo trì');
+  });
+});
+
+test('MANAGER vẫn mở lại được chi nhánh đang tạm đóng trong phạm vi của mình', async () => {
+  await withGymStub({ operationalStatus: 'TEMPORARILY_CLOSED', closureReason: 'Bảo trì', closedBy: USERS.manager }, async (writes) => {
+    const r = await setStatus('manager', GYM_IN_SCOPE, { operationalStatus: 'OPEN' });
+    assert.equal(r.status, 200);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].status, 'OPEN');
+  });
+});
+
+test('MANAGER không đổi được trạng thái chi nhánh NGOÀI phạm vi, kể cả chỉ tạm đóng → 403 GYM_OUT_OF_SCOPE', async () => {
+  await withGymStub({ id: 'gym-other-branch' }, async (writes) => {
+    for (const operationalStatus of ['TEMPORARILY_CLOSED', 'PERMANENTLY_CLOSED']) {
+      const r = await setStatus('manager', 'gym-other-branch', { operationalStatus, reason: 'Thử' });
+      assert.equal(r.status, 403, operationalStatus);
+      assert.equal(r.code, 'GYM_OUT_OF_SCOPE', operationalStatus);
+    }
+    assert.equal(writes.length, 0);
+  });
+});
+
+test('OWNER đóng cửa vĩnh viễn chi nhánh của mình → 200, ghi người thực hiện + thời điểm + lý do', async () => {
+  await withGymStub({}, async (writes) => {
+    const r = await setStatus('active', GYM_IN_SCOPE, { operationalStatus: 'PERMANENTLY_CLOSED', reason: 'Hết hợp đồng thuê' });
+    assert.equal(r.status, 200);
+    assert.equal(r.data.operationalStatus, 'PERMANENTLY_CLOSED');
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].closedBy, USERS.active);
+    assert.equal(writes[0].closureReason, 'Hết hợp đồng thuê');
+    assert.ok(writes[0].closedAt instanceof Date);
+  });
+});
+
+test('OWNER của đối tác KHÁC không đóng được chi nhánh này (getOwnedGym) → 403, không ghi gì', async () => {
+  await withGymStub({ ownerId: 'u-someone-else' }, async (writes) => {
+    const r = await setStatus('active', GYM_IN_SCOPE, { operationalStatus: 'PERMANENTLY_CLOSED', reason: 'Không phải của tôi' });
+    assert.equal(r.status, 403);
+    assert.notEqual(r.code, 'OWNER_ROLE_REQUIRED');
+    assert.equal(writes.length, 0);
+  });
+});
+
+test('MANAGER không xem được màn "ảnh hưởng khi đóng cửa vĩnh viễn" (có số dư ví) → 403 OWNER_ROLE_REQUIRED', async () => {
+  const res = await fetch(`${baseUrl}/owner/gyms/${GYM_IN_SCOPE}/closure-impact`, {
+    headers: { authorization: 'Bearer tok-manager' },
+  });
+  assert.equal(res.status, 403);
+  const body: any = await res.json();
+  assert.equal(body.error.code, 'OWNER_ROLE_REQUIRED');
 });

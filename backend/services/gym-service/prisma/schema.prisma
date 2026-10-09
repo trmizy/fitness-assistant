@@ -883,6 +883,9 @@ model GymBrand {
 
   branches Gym[]
   plans    GymMembershipPlan[]
+  /// Thoả thuận chia sẻ doanh thu với PT cấp thương hiệu (migration 20261010000000_brand_pt_agreements).
+  ptAgreements GymBrandPtAgreement[]
+  ptAgreementConflicts GymPtAgreementConflict[]
 
   /// Bất biến "1 Owner = đúng 1 Brand" ở cấp DB (trước đây chỉ GymPartner.brandId là unique).
   @@unique([ownerId])
@@ -970,6 +973,13 @@ model Gym {
   /// tự động mở lại gym vào ngày này; chủ gym vẫn phải tự bấm "Mở lại".
   expectedReopenAt  DateTime?            @map("expected_reopen_at")
   closedAt          DateTime?            @map("closed_at")
+  /// Who closed the branch — the userId of the account that was actually logged in
+  /// (req.user.userId), NOT `ownerId`: a MANAGER acts on their owner's gym, so `ownerId` alone
+  /// cannot say which of the two did it. Together with `closedAt` + `closureReason` this is the
+  /// closure's audit stamp. Set on TEMPORARILY_CLOSED and PERMANENTLY_CLOSED (the latter is
+  /// OWNER-only — gymService.setOperationalStatus), cleared on reopen along with
+  /// `closureReason`. Null on rows closed before this column existed.
+  closedBy          String?              @map("closed_by")
   reopenedAt        DateTime?            @map("reopened_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -1186,14 +1196,103 @@ model GymPtCollaboration {
   effectiveAt     DateTime?           @map("effective_at")
   note            String?
 
+  /// Brand-level migration markers (migration 20261010000000_brand_pt_agreements). All nullable, and
+  /// NOTHING in the running service reads or writes them yet — only the backfill script
+  /// (src/scripts/backfill-brand-pt-agreements.ts) sets the two superseded_* columns. Rate columns
+  /// above are never rewritten by the backfill: this row stays the record of the legacy terms.
+  /// Set when this branch-level row has been folded into a brand agreement.
+  supersededByAgreementId String?   @map("superseded_by_agreement_id")
+  supersededAt            DateTime? @map("superseded_at")
+  /// Reserved for the brand-agreement flow: when the PT/gym started winding this row down.
+  /// Separates "existing" contracts from "new" ones. Not written by the backfill.
+  terminationInitiatedAt  DateTime? @map("termination_initiated_at")
+
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 
   gym Gym @relation(fields: [gymId], references: [id])
+  supersededByAgreement GymBrandPtAgreement? @relation("LegacySupersededBy", fields: [supersededByAgreementId], references: [id], onDelete: SetNull)
 
   @@index([gymId, status])
   @@index([ptUserId, status])
+  @@index([supersededByAgreementId])
   @@map("gym_pt_collaborations")
+}
+
+/// A revenue-share agreement between a trainer and a whole BRAND — one agreement per (brand, PT),
+/// covering every operating branch of the brand. Successor of the per-branch GymPtCollaboration.
+///
+/// STORAGE LAYER ONLY (migration 20261010000000_brand_pt_agreements): nothing in the service reads
+/// this table yet, so runtime behaviour is unchanged. `origin` MIGRATED = created by the backfill
+/// script from legacy branch rows (at their existing rates); NATIVE = created by the brand flow.
+///
+/// Hai chỉ mục duy nhất MỘT PHẦN được tạo tay trong migration 20261010000000_brand_pt_agreements và
+/// KHÔNG khai báo được trong schema.prisma — `prisma migrate diff` sẽ coi chúng là thừa và đòi xoá,
+/// đừng làm theo:
+///   - gym_brand_pt_agreements_accepted_pair_key (brand_id, pt_user_id) WHERE status = 'ACCEPTED'
+///   - gym_brand_pt_agreements_open_pair_key     (brand_id, pt_user_id) WHERE status IN ('PENDING','COUNTERED')
+/// Cũng có hai CHECK constraint (origin, và status của bảng xung đột) mà Prisma không mô hình hoá.
+model GymBrandPtAgreement {
+  id              String              @id @default(uuid())
+  brandId         String              @map("brand_id")
+  ptUserId        String              @map("pt_user_id")
+
+  proposedPtRate  Decimal             @db.Decimal(6, 4) @map("proposed_pt_rate")
+  proposedGymRate Decimal             @db.Decimal(6, 4) @map("proposed_gym_rate")
+  platformRate    Decimal             @default("0.10") @db.Decimal(6, 4) @map("platform_rate")
+
+  status          CollaborationStatus @default(PENDING)
+  proposedBy      CollaborationParty  @map("proposed_by")
+  round           Int                 @default(1)
+  expiresAt       DateTime            @map("expires_at")
+
+  acceptedAt      DateTime?           @map("accepted_at")
+  /// The future marker separating "existing" contracts (started before this instant) from "new"
+  /// ones. Null = no termination started. Same meaning as the column of the same name on
+  /// GymPtCollaboration.
+  terminationInitiatedAt DateTime?    @map("termination_initiated_at")
+  effectiveAt     DateTime?           @map("effective_at")
+  terminatedAt    DateTime?           @map("terminated_at")
+  terminatedBy    String?             @map("terminated_by")
+  /// 'NATIVE' | 'MIGRATED' (CHECK constraint in the migration).
+  origin          String              @default("NATIVE")
+  note            String?
+
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  brand            GymBrand                 @relation(fields: [brandId], references: [id])
+  supersededLegacy GymPtCollaboration[]     @relation("LegacySupersededBy")
+  resolvedConflicts GymPtAgreementConflict[]
+
+  @@index([ptUserId, status])
+  @@index([brandId, status])
+  @@map("gym_brand_pt_agreements")
+}
+
+/// A (brand, PT) pair whose legacy ACCEPTED branch rows disagree on the rate table (or mix a clean
+/// row with one already winding down). The backfill creates NO agreement for it and touches no legacy
+/// row; each branch keeps its own old terms until owner and PT negotiate a brand agreement.
+///
+/// Chỉ mục duy nhất MỘT PHẦN tạo tay trong migration 20261010000000_brand_pt_agreements, không khai
+/// báo được ở đây (đừng để `prisma migrate diff` xoá nó):
+///   - gym_pt_agreement_conflicts_open_pair_key (brand_id, pt_user_id) WHERE status = 'OPEN'
+model GymPtAgreementConflict {
+  id                     String    @id @default(uuid())
+  brandId                String    @map("brand_id")
+  ptUserId               String    @map("pt_user_id")
+  legacyCollaborationIds String[]  @map("legacy_collaboration_ids")
+  /// 'OPEN' | 'RESOLVED' (CHECK constraint in the migration).
+  status                 String    @default("OPEN")
+  resolvedAgreementId    String?   @map("resolved_agreement_id")
+  detectedAt             DateTime  @default(now()) @map("detected_at")
+  resolvedAt             DateTime? @map("resolved_at")
+
+  brand             GymBrand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  resolvedAgreement GymBrandPtAgreement? @relation(fields: [resolvedAgreementId], references: [id], onDelete: SetNull)
+
+  @@index([ptUserId])
+  @@map("gym_pt_agreement_conflicts")
 }
 
 /// Commission owed to a PT for introducing a client who bought a gym membership.

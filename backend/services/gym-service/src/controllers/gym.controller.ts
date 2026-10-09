@@ -87,10 +87,17 @@ export const gymController = {
     try {
       const ownerId = principalId(req);
       const { operationalStatus, reason, expectedReopenAt } = req.body;
-      const gym = await gymService.setOperationalStatus(req.params.id, ownerId, operationalStatus, reason, expectedReopenAt);
+      // principalId says whose gym this is; the ACTOR is whoever is logged in. For a MANAGER the
+      // two differ, and the service needs the second one — both to decide whether a permanent
+      // closure is allowed (OWNER only) and to stamp who closed the branch.
+      const actor = req.partner ? { userId: req.user!.userId, role: req.partner.role } : undefined;
+      const gym = await gymService.setOperationalStatus(req.params.id, ownerId, operationalStatus, reason, expectedReopenAt, actor);
       res.json({ success: true, data: gym });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      // `code` only for errors the service raised on purpose (they carry a status) — e.g.
+      // OWNER_ROLE_REQUIRED, so a client can tell "not your role" from any other 403.
+      const code = e.status && typeof e.code === 'string' ? { code: e.code } : {};
+      res.status(e.status || 500).json({ success: false, error: { ...code, message: e.message } });
     }
   },
 

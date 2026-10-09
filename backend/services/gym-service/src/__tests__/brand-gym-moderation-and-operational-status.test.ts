@@ -334,6 +334,127 @@ test('C3 — listPermanentlyClosedNeedingReview trả kèm số hội viên ACTI
   assert.equal(result[0].activeMembershipCount, 2, 'chỉ đếm ACTIVE, không đếm CANCELLED');
 });
 
+// ── C3: who may close — permanent closure is OWNER-only ──────────────────
+//
+// `ownerId` (2nd argument) is the owner PRINCIPAL the gym is keyed to; a MANAGER calls with
+// their owner's id there, so it cannot tell the two apart. The actor (last argument) is who is
+// actually logged in — that is what the role rule and the `closedBy` stamp are based on.
+
+const OWNER_ACTOR = { userId: 'owner-1', role: 'OWNER' as const };
+const MANAGER_ACTOR = { userId: 'manager-9', role: 'MANAGER' as const };
+
+/** Patches the three repository calls a closure touches; returns what was written (if anything). */
+function stubClosure(gym: Record<string, any> = baseGym()) {
+  const writes: any[] = [];
+  const restores = [
+    patch(gymRepository, 'findById', async () => gym),
+    patch(gymRepository, 'setOperationalStatus', async (_id: string, status: any, extra: any) => {
+      writes.push({ status, ...extra });
+      return { ...gym, operationalStatus: status, ...extra };
+    }),
+    patch(membershipRepository, 'findByGym', async () => [] as any),
+  ];
+  return { writes, restore: () => restores.forEach((r) => r()) };
+}
+
+test('C3 — MANAGER đóng cửa VĨNH VIỄN chi nhánh mình phụ trách → 403 OWNER_ROLE_REQUIRED, không ghi gì', async () => {
+  const { writes, restore } = stubClosure();
+  try {
+    await assert.rejects(
+      () => gymService.setOperationalStatus('gym-1', 'owner-1', 'PERMANENTLY_CLOSED' as any, 'Hết hợp đồng thuê', undefined, MANAGER_ACTOR),
+      (e: any) => e.status === 403 && e.code === 'OWNER_ROLE_REQUIRED',
+    );
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 0, 'a refused closure must not touch the gym row');
+});
+
+test('C3 — đóng cửa vĩnh viễn mà không biết ai đang thao tác → từ chối (fail-closed), không ghi gì', async () => {
+  const { writes, restore } = stubClosure();
+  try {
+    await assert.rejects(
+      () => gymService.setOperationalStatus('gym-1', 'owner-1', 'PERMANENTLY_CLOSED' as any, 'Hết hợp đồng thuê'),
+      (e: any) => e.status === 403 && e.code === 'OWNER_ROLE_REQUIRED',
+    );
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 0);
+});
+
+test('C3 — OWNER đóng cửa vĩnh viễn: thành công, ghi người thực hiện + thời điểm + lý do', async () => {
+  const { writes, restore } = stubClosure();
+  try {
+    await gymService.setOperationalStatus('gym-1', 'owner-1', 'PERMANENTLY_CLOSED' as any, '  Hết hợp đồng thuê  ', undefined, OWNER_ACTOR);
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].status, 'PERMANENTLY_CLOSED');
+  assert.equal(writes[0].closedBy, 'owner-1');
+  assert.equal(writes[0].closureReason, 'Hết hợp đồng thuê');
+  assert.ok(writes[0].closedAt instanceof Date);
+  assert.equal(writes[0].expectedReopenAt, null, 'a permanent closure has no reopen date');
+});
+
+test('C3 — OWNER đóng cửa vĩnh viễn vẫn phải có lý do (400)', async () => {
+  const { writes, restore } = stubClosure();
+  try {
+    await assert.rejects(
+      () => gymService.setOperationalStatus('gym-1', 'owner-1', 'PERMANENTLY_CLOSED' as any, '   ', undefined, OWNER_ACTOR),
+      (e: any) => e.status === 400,
+    );
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 0);
+});
+
+test('C3 — OWNER của đối tác KHÁC không đóng được chi nhánh này (403 từ getOwnedGym), không ghi gì', async () => {
+  const { writes, restore } = stubClosure(baseGym({ ownerId: 'owner-1' }));
+  try {
+    await assert.rejects(
+      () =>
+        gymService.setOperationalStatus('gym-1', 'owner-2', 'PERMANENTLY_CLOSED' as any, 'Không phải của tôi', undefined, {
+          userId: 'owner-2',
+          role: 'OWNER',
+        }),
+      (e: any) => e.status === 403 && e.code !== 'OWNER_ROLE_REQUIRED',
+    );
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 0);
+});
+
+test('C3 — MANAGER vẫn TẠM đóng cửa được; closedBy là chính người quản lý, KHÔNG phải chủ sở hữu', async () => {
+  const { writes, restore } = stubClosure();
+  try {
+    await gymService.setOperationalStatus('gym-1', 'owner-1', 'TEMPORARILY_CLOSED' as any, 'Bảo trì', undefined, MANAGER_ACTOR);
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].status, 'TEMPORARILY_CLOSED');
+  assert.equal(writes[0].closedBy, 'manager-9', 'ownerId is the principal — the audit stamp must be the actor');
+});
+
+test('C3 — MANAGER vẫn mở lại được chi nhánh đang tạm đóng; dấu "ai đóng" được xoá cùng lý do', async () => {
+  const { writes, restore } = stubClosure(
+    baseGym({ operationalStatus: 'TEMPORARILY_CLOSED', closureReason: 'Bảo trì', closedBy: 'manager-9' }),
+  );
+  try {
+    await gymService.setOperationalStatus('gym-1', 'owner-1', 'OPEN' as any, undefined, undefined, MANAGER_ACTOR);
+  } finally {
+    restore();
+  }
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].status, 'OPEN');
+  assert.equal(writes[0].closureReason, null);
+  assert.equal(writes[0].closedBy, null);
+});
+
 // ── C4: moving a gym between brands — REMOVED ────────────────────────────
 //
 // The three tests that used to live here ("updateOwnedGym với brandId hợp lệ...",

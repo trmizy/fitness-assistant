@@ -118,12 +118,16 @@ router.get('/gyms/:id', requireGymScope('id'), asyncHandler(gymController.getOwn
 router.patch('/gyms/:id', requirePartnerOwner, validateBody(gymUpdateSchema), asyncHandler(gymController.updateOwned));
 
 // Vòng 4 / Phase C3 — the owner's own open/close switch, separate from admin moderation.
-// Quản lý chi nhánh được phép đổi trạng thái vận hành của đúng chi nhánh mình phụ trách.
+// Quản lý chi nhánh được TẠM đóng cửa / mở lại đúng chi nhánh mình phụ trách (requireGymScope).
+// Đóng cửa VĨNH VIỄN thì chỉ chủ sở hữu: route này nhận cả ba trạng thái đích nên không gắn
+// requirePartnerOwner được — luật theo trạng thái đích nằm trong gymService.setOperationalStatus
+// (403 OWNER_ROLE_REQUIRED), kèm việc ghi lại ai đã đóng (`closedBy`).
 router.patch('/gyms/:id/operational-status', requireGymScope('id'), validateBody(gymOperationalStatusSchema), asyncHandler(gymController.setOperationalStatus));
 // GYM_BRANCH_FORM_SPEC.md, Phase 5 — shown before confirming permanent closure (§9 of
-// GYM_BRANCH_FORM_API_GAPS.md). requireGymScope, not requirePartnerOwner — a MANAGER
-// assigned to this branch may be the one clicking "Đóng cửa vĩnh viễn" too.
-router.get('/gyms/:id/closure-impact', requireGymScope('id'), asyncHandler(gymController.closureImpact));
+// GYM_BRANCH_FORM_API_GAPS.md). requirePartnerOwner: permanent closure is OWNER-only now, so
+// nobody else has a reason to open this screen — and it returns the branch's wallet balance and
+// its PT-collaboration count, both on the owner-only side of the matrix above.
+router.get('/gyms/:id/closure-impact', requirePartnerOwner, asyncHandler(gymController.closureImpact));
 
 router.get('/gyms/:gymId/wallet', requirePartnerOwner, asyncHandler(async (req, res) => {
   try {

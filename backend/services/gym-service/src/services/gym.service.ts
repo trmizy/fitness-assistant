@@ -6,12 +6,19 @@ import { membershipRepository } from '../repositories/membership.repository';
 import { planRepository } from '../repositories/plan.repository';
 import { brandService } from './brand.service';
 import { partnerGuard } from './partner-guard.service';
-import type { GymOperationalStatus } from '../generated/prisma';
+import type { GymOperationalStatus, PartnerAccountRole } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import { brandLogoUrl, resolvePhotoUrl } from './gym-photo-url';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
+}
+
+/** The account actually making an operational-status change — see setOperationalStatus. */
+export interface OperationalStatusActor {
+  /** The logged-in user (req.user.userId). For a MANAGER this is NOT the owner principal. */
+  userId: string;
+  role: PartnerAccountRole;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -377,6 +384,17 @@ export const gymService = {
    * required); TEMPORARILY_CLOSED -> OPEN (reopen) or PERMANENTLY_CLOSED; PERMANENTLY_CLOSED is
    * terminal — nothing here transitions out of it (that would need actual admin/manual
    * intervention, out of this phase's scope).
+   *
+   * Who may do what: a branch MANAGER may close temporarily and reopen the branches in their
+   * scope (the route's requireGymScope); PERMANENTLY_CLOSED is OWNER-only. It is irreversible
+   * and ends the branch's business — memberships left for admin refund review, PT partnerships
+   * that can no longer take a new contract — which is an owner's call, not a branch manager's.
+   *
+   * `ownerId` is the owner PRINCIPAL the gym is keyed to (a MANAGER's request carries their
+   * owner's id there), so it cannot answer "who is acting". That is what `actor` is for: the
+   * role rule reads `actor.role`, and `closedBy` is stamped with `actor.userId`. The rule is
+   * enforced here rather than only on the route so no caller can reach the write without it,
+   * and it fails closed — a permanent closure with no actor is refused.
    */
   async setOperationalStatus(
     gymId: string,
@@ -384,7 +402,15 @@ export const gymService = {
     target: GymOperationalStatus,
     reason?: string,
     expectedReopenAt?: Date,
+    actor?: OperationalStatusActor,
   ) {
+    if (target === 'PERMANENTLY_CLOSED' && actor?.role !== 'OWNER') {
+      throw Object.assign(
+        err('Chỉ chủ sở hữu mới được đóng cửa vĩnh viễn chi nhánh — tài khoản quản lý chỉ có thể tạm đóng cửa hoặc mở lại', 403),
+        { code: 'OWNER_ROLE_REQUIRED' },
+      );
+    }
+
     const gym = await this.getOwnedGym(gymId, ownerId);
     if (gym.operationalStatus === 'PERMANENTLY_CLOSED') {
       throw err('Phòng gym đã đóng cửa vĩnh viễn, không thể đổi trạng thái', 409);
@@ -399,6 +425,8 @@ export const gymService = {
       }
       return gymRepository.setOperationalStatus(gymId, 'OPEN', {
         closureReason: null,
+        // Cleared with the reason: the pair describes the CURRENT closure, and an open gym has none.
+        closedBy: null,
         expectedReopenAt: null,
         reopenedAt: new Date(),
       });
@@ -411,6 +439,9 @@ export const gymService = {
     const updated = await gymRepository.setOperationalStatus(gymId, target, {
       closureReason: reason.trim(),
       closedAt: new Date(),
+      // The audit stamp for this closure: who (the acting account, not the owner principal),
+      // alongside when (closedAt) and why (closureReason) on the branch's own row.
+      closedBy: actor?.userId ?? null,
       // Reopen date is only meaningful for a temporary closure — a permanent one has none.
       expectedReopenAt: target === 'TEMPORARILY_CLOSED' ? expectedReopenAt ?? null : null,
     });
@@ -419,7 +450,7 @@ export const gymService = {
       const memberships = await membershipRepository.findByGym(gymId);
       const activeCount = memberships.filter((m) => m.status === 'ACTIVE').length;
       logger.warn(
-        `[Gym] ${gymId} (${gym.name}) PERMANENTLY_CLOSED by owner — ${activeCount} active membership(s) need admin review for a refund (reason: GYM_CLOSED)`,
+        `[Gym] ${gymId} (${gym.name}) PERMANENTLY_CLOSED by owner ${actor?.userId} — ${activeCount} active membership(s) need admin review for a refund (reason: GYM_CLOSED)`,
       );
     }
 
@@ -434,7 +465,7 @@ export const gymService = {
    * a slow/erroring payment-service must not block the warning screen from showing at all.
    */
   async closureImpact(gymId: string, ownerId: string) {
-    await this.getOwnedGym(gymId, ownerId); // ownership check only — throws if not this owner's gym
+    const ownedGym = await this.getOwnedGym(gymId, ownerId); // ownership check — throws if not this owner's gym
 
     const { membershipService } = await import('./membership.service');
     const { paymentClient } = await import('../clients/payment.client');
@@ -442,7 +473,15 @@ export const gymService = {
 
     const [activeMemberships, activeCollaborations, wallet] = await Promise.all([
       membershipRepository.findActiveByGyms([gymId]),
-      prisma.gymPtCollaboration.count({ where: { gymId, status: 'ACCEPTED' } }),
+      // "Partnerships affected" = live branch-level rows for this branch (a row folded into a brand
+      // agreement is superseded and no longer counts on its own) + ACCEPTED brand agreements of this
+      // branch's brand, each of which covers this branch too.
+      Promise.all([
+        prisma.gymPtCollaboration.count({ where: { gymId, status: 'ACCEPTED', supersededByAgreementId: null } }),
+        ownedGym.brandId
+          ? prisma.gymBrandPtAgreement.count({ where: { brandId: ownedGym.brandId, status: 'ACCEPTED' } })
+          : Promise.resolve(0),
+      ]).then(([legacy, brand]) => legacy + brand),
       paymentClient.getWallet('GYM', gymId).catch(() => null),
     ]);
 

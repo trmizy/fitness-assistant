@@ -54,6 +54,22 @@ export function requirePartnerOwner(req: Request, res: Response, next: NextFunct
 }
 
 /**
+ * requirePartnerOwner cho route dùng chung nhiều vai trò nằm NGOÀI `/owner` (vd
+ * `/me/collaborations`, PT + GYM_OWNER): chỉ nhánh GYM_OWNER mới bị đòi cấp OWNER; vai trò khác
+ * (PT) không có ngữ cảnh đối tác nên đi tiếp như cũ — controller tự giới hạn theo chính họ.
+ *
+ * Đặt SAU requireOperationalAccessForOwners (chỗ phân giải `req.partner`). Chủ gym cũ (`isLegacy`)
+ * nhận role 'OWNER' từ resolveContextForUser nên qua được, đúng như trên các route /owner.
+ */
+export function requirePartnerOwnerForOwners(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.role !== 'GYM_OWNER') {
+    next();
+    return;
+  }
+  requirePartnerOwner(req, res, next);
+}
+
+/**
  * Cấp quyền thứ hai: người quản lý chỉ thao tác được trên chi nhánh được gán.
  *
  * Chủ sở hữu đi qua vô điều kiện (scopedGymIds rỗng = toàn bộ). Đây KHÔNG thay thế cho

@@ -191,6 +191,34 @@ export type GymReview = $Result.DefaultSelection<Prisma.$GymReviewPayload>
  */
 export type GymPtCollaboration = $Result.DefaultSelection<Prisma.$GymPtCollaborationPayload>
 /**
+ * Model GymBrandPtAgreement
+ * A revenue-share agreement between a trainer and a whole BRAND — one agreement per (brand, PT),
+ * covering every operating branch of the brand. Successor of the per-branch GymPtCollaboration.
+ * 
+ * STORAGE LAYER ONLY (migration 20261010000000_brand_pt_agreements): nothing in the service reads
+ * this table yet, so runtime behaviour is unchanged. `origin` MIGRATED = created by the backfill
+ * script from legacy branch rows (at their existing rates); NATIVE = created by the brand flow.
+ * 
+ * Hai chỉ mục duy nhất MỘT PHẦN được tạo tay trong migration 20261010000000_brand_pt_agreements và
+ * KHÔNG khai báo được trong schema.prisma — `prisma migrate diff` sẽ coi chúng là thừa và đòi xoá,
+ * đừng làm theo:
+ * - gym_brand_pt_agreements_accepted_pair_key (brand_id, pt_user_id) WHERE status = 'ACCEPTED'
+ * - gym_brand_pt_agreements_open_pair_key     (brand_id, pt_user_id) WHERE status IN ('PENDING','COUNTERED')
+ * Cũng có hai CHECK constraint (origin, và status của bảng xung đột) mà Prisma không mô hình hoá.
+ */
+export type GymBrandPtAgreement = $Result.DefaultSelection<Prisma.$GymBrandPtAgreementPayload>
+/**
+ * Model GymPtAgreementConflict
+ * A (brand, PT) pair whose legacy ACCEPTED branch rows disagree on the rate table (or mix a clean
+ * row with one already winding down). The backfill creates NO agreement for it and touches no legacy
+ * row; each branch keeps its own old terms until owner and PT negotiate a brand agreement.
+ * 
+ * Chỉ mục duy nhất MỘT PHẦN tạo tay trong migration 20261010000000_brand_pt_agreements, không khai
+ * báo được ở đây (đừng để `prisma migrate diff` xoá nó):
+ * - gym_pt_agreement_conflicts_open_pair_key (brand_id, pt_user_id) WHERE status = 'OPEN'
+ */
+export type GymPtAgreementConflict = $Result.DefaultSelection<Prisma.$GymPtAgreementConflictPayload>
+/**
  * Model GymMembershipReferral
  * Commission owed to a PT for introducing a client who bought a gym membership.
  * 
@@ -1107,6 +1135,26 @@ export class PrismaClient<
   get gymPtCollaboration(): Prisma.GymPtCollaborationDelegate<ExtArgs>;
 
   /**
+   * `prisma.gymBrandPtAgreement`: Exposes CRUD operations for the **GymBrandPtAgreement** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymBrandPtAgreements
+    * const gymBrandPtAgreements = await prisma.gymBrandPtAgreement.findMany()
+    * ```
+    */
+  get gymBrandPtAgreement(): Prisma.GymBrandPtAgreementDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymPtAgreementConflict`: Exposes CRUD operations for the **GymPtAgreementConflict** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymPtAgreementConflicts
+    * const gymPtAgreementConflicts = await prisma.gymPtAgreementConflict.findMany()
+    * ```
+    */
+  get gymPtAgreementConflict(): Prisma.GymPtAgreementConflictDelegate<ExtArgs>;
+
+  /**
    * `prisma.gymMembershipReferral`: Exposes CRUD operations for the **GymMembershipReferral** model.
     * Example usage:
     * ```ts
@@ -1580,6 +1628,8 @@ export namespace Prisma {
     GymCheckIn: 'GymCheckIn',
     GymReview: 'GymReview',
     GymPtCollaboration: 'GymPtCollaboration',
+    GymBrandPtAgreement: 'GymBrandPtAgreement',
+    GymPtAgreementConflict: 'GymPtAgreementConflict',
     GymMembershipReferral: 'GymMembershipReferral'
   };
 
@@ -1596,7 +1646,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3280,6 +3330,146 @@ export namespace Prisma {
           }
         }
       }
+      GymBrandPtAgreement: {
+        payload: Prisma.$GymBrandPtAgreementPayload<ExtArgs>
+        fields: Prisma.GymBrandPtAgreementFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymBrandPtAgreementFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymBrandPtAgreementFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          findFirst: {
+            args: Prisma.GymBrandPtAgreementFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymBrandPtAgreementFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          findMany: {
+            args: Prisma.GymBrandPtAgreementFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>[]
+          }
+          create: {
+            args: Prisma.GymBrandPtAgreementCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          createMany: {
+            args: Prisma.GymBrandPtAgreementCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymBrandPtAgreementCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>[]
+          }
+          delete: {
+            args: Prisma.GymBrandPtAgreementDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          update: {
+            args: Prisma.GymBrandPtAgreementUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymBrandPtAgreementDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymBrandPtAgreementUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymBrandPtAgreementUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPtAgreementPayload>
+          }
+          aggregate: {
+            args: Prisma.GymBrandPtAgreementAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymBrandPtAgreement>
+          }
+          groupBy: {
+            args: Prisma.GymBrandPtAgreementGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymBrandPtAgreementGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymBrandPtAgreementCountArgs<ExtArgs>
+            result: $Utils.Optional<GymBrandPtAgreementCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymPtAgreementConflict: {
+        payload: Prisma.$GymPtAgreementConflictPayload<ExtArgs>
+        fields: Prisma.GymPtAgreementConflictFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymPtAgreementConflictFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymPtAgreementConflictFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          findFirst: {
+            args: Prisma.GymPtAgreementConflictFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymPtAgreementConflictFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          findMany: {
+            args: Prisma.GymPtAgreementConflictFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>[]
+          }
+          create: {
+            args: Prisma.GymPtAgreementConflictCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          createMany: {
+            args: Prisma.GymPtAgreementConflictCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymPtAgreementConflictCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>[]
+          }
+          delete: {
+            args: Prisma.GymPtAgreementConflictDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          update: {
+            args: Prisma.GymPtAgreementConflictUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymPtAgreementConflictDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymPtAgreementConflictUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymPtAgreementConflictUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtAgreementConflictPayload>
+          }
+          aggregate: {
+            args: Prisma.GymPtAgreementConflictAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymPtAgreementConflict>
+          }
+          groupBy: {
+            args: Prisma.GymPtAgreementConflictGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymPtAgreementConflictGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymPtAgreementConflictCountArgs<ExtArgs>
+            result: $Utils.Optional<GymPtAgreementConflictCountAggregateOutputType> | number
+          }
+        }
+      }
       GymMembershipReferral: {
         payload: Prisma.$GymMembershipReferralPayload<ExtArgs>
         fields: Prisma.GymMembershipReferralFieldRefs
@@ -3638,11 +3828,15 @@ export namespace Prisma {
   export type GymBrandCountOutputType = {
     branches: number
     plans: number
+    ptAgreements: number
+    ptAgreementConflicts: number
   }
 
   export type GymBrandCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     branches?: boolean | GymBrandCountOutputTypeCountBranchesArgs
     plans?: boolean | GymBrandCountOutputTypeCountPlansArgs
+    ptAgreements?: boolean | GymBrandCountOutputTypeCountPtAgreementsArgs
+    ptAgreementConflicts?: boolean | GymBrandCountOutputTypeCountPtAgreementConflictsArgs
   }
 
   // Custom InputTypes
@@ -3668,6 +3862,20 @@ export namespace Prisma {
    */
   export type GymBrandCountOutputTypeCountPlansArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GymMembershipPlanWhereInput
+  }
+
+  /**
+   * GymBrandCountOutputType without action
+   */
+  export type GymBrandCountOutputTypeCountPtAgreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  /**
+   * GymBrandCountOutputType without action
+   */
+  export type GymBrandCountOutputTypeCountPtAgreementConflictsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtAgreementConflictWhereInput
   }
 
 
@@ -3833,6 +4041,46 @@ export namespace Prisma {
    */
   export type GymMembershipContractCountOutputTypeCountCheckInsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GymCheckInWhereInput
+  }
+
+
+  /**
+   * Count Type GymBrandPtAgreementCountOutputType
+   */
+
+  export type GymBrandPtAgreementCountOutputType = {
+    supersededLegacy: number
+    resolvedConflicts: number
+  }
+
+  export type GymBrandPtAgreementCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    supersededLegacy?: boolean | GymBrandPtAgreementCountOutputTypeCountSupersededLegacyArgs
+    resolvedConflicts?: boolean | GymBrandPtAgreementCountOutputTypeCountResolvedConflictsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymBrandPtAgreementCountOutputType without action
+   */
+  export type GymBrandPtAgreementCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreementCountOutputType
+     */
+    select?: GymBrandPtAgreementCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymBrandPtAgreementCountOutputType without action
+   */
+  export type GymBrandPtAgreementCountOutputTypeCountSupersededLegacyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtCollaborationWhereInput
+  }
+
+  /**
+   * GymBrandPtAgreementCountOutputType without action
+   */
+  export type GymBrandPtAgreementCountOutputTypeCountResolvedConflictsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtAgreementConflictWhereInput
   }
 
 
@@ -20888,6 +21136,8 @@ export namespace Prisma {
     updatedAt?: boolean
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
     plans?: boolean | GymBrand$plansArgs<ExtArgs>
+    ptAgreements?: boolean | GymBrand$ptAgreementsArgs<ExtArgs>
+    ptAgreementConflicts?: boolean | GymBrand$ptAgreementConflictsArgs<ExtArgs>
     _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymBrand"]>
 
@@ -20926,6 +21176,8 @@ export namespace Prisma {
   export type GymBrandInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     branches?: boolean | GymBrand$branchesArgs<ExtArgs>
     plans?: boolean | GymBrand$plansArgs<ExtArgs>
+    ptAgreements?: boolean | GymBrand$ptAgreementsArgs<ExtArgs>
+    ptAgreementConflicts?: boolean | GymBrand$ptAgreementConflictsArgs<ExtArgs>
     _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymBrandIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -20935,6 +21187,11 @@ export namespace Prisma {
     objects: {
       branches: Prisma.$GymPayload<ExtArgs>[]
       plans: Prisma.$GymMembershipPlanPayload<ExtArgs>[]
+      /**
+       * Thoả thuận chia sẻ doanh thu với PT cấp thương hiệu (migration 20261010000000_brand_pt_agreements).
+       */
+      ptAgreements: Prisma.$GymBrandPtAgreementPayload<ExtArgs>[]
+      ptAgreementConflicts: Prisma.$GymPtAgreementConflictPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -21333,6 +21590,8 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     branches<T extends GymBrand$branchesArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$branchesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findMany"> | Null>
     plans<T extends GymBrand$plansArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$plansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipPlanPayload<ExtArgs>, T, "findMany"> | Null>
+    ptAgreements<T extends GymBrand$ptAgreementsArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$ptAgreementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findMany"> | Null>
+    ptAgreementConflicts<T extends GymBrand$ptAgreementConflictsArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$ptAgreementConflictsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -21729,6 +21988,46 @@ export namespace Prisma {
   }
 
   /**
+   * GymBrand.ptAgreements
+   */
+  export type GymBrand$ptAgreementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    where?: GymBrandPtAgreementWhereInput
+    orderBy?: GymBrandPtAgreementOrderByWithRelationInput | GymBrandPtAgreementOrderByWithRelationInput[]
+    cursor?: GymBrandPtAgreementWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymBrandPtAgreementScalarFieldEnum | GymBrandPtAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrand.ptAgreementConflicts
+   */
+  export type GymBrand$ptAgreementConflictsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    where?: GymPtAgreementConflictWhereInput
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPtAgreementConflictScalarFieldEnum | GymPtAgreementConflictScalarFieldEnum[]
+  }
+
+  /**
    * GymBrand without action
    */
   export type GymBrandDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -21800,6 +22099,7 @@ export namespace Prisma {
     closureReason: string | null
     expectedReopenAt: Date | null
     closedAt: Date | null
+    closedBy: string | null
     reopenedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -21834,6 +22134,7 @@ export namespace Prisma {
     closureReason: string | null
     expectedReopenAt: Date | null
     closedAt: Date | null
+    closedBy: string | null
     reopenedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -21869,6 +22170,7 @@ export namespace Prisma {
     closureReason: number
     expectedReopenAt: number
     closedAt: number
+    closedBy: number
     reopenedAt: number
     createdAt: number
     updatedAt: number
@@ -21921,6 +22223,7 @@ export namespace Prisma {
     closureReason?: true
     expectedReopenAt?: true
     closedAt?: true
+    closedBy?: true
     reopenedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -21955,6 +22258,7 @@ export namespace Prisma {
     closureReason?: true
     expectedReopenAt?: true
     closedAt?: true
+    closedBy?: true
     reopenedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -21990,6 +22294,7 @@ export namespace Prisma {
     closureReason?: true
     expectedReopenAt?: true
     closedAt?: true
+    closedBy?: true
     reopenedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -22112,6 +22417,7 @@ export namespace Prisma {
     closureReason: string | null
     expectedReopenAt: Date | null
     closedAt: Date | null
+    closedBy: string | null
     reopenedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -22166,6 +22472,7 @@ export namespace Prisma {
     closureReason?: boolean
     expectedReopenAt?: boolean
     closedAt?: boolean
+    closedBy?: boolean
     reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -22212,6 +22519,7 @@ export namespace Prisma {
     closureReason?: boolean
     expectedReopenAt?: boolean
     closedAt?: boolean
+    closedBy?: boolean
     reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -22248,6 +22556,7 @@ export namespace Prisma {
     closureReason?: boolean
     expectedReopenAt?: boolean
     closedAt?: boolean
+    closedBy?: boolean
     reopenedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -22387,6 +22696,15 @@ export namespace Prisma {
        */
       expectedReopenAt: Date | null
       closedAt: Date | null
+      /**
+       * Who closed the branch — the userId of the account that was actually logged in
+       * (req.user.userId), NOT `ownerId`: a MANAGER acts on their owner's gym, so `ownerId` alone
+       * cannot say which of the two did it. Together with `closedAt` + `closureReason` this is the
+       * closure's audit stamp. Set on TEMPORARILY_CLOSED and PERMANENTLY_CLOSED (the latter is
+       * OWNER-only — gymService.setOperationalStatus), cleared on reopen along with
+       * `closureReason`. Null on rows closed before this column existed.
+       */
+      closedBy: string | null
       reopenedAt: Date | null
       createdAt: Date
       updatedAt: Date
@@ -22822,6 +23140,7 @@ export namespace Prisma {
     readonly closureReason: FieldRef<"Gym", 'String'>
     readonly expectedReopenAt: FieldRef<"Gym", 'DateTime'>
     readonly closedAt: FieldRef<"Gym", 'DateTime'>
+    readonly closedBy: FieldRef<"Gym", 'String'>
     readonly reopenedAt: FieldRef<"Gym", 'DateTime'>
     readonly createdAt: FieldRef<"Gym", 'DateTime'>
     readonly updatedAt: FieldRef<"Gym", 'DateTime'>
@@ -28655,6 +28974,9 @@ export namespace Prisma {
     terminatedBy: string | null
     effectiveAt: Date | null
     note: string | null
+    supersededByAgreementId: string | null
+    supersededAt: Date | null
+    terminationInitiatedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -28675,6 +28997,9 @@ export namespace Prisma {
     terminatedBy: string | null
     effectiveAt: Date | null
     note: string | null
+    supersededByAgreementId: string | null
+    supersededAt: Date | null
+    terminationInitiatedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -28695,6 +29020,9 @@ export namespace Prisma {
     terminatedBy: number
     effectiveAt: number
     note: number
+    supersededByAgreementId: number
+    supersededAt: number
+    terminationInitiatedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -28731,6 +29059,9 @@ export namespace Prisma {
     terminatedBy?: true
     effectiveAt?: true
     note?: true
+    supersededByAgreementId?: true
+    supersededAt?: true
+    terminationInitiatedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -28751,6 +29082,9 @@ export namespace Prisma {
     terminatedBy?: true
     effectiveAt?: true
     note?: true
+    supersededByAgreementId?: true
+    supersededAt?: true
+    terminationInitiatedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -28771,6 +29105,9 @@ export namespace Prisma {
     terminatedBy?: true
     effectiveAt?: true
     note?: true
+    supersededByAgreementId?: true
+    supersededAt?: true
+    terminationInitiatedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -28878,6 +29215,9 @@ export namespace Prisma {
     terminatedBy: string | null
     effectiveAt: Date | null
     note: string | null
+    supersededByAgreementId: string | null
+    supersededAt: Date | null
+    terminationInitiatedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: GymPtCollaborationCountAggregateOutputType | null
@@ -28917,9 +29257,13 @@ export namespace Prisma {
     terminatedBy?: boolean
     effectiveAt?: boolean
     note?: boolean
+    supersededByAgreementId?: boolean
+    supersededAt?: boolean
+    terminationInitiatedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    supersededByAgreement?: boolean | GymPtCollaboration$supersededByAgreementArgs<ExtArgs>
   }, ExtArgs["result"]["gymPtCollaboration"]>
 
   export type GymPtCollaborationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -28938,9 +29282,13 @@ export namespace Prisma {
     terminatedBy?: boolean
     effectiveAt?: boolean
     note?: boolean
+    supersededByAgreementId?: boolean
+    supersededAt?: boolean
+    terminationInitiatedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    supersededByAgreement?: boolean | GymPtCollaboration$supersededByAgreementArgs<ExtArgs>
   }, ExtArgs["result"]["gymPtCollaboration"]>
 
   export type GymPtCollaborationSelectScalar = {
@@ -28959,21 +29307,27 @@ export namespace Prisma {
     terminatedBy?: boolean
     effectiveAt?: boolean
     note?: boolean
+    supersededByAgreementId?: boolean
+    supersededAt?: boolean
+    terminationInitiatedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
   export type GymPtCollaborationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    supersededByAgreement?: boolean | GymPtCollaboration$supersededByAgreementArgs<ExtArgs>
   }
   export type GymPtCollaborationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     gym?: boolean | GymDefaultArgs<ExtArgs>
+    supersededByAgreement?: boolean | GymPtCollaboration$supersededByAgreementArgs<ExtArgs>
   }
 
   export type $GymPtCollaborationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "GymPtCollaboration"
     objects: {
       gym: Prisma.$GymPayload<ExtArgs>
+      supersededByAgreement: Prisma.$GymBrandPtAgreementPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -29012,6 +29366,20 @@ export namespace Prisma {
        */
       effectiveAt: Date | null
       note: string | null
+      /**
+       * Brand-level migration markers (migration 20261010000000_brand_pt_agreements). All nullable, and
+       * NOTHING in the running service reads or writes them yet — only the backfill script
+       * (src/scripts/backfill-brand-pt-agreements.ts) sets the two superseded_* columns. Rate columns
+       * above are never rewritten by the backfill: this row stays the record of the legacy terms.
+       * Set when this branch-level row has been folded into a brand agreement.
+       */
+      supersededByAgreementId: string | null
+      supersededAt: Date | null
+      /**
+       * Reserved for the brand-agreement flow: when the PT/gym started winding this row down.
+       * Separates "existing" contracts from "new" ones. Not written by the backfill.
+       */
+      terminationInitiatedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymPtCollaboration"]>
@@ -29379,6 +29747,7 @@ export namespace Prisma {
   export interface Prisma__GymPtCollaborationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    supersededByAgreement<T extends GymPtCollaboration$supersededByAgreementArgs<ExtArgs> = {}>(args?: Subset<T, GymPtCollaboration$supersededByAgreementArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -29423,6 +29792,9 @@ export namespace Prisma {
     readonly terminatedBy: FieldRef<"GymPtCollaboration", 'String'>
     readonly effectiveAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly note: FieldRef<"GymPtCollaboration", 'String'>
+    readonly supersededByAgreementId: FieldRef<"GymPtCollaboration", 'String'>
+    readonly supersededAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+    readonly terminationInitiatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly createdAt: FieldRef<"GymPtCollaboration", 'DateTime'>
     readonly updatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
   }
@@ -29743,6 +30115,21 @@ export namespace Prisma {
   }
 
   /**
+   * GymPtCollaboration.supersededByAgreement
+   */
+  export type GymPtCollaboration$supersededByAgreementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  /**
    * GymPtCollaboration without action
    */
   export type GymPtCollaborationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -29754,6 +30141,2200 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: GymPtCollaborationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymBrandPtAgreement
+   */
+
+  export type AggregateGymBrandPtAgreement = {
+    _count: GymBrandPtAgreementCountAggregateOutputType | null
+    _avg: GymBrandPtAgreementAvgAggregateOutputType | null
+    _sum: GymBrandPtAgreementSumAggregateOutputType | null
+    _min: GymBrandPtAgreementMinAggregateOutputType | null
+    _max: GymBrandPtAgreementMaxAggregateOutputType | null
+  }
+
+  export type GymBrandPtAgreementAvgAggregateOutputType = {
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    round: number | null
+  }
+
+  export type GymBrandPtAgreementSumAggregateOutputType = {
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    round: number | null
+  }
+
+  export type GymBrandPtAgreementMinAggregateOutputType = {
+    id: string | null
+    brandId: string | null
+    ptUserId: string | null
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    status: $Enums.CollaborationStatus | null
+    proposedBy: $Enums.CollaborationParty | null
+    round: number | null
+    expiresAt: Date | null
+    acceptedAt: Date | null
+    terminationInitiatedAt: Date | null
+    effectiveAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    origin: string | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymBrandPtAgreementMaxAggregateOutputType = {
+    id: string | null
+    brandId: string | null
+    ptUserId: string | null
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    status: $Enums.CollaborationStatus | null
+    proposedBy: $Enums.CollaborationParty | null
+    round: number | null
+    expiresAt: Date | null
+    acceptedAt: Date | null
+    terminationInitiatedAt: Date | null
+    effectiveAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    origin: string | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymBrandPtAgreementCountAggregateOutputType = {
+    id: number
+    brandId: number
+    ptUserId: number
+    proposedPtRate: number
+    proposedGymRate: number
+    platformRate: number
+    status: number
+    proposedBy: number
+    round: number
+    expiresAt: number
+    acceptedAt: number
+    terminationInitiatedAt: number
+    effectiveAt: number
+    terminatedAt: number
+    terminatedBy: number
+    origin: number
+    note: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymBrandPtAgreementAvgAggregateInputType = {
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    round?: true
+  }
+
+  export type GymBrandPtAgreementSumAggregateInputType = {
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    round?: true
+  }
+
+  export type GymBrandPtAgreementMinAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminationInitiatedAt?: true
+    effectiveAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    origin?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymBrandPtAgreementMaxAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminationInitiatedAt?: true
+    effectiveAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    origin?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymBrandPtAgreementCountAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminationInitiatedAt?: true
+    effectiveAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    origin?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymBrandPtAgreementAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymBrandPtAgreement to aggregate.
+     */
+    where?: GymBrandPtAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrandPtAgreements to fetch.
+     */
+    orderBy?: GymBrandPtAgreementOrderByWithRelationInput | GymBrandPtAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymBrandPtAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrandPtAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrandPtAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymBrandPtAgreements
+    **/
+    _count?: true | GymBrandPtAgreementCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymBrandPtAgreementAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymBrandPtAgreementSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymBrandPtAgreementMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymBrandPtAgreementMaxAggregateInputType
+  }
+
+  export type GetGymBrandPtAgreementAggregateType<T extends GymBrandPtAgreementAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymBrandPtAgreement]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymBrandPtAgreement[P]>
+      : GetScalarType<T[P], AggregateGymBrandPtAgreement[P]>
+  }
+
+
+
+
+  export type GymBrandPtAgreementGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymBrandPtAgreementWhereInput
+    orderBy?: GymBrandPtAgreementOrderByWithAggregationInput | GymBrandPtAgreementOrderByWithAggregationInput[]
+    by: GymBrandPtAgreementScalarFieldEnum[] | GymBrandPtAgreementScalarFieldEnum
+    having?: GymBrandPtAgreementScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymBrandPtAgreementCountAggregateInputType | true
+    _avg?: GymBrandPtAgreementAvgAggregateInputType
+    _sum?: GymBrandPtAgreementSumAggregateInputType
+    _min?: GymBrandPtAgreementMinAggregateInputType
+    _max?: GymBrandPtAgreementMaxAggregateInputType
+  }
+
+  export type GymBrandPtAgreementGroupByOutputType = {
+    id: string
+    brandId: string
+    ptUserId: string
+    proposedPtRate: Decimal
+    proposedGymRate: Decimal
+    platformRate: Decimal
+    status: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round: number
+    expiresAt: Date
+    acceptedAt: Date | null
+    terminationInitiatedAt: Date | null
+    effectiveAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    origin: string
+    note: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymBrandPtAgreementCountAggregateOutputType | null
+    _avg: GymBrandPtAgreementAvgAggregateOutputType | null
+    _sum: GymBrandPtAgreementSumAggregateOutputType | null
+    _min: GymBrandPtAgreementMinAggregateOutputType | null
+    _max: GymBrandPtAgreementMaxAggregateOutputType | null
+  }
+
+  type GetGymBrandPtAgreementGroupByPayload<T extends GymBrandPtAgreementGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymBrandPtAgreementGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymBrandPtAgreementGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymBrandPtAgreementGroupByOutputType[P]>
+            : GetScalarType<T[P], GymBrandPtAgreementGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymBrandPtAgreementSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminationInitiatedAt?: boolean
+    effectiveAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    origin?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    supersededLegacy?: boolean | GymBrandPtAgreement$supersededLegacyArgs<ExtArgs>
+    resolvedConflicts?: boolean | GymBrandPtAgreement$resolvedConflictsArgs<ExtArgs>
+    _count?: boolean | GymBrandPtAgreementCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymBrandPtAgreement"]>
+
+  export type GymBrandPtAgreementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminationInitiatedAt?: boolean
+    effectiveAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    origin?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymBrandPtAgreement"]>
+
+  export type GymBrandPtAgreementSelectScalar = {
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminationInitiatedAt?: boolean
+    effectiveAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    origin?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymBrandPtAgreementInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    supersededLegacy?: boolean | GymBrandPtAgreement$supersededLegacyArgs<ExtArgs>
+    resolvedConflicts?: boolean | GymBrandPtAgreement$resolvedConflictsArgs<ExtArgs>
+    _count?: boolean | GymBrandPtAgreementCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymBrandPtAgreementIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+  }
+
+  export type $GymBrandPtAgreementPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymBrandPtAgreement"
+    objects: {
+      brand: Prisma.$GymBrandPayload<ExtArgs>
+      supersededLegacy: Prisma.$GymPtCollaborationPayload<ExtArgs>[]
+      resolvedConflicts: Prisma.$GymPtAgreementConflictPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      brandId: string
+      ptUserId: string
+      proposedPtRate: Prisma.Decimal
+      proposedGymRate: Prisma.Decimal
+      platformRate: Prisma.Decimal
+      status: $Enums.CollaborationStatus
+      proposedBy: $Enums.CollaborationParty
+      round: number
+      expiresAt: Date
+      acceptedAt: Date | null
+      /**
+       * The future marker separating "existing" contracts (started before this instant) from "new"
+       * ones. Null = no termination started. Same meaning as the column of the same name on
+       * GymPtCollaboration.
+       */
+      terminationInitiatedAt: Date | null
+      effectiveAt: Date | null
+      terminatedAt: Date | null
+      terminatedBy: string | null
+      /**
+       * 'NATIVE' | 'MIGRATED' (CHECK constraint in the migration).
+       */
+      origin: string
+      note: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymBrandPtAgreement"]>
+    composites: {}
+  }
+
+  type GymBrandPtAgreementGetPayload<S extends boolean | null | undefined | GymBrandPtAgreementDefaultArgs> = $Result.GetResult<Prisma.$GymBrandPtAgreementPayload, S>
+
+  type GymBrandPtAgreementCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymBrandPtAgreementFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymBrandPtAgreementCountAggregateInputType | true
+    }
+
+  export interface GymBrandPtAgreementDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymBrandPtAgreement'], meta: { name: 'GymBrandPtAgreement' } }
+    /**
+     * Find zero or one GymBrandPtAgreement that matches the filter.
+     * @param {GymBrandPtAgreementFindUniqueArgs} args - Arguments to find a GymBrandPtAgreement
+     * @example
+     * // Get one GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymBrandPtAgreementFindUniqueArgs>(args: SelectSubset<T, GymBrandPtAgreementFindUniqueArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymBrandPtAgreement that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymBrandPtAgreementFindUniqueOrThrowArgs} args - Arguments to find a GymBrandPtAgreement
+     * @example
+     * // Get one GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymBrandPtAgreementFindUniqueOrThrowArgs>(args: SelectSubset<T, GymBrandPtAgreementFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymBrandPtAgreement that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementFindFirstArgs} args - Arguments to find a GymBrandPtAgreement
+     * @example
+     * // Get one GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymBrandPtAgreementFindFirstArgs>(args?: SelectSubset<T, GymBrandPtAgreementFindFirstArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymBrandPtAgreement that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementFindFirstOrThrowArgs} args - Arguments to find a GymBrandPtAgreement
+     * @example
+     * // Get one GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymBrandPtAgreementFindFirstOrThrowArgs>(args?: SelectSubset<T, GymBrandPtAgreementFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymBrandPtAgreements that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymBrandPtAgreements
+     * const gymBrandPtAgreements = await prisma.gymBrandPtAgreement.findMany()
+     * 
+     * // Get first 10 GymBrandPtAgreements
+     * const gymBrandPtAgreements = await prisma.gymBrandPtAgreement.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymBrandPtAgreementWithIdOnly = await prisma.gymBrandPtAgreement.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymBrandPtAgreementFindManyArgs>(args?: SelectSubset<T, GymBrandPtAgreementFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymBrandPtAgreement.
+     * @param {GymBrandPtAgreementCreateArgs} args - Arguments to create a GymBrandPtAgreement.
+     * @example
+     * // Create one GymBrandPtAgreement
+     * const GymBrandPtAgreement = await prisma.gymBrandPtAgreement.create({
+     *   data: {
+     *     // ... data to create a GymBrandPtAgreement
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymBrandPtAgreementCreateArgs>(args: SelectSubset<T, GymBrandPtAgreementCreateArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymBrandPtAgreements.
+     * @param {GymBrandPtAgreementCreateManyArgs} args - Arguments to create many GymBrandPtAgreements.
+     * @example
+     * // Create many GymBrandPtAgreements
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymBrandPtAgreementCreateManyArgs>(args?: SelectSubset<T, GymBrandPtAgreementCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymBrandPtAgreements and returns the data saved in the database.
+     * @param {GymBrandPtAgreementCreateManyAndReturnArgs} args - Arguments to create many GymBrandPtAgreements.
+     * @example
+     * // Create many GymBrandPtAgreements
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymBrandPtAgreements and only return the `id`
+     * const gymBrandPtAgreementWithIdOnly = await prisma.gymBrandPtAgreement.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymBrandPtAgreementCreateManyAndReturnArgs>(args?: SelectSubset<T, GymBrandPtAgreementCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymBrandPtAgreement.
+     * @param {GymBrandPtAgreementDeleteArgs} args - Arguments to delete one GymBrandPtAgreement.
+     * @example
+     * // Delete one GymBrandPtAgreement
+     * const GymBrandPtAgreement = await prisma.gymBrandPtAgreement.delete({
+     *   where: {
+     *     // ... filter to delete one GymBrandPtAgreement
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymBrandPtAgreementDeleteArgs>(args: SelectSubset<T, GymBrandPtAgreementDeleteArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymBrandPtAgreement.
+     * @param {GymBrandPtAgreementUpdateArgs} args - Arguments to update one GymBrandPtAgreement.
+     * @example
+     * // Update one GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymBrandPtAgreementUpdateArgs>(args: SelectSubset<T, GymBrandPtAgreementUpdateArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymBrandPtAgreements.
+     * @param {GymBrandPtAgreementDeleteManyArgs} args - Arguments to filter GymBrandPtAgreements to delete.
+     * @example
+     * // Delete a few GymBrandPtAgreements
+     * const { count } = await prisma.gymBrandPtAgreement.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymBrandPtAgreementDeleteManyArgs>(args?: SelectSubset<T, GymBrandPtAgreementDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymBrandPtAgreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymBrandPtAgreements
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymBrandPtAgreementUpdateManyArgs>(args: SelectSubset<T, GymBrandPtAgreementUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymBrandPtAgreement.
+     * @param {GymBrandPtAgreementUpsertArgs} args - Arguments to update or create a GymBrandPtAgreement.
+     * @example
+     * // Update or create a GymBrandPtAgreement
+     * const gymBrandPtAgreement = await prisma.gymBrandPtAgreement.upsert({
+     *   create: {
+     *     // ... data to create a GymBrandPtAgreement
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymBrandPtAgreement we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymBrandPtAgreementUpsertArgs>(args: SelectSubset<T, GymBrandPtAgreementUpsertArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymBrandPtAgreements.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementCountArgs} args - Arguments to filter GymBrandPtAgreements to count.
+     * @example
+     * // Count the number of GymBrandPtAgreements
+     * const count = await prisma.gymBrandPtAgreement.count({
+     *   where: {
+     *     // ... the filter for the GymBrandPtAgreements we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymBrandPtAgreementCountArgs>(
+      args?: Subset<T, GymBrandPtAgreementCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymBrandPtAgreementCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymBrandPtAgreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymBrandPtAgreementAggregateArgs>(args: Subset<T, GymBrandPtAgreementAggregateArgs>): Prisma.PrismaPromise<GetGymBrandPtAgreementAggregateType<T>>
+
+    /**
+     * Group by GymBrandPtAgreement.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandPtAgreementGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymBrandPtAgreementGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymBrandPtAgreementGroupByArgs['orderBy'] }
+        : { orderBy?: GymBrandPtAgreementGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymBrandPtAgreementGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymBrandPtAgreementGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymBrandPtAgreement model
+   */
+  readonly fields: GymBrandPtAgreementFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymBrandPtAgreement.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymBrandPtAgreementClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    brand<T extends GymBrandDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymBrandDefaultArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    supersededLegacy<T extends GymBrandPtAgreement$supersededLegacyArgs<ExtArgs> = {}>(args?: Subset<T, GymBrandPtAgreement$supersededLegacyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findMany"> | Null>
+    resolvedConflicts<T extends GymBrandPtAgreement$resolvedConflictsArgs<ExtArgs> = {}>(args?: Subset<T, GymBrandPtAgreement$resolvedConflictsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymBrandPtAgreement model
+   */ 
+  interface GymBrandPtAgreementFieldRefs {
+    readonly id: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly brandId: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly ptUserId: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly proposedPtRate: FieldRef<"GymBrandPtAgreement", 'Decimal'>
+    readonly proposedGymRate: FieldRef<"GymBrandPtAgreement", 'Decimal'>
+    readonly platformRate: FieldRef<"GymBrandPtAgreement", 'Decimal'>
+    readonly status: FieldRef<"GymBrandPtAgreement", 'CollaborationStatus'>
+    readonly proposedBy: FieldRef<"GymBrandPtAgreement", 'CollaborationParty'>
+    readonly round: FieldRef<"GymBrandPtAgreement", 'Int'>
+    readonly expiresAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly acceptedAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly terminationInitiatedAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly effectiveAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly terminatedAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly terminatedBy: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly origin: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly note: FieldRef<"GymBrandPtAgreement", 'String'>
+    readonly createdAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymBrandPtAgreement", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymBrandPtAgreement findUnique
+   */
+  export type GymBrandPtAgreementFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrandPtAgreement to fetch.
+     */
+    where: GymBrandPtAgreementWhereUniqueInput
+  }
+
+  /**
+   * GymBrandPtAgreement findUniqueOrThrow
+   */
+  export type GymBrandPtAgreementFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrandPtAgreement to fetch.
+     */
+    where: GymBrandPtAgreementWhereUniqueInput
+  }
+
+  /**
+   * GymBrandPtAgreement findFirst
+   */
+  export type GymBrandPtAgreementFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrandPtAgreement to fetch.
+     */
+    where?: GymBrandPtAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrandPtAgreements to fetch.
+     */
+    orderBy?: GymBrandPtAgreementOrderByWithRelationInput | GymBrandPtAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymBrandPtAgreements.
+     */
+    cursor?: GymBrandPtAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrandPtAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrandPtAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymBrandPtAgreements.
+     */
+    distinct?: GymBrandPtAgreementScalarFieldEnum | GymBrandPtAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrandPtAgreement findFirstOrThrow
+   */
+  export type GymBrandPtAgreementFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrandPtAgreement to fetch.
+     */
+    where?: GymBrandPtAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrandPtAgreements to fetch.
+     */
+    orderBy?: GymBrandPtAgreementOrderByWithRelationInput | GymBrandPtAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymBrandPtAgreements.
+     */
+    cursor?: GymBrandPtAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrandPtAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrandPtAgreements.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymBrandPtAgreements.
+     */
+    distinct?: GymBrandPtAgreementScalarFieldEnum | GymBrandPtAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrandPtAgreement findMany
+   */
+  export type GymBrandPtAgreementFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrandPtAgreements to fetch.
+     */
+    where?: GymBrandPtAgreementWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrandPtAgreements to fetch.
+     */
+    orderBy?: GymBrandPtAgreementOrderByWithRelationInput | GymBrandPtAgreementOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymBrandPtAgreements.
+     */
+    cursor?: GymBrandPtAgreementWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrandPtAgreements from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrandPtAgreements.
+     */
+    skip?: number
+    distinct?: GymBrandPtAgreementScalarFieldEnum | GymBrandPtAgreementScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrandPtAgreement create
+   */
+  export type GymBrandPtAgreementCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymBrandPtAgreement.
+     */
+    data: XOR<GymBrandPtAgreementCreateInput, GymBrandPtAgreementUncheckedCreateInput>
+  }
+
+  /**
+   * GymBrandPtAgreement createMany
+   */
+  export type GymBrandPtAgreementCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymBrandPtAgreements.
+     */
+    data: GymBrandPtAgreementCreateManyInput | GymBrandPtAgreementCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymBrandPtAgreement createManyAndReturn
+   */
+  export type GymBrandPtAgreementCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymBrandPtAgreements.
+     */
+    data: GymBrandPtAgreementCreateManyInput | GymBrandPtAgreementCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymBrandPtAgreement update
+   */
+  export type GymBrandPtAgreementUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymBrandPtAgreement.
+     */
+    data: XOR<GymBrandPtAgreementUpdateInput, GymBrandPtAgreementUncheckedUpdateInput>
+    /**
+     * Choose, which GymBrandPtAgreement to update.
+     */
+    where: GymBrandPtAgreementWhereUniqueInput
+  }
+
+  /**
+   * GymBrandPtAgreement updateMany
+   */
+  export type GymBrandPtAgreementUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymBrandPtAgreements.
+     */
+    data: XOR<GymBrandPtAgreementUpdateManyMutationInput, GymBrandPtAgreementUncheckedUpdateManyInput>
+    /**
+     * Filter which GymBrandPtAgreements to update
+     */
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  /**
+   * GymBrandPtAgreement upsert
+   */
+  export type GymBrandPtAgreementUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymBrandPtAgreement to update in case it exists.
+     */
+    where: GymBrandPtAgreementWhereUniqueInput
+    /**
+     * In case the GymBrandPtAgreement found by the `where` argument doesn't exist, create a new GymBrandPtAgreement with this data.
+     */
+    create: XOR<GymBrandPtAgreementCreateInput, GymBrandPtAgreementUncheckedCreateInput>
+    /**
+     * In case the GymBrandPtAgreement was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymBrandPtAgreementUpdateInput, GymBrandPtAgreementUncheckedUpdateInput>
+  }
+
+  /**
+   * GymBrandPtAgreement delete
+   */
+  export type GymBrandPtAgreementDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    /**
+     * Filter which GymBrandPtAgreement to delete.
+     */
+    where: GymBrandPtAgreementWhereUniqueInput
+  }
+
+  /**
+   * GymBrandPtAgreement deleteMany
+   */
+  export type GymBrandPtAgreementDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymBrandPtAgreements to delete
+     */
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  /**
+   * GymBrandPtAgreement.supersededLegacy
+   */
+  export type GymBrandPtAgreement$supersededLegacyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    where?: GymPtCollaborationWhereInput
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    cursor?: GymPtCollaborationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPtCollaborationScalarFieldEnum | GymPtCollaborationScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrandPtAgreement.resolvedConflicts
+   */
+  export type GymBrandPtAgreement$resolvedConflictsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    where?: GymPtAgreementConflictWhereInput
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPtAgreementConflictScalarFieldEnum | GymPtAgreementConflictScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrandPtAgreement without action
+   */
+  export type GymBrandPtAgreementDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymPtAgreementConflict
+   */
+
+  export type AggregateGymPtAgreementConflict = {
+    _count: GymPtAgreementConflictCountAggregateOutputType | null
+    _min: GymPtAgreementConflictMinAggregateOutputType | null
+    _max: GymPtAgreementConflictMaxAggregateOutputType | null
+  }
+
+  export type GymPtAgreementConflictMinAggregateOutputType = {
+    id: string | null
+    brandId: string | null
+    ptUserId: string | null
+    status: string | null
+    resolvedAgreementId: string | null
+    detectedAt: Date | null
+    resolvedAt: Date | null
+  }
+
+  export type GymPtAgreementConflictMaxAggregateOutputType = {
+    id: string | null
+    brandId: string | null
+    ptUserId: string | null
+    status: string | null
+    resolvedAgreementId: string | null
+    detectedAt: Date | null
+    resolvedAt: Date | null
+  }
+
+  export type GymPtAgreementConflictCountAggregateOutputType = {
+    id: number
+    brandId: number
+    ptUserId: number
+    legacyCollaborationIds: number
+    status: number
+    resolvedAgreementId: number
+    detectedAt: number
+    resolvedAt: number
+    _all: number
+  }
+
+
+  export type GymPtAgreementConflictMinAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    status?: true
+    resolvedAgreementId?: true
+    detectedAt?: true
+    resolvedAt?: true
+  }
+
+  export type GymPtAgreementConflictMaxAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    status?: true
+    resolvedAgreementId?: true
+    detectedAt?: true
+    resolvedAt?: true
+  }
+
+  export type GymPtAgreementConflictCountAggregateInputType = {
+    id?: true
+    brandId?: true
+    ptUserId?: true
+    legacyCollaborationIds?: true
+    status?: true
+    resolvedAgreementId?: true
+    detectedAt?: true
+    resolvedAt?: true
+    _all?: true
+  }
+
+  export type GymPtAgreementConflictAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtAgreementConflict to aggregate.
+     */
+    where?: GymPtAgreementConflictWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtAgreementConflicts to fetch.
+     */
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtAgreementConflicts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtAgreementConflicts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymPtAgreementConflicts
+    **/
+    _count?: true | GymPtAgreementConflictCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymPtAgreementConflictMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymPtAgreementConflictMaxAggregateInputType
+  }
+
+  export type GetGymPtAgreementConflictAggregateType<T extends GymPtAgreementConflictAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymPtAgreementConflict]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymPtAgreementConflict[P]>
+      : GetScalarType<T[P], AggregateGymPtAgreementConflict[P]>
+  }
+
+
+
+
+  export type GymPtAgreementConflictGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtAgreementConflictWhereInput
+    orderBy?: GymPtAgreementConflictOrderByWithAggregationInput | GymPtAgreementConflictOrderByWithAggregationInput[]
+    by: GymPtAgreementConflictScalarFieldEnum[] | GymPtAgreementConflictScalarFieldEnum
+    having?: GymPtAgreementConflictScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymPtAgreementConflictCountAggregateInputType | true
+    _min?: GymPtAgreementConflictMinAggregateInputType
+    _max?: GymPtAgreementConflictMaxAggregateInputType
+  }
+
+  export type GymPtAgreementConflictGroupByOutputType = {
+    id: string
+    brandId: string
+    ptUserId: string
+    legacyCollaborationIds: string[]
+    status: string
+    resolvedAgreementId: string | null
+    detectedAt: Date
+    resolvedAt: Date | null
+    _count: GymPtAgreementConflictCountAggregateOutputType | null
+    _min: GymPtAgreementConflictMinAggregateOutputType | null
+    _max: GymPtAgreementConflictMaxAggregateOutputType | null
+  }
+
+  type GetGymPtAgreementConflictGroupByPayload<T extends GymPtAgreementConflictGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymPtAgreementConflictGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymPtAgreementConflictGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymPtAgreementConflictGroupByOutputType[P]>
+            : GetScalarType<T[P], GymPtAgreementConflictGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymPtAgreementConflictSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    legacyCollaborationIds?: boolean
+    status?: boolean
+    resolvedAgreementId?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    resolvedAgreement?: boolean | GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPtAgreementConflict"]>
+
+  export type GymPtAgreementConflictSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    legacyCollaborationIds?: boolean
+    status?: boolean
+    resolvedAgreementId?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    resolvedAgreement?: boolean | GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPtAgreementConflict"]>
+
+  export type GymPtAgreementConflictSelectScalar = {
+    id?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    legacyCollaborationIds?: boolean
+    status?: boolean
+    resolvedAgreementId?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+  }
+
+  export type GymPtAgreementConflictInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    resolvedAgreement?: boolean | GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs>
+  }
+  export type GymPtAgreementConflictIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | GymBrandDefaultArgs<ExtArgs>
+    resolvedAgreement?: boolean | GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs>
+  }
+
+  export type $GymPtAgreementConflictPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymPtAgreementConflict"
+    objects: {
+      brand: Prisma.$GymBrandPayload<ExtArgs>
+      resolvedAgreement: Prisma.$GymBrandPtAgreementPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      brandId: string
+      ptUserId: string
+      legacyCollaborationIds: string[]
+      /**
+       * 'OPEN' | 'RESOLVED' (CHECK constraint in the migration).
+       */
+      status: string
+      resolvedAgreementId: string | null
+      detectedAt: Date
+      resolvedAt: Date | null
+    }, ExtArgs["result"]["gymPtAgreementConflict"]>
+    composites: {}
+  }
+
+  type GymPtAgreementConflictGetPayload<S extends boolean | null | undefined | GymPtAgreementConflictDefaultArgs> = $Result.GetResult<Prisma.$GymPtAgreementConflictPayload, S>
+
+  type GymPtAgreementConflictCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymPtAgreementConflictFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymPtAgreementConflictCountAggregateInputType | true
+    }
+
+  export interface GymPtAgreementConflictDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymPtAgreementConflict'], meta: { name: 'GymPtAgreementConflict' } }
+    /**
+     * Find zero or one GymPtAgreementConflict that matches the filter.
+     * @param {GymPtAgreementConflictFindUniqueArgs} args - Arguments to find a GymPtAgreementConflict
+     * @example
+     * // Get one GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymPtAgreementConflictFindUniqueArgs>(args: SelectSubset<T, GymPtAgreementConflictFindUniqueArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymPtAgreementConflict that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymPtAgreementConflictFindUniqueOrThrowArgs} args - Arguments to find a GymPtAgreementConflict
+     * @example
+     * // Get one GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymPtAgreementConflictFindUniqueOrThrowArgs>(args: SelectSubset<T, GymPtAgreementConflictFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymPtAgreementConflict that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictFindFirstArgs} args - Arguments to find a GymPtAgreementConflict
+     * @example
+     * // Get one GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymPtAgreementConflictFindFirstArgs>(args?: SelectSubset<T, GymPtAgreementConflictFindFirstArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymPtAgreementConflict that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictFindFirstOrThrowArgs} args - Arguments to find a GymPtAgreementConflict
+     * @example
+     * // Get one GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymPtAgreementConflictFindFirstOrThrowArgs>(args?: SelectSubset<T, GymPtAgreementConflictFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymPtAgreementConflicts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymPtAgreementConflicts
+     * const gymPtAgreementConflicts = await prisma.gymPtAgreementConflict.findMany()
+     * 
+     * // Get first 10 GymPtAgreementConflicts
+     * const gymPtAgreementConflicts = await prisma.gymPtAgreementConflict.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymPtAgreementConflictWithIdOnly = await prisma.gymPtAgreementConflict.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymPtAgreementConflictFindManyArgs>(args?: SelectSubset<T, GymPtAgreementConflictFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymPtAgreementConflict.
+     * @param {GymPtAgreementConflictCreateArgs} args - Arguments to create a GymPtAgreementConflict.
+     * @example
+     * // Create one GymPtAgreementConflict
+     * const GymPtAgreementConflict = await prisma.gymPtAgreementConflict.create({
+     *   data: {
+     *     // ... data to create a GymPtAgreementConflict
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymPtAgreementConflictCreateArgs>(args: SelectSubset<T, GymPtAgreementConflictCreateArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymPtAgreementConflicts.
+     * @param {GymPtAgreementConflictCreateManyArgs} args - Arguments to create many GymPtAgreementConflicts.
+     * @example
+     * // Create many GymPtAgreementConflicts
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymPtAgreementConflictCreateManyArgs>(args?: SelectSubset<T, GymPtAgreementConflictCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymPtAgreementConflicts and returns the data saved in the database.
+     * @param {GymPtAgreementConflictCreateManyAndReturnArgs} args - Arguments to create many GymPtAgreementConflicts.
+     * @example
+     * // Create many GymPtAgreementConflicts
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymPtAgreementConflicts and only return the `id`
+     * const gymPtAgreementConflictWithIdOnly = await prisma.gymPtAgreementConflict.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymPtAgreementConflictCreateManyAndReturnArgs>(args?: SelectSubset<T, GymPtAgreementConflictCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymPtAgreementConflict.
+     * @param {GymPtAgreementConflictDeleteArgs} args - Arguments to delete one GymPtAgreementConflict.
+     * @example
+     * // Delete one GymPtAgreementConflict
+     * const GymPtAgreementConflict = await prisma.gymPtAgreementConflict.delete({
+     *   where: {
+     *     // ... filter to delete one GymPtAgreementConflict
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymPtAgreementConflictDeleteArgs>(args: SelectSubset<T, GymPtAgreementConflictDeleteArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymPtAgreementConflict.
+     * @param {GymPtAgreementConflictUpdateArgs} args - Arguments to update one GymPtAgreementConflict.
+     * @example
+     * // Update one GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymPtAgreementConflictUpdateArgs>(args: SelectSubset<T, GymPtAgreementConflictUpdateArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymPtAgreementConflicts.
+     * @param {GymPtAgreementConflictDeleteManyArgs} args - Arguments to filter GymPtAgreementConflicts to delete.
+     * @example
+     * // Delete a few GymPtAgreementConflicts
+     * const { count } = await prisma.gymPtAgreementConflict.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymPtAgreementConflictDeleteManyArgs>(args?: SelectSubset<T, GymPtAgreementConflictDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymPtAgreementConflicts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymPtAgreementConflicts
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymPtAgreementConflictUpdateManyArgs>(args: SelectSubset<T, GymPtAgreementConflictUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymPtAgreementConflict.
+     * @param {GymPtAgreementConflictUpsertArgs} args - Arguments to update or create a GymPtAgreementConflict.
+     * @example
+     * // Update or create a GymPtAgreementConflict
+     * const gymPtAgreementConflict = await prisma.gymPtAgreementConflict.upsert({
+     *   create: {
+     *     // ... data to create a GymPtAgreementConflict
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymPtAgreementConflict we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymPtAgreementConflictUpsertArgs>(args: SelectSubset<T, GymPtAgreementConflictUpsertArgs<ExtArgs>>): Prisma__GymPtAgreementConflictClient<$Result.GetResult<Prisma.$GymPtAgreementConflictPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymPtAgreementConflicts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictCountArgs} args - Arguments to filter GymPtAgreementConflicts to count.
+     * @example
+     * // Count the number of GymPtAgreementConflicts
+     * const count = await prisma.gymPtAgreementConflict.count({
+     *   where: {
+     *     // ... the filter for the GymPtAgreementConflicts we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymPtAgreementConflictCountArgs>(
+      args?: Subset<T, GymPtAgreementConflictCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymPtAgreementConflictCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymPtAgreementConflict.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymPtAgreementConflictAggregateArgs>(args: Subset<T, GymPtAgreementConflictAggregateArgs>): Prisma.PrismaPromise<GetGymPtAgreementConflictAggregateType<T>>
+
+    /**
+     * Group by GymPtAgreementConflict.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtAgreementConflictGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymPtAgreementConflictGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymPtAgreementConflictGroupByArgs['orderBy'] }
+        : { orderBy?: GymPtAgreementConflictGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymPtAgreementConflictGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymPtAgreementConflictGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymPtAgreementConflict model
+   */
+  readonly fields: GymPtAgreementConflictFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymPtAgreementConflict.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymPtAgreementConflictClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    brand<T extends GymBrandDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymBrandDefaultArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    resolvedAgreement<T extends GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs> = {}>(args?: Subset<T, GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs>>): Prisma__GymBrandPtAgreementClient<$Result.GetResult<Prisma.$GymBrandPtAgreementPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymPtAgreementConflict model
+   */ 
+  interface GymPtAgreementConflictFieldRefs {
+    readonly id: FieldRef<"GymPtAgreementConflict", 'String'>
+    readonly brandId: FieldRef<"GymPtAgreementConflict", 'String'>
+    readonly ptUserId: FieldRef<"GymPtAgreementConflict", 'String'>
+    readonly legacyCollaborationIds: FieldRef<"GymPtAgreementConflict", 'String[]'>
+    readonly status: FieldRef<"GymPtAgreementConflict", 'String'>
+    readonly resolvedAgreementId: FieldRef<"GymPtAgreementConflict", 'String'>
+    readonly detectedAt: FieldRef<"GymPtAgreementConflict", 'DateTime'>
+    readonly resolvedAt: FieldRef<"GymPtAgreementConflict", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymPtAgreementConflict findUnique
+   */
+  export type GymPtAgreementConflictFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtAgreementConflict to fetch.
+     */
+    where: GymPtAgreementConflictWhereUniqueInput
+  }
+
+  /**
+   * GymPtAgreementConflict findUniqueOrThrow
+   */
+  export type GymPtAgreementConflictFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtAgreementConflict to fetch.
+     */
+    where: GymPtAgreementConflictWhereUniqueInput
+  }
+
+  /**
+   * GymPtAgreementConflict findFirst
+   */
+  export type GymPtAgreementConflictFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtAgreementConflict to fetch.
+     */
+    where?: GymPtAgreementConflictWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtAgreementConflicts to fetch.
+     */
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtAgreementConflicts.
+     */
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtAgreementConflicts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtAgreementConflicts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtAgreementConflicts.
+     */
+    distinct?: GymPtAgreementConflictScalarFieldEnum | GymPtAgreementConflictScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtAgreementConflict findFirstOrThrow
+   */
+  export type GymPtAgreementConflictFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtAgreementConflict to fetch.
+     */
+    where?: GymPtAgreementConflictWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtAgreementConflicts to fetch.
+     */
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtAgreementConflicts.
+     */
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtAgreementConflicts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtAgreementConflicts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtAgreementConflicts.
+     */
+    distinct?: GymPtAgreementConflictScalarFieldEnum | GymPtAgreementConflictScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtAgreementConflict findMany
+   */
+  export type GymPtAgreementConflictFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtAgreementConflicts to fetch.
+     */
+    where?: GymPtAgreementConflictWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtAgreementConflicts to fetch.
+     */
+    orderBy?: GymPtAgreementConflictOrderByWithRelationInput | GymPtAgreementConflictOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymPtAgreementConflicts.
+     */
+    cursor?: GymPtAgreementConflictWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtAgreementConflicts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtAgreementConflicts.
+     */
+    skip?: number
+    distinct?: GymPtAgreementConflictScalarFieldEnum | GymPtAgreementConflictScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtAgreementConflict create
+   */
+  export type GymPtAgreementConflictCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymPtAgreementConflict.
+     */
+    data: XOR<GymPtAgreementConflictCreateInput, GymPtAgreementConflictUncheckedCreateInput>
+  }
+
+  /**
+   * GymPtAgreementConflict createMany
+   */
+  export type GymPtAgreementConflictCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymPtAgreementConflicts.
+     */
+    data: GymPtAgreementConflictCreateManyInput | GymPtAgreementConflictCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPtAgreementConflict createManyAndReturn
+   */
+  export type GymPtAgreementConflictCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymPtAgreementConflicts.
+     */
+    data: GymPtAgreementConflictCreateManyInput | GymPtAgreementConflictCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymPtAgreementConflict update
+   */
+  export type GymPtAgreementConflictUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymPtAgreementConflict.
+     */
+    data: XOR<GymPtAgreementConflictUpdateInput, GymPtAgreementConflictUncheckedUpdateInput>
+    /**
+     * Choose, which GymPtAgreementConflict to update.
+     */
+    where: GymPtAgreementConflictWhereUniqueInput
+  }
+
+  /**
+   * GymPtAgreementConflict updateMany
+   */
+  export type GymPtAgreementConflictUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymPtAgreementConflicts.
+     */
+    data: XOR<GymPtAgreementConflictUpdateManyMutationInput, GymPtAgreementConflictUncheckedUpdateManyInput>
+    /**
+     * Filter which GymPtAgreementConflicts to update
+     */
+    where?: GymPtAgreementConflictWhereInput
+  }
+
+  /**
+   * GymPtAgreementConflict upsert
+   */
+  export type GymPtAgreementConflictUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymPtAgreementConflict to update in case it exists.
+     */
+    where: GymPtAgreementConflictWhereUniqueInput
+    /**
+     * In case the GymPtAgreementConflict found by the `where` argument doesn't exist, create a new GymPtAgreementConflict with this data.
+     */
+    create: XOR<GymPtAgreementConflictCreateInput, GymPtAgreementConflictUncheckedCreateInput>
+    /**
+     * In case the GymPtAgreementConflict was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymPtAgreementConflictUpdateInput, GymPtAgreementConflictUncheckedUpdateInput>
+  }
+
+  /**
+   * GymPtAgreementConflict delete
+   */
+  export type GymPtAgreementConflictDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
+    /**
+     * Filter which GymPtAgreementConflict to delete.
+     */
+    where: GymPtAgreementConflictWhereUniqueInput
+  }
+
+  /**
+   * GymPtAgreementConflict deleteMany
+   */
+  export type GymPtAgreementConflictDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtAgreementConflicts to delete
+     */
+    where?: GymPtAgreementConflictWhereInput
+  }
+
+  /**
+   * GymPtAgreementConflict.resolvedAgreement
+   */
+  export type GymPtAgreementConflict$resolvedAgreementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandPtAgreement
+     */
+    select?: GymBrandPtAgreementSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandPtAgreementInclude<ExtArgs> | null
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  /**
+   * GymPtAgreementConflict without action
+   */
+  export type GymPtAgreementConflictDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtAgreementConflict
+     */
+    select?: GymPtAgreementConflictSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtAgreementConflictInclude<ExtArgs> | null
   }
 
 
@@ -31159,6 +33740,7 @@ export namespace Prisma {
     closureReason: 'closureReason',
     expectedReopenAt: 'expectedReopenAt',
     closedAt: 'closedAt',
+    closedBy: 'closedBy',
     reopenedAt: 'reopenedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -31266,11 +33848,53 @@ export namespace Prisma {
     terminatedBy: 'terminatedBy',
     effectiveAt: 'effectiveAt',
     note: 'note',
+    supersededByAgreementId: 'supersededByAgreementId',
+    supersededAt: 'supersededAt',
+    terminationInitiatedAt: 'terminationInitiatedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type GymPtCollaborationScalarFieldEnum = (typeof GymPtCollaborationScalarFieldEnum)[keyof typeof GymPtCollaborationScalarFieldEnum]
+
+
+  export const GymBrandPtAgreementScalarFieldEnum: {
+    id: 'id',
+    brandId: 'brandId',
+    ptUserId: 'ptUserId',
+    proposedPtRate: 'proposedPtRate',
+    proposedGymRate: 'proposedGymRate',
+    platformRate: 'platformRate',
+    status: 'status',
+    proposedBy: 'proposedBy',
+    round: 'round',
+    expiresAt: 'expiresAt',
+    acceptedAt: 'acceptedAt',
+    terminationInitiatedAt: 'terminationInitiatedAt',
+    effectiveAt: 'effectiveAt',
+    terminatedAt: 'terminatedAt',
+    terminatedBy: 'terminatedBy',
+    origin: 'origin',
+    note: 'note',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymBrandPtAgreementScalarFieldEnum = (typeof GymBrandPtAgreementScalarFieldEnum)[keyof typeof GymBrandPtAgreementScalarFieldEnum]
+
+
+  export const GymPtAgreementConflictScalarFieldEnum: {
+    id: 'id',
+    brandId: 'brandId',
+    ptUserId: 'ptUserId',
+    legacyCollaborationIds: 'legacyCollaborationIds',
+    status: 'status',
+    resolvedAgreementId: 'resolvedAgreementId',
+    detectedAt: 'detectedAt',
+    resolvedAt: 'resolvedAt'
+  };
+
+  export type GymPtAgreementConflictScalarFieldEnum = (typeof GymPtAgreementConflictScalarFieldEnum)[keyof typeof GymPtAgreementConflictScalarFieldEnum]
 
 
   export const GymMembershipReferralScalarFieldEnum: {
@@ -33416,6 +36040,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
     plans?: GymMembershipPlanListRelationFilter
+    ptAgreements?: GymBrandPtAgreementListRelationFilter
+    ptAgreementConflicts?: GymPtAgreementConflictListRelationFilter
   }
 
   export type GymBrandOrderByWithRelationInput = {
@@ -33434,6 +36060,8 @@ export namespace Prisma {
     updatedAt?: SortOrder
     branches?: GymOrderByRelationAggregateInput
     plans?: GymMembershipPlanOrderByRelationAggregateInput
+    ptAgreements?: GymBrandPtAgreementOrderByRelationAggregateInput
+    ptAgreementConflicts?: GymPtAgreementConflictOrderByRelationAggregateInput
   }
 
   export type GymBrandWhereUniqueInput = Prisma.AtLeast<{
@@ -33455,6 +36083,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
     branches?: GymListRelationFilter
     plans?: GymMembershipPlanListRelationFilter
+    ptAgreements?: GymBrandPtAgreementListRelationFilter
+    ptAgreementConflicts?: GymPtAgreementConflictListRelationFilter
   }, "id" | "ownerId">
 
   export type GymBrandOrderByWithAggregationInput = {
@@ -33528,6 +36158,7 @@ export namespace Prisma {
     closureReason?: StringNullableFilter<"Gym"> | string | null
     expectedReopenAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
@@ -33573,6 +36204,7 @@ export namespace Prisma {
     closureReason?: SortOrderInput | SortOrder
     expectedReopenAt?: SortOrderInput | SortOrder
     closedAt?: SortOrderInput | SortOrder
+    closedBy?: SortOrderInput | SortOrder
     reopenedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -33621,6 +36253,7 @@ export namespace Prisma {
     closureReason?: StringNullableFilter<"Gym"> | string | null
     expectedReopenAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
@@ -33666,6 +36299,7 @@ export namespace Prisma {
     closureReason?: SortOrderInput | SortOrder
     expectedReopenAt?: SortOrderInput | SortOrder
     closedAt?: SortOrderInput | SortOrder
+    closedBy?: SortOrderInput | SortOrder
     reopenedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -33709,6 +36343,7 @@ export namespace Prisma {
     closureReason?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     expectedReopenAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
     closedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
+    closedBy?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
@@ -34170,9 +36805,13 @@ export namespace Prisma {
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
     effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededByAgreementId?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
+    supersededByAgreement?: XOR<GymBrandPtAgreementNullableRelationFilter, GymBrandPtAgreementWhereInput> | null
   }
 
   export type GymPtCollaborationOrderByWithRelationInput = {
@@ -34191,9 +36830,13 @@ export namespace Prisma {
     terminatedBy?: SortOrderInput | SortOrder
     effectiveAt?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
+    supersededByAgreementId?: SortOrderInput | SortOrder
+    supersededAt?: SortOrderInput | SortOrder
+    terminationInitiatedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
+    supersededByAgreement?: GymBrandPtAgreementOrderByWithRelationInput
   }
 
   export type GymPtCollaborationWhereUniqueInput = Prisma.AtLeast<{
@@ -34215,9 +36858,13 @@ export namespace Prisma {
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
     effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededByAgreementId?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
+    supersededByAgreement?: XOR<GymBrandPtAgreementNullableRelationFilter, GymBrandPtAgreementWhereInput> | null
   }, "id">
 
   export type GymPtCollaborationOrderByWithAggregationInput = {
@@ -34236,6 +36883,9 @@ export namespace Prisma {
     terminatedBy?: SortOrderInput | SortOrder
     effectiveAt?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
+    supersededByAgreementId?: SortOrderInput | SortOrder
+    supersededAt?: SortOrderInput | SortOrder
+    terminationInitiatedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymPtCollaborationCountOrderByAggregateInput
@@ -34264,8 +36914,217 @@ export namespace Prisma {
     terminatedBy?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
     effectiveAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
+    supersededByAgreementId?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
+    supersededAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
+  }
+
+  export type GymBrandPtAgreementWhereInput = {
+    AND?: GymBrandPtAgreementWhereInput | GymBrandPtAgreementWhereInput[]
+    OR?: GymBrandPtAgreementWhereInput[]
+    NOT?: GymBrandPtAgreementWhereInput | GymBrandPtAgreementWhereInput[]
+    id?: StringFilter<"GymBrandPtAgreement"> | string
+    brandId?: StringFilter<"GymBrandPtAgreement"> | string
+    ptUserId?: StringFilter<"GymBrandPtAgreement"> | string
+    proposedPtRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymBrandPtAgreement"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymBrandPtAgreement"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymBrandPtAgreement"> | number
+    expiresAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    origin?: StringFilter<"GymBrandPtAgreement"> | string
+    note?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    createdAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    updatedAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
+    supersededLegacy?: GymPtCollaborationListRelationFilter
+    resolvedConflicts?: GymPtAgreementConflictListRelationFilter
+  }
+
+  export type GymBrandPtAgreementOrderByWithRelationInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    terminationInitiatedAt?: SortOrderInput | SortOrder
+    effectiveAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminatedBy?: SortOrderInput | SortOrder
+    origin?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    brand?: GymBrandOrderByWithRelationInput
+    supersededLegacy?: GymPtCollaborationOrderByRelationAggregateInput
+    resolvedConflicts?: GymPtAgreementConflictOrderByRelationAggregateInput
+  }
+
+  export type GymBrandPtAgreementWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymBrandPtAgreementWhereInput | GymBrandPtAgreementWhereInput[]
+    OR?: GymBrandPtAgreementWhereInput[]
+    NOT?: GymBrandPtAgreementWhereInput | GymBrandPtAgreementWhereInput[]
+    brandId?: StringFilter<"GymBrandPtAgreement"> | string
+    ptUserId?: StringFilter<"GymBrandPtAgreement"> | string
+    proposedPtRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymBrandPtAgreement"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymBrandPtAgreement"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymBrandPtAgreement"> | number
+    expiresAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    origin?: StringFilter<"GymBrandPtAgreement"> | string
+    note?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    createdAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    updatedAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
+    supersededLegacy?: GymPtCollaborationListRelationFilter
+    resolvedConflicts?: GymPtAgreementConflictListRelationFilter
+  }, "id">
+
+  export type GymBrandPtAgreementOrderByWithAggregationInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    terminationInitiatedAt?: SortOrderInput | SortOrder
+    effectiveAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminatedBy?: SortOrderInput | SortOrder
+    origin?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymBrandPtAgreementCountOrderByAggregateInput
+    _avg?: GymBrandPtAgreementAvgOrderByAggregateInput
+    _max?: GymBrandPtAgreementMaxOrderByAggregateInput
+    _min?: GymBrandPtAgreementMinOrderByAggregateInput
+    _sum?: GymBrandPtAgreementSumOrderByAggregateInput
+  }
+
+  export type GymBrandPtAgreementScalarWhereWithAggregatesInput = {
+    AND?: GymBrandPtAgreementScalarWhereWithAggregatesInput | GymBrandPtAgreementScalarWhereWithAggregatesInput[]
+    OR?: GymBrandPtAgreementScalarWhereWithAggregatesInput[]
+    NOT?: GymBrandPtAgreementScalarWhereWithAggregatesInput | GymBrandPtAgreementScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymBrandPtAgreement"> | string
+    brandId?: StringWithAggregatesFilter<"GymBrandPtAgreement"> | string
+    ptUserId?: StringWithAggregatesFilter<"GymBrandPtAgreement"> | string
+    proposedPtRate?: DecimalWithAggregatesFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalWithAggregatesFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalWithAggregatesFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusWithAggregatesFilter<"GymBrandPtAgreement"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyWithAggregatesFilter<"GymBrandPtAgreement"> | $Enums.CollaborationParty
+    round?: IntWithAggregatesFilter<"GymBrandPtAgreement"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string
+    acceptedAt?: DateTimeNullableWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string | null
+    effectiveAt?: DateTimeNullableWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedBy?: StringNullableWithAggregatesFilter<"GymBrandPtAgreement"> | string | null
+    origin?: StringWithAggregatesFilter<"GymBrandPtAgreement"> | string
+    note?: StringNullableWithAggregatesFilter<"GymBrandPtAgreement"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymBrandPtAgreement"> | Date | string
+  }
+
+  export type GymPtAgreementConflictWhereInput = {
+    AND?: GymPtAgreementConflictWhereInput | GymPtAgreementConflictWhereInput[]
+    OR?: GymPtAgreementConflictWhereInput[]
+    NOT?: GymPtAgreementConflictWhereInput | GymPtAgreementConflictWhereInput[]
+    id?: StringFilter<"GymPtAgreementConflict"> | string
+    brandId?: StringFilter<"GymPtAgreementConflict"> | string
+    ptUserId?: StringFilter<"GymPtAgreementConflict"> | string
+    legacyCollaborationIds?: StringNullableListFilter<"GymPtAgreementConflict">
+    status?: StringFilter<"GymPtAgreementConflict"> | string
+    resolvedAgreementId?: StringNullableFilter<"GymPtAgreementConflict"> | string | null
+    detectedAt?: DateTimeFilter<"GymPtAgreementConflict"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"GymPtAgreementConflict"> | Date | string | null
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
+    resolvedAgreement?: XOR<GymBrandPtAgreementNullableRelationFilter, GymBrandPtAgreementWhereInput> | null
+  }
+
+  export type GymPtAgreementConflictOrderByWithRelationInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    legacyCollaborationIds?: SortOrder
+    status?: SortOrder
+    resolvedAgreementId?: SortOrderInput | SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    brand?: GymBrandOrderByWithRelationInput
+    resolvedAgreement?: GymBrandPtAgreementOrderByWithRelationInput
+  }
+
+  export type GymPtAgreementConflictWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymPtAgreementConflictWhereInput | GymPtAgreementConflictWhereInput[]
+    OR?: GymPtAgreementConflictWhereInput[]
+    NOT?: GymPtAgreementConflictWhereInput | GymPtAgreementConflictWhereInput[]
+    brandId?: StringFilter<"GymPtAgreementConflict"> | string
+    ptUserId?: StringFilter<"GymPtAgreementConflict"> | string
+    legacyCollaborationIds?: StringNullableListFilter<"GymPtAgreementConflict">
+    status?: StringFilter<"GymPtAgreementConflict"> | string
+    resolvedAgreementId?: StringNullableFilter<"GymPtAgreementConflict"> | string | null
+    detectedAt?: DateTimeFilter<"GymPtAgreementConflict"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"GymPtAgreementConflict"> | Date | string | null
+    brand?: XOR<GymBrandRelationFilter, GymBrandWhereInput>
+    resolvedAgreement?: XOR<GymBrandPtAgreementNullableRelationFilter, GymBrandPtAgreementWhereInput> | null
+  }, "id">
+
+  export type GymPtAgreementConflictOrderByWithAggregationInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    legacyCollaborationIds?: SortOrder
+    status?: SortOrder
+    resolvedAgreementId?: SortOrderInput | SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    _count?: GymPtAgreementConflictCountOrderByAggregateInput
+    _max?: GymPtAgreementConflictMaxOrderByAggregateInput
+    _min?: GymPtAgreementConflictMinOrderByAggregateInput
+  }
+
+  export type GymPtAgreementConflictScalarWhereWithAggregatesInput = {
+    AND?: GymPtAgreementConflictScalarWhereWithAggregatesInput | GymPtAgreementConflictScalarWhereWithAggregatesInput[]
+    OR?: GymPtAgreementConflictScalarWhereWithAggregatesInput[]
+    NOT?: GymPtAgreementConflictScalarWhereWithAggregatesInput | GymPtAgreementConflictScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymPtAgreementConflict"> | string
+    brandId?: StringWithAggregatesFilter<"GymPtAgreementConflict"> | string
+    ptUserId?: StringWithAggregatesFilter<"GymPtAgreementConflict"> | string
+    legacyCollaborationIds?: StringNullableListFilter<"GymPtAgreementConflict">
+    status?: StringWithAggregatesFilter<"GymPtAgreementConflict"> | string
+    resolvedAgreementId?: StringNullableWithAggregatesFilter<"GymPtAgreementConflict"> | string | null
+    detectedAt?: DateTimeWithAggregatesFilter<"GymPtAgreementConflict"> | Date | string
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"GymPtAgreementConflict"> | Date | string | null
   }
 
   export type GymMembershipReferralWhereInput = {
@@ -36059,6 +38918,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
     plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUncheckedCreateInput = {
@@ -36077,6 +38938,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUpdateInput = {
@@ -36095,6 +38958,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandUncheckedUpdateInput = {
@@ -36113,6 +38978,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandCreateManyInput = {
@@ -36192,6 +39059,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -36237,6 +39105,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -36280,6 +39149,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -36325,6 +39195,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -36369,6 +39240,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -36403,6 +39275,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -36438,6 +39311,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -36940,9 +39814,12 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutCollaborationsInput
+    supersededByAgreement?: GymBrandPtAgreementCreateNestedOneWithoutSupersededLegacyInput
   }
 
   export type GymPtCollaborationUncheckedCreateInput = {
@@ -36961,6 +39838,9 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededByAgreementId?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -36980,9 +39860,12 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutCollaborationsNestedInput
+    supersededByAgreement?: GymBrandPtAgreementUpdateOneWithoutSupersededLegacyNestedInput
   }
 
   export type GymPtCollaborationUncheckedUpdateInput = {
@@ -37001,6 +39884,9 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededByAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -37021,6 +39907,9 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededByAgreementId?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -37040,6 +39929,8 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -37060,8 +39951,247 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededByAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymBrandPtAgreementCreateInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand: GymBrandCreateNestedOneWithoutPtAgreementsInput
+    supersededLegacy?: GymPtCollaborationCreateNestedManyWithoutSupersededByAgreementInput
+    resolvedConflicts?: GymPtAgreementConflictCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementUncheckedCreateInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedCreateNestedManyWithoutSupersededByAgreementInput
+    resolvedConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneRequiredWithoutPtAgreementsNestedInput
+    supersededLegacy?: GymPtCollaborationUpdateManyWithoutSupersededByAgreementNestedInput
+    resolvedConflicts?: GymPtAgreementConflictUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementNestedInput
+    resolvedConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementCreateManyInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymBrandPtAgreementUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtAgreementConflictCreateInput = {
+    id?: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    brand: GymBrandCreateNestedOneWithoutPtAgreementConflictsInput
+    resolvedAgreement?: GymBrandPtAgreementCreateNestedOneWithoutResolvedConflictsInput
+  }
+
+  export type GymPtAgreementConflictUncheckedCreateInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    resolvedAgreementId?: string | null
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPtAgreementConflictUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    brand?: GymBrandUpdateOneRequiredWithoutPtAgreementConflictsNestedInput
+    resolvedAgreement?: GymBrandPtAgreementUpdateOneWithoutResolvedConflictsNestedInput
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    resolvedAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPtAgreementConflictCreateManyInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    resolvedAgreementId?: string | null
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPtAgreementConflictUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    resolvedAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type GymMembershipReferralCreateInput = {
@@ -38825,11 +41955,31 @@ export namespace Prisma {
     none?: GymMembershipPlanWhereInput
   }
 
+  export type GymBrandPtAgreementListRelationFilter = {
+    every?: GymBrandPtAgreementWhereInput
+    some?: GymBrandPtAgreementWhereInput
+    none?: GymBrandPtAgreementWhereInput
+  }
+
+  export type GymPtAgreementConflictListRelationFilter = {
+    every?: GymPtAgreementConflictWhereInput
+    some?: GymPtAgreementConflictWhereInput
+    none?: GymPtAgreementConflictWhereInput
+  }
+
   export type GymOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type GymMembershipPlanOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymBrandPtAgreementOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymPtAgreementConflictOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -39039,6 +42189,7 @@ export namespace Prisma {
     closureReason?: SortOrder
     expectedReopenAt?: SortOrder
     closedAt?: SortOrder
+    closedBy?: SortOrder
     reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -39081,6 +42232,7 @@ export namespace Prisma {
     closureReason?: SortOrder
     expectedReopenAt?: SortOrder
     closedAt?: SortOrder
+    closedBy?: SortOrder
     reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -39115,6 +42267,7 @@ export namespace Prisma {
     closureReason?: SortOrder
     expectedReopenAt?: SortOrder
     closedAt?: SortOrder
+    closedBy?: SortOrder
     reopenedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -39549,6 +42702,11 @@ export namespace Prisma {
     not?: NestedEnumCollaborationPartyFilter<$PrismaModel> | $Enums.CollaborationParty
   }
 
+  export type GymBrandPtAgreementNullableRelationFilter = {
+    is?: GymBrandPtAgreementWhereInput | null
+    isNot?: GymBrandPtAgreementWhereInput | null
+  }
+
   export type GymPtCollaborationCountOrderByAggregateInput = {
     id?: SortOrder
     gymId?: SortOrder
@@ -39565,6 +42723,9 @@ export namespace Prisma {
     terminatedBy?: SortOrder
     effectiveAt?: SortOrder
     note?: SortOrder
+    supersededByAgreementId?: SortOrder
+    supersededAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -39592,6 +42753,9 @@ export namespace Prisma {
     terminatedBy?: SortOrder
     effectiveAt?: SortOrder
     note?: SortOrder
+    supersededByAgreementId?: SortOrder
+    supersededAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -39612,6 +42776,9 @@ export namespace Prisma {
     terminatedBy?: SortOrder
     effectiveAt?: SortOrder
     note?: SortOrder
+    supersededByAgreementId?: SortOrder
+    supersededAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -39641,6 +42808,117 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCollaborationPartyFilter<$PrismaModel>
     _max?: NestedEnumCollaborationPartyFilter<$PrismaModel>
+  }
+
+  export type GymBrandPtAgreementCountOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
+    effectiveAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    origin?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymBrandPtAgreementAvgOrderByAggregateInput = {
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    round?: SortOrder
+  }
+
+  export type GymBrandPtAgreementMaxOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
+    effectiveAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    origin?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymBrandPtAgreementMinOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminationInitiatedAt?: SortOrder
+    effectiveAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    origin?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymBrandPtAgreementSumOrderByAggregateInput = {
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    round?: SortOrder
+  }
+
+  export type GymPtAgreementConflictCountOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    legacyCollaborationIds?: SortOrder
+    status?: SortOrder
+    resolvedAgreementId?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type GymPtAgreementConflictMaxOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    resolvedAgreementId?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
+  }
+
+  export type GymPtAgreementConflictMinOrderByAggregateInput = {
+    id?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    resolvedAgreementId?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
   }
 
   export type GymMembershipReferralCountOrderByAggregateInput = {
@@ -40472,6 +43750,20 @@ export namespace Prisma {
     connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
   }
 
+  export type GymBrandPtAgreementCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput> | GymBrandPtAgreementCreateWithoutBrandInput[] | GymBrandPtAgreementUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutBrandInput | GymBrandPtAgreementCreateOrConnectWithoutBrandInput[]
+    createMany?: GymBrandPtAgreementCreateManyBrandInputEnvelope
+    connect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+  }
+
+  export type GymPtAgreementConflictCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput> | GymPtAgreementConflictCreateWithoutBrandInput[] | GymPtAgreementConflictUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutBrandInput | GymPtAgreementConflictCreateOrConnectWithoutBrandInput[]
+    createMany?: GymPtAgreementConflictCreateManyBrandInputEnvelope
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+  }
+
   export type GymUncheckedCreateNestedManyWithoutBrandInput = {
     create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
     connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
@@ -40484,6 +43776,20 @@ export namespace Prisma {
     connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutBrandInput | GymMembershipPlanCreateOrConnectWithoutBrandInput[]
     createMany?: GymMembershipPlanCreateManyBrandInputEnvelope
     connect?: GymMembershipPlanWhereUniqueInput | GymMembershipPlanWhereUniqueInput[]
+  }
+
+  export type GymBrandPtAgreementUncheckedCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput> | GymBrandPtAgreementCreateWithoutBrandInput[] | GymBrandPtAgreementUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutBrandInput | GymBrandPtAgreementCreateOrConnectWithoutBrandInput[]
+    createMany?: GymBrandPtAgreementCreateManyBrandInputEnvelope
+    connect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+  }
+
+  export type GymPtAgreementConflictUncheckedCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput> | GymPtAgreementConflictCreateWithoutBrandInput[] | GymPtAgreementConflictUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutBrandInput | GymPtAgreementConflictCreateOrConnectWithoutBrandInput[]
+    createMany?: GymPtAgreementConflictCreateManyBrandInputEnvelope
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
   }
 
   export type GymUpdateManyWithoutBrandNestedInput = {
@@ -40514,6 +43820,34 @@ export namespace Prisma {
     deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
   }
 
+  export type GymBrandPtAgreementUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput> | GymBrandPtAgreementCreateWithoutBrandInput[] | GymBrandPtAgreementUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutBrandInput | GymBrandPtAgreementCreateOrConnectWithoutBrandInput[]
+    upsert?: GymBrandPtAgreementUpsertWithWhereUniqueWithoutBrandInput | GymBrandPtAgreementUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymBrandPtAgreementCreateManyBrandInputEnvelope
+    set?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    disconnect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    delete?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    connect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    update?: GymBrandPtAgreementUpdateWithWhereUniqueWithoutBrandInput | GymBrandPtAgreementUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymBrandPtAgreementUpdateManyWithWhereWithoutBrandInput | GymBrandPtAgreementUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymBrandPtAgreementScalarWhereInput | GymBrandPtAgreementScalarWhereInput[]
+  }
+
+  export type GymPtAgreementConflictUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput> | GymPtAgreementConflictCreateWithoutBrandInput[] | GymPtAgreementConflictUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutBrandInput | GymPtAgreementConflictCreateOrConnectWithoutBrandInput[]
+    upsert?: GymPtAgreementConflictUpsertWithWhereUniqueWithoutBrandInput | GymPtAgreementConflictUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymPtAgreementConflictCreateManyBrandInputEnvelope
+    set?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    disconnect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    delete?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    update?: GymPtAgreementConflictUpdateWithWhereUniqueWithoutBrandInput | GymPtAgreementConflictUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymPtAgreementConflictUpdateManyWithWhereWithoutBrandInput | GymPtAgreementConflictUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
+  }
+
   export type GymUncheckedUpdateManyWithoutBrandNestedInput = {
     create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
     connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
@@ -40540,6 +43874,34 @@ export namespace Prisma {
     update?: GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput | GymMembershipPlanUpdateWithWhereUniqueWithoutBrandInput[]
     updateMany?: GymMembershipPlanUpdateManyWithWhereWithoutBrandInput | GymMembershipPlanUpdateManyWithWhereWithoutBrandInput[]
     deleteMany?: GymMembershipPlanScalarWhereInput | GymMembershipPlanScalarWhereInput[]
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput> | GymBrandPtAgreementCreateWithoutBrandInput[] | GymBrandPtAgreementUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutBrandInput | GymBrandPtAgreementCreateOrConnectWithoutBrandInput[]
+    upsert?: GymBrandPtAgreementUpsertWithWhereUniqueWithoutBrandInput | GymBrandPtAgreementUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymBrandPtAgreementCreateManyBrandInputEnvelope
+    set?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    disconnect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    delete?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    connect?: GymBrandPtAgreementWhereUniqueInput | GymBrandPtAgreementWhereUniqueInput[]
+    update?: GymBrandPtAgreementUpdateWithWhereUniqueWithoutBrandInput | GymBrandPtAgreementUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymBrandPtAgreementUpdateManyWithWhereWithoutBrandInput | GymBrandPtAgreementUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymBrandPtAgreementScalarWhereInput | GymBrandPtAgreementScalarWhereInput[]
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput> | GymPtAgreementConflictCreateWithoutBrandInput[] | GymPtAgreementConflictUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutBrandInput | GymPtAgreementConflictCreateOrConnectWithoutBrandInput[]
+    upsert?: GymPtAgreementConflictUpsertWithWhereUniqueWithoutBrandInput | GymPtAgreementConflictUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymPtAgreementConflictCreateManyBrandInputEnvelope
+    set?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    disconnect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    delete?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    update?: GymPtAgreementConflictUpdateWithWhereUniqueWithoutBrandInput | GymPtAgreementConflictUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymPtAgreementConflictUpdateManyWithWhereWithoutBrandInput | GymPtAgreementConflictUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
   }
 
   export type GymCreatefacilitiesInput = {
@@ -41187,6 +44549,12 @@ export namespace Prisma {
     connect?: GymWhereUniqueInput
   }
 
+  export type GymBrandPtAgreementCreateNestedOneWithoutSupersededLegacyInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedCreateWithoutSupersededLegacyInput>
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutSupersededLegacyInput
+    connect?: GymBrandPtAgreementWhereUniqueInput
+  }
+
   export type EnumCollaborationStatusFieldUpdateOperationsInput = {
     set?: $Enums.CollaborationStatus
   }
@@ -41201,6 +44569,153 @@ export namespace Prisma {
     upsert?: GymUpsertWithoutCollaborationsInput
     connect?: GymWhereUniqueInput
     update?: XOR<XOR<GymUpdateToOneWithWhereWithoutCollaborationsInput, GymUpdateWithoutCollaborationsInput>, GymUncheckedUpdateWithoutCollaborationsInput>
+  }
+
+  export type GymBrandPtAgreementUpdateOneWithoutSupersededLegacyNestedInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedCreateWithoutSupersededLegacyInput>
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutSupersededLegacyInput
+    upsert?: GymBrandPtAgreementUpsertWithoutSupersededLegacyInput
+    disconnect?: GymBrandPtAgreementWhereInput | boolean
+    delete?: GymBrandPtAgreementWhereInput | boolean
+    connect?: GymBrandPtAgreementWhereUniqueInput
+    update?: XOR<XOR<GymBrandPtAgreementUpdateToOneWithWhereWithoutSupersededLegacyInput, GymBrandPtAgreementUpdateWithoutSupersededLegacyInput>, GymBrandPtAgreementUncheckedUpdateWithoutSupersededLegacyInput>
+  }
+
+  export type GymBrandCreateNestedOneWithoutPtAgreementsInput = {
+    create?: XOR<GymBrandCreateWithoutPtAgreementsInput, GymBrandUncheckedCreateWithoutPtAgreementsInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPtAgreementsInput
+    connect?: GymBrandWhereUniqueInput
+  }
+
+  export type GymPtCollaborationCreateNestedManyWithoutSupersededByAgreementInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput> | GymPtCollaborationCreateWithoutSupersededByAgreementInput[] | GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput | GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput[]
+    createMany?: GymPtCollaborationCreateManySupersededByAgreementInputEnvelope
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+  }
+
+  export type GymPtAgreementConflictCreateNestedManyWithoutResolvedAgreementInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput> | GymPtAgreementConflictCreateWithoutResolvedAgreementInput[] | GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput | GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput[]
+    createMany?: GymPtAgreementConflictCreateManyResolvedAgreementInputEnvelope
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+  }
+
+  export type GymPtCollaborationUncheckedCreateNestedManyWithoutSupersededByAgreementInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput> | GymPtCollaborationCreateWithoutSupersededByAgreementInput[] | GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput | GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput[]
+    createMany?: GymPtCollaborationCreateManySupersededByAgreementInputEnvelope
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+  }
+
+  export type GymPtAgreementConflictUncheckedCreateNestedManyWithoutResolvedAgreementInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput> | GymPtAgreementConflictCreateWithoutResolvedAgreementInput[] | GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput | GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput[]
+    createMany?: GymPtAgreementConflictCreateManyResolvedAgreementInputEnvelope
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+  }
+
+  export type GymBrandUpdateOneRequiredWithoutPtAgreementsNestedInput = {
+    create?: XOR<GymBrandCreateWithoutPtAgreementsInput, GymBrandUncheckedCreateWithoutPtAgreementsInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPtAgreementsInput
+    upsert?: GymBrandUpsertWithoutPtAgreementsInput
+    connect?: GymBrandWhereUniqueInput
+    update?: XOR<XOR<GymBrandUpdateToOneWithWhereWithoutPtAgreementsInput, GymBrandUpdateWithoutPtAgreementsInput>, GymBrandUncheckedUpdateWithoutPtAgreementsInput>
+  }
+
+  export type GymPtCollaborationUpdateManyWithoutSupersededByAgreementNestedInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput> | GymPtCollaborationCreateWithoutSupersededByAgreementInput[] | GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput | GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput[]
+    upsert?: GymPtCollaborationUpsertWithWhereUniqueWithoutSupersededByAgreementInput | GymPtCollaborationUpsertWithWhereUniqueWithoutSupersededByAgreementInput[]
+    createMany?: GymPtCollaborationCreateManySupersededByAgreementInputEnvelope
+    set?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    disconnect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    delete?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    update?: GymPtCollaborationUpdateWithWhereUniqueWithoutSupersededByAgreementInput | GymPtCollaborationUpdateWithWhereUniqueWithoutSupersededByAgreementInput[]
+    updateMany?: GymPtCollaborationUpdateManyWithWhereWithoutSupersededByAgreementInput | GymPtCollaborationUpdateManyWithWhereWithoutSupersededByAgreementInput[]
+    deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
+  }
+
+  export type GymPtAgreementConflictUpdateManyWithoutResolvedAgreementNestedInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput> | GymPtAgreementConflictCreateWithoutResolvedAgreementInput[] | GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput | GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput[]
+    upsert?: GymPtAgreementConflictUpsertWithWhereUniqueWithoutResolvedAgreementInput | GymPtAgreementConflictUpsertWithWhereUniqueWithoutResolvedAgreementInput[]
+    createMany?: GymPtAgreementConflictCreateManyResolvedAgreementInputEnvelope
+    set?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    disconnect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    delete?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    update?: GymPtAgreementConflictUpdateWithWhereUniqueWithoutResolvedAgreementInput | GymPtAgreementConflictUpdateWithWhereUniqueWithoutResolvedAgreementInput[]
+    updateMany?: GymPtAgreementConflictUpdateManyWithWhereWithoutResolvedAgreementInput | GymPtAgreementConflictUpdateManyWithWhereWithoutResolvedAgreementInput[]
+    deleteMany?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
+  }
+
+  export type GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementNestedInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput> | GymPtCollaborationCreateWithoutSupersededByAgreementInput[] | GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput | GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput[]
+    upsert?: GymPtCollaborationUpsertWithWhereUniqueWithoutSupersededByAgreementInput | GymPtCollaborationUpsertWithWhereUniqueWithoutSupersededByAgreementInput[]
+    createMany?: GymPtCollaborationCreateManySupersededByAgreementInputEnvelope
+    set?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    disconnect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    delete?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    update?: GymPtCollaborationUpdateWithWhereUniqueWithoutSupersededByAgreementInput | GymPtCollaborationUpdateWithWhereUniqueWithoutSupersededByAgreementInput[]
+    updateMany?: GymPtCollaborationUpdateManyWithWhereWithoutSupersededByAgreementInput | GymPtCollaborationUpdateManyWithWhereWithoutSupersededByAgreementInput[]
+    deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementNestedInput = {
+    create?: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput> | GymPtAgreementConflictCreateWithoutResolvedAgreementInput[] | GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput[]
+    connectOrCreate?: GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput | GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput[]
+    upsert?: GymPtAgreementConflictUpsertWithWhereUniqueWithoutResolvedAgreementInput | GymPtAgreementConflictUpsertWithWhereUniqueWithoutResolvedAgreementInput[]
+    createMany?: GymPtAgreementConflictCreateManyResolvedAgreementInputEnvelope
+    set?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    disconnect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    delete?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    connect?: GymPtAgreementConflictWhereUniqueInput | GymPtAgreementConflictWhereUniqueInput[]
+    update?: GymPtAgreementConflictUpdateWithWhereUniqueWithoutResolvedAgreementInput | GymPtAgreementConflictUpdateWithWhereUniqueWithoutResolvedAgreementInput[]
+    updateMany?: GymPtAgreementConflictUpdateManyWithWhereWithoutResolvedAgreementInput | GymPtAgreementConflictUpdateManyWithWhereWithoutResolvedAgreementInput[]
+    deleteMany?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
+  }
+
+  export type GymPtAgreementConflictCreatelegacyCollaborationIdsInput = {
+    set: string[]
+  }
+
+  export type GymBrandCreateNestedOneWithoutPtAgreementConflictsInput = {
+    create?: XOR<GymBrandCreateWithoutPtAgreementConflictsInput, GymBrandUncheckedCreateWithoutPtAgreementConflictsInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPtAgreementConflictsInput
+    connect?: GymBrandWhereUniqueInput
+  }
+
+  export type GymBrandPtAgreementCreateNestedOneWithoutResolvedConflictsInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedCreateWithoutResolvedConflictsInput>
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutResolvedConflictsInput
+    connect?: GymBrandPtAgreementWhereUniqueInput
+  }
+
+  export type GymPtAgreementConflictUpdatelegacyCollaborationIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type GymBrandUpdateOneRequiredWithoutPtAgreementConflictsNestedInput = {
+    create?: XOR<GymBrandCreateWithoutPtAgreementConflictsInput, GymBrandUncheckedCreateWithoutPtAgreementConflictsInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutPtAgreementConflictsInput
+    upsert?: GymBrandUpsertWithoutPtAgreementConflictsInput
+    connect?: GymBrandWhereUniqueInput
+    update?: XOR<XOR<GymBrandUpdateToOneWithWhereWithoutPtAgreementConflictsInput, GymBrandUpdateWithoutPtAgreementConflictsInput>, GymBrandUncheckedUpdateWithoutPtAgreementConflictsInput>
+  }
+
+  export type GymBrandPtAgreementUpdateOneWithoutResolvedConflictsNestedInput = {
+    create?: XOR<GymBrandPtAgreementCreateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedCreateWithoutResolvedConflictsInput>
+    connectOrCreate?: GymBrandPtAgreementCreateOrConnectWithoutResolvedConflictsInput
+    upsert?: GymBrandPtAgreementUpsertWithoutResolvedConflictsInput
+    disconnect?: GymBrandPtAgreementWhereInput | boolean
+    delete?: GymBrandPtAgreementWhereInput | boolean
+    connect?: GymBrandPtAgreementWhereUniqueInput
+    update?: XOR<XOR<GymBrandPtAgreementUpdateToOneWithWhereWithoutResolvedConflictsInput, GymBrandPtAgreementUpdateWithoutResolvedConflictsInput>, GymBrandPtAgreementUncheckedUpdateWithoutResolvedConflictsInput>
   }
 
   export type GymMembershipContractCreateNestedOneWithoutReferralInput = {
@@ -42151,6 +45666,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42195,6 +45711,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42253,6 +45770,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42297,6 +45815,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42339,6 +45858,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42383,6 +45903,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42441,6 +45962,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42485,6 +46007,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42527,6 +46050,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42571,6 +46095,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42629,6 +46154,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42673,6 +46199,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42715,6 +46242,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42759,6 +46287,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42817,6 +46346,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42861,6 +46391,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42903,6 +46434,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42947,6 +46479,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -43005,6 +46538,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -43049,6 +46583,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -45471,6 +49006,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -45514,6 +49050,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -45578,6 +49115,92 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type GymBrandPtAgreementCreateWithoutBrandInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededLegacy?: GymPtCollaborationCreateNestedManyWithoutSupersededByAgreementInput
+    resolvedConflicts?: GymPtAgreementConflictCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementUncheckedCreateWithoutBrandInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedCreateNestedManyWithoutSupersededByAgreementInput
+    resolvedConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementCreateOrConnectWithoutBrandInput = {
+    where: GymBrandPtAgreementWhereUniqueInput
+    create: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymBrandPtAgreementCreateManyBrandInputEnvelope = {
+    data: GymBrandPtAgreementCreateManyBrandInput | GymBrandPtAgreementCreateManyBrandInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymPtAgreementConflictCreateWithoutBrandInput = {
+    id?: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedAgreement?: GymBrandPtAgreementCreateNestedOneWithoutResolvedConflictsInput
+  }
+
+  export type GymPtAgreementConflictUncheckedCreateWithoutBrandInput = {
+    id?: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    resolvedAgreementId?: string | null
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPtAgreementConflictCreateOrConnectWithoutBrandInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    create: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymPtAgreementConflictCreateManyBrandInputEnvelope = {
+    data: GymPtAgreementConflictCreateManyBrandInput | GymPtAgreementConflictCreateManyBrandInput[]
+    skipDuplicates?: boolean
+  }
+
   export type GymUpsertWithWhereUniqueWithoutBrandInput = {
     where: GymWhereUniqueInput
     update: XOR<GymUpdateWithoutBrandInput, GymUncheckedUpdateWithoutBrandInput>
@@ -45627,6 +49250,7 @@ export namespace Prisma {
     closureReason?: StringNullableFilter<"Gym"> | string | null
     expectedReopenAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
@@ -45666,6 +49290,77 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
   }
 
+  export type GymBrandPtAgreementUpsertWithWhereUniqueWithoutBrandInput = {
+    where: GymBrandPtAgreementWhereUniqueInput
+    update: XOR<GymBrandPtAgreementUpdateWithoutBrandInput, GymBrandPtAgreementUncheckedUpdateWithoutBrandInput>
+    create: XOR<GymBrandPtAgreementCreateWithoutBrandInput, GymBrandPtAgreementUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymBrandPtAgreementUpdateWithWhereUniqueWithoutBrandInput = {
+    where: GymBrandPtAgreementWhereUniqueInput
+    data: XOR<GymBrandPtAgreementUpdateWithoutBrandInput, GymBrandPtAgreementUncheckedUpdateWithoutBrandInput>
+  }
+
+  export type GymBrandPtAgreementUpdateManyWithWhereWithoutBrandInput = {
+    where: GymBrandPtAgreementScalarWhereInput
+    data: XOR<GymBrandPtAgreementUpdateManyMutationInput, GymBrandPtAgreementUncheckedUpdateManyWithoutBrandInput>
+  }
+
+  export type GymBrandPtAgreementScalarWhereInput = {
+    AND?: GymBrandPtAgreementScalarWhereInput | GymBrandPtAgreementScalarWhereInput[]
+    OR?: GymBrandPtAgreementScalarWhereInput[]
+    NOT?: GymBrandPtAgreementScalarWhereInput | GymBrandPtAgreementScalarWhereInput[]
+    id?: StringFilter<"GymBrandPtAgreement"> | string
+    brandId?: StringFilter<"GymBrandPtAgreement"> | string
+    ptUserId?: StringFilter<"GymBrandPtAgreement"> | string
+    proposedPtRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymBrandPtAgreement"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymBrandPtAgreement"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymBrandPtAgreement"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymBrandPtAgreement"> | number
+    expiresAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    effectiveAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymBrandPtAgreement"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    origin?: StringFilter<"GymBrandPtAgreement"> | string
+    note?: StringNullableFilter<"GymBrandPtAgreement"> | string | null
+    createdAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+    updatedAt?: DateTimeFilter<"GymBrandPtAgreement"> | Date | string
+  }
+
+  export type GymPtAgreementConflictUpsertWithWhereUniqueWithoutBrandInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    update: XOR<GymPtAgreementConflictUpdateWithoutBrandInput, GymPtAgreementConflictUncheckedUpdateWithoutBrandInput>
+    create: XOR<GymPtAgreementConflictCreateWithoutBrandInput, GymPtAgreementConflictUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymPtAgreementConflictUpdateWithWhereUniqueWithoutBrandInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    data: XOR<GymPtAgreementConflictUpdateWithoutBrandInput, GymPtAgreementConflictUncheckedUpdateWithoutBrandInput>
+  }
+
+  export type GymPtAgreementConflictUpdateManyWithWhereWithoutBrandInput = {
+    where: GymPtAgreementConflictScalarWhereInput
+    data: XOR<GymPtAgreementConflictUpdateManyMutationInput, GymPtAgreementConflictUncheckedUpdateManyWithoutBrandInput>
+  }
+
+  export type GymPtAgreementConflictScalarWhereInput = {
+    AND?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
+    OR?: GymPtAgreementConflictScalarWhereInput[]
+    NOT?: GymPtAgreementConflictScalarWhereInput | GymPtAgreementConflictScalarWhereInput[]
+    id?: StringFilter<"GymPtAgreementConflict"> | string
+    brandId?: StringFilter<"GymPtAgreementConflict"> | string
+    ptUserId?: StringFilter<"GymPtAgreementConflict"> | string
+    legacyCollaborationIds?: StringNullableListFilter<"GymPtAgreementConflict">
+    status?: StringFilter<"GymPtAgreementConflict"> | string
+    resolvedAgreementId?: StringNullableFilter<"GymPtAgreementConflict"> | string | null
+    detectedAt?: DateTimeFilter<"GymPtAgreementConflict"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"GymPtAgreementConflict"> | Date | string | null
+  }
+
   export type GymBrandCreateWithoutBranchesInput = {
     id?: string
     ownerId: string
@@ -45681,6 +49376,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUncheckedCreateWithoutBranchesInput = {
@@ -45698,6 +49395,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandCreateOrConnectWithoutBranchesInput = {
@@ -45836,8 +49535,11 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    supersededByAgreement?: GymBrandPtAgreementCreateNestedOneWithoutSupersededLegacyInput
   }
 
   export type GymPtCollaborationUncheckedCreateWithoutGymInput = {
@@ -45855,6 +49557,9 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededByAgreementId?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -46063,6 +49768,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandUncheckedUpdateWithoutBranchesInput = {
@@ -46080,6 +49787,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymMembershipContractUpsertWithWhereUniqueWithoutGymInput = {
@@ -46218,6 +49927,9 @@ export namespace Prisma {
     terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
     effectiveAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededByAgreementId?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    supersededAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminationInitiatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
     createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
     updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
   }
@@ -46396,6 +50108,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandUncheckedCreateWithoutPlansInput = {
@@ -46413,6 +50127,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     branches?: GymUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutBrandInput
   }
 
   export type GymBrandCreateOrConnectWithoutPlansInput = {
@@ -46498,6 +50214,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUpdateManyWithoutBrandNestedInput
   }
 
   export type GymBrandUncheckedUpdateWithoutPlansInput = {
@@ -46515,6 +50233,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutBrandNestedInput
   }
 
   export type GymMembershipContractUpsertWithWhereUniqueWithoutPlanInput = {
@@ -46562,6 +50282,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -46606,6 +50327,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -46756,6 +50478,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -46800,6 +50523,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -46948,6 +50672,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -46992,6 +50717,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -47050,6 +50776,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47094,6 +50821,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47236,6 +50964,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -47280,6 +51009,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -47338,6 +51068,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47382,6 +51113,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47424,6 +51156,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -47468,6 +51201,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -47484,6 +51218,57 @@ export namespace Prisma {
   export type GymCreateOrConnectWithoutCollaborationsInput = {
     where: GymWhereUniqueInput
     create: XOR<GymCreateWithoutCollaborationsInput, GymUncheckedCreateWithoutCollaborationsInput>
+  }
+
+  export type GymBrandPtAgreementCreateWithoutSupersededLegacyInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand: GymBrandCreateNestedOneWithoutPtAgreementsInput
+    resolvedConflicts?: GymPtAgreementConflictCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementUncheckedCreateWithoutSupersededLegacyInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    resolvedConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutResolvedAgreementInput
+  }
+
+  export type GymBrandPtAgreementCreateOrConnectWithoutSupersededLegacyInput = {
+    where: GymBrandPtAgreementWhereUniqueInput
+    create: XOR<GymBrandPtAgreementCreateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedCreateWithoutSupersededLegacyInput>
   }
 
   export type GymUpsertWithoutCollaborationsInput = {
@@ -47526,6 +51311,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47570,6 +51356,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -47581,6 +51368,471 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymBrandPtAgreementUpsertWithoutSupersededLegacyInput = {
+    update: XOR<GymBrandPtAgreementUpdateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedUpdateWithoutSupersededLegacyInput>
+    create: XOR<GymBrandPtAgreementCreateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedCreateWithoutSupersededLegacyInput>
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  export type GymBrandPtAgreementUpdateToOneWithWhereWithoutSupersededLegacyInput = {
+    where?: GymBrandPtAgreementWhereInput
+    data: XOR<GymBrandPtAgreementUpdateWithoutSupersededLegacyInput, GymBrandPtAgreementUncheckedUpdateWithoutSupersededLegacyInput>
+  }
+
+  export type GymBrandPtAgreementUpdateWithoutSupersededLegacyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneRequiredWithoutPtAgreementsNestedInput
+    resolvedConflicts?: GymPtAgreementConflictUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateWithoutSupersededLegacyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandCreateWithoutPtAgreementsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    description?: string | null
+    logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandUncheckedCreateWithoutPtAgreementsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    description?: string | null
+    logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymUncheckedCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandCreateOrConnectWithoutPtAgreementsInput = {
+    where: GymBrandWhereUniqueInput
+    create: XOR<GymBrandCreateWithoutPtAgreementsInput, GymBrandUncheckedCreateWithoutPtAgreementsInput>
+  }
+
+  export type GymPtCollaborationCreateWithoutSupersededByAgreementInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    effectiveAt?: Date | string | null
+    note?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutCollaborationsInput
+  }
+
+  export type GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput = {
+    id?: string
+    gymId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    effectiveAt?: Date | string | null
+    note?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationCreateOrConnectWithoutSupersededByAgreementInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    create: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput>
+  }
+
+  export type GymPtCollaborationCreateManySupersededByAgreementInputEnvelope = {
+    data: GymPtCollaborationCreateManySupersededByAgreementInput | GymPtCollaborationCreateManySupersededByAgreementInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymPtAgreementConflictCreateWithoutResolvedAgreementInput = {
+    id?: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    brand: GymBrandCreateNestedOneWithoutPtAgreementConflictsInput
+  }
+
+  export type GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPtAgreementConflictCreateOrConnectWithoutResolvedAgreementInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    create: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput>
+  }
+
+  export type GymPtAgreementConflictCreateManyResolvedAgreementInputEnvelope = {
+    data: GymPtAgreementConflictCreateManyResolvedAgreementInput | GymPtAgreementConflictCreateManyResolvedAgreementInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymBrandUpsertWithoutPtAgreementsInput = {
+    update: XOR<GymBrandUpdateWithoutPtAgreementsInput, GymBrandUncheckedUpdateWithoutPtAgreementsInput>
+    create: XOR<GymBrandCreateWithoutPtAgreementsInput, GymBrandUncheckedCreateWithoutPtAgreementsInput>
+    where?: GymBrandWhereInput
+  }
+
+  export type GymBrandUpdateToOneWithWhereWithoutPtAgreementsInput = {
+    where?: GymBrandWhereInput
+    data: XOR<GymBrandUpdateWithoutPtAgreementsInput, GymBrandUncheckedUpdateWithoutPtAgreementsInput>
+  }
+
+  export type GymBrandUpdateWithoutPtAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymBrandUncheckedUpdateWithoutPtAgreementsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreementConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymPtCollaborationUpsertWithWhereUniqueWithoutSupersededByAgreementInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    update: XOR<GymPtCollaborationUpdateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedUpdateWithoutSupersededByAgreementInput>
+    create: XOR<GymPtCollaborationCreateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedCreateWithoutSupersededByAgreementInput>
+  }
+
+  export type GymPtCollaborationUpdateWithWhereUniqueWithoutSupersededByAgreementInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    data: XOR<GymPtCollaborationUpdateWithoutSupersededByAgreementInput, GymPtCollaborationUncheckedUpdateWithoutSupersededByAgreementInput>
+  }
+
+  export type GymPtCollaborationUpdateManyWithWhereWithoutSupersededByAgreementInput = {
+    where: GymPtCollaborationScalarWhereInput
+    data: XOR<GymPtCollaborationUpdateManyMutationInput, GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementInput>
+  }
+
+  export type GymPtAgreementConflictUpsertWithWhereUniqueWithoutResolvedAgreementInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    update: XOR<GymPtAgreementConflictUpdateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedUpdateWithoutResolvedAgreementInput>
+    create: XOR<GymPtAgreementConflictCreateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedCreateWithoutResolvedAgreementInput>
+  }
+
+  export type GymPtAgreementConflictUpdateWithWhereUniqueWithoutResolvedAgreementInput = {
+    where: GymPtAgreementConflictWhereUniqueInput
+    data: XOR<GymPtAgreementConflictUpdateWithoutResolvedAgreementInput, GymPtAgreementConflictUncheckedUpdateWithoutResolvedAgreementInput>
+  }
+
+  export type GymPtAgreementConflictUpdateManyWithWhereWithoutResolvedAgreementInput = {
+    where: GymPtAgreementConflictScalarWhereInput
+    data: XOR<GymPtAgreementConflictUpdateManyMutationInput, GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementInput>
+  }
+
+  export type GymBrandCreateWithoutPtAgreementConflictsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    description?: string | null
+    logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandUncheckedCreateWithoutPtAgreementConflictsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    description?: string | null
+    logoKey?: string | null
+    facebookUrl?: string | null
+    instagramUrl?: string | null
+    tiktokUrl?: string | null
+    youtubeUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymUncheckedCreateNestedManyWithoutBrandInput
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutBrandInput
+    ptAgreements?: GymBrandPtAgreementUncheckedCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandCreateOrConnectWithoutPtAgreementConflictsInput = {
+    where: GymBrandWhereUniqueInput
+    create: XOR<GymBrandCreateWithoutPtAgreementConflictsInput, GymBrandUncheckedCreateWithoutPtAgreementConflictsInput>
+  }
+
+  export type GymBrandPtAgreementCreateWithoutResolvedConflictsInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand: GymBrandCreateNestedOneWithoutPtAgreementsInput
+    supersededLegacy?: GymPtCollaborationCreateNestedManyWithoutSupersededByAgreementInput
+  }
+
+  export type GymBrandPtAgreementUncheckedCreateWithoutResolvedConflictsInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedCreateNestedManyWithoutSupersededByAgreementInput
+  }
+
+  export type GymBrandPtAgreementCreateOrConnectWithoutResolvedConflictsInput = {
+    where: GymBrandPtAgreementWhereUniqueInput
+    create: XOR<GymBrandPtAgreementCreateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedCreateWithoutResolvedConflictsInput>
+  }
+
+  export type GymBrandUpsertWithoutPtAgreementConflictsInput = {
+    update: XOR<GymBrandUpdateWithoutPtAgreementConflictsInput, GymBrandUncheckedUpdateWithoutPtAgreementConflictsInput>
+    create: XOR<GymBrandCreateWithoutPtAgreementConflictsInput, GymBrandUncheckedCreateWithoutPtAgreementConflictsInput>
+    where?: GymBrandWhereInput
+  }
+
+  export type GymBrandUpdateToOneWithWhereWithoutPtAgreementConflictsInput = {
+    where?: GymBrandWhereInput
+    data: XOR<GymBrandUpdateWithoutPtAgreementConflictsInput, GymBrandUncheckedUpdateWithoutPtAgreementConflictsInput>
+  }
+
+  export type GymBrandUpdateWithoutPtAgreementConflictsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymBrandUncheckedUpdateWithoutPtAgreementConflictsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    logoKey?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tiktokUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutBrandNestedInput
+    ptAgreements?: GymBrandPtAgreementUncheckedUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymBrandPtAgreementUpsertWithoutResolvedConflictsInput = {
+    update: XOR<GymBrandPtAgreementUpdateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedUpdateWithoutResolvedConflictsInput>
+    create: XOR<GymBrandPtAgreementCreateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedCreateWithoutResolvedConflictsInput>
+    where?: GymBrandPtAgreementWhereInput
+  }
+
+  export type GymBrandPtAgreementUpdateToOneWithWhereWithoutResolvedConflictsInput = {
+    where?: GymBrandPtAgreementWhereInput
+    data: XOR<GymBrandPtAgreementUpdateWithoutResolvedConflictsInput, GymBrandPtAgreementUncheckedUpdateWithoutResolvedConflictsInput>
+  }
+
+  export type GymBrandPtAgreementUpdateWithoutResolvedConflictsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneRequiredWithoutPtAgreementsNestedInput
+    supersededLegacy?: GymPtCollaborationUpdateManyWithoutSupersededByAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateWithoutResolvedConflictsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementNestedInput
   }
 
   export type GymMembershipContractCreateWithoutReferralInput = {
@@ -48178,6 +52430,7 @@ export namespace Prisma {
     closureReason?: string | null
     expectedReopenAt?: Date | string | null
     closedAt?: Date | string | null
+    closedBy?: string | null
     reopenedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48195,6 +52448,37 @@ export namespace Prisma {
     saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type GymBrandPtAgreementCreateManyBrandInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    effectiveAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    origin?: string
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtAgreementConflictCreateManyBrandInput = {
+    id?: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    resolvedAgreementId?: string | null
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
   }
 
   export type GymUpdateWithoutBrandInput = {
@@ -48226,6 +52510,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48269,6 +52554,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48312,6 +52598,7 @@ export namespace Prisma {
     closureReason?: NullableStringFieldUpdateOperationsInput | string | null
     expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48359,6 +52646,103 @@ export namespace Prisma {
     saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymBrandPtAgreementUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededLegacy?: GymPtCollaborationUpdateManyWithoutSupersededByAgreementNestedInput
+    resolvedConflicts?: GymPtAgreementConflictUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededLegacy?: GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementNestedInput
+    resolvedConflicts?: GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementNestedInput
+  }
+
+  export type GymBrandPtAgreementUncheckedUpdateManyWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    origin?: StringFieldUpdateOperationsInput | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtAgreementConflictUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAgreement?: GymBrandPtAgreementUpdateOneWithoutResolvedConflictsNestedInput
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    resolvedAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateManyWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    resolvedAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type GymMembershipContractCreateManyGymInput = {
@@ -48417,6 +52801,9 @@ export namespace Prisma {
     terminatedBy?: string | null
     effectiveAt?: Date | string | null
     note?: string | null
+    supersededByAgreementId?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -48622,8 +53009,11 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    supersededByAgreement?: GymBrandPtAgreementUpdateOneWithoutSupersededLegacyNestedInput
   }
 
   export type GymPtCollaborationUncheckedUpdateWithoutGymInput = {
@@ -48641,6 +53031,9 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededByAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -48660,6 +53053,9 @@ export namespace Prisma {
     terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededByAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -48953,6 +53349,134 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymPtCollaborationCreateManySupersededByAgreementInput = {
+    id?: string
+    gymId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    effectiveAt?: Date | string | null
+    note?: string | null
+    supersededAt?: Date | string | null
+    terminationInitiatedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtAgreementConflictCreateManyResolvedAgreementInput = {
+    id?: string
+    brandId: string
+    ptUserId: string
+    legacyCollaborationIds?: GymPtAgreementConflictCreatelegacyCollaborationIdsInput | string[]
+    status?: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+  }
+
+  export type GymPtCollaborationUpdateWithoutSupersededByAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutCollaborationsNestedInput
+  }
+
+  export type GymPtCollaborationUncheckedUpdateWithoutSupersededByAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCollaborationUncheckedUpdateManyWithoutSupersededByAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    effectiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    supersededAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminationInitiatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtAgreementConflictUpdateWithoutResolvedAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    brand?: GymBrandUpdateOneRequiredWithoutPtAgreementConflictsNestedInput
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateWithoutResolvedAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GymPtAgreementConflictUncheckedUpdateManyWithoutResolvedAgreementInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    brandId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    legacyCollaborationIds?: GymPtAgreementConflictUpdatelegacyCollaborationIdsInput | string[]
+    status?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
 
 
   /**
@@ -48982,6 +53506,10 @@ export namespace Prisma {
      * @deprecated Use GymMembershipContractCountOutputTypeDefaultArgs instead
      */
     export type GymMembershipContractCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymMembershipContractCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymBrandPtAgreementCountOutputTypeDefaultArgs instead
+     */
+    export type GymBrandPtAgreementCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandPtAgreementCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymPhotoDefaultArgs instead
      */
@@ -49078,6 +53606,14 @@ export namespace Prisma {
      * @deprecated Use GymPtCollaborationDefaultArgs instead
      */
     export type GymPtCollaborationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPtCollaborationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymBrandPtAgreementDefaultArgs instead
+     */
+    export type GymBrandPtAgreementArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandPtAgreementDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymPtAgreementConflictDefaultArgs instead
+     */
+    export type GymPtAgreementConflictArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPtAgreementConflictDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymMembershipReferralDefaultArgs instead
      */
