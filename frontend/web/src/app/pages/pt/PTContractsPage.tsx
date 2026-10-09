@@ -214,8 +214,8 @@ export function PTContractsPage() {
   // This button only ever shows for status === "ACTIVE" (real, paid money already split into
   // pending buckets) — cancelContract (a plain status flip, no money) must never be used
   // here. terminate settles everyone per PT_CANCELLED's formula: client gets 100% of the
-  // unused value back, PLUS a 10% penalty charged to the PT/gym pending buckets (symmetric
-  // to the client's own cancellation fee) — see docs/money-flow.md §3.5.
+  // unused value back. No extra penalty is charged to the PT today — payment-service only
+  // applies one when the contract itself carries a compensation rate, and no contract does yet.
   const cancelMutation = useMutation({
     mutationFn: (id: string) => contractService.terminateContract(id, "PT_CANCELLED"),
     onSuccess: (result: any) => {
@@ -1015,9 +1015,7 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                This cannot be undone. The client is refunded 100% of the unused value —
-                <span className="text-amber-400 font-semibold"> plus a 10% cancellation penalty
-                charged against your (and the gym's, if any) pending balance.</span>
+                This cannot be undone. The client is refunded 100% of the unused value.
               </p>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
