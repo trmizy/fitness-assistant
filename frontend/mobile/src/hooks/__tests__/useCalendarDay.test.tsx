@@ -30,10 +30,26 @@ describe("useCalendarDay", () => {
     expect(view.getByText("2026-10-07")).toBeTruthy();
 
     jest.setSystemTime(new Date(2026, 9, 8, 0, 5));
-    // Time passing alone re-renders nothing — the screen has to come back into view.
-    expect(view.getByText("2026-10-07")).toBeTruthy();
     await act(async () => focusCallback?.());
     expect(view.getByText("2026-10-08")).toBeTruthy();
+  });
+
+  it("moves to the new day by itself when midnight passes with the screen open", async () => {
+    jest.setSystemTime(new Date(2026, 9, 8, 23, 55));
+    const view = await render(<Probe />);
+    expect(view.getByText("2026-10-08")).toBeTruthy();
+
+    // No focus change, no app-state change — only the clock.
+    await act(async () => {
+      jest.advanceTimersByTime(6 * 60 * 1000);
+    });
+    expect(view.getByText("2026-10-09")).toBeTruthy();
+
+    // And it is armed again for the night after.
+    await act(async () => {
+      jest.advanceTimersByTime(24 * 60 * 60 * 1000);
+    });
+    expect(view.getByText("2026-10-10")).toBeTruthy();
   });
 
   it("moves to the new day when the app returns to the foreground", async () => {
