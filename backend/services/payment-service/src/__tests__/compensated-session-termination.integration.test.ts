@@ -96,24 +96,6 @@ async function seedContract(m: Mods, opts: { price: number; totalSessions: numbe
   };
 }
 
-async function nextTxn(m: Mods, f: Fixture): Promise<string> {
-  const t = await m.prisma.paymentTransaction.create({
-    data: {
-      payerId: f.parties.clientUserId,
-      purpose: 'PT_CONTRACT',
-      amount: 0,
-      currency: 'VND',
-      status: 'PROCESSING',
-      provider: 'VNPAY',
-      idempotencyKey: `evt-${randomUUID()}`,
-      relatedEntityType: 'PT_CONTRACT',
-      relatedEntityId: f.contractId,
-      sourceService: 'integration-test',
-    },
-  });
-  return t.id;
-}
-
 async function balances(m: Mods, f: Fixture) {
   const [pt, client, escrow, revenue] = await Promise.all([
     m.ledger.readWallet('PT', f.parties.ptUserId),
@@ -142,7 +124,7 @@ test('hợp đồng 12 buổi/1.200.000, PT vắng 1 buổi đã bồi thường
   });
 
   const noShow = await m.ledger.compensateNoShow({
-    transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'A1 no-show',
     idempotencyKey: `PT_NO_SHOW:${'A1 no-show'}`,
   });
@@ -157,7 +139,7 @@ test('hợp đồng 12 buổi/1.200.000, PT vắng 1 buổi đã bồi thường
   // Khách chưa dùng buổi nào (usedSessions=0), rồi huỷ ngay — compensatedSessions=1 PHẢI được
   // truyền vào, nếu không computeTermination sẽ cố rút nhiều hơn số ngăn chờ thực tế còn lại.
   const outcome = await m.ledger.terminateContract({
-    transactionId: await nextTxn(m, f),
+    transactionId: f.txnId, // the contract's own transaction, as user-service sends it
     price: f.price,
     totalSessions: f.totalSessions,
     usedSessions: 0,
@@ -199,13 +181,13 @@ test('gọi terminateContract lần hai với cùng idempotencyKey — không r�
     transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'A1-retry',
   });
   await m.ledger.compensateNoShow({
-    transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
     rates: f.rates, parties: f.parties, label: 'A1-retry no-show',
     idempotencyKey: `PT_NO_SHOW:${'A1-retry no-show'}`,
   });
 
   const params = {
-    transactionId: await nextTxn(m, f),
+    transactionId: f.txnId, // the contract's own transaction, as user-service sends it
     price: f.price,
     totalSessions: f.totalSessions,
     usedSessions: 0,

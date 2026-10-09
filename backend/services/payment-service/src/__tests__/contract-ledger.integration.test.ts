@@ -60,7 +60,7 @@ test.after(async () => {
  * from stale data.
  */
 async function resetLedger(m: Mods) {
-  await m.prisma.$executeRawUnsafe('TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, payment_transactions, wallets RESTART IDENTITY CASCADE');
+  await m.prisma.$executeRawUnsafe('TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE');
 }
 
 interface Fixture {
@@ -109,23 +109,16 @@ async function seedContract(
   };
 }
 
-/** A second transaction row, because ledger entries are foreign-keyed to one. */
-async function nextTxn(m: Mods, f: Fixture, purpose: 'REFUND' | 'PT_CONTRACT' = 'PT_CONTRACT'): Promise<string> {
-  const t = await m.prisma.paymentTransaction.create({
-    data: {
-      payerId: f.parties.clientUserId,
-      purpose,
-      amount: 0,
-      currency: 'VND',
-      status: 'PROCESSING',
-      provider: 'VNPAY',
-      idempotencyKey: `evt-${randomUUID()}`,
-      relatedEntityType: 'PT_CONTRACT',
-      relatedEntityId: f.contractId,
-      sourceService: 'integration-test',
-    },
-  });
-  return t.id;
+/**
+ * The transaction id a release, no-show or termination of this contract runs under. It is the
+ * contract's OWN payment transaction, exactly as user-service sends it (`contract.paymentTransactionId`
+ * on every ledger call): the ledger scopes "this contract's pending" by that id. These scenarios
+ * used to mint a fresh transaction row per call, which no production caller does and which would
+ * leave every call looking at a contract with no pending of its own. The signature is kept so the
+ * call sites, which still say whether the call is a refund, read the same.
+ */
+async function nextTxn(_m: Mods, f: Fixture, _purpose: 'REFUND' | 'PT_CONTRACT' = 'PT_CONTRACT'): Promise<string> {
+  return f.txnId;
 }
 
 async function balances(m: Mods, f: Fixture) {

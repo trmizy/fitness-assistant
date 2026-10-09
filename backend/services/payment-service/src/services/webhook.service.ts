@@ -161,10 +161,16 @@ async function settlePurchase(txn: {
   // retried by the reconciliation sweep if it fails, so a hiccup there never unwinds money
   // that has genuinely been received.
   try {
-    const { callActivateEndpoint } = await import('./reconciliation.service');
+    const { activateOrRefund } = await import('./reconciliation.service');
     const fresh = await transactionRepository.findById(txn.id);
-    if (fresh) await callActivateEndpoint(fresh);
-    await transactionRepository.markActivated(txn.id);
+    if (fresh) {
+      // Activates, or — when user-service answers that the contract can no longer be activated
+      // by this payment — refunds the client in full. Anything else (transport, 5xx, a failed
+      // refund) lands in the catch below and is retried by the sweep.
+      await activateOrRefund(fresh);
+    } else {
+      await transactionRepository.markActivated(txn.id);
+    }
   } catch (e) {
     logger.warn({ error: 'activation callback failed; reconciliation will retry', transactionId: txn.id, message: (e as Error).message });
   }

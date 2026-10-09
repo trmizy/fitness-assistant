@@ -1,7 +1,7 @@
 import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
-import { walletService, type LedgerOps } from './wallet.service';
+import { pendingForTransaction, walletService, type LedgerOps } from './wallet.service';
 import { coverShortfall, recoverReceivables } from './contract-ledger.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 
@@ -35,14 +35,9 @@ import { withIdempotentLedgerOp } from './ledger-idempotency';
  * "this wallet's pooled PENDING minus every OTHER order's share" scoping (F2's reasoning
  * applies identically: a PT/platform PENDING bucket is shared across every order they hold). */
 export async function pendingRemainingForTxn(ops: LedgerOps, walletId: string, transactionId: string): Promise<Prisma.Decimal> {
-  const rows = await ops.tx.walletLedgerEntry.findMany({
-    where: { walletId, transactionId, bucket: 'PENDING' },
-    select: { entryType: true, amount: true },
-  });
-  return rows.reduce(
-    (sum, r) => (r.entryType === 'CREDIT' ? sum.plus(r.amount) : sum.minus(r.amount)),
-    new Prisma.Decimal(0),
-  );
+  // The implementation lives in wallet.service.ts so contract-ledger.service.ts can use it too
+  // without importing this file (which already imports that one).
+  return pendingForTransaction(ops, walletId, transactionId);
 }
 
 export interface ReferralSettleResult {

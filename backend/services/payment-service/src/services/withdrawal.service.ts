@@ -11,6 +11,28 @@ function err(message: string, status: number, code?: string) {
 }
 
 /**
+ * The smallest withdrawal anyone can request, in đồng. Below this a bank transfer's own fee and
+ * the admin's manual handling cost more than the money moved, and a stream of 1,000đ requests
+ * is a way to flood the admin queue.
+ *
+ * One constant, read once at module load (the same convention as the rates in contract-money.ts,
+ * so it cannot change between the check and the request being stored), and enforced in
+ * requestWithdrawal — the single function every entry point goes through: a CLIENT or PT's own
+ * POST /me/withdrawals (wallet.routes.ts) and the GYM proxy gym-service calls,
+ * POST /internal/withdrawals/gym/:gymId (internal.routes.ts). A route that checked on its own
+ * would be one forgotten copy away from a hole.
+ */
+const MIN_WITHDRAWAL_ENV = process.env.MIN_WITHDRAWAL_AMOUNT;
+export const MIN_WITHDRAWAL_AMOUNT: Prisma.Decimal = (() => {
+  if (MIN_WITHDRAWAL_ENV === undefined || MIN_WITHDRAWAL_ENV === '') return new Prisma.Decimal(10000);
+  const parsed = new Prisma.Decimal(MIN_WITHDRAWAL_ENV);
+  if (!parsed.isFinite() || parsed.lessThan(0)) {
+    throw new Error(`MIN_WITHDRAWAL_AMOUNT must be a non-negative number, got ${MIN_WITHDRAWAL_ENV}`);
+  }
+  return parsed;
+})();
+
+/**
  * WalletLedgerEntry.transactionId is a hard FK to PaymentTransaction — every other caller of
  * withWallets passes the id of the real gateway transaction the movement traces back to. A
  * withdrawal payout is outbound money with no such origin (unlike a REFUND, which reuses the
@@ -66,6 +88,13 @@ export const withdrawalService = {
     const amountDecimal = new Prisma.Decimal(amount);
     if (!amountDecimal.isFinite() || amountDecimal.lessThanOrEqualTo(0)) {
       throw err('Số tiền rút phải lớn hơn 0', 400, 'INVALID_AMOUNT');
+    }
+    if (amountDecimal.lessThan(MIN_WITHDRAWAL_AMOUNT)) {
+      throw err(
+        `Số tiền rút tối thiểu là ${MIN_WITHDRAWAL_AMOUNT.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}đ`,
+        400,
+        'WITHDRAWAL_BELOW_MINIMUM',
+      );
     }
     if (!payoutInfo?.trim()) {
       throw err('Cần thông tin tài khoản nhận tiền', 400, 'PAYOUT_INFO_REQUIRED');

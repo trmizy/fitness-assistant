@@ -7,7 +7,7 @@ import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
-import { compensateLateArrival, compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
+import { compensateLateArrival, compensateNoShow, releasePtHoldback, releaseSession, terminateContract } from '../services/contract-ledger.service';
 import {
   settleMembershipReferral,
   clawbackMembershipReferral,
@@ -440,10 +440,27 @@ const releaseSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
+// The PT holdback rate frozen onto THIS contract when it was created — a decimal string like
+// the rate table, e.g. "0.10". Optional, and absent means "this contract carries no holdback":
+// nothing is held back and the settlement is exactly what it was before this field existed
+// (user-service sends nothing for every contract today). payment-service never substitutes a
+// default of its own, because a platform-wide figure would impose the term on contracts signed
+// without it. A value that is present but malformed or outside 0..1 is a 400, not a silent
+// fall-back to "no holdback" — the caller meant to hold something back.
+const ptHoldbackRateSchema = z
+  .string()
+  .refine((v) => /^\d+(\.\d+)?$/.test(v) && new Prisma.Decimal(v).lessThanOrEqualTo(1), {
+    message: 'ptHoldbackRate must be a decimal string between 0 and 1',
+  })
+  .optional();
+
+const releaseSessionSchema = releaseSchema.extend({ ptHoldbackRate: ptHoldbackRateSchema });
+
 // POST /internal/contracts/release-session — one confirmed session's worth of money moves
-// from every party's pending bucket to their available bucket.
+// from every party's pending bucket to their available bucket (less the PT's holdback, if the
+// contract carries one).
 router.post('/contracts/release-session', async (req: Request, res: Response) => {
-  const parsed = releaseSchema.safeParse(req.body);
+  const parsed = releaseSessionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
@@ -457,6 +474,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
       parties: d.parties,
       label: d.label,
       idempotencyKey: d.idempotencyKey,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
     });
     return res.json({ success: true, data: result });
   } catch (err) {
@@ -522,6 +540,8 @@ const terminateSchema = releaseSchema.extend({
   compensatedSessions: z.number().int().min(0).optional(),
   reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'PT_REPEATED_NO_SHOW']),
   alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
+  // See ptHoldbackRateSchema above: the contract's own snapshot, or absent for none.
+  ptHoldbackRate: ptHoldbackRateSchema,
 });
 
 // POST /internal/contracts/terminate — settle everyone to their final entitlement and refund
@@ -549,11 +569,43 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       parties: d.parties,
       label: d.label,
       idempotencyKey: d.idempotencyKey,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
     });
     return res.json({ success: true, data: result });
   } catch (err) {
     logger.error({ error: 'termination failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+const releaseHoldbackSchema = z.object({
+  transactionId: z.string().min(1),
+  parties: partiesSchema,
+  label: z.string().min(1),
+  // HOLDBACK_RELEASE:<contractId> — a retry replays the first result instead of releasing twice.
+  idempotencyKey: z.string().min(1),
+});
+
+// POST /internal/contracts/release-holdback — the contract has been idle for too long: the
+// PT's held-back pot goes to their available balance now, and the contract carries on without
+// a holdback. The amount is read from the ledger, never from the request.
+router.post('/contracts/release-holdback', async (req: Request, res: Response) => {
+  const parsed = releaseHoldbackSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await releasePtHoldback({
+      transactionId: d.transactionId,
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'holdback release failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'HOLDBACK_RELEASE_FAILED', message: (err as Error).message } });
   }
 });
 

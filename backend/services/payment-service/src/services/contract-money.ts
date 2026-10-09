@@ -53,6 +53,21 @@ export interface ContractMoneyInput {
    */
   compensatedSessions?: number;
   rates: RateTable;
+  /**
+   * The PT holdback rate THIS contract carries (`h`): the share of the price whose first
+   * earnings the PT does not get to withdraw until the contract ends well (or sits idle for
+   * 30 days). Read by computeTermination only — for the compensation a PT-fault ending owes
+   * the client (see holdbackCompensationTarget) — and by the ledger, which holds the money back
+   * session by session (contract-ledger.service#releaseSession).
+   *
+   * Deliberately an input and not a constant in this module. It is a term of the individual
+   * contract, like the rate table: a PT can only be held to a term they agreed to, so the caller
+   * passes the value frozen onto the contract — never a figure that is merely current policy.
+   * Optional, defaulting to 0, so every contract that carries no holdback (all of them, until
+   * the terms-acceptance feature exists) and every caller that does not send it settles exactly
+   * as it always has.
+   */
+  ptHoldbackRate?: Prisma.Decimal;
 }
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -117,6 +132,7 @@ function validate(input: ContractMoneyInput): void {
       `usedSessions (${input.usedSessions}) + compensatedSessions (${compensatedSessions}) = ${consumed} cannot exceed totalSessions (${input.totalSessions})`,
     );
   }
+  assertHoldbackRateValid(input.ptHoldbackRate);
   assertRatesValid(input.rates);
 }
 
@@ -220,6 +236,104 @@ export function roundForClient(amount: Prisma.Decimal): Prisma.Decimal {
   return amount.toDecimalPlaces(0, Prisma.Decimal.ROUND_UP);
 }
 
+// ── PT holdback ──────────────────────────────────────────────────────────────
+
+/**
+ * Rate is a share of the price, so 0..1. Refusing a malformed value loudly is deliberate: a
+ * caller that sends a holdback rate meant to hold something back, and gets "no holdback" on a
+ * typo, would pay the PT in full without anyone noticing.
+ */
+export function assertHoldbackRateValid(rate: Prisma.Decimal | undefined): void {
+  if (rate !== undefined && (!rate.isFinite() || rate.lessThan(0) || rate.greaterThan(1))) {
+    throw new Error(`ptHoldbackRate must be between 0 and 1, got ${rate.toString()}`);
+  }
+}
+
+/**
+ * H — how much of the PT's first earnings on a contract is held back: h × price, in WHOLE đồng,
+ * rounded DOWN. Every amount in the held-back pot is a whole đồng (session shares are whole
+ * đồng, see computeSessionRelease), so the target must be one too; rounding down means the
+ * sub-đồng remainder of h × price is never held — it goes to the PT with their first release.
+ */
+export function holdbackTarget(price: Prisma.Decimal, rate: Prisma.Decimal | undefined): Prisma.Decimal {
+  assertHoldbackRateValid(rate);
+  if (!rate || rate.isZero()) return ZERO;
+  return price.mul(rate).toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN);
+}
+
+/**
+ * Splits ONE session's PT share between "held back" and "released to available".
+ *
+ * The PT's first earnings fill the pot until it holds `target`; everything after that is paid
+ * out in full. So after u sessions the PT has been released exactly max(0, E − H) where
+ * E = u × share, and holds min(E, H):
+ *
+ *   held     = clamp(target − heldBefore, 0, share)   // this session's contribution to the pot
+ *   released = share − held
+ *
+ * (price 5,000,000 / 10 sessions / PT 0.90 / h 0.10: shares of 450,000 release 0, 400,000, then
+ * 450,000 each, while the pot fills 450,000 → 500,000.) Pure, so the cumulative property can be
+ * checked by arithmetic alone.
+ */
+export function splitReleaseWithHoldback(
+  share: Prisma.Decimal,
+  heldBefore: Prisma.Decimal,
+  target: Prisma.Decimal,
+): { held: Prisma.Decimal; released: Prisma.Decimal } {
+  if (share.lessThanOrEqualTo(0)) return { held: ZERO, released: ZERO };
+  const room = target.minus(heldBefore);
+  const held = room.lessThanOrEqualTo(0) ? ZERO : room.lessThan(share) ? room : share;
+  return { held, released: share.minus(held) };
+}
+
+/** The endings that are the PT's fault. The only ones that can draw on the held-back pot. */
+export const PT_FAULT_REASONS: ReadonlySet<TerminationReason> = new Set<TerminationReason>([
+  'PT_CANCELLED',
+  'PT_BANNED',
+  'PT_REPEATED_NO_SHOW',
+]);
+
+/**
+ * The value a PT-fault ending is measured on.
+ *
+ *   PT_CANCELLED, PT_BANNED   the value of the sessions that will now never be delivered — the
+ *                             same `remaining` the refund is taken on (never used, never
+ *                             compensated).
+ *   PT_REPEATED_NO_SHOW       that remaining value PLUS the value of the sessions already
+ *                             compensated as PT no-shows (compensatedSessions × price / N).
+ *                             A PT who stops turning up must never come out cheaper than one who
+ *                             says so honestly and cancels: those sessions were just as
+ *                             undelivered, the client was merely paid for them in instalments.
+ *
+ * Both reduce to P × (N − u − c)/N and P × (N − u)/N. Zero for every other reason.
+ */
+export function holdbackCompensationBase(
+  input: ContractMoneyInput,
+  reason: TerminationReason,
+  remaining: Prisma.Decimal,
+): Prisma.Decimal {
+  if (!PT_FAULT_REASONS.has(reason)) return ZERO;
+  if (reason !== 'PT_REPEATED_NO_SHOW') return remaining;
+  const compensatedValue = input.price.mul(input.compensatedSessions ?? 0).div(input.totalSessions);
+  return remaining.plus(compensatedValue);
+}
+
+/**
+ * h × base for a PT-fault ending, in whole đồng rounded UP (like every amount a client
+ * receives), or zero when the reason is not the PT's fault or the contract carries no holdback.
+ * This is only the ceiling: the ledger pays the smaller of it and what is still held back for
+ * the PT on that contract, and never funds the difference from anywhere else.
+ */
+export function holdbackCompensationTarget(
+  input: ContractMoneyInput,
+  reason: TerminationReason,
+  remaining: Prisma.Decimal,
+): Prisma.Decimal {
+  const rate = input.ptHoldbackRate;
+  if (!rate || rate.isZero()) return ZERO;
+  return roundForClient(holdbackCompensationBase(input, reason, remaining).mul(rate));
+}
+
 // ── Termination ──────────────────────────────────────────────────────────────
 
 export interface TerminationOutcome {
@@ -230,8 +344,19 @@ export interface TerminationOutcome {
   refund: Prisma.Decimal;
   /** P − compensationValue − refund: what stays in the system to be shared out. */
   withheld: Prisma.Decimal;
-  /** Extra penalty taken from the PT (and gym) on top, for PT-initiated cancellation. */
-  penalty: Prisma.Decimal;
+  /**
+   * What a PT-fault ending (PT_CANCELLED, PT_BANNED, PT_REPEATED_NO_SHOW) owes the CLIENT on
+   * top of the refund, BEFORE it is capped by what is actually held back for the PT — whole
+   * đồng, rounded up in the client's favour. Zero for every other reason and for a contract
+   * with no holdback rate.
+   *
+   * It is a target, not a payment: the ledger pays min(this, the amount still held for the PT
+   * on this contract) and never anything from the PT's available balance or the platform's
+   * pocket (contract-ledger.service#terminateContract). It sits outside `refund`, `withheld`
+   * and `entitlement`, which is why adding it leaves the reconciliation of those three
+   * untouched.
+   */
+  ptFaultCompensationTarget: Prisma.Decimal;
   /** Final entitlement per party = rate × withheld, exact to the đồng. */
   entitlement: { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal };
 }
@@ -253,7 +378,6 @@ export function computeTermination(
   const remaining = remainingValue(input);
 
   let rawRefund: Prisma.Decimal;
-  let penalty = ZERO;
   switch (reason) {
     case 'CLIENT_CANCELLED':
       // The client walks away by choice and forfeits a slice of what is left.
@@ -262,13 +386,10 @@ export function computeTermination(
     case 'PT_BANNED':
     case 'MUTUAL':
     case 'PT_REPEATED_NO_SHOW':
-      rawRefund = remaining;
-      break;
     case 'PT_CANCELLED':
-      // Mirror image of CLIENT_CANCELLED: the client is made whole, and the same slice is
-      // charged to the side that broke the arrangement.
+      // The client is made whole. That the PT must also compensate them is a separate matter —
+      // see holdbackCompensationTarget below, which pays out of the PT's held-back earnings only.
       rawRefund = remaining;
-      penalty = remaining.mul(ONE.minus(CLIENT_CANCEL_REFUND_RATE));
       break;
     case 'EXPIRED':
     case 'COMPLETED':
@@ -304,7 +425,9 @@ export function computeTermination(
     throw new Error(`termination does not reconcile: ${total.toString()} != ${expectedTotal.toString()} (price ${input.price.toString()} minus compensation ${compensationValue.toString()} already paid out)`);
   }
 
-  return { reason, remaining, refund, withheld, penalty, entitlement };
+  const ptFaultCompensationTarget = holdbackCompensationTarget(input, reason, remaining);
+
+  return { reason, remaining, refund, withheld, ptFaultCompensationTarget, entitlement };
 }
 
 // ── Per-session release ──────────────────────────────────────────────────────

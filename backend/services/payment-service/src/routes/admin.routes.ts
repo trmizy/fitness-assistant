@@ -313,6 +313,13 @@ router.post('/:transactionId/retry-activation', async (req: Request, res: Respon
           body,
           headers,
         });
+      } else if (txn.relatedEntityType === 'PT_CONTRACT') {
+        // Same handling as the webhook and the reconcile sweep — user-service's definite
+        // "cannot be activated" answer refunds the client instead of being marked activated
+        // (activateOrRefund marks the transaction itself, in both outcomes).
+        const { activateOrRefund } = await import('../services/reconciliation.service');
+        const outcome = await activateOrRefund(txn);
+        return res.json({ success: true, data: { outcome } });
       } else {
         await postServiceJson({
           service: 'user',

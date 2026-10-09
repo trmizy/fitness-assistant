@@ -3,7 +3,7 @@ import { Prisma } from '../generated/prisma';
 import { walletService } from './wallet.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { splitThreeWays, ZERO } from './contract-money';
-import { coverShortfall, recoverReceivables } from './contract-ledger.service';
+import { coverShortfall, ownPending, recoverReceivables } from './contract-ledger.service';
 
 /**
  * P0 cluster C3 — escrow for Personalized PT Service orders (ai-service).
@@ -88,7 +88,9 @@ export async function releaseOrder(params: {
         debtor?: { partnerType: 'PT'; partnerId: string },
       ): Promise<Prisma.Decimal> => {
         if (amount.lessThanOrEqualTo(0)) return ZERO;
-        const held = ops.balance(walletId, 'PENDING');
+        // This order's pending, not the wallet's pooled bucket: the PT's and the platform's
+        // pending also holds their contracts', memberships' and other orders' unearned money.
+        const held = await ownPending(ops, walletId, transactionId);
         const moving = held.lessThan(amount) ? held : amount;
         if (moving.lessThanOrEqualTo(0)) {
           logger.warn(`[PersonalizedServiceLedger] ${who} pending bucket empty for ${label} — nothing to release`);
@@ -165,7 +167,9 @@ export async function refundOrder(params: {
         if (amount.lessThanOrEqualTo(0)) return;
         let remaining = amount;
 
-        const pending = ops.balance(walletId, 'PENDING');
+        // Likewise only this order's own pending: a refund taken from the pool would be paid
+        // out of the PT's other contracts and orders.
+        const pending = await ownPending(ops, walletId, transactionId);
         const fromPending = pending.lessThan(remaining) ? pending : remaining;
         if (fromPending.greaterThan(0)) {
           await ops.debit(walletId, fromPending, `${label} — refund funded from pending`, 'PENDING');

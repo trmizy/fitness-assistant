@@ -150,6 +150,33 @@ export interface LedgerOps {
   tx: TxClient;
 }
 
+/**
+ * How much of a wallet's PENDING bucket one transaction still has in it: that transaction's
+ * PENDING credits minus its PENDING debits.
+ *
+ * A PT's, a gym's and the platform REVENUE wallet each have ONE pending bucket that pools the
+ * not-yet-earned money of everything that party is running, so `ops.balance(walletId,
+ * 'PENDING')` is never "this contract's pending" — it is every contract's, every membership's
+ * and every referral commission's. Every ledger call for one contract, membership or order is
+ * made under that item's own payment transaction id (withWallets stamps it on every row), so
+ * the rows carrying it ARE that item's pending.
+ *
+ * The result can be wrong on a database where the old pooled drain has already run: a past
+ * termination debited its neighbours' pending under ITS OWN id, so its sum can be negative and
+ * a neighbour's can exceed what the wallet still holds. Callers therefore clamp it to
+ * [0, ops.balance] — see `ownPending` in contract-ledger.service.ts.
+ */
+export async function pendingForTransaction(ops: LedgerOps, walletId: string, transactionId: string): Promise<Prisma.Decimal> {
+  const rows = await ops.tx.walletLedgerEntry.findMany({
+    where: { walletId, transactionId, bucket: 'PENDING' },
+    select: { entryType: true, amount: true },
+  });
+  return rows.reduce(
+    (sum, r) => (r.entryType === 'CREDIT' ? sum.plus(r.amount) : sum.minus(r.amount)),
+    new Prisma.Decimal(0),
+  );
+}
+
 export const walletService = {
   /**
    * Prisma's upsert is not atomic against a concurrent insert: it reads, misses, then
