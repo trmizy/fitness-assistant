@@ -1,0 +1,535 @@
+{
+  "roles": {
+    "CiReadRole": {
+      "roleName": "GyminiDevCiReadRole",
+      "trustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": "repo:trmizy/fitness-assistant:pull_request"
+              }
+            }
+          }
+        ]
+      },
+      "permissionPolicies": [
+        {
+          "name": "ci-read",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "ValidateTemplatesAndReadStack",
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:ValidateTemplate",
+                  "cloudformation:GetTemplateSummary",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:DescribeStackResources",
+                  "cloudformation:ListStackResources",
+                  "cloudformation:GetTemplate"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "ApiGatewayReadOnlyForRouteParity",
+                "Effect": "Allow",
+                "Action": "apigateway:GET",
+                "Resource": [
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "AppDeployRole": {
+      "roleName": "GyminiDevAppDeployRole",
+      "trustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": "repo:trmizy/fitness-assistant:environment:dev"
+              }
+            }
+          }
+        ]
+      },
+      "permissionPolicies": [
+        {
+          "name": "app-deploy",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "LambdaCodeOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "lambda:UpdateFunctionCode",
+                  "lambda:PublishVersion",
+                  "lambda:GetFunction"
+                ],
+                "Resource": [
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user-jobs",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness-jobs",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym-jobs",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment-jobs",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai-jobs",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai-worker"
+                ]
+              },
+              {
+                "Sid": "LambdaSyntheticHealthSmokeOnly",
+                "Effect": "Allow",
+                "Action": "lambda:InvokeFunction",
+                "Resource": [
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+                ]
+              },
+              {
+                "Sid": "ArtifactPrefixOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject"
+                ],
+                "Resource": "arn:aws:s3:::fitness-assistant-deployments-dev-191798898985/ci-artifacts/*"
+              },
+              {
+                "Sid": "ArtifactListPrefixOnly",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::fitness-assistant-deployments-dev-191798898985",
+                "Condition": {
+                  "StringLike": {
+                    "s3:prefix": [
+                      "ci-artifacts/*"
+                    ]
+                  }
+                }
+              },
+              {
+                "Sid": "EcrAuthToken",
+                "Effect": "Allow",
+                "Action": "ecr:GetAuthorizationToken",
+                "Resource": "*"
+              },
+              {
+                "Sid": "EcrPushChatRepoOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "ecr:BatchCheckLayerAvailability",
+                  "ecr:InitiateLayerUpload",
+                  "ecr:UploadLayerPart",
+                  "ecr:CompleteLayerUpload",
+                  "ecr:PutImage",
+                  "ecr:BatchGetImage",
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:DescribeImages"
+                ],
+                "Resource": "arn:aws:ecr:ap-southeast-1:191798898985:repository/fitness-assistant-dev-chat"
+              },
+              {
+                "Sid": "EcsTaskDefinitionNoResourceLevel",
+                "Effect": "Allow",
+                "Action": [
+                  "ecs:RegisterTaskDefinition",
+                  "ecs:DescribeTaskDefinition",
+                  "ecs:ListTaskDefinitions"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "EcsChatServiceOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "ecs:DescribeServices",
+                  "ecs:UpdateService"
+                ],
+                "Resource": "arn:aws:ecs:ap-southeast-1:191798898985:service/fitness-assistant-dev-cluster/fitness-assistant-dev-chat-service"
+              },
+              {
+                "Sid": "EcsReadTasks",
+                "Effect": "Allow",
+                "Action": [
+                  "ecs:ListTasks",
+                  "ecs:DescribeTasks"
+                ],
+                "Resource": "*",
+                "Condition": {
+                  "ArnEquals": {
+                    "ecs:cluster": "arn:aws:ecs:ap-southeast-1:191798898985:cluster/fitness-assistant-dev-cluster"
+                  }
+                }
+              },
+              {
+                "Sid": "PassOnlyChatTaskRoles",
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": [
+                  "arn:aws:iam::191798898985:role/fitness-assistant-dev-chat-execution-role",
+                  "arn:aws:iam::191798898985:role/fitness-assistant-dev-chat-task-role"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                  }
+                }
+              },
+              {
+                "Sid": "ChatTargetHealthRead",
+                "Effect": "Allow",
+                "Action": [
+                  "elasticloadbalancing:DescribeTargetHealth",
+                  "elasticloadbalancing:DescribeTargetGroups"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "SchedulerSnapshotReadOnly",
+                "Effect": "Allow",
+                "Action": "scheduler:ListSchedules",
+                "Resource": "*"
+              },
+              {
+                "Sid": "LambdaLogsForSmokeCorrelation",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:FilterLogEvents",
+                  "logs:DescribeLogStreams"
+                ],
+                "Resource": "arn:aws:logs:ap-southeast-1:191798898985:log-group:/aws/lambda/fitness-assistant-dev-*:*"
+              },
+              {
+                "Sid": "ExplicitDenyOfDangerousPlanes",
+                "Effect": "Deny",
+                "Action": [
+                  "lambda:UpdateFunctionConfiguration",
+                  "lambda:AddPermission",
+                  "lambda:RemovePermission",
+                  "lambda:CreateFunction",
+                  "lambda:DeleteFunction",
+                  "secretsmanager:*",
+                  "kms:Decrypt",
+                  "kms:GenerateDataKey",
+                  "rds:*",
+                  "rds-data:*",
+                  "scheduler:CreateSchedule",
+                  "scheduler:UpdateSchedule",
+                  "scheduler:DeleteSchedule",
+                  "events:*",
+                  "cloudformation:CreateChangeSet",
+                  "cloudformation:ExecuteChangeSet",
+                  "cloudformation:CreateStack",
+                  "cloudformation:UpdateStack",
+                  "cloudformation:DeleteStack",
+                  "apigateway:POST",
+                  "apigateway:PUT",
+                  "apigateway:PATCH",
+                  "apigateway:DELETE",
+                  "iam:Create*",
+                  "iam:Put*",
+                  "iam:Attach*",
+                  "iam:Delete*",
+                  "iam:Update*"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "InfraPlanRole": {
+      "roleName": "GyminiDevInfraPlanRole",
+      "trustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": "repo:trmizy/fitness-assistant:environment:dev-infra-plan"
+              }
+            }
+          }
+        ]
+      },
+      "permissionPolicies": [
+        {
+          "name": "infra-plan",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "ChangeSetsOnApiGatewayStackOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:CreateChangeSet",
+                  "cloudformation:DescribeChangeSet",
+                  "cloudformation:DeleteChangeSet",
+                  "cloudformation:ListChangeSets",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:DescribeStackEvents",
+                  "cloudformation:DescribeStackResources",
+                  "cloudformation:ListStackResources",
+                  "cloudformation:GetTemplate",
+                  "cloudformation:DetectStackDrift",
+                  "cloudformation:DescribeStackDriftDetectionStatus",
+                  "cloudformation:DescribeStackResourceDrifts"
+                ],
+                "Resource": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/*"
+              },
+              {
+                "Sid": "TemplateValidation",
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:ValidateTemplate",
+                  "cloudformation:GetTemplateSummary"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "TemplateStagingPrefixOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject"
+                ],
+                "Resource": "arn:aws:s3:::fitness-assistant-deployments-dev-191798898985/ci-templates/*"
+              },
+              {
+                "Sid": "ApiGatewayReadOnly",
+                "Effect": "Allow",
+                "Action": "apigateway:GET",
+                "Resource": [
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*"
+                ]
+              },
+              {
+                "Sid": "PassOnlyCfnExecutionRole",
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole",
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "cloudformation.amazonaws.com"
+                  }
+                }
+              },
+              {
+                "Sid": "ExplicitDenyExecute",
+                "Effect": "Deny",
+                "Action": [
+                  "cloudformation:ExecuteChangeSet",
+                  "cloudformation:CreateStack",
+                  "cloudformation:UpdateStack",
+                  "cloudformation:DeleteStack",
+                  "secretsmanager:*",
+                  "lambda:UpdateFunctionCode",
+                  "lambda:UpdateFunctionConfiguration"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "InfraApplyRole": {
+      "roleName": "GyminiDevInfraApplyRole",
+      "trustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": "repo:trmizy/fitness-assistant:environment:dev-infra"
+              }
+            }
+          }
+        ]
+      },
+      "permissionPolicies": [
+        {
+          "name": "infra-apply",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "ExecuteOnApiGatewayStackOnly",
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:ExecuteChangeSet",
+                  "cloudformation:DescribeChangeSet",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:DescribeStackEvents",
+                  "cloudformation:ListStackResources",
+                  "cloudformation:DescribeStackResourceDrifts",
+                  "cloudformation:DetectStackDrift",
+                  "cloudformation:DescribeStackDriftDetectionStatus"
+                ],
+                "Resource": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/*"
+              },
+              {
+                "Sid": "ApiGatewayReadOnlyForParity",
+                "Effect": "Allow",
+                "Action": "apigateway:GET",
+                "Resource": [
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*"
+                ]
+              },
+              {
+                "Sid": "PassOnlyCfnExecutionRole",
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole",
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "cloudformation.amazonaws.com"
+                  }
+                }
+              },
+              {
+                "Sid": "ExplicitDenyDirectGatewayWrites",
+                "Effect": "Deny",
+                "Action": [
+                  "apigateway:POST",
+                  "apigateway:PUT",
+                  "apigateway:PATCH",
+                  "apigateway:DELETE",
+                  "secretsmanager:*",
+                  "lambda:UpdateFunctionCode",
+                  "lambda:UpdateFunctionConfiguration"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "CfnExecutionRole": {
+      "roleName": "GyminiDevCfnExecutionRole",
+      "trustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "cloudformation.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+              "StringEquals": {
+                "aws:SourceAccount": "191798898985"
+              }
+            }
+          }
+        ]
+      },
+      "permissionPolicies": [
+        {
+          "name": "api-gateway-stack-resources",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "ManageRoutesIntegrationsStagesOfProtectedApi",
+                "Effect": "Allow",
+                "Action": [
+                  "apigateway:GET",
+                  "apigateway:POST",
+                  "apigateway:PUT",
+                  "apigateway:PATCH",
+                  "apigateway:DELETE"
+                ],
+                "Resource": [
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*",
+                  "arn:aws:apigateway:ap-southeast-1::/tags/*"
+                ]
+              },
+              {
+                "Sid": "ReadProtectedApi",
+                "Effect": "Allow",
+                "Action": "apigateway:GET",
+                "Resource": "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl"
+              },
+              {
+                "Sid": "InvokePermissionsOnApiFacingLambdas",
+                "Effect": "Allow",
+                "Action": [
+                  "lambda:AddPermission",
+                  "lambda:RemovePermission",
+                  "lambda:GetPolicy",
+                  "lambda:GetFunction"
+                ],
+                "Resource": [
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+                  "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+                ]
+              },
+              {
+                "Sid": "IamLevelHardStopOnApiDeletionOrCreation",
+                "Effect": "Deny",
+                "Action": [
+                  "apigateway:DELETE",
+                  "apigateway:POST"
+                ],
+                "Resource": [
+                  "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+                  "arn:aws:apigateway:ap-southeast-1::/apis"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
