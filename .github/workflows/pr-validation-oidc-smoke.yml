@@ -1,0 +1,62 @@
+# TEMPORARY - Phase 16B.2 activation PR only. Proves real GitHub OIDC -> STS ->
+# GyminiDevCiReadRole federation works, then gets REMOVED before this PR merges
+# (see docs/deployment/AWS_DEV_CICD_PR_VALIDATION_ACTIVATION_2026-10-12.md).
+#
+# Safety invariants (do not relax any of these without re-reading
+# docs/deployment/AWS_DEV_CICD_OIDC_IAM_PLAN_2026-10-12.md first):
+#   - never checks out PR code or runs any repository script;
+#   - only runs for a pull_request whose head repo is THIS repo (never a fork)
+#     and whose head ref is the exact Phase 16B.2 activation branch;
+#   - job-level permissions are the minimum needed (contents: read is unused
+#     here since nothing is checked out, but kept for GitHub's own default-deny
+#     posture; id-token: write is required for OIDC);
+#   - assumes ONLY GyminiDevCiReadRole, never prints the OIDC JWT or the
+#     temporary AWS credentials, and performs only read-only AWS calls that
+#     are already part of CiReadRole's reviewed, applied policy.
+name: PR Validation OIDC Smoke (TEMPORARY)
+
+on:
+  pull_request:
+    branches: [master, aws-deploy]
+
+permissions:
+  contents: read
+
+jobs:
+  oidc-smoke:
+    # Fork hard gate (16B.2.12): if this condition is ever false, the job is
+    # skipped entirely rather than relaxed - it must never run for a fork PR
+    # or any branch other than this exact activation branch.
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'ci/phase-16b2-pr-validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Deliberately NO actions/checkout step in this job - nothing from the
+      # PR's own repository content is ever present on this runner.
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::191798898985:role/GyminiDevCiReadRole
+          aws-region: ap-southeast-1
+          role-session-name: gh-oidc-smoke-${{ github.run_id }}
+          role-duration-seconds: 900
+
+      - name: Verify assumed identity (no credential values ever printed)
+        run: |
+          IDENTITY_JSON=$(aws sts get-caller-identity --output json)
+          ACCOUNT=$(echo "$IDENTITY_JSON" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).Account)")
+          ARN=$(echo "$IDENTITY_JSON" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).Arn)")
+          echo "Account: $ACCOUNT"
+          echo "Arn matches expected role pattern: $([[ "$ARN" == *":assumed-role/GyminiDevCiReadRole/"* ]] && echo yes || echo no)"
+          if [ "$ACCOUNT" != "191798898985" ]; then echo "::error::unexpected account $ACCOUNT"; exit 1; fi
+          if [[ "$ARN" != *":assumed-role/GyminiDevCiReadRole/"* ]]; then echo "::error::unexpected arn shape"; exit 1; fi
+
+      - name: One known-allowed read call from CiReadRole's reviewed policy (read-only, no mutation)
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name fitness-assistant-dev-api-gateway \
+            --query "Stacks[0].StackStatus" --output text

@@ -1,0 +1,413 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV CI/CD OIDC roles (Phase 16B.1A DRAFT, NOT APPLIED). 5 least-
+  privilege roles, each bound to one GitHub OIDC subject: CiReadRole (PR,
+  read-only), AppDeployRole (env:dev, Lambda code + Chat ECS), InfraPlanRole
+  (env:dev-infra-plan, change-set create/describe only), InfraApplyRole
+  (env:dev-infra, execute a reviewed change set), CfnExecutionRole (the CFN
+  service principal - sole writer of the protected API). No static keys, no
+  AdministratorAccess, no migration/secret/scheduler access. References the
+  existing Terraform-owned OIDC provider and leaves the legacy
+  fitness-assistant-github-actions-ci role untouched. See
+  docs/deployment/AWS_DEV_CICD_OIDC_IAM_PLAN_2026-10-12.md.
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: trmizy/fitness-assistant
+    AllowedPattern: "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    Description: owner/name, taken from `git remote -v` (origin) on 2026-10-09.
+  ExistingOidcProviderArn:
+    Type: String
+    Default: arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com
+    Description: Existing provider (audience sts.amazonaws.com). Required - this template never creates one.
+  DevEnvironmentName:
+    Type: String
+    Default: dev
+  InfraPlanEnvironmentName:
+    Type: String
+    Default: dev-infra-plan
+  InfraApplyEnvironmentName:
+    Type: String
+    Default: dev-infra
+  ProtectedApiId:
+    Type: String
+    Default: id1iz7upbl
+  ApiGatewayStackName:
+    Type: String
+    Default: fitness-assistant-dev-api-gateway
+  ArtifactBucketName:
+    Type: String
+    Default: fitness-assistant-deployments-dev-191798898985
+    Description: Existing deployments bucket. CI only ever touches the ci-artifacts/ and ci-templates/ prefixes.
+  ChatEcrRepositoryName:
+    Type: String
+    Default: fitness-assistant-dev-chat
+  ChatClusterName:
+    Type: String
+    Default: fitness-assistant-dev-cluster
+  ChatServiceName:
+    Type: String
+    Default: fitness-assistant-dev-chat-service
+  ChatExecutionRoleName:
+    Type: String
+    Default: fitness-assistant-dev-chat-execution-role
+  ChatTaskRoleName:
+    Type: String
+    Default: fitness-assistant-dev-chat-task-role
+
+Resources:
+  # ------------------------------------------------------------------ read
+  CiReadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GyminiDevCiReadRole
+      Description: PR validation (runs PR code - keep minimal). No mutation, no secrets.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref ExistingOidcProviderArn }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:pull_request"
+      Policies:
+        - PolicyName: ci-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ValidateTemplatesAndReadStack
+                Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:ListStackResources
+                  - cloudformation:GetTemplate
+                Resource: "*"
+              - Sid: ApiGatewayReadOnlyForRouteParity
+                Effect: Allow
+                Action: apigateway:GET
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}/*"
+
+  # ------------------------------------------------------------ app deploy
+  AppDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GyminiDevAppDeployRole
+      Description: Lambda code deploy + Chat ECS deploy + read-only smoke. Environment dev only.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref ExistingOidcProviderArn }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:environment:${DevEnvironmentName}"
+      Policies:
+        - PolicyName: app-deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: LambdaCodeOnly
+                Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:PublishVersion
+                  - lambda:GetFunction
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-auth"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-user"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-user-jobs"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-fitness"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-fitness-jobs"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-gym"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-gym-jobs"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-payment"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-payment-jobs"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai-jobs"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai-worker"
+              - Sid: LambdaSyntheticHealthSmokeOnly
+                Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-user"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-fitness"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-gym"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-payment"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai"
+              - Sid: ArtifactPrefixOnly
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/ci-artifacts/*"
+              - Sid: ArtifactListPrefixOnly
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}"
+                Condition:
+                  StringLike: { "s3:prefix": ["ci-artifacts/*"] }
+              - Sid: EcrAuthToken
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: EcrPushChatRepoOnly
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:DescribeImages
+                Resource: !Sub "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ChatEcrRepositoryName}"
+              - Sid: EcsTaskDefinitionNoResourceLevel
+                Effect: Allow
+                Action: [ecs:RegisterTaskDefinition, ecs:DescribeTaskDefinition, ecs:ListTaskDefinitions]
+                Resource: "*"
+              - Sid: EcsChatServiceOnly
+                Effect: Allow
+                Action: [ecs:DescribeServices, ecs:UpdateService]
+                Resource: !Sub "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:service/${ChatClusterName}/${ChatServiceName}"
+              - Sid: EcsReadTasks
+                Effect: Allow
+                Action: [ecs:ListTasks, ecs:DescribeTasks]
+                Resource: "*"
+                Condition:
+                  ArnEquals: { "ecs:cluster": !Sub "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${ChatClusterName}" }
+              - Sid: PassOnlyChatTaskRoles
+                Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${ChatExecutionRoleName}"
+                  - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${ChatTaskRoleName}"
+                Condition:
+                  StringEquals: { "iam:PassedToService": ecs-tasks.amazonaws.com }
+              - Sid: ChatTargetHealthRead
+                Effect: Allow
+                Action: [elasticloadbalancing:DescribeTargetHealth, elasticloadbalancing:DescribeTargetGroups]
+                Resource: "*"
+              - Sid: SchedulerSnapshotReadOnly
+                Effect: Allow
+                Action: scheduler:ListSchedules
+                Resource: "*"
+              - Sid: LambdaLogsForSmokeCorrelation
+                Effect: Allow
+                Action: [logs:FilterLogEvents, logs:DescribeLogStreams]
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/fitness-assistant-dev-*:*"
+              - Sid: ExplicitDenyOfDangerousPlanes
+                Effect: Deny
+                Action:
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - secretsmanager:*
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - rds:*
+                  - rds-data:*
+                  - scheduler:CreateSchedule
+                  - scheduler:UpdateSchedule
+                  - scheduler:DeleteSchedule
+                  - events:*
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                  - iam:Create*
+                  - iam:Put*
+                  - iam:Attach*
+                  - iam:Delete*
+                  - iam:Update*
+                Resource: "*"
+
+  # ------------------------------------------------------------- infra plan
+  InfraPlanRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GyminiDevInfraPlanRole
+      Description: Creates/inspects CloudFormation change sets for the API Gateway stack. CANNOT execute.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref ExistingOidcProviderArn }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:environment:${InfraPlanEnvironmentName}"
+      Policies:
+        - PolicyName: infra-plan
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ChangeSetsOnApiGatewayStackOnly
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:ListChangeSets
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:ListStackResources
+                  - cloudformation:GetTemplate
+                  - cloudformation:DetectStackDrift
+                  - cloudformation:DescribeStackDriftDetectionStatus
+                  - cloudformation:DescribeStackResourceDrifts
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ApiGatewayStackName}/*"
+              - Sid: TemplateValidation
+                Effect: Allow
+                Action: [cloudformation:ValidateTemplate, cloudformation:GetTemplateSummary]
+                Resource: "*"
+              - Sid: TemplateStagingPrefixOnly
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/ci-templates/*"
+              - Sid: ApiGatewayReadOnly
+                Effect: Allow
+                Action: apigateway:GET
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}/*"
+              - Sid: PassOnlyCfnExecutionRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt CfnExecutionRole.Arn
+                Condition:
+                  StringEquals: { "iam:PassedToService": cloudformation.amazonaws.com }
+              - Sid: ExplicitDenyExecute
+                Effect: Deny
+                Action: [cloudformation:ExecuteChangeSet, cloudformation:CreateStack, cloudformation:UpdateStack, cloudformation:DeleteStack, secretsmanager:*, lambda:UpdateFunctionCode, lambda:UpdateFunctionConfiguration]
+                Resource: "*"
+
+  # ------------------------------------------------------------ infra apply
+  InfraApplyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GyminiDevInfraApplyRole
+      Description: Executes an already-reviewed change set. Environment dev-infra MUST require a human reviewer.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref ExistingOidcProviderArn }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:environment:${InfraApplyEnvironmentName}"
+      Policies:
+        - PolicyName: infra-apply
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExecuteOnApiGatewayStackOnly
+                Effect: Allow
+                Action:
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:ListStackResources
+                  - cloudformation:DescribeStackResourceDrifts
+                  - cloudformation:DetectStackDrift
+                  - cloudformation:DescribeStackDriftDetectionStatus
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ApiGatewayStackName}/*"
+              - Sid: ApiGatewayReadOnlyForParity
+                Effect: Allow
+                Action: apigateway:GET
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}/*"
+              - Sid: PassOnlyCfnExecutionRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt CfnExecutionRole.Arn
+                Condition:
+                  StringEquals: { "iam:PassedToService": cloudformation.amazonaws.com }
+              - Sid: ExplicitDenyDirectGatewayWrites
+                Effect: Deny
+                Action: [apigateway:POST, apigateway:PUT, apigateway:PATCH, apigateway:DELETE, secretsmanager:*, lambda:UpdateFunctionCode, lambda:UpdateFunctionConfiguration]
+                Resource: "*"
+
+  # ---------------------------------------------- CloudFormation service role
+  CfnExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GyminiDevCfnExecutionRole
+      Description: Service role used BY CloudFormation to apply the API Gateway stack. Scoped to the protected API.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudformation.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { "aws:SourceAccount": !Ref "AWS::AccountId" }
+      Policies:
+        - PolicyName: api-gateway-stack-resources
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ManageRoutesIntegrationsStagesOfProtectedApi
+                # Phase 16B.1A fix: `apigateway:TagResource` is not a real IAM
+                # action (confirmed via a real, read-only `aws accessanalyzer
+                # validate-policy` call - INVALID_ACTION). API Gateway v2 uses
+                # HTTP-method-style IAM actions throughout, including for
+                # tagging - apigateway:POST/PUT already cover it, scoped to
+                # the /tags/* resource ARN already listed below.
+                Effect: Allow
+                Action: [apigateway:GET, apigateway:POST, apigateway:PUT, apigateway:PATCH, apigateway:DELETE]
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}/*"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*"
+              - Sid: ReadProtectedApi
+                Effect: Allow
+                Action: apigateway:GET
+                Resource: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
+              - Sid: InvokePermissionsOnApiFacingLambdas
+                Effect: Allow
+                Action: [lambda:AddPermission, lambda:RemovePermission, lambda:GetPolicy, lambda:GetFunction]
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-auth"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-user"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-fitness"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-gym"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-payment"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai"
+              - Sid: IamLevelHardStopOnApiDeletionOrCreation
+                Effect: Deny
+                Action: [apigateway:DELETE, apigateway:POST]
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis"
+
+Outputs:
+  CiReadRoleArn:        { Value: !GetAtt CiReadRole.Arn }
+  AppDeployRoleArn:     { Value: !GetAtt AppDeployRole.Arn }
+  InfraPlanRoleArn:     { Value: !GetAtt InfraPlanRole.Arn }
+  InfraApplyRoleArn:    { Value: !GetAtt InfraApplyRole.Arn }
+  CfnExecutionRoleArn:  { Value: !GetAtt CfnExecutionRole.Arn }
