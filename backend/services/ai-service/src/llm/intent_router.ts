@@ -174,6 +174,15 @@ function inferIntent(question: string): RoutedIntentType {
     return "nutrient_timing_request";
   }
 
+  // Explicit exercise-detail requests take precedence over generic "what is" questions.
+  if (
+    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(
+      q,
+    )
+  ) {
+    return "specific_exercise_request";
+  }
+
   // Impersonal nutrition KNOWLEDGE questions ("Macro là gì?", "Protein có vai trò gì?", "Whey có bắt buộc không?",
   // "Protein bao nhiêu là đủ?") are not requests for a personalized meal plan. Without this the bare nutrient
   // keywords below turned every such question into the full meal-plan template (found by the full chat
@@ -251,13 +260,7 @@ function inferIntent(question: string): RoutedIntentType {
     return "muscle_group_routine_request";
   }
 
-  if (
-    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(
-      q,
-    )
-  ) {
-    return "specific_exercise_request";
-  }
+
 
   if (
     /(l[iị]ch t[aậ]p|ch[uươ][oơ]ng tr[iì]nh t[aậ]p|split|plan t[aậ]p|workout plan)/i.test(
