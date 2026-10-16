@@ -130,6 +130,7 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   email: 'email',
   isPT: 'isPT',
   ptSuspended: 'ptSuspended',
+  ptLockSeq: 'ptLockSeq',
   referralCode: 'referralCode',
   dateOfBirth: 'dateOfBirth',
   age: 'age',
@@ -307,6 +308,8 @@ exports.Prisma.ContractScalarFieldEnum = {
   gymRate: 'gymRate',
   terminationReason: 'terminationReason',
   terminatedAt: 'terminatedAt',
+  clientExitAcceptedAt: 'clientExitAcceptedAt',
+  clientExitRestrictionId: 'clientExitRestrictionId',
   releasedToPt: 'releasedToPt',
   releasedToGym: 'releasedToGym',
   releasedToPlatform: 'releasedToPlatform',
@@ -606,6 +609,40 @@ exports.Prisma.UserPreferenceScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PtRestrictionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  type: 'type',
+  reasonCategory: 'reasonCategory',
+  reasonText: 'reasonText',
+  publicReason: 'publicReason',
+  imposedBy: 'imposedBy',
+  lockSeq: 'lockSeq',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  endKind: 'endKind',
+  liftedBy: 'liftedBy',
+  liftReason: 'liftReason',
+  lastJustifiedAt: 'lastJustifiedAt',
+  lastJustifiedBy: 'lastJustifiedBy',
+  lastJustification: 'lastJustification',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  scope: 'scope',
+  contractId: 'contractId',
+  supersedesRestrictionId: 'supersedesRestrictionId'
+};
+
+exports.Prisma.PtRestrictionContractExtensionScalarFieldEnum = {
+  id: 'id',
+  restrictionId: 'restrictionId',
+  contractId: 'contractId',
+  blockedMs: 'blockedMs',
+  previousEndDate: 'previousEndDate',
+  newEndDate: 'newEndDate',
+  appliedAt: 'appliedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -724,7 +761,8 @@ exports.TerminationReason = exports.$Enums.TerminationReason = {
   MUTUAL: 'MUTUAL',
   EXPIRED: 'EXPIRED',
   COMPLETED: 'COMPLETED',
-  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW'
+  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW',
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {
@@ -775,7 +813,9 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   SESSION_PT_NO_SHOW_REPORTED: 'SESSION_PT_NO_SHOW_REPORTED',
   CONTRACT_CANCELLED_PT_DEACTIVATED: 'CONTRACT_CANCELLED_PT_DEACTIVATED',
   REFUND_NEEDS_MANUAL_SETTLEMENT: 'REFUND_NEEDS_MANUAL_SETTLEMENT',
-  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED'
+  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED',
+  CONTRACT_PAUSED_PT_SUSPENDED: 'CONTRACT_PAUSED_PT_SUSPENDED',
+  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -824,7 +864,8 @@ exports.SessionSettlementKind = exports.$Enums.SessionSettlementKind = {
   PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
   SESSION_RELEASE: 'SESSION_RELEASE',
   CONTRACT_TERMINATION: 'CONTRACT_TERMINATION',
-  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION'
+  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION',
+  UNRESOLVED_SESSION_RESOLUTION: 'UNRESOLVED_SESSION_RESOLUTION'
 };
 
 exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {
@@ -832,6 +873,34 @@ exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {
   PROCESSING: 'PROCESSING',
   SETTLED: 'SETTLED',
   FAILED: 'FAILED'
+};
+
+exports.PtRestrictionType = exports.$Enums.PtRestrictionType = {
+  TEMPORARY_SUSPENSION: 'TEMPORARY_SUSPENSION',
+  PERMANENT_BAN: 'PERMANENT_BAN'
+};
+
+exports.PtRestrictionReasonCategory = exports.$Enums.PtRestrictionReasonCategory = {
+  COMPLAINT_REVIEW: 'COMPLAINT_REVIEW',
+  CONDUCT_REVIEW: 'CONDUCT_REVIEW',
+  PAYMENT_REVIEW: 'PAYMENT_REVIEW',
+  DOCUMENT_VERIFICATION: 'DOCUMENT_VERIFICATION',
+  ACCOUNT_SECURITY: 'ACCOUNT_SECURITY',
+  OTHER: 'OTHER',
+  UNSPECIFIED: 'UNSPECIFIED'
+};
+
+exports.PtRestrictionEndKind = exports.$Enums.PtRestrictionEndKind = {
+  LIFTED: 'LIFTED',
+  CONVERTED_TO_PERMANENT: 'CONVERTED_TO_PERMANENT',
+  SCOPE_RAISED: 'SCOPE_RAISED',
+  SCOPE_NARROWED: 'SCOPE_NARROWED',
+  CONTRACT_ENDED: 'CONTRACT_ENDED'
+};
+
+exports.PtRestrictionScope = exports.$Enums.PtRestrictionScope = {
+  ACCOUNT: 'ACCOUNT',
+  CONTRACT: 'CONTRACT'
 };
 
 exports.Prisma.ModelName = {
@@ -858,7 +927,9 @@ exports.Prisma.ModelName = {
   SessionSettlement: 'SessionSettlement',
   ClientJourney: 'ClientJourney',
   AgentContractDraft: 'AgentContractDraft',
-  UserPreference: 'UserPreference'
+  UserPreference: 'UserPreference',
+  PtRestriction: 'PtRestriction',
+  PtRestrictionContractExtension: 'PtRestrictionContractExtension'
 };
 
 /**

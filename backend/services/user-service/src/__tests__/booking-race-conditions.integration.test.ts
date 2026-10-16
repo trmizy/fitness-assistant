@@ -10,7 +10,7 @@
  * cùng một PT gửi gần như đồng thời có thể cả hai đều vượt qua kiểm tra xung đột trước khi cái
  * nào commit, tạo ra hai session chồng giờ cho cùng một PT.
  */
-import test from "node:test";
+import { guardedTest as test } from "./test-db-guard"; // D57-6-5: runs only on a database whose name ends with _test
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/profile.repository";

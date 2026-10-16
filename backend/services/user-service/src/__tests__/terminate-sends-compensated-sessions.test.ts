@@ -14,6 +14,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
 import { terminateContractMoney } from "../services/contract-payout.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];
@@ -50,7 +57,7 @@ test("terminateContractMoney gửi compensatedSessions của hợp đồng sang 
     calls.push(body);
     return { refund: "990000.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
 
   try {
     await terminateContractMoney(contractId, "CLIENT_CANCELLED");
@@ -92,7 +99,7 @@ test("hợp đồng chưa từng bị PT vắng buổi (compensatedSessions=0) v
     calls.push(body);
     return { refund: "630000.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
 
   try {
     await terminateContractMoney(contractId, "CLIENT_CANCELLED");

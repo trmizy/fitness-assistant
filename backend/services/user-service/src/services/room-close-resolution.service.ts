@@ -1,10 +1,23 @@
 import { logger } from "@gym-coach/shared";
-import { SessionStatus } from "../generated/prisma";
+import { Prisma, SessionStatus } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
 import { notificationService } from "./notification.service";
-import { compensateLateArrivalMoney, compensateNoShowMoney } from "./contract-payout.service";
+import {
+  compensateLateArrivalMoney,
+  compensateNoShowMoney,
+  recordLateArrivalIntent,
+  recordNoShowIntent,
+} from "./contract-payout.service";
 import { contractService } from "./contract.service";
 import { endOpenRoomCall } from "./open-room-call.service";
+import { withRunningContract, CONTRACT_ENDED, CONTRACT_ENDING } from "./contract-lock";
+import { trackJob } from "../lifecycle";
+import {
+  activeRestrictedContractIds,
+  activeRestrictedPtUserIds,
+  getActiveContractRestriction,
+  isPtRestricted,
+} from "./pt-restriction.service";
 
 const INTERVAL_MS = Number(
   process.env.ROOM_CLOSE_RESOLUTION_INTERVAL_MS ?? 5 * 60 * 1000,
@@ -74,34 +87,59 @@ export interface RoomCloseDeps {
       roomClientJoinedAt: Date | null;
     }>
   >;
+  /** Re-checked right before each session is resolved (a suspension may have begun since the list was read). */
+  isPtRestricted?: (ptUserId: string) => Promise<boolean>;
+  /** Same re-check for a contract paused on its own (CONTRACT-scope restriction). */
+  isContractRestricted?: (contractId: string) => Promise<boolean>;
+  /** `tx` = the decision's contract-locked transaction (Phase 0 / D58); absent in unit tests with fake deps. */
   transitionStatus: (
     id: string,
     expected: SessionStatus[],
     next: SessionStatus,
     extra?: Record<string, unknown>,
+    tx?: Prisma.TransactionClient,
   ) => Promise<boolean>;
+  /** Runs AFTER the decision committed (no lock): the payment-service call, idempotent on the intent's key. */
   compensateNoShowMoney: (contractId: string, sessionId: string) => Promise<void>;
   compensateLateArrivalMoney: (contractId: string, sessionId: string) => Promise<void>;
+  /** Records the compensation's INTENT inside the decision's transaction. Absent (unit tests): nothing is recorded there. */
+  recordIntent?: (tx: Prisma.TransactionClient, kind: "NO_SHOW" | "LATE_ARRIVAL", contractId: string, sessionId: string) => Promise<void>;
   checkAndCompleteContract: (contractId: string) => Promise<unknown>;
+  /**
+   * F4 / D56 + Phase 0 / D58: runs one session's DECISION (the status CAS AND the intent of its money step) as ONE short
+   * transaction on the contract, decided while the contract is still running - the same lock a contract ending takes, so the
+   * ending's snapshot is taken either before this decision or after it (then the contract is ended / ending and the session is
+   * left to the ending). The payment-service call happens afterwards, outside the lock. Throws CONTRACT_ENDED / CONTRACT_ENDING
+   * when the contract is no longer running. Absent (unit tests with fake deps): runs as is.
+   */
+  exclusive?: <T>(contractId: string, fn: (tx?: Prisma.TransactionClient) => Promise<T>) => Promise<T>;
   notify: (params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link: string }) => Promise<unknown>;
 }
 
 const defaultDeps: RoomCloseDeps = {
-  findDue: (before, limit) => sessionRepository.findConfirmedOnlineSessionsPastEnd(before, limit),
-  transitionStatus: (id, expected, next, extra) => sessionRepository.transitionStatus(id, expected, next, extra),
+  findDue: async (before, limit) =>
+    sessionRepository.findConfirmedOnlineSessionsPastEnd(before, limit, await activeRestrictedPtUserIds(), await activeRestrictedContractIds()),
+  isPtRestricted: (ptUserId) => isPtRestricted(ptUserId),
+  isContractRestricted: async (contractId) => (await getActiveContractRestriction(contractId)) !== null,
+  transitionStatus: (id, expected, next, extra, tx) => sessionRepository.transitionStatus(id, expected, next, extra, tx),
   compensateNoShowMoney: (contractId, sessionId) => compensateNoShowMoney(contractId, sessionId),
   compensateLateArrivalMoney: (contractId, sessionId) => compensateLateArrivalMoney(contractId, sessionId),
+  recordIntent: (tx, kind, contractId, sessionId) =>
+    kind === "NO_SHOW" ? recordNoShowIntent(tx, contractId, sessionId) : recordLateArrivalIntent(tx, contractId, sessionId),
   checkAndCompleteContract: (contractId) => contractService.checkAndCompleteContract(contractId),
+  exclusive: (contractId, fn) => withRunningContract(contractId, (tx) => fn(tx)),
   notify: (params) => notificationService.create(params).catch(() => undefined),
 };
 
-export function startRoomCloseResolutionJob(): void {
+/** Starts the periodic job; returns the function that stops it (graceful shutdown). */
+export function startRoomCloseResolutionJob(): () => void {
   logger.info(
     `Room-close resolution job started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`,
   );
-  setInterval(() => {
-    void runRoomCloseResolution();
+  const timer = setInterval(() => {
+    void trackJob(runRoomCloseResolution());
   }, INTERVAL_MS);
+  return () => clearInterval(timer);
 }
 
 export async function runRoomCloseResolution(
@@ -122,132 +160,157 @@ export async function runRoomCloseResolution(
 
     logger.info(`[RoomCloseResolution] ${scanned} open-room session(s) past close`);
 
+    const exclusive = deps.exclusive ?? (<T>(_contractId: string, fn: (tx?: Prisma.TransactionClient) => Promise<T>) => fn());
+
     for (const session of due) {
       try {
+        // No no-show, no compensation, no "PT on time" progression while the PT is restricted: the room
+        // outcome is decided after the lift, if at all (the session stays CONFIRMED until then).
+        if (deps.isPtRestricted && (await deps.isPtRestricted(session.ptUserId))) continue;
+        if (deps.isContractRestricted && (await deps.isContractRestricted(session.contractId))) continue;
         const ptJoined = !!session.roomPtJoinedAt;
         const clientJoined = !!session.roomClientJoinedAt;
         const ptLate =
           ptJoined && session.roomPtJoinedAt!.getTime() > session.scheduledStartAt.getTime() + NO_SHOW_GRACE_MS;
 
-        if (!ptJoined && !clientJoined) {
-          // Case 1 — nobody showed. Pure status flip, no money, no quota touched.
-          const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.CANCELLED, {
-            cancelledBy: "SYSTEM",
-            cancellationReason: "Không bên nào tham gia phòng học trước khi hết giờ.",
-          });
-          if (won) {
-            resolved++;
-            endOpenRoomCall(session.id, "room_cancelled_nobody_joined");
-            for (const userId of [session.clientUserId, session.ptUserId]) {
+        // F4 / D56: what happens AFTER the critical section (notices, the room's call row, the contract's completion
+        // check - which takes the contract lock itself, so it can never run inside it).
+        const after: Array<() => Promise<unknown>> = [];
+
+        // The status CAS and the money step of this session are ONE critical section on the contract, decided while
+        // the contract is still running (a contract that ended - or ends first - is the ending's business: its
+        // not-started sessions are called off there, and a compensation must never be paid on top of its settlement).
+        const settledHere = await exclusive(session.contractId, async (tx): Promise<boolean> => {
+          if (!ptJoined && !clientJoined) {
+            // Case 1 - nobody showed. Pure status flip, no money, no quota touched.
+            const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.CANCELLED, {
+              cancelledBy: "SYSTEM",
+              cancellationReason: "Không bên nào tham gia phòng học trước khi hết giờ.",
+            }, tx);
+            if (!won) return false;
+            after.push(async () => {
+              endOpenRoomCall(session.id, "room_cancelled_nobody_joined");
+              for (const userId of [session.clientUserId, session.ptUserId]) {
+                await deps.notify({
+                  userId,
+                  text: "Không ai vào phòng học trước khi hết giờ — buổi tập đã được huỷ, trả lại buổi cho khách.",
+                  eventType: "SESSION_CANCELLED",
+                  entityType: "SESSION",
+                  entityId: session.id,
+                  link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
+                });
+              }
+            });
+            return true;
+          }
+
+          if (!ptJoined && clientJoined) {
+            // Case 2 - PT full no-show. Mirrors markNoShow's PT-self-admit branch exactly.
+            const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.NO_SHOW, {
+              sessionDeducted: false,
+              ptNotes: "PT không vào phòng học",
+              ptAtFault: true,
+            }, tx);
+            if (!won) return false;
+            if (tx && deps.recordIntent) await deps.recordIntent(tx, "NO_SHOW", session.contractId, session.id);
+            after.push(async () => {
+              // The payment-service call: after the decision committed, outside the lock (idempotent on the intent's key).
+              await deps.compensateNoShowMoney(session.contractId, session.id);
+              await deps.checkAndCompleteContract(session.contractId);
+              endOpenRoomCall(session.id, "pt_no_show");
+              // System-determined, not self-admitted - unlike markNoShow's PT-self-admit branch, the PT here doesn't
+              // already know this happened, so (like resolveDispute's PT_NO_SHOW_CONFIRMED branch) both sides are told.
               await deps.notify({
-                userId,
-                text: "Không ai vào phòng học trước khi hết giờ — buổi tập đã được huỷ, trả lại buổi cho khách.",
-                eventType: "SESSION_CANCELLED",
+                userId: session.clientUserId,
+                text: "Huấn luyện viên không vào phòng học. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
+                eventType: "SESSION_NO_SHOW_PT",
                 entityType: "SESSION",
                 entityId: session.id,
-                link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
+                link: "/client/wallet",
               });
-            }
-          }
-          continue;
-        }
-
-        if (!ptJoined && clientJoined) {
-          // Case 2 — PT full no-show. Mirrors markNoShow's PT-self-admit branch exactly.
-          const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.NO_SHOW, {
-            sessionDeducted: false,
-            ptNotes: "PT không vào phòng học",
-            ptAtFault: true,
-          });
-          if (won) {
-            await deps.compensateNoShowMoney(session.contractId, session.id);
-            await deps.checkAndCompleteContract(session.contractId);
-            resolved++;
-            endOpenRoomCall(session.id, "pt_no_show");
-            // System-determined, not self-admitted — unlike markNoShow's PT-self-admit
-            // branch, the PT here doesn't already know this happened, so (like
-            // resolveDispute's PT_NO_SHOW_CONFIRMED branch) both sides are told.
-            await deps.notify({
-              userId: session.clientUserId,
-              text: "Huấn luyện viên không vào phòng học. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
-              eventType: "SESSION_NO_SHOW_PT",
-              entityType: "SESSION",
-              entityId: session.id,
-              link: "/client/wallet",
+              await deps.notify({
+                userId: session.ptUserId,
+                text: "Bạn không vào phòng học trước khi hết giờ — buổi tập được ghi nhận vắng mặt, khách được bồi thường.",
+                eventType: "SESSION_NO_SHOW_PT",
+                entityType: "SESSION",
+                entityId: session.id,
+                link: "/pt/schedule",
+              });
             });
-            await deps.notify({
-              userId: session.ptUserId,
-              text: "Bạn không vào phòng học trước khi hết giờ — buổi tập được ghi nhận vắng mặt, khách được bồi thường.",
-              eventType: "SESSION_NO_SHOW_PT",
-              entityType: "SESSION",
-              entityId: session.id,
-              link: "/pt/schedule",
-            });
+            return true;
           }
-          continue;
-        }
 
-        if (ptJoined && !clientJoined) {
-          // Case 3 — client no-show. PT showed up (on time or late — a lateness that never
-          // meets a client is not late toward anyone). Do NOT settle quota/money here directly:
-          // park it in PENDING_CLIENT_CONFIRMATION exactly like markNoShow's "PT reports
-          // client no-show" branch does, so the client keeps their normal confirm/dispute
-          // window and the eventual charge runs through the one place deductQuotaOnce +
-          // releaseSessionMoney already live (clientConfirmSession, or the 3-day auto-confirm
-          // sweep) — not a second, parallel implementation of the same charge here.
+          if (ptJoined && !clientJoined) {
+            // Case 3 - client no-show. PT showed up (on time or late - a lateness that never meets a client is not late
+            // toward anyone). Do NOT settle quota/money here directly: park it in PENDING_CLIENT_CONFIRMATION exactly
+            // like markNoShow's "PT reports client no-show" branch does, so the client keeps their normal
+            // confirm/dispute window and the eventual charge runs through the one place deductQuotaOnce +
+            // releaseSessionMoney already live (clientConfirmSession, or the 3-day auto-confirm sweep).
+            const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
+            const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.PENDING_CLIENT_CONFIRMATION, {
+              ptNotes: "Client không vào phòng học",
+              clientConfirmDeadline: deadline,
+            }, tx);
+            if (!won) return false;
+            after.push(async () => {
+              endOpenRoomCall(session.id, "client_no_show");
+              await deps.notify({
+                userId: session.clientUserId,
+                text: `Bạn đã không vào phòng học. Nếu có nhầm lẫn, hãy khiếu nại trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn buổi tập sẽ bị trừ và huấn luyện viên vẫn được thanh toán.`,
+                eventType: "SESSION_PENDING_CONFIRMATION",
+                entityType: "SESSION",
+                entityId: session.id,
+                link: "/client/booking",
+              });
+              await deps.notify({
+                userId: session.ptUserId,
+                text: "Học viên không vào phòng học. Buổi tập sẽ được tính đã dùng và bạn vẫn được thanh toán trừ khi khách khiếu nại.",
+                eventType: "SESSION_PENDING_CONFIRMATION",
+                entityType: "SESSION",
+                entityId: session.id,
+                link: "/pt/schedule",
+              });
+            });
+            return true;
+          }
+
+          // Case 4/5 - both showed. Auto-progress exactly like a manual completeSession() would, so the existing
+          // auto-confirm sweep and disputeSession flow both keep working unchanged. Late arrival ALSO gets a half-rate
+          // cash top-up, on top of - not instead of - the normal completion path (the client keeps their dispute
+          // window either way).
           const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
           const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.PENDING_CLIENT_CONFIRMATION, {
-            ptNotes: "Client không vào phòng học",
+            ptNotes: ptLate ? "PT vào phòng học muộn" : undefined,
             clientConfirmDeadline: deadline,
-          });
-          if (won) {
-            resolved++;
-            endOpenRoomCall(session.id, "client_no_show");
+          }, tx);
+          if (!won) return false;
+          if (ptLate && tx && deps.recordIntent) await deps.recordIntent(tx, "LATE_ARRIVAL", session.contractId, session.id);
+          after.push(async () => {
+            if (ptLate) await deps.compensateLateArrivalMoney(session.contractId, session.id);
+            endOpenRoomCall(session.id, ptLate ? "session_completed_pt_late" : "session_completed");
             await deps.notify({
               userId: session.clientUserId,
-              text: `Bạn đã không vào phòng học. Nếu có nhầm lẫn, hãy khiếu nại trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn buổi tập sẽ bị trừ và huấn luyện viên vẫn được thanh toán.`,
+              text: ptLate
+                ? `Huấn luyện viên vào muộn — bạn được bồi thường một phần vào ví, buổi tập không bị trừ. Vui lòng xác nhận buổi tập trước ${deadline.toLocaleDateString("vi-VN")} nếu có vấn đề, hãy khiếu nại.`
+                : `Buổi tập đã kết thúc. Vui lòng xác nhận trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn hệ thống sẽ tự xác nhận.`,
               eventType: "SESSION_PENDING_CONFIRMATION",
               entityType: "SESSION",
               entityId: session.id,
               link: "/client/booking",
             });
-            await deps.notify({
-              userId: session.ptUserId,
-              text: "Học viên không vào phòng học. Buổi tập sẽ được tính đã dùng và bạn vẫn được thanh toán trừ khi khách khiếu nại.",
-              eventType: "SESSION_PENDING_CONFIRMATION",
-              entityType: "SESSION",
-              entityId: session.id,
-              link: "/pt/schedule",
-            });
-          }
-          continue;
-        }
-
-        // Case 4/5 — both showed. Auto-progress exactly like a manual completeSession() would,
-        // so the existing auto-confirm sweep and disputeSession flow both keep working
-        // unchanged. Late arrival ALSO gets a half-rate cash top-up, on top of — not instead
-        // of — the normal completion path (the client keeps their dispute window either way).
-        const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
-        const won = await deps.transitionStatus(session.id, [SessionStatus.CONFIRMED], SessionStatus.PENDING_CLIENT_CONFIRMATION, {
-          ptNotes: ptLate ? "PT vào phòng học muộn" : undefined,
-          clientConfirmDeadline: deadline,
-        });
-        if (won) {
-          resolved++;
-          endOpenRoomCall(session.id, ptLate ? "session_completed_pt_late" : "session_completed");
-          if (ptLate) {
-            await deps.compensateLateArrivalMoney(session.contractId, session.id);
-          }
-          await deps.notify({
-            userId: session.clientUserId,
-            text: ptLate
-              ? `Huấn luyện viên vào muộn — bạn được bồi thường một phần vào ví, buổi tập không bị trừ. Vui lòng xác nhận buổi tập trước ${deadline.toLocaleDateString("vi-VN")} nếu có vấn đề, hãy khiếu nại.`
-              : `Buổi tập đã kết thúc. Vui lòng xác nhận trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn hệ thống sẽ tự xác nhận.`,
-            eventType: "SESSION_PENDING_CONFIRMATION",
-            entityType: "SESSION",
-            entityId: session.id,
-            link: "/client/booking",
           });
+          return true;
+        }).catch((e: unknown) => {
+          // The contract ended (or its ending is recorded and unconfirmed, D59) between the list and the lock: nothing to
+          // resolve here, the ending owns the session.
+          const code = (e as { code?: string })?.code;
+          if (code === CONTRACT_ENDED || code === CONTRACT_ENDING) return false;
+          throw e;
+        });
+
+        if (settledHere) {
+          resolved++;
+          for (const step of after) await step();
         }
       } catch (err) {
         // One bad row must not stop the sweep — the rest still settle.

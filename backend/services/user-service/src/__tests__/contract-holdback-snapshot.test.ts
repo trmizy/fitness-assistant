@@ -16,6 +16,13 @@ import { ptServicePackageRepository } from "../repositories/pt_service_package.r
 import { profileRepository } from "../repositories/profile.repository";
 import { availabilityService } from "../services/availability.service";
 import { notificationService } from "../services/notification.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];

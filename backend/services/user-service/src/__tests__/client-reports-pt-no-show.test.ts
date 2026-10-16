@@ -8,6 +8,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { contractService } from "../services/contract.service";
 import { notificationService } from "../services/notification.service";
 import { paymentClient } from "../clients/payment.client";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 4.3 — "khách báo PT vắng mặt".
@@ -41,6 +48,7 @@ function contractFixture(id: string) {
     ptUserId: "pt-1",
     gymId: null,
     clientUserId: "client-1",
+    status: "ACTIVE",
   };
 }
 
@@ -58,10 +66,12 @@ test("a client can report a PT no-show for a past CONFIRMED session", async () =
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+    patch(contractRepository, "findById", async () => contractFixture("c1") as any),
+    // F1: the status write is a compare-and-set on the status that was read
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
       calls.push(`updateStatus:${status}`);
       assert.equal(extra.disputeReason, "PT không đến, tôi đợi 30 phút");
-      return { ...session, status } as any;
+      return true;
     }),
     patch(notificationService, "create", async () => {
       calls.push("notify");
@@ -88,7 +98,8 @@ test("cannot report a no-show before the session's scheduled start time", async 
     status: SessionStatus.CONFIRMED,
     scheduledStartAt: new Date(Date.now() + 60 * 60 * 1000), // still in the future
   };
-  const restore = patch(sessionRepository, "findById", async () => session as any);
+  const restore1 = patch(sessionRepository, "findById", async () => session as any);
+  const restore2 = patch(contractRepository, "findById", async () => contractFixture("c1") as any);
 
   try {
     await assert.rejects(
@@ -96,7 +107,8 @@ test("cannot report a no-show before the session's scheduled start time", async 
       /Chưa thể báo.*vắng mặt/, // Vòng 4 / Phase E1: message now mentions the grace window
     );
   } finally {
-    restore();
+    restore1();
+    restore2();
   }
 });
 
@@ -110,14 +122,16 @@ test("E1 — reportPtNoShow bị từ chối khi mới quá giờ hẹn 5 phút 
     status: SessionStatus.CONFIRMED,
     scheduledStartAt: new Date(Date.now() - 5 * 60 * 1000),
   };
-  const restore = patch(sessionRepository, "findById", async () => session as any);
+  const restore1 = patch(sessionRepository, "findById", async () => session as any);
+  const restore2 = patch(contractRepository, "findById", async () => contractFixture("c1") as any);
   try {
     await assert.rejects(
       () => bookingService.reportPtNoShow(sessionId, "client-1", "reason"),
       /Chưa thể báo.*vắng mặt/,
     );
   } finally {
-    restore();
+    restore1();
+    restore2();
   }
 });
 
@@ -133,7 +147,11 @@ test("E1 — reportPtNoShow cho phép báo sau khi hết grace window (quá gi�
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => contractFixture("c1") as any),
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
+      session.status = status as any; // the CAS wrote it; the re-read below returns the stored row
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
   try {
@@ -179,9 +197,9 @@ test("the PT agreeing with the report compensates the client — reuses markNoSh
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => {
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
-      return { ...session, status } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementCompensatedSessions", async () => {
@@ -226,18 +244,20 @@ test("the PT denying the report escalates to DISPUTED — the same state 4.2's a
   let capturedStatus: string | null = null;
   let capturedNotes: string | null = null;
 
-  const restore = patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+  const restore = patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
     capturedStatus = status;
     capturedNotes = extra.ptNotes;
-    return { ...session, status } as any;
+    return true;
   });
   const restoreFind = patch(sessionRepository, "findById", async () => session as any);
+  const restoreContract = patch(contractRepository, "findById", async () => contractFixture("c1") as any);
 
   try {
     await bookingService.respondToNoShowReport(sessionId, "pt-1", "DENY", "Tôi có mặt đúng giờ, khách không tới điểm hẹn");
   } finally {
     restore();
     restoreFind();
+    restoreContract();
   }
 
   assert.equal(capturedStatus, SessionStatus.DISPUTED);

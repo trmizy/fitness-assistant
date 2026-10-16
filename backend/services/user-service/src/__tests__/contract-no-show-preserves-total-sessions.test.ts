@@ -4,6 +4,13 @@ import { randomUUID } from "node:crypto";
 import { compensateNoShowMoney } from "../services/contract-payout.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 1.5 — "ngừng thay đổi tổng số buổi của hợp đồng".

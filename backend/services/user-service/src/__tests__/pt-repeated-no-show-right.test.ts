@@ -1,4 +1,4 @@
-import test from "node:test";
+import { guardedTest as test } from "./test-db-guard"; // D57-6-5: runs only on a database whose name ends with _test
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/profile.repository";
@@ -44,6 +44,7 @@ function contractFixture(id: string) {
     ptUserId: "pt-1",
     gymId: null,
     clientUserId: "client-1",
+    status: "ACTIVE", // F1: a no-show is only admitted on a running contract
   };
 }
 
@@ -63,9 +64,10 @@ test("markNoShow (PT tự nhận vắng mặt) đánh dấu ptAtFault=true — k
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+    // F1: the status write is a compare-and-set on the status that was read
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], _status: SessionStatus, extra: any) => {
       capturedExtra = extra;
-      return { ...session, status, ...extra } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),

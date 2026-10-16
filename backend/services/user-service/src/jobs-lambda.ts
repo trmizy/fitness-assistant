@@ -13,7 +13,20 @@ export interface UserServiceJobEvent {
   job?: UserServiceJobName | string;
 }
 
-export async function runUserServiceJob(event: UserServiceJobEvent) {
+/** What the Lambda runtime tells a handler about its remaining time (the part this file uses). */
+export interface LambdaContextLike {
+  getRemainingTimeInMillis?: () => number;
+}
+
+export interface JobRunOptions {
+  /** Epoch ms after which a batch job must not START another row (bounded drain: it finishes the row in flight and returns). */
+  deadlineAt?: number;
+}
+
+/** Time kept back for the row in flight (a payment-service call is bounded at 20 s) and the response. */
+export const LAMBDA_DEADLINE_MARGIN_MS = 30_000;
+
+export async function runUserServiceJob(event: UserServiceJobEvent, opts: JobRunOptions = {}) {
   switch (event.job) {
     case "session-auto-confirm": {
       const { runAutoConfirm } = await import("./services/session-autoconfirm.service");
@@ -25,7 +38,7 @@ export async function runUserServiceJob(event: UserServiceJobEvent) {
     }
     case "session-settlement": {
       const { runSettlementSweep } = await import("./services/session-settlement-sweep.service");
-      return runSettlementSweep();
+      return runSettlementSweep({ deadlineAt: opts.deadlineAt });
     }
     default:
       throw Object.assign(new Error(`Unknown user-service job: ${event.job ?? ""}`), {
@@ -34,11 +47,15 @@ export async function runUserServiceJob(event: UserServiceJobEvent) {
   }
 }
 
-export async function handler(event: UserServiceJobEvent = {}) {
+export async function handler(event: UserServiceJobEvent = {}, context?: LambdaContextLike) {
   try {
     await ensureDatabaseUrlConfigured();
     validateRequiredRuntimeConfig();
-    const result = await runUserServiceJob(event);
+    // Graceful end of a batch job: stop starting rows LAMBDA_DEADLINE_MARGIN_MS before the platform would cut the invocation,
+    // so a payment-service call in flight is never cut off by the timeout (whatever is left is retried by the next run).
+    const remaining = typeof context?.getRemainingTimeInMillis === "function" ? context.getRemainingTimeInMillis() : undefined;
+    const deadlineAt = remaining === undefined ? undefined : Date.now() + Math.max(0, remaining - LAMBDA_DEADLINE_MARGIN_MS);
+    const result = await runUserServiceJob(event, { deadlineAt });
     return {
       statusCode: 200,
       body: JSON.stringify({

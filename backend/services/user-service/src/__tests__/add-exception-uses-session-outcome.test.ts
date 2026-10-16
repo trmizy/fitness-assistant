@@ -8,6 +8,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { notificationService } from "../services/notification.service";
 import { SessionStatus } from "../generated/prisma";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 3.1 — "hợp nhất hậu quả khi PT nghỉ", the `addException` half.
@@ -48,6 +55,7 @@ function contractFixture(id: string) {
     ptUserId: "pt-1",
     gymId: null,
     clientUserId: "client-1",
+    status: "ACTIVE", // F4: the PT block works on a running contract (decided under the contract lock)
   };
 }
 
@@ -62,9 +70,9 @@ test("blocking a date ≥24h ahead cancels the confirmed session WITHOUT compens
   const restores = [
     patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
     patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => {
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
-      return {} as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(paymentClient, "noShow", async () => {
@@ -98,9 +106,9 @@ test("blocking a date <24h ahead compensates the client and marks the session NO
   const restores = [
     patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
     patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => {
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
-      return {} as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
@@ -121,4 +129,40 @@ test("blocking a date <24h ahead compensates the client and marks the session NO
   }
 
   assert.deepEqual(calls, [`updateStatus:${SessionStatus.NO_SHOW}`, "paymentClient.noShow", "notify:SESSION_NO_SHOW_PT"]);
+});
+
+/**
+ * The idle-holdback clock (contractRepository.findIdleHoldbackCandidates) counts a session the PT
+ * cancelled as activity, and tells it from a client cancel by `cancelledBy` = the PT's own id.
+ * addException is a PT-initiated cancel path that used to leave cancelledBy empty.
+ */
+test("a PT block that CANCELS a session records the PT as the canceller; the <24h NO_SHOW path does not touch cancelledBy", async () => {
+  const run = async (status: SessionStatus, startInMs: number) => {
+    const contractId = randomUUID();
+    const start = new Date(Date.now() + startInMs);
+    const session = { id: randomUUID(), contractId, clientUserId: "client-1", status, scheduledStartAt: start };
+    const extras: any[] = [];
+    const restores = [
+      patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
+      patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
+      patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], _s: SessionStatus, extra: any) => {
+        extras.push(extra);
+        return true;
+      }),
+      patch(contractRepository, "findById", async () => contractFixture(contractId) as any),
+      patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
+      patch(paymentClient, "noShow", async () => ({ compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" }) as any),
+      patch(notificationService, "create", async () => ({}) as any),
+    ];
+    try {
+      await availabilityService.addException("pt-1", start.toISOString().slice(0, 10), "Nghỉ phép");
+    } finally {
+      restores.forEach((r) => r());
+    }
+    return extras[0];
+  };
+
+  assert.equal((await run(SessionStatus.CONFIRMED, 72 * 3600 * 1000)).cancelledBy, "pt-1", "CONFIRMED, >=24h -> CANCELLED by the PT");
+  assert.equal((await run(SessionStatus.REQUESTED, 72 * 3600 * 1000)).cancelledBy, "pt-1", "REQUESTED -> CANCELLED by the PT");
+  assert.equal("cancelledBy" in (await run(SessionStatus.CONFIRMED, 3 * 3600 * 1000)), false, "<24h is a NO_SHOW, not a cancel");
 });

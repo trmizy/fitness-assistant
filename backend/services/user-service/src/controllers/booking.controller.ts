@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { clientErrorMessage } from "../utils/db-error.util";
+import { errorCodeBody } from "../utils/error-code.util";
 import { bookingService } from "../services/booking.service";
 
 export const bookingController = {
@@ -19,7 +20,7 @@ export const bookingController = {
       logger.error(error, "Book session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to book session" });
+        .json({ error: error.message || "Failed to book session", ...errorCodeBody(error) });
     }
   },
 
@@ -36,7 +37,7 @@ export const bookingController = {
     } catch (error: any) {
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to get session" });
+        .json({ error: error.message || "Failed to get session", ...errorCodeBody(error) });
     }
   },
 
@@ -53,7 +54,7 @@ export const bookingController = {
       logger.error(error, "Get contract sessions error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to fetch sessions" });
+        .json({ error: error.message || "Failed to fetch sessions", ...errorCodeBody(error) });
     }
   },
 
@@ -82,7 +83,7 @@ export const bookingController = {
       logger.error(error, "Confirm session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to confirm session" });
+        .json({ error: error.message || "Failed to confirm session", ...errorCodeBody(error) });
     }
   },
 
@@ -101,7 +102,7 @@ export const bookingController = {
       logger.error(error, "Complete session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to complete session" });
+        .json({ error: error.message || "Failed to complete session", ...errorCodeBody(error) });
     }
   },
 
@@ -118,7 +119,7 @@ export const bookingController = {
       logger.error(error, "Client confirm session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to confirm session" });
+        .json({ error: error.message || "Failed to confirm session", ...errorCodeBody(error) });
     }
   },
 
@@ -137,7 +138,7 @@ export const bookingController = {
       logger.error(error, "Dispute session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to dispute session" });
+        .json({ error: error.message || "Failed to dispute session", ...errorCodeBody(error) });
     }
   },
 
@@ -156,7 +157,7 @@ export const bookingController = {
       logger.error(error, "Report PT no-show error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to report no-show" });
+        .json({ error: error.message || "Failed to report no-show", ...errorCodeBody(error) });
     }
   },
 
@@ -177,7 +178,7 @@ export const bookingController = {
       logger.error(error, "Respond to no-show report error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to respond to no-show report" });
+        .json({ error: error.message || "Failed to respond to no-show report", ...errorCodeBody(error) });
     }
   },
 
@@ -228,7 +229,7 @@ export const bookingController = {
       logger.error(error, "Resolve dispute error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to resolve dispute" });
+        .json({ error: error.message || "Failed to resolve dispute", ...errorCodeBody(error) });
     }
   },
 
@@ -247,7 +248,7 @@ export const bookingController = {
       logger.error(error, "Cancel session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to cancel session" });
+        .json({ error: error.message || "Failed to cancel session", ...errorCodeBody(error) });
     }
   },
 
@@ -266,7 +267,7 @@ export const bookingController = {
       logger.error(error, "Mark no-show error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to mark no-show" });
+        .json({ error: error.message || "Failed to mark no-show", ...errorCodeBody(error) });
     }
   },
 
@@ -281,7 +282,7 @@ export const bookingController = {
       logger.error(error, "Join session error");
       return res
         .status(error.status || 500)
-        .json({ error: error.message || "Không thể tham gia buổi học" });
+        .json({ error: error.message || "Không thể tham gia buổi học", ...errorCodeBody(error) });
     }
   },
 
@@ -301,7 +302,7 @@ export const bookingController = {
       logger.error(error, "Review session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to review session" });
+        .json({ error: error.message || "Failed to review session", ...errorCodeBody(error) });
     }
   },
 
@@ -321,7 +322,7 @@ export const bookingController = {
       logger.error(error, "Review client error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to review client" });
+        .json({ error: error.message || "Failed to review client", ...errorCodeBody(error) });
     }
   },
 
@@ -343,7 +344,7 @@ export const bookingController = {
       logger.error(error, "Request reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to request reschedule" });
+        .json({ error: error.message || "Failed to request reschedule", ...errorCodeBody(error) });
     }
   },
 
@@ -355,7 +356,7 @@ export const bookingController = {
       res.json(result);
     } catch (error: any) {
       logger.error(error, "Cancel reschedule error");
-      res.status(error.status || 500).json({ error: error.message || "Failed to cancel" });
+      res.status(error.status || 500).json({ error: error.message || "Failed to cancel", ...errorCodeBody(error) });
     }
   },
 
@@ -367,7 +368,7 @@ export const bookingController = {
       res.json(result);
     } catch (error: any) {
       logger.error(error, "Reschedule history error");
-      res.status(error.status || 500).json({ error: error.message || "Failed to load history" });
+      res.status(error.status || 500).json({ error: error.message || "Failed to load history", ...errorCodeBody(error) });
     }
   },
 
@@ -386,7 +387,7 @@ export const bookingController = {
       logger.error(error, "Respond to reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to respond to reschedule" });
+        .json({ error: error.message || "Failed to respond to reschedule", ...errorCodeBody(error) });
     }
   },
 };

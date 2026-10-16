@@ -2,6 +2,7 @@ import { logger } from "@gym-coach/shared";
 import { inbodyRepository } from "../repositories/inbody.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import { assertPtMayAct, assertPtMayActOnContract } from "./pt-restriction.service";
 import { extractInBodyVision } from "./inbody-vision.service";
 import { triggerInBodyReassessmentSafe } from "../clients/fitness-service.client";
 import {
@@ -53,6 +54,8 @@ export const inbodyService = {
 
   // BR-32: PT views a client's InBody — requires ACTIVE or COMPLETED contract
   async getClientHistory(ptUserId: string, clientUserId: string) {
+    // A restricted PT does not read clients' body data (coaching access is paused with the contract).
+    await assertPtMayAct(ptUserId);
     const contract = await contractRepository.findActiveOrCompletedByPair(
       ptUserId,
       clientUserId,
@@ -60,6 +63,8 @@ export const inbodyService = {
     if (!contract) {
       throw err("No contract relationship with this client", 403);
     }
+    // A contract paused on its own (CONTRACT scope) closes the PT's access to THAT client's body data too.
+    await assertPtMayActOnContract(ptUserId, contract.id);
     return inbodyRepository.findByUserId(clientUserId);
   },
 

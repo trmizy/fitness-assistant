@@ -5,8 +5,8 @@ interface AuthRequest extends Request {
   user?: { id: string; role: string };
 }
 
-function err(res: Response, status: number, message: string) {
-  res.status(status).json({ error: message });
+function err(res: Response, status: number, message: string, code?: string) {
+  res.status(status).json({ error: message, ...(code ? { code } : {}) });
 }
 
 export const ptServicePackageController = {
@@ -39,7 +39,7 @@ export const ptServicePackageController = {
       const result = await ptServicePackageService.createPackage(ptUserId, req.body);
       res.status(201).json(result);
     } catch (e: any) {
-      err(res, e.status || 500, e.message || "Internal server error");
+      err(res, e.status || 500, e.message || "Internal server error", e.status ? e.code : undefined);
     }
   },
 
@@ -51,7 +51,7 @@ export const ptServicePackageController = {
       const result = await ptServicePackageService.updatePackage(ptUserId, id, req.body);
       res.json(result);
     } catch (e: any) {
-      err(res, e.status || 500, e.message || "Internal server error");
+      err(res, e.status || 500, e.message || "Internal server error", e.status ? e.code : undefined);
     }
   },
 

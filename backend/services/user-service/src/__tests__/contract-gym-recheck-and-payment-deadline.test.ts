@@ -21,6 +21,13 @@ import {
   CONTRACT_PAYMENT_DEADLINE_HOURS,
   CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES,
 } from "../services/contract.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];

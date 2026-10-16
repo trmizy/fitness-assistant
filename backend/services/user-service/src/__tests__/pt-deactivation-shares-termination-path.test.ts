@@ -20,6 +20,16 @@ import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
 import { Prisma } from "../generated/prisma";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
+import { sessionRepository } from "../repositories/session.repository";
+import { auditService } from "../services/audit.service";
+import { notificationService } from "../services/notification.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];
@@ -60,9 +70,11 @@ test("unwindContract dùng terminateContractMoney (đường dùng chung), khoá
     terminateCalls.push(body);
     return { refund: "0.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
-  const restoreSessionUpdateMany = patch(prisma.session, "updateMany", async () => ({ count: 0 }) as any);
-  const restoreContractUpdate = patch(contractRepository, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
+  // No DB here: the unwind's session read, audit write and notification are all stubbed.
+  const restoreSessionUpdateMany = patch(sessionRepository, "findByContractInStatuses", async () => []);
+  const restoreContractUpdate = patch(auditService, "record", async () => undefined);
+  const restoreNotify = patch(notificationService, "create", async () => ({}) as any);
 
   try {
     await (ptDeactivationService as any).unwindContract(contract, "Tài khoản huấn luyện viên bị khoá");
@@ -79,6 +91,7 @@ test("unwindContract dùng terminateContractMoney (đường dùng chung), khoá
     restoreUpdate();
     restoreSessionUpdateMany();
     restoreContractUpdate();
+    restoreNotify();
   }
 });
 
@@ -92,9 +105,11 @@ test("gọi unwindContract hai lần liên tiếp cho cùng hợp đồng dùng 
     terminateCalls.push(body);
     return { refund: "0.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
-  const restoreSessionUpdateMany = patch(prisma.session, "updateMany", async () => ({ count: 0 }) as any);
-  const restoreContractUpdate = patch(contractRepository, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
+  // No DB here: the unwind's session read, audit write and notification are all stubbed.
+  const restoreSessionUpdateMany = patch(sessionRepository, "findByContractInStatuses", async () => []);
+  const restoreContractUpdate = patch(auditService, "record", async () => undefined);
+  const restoreNotify = patch(notificationService, "create", async () => ({}) as any);
 
   try {
     await (ptDeactivationService as any).unwindContract(contract, "Tài khoản huấn luyện viên bị khoá");
@@ -112,5 +127,6 @@ test("gọi unwindContract hai lần liên tiếp cho cùng hợp đồng dùng 
     restoreUpdate();
     restoreSessionUpdateMany();
     restoreContractUpdate();
+    restoreNotify();
   }
 });

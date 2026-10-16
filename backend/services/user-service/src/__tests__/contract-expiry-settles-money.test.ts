@@ -21,6 +21,13 @@ import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
 import { Prisma } from "../generated/prisma";
 import { contractService } from "../services/contract.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];
@@ -62,7 +69,7 @@ test("expireContracts gọi terminateContractMoney(id, 'EXPIRED') cho mỗi hợ
     terminateCalls.push(body);
     return { refund: "0.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
   // Guards against the OLD behaviour so a regression is caught even if someone re-adds it
   // alongside the fix instead of in place of it.
   const restoreUpdateStatus = patch(contractRepository, "updateStatus", async () => {
@@ -102,7 +109,7 @@ test("một hợp đồng quá hạn lỗi không chặn các hợp đồng khá
     terminateCalls.push(body);
     return { refund: "0.00" };
   });
-  const restoreUpdate = patch(prisma.contract, "update", async () => ({}) as any);
+  const restoreUpdate = patch(prisma.contract, "updateMany", async () => ({ count: 1 }) as any);
 
   try {
     const count = await contractService.expireContracts();

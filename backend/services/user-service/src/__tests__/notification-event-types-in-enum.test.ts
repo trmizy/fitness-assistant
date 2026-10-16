@@ -33,12 +33,12 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-/** Every `notificationService.create({...})` / `deps.notify({...})` object literal in the service. */
+/** Every `notificationService.create({...})` / `createInTx(tx, {...})` / `deps.notify({...})` / `notifyBest({...})` object literal in the service. */
 function notificationCalls(): { file: string; eventType: string; entityType: string }[] {
   const calls: { file: string; eventType: string; entityType: string }[] = [];
   for (const file of sourceFiles(root)) {
     const text = fs.readFileSync(file, "utf8");
-    const opener = /(?:notificationService\s*\.\s*create|deps\.notify)\s*\(\s*\{/g;
+    const opener = /(?:notificationService\s*\.\s*create|deps\.notify|notifyBest)\s*\(\s*\{|notificationService\s*\.\s*createInTx\s*\(\s*\w+\s*,\s*\{/g;
     for (let m = opener.exec(text); m; m = opener.exec(text)) {
       const block = text.slice(m.index, text.indexOf("})", m.index));
       const eventType = block.match(/eventType:\s*"([A-Z_]+)"/)?.[1];
@@ -56,6 +56,13 @@ test("every stored notification uses an event type and entity type the database 
   // The scan itself must keep finding the call sites it exists to guard.
   assert.ok(calls.length >= 20, `expected to find the notification call sites, found ${calls.length}`);
   assert.ok(calls.some((c) => c.eventType === "SESSION_PENDING_CONFIRMATION"));
+  // PT-suspension slice 4: both new types are sent (by pt-restriction.service.ts) and exist in the enum.
+  for (const type of ["CONTRACT_PAUSED_PT_SUSPENDED", "CONTRACT_RESUMED_PT_REINSTATED"]) {
+    assert.ok(eventTypes.has(type), `${type} is a value of NotificationEventType`);
+    assert.ok(calls.some((c) => c.eventType === type && c.file.endsWith("pt-restriction.service.ts")), `${type} is sent`);
+  }
+  // …and the suspension no longer falls back on the SESSION_CANCELLED stopgap.
+  assert.ok(!calls.some((c) => c.file.endsWith("pt-restriction.service.ts") && c.eventType === "SESSION_CANCELLED"));
 
   const unknown = calls.filter((c) => !eventTypes.has(c.eventType) || !entityTypes.has(c.entityType));
   assert.deepEqual(unknown, []);

@@ -68,6 +68,11 @@ model UserProfile {
   // suspension and can be restored by simply re-enabling the account. While true the PT
   // is hidden from discovery and cannot take new bookings.
   ptSuspended Boolean @default(false) @map("pt_suspended")
+  // Sequence number (auth-service's PtDeactivationCall.seq) of the last lock/unlock command applied to
+  // this PT. A command carrying a LOWER number than this is stale and is ignored, so a lock that was
+  // retried or delayed past a later unlock (or lock) can never undo it — ordering is decided by this
+  // durable number, not by arrival order. Null = no command received yet.
+  ptLockSeq   BigInt? @map("pt_lock_seq")
   // Short human-typeable code a client enters when buying a gym membership to credit this
   // PT with the referral commission (money-flow plan §2.1). Assigned once, at PT approval —
   // never regenerated, so a code a PT has already shared never goes stale.
@@ -384,6 +389,7 @@ enum TerminationReason {
   EXPIRED          // ran past its end date with sessions unused — nothing refunded
   COMPLETED        // quota fully used — nothing to refund
   PT_REPEATED_NO_SHOW // Vòng 4 / E2 — client's own right after a 3rd confirmed PT no-show, full refund
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION // client left because the PT is suspended/banned — full refund of the unused value, no fee, nobody at fault; substituted by the server, never sent by a client
 }
 
 enum PackageType {
@@ -506,6 +512,11 @@ enum NotificationEventType {
   // Admin approved / rejected / asked for more on a trainer application — the result the
   // applicant's own status screen promises a notification for.
   PT_APPLICATION_REVIEWED
+  // PT-suspension slice 4 — a temporary suspension opened / lifted, told to the PT and to every client
+  // with a live paid contract with them. Direct consequences of the recipient's own contract, so no
+  // opt-out preference entry (same reasoning as CONTRACT_CANCELLED_PT_DEACTIVATED).
+  CONTRACT_PAUSED_PT_SUSPENDED
+  CONTRACT_RESUMED_PT_REINSTATED
 }
 
 enum NotificationEntityType {
@@ -655,6 +666,16 @@ model Contract {
   // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
   terminationReason  TerminationReason? @map("termination_reason")
   terminatedAt       DateTime?          @map("terminated_at")
+  /// PT-suspension slice 4 (bổ sung 11/10, B): set — durably, BEFORE the money call — at the moment the
+  /// server ACCEPTS a client's request to leave a restricted PT's contract without a fee. From then on that
+  /// request keeps the no-fee terms even if the restriction is lifted before it finishes (a retry after a
+  /// failed money call completes as CLIENT_EXIT_DUE_TO_PT_RESTRICTION, never silently as a 10% cancellation).
+  /// Honoured for a bounded time only (CLIENT_EXIT_ACCEPTANCE_TTL_MS), so an abandoned attempt cannot
+  /// grant a free exit months later. Null on every contract nobody tried to leave.
+  clientExitAcceptedAt DateTime? @map("client_exit_accepted_at")
+  /// The restriction episode in force when the exit was accepted (null if the accepted request is replayed
+  /// after the episode ended, or the episode id is the synthetic legacy-flag one).
+  clientExitRestrictionId String? @map("client_exit_restriction_id")
   /// Money already moved out of the pending buckets for this contract, per party. Lets
   /// termination top each party up to their final entitlement instead of double-paying the
   /// part already released session by session.
@@ -681,6 +702,8 @@ model Contract {
   sessions           Session[]
   reviews            SessionReview[]
   clientReviews      ClientReview[]
+  /// Contract-scoped restriction episodes (PtRestriction.scope = CONTRACT) placed on this contract.
+  ptRestrictions     PtRestriction[]
 
   @@index([ptUserId])
   @@index([clientUserId])
@@ -1119,6 +1142,10 @@ enum SessionSettlementKind {
   CONTRACT_TERMINATION
   /// Open-room online session — PT joined after the grace window (compensateLateArrivalMoney).
   PT_LATE_ARRIVAL_COMPENSATION
+  /// A session the PT reported delivered (or that is disputed) when the client left a restricted PT's contract:
+  /// its value was held by payment-service, and this row carries the money step that settles it once the
+  /// session is decided (key UNRESOLVED_SESSION:<sessionId>, `reason` = DELIVERED | NOT_DELIVERED).
+  UNRESOLVED_SESSION_RESOLUTION
 }
 
 enum SessionSettlementStatus {
@@ -1258,4 +1285,124 @@ model UserPreference {
   // cannot be declared here. Documented, not silently dropped: `prisma
   // migrate diff` will always show this one constraint as a delta
   // against a datamodel-only comparison; it is not a data-bearing drift.
+}
+
+// ── PT restriction history (PT-suspension slices 2–3) ─────────────────────────────────────
+//
+// One row per restriction EPISODE of a PT — a history, not a flag. TEMPORARY_SUSPENSION is the
+// reversible "the PT is paused" state (contracts stay ACTIVE; see pt-restriction.service.ts,
+// getEffectiveContractStatus); PERMANENT_BAN is the existing account lock (slice 1), which unwinds
+// and refunds every open contract. A PT can be suspended, lifted and suspended again: each episode
+// is its own row, closed (endedAt set) rather than updated back.
+//
+// Source of truth: a row with endedAt IS NULL means the PT is restricted RIGHT NOW. The column
+// UserProfile.ptSuspended is only a denormalised mirror of "such a row exists" (kept so the many
+// `ptSuspended: false` discovery filters stay a plain column read); it is written ONLY by
+// pt-restriction.service.ts, in the same transaction that opens or closes an episode — never
+// directly. UserProfile.ptLockSeq is NOT part of this record: it remains the ordering token for the
+// auth-service lock/unlock command stream (a stale or retried command must not undo a newer one).
+//
+// "At most one ACTIVE episode per PT" was enforced by a raw-SQL partial unique index (Prisma's
+// schema DSL can't express a WHERE-conditioned unique index). Since the contract-scope slice
+// (migration 20261012100000_pt_restriction_contract_scope) the rule is split in two, by `scope`:
+//   · pt_restrictions_one_active_account_per_pt  ON (pt_user_id) WHERE ended_at IS NULL AND scope = 'ACCOUNT'
+//   · pt_restrictions_one_active_per_contract    ON (contract_id) WHERE ended_at IS NULL AND scope = 'CONTRACT'
+// i.e. one active ACCOUNT-or-BAN episode per PT, and one active CONTRACT episode per contract. A PT can
+// therefore have one account episode AND several contract episodes at the same time (the combined
+// state). `prisma migrate dev` would try to drop these indexes; this repo applies migrations with
+// `migrate deploy`.
+//
+// SCOPE (owner's decision D38 — three levels): CONTRACT scope restricts coaching on ONE contract only
+// (type is always TEMPORARY_SUSPENSION; contractId set); ACCOUNT scope with type TEMPORARY_SUSPENSION is
+// the PT-wide pause; ACCOUNT scope with type PERMANENT_BAN is the account lock. Every row that existed
+// before the scope column is ACCOUNT scope. UserProfile.ptSuspended mirrors ACCOUNT-scope rows ONLY.
+enum PtRestrictionType {
+  TEMPORARY_SUSPENSION
+  PERMANENT_BAN
+}
+
+enum PtRestrictionReasonCategory {
+  COMPLAINT_REVIEW        // a complaint about the PT is being looked at
+  CONDUCT_REVIEW          // conduct / safety concern under review
+  PAYMENT_REVIEW          // payment or fraud concern under review
+  DOCUMENT_VERIFICATION   // credentials / documents need re-verification
+  ACCOUNT_SECURITY        // suspected account takeover
+  OTHER
+  UNSPECIFIED             // the lock command carried no category (auth-service lock, legacy rows)
+}
+
+enum PtRestrictionEndKind {
+  LIFTED                  // an admin lifted it (or the account was unlocked)
+  CONVERTED_TO_PERMANENT  // closed at the instant a permanent ban replaced it
+  SCOPE_RAISED            // a contract episode closed because an admin raised it to an account episode
+  SCOPE_NARROWED          // an account episode closed because an admin narrowed it to specific contracts
+  CONTRACT_ENDED          // a contract episode closed because its contract ended (nothing left to extend)
+}
+
+enum PtRestrictionScope {
+  ACCOUNT   // the PT as a whole (temporary suspension) or the account lock (permanent ban)
+  CONTRACT  // one contract only; the PT keeps coaching everyone else
+}
+
+model PtRestriction {
+  id             String                      @id @default(uuid())
+  ptUserId       String                      @map("pt_user_id")
+  type           PtRestrictionType
+  reasonCategory PtRestrictionReasonCategory @default(UNSPECIFIED) @map("reason_category")
+  /// Internal note — admins only, never shown to the PT.
+  reasonText     String?                     @map("reason_text")
+  /// What the PT may be told (shown by GET /profile/me/restriction). Null = category label only.
+  publicReason   String?                     @map("public_reason")
+  imposedBy      String                      @map("imposed_by")
+  /// Auth-service command number that opened a PERMANENT_BAN (traceability only; null for a temporary suspension).
+  lockSeq        BigInt?                     @map("lock_seq")
+  /// A true instant (timestamp, UTC). Contract end dates are shifted by differences of these instants.
+  startedAt      DateTime                    @default(now()) @map("started_at")
+  /// Null while the episode is active.
+  endedAt        DateTime?                   @map("ended_at")
+  endKind        PtRestrictionEndKind?       @map("end_kind")
+  liftedBy       String?                     @map("lifted_by")
+  liftReason     String?                     @map("lift_reason")
+  /// Overdue tracking: the last time an admin justified continuing (null = never; the clock then runs from startedAt).
+  lastJustifiedAt     DateTime?              @map("last_justified_at")
+  lastJustifiedBy     String?                @map("last_justified_by")
+  lastJustification   String?                @map("last_justification")
+  createdAt      DateTime                    @default(now()) @map("created_at")
+  updatedAt      DateTime                    @updatedAt @map("updated_at")
+
+  /// ACCOUNT (default; every row from before the column existed) or CONTRACT. See the comment above the enums.
+  scope          PtRestrictionScope          @default(ACCOUNT)
+  /// Set exactly when scope = CONTRACT (a CHECK constraint says so): the one contract this episode restricts.
+  contractId     String?                     @map("contract_id")
+  /// The episode this one replaces when an admin changed the scope (raise: the contract episode; narrow: the
+  /// account episode). Traceability only, no foreign key. The reason and instant of the change are this row's
+  /// reasonText/startedAt and the closed row's liftReason/endedAt/endKind.
+  supersedesRestrictionId String?            @map("supersedes_restriction_id")
+
+  contract           Contract? @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractExtensions PtRestrictionContractExtension[]
+
+  @@index([ptUserId, startedAt])
+  @@index([contractId])
+  @@map("pt_restrictions")
+}
+
+/// What one lifted episode added to one contract's endDate. The unique (restrictionId, contractId)
+/// is the idempotency guard: a repeated "lift" (or a retry after a crash) cannot extend a contract
+/// twice for the same episode, and it is the audit record of "by how much, from what to what".
+model PtRestrictionContractExtension {
+  id              String        @id @default(uuid())
+  restrictionId   String        @map("restriction_id")
+  contractId      String        @map("contract_id")
+  /// Milliseconds of the contract's own running time the episode blocked (lift − max(episode start, activation)).
+  blockedMs       BigInt        @map("blocked_ms")
+  previousEndDate DateTime      @map("previous_end_date")
+  newEndDate      DateTime      @map("new_end_date")
+  appliedAt       DateTime      @default(now()) @map("applied_at")
+
+  restriction     PtRestriction @relation(fields: [restrictionId], references: [id], onDelete: Cascade)
+
+  @@unique([restrictionId, contractId], map: "pt_restriction_ext_restriction_contract_key")
+  @@index([contractId])
+  @@map("pt_restriction_contract_extensions")
 }

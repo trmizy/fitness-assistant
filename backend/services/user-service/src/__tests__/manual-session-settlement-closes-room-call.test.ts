@@ -5,7 +5,15 @@ import axios from "axios";
 import { SessionStatus } from "../generated/prisma";
 import { bookingService } from "../services/booking.service";
 import { sessionRepository } from "../repositories/session.repository";
+import { contractRepository } from "../repositories/contract.repository";
 import { notificationService } from "../services/notification.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Regression (real phone + web, 7/10): the call row of an online session's room is never ended
@@ -41,7 +49,12 @@ async function settle(sessionMode: "ONLINE" | "OFFLINE", run: (sessionId: string
   const posts: { url: string; body: any }[] = [];
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus) => ({ ...session, status }) as any),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    // F1: the status writes are compare-and-sets now
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
+      (session as any).status = status;
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
     patch(axios, "post", async (url: string, body: any) => {
       posts.push({ url, body });

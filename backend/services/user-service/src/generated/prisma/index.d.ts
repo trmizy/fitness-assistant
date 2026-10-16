@@ -143,6 +143,18 @@ export type AgentContractDraft = $Result.DefaultSelection<Prisma.$AgentContractD
  * anywhere in this repo references this model (grep-verified).
  */
 export type UserPreference = $Result.DefaultSelection<Prisma.$UserPreferencePayload>
+/**
+ * Model PtRestriction
+ * 
+ */
+export type PtRestriction = $Result.DefaultSelection<Prisma.$PtRestrictionPayload>
+/**
+ * Model PtRestrictionContractExtension
+ * What one lifted episode added to one contract's endDate. The unique (restrictionId, contractId)
+ * is the idempotency guard: a repeated "lift" (or a retry after a crash) cannot extend a contract
+ * twice for the same episode, and it is the audit record of "by how much, from what to what".
+ */
+export type PtRestrictionContractExtension = $Result.DefaultSelection<Prisma.$PtRestrictionContractExtensionPayload>
 
 /**
  * Enums
@@ -273,7 +285,8 @@ export const TerminationReason: {
   MUTUAL: 'MUTUAL',
   EXPIRED: 'EXPIRED',
   COMPLETED: 'COMPLETED',
-  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW'
+  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW',
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'
 };
 
 export type TerminationReason = (typeof TerminationReason)[keyof typeof TerminationReason]
@@ -333,7 +346,9 @@ export const NotificationEventType: {
   SESSION_PT_NO_SHOW_REPORTED: 'SESSION_PT_NO_SHOW_REPORTED',
   CONTRACT_CANCELLED_PT_DEACTIVATED: 'CONTRACT_CANCELLED_PT_DEACTIVATED',
   REFUND_NEEDS_MANUAL_SETTLEMENT: 'REFUND_NEEDS_MANUAL_SETTLEMENT',
-  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED'
+  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED',
+  CONTRACT_PAUSED_PT_SUSPENDED: 'CONTRACT_PAUSED_PT_SUSPENDED',
+  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -400,7 +415,8 @@ export const SessionSettlementKind: {
   PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
   SESSION_RELEASE: 'SESSION_RELEASE',
   CONTRACT_TERMINATION: 'CONTRACT_TERMINATION',
-  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION'
+  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION',
+  UNRESOLVED_SESSION_RESOLUTION: 'UNRESOLVED_SESSION_RESOLUTION'
 };
 
 export type SessionSettlementKind = (typeof SessionSettlementKind)[keyof typeof SessionSettlementKind]
@@ -414,6 +430,46 @@ export const SessionSettlementStatus: {
 };
 
 export type SessionSettlementStatus = (typeof SessionSettlementStatus)[keyof typeof SessionSettlementStatus]
+
+
+export const PtRestrictionType: {
+  TEMPORARY_SUSPENSION: 'TEMPORARY_SUSPENSION',
+  PERMANENT_BAN: 'PERMANENT_BAN'
+};
+
+export type PtRestrictionType = (typeof PtRestrictionType)[keyof typeof PtRestrictionType]
+
+
+export const PtRestrictionReasonCategory: {
+  COMPLAINT_REVIEW: 'COMPLAINT_REVIEW',
+  CONDUCT_REVIEW: 'CONDUCT_REVIEW',
+  PAYMENT_REVIEW: 'PAYMENT_REVIEW',
+  DOCUMENT_VERIFICATION: 'DOCUMENT_VERIFICATION',
+  ACCOUNT_SECURITY: 'ACCOUNT_SECURITY',
+  OTHER: 'OTHER',
+  UNSPECIFIED: 'UNSPECIFIED'
+};
+
+export type PtRestrictionReasonCategory = (typeof PtRestrictionReasonCategory)[keyof typeof PtRestrictionReasonCategory]
+
+
+export const PtRestrictionEndKind: {
+  LIFTED: 'LIFTED',
+  CONVERTED_TO_PERMANENT: 'CONVERTED_TO_PERMANENT',
+  SCOPE_RAISED: 'SCOPE_RAISED',
+  SCOPE_NARROWED: 'SCOPE_NARROWED',
+  CONTRACT_ENDED: 'CONTRACT_ENDED'
+};
+
+export type PtRestrictionEndKind = (typeof PtRestrictionEndKind)[keyof typeof PtRestrictionEndKind]
+
+
+export const PtRestrictionScope: {
+  ACCOUNT: 'ACCOUNT',
+  CONTRACT: 'CONTRACT'
+};
+
+export type PtRestrictionScope = (typeof PtRestrictionScope)[keyof typeof PtRestrictionScope]
 
 }
 
@@ -508,6 +564,22 @@ export const SessionSettlementKind: typeof $Enums.SessionSettlementKind
 export type SessionSettlementStatus = $Enums.SessionSettlementStatus
 
 export const SessionSettlementStatus: typeof $Enums.SessionSettlementStatus
+
+export type PtRestrictionType = $Enums.PtRestrictionType
+
+export const PtRestrictionType: typeof $Enums.PtRestrictionType
+
+export type PtRestrictionReasonCategory = $Enums.PtRestrictionReasonCategory
+
+export const PtRestrictionReasonCategory: typeof $Enums.PtRestrictionReasonCategory
+
+export type PtRestrictionEndKind = $Enums.PtRestrictionEndKind
+
+export const PtRestrictionEndKind: typeof $Enums.PtRestrictionEndKind
+
+export type PtRestrictionScope = $Enums.PtRestrictionScope
+
+export const PtRestrictionScope: typeof $Enums.PtRestrictionScope
 
 /**
  * ##  Prisma Client ʲˢ
@@ -871,6 +943,26 @@ export class PrismaClient<
     * ```
     */
   get userPreference(): Prisma.UserPreferenceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptRestriction`: Exposes CRUD operations for the **PtRestriction** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtRestrictions
+    * const ptRestrictions = await prisma.ptRestriction.findMany()
+    * ```
+    */
+  get ptRestriction(): Prisma.PtRestrictionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptRestrictionContractExtension`: Exposes CRUD operations for the **PtRestrictionContractExtension** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtRestrictionContractExtensions
+    * const ptRestrictionContractExtensions = await prisma.ptRestrictionContractExtension.findMany()
+    * ```
+    */
+  get ptRestrictionContractExtension(): Prisma.PtRestrictionContractExtensionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1335,7 +1427,9 @@ export namespace Prisma {
     SessionSettlement: 'SessionSettlement',
     ClientJourney: 'ClientJourney',
     AgentContractDraft: 'AgentContractDraft',
-    UserPreference: 'UserPreference'
+    UserPreference: 'UserPreference',
+    PtRestriction: 'PtRestriction',
+    PtRestrictionContractExtension: 'PtRestrictionContractExtension'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1351,7 +1445,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3035,6 +3129,146 @@ export namespace Prisma {
           }
         }
       }
+      PtRestriction: {
+        payload: Prisma.$PtRestrictionPayload<ExtArgs>
+        fields: Prisma.PtRestrictionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtRestrictionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtRestrictionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          findFirst: {
+            args: Prisma.PtRestrictionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtRestrictionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          findMany: {
+            args: Prisma.PtRestrictionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>[]
+          }
+          create: {
+            args: Prisma.PtRestrictionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          createMany: {
+            args: Prisma.PtRestrictionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtRestrictionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>[]
+          }
+          delete: {
+            args: Prisma.PtRestrictionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          update: {
+            args: Prisma.PtRestrictionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtRestrictionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtRestrictionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtRestrictionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionPayload>
+          }
+          aggregate: {
+            args: Prisma.PtRestrictionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtRestriction>
+          }
+          groupBy: {
+            args: Prisma.PtRestrictionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtRestrictionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtRestrictionCountArgs<ExtArgs>
+            result: $Utils.Optional<PtRestrictionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtRestrictionContractExtension: {
+        payload: Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>
+        fields: Prisma.PtRestrictionContractExtensionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtRestrictionContractExtensionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtRestrictionContractExtensionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          findFirst: {
+            args: Prisma.PtRestrictionContractExtensionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtRestrictionContractExtensionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          findMany: {
+            args: Prisma.PtRestrictionContractExtensionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>[]
+          }
+          create: {
+            args: Prisma.PtRestrictionContractExtensionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          createMany: {
+            args: Prisma.PtRestrictionContractExtensionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtRestrictionContractExtensionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>[]
+          }
+          delete: {
+            args: Prisma.PtRestrictionContractExtensionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          update: {
+            args: Prisma.PtRestrictionContractExtensionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtRestrictionContractExtensionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtRestrictionContractExtensionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtRestrictionContractExtensionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtRestrictionContractExtensionPayload>
+          }
+          aggregate: {
+            args: Prisma.PtRestrictionContractExtensionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtRestrictionContractExtension>
+          }
+          groupBy: {
+            args: Prisma.PtRestrictionContractExtensionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtRestrictionContractExtensionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtRestrictionContractExtensionCountArgs<ExtArgs>
+            result: $Utils.Optional<PtRestrictionContractExtensionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3298,6 +3532,7 @@ export namespace Prisma {
     sessions: number
     reviews: number
     clientReviews: number
+    ptRestrictions: number
   }
 
   export type ContractCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3305,6 +3540,7 @@ export namespace Prisma {
     sessions?: boolean | ContractCountOutputTypeCountSessionsArgs
     reviews?: boolean | ContractCountOutputTypeCountReviewsArgs
     clientReviews?: boolean | ContractCountOutputTypeCountClientReviewsArgs
+    ptRestrictions?: boolean | ContractCountOutputTypeCountPtRestrictionsArgs
   }
 
   // Custom InputTypes
@@ -3344,6 +3580,13 @@ export namespace Prisma {
    */
   export type ContractCountOutputTypeCountClientReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ClientReviewWhereInput
+  }
+
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeCountPtRestrictionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtRestrictionWhereInput
   }
 
 
@@ -3450,6 +3693,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type PtRestrictionCountOutputType
+   */
+
+  export type PtRestrictionCountOutputType = {
+    contractExtensions: number
+  }
+
+  export type PtRestrictionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    contractExtensions?: boolean | PtRestrictionCountOutputTypeCountContractExtensionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PtRestrictionCountOutputType without action
+   */
+  export type PtRestrictionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionCountOutputType
+     */
+    select?: PtRestrictionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PtRestrictionCountOutputType without action
+   */
+  export type PtRestrictionCountOutputTypeCountContractExtensionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtRestrictionContractExtensionWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -3466,6 +3740,7 @@ export namespace Prisma {
   }
 
   export type UserProfileAvgAggregateOutputType = {
+    ptLockSeq: number | null
     age: number | null
     heightCm: number | null
     preferredTrainingDays: number | null
@@ -3477,6 +3752,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumAggregateOutputType = {
+    ptLockSeq: bigint | null
     age: number | null
     heightCm: number | null
     preferredTrainingDays: number[]
@@ -3495,6 +3771,7 @@ export namespace Prisma {
     email: string | null
     isPT: boolean | null
     ptSuspended: boolean | null
+    ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
     age: number | null
@@ -3540,6 +3817,7 @@ export namespace Prisma {
     email: string | null
     isPT: boolean | null
     ptSuspended: boolean | null
+    ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
     age: number | null
@@ -3585,6 +3863,7 @@ export namespace Prisma {
     email: number
     isPT: number
     ptSuspended: number
+    ptLockSeq: number
     referralCode: number
     dateOfBirth: number
     age: number
@@ -3631,6 +3910,7 @@ export namespace Prisma {
 
 
   export type UserProfileAvgAggregateInputType = {
+    ptLockSeq?: true
     age?: true
     heightCm?: true
     preferredTrainingDays?: true
@@ -3642,6 +3922,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumAggregateInputType = {
+    ptLockSeq?: true
     age?: true
     heightCm?: true
     preferredTrainingDays?: true
@@ -3660,6 +3941,7 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
     age?: true
@@ -3705,6 +3987,7 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
     age?: true
@@ -3750,6 +4033,7 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
     age?: true
@@ -3888,6 +4172,7 @@ export namespace Prisma {
     email: string | null
     isPT: boolean
     ptSuspended: boolean
+    ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
     age: number | null
@@ -3958,6 +4243,7 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
     age?: boolean
@@ -4015,6 +4301,7 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
     age?: boolean
@@ -4066,6 +4353,7 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
     age?: boolean
@@ -4136,6 +4424,7 @@ export namespace Prisma {
       email: string | null
       isPT: boolean
       ptSuspended: boolean
+      ptLockSeq: bigint | null
       referralCode: string | null
       dateOfBirth: Date | null
       age: number | null
@@ -4582,6 +4871,7 @@ export namespace Prisma {
     readonly email: FieldRef<"UserProfile", 'String'>
     readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly ptSuspended: FieldRef<"UserProfile", 'Boolean'>
+    readonly ptLockSeq: FieldRef<"UserProfile", 'BigInt'>
     readonly referralCode: FieldRef<"UserProfile", 'String'>
     readonly dateOfBirth: FieldRef<"UserProfile", 'DateTime'>
     readonly age: FieldRef<"UserProfile", 'Int'>
@@ -8729,6 +9019,8 @@ export namespace Prisma {
     gymRate: Decimal | null
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
+    clientExitAcceptedAt: Date | null
+    clientExitRestrictionId: string | null
     releasedToPt: Decimal | null
     releasedToGym: Decimal | null
     releasedToPlatform: Decimal | null
@@ -8793,6 +9085,8 @@ export namespace Prisma {
     gymRate: Decimal | null
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
+    clientExitAcceptedAt: Date | null
+    clientExitRestrictionId: string | null
     releasedToPt: Decimal | null
     releasedToGym: Decimal | null
     releasedToPlatform: Decimal | null
@@ -8857,6 +9151,8 @@ export namespace Prisma {
     gymRate: number
     terminationReason: number
     terminatedAt: number
+    clientExitAcceptedAt: number
+    clientExitRestrictionId: number
     releasedToPt: number
     releasedToGym: number
     releasedToPlatform: number
@@ -8963,6 +9259,8 @@ export namespace Prisma {
     gymRate?: true
     terminationReason?: true
     terminatedAt?: true
+    clientExitAcceptedAt?: true
+    clientExitRestrictionId?: true
     releasedToPt?: true
     releasedToGym?: true
     releasedToPlatform?: true
@@ -9027,6 +9325,8 @@ export namespace Prisma {
     gymRate?: true
     terminationReason?: true
     terminatedAt?: true
+    clientExitAcceptedAt?: true
+    clientExitRestrictionId?: true
     releasedToPt?: true
     releasedToGym?: true
     releasedToPlatform?: true
@@ -9091,6 +9391,8 @@ export namespace Prisma {
     gymRate?: true
     terminationReason?: true
     terminatedAt?: true
+    clientExitAcceptedAt?: true
+    clientExitRestrictionId?: true
     releasedToPt?: true
     releasedToGym?: true
     releasedToPlatform?: true
@@ -9242,6 +9544,8 @@ export namespace Prisma {
     gymRate: Decimal
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
+    clientExitAcceptedAt: Date | null
+    clientExitRestrictionId: string | null
     releasedToPt: Decimal
     releasedToGym: Decimal
     releasedToPlatform: Decimal
@@ -9325,6 +9629,8 @@ export namespace Prisma {
     gymRate?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
+    clientExitAcceptedAt?: boolean
+    clientExitRestrictionId?: boolean
     releasedToPt?: boolean
     releasedToGym?: boolean
     releasedToPlatform?: boolean
@@ -9339,6 +9645,7 @@ export namespace Prisma {
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
     clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
+    ptRestrictions?: boolean | Contract$ptRestrictionsArgs<ExtArgs>
     _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contract"]>
 
@@ -9394,6 +9701,8 @@ export namespace Prisma {
     gymRate?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
+    clientExitAcceptedAt?: boolean
+    clientExitRestrictionId?: boolean
     releasedToPt?: boolean
     releasedToGym?: boolean
     releasedToPlatform?: boolean
@@ -9458,6 +9767,8 @@ export namespace Prisma {
     gymRate?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
+    clientExitAcceptedAt?: boolean
+    clientExitRestrictionId?: boolean
     releasedToPt?: boolean
     releasedToGym?: boolean
     releasedToPlatform?: boolean
@@ -9475,6 +9786,7 @@ export namespace Prisma {
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
     reviews?: boolean | Contract$reviewsArgs<ExtArgs>
     clientReviews?: boolean | Contract$clientReviewsArgs<ExtArgs>
+    ptRestrictions?: boolean | Contract$ptRestrictionsArgs<ExtArgs>
     _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ContractIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -9486,6 +9798,10 @@ export namespace Prisma {
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       reviews: Prisma.$SessionReviewPayload<ExtArgs>[]
       clientReviews: Prisma.$ClientReviewPayload<ExtArgs>[]
+      /**
+       * Contract-scoped restriction episodes (PtRestriction.scope = CONTRACT) placed on this contract.
+       */
+      ptRestrictions: Prisma.$PtRestrictionPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       agentActionId: string | null
@@ -9539,6 +9855,20 @@ export namespace Prisma {
       gymRate: Prisma.Decimal
       terminationReason: $Enums.TerminationReason | null
       terminatedAt: Date | null
+      /**
+       * PT-suspension slice 4 (bổ sung 11/10, B): set — durably, BEFORE the money call — at the moment the
+       * server ACCEPTS a client's request to leave a restricted PT's contract without a fee. From then on that
+       * request keeps the no-fee terms even if the restriction is lifted before it finishes (a retry after a
+       * failed money call completes as CLIENT_EXIT_DUE_TO_PT_RESTRICTION, never silently as a 10% cancellation).
+       * Honoured for a bounded time only (CLIENT_EXIT_ACCEPTANCE_TTL_MS), so an abandoned attempt cannot
+       * grant a free exit months later. Null on every contract nobody tried to leave.
+       */
+      clientExitAcceptedAt: Date | null
+      /**
+       * The restriction episode in force when the exit was accepted (null if the accepted request is replayed
+       * after the episode ended, or the episode id is the synthetic legacy-flag one).
+       */
+      clientExitRestrictionId: string | null
       /**
        * Money already moved out of the pending buckets for this contract, per party. Lets
        * termination top each party up to their final entitlement instead of double-paying the
@@ -9922,6 +10252,7 @@ export namespace Prisma {
     sessions<T extends Contract$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany"> | Null>
     reviews<T extends Contract$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findMany"> | Null>
     clientReviews<T extends Contract$clientReviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$clientReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    ptRestrictions<T extends Contract$ptRestrictionsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$ptRestrictionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10002,6 +10333,8 @@ export namespace Prisma {
     readonly gymRate: FieldRef<"Contract", 'Decimal'>
     readonly terminationReason: FieldRef<"Contract", 'TerminationReason'>
     readonly terminatedAt: FieldRef<"Contract", 'DateTime'>
+    readonly clientExitAcceptedAt: FieldRef<"Contract", 'DateTime'>
+    readonly clientExitRestrictionId: FieldRef<"Contract", 'String'>
     readonly releasedToPt: FieldRef<"Contract", 'Decimal'>
     readonly releasedToGym: FieldRef<"Contract", 'Decimal'>
     readonly releasedToPlatform: FieldRef<"Contract", 'Decimal'>
@@ -10403,6 +10736,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ClientReviewScalarFieldEnum | ClientReviewScalarFieldEnum[]
+  }
+
+  /**
+   * Contract.ptRestrictions
+   */
+  export type Contract$ptRestrictionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    where?: PtRestrictionWhereInput
+    orderBy?: PtRestrictionOrderByWithRelationInput | PtRestrictionOrderByWithRelationInput[]
+    cursor?: PtRestrictionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtRestrictionScalarFieldEnum | PtRestrictionScalarFieldEnum[]
   }
 
   /**
@@ -29966,6 +30319,2229 @@ export namespace Prisma {
 
 
   /**
+   * Model PtRestriction
+   */
+
+  export type AggregatePtRestriction = {
+    _count: PtRestrictionCountAggregateOutputType | null
+    _avg: PtRestrictionAvgAggregateOutputType | null
+    _sum: PtRestrictionSumAggregateOutputType | null
+    _min: PtRestrictionMinAggregateOutputType | null
+    _max: PtRestrictionMaxAggregateOutputType | null
+  }
+
+  export type PtRestrictionAvgAggregateOutputType = {
+    lockSeq: number | null
+  }
+
+  export type PtRestrictionSumAggregateOutputType = {
+    lockSeq: bigint | null
+  }
+
+  export type PtRestrictionMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    type: $Enums.PtRestrictionType | null
+    reasonCategory: $Enums.PtRestrictionReasonCategory | null
+    reasonText: string | null
+    publicReason: string | null
+    imposedBy: string | null
+    lockSeq: bigint | null
+    startedAt: Date | null
+    endedAt: Date | null
+    endKind: $Enums.PtRestrictionEndKind | null
+    liftedBy: string | null
+    liftReason: string | null
+    lastJustifiedAt: Date | null
+    lastJustifiedBy: string | null
+    lastJustification: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    scope: $Enums.PtRestrictionScope | null
+    contractId: string | null
+    supersedesRestrictionId: string | null
+  }
+
+  export type PtRestrictionMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    type: $Enums.PtRestrictionType | null
+    reasonCategory: $Enums.PtRestrictionReasonCategory | null
+    reasonText: string | null
+    publicReason: string | null
+    imposedBy: string | null
+    lockSeq: bigint | null
+    startedAt: Date | null
+    endedAt: Date | null
+    endKind: $Enums.PtRestrictionEndKind | null
+    liftedBy: string | null
+    liftReason: string | null
+    lastJustifiedAt: Date | null
+    lastJustifiedBy: string | null
+    lastJustification: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    scope: $Enums.PtRestrictionScope | null
+    contractId: string | null
+    supersedesRestrictionId: string | null
+  }
+
+  export type PtRestrictionCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    type: number
+    reasonCategory: number
+    reasonText: number
+    publicReason: number
+    imposedBy: number
+    lockSeq: number
+    startedAt: number
+    endedAt: number
+    endKind: number
+    liftedBy: number
+    liftReason: number
+    lastJustifiedAt: number
+    lastJustifiedBy: number
+    lastJustification: number
+    createdAt: number
+    updatedAt: number
+    scope: number
+    contractId: number
+    supersedesRestrictionId: number
+    _all: number
+  }
+
+
+  export type PtRestrictionAvgAggregateInputType = {
+    lockSeq?: true
+  }
+
+  export type PtRestrictionSumAggregateInputType = {
+    lockSeq?: true
+  }
+
+  export type PtRestrictionMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    type?: true
+    reasonCategory?: true
+    reasonText?: true
+    publicReason?: true
+    imposedBy?: true
+    lockSeq?: true
+    startedAt?: true
+    endedAt?: true
+    endKind?: true
+    liftedBy?: true
+    liftReason?: true
+    lastJustifiedAt?: true
+    lastJustifiedBy?: true
+    lastJustification?: true
+    createdAt?: true
+    updatedAt?: true
+    scope?: true
+    contractId?: true
+    supersedesRestrictionId?: true
+  }
+
+  export type PtRestrictionMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    type?: true
+    reasonCategory?: true
+    reasonText?: true
+    publicReason?: true
+    imposedBy?: true
+    lockSeq?: true
+    startedAt?: true
+    endedAt?: true
+    endKind?: true
+    liftedBy?: true
+    liftReason?: true
+    lastJustifiedAt?: true
+    lastJustifiedBy?: true
+    lastJustification?: true
+    createdAt?: true
+    updatedAt?: true
+    scope?: true
+    contractId?: true
+    supersedesRestrictionId?: true
+  }
+
+  export type PtRestrictionCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    type?: true
+    reasonCategory?: true
+    reasonText?: true
+    publicReason?: true
+    imposedBy?: true
+    lockSeq?: true
+    startedAt?: true
+    endedAt?: true
+    endKind?: true
+    liftedBy?: true
+    liftReason?: true
+    lastJustifiedAt?: true
+    lastJustifiedBy?: true
+    lastJustification?: true
+    createdAt?: true
+    updatedAt?: true
+    scope?: true
+    contractId?: true
+    supersedesRestrictionId?: true
+    _all?: true
+  }
+
+  export type PtRestrictionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtRestriction to aggregate.
+     */
+    where?: PtRestrictionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictions to fetch.
+     */
+    orderBy?: PtRestrictionOrderByWithRelationInput | PtRestrictionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtRestrictionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtRestrictions
+    **/
+    _count?: true | PtRestrictionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtRestrictionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtRestrictionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtRestrictionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtRestrictionMaxAggregateInputType
+  }
+
+  export type GetPtRestrictionAggregateType<T extends PtRestrictionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtRestriction]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtRestriction[P]>
+      : GetScalarType<T[P], AggregatePtRestriction[P]>
+  }
+
+
+
+
+  export type PtRestrictionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtRestrictionWhereInput
+    orderBy?: PtRestrictionOrderByWithAggregationInput | PtRestrictionOrderByWithAggregationInput[]
+    by: PtRestrictionScalarFieldEnum[] | PtRestrictionScalarFieldEnum
+    having?: PtRestrictionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtRestrictionCountAggregateInputType | true
+    _avg?: PtRestrictionAvgAggregateInputType
+    _sum?: PtRestrictionSumAggregateInputType
+    _min?: PtRestrictionMinAggregateInputType
+    _max?: PtRestrictionMaxAggregateInputType
+  }
+
+  export type PtRestrictionGroupByOutputType = {
+    id: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory: $Enums.PtRestrictionReasonCategory
+    reasonText: string | null
+    publicReason: string | null
+    imposedBy: string
+    lockSeq: bigint | null
+    startedAt: Date
+    endedAt: Date | null
+    endKind: $Enums.PtRestrictionEndKind | null
+    liftedBy: string | null
+    liftReason: string | null
+    lastJustifiedAt: Date | null
+    lastJustifiedBy: string | null
+    lastJustification: string | null
+    createdAt: Date
+    updatedAt: Date
+    scope: $Enums.PtRestrictionScope
+    contractId: string | null
+    supersedesRestrictionId: string | null
+    _count: PtRestrictionCountAggregateOutputType | null
+    _avg: PtRestrictionAvgAggregateOutputType | null
+    _sum: PtRestrictionSumAggregateOutputType | null
+    _min: PtRestrictionMinAggregateOutputType | null
+    _max: PtRestrictionMaxAggregateOutputType | null
+  }
+
+  type GetPtRestrictionGroupByPayload<T extends PtRestrictionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtRestrictionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtRestrictionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtRestrictionGroupByOutputType[P]>
+            : GetScalarType<T[P], PtRestrictionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtRestrictionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    type?: boolean
+    reasonCategory?: boolean
+    reasonText?: boolean
+    publicReason?: boolean
+    imposedBy?: boolean
+    lockSeq?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    endKind?: boolean
+    liftedBy?: boolean
+    liftReason?: boolean
+    lastJustifiedAt?: boolean
+    lastJustifiedBy?: boolean
+    lastJustification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    scope?: boolean
+    contractId?: boolean
+    supersedesRestrictionId?: boolean
+    contract?: boolean | PtRestriction$contractArgs<ExtArgs>
+    contractExtensions?: boolean | PtRestriction$contractExtensionsArgs<ExtArgs>
+    _count?: boolean | PtRestrictionCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptRestriction"]>
+
+  export type PtRestrictionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    type?: boolean
+    reasonCategory?: boolean
+    reasonText?: boolean
+    publicReason?: boolean
+    imposedBy?: boolean
+    lockSeq?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    endKind?: boolean
+    liftedBy?: boolean
+    liftReason?: boolean
+    lastJustifiedAt?: boolean
+    lastJustifiedBy?: boolean
+    lastJustification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    scope?: boolean
+    contractId?: boolean
+    supersedesRestrictionId?: boolean
+    contract?: boolean | PtRestriction$contractArgs<ExtArgs>
+  }, ExtArgs["result"]["ptRestriction"]>
+
+  export type PtRestrictionSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    type?: boolean
+    reasonCategory?: boolean
+    reasonText?: boolean
+    publicReason?: boolean
+    imposedBy?: boolean
+    lockSeq?: boolean
+    startedAt?: boolean
+    endedAt?: boolean
+    endKind?: boolean
+    liftedBy?: boolean
+    liftReason?: boolean
+    lastJustifiedAt?: boolean
+    lastJustifiedBy?: boolean
+    lastJustification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    scope?: boolean
+    contractId?: boolean
+    supersedesRestrictionId?: boolean
+  }
+
+  export type PtRestrictionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    contract?: boolean | PtRestriction$contractArgs<ExtArgs>
+    contractExtensions?: boolean | PtRestriction$contractExtensionsArgs<ExtArgs>
+    _count?: boolean | PtRestrictionCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PtRestrictionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    contract?: boolean | PtRestriction$contractArgs<ExtArgs>
+  }
+
+  export type $PtRestrictionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtRestriction"
+    objects: {
+      contract: Prisma.$ContractPayload<ExtArgs> | null
+      contractExtensions: Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      type: $Enums.PtRestrictionType
+      reasonCategory: $Enums.PtRestrictionReasonCategory
+      /**
+       * Internal note — admins only, never shown to the PT.
+       */
+      reasonText: string | null
+      /**
+       * What the PT may be told (shown by GET /profile/me/restriction). Null = category label only.
+       */
+      publicReason: string | null
+      imposedBy: string
+      /**
+       * Auth-service command number that opened a PERMANENT_BAN (traceability only; null for a temporary suspension).
+       */
+      lockSeq: bigint | null
+      /**
+       * A true instant (timestamp, UTC). Contract end dates are shifted by differences of these instants.
+       */
+      startedAt: Date
+      /**
+       * Null while the episode is active.
+       */
+      endedAt: Date | null
+      endKind: $Enums.PtRestrictionEndKind | null
+      liftedBy: string | null
+      liftReason: string | null
+      /**
+       * Overdue tracking: the last time an admin justified continuing (null = never; the clock then runs from startedAt).
+       */
+      lastJustifiedAt: Date | null
+      lastJustifiedBy: string | null
+      lastJustification: string | null
+      createdAt: Date
+      updatedAt: Date
+      /**
+       * ACCOUNT (default; every row from before the column existed) or CONTRACT. See the comment above the enums.
+       */
+      scope: $Enums.PtRestrictionScope
+      /**
+       * Set exactly when scope = CONTRACT (a CHECK constraint says so): the one contract this episode restricts.
+       */
+      contractId: string | null
+      /**
+       * The episode this one replaces when an admin changed the scope (raise: the contract episode; narrow: the
+       * account episode). Traceability only, no foreign key. The reason and instant of the change are this row's
+       * reasonText/startedAt and the closed row's liftReason/endedAt/endKind.
+       */
+      supersedesRestrictionId: string | null
+    }, ExtArgs["result"]["ptRestriction"]>
+    composites: {}
+  }
+
+  type PtRestrictionGetPayload<S extends boolean | null | undefined | PtRestrictionDefaultArgs> = $Result.GetResult<Prisma.$PtRestrictionPayload, S>
+
+  type PtRestrictionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtRestrictionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtRestrictionCountAggregateInputType | true
+    }
+
+  export interface PtRestrictionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtRestriction'], meta: { name: 'PtRestriction' } }
+    /**
+     * Find zero or one PtRestriction that matches the filter.
+     * @param {PtRestrictionFindUniqueArgs} args - Arguments to find a PtRestriction
+     * @example
+     * // Get one PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtRestrictionFindUniqueArgs>(args: SelectSubset<T, PtRestrictionFindUniqueArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtRestriction that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtRestrictionFindUniqueOrThrowArgs} args - Arguments to find a PtRestriction
+     * @example
+     * // Get one PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtRestrictionFindUniqueOrThrowArgs>(args: SelectSubset<T, PtRestrictionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtRestriction that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionFindFirstArgs} args - Arguments to find a PtRestriction
+     * @example
+     * // Get one PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtRestrictionFindFirstArgs>(args?: SelectSubset<T, PtRestrictionFindFirstArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtRestriction that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionFindFirstOrThrowArgs} args - Arguments to find a PtRestriction
+     * @example
+     * // Get one PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtRestrictionFindFirstOrThrowArgs>(args?: SelectSubset<T, PtRestrictionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtRestrictions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtRestrictions
+     * const ptRestrictions = await prisma.ptRestriction.findMany()
+     * 
+     * // Get first 10 PtRestrictions
+     * const ptRestrictions = await prisma.ptRestriction.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptRestrictionWithIdOnly = await prisma.ptRestriction.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtRestrictionFindManyArgs>(args?: SelectSubset<T, PtRestrictionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtRestriction.
+     * @param {PtRestrictionCreateArgs} args - Arguments to create a PtRestriction.
+     * @example
+     * // Create one PtRestriction
+     * const PtRestriction = await prisma.ptRestriction.create({
+     *   data: {
+     *     // ... data to create a PtRestriction
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtRestrictionCreateArgs>(args: SelectSubset<T, PtRestrictionCreateArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtRestrictions.
+     * @param {PtRestrictionCreateManyArgs} args - Arguments to create many PtRestrictions.
+     * @example
+     * // Create many PtRestrictions
+     * const ptRestriction = await prisma.ptRestriction.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtRestrictionCreateManyArgs>(args?: SelectSubset<T, PtRestrictionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtRestrictions and returns the data saved in the database.
+     * @param {PtRestrictionCreateManyAndReturnArgs} args - Arguments to create many PtRestrictions.
+     * @example
+     * // Create many PtRestrictions
+     * const ptRestriction = await prisma.ptRestriction.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtRestrictions and only return the `id`
+     * const ptRestrictionWithIdOnly = await prisma.ptRestriction.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtRestrictionCreateManyAndReturnArgs>(args?: SelectSubset<T, PtRestrictionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtRestriction.
+     * @param {PtRestrictionDeleteArgs} args - Arguments to delete one PtRestriction.
+     * @example
+     * // Delete one PtRestriction
+     * const PtRestriction = await prisma.ptRestriction.delete({
+     *   where: {
+     *     // ... filter to delete one PtRestriction
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtRestrictionDeleteArgs>(args: SelectSubset<T, PtRestrictionDeleteArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtRestriction.
+     * @param {PtRestrictionUpdateArgs} args - Arguments to update one PtRestriction.
+     * @example
+     * // Update one PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtRestrictionUpdateArgs>(args: SelectSubset<T, PtRestrictionUpdateArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtRestrictions.
+     * @param {PtRestrictionDeleteManyArgs} args - Arguments to filter PtRestrictions to delete.
+     * @example
+     * // Delete a few PtRestrictions
+     * const { count } = await prisma.ptRestriction.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtRestrictionDeleteManyArgs>(args?: SelectSubset<T, PtRestrictionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtRestrictions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtRestrictions
+     * const ptRestriction = await prisma.ptRestriction.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtRestrictionUpdateManyArgs>(args: SelectSubset<T, PtRestrictionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtRestriction.
+     * @param {PtRestrictionUpsertArgs} args - Arguments to update or create a PtRestriction.
+     * @example
+     * // Update or create a PtRestriction
+     * const ptRestriction = await prisma.ptRestriction.upsert({
+     *   create: {
+     *     // ... data to create a PtRestriction
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtRestriction we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtRestrictionUpsertArgs>(args: SelectSubset<T, PtRestrictionUpsertArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtRestrictions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionCountArgs} args - Arguments to filter PtRestrictions to count.
+     * @example
+     * // Count the number of PtRestrictions
+     * const count = await prisma.ptRestriction.count({
+     *   where: {
+     *     // ... the filter for the PtRestrictions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtRestrictionCountArgs>(
+      args?: Subset<T, PtRestrictionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtRestrictionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtRestriction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtRestrictionAggregateArgs>(args: Subset<T, PtRestrictionAggregateArgs>): Prisma.PrismaPromise<GetPtRestrictionAggregateType<T>>
+
+    /**
+     * Group by PtRestriction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtRestrictionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtRestrictionGroupByArgs['orderBy'] }
+        : { orderBy?: PtRestrictionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtRestrictionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtRestrictionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtRestriction model
+   */
+  readonly fields: PtRestrictionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtRestriction.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtRestrictionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    contract<T extends PtRestriction$contractArgs<ExtArgs> = {}>(args?: Subset<T, PtRestriction$contractArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    contractExtensions<T extends PtRestriction$contractExtensionsArgs<ExtArgs> = {}>(args?: Subset<T, PtRestriction$contractExtensionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtRestriction model
+   */ 
+  interface PtRestrictionFieldRefs {
+    readonly id: FieldRef<"PtRestriction", 'String'>
+    readonly ptUserId: FieldRef<"PtRestriction", 'String'>
+    readonly type: FieldRef<"PtRestriction", 'PtRestrictionType'>
+    readonly reasonCategory: FieldRef<"PtRestriction", 'PtRestrictionReasonCategory'>
+    readonly reasonText: FieldRef<"PtRestriction", 'String'>
+    readonly publicReason: FieldRef<"PtRestriction", 'String'>
+    readonly imposedBy: FieldRef<"PtRestriction", 'String'>
+    readonly lockSeq: FieldRef<"PtRestriction", 'BigInt'>
+    readonly startedAt: FieldRef<"PtRestriction", 'DateTime'>
+    readonly endedAt: FieldRef<"PtRestriction", 'DateTime'>
+    readonly endKind: FieldRef<"PtRestriction", 'PtRestrictionEndKind'>
+    readonly liftedBy: FieldRef<"PtRestriction", 'String'>
+    readonly liftReason: FieldRef<"PtRestriction", 'String'>
+    readonly lastJustifiedAt: FieldRef<"PtRestriction", 'DateTime'>
+    readonly lastJustifiedBy: FieldRef<"PtRestriction", 'String'>
+    readonly lastJustification: FieldRef<"PtRestriction", 'String'>
+    readonly createdAt: FieldRef<"PtRestriction", 'DateTime'>
+    readonly updatedAt: FieldRef<"PtRestriction", 'DateTime'>
+    readonly scope: FieldRef<"PtRestriction", 'PtRestrictionScope'>
+    readonly contractId: FieldRef<"PtRestriction", 'String'>
+    readonly supersedesRestrictionId: FieldRef<"PtRestriction", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtRestriction findUnique
+   */
+  export type PtRestrictionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestriction to fetch.
+     */
+    where: PtRestrictionWhereUniqueInput
+  }
+
+  /**
+   * PtRestriction findUniqueOrThrow
+   */
+  export type PtRestrictionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestriction to fetch.
+     */
+    where: PtRestrictionWhereUniqueInput
+  }
+
+  /**
+   * PtRestriction findFirst
+   */
+  export type PtRestrictionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestriction to fetch.
+     */
+    where?: PtRestrictionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictions to fetch.
+     */
+    orderBy?: PtRestrictionOrderByWithRelationInput | PtRestrictionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtRestrictions.
+     */
+    cursor?: PtRestrictionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtRestrictions.
+     */
+    distinct?: PtRestrictionScalarFieldEnum | PtRestrictionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestriction findFirstOrThrow
+   */
+  export type PtRestrictionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestriction to fetch.
+     */
+    where?: PtRestrictionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictions to fetch.
+     */
+    orderBy?: PtRestrictionOrderByWithRelationInput | PtRestrictionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtRestrictions.
+     */
+    cursor?: PtRestrictionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtRestrictions.
+     */
+    distinct?: PtRestrictionScalarFieldEnum | PtRestrictionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestriction findMany
+   */
+  export type PtRestrictionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictions to fetch.
+     */
+    where?: PtRestrictionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictions to fetch.
+     */
+    orderBy?: PtRestrictionOrderByWithRelationInput | PtRestrictionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtRestrictions.
+     */
+    cursor?: PtRestrictionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictions.
+     */
+    skip?: number
+    distinct?: PtRestrictionScalarFieldEnum | PtRestrictionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestriction create
+   */
+  export type PtRestrictionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtRestriction.
+     */
+    data: XOR<PtRestrictionCreateInput, PtRestrictionUncheckedCreateInput>
+  }
+
+  /**
+   * PtRestriction createMany
+   */
+  export type PtRestrictionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtRestrictions.
+     */
+    data: PtRestrictionCreateManyInput | PtRestrictionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtRestriction createManyAndReturn
+   */
+  export type PtRestrictionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtRestrictions.
+     */
+    data: PtRestrictionCreateManyInput | PtRestrictionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtRestriction update
+   */
+  export type PtRestrictionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtRestriction.
+     */
+    data: XOR<PtRestrictionUpdateInput, PtRestrictionUncheckedUpdateInput>
+    /**
+     * Choose, which PtRestriction to update.
+     */
+    where: PtRestrictionWhereUniqueInput
+  }
+
+  /**
+   * PtRestriction updateMany
+   */
+  export type PtRestrictionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtRestrictions.
+     */
+    data: XOR<PtRestrictionUpdateManyMutationInput, PtRestrictionUncheckedUpdateManyInput>
+    /**
+     * Filter which PtRestrictions to update
+     */
+    where?: PtRestrictionWhereInput
+  }
+
+  /**
+   * PtRestriction upsert
+   */
+  export type PtRestrictionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtRestriction to update in case it exists.
+     */
+    where: PtRestrictionWhereUniqueInput
+    /**
+     * In case the PtRestriction found by the `where` argument doesn't exist, create a new PtRestriction with this data.
+     */
+    create: XOR<PtRestrictionCreateInput, PtRestrictionUncheckedCreateInput>
+    /**
+     * In case the PtRestriction was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtRestrictionUpdateInput, PtRestrictionUncheckedUpdateInput>
+  }
+
+  /**
+   * PtRestriction delete
+   */
+  export type PtRestrictionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+    /**
+     * Filter which PtRestriction to delete.
+     */
+    where: PtRestrictionWhereUniqueInput
+  }
+
+  /**
+   * PtRestriction deleteMany
+   */
+  export type PtRestrictionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtRestrictions to delete
+     */
+    where?: PtRestrictionWhereInput
+  }
+
+  /**
+   * PtRestriction.contract
+   */
+  export type PtRestriction$contractArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    where?: ContractWhereInput
+  }
+
+  /**
+   * PtRestriction.contractExtensions
+   */
+  export type PtRestriction$contractExtensionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    where?: PtRestrictionContractExtensionWhereInput
+    orderBy?: PtRestrictionContractExtensionOrderByWithRelationInput | PtRestrictionContractExtensionOrderByWithRelationInput[]
+    cursor?: PtRestrictionContractExtensionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtRestrictionContractExtensionScalarFieldEnum | PtRestrictionContractExtensionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestriction without action
+   */
+  export type PtRestrictionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestriction
+     */
+    select?: PtRestrictionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtRestrictionContractExtension
+   */
+
+  export type AggregatePtRestrictionContractExtension = {
+    _count: PtRestrictionContractExtensionCountAggregateOutputType | null
+    _avg: PtRestrictionContractExtensionAvgAggregateOutputType | null
+    _sum: PtRestrictionContractExtensionSumAggregateOutputType | null
+    _min: PtRestrictionContractExtensionMinAggregateOutputType | null
+    _max: PtRestrictionContractExtensionMaxAggregateOutputType | null
+  }
+
+  export type PtRestrictionContractExtensionAvgAggregateOutputType = {
+    blockedMs: number | null
+  }
+
+  export type PtRestrictionContractExtensionSumAggregateOutputType = {
+    blockedMs: bigint | null
+  }
+
+  export type PtRestrictionContractExtensionMinAggregateOutputType = {
+    id: string | null
+    restrictionId: string | null
+    contractId: string | null
+    blockedMs: bigint | null
+    previousEndDate: Date | null
+    newEndDate: Date | null
+    appliedAt: Date | null
+  }
+
+  export type PtRestrictionContractExtensionMaxAggregateOutputType = {
+    id: string | null
+    restrictionId: string | null
+    contractId: string | null
+    blockedMs: bigint | null
+    previousEndDate: Date | null
+    newEndDate: Date | null
+    appliedAt: Date | null
+  }
+
+  export type PtRestrictionContractExtensionCountAggregateOutputType = {
+    id: number
+    restrictionId: number
+    contractId: number
+    blockedMs: number
+    previousEndDate: number
+    newEndDate: number
+    appliedAt: number
+    _all: number
+  }
+
+
+  export type PtRestrictionContractExtensionAvgAggregateInputType = {
+    blockedMs?: true
+  }
+
+  export type PtRestrictionContractExtensionSumAggregateInputType = {
+    blockedMs?: true
+  }
+
+  export type PtRestrictionContractExtensionMinAggregateInputType = {
+    id?: true
+    restrictionId?: true
+    contractId?: true
+    blockedMs?: true
+    previousEndDate?: true
+    newEndDate?: true
+    appliedAt?: true
+  }
+
+  export type PtRestrictionContractExtensionMaxAggregateInputType = {
+    id?: true
+    restrictionId?: true
+    contractId?: true
+    blockedMs?: true
+    previousEndDate?: true
+    newEndDate?: true
+    appliedAt?: true
+  }
+
+  export type PtRestrictionContractExtensionCountAggregateInputType = {
+    id?: true
+    restrictionId?: true
+    contractId?: true
+    blockedMs?: true
+    previousEndDate?: true
+    newEndDate?: true
+    appliedAt?: true
+    _all?: true
+  }
+
+  export type PtRestrictionContractExtensionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtRestrictionContractExtension to aggregate.
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictionContractExtensions to fetch.
+     */
+    orderBy?: PtRestrictionContractExtensionOrderByWithRelationInput | PtRestrictionContractExtensionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtRestrictionContractExtensionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictionContractExtensions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictionContractExtensions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtRestrictionContractExtensions
+    **/
+    _count?: true | PtRestrictionContractExtensionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtRestrictionContractExtensionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtRestrictionContractExtensionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtRestrictionContractExtensionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtRestrictionContractExtensionMaxAggregateInputType
+  }
+
+  export type GetPtRestrictionContractExtensionAggregateType<T extends PtRestrictionContractExtensionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtRestrictionContractExtension]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtRestrictionContractExtension[P]>
+      : GetScalarType<T[P], AggregatePtRestrictionContractExtension[P]>
+  }
+
+
+
+
+  export type PtRestrictionContractExtensionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtRestrictionContractExtensionWhereInput
+    orderBy?: PtRestrictionContractExtensionOrderByWithAggregationInput | PtRestrictionContractExtensionOrderByWithAggregationInput[]
+    by: PtRestrictionContractExtensionScalarFieldEnum[] | PtRestrictionContractExtensionScalarFieldEnum
+    having?: PtRestrictionContractExtensionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtRestrictionContractExtensionCountAggregateInputType | true
+    _avg?: PtRestrictionContractExtensionAvgAggregateInputType
+    _sum?: PtRestrictionContractExtensionSumAggregateInputType
+    _min?: PtRestrictionContractExtensionMinAggregateInputType
+    _max?: PtRestrictionContractExtensionMaxAggregateInputType
+  }
+
+  export type PtRestrictionContractExtensionGroupByOutputType = {
+    id: string
+    restrictionId: string
+    contractId: string
+    blockedMs: bigint
+    previousEndDate: Date
+    newEndDate: Date
+    appliedAt: Date
+    _count: PtRestrictionContractExtensionCountAggregateOutputType | null
+    _avg: PtRestrictionContractExtensionAvgAggregateOutputType | null
+    _sum: PtRestrictionContractExtensionSumAggregateOutputType | null
+    _min: PtRestrictionContractExtensionMinAggregateOutputType | null
+    _max: PtRestrictionContractExtensionMaxAggregateOutputType | null
+  }
+
+  type GetPtRestrictionContractExtensionGroupByPayload<T extends PtRestrictionContractExtensionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtRestrictionContractExtensionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtRestrictionContractExtensionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtRestrictionContractExtensionGroupByOutputType[P]>
+            : GetScalarType<T[P], PtRestrictionContractExtensionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtRestrictionContractExtensionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    restrictionId?: boolean
+    contractId?: boolean
+    blockedMs?: boolean
+    previousEndDate?: boolean
+    newEndDate?: boolean
+    appliedAt?: boolean
+    restriction?: boolean | PtRestrictionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptRestrictionContractExtension"]>
+
+  export type PtRestrictionContractExtensionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    restrictionId?: boolean
+    contractId?: boolean
+    blockedMs?: boolean
+    previousEndDate?: boolean
+    newEndDate?: boolean
+    appliedAt?: boolean
+    restriction?: boolean | PtRestrictionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptRestrictionContractExtension"]>
+
+  export type PtRestrictionContractExtensionSelectScalar = {
+    id?: boolean
+    restrictionId?: boolean
+    contractId?: boolean
+    blockedMs?: boolean
+    previousEndDate?: boolean
+    newEndDate?: boolean
+    appliedAt?: boolean
+  }
+
+  export type PtRestrictionContractExtensionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restriction?: boolean | PtRestrictionDefaultArgs<ExtArgs>
+  }
+  export type PtRestrictionContractExtensionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restriction?: boolean | PtRestrictionDefaultArgs<ExtArgs>
+  }
+
+  export type $PtRestrictionContractExtensionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtRestrictionContractExtension"
+    objects: {
+      restriction: Prisma.$PtRestrictionPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      restrictionId: string
+      contractId: string
+      /**
+       * Milliseconds of the contract's own running time the episode blocked (lift − max(episode start, activation)).
+       */
+      blockedMs: bigint
+      previousEndDate: Date
+      newEndDate: Date
+      appliedAt: Date
+    }, ExtArgs["result"]["ptRestrictionContractExtension"]>
+    composites: {}
+  }
+
+  type PtRestrictionContractExtensionGetPayload<S extends boolean | null | undefined | PtRestrictionContractExtensionDefaultArgs> = $Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload, S>
+
+  type PtRestrictionContractExtensionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtRestrictionContractExtensionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtRestrictionContractExtensionCountAggregateInputType | true
+    }
+
+  export interface PtRestrictionContractExtensionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtRestrictionContractExtension'], meta: { name: 'PtRestrictionContractExtension' } }
+    /**
+     * Find zero or one PtRestrictionContractExtension that matches the filter.
+     * @param {PtRestrictionContractExtensionFindUniqueArgs} args - Arguments to find a PtRestrictionContractExtension
+     * @example
+     * // Get one PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtRestrictionContractExtensionFindUniqueArgs>(args: SelectSubset<T, PtRestrictionContractExtensionFindUniqueArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtRestrictionContractExtension that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtRestrictionContractExtensionFindUniqueOrThrowArgs} args - Arguments to find a PtRestrictionContractExtension
+     * @example
+     * // Get one PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtRestrictionContractExtensionFindUniqueOrThrowArgs>(args: SelectSubset<T, PtRestrictionContractExtensionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtRestrictionContractExtension that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionFindFirstArgs} args - Arguments to find a PtRestrictionContractExtension
+     * @example
+     * // Get one PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtRestrictionContractExtensionFindFirstArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionFindFirstArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtRestrictionContractExtension that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionFindFirstOrThrowArgs} args - Arguments to find a PtRestrictionContractExtension
+     * @example
+     * // Get one PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtRestrictionContractExtensionFindFirstOrThrowArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtRestrictionContractExtensions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtRestrictionContractExtensions
+     * const ptRestrictionContractExtensions = await prisma.ptRestrictionContractExtension.findMany()
+     * 
+     * // Get first 10 PtRestrictionContractExtensions
+     * const ptRestrictionContractExtensions = await prisma.ptRestrictionContractExtension.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptRestrictionContractExtensionWithIdOnly = await prisma.ptRestrictionContractExtension.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtRestrictionContractExtensionFindManyArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtRestrictionContractExtension.
+     * @param {PtRestrictionContractExtensionCreateArgs} args - Arguments to create a PtRestrictionContractExtension.
+     * @example
+     * // Create one PtRestrictionContractExtension
+     * const PtRestrictionContractExtension = await prisma.ptRestrictionContractExtension.create({
+     *   data: {
+     *     // ... data to create a PtRestrictionContractExtension
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtRestrictionContractExtensionCreateArgs>(args: SelectSubset<T, PtRestrictionContractExtensionCreateArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtRestrictionContractExtensions.
+     * @param {PtRestrictionContractExtensionCreateManyArgs} args - Arguments to create many PtRestrictionContractExtensions.
+     * @example
+     * // Create many PtRestrictionContractExtensions
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtRestrictionContractExtensionCreateManyArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtRestrictionContractExtensions and returns the data saved in the database.
+     * @param {PtRestrictionContractExtensionCreateManyAndReturnArgs} args - Arguments to create many PtRestrictionContractExtensions.
+     * @example
+     * // Create many PtRestrictionContractExtensions
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtRestrictionContractExtensions and only return the `id`
+     * const ptRestrictionContractExtensionWithIdOnly = await prisma.ptRestrictionContractExtension.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtRestrictionContractExtensionCreateManyAndReturnArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtRestrictionContractExtension.
+     * @param {PtRestrictionContractExtensionDeleteArgs} args - Arguments to delete one PtRestrictionContractExtension.
+     * @example
+     * // Delete one PtRestrictionContractExtension
+     * const PtRestrictionContractExtension = await prisma.ptRestrictionContractExtension.delete({
+     *   where: {
+     *     // ... filter to delete one PtRestrictionContractExtension
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtRestrictionContractExtensionDeleteArgs>(args: SelectSubset<T, PtRestrictionContractExtensionDeleteArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtRestrictionContractExtension.
+     * @param {PtRestrictionContractExtensionUpdateArgs} args - Arguments to update one PtRestrictionContractExtension.
+     * @example
+     * // Update one PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtRestrictionContractExtensionUpdateArgs>(args: SelectSubset<T, PtRestrictionContractExtensionUpdateArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtRestrictionContractExtensions.
+     * @param {PtRestrictionContractExtensionDeleteManyArgs} args - Arguments to filter PtRestrictionContractExtensions to delete.
+     * @example
+     * // Delete a few PtRestrictionContractExtensions
+     * const { count } = await prisma.ptRestrictionContractExtension.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtRestrictionContractExtensionDeleteManyArgs>(args?: SelectSubset<T, PtRestrictionContractExtensionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtRestrictionContractExtensions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtRestrictionContractExtensions
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtRestrictionContractExtensionUpdateManyArgs>(args: SelectSubset<T, PtRestrictionContractExtensionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtRestrictionContractExtension.
+     * @param {PtRestrictionContractExtensionUpsertArgs} args - Arguments to update or create a PtRestrictionContractExtension.
+     * @example
+     * // Update or create a PtRestrictionContractExtension
+     * const ptRestrictionContractExtension = await prisma.ptRestrictionContractExtension.upsert({
+     *   create: {
+     *     // ... data to create a PtRestrictionContractExtension
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtRestrictionContractExtension we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtRestrictionContractExtensionUpsertArgs>(args: SelectSubset<T, PtRestrictionContractExtensionUpsertArgs<ExtArgs>>): Prisma__PtRestrictionContractExtensionClient<$Result.GetResult<Prisma.$PtRestrictionContractExtensionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtRestrictionContractExtensions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionCountArgs} args - Arguments to filter PtRestrictionContractExtensions to count.
+     * @example
+     * // Count the number of PtRestrictionContractExtensions
+     * const count = await prisma.ptRestrictionContractExtension.count({
+     *   where: {
+     *     // ... the filter for the PtRestrictionContractExtensions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtRestrictionContractExtensionCountArgs>(
+      args?: Subset<T, PtRestrictionContractExtensionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtRestrictionContractExtensionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtRestrictionContractExtension.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtRestrictionContractExtensionAggregateArgs>(args: Subset<T, PtRestrictionContractExtensionAggregateArgs>): Prisma.PrismaPromise<GetPtRestrictionContractExtensionAggregateType<T>>
+
+    /**
+     * Group by PtRestrictionContractExtension.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtRestrictionContractExtensionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtRestrictionContractExtensionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtRestrictionContractExtensionGroupByArgs['orderBy'] }
+        : { orderBy?: PtRestrictionContractExtensionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtRestrictionContractExtensionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtRestrictionContractExtensionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtRestrictionContractExtension model
+   */
+  readonly fields: PtRestrictionContractExtensionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtRestrictionContractExtension.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtRestrictionContractExtensionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    restriction<T extends PtRestrictionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PtRestrictionDefaultArgs<ExtArgs>>): Prisma__PtRestrictionClient<$Result.GetResult<Prisma.$PtRestrictionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtRestrictionContractExtension model
+   */ 
+  interface PtRestrictionContractExtensionFieldRefs {
+    readonly id: FieldRef<"PtRestrictionContractExtension", 'String'>
+    readonly restrictionId: FieldRef<"PtRestrictionContractExtension", 'String'>
+    readonly contractId: FieldRef<"PtRestrictionContractExtension", 'String'>
+    readonly blockedMs: FieldRef<"PtRestrictionContractExtension", 'BigInt'>
+    readonly previousEndDate: FieldRef<"PtRestrictionContractExtension", 'DateTime'>
+    readonly newEndDate: FieldRef<"PtRestrictionContractExtension", 'DateTime'>
+    readonly appliedAt: FieldRef<"PtRestrictionContractExtension", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtRestrictionContractExtension findUnique
+   */
+  export type PtRestrictionContractExtensionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictionContractExtension to fetch.
+     */
+    where: PtRestrictionContractExtensionWhereUniqueInput
+  }
+
+  /**
+   * PtRestrictionContractExtension findUniqueOrThrow
+   */
+  export type PtRestrictionContractExtensionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictionContractExtension to fetch.
+     */
+    where: PtRestrictionContractExtensionWhereUniqueInput
+  }
+
+  /**
+   * PtRestrictionContractExtension findFirst
+   */
+  export type PtRestrictionContractExtensionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictionContractExtension to fetch.
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictionContractExtensions to fetch.
+     */
+    orderBy?: PtRestrictionContractExtensionOrderByWithRelationInput | PtRestrictionContractExtensionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtRestrictionContractExtensions.
+     */
+    cursor?: PtRestrictionContractExtensionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictionContractExtensions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictionContractExtensions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtRestrictionContractExtensions.
+     */
+    distinct?: PtRestrictionContractExtensionScalarFieldEnum | PtRestrictionContractExtensionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestrictionContractExtension findFirstOrThrow
+   */
+  export type PtRestrictionContractExtensionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictionContractExtension to fetch.
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictionContractExtensions to fetch.
+     */
+    orderBy?: PtRestrictionContractExtensionOrderByWithRelationInput | PtRestrictionContractExtensionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtRestrictionContractExtensions.
+     */
+    cursor?: PtRestrictionContractExtensionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictionContractExtensions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictionContractExtensions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtRestrictionContractExtensions.
+     */
+    distinct?: PtRestrictionContractExtensionScalarFieldEnum | PtRestrictionContractExtensionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestrictionContractExtension findMany
+   */
+  export type PtRestrictionContractExtensionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter, which PtRestrictionContractExtensions to fetch.
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtRestrictionContractExtensions to fetch.
+     */
+    orderBy?: PtRestrictionContractExtensionOrderByWithRelationInput | PtRestrictionContractExtensionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtRestrictionContractExtensions.
+     */
+    cursor?: PtRestrictionContractExtensionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtRestrictionContractExtensions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtRestrictionContractExtensions.
+     */
+    skip?: number
+    distinct?: PtRestrictionContractExtensionScalarFieldEnum | PtRestrictionContractExtensionScalarFieldEnum[]
+  }
+
+  /**
+   * PtRestrictionContractExtension create
+   */
+  export type PtRestrictionContractExtensionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtRestrictionContractExtension.
+     */
+    data: XOR<PtRestrictionContractExtensionCreateInput, PtRestrictionContractExtensionUncheckedCreateInput>
+  }
+
+  /**
+   * PtRestrictionContractExtension createMany
+   */
+  export type PtRestrictionContractExtensionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtRestrictionContractExtensions.
+     */
+    data: PtRestrictionContractExtensionCreateManyInput | PtRestrictionContractExtensionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtRestrictionContractExtension createManyAndReturn
+   */
+  export type PtRestrictionContractExtensionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtRestrictionContractExtensions.
+     */
+    data: PtRestrictionContractExtensionCreateManyInput | PtRestrictionContractExtensionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtRestrictionContractExtension update
+   */
+  export type PtRestrictionContractExtensionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtRestrictionContractExtension.
+     */
+    data: XOR<PtRestrictionContractExtensionUpdateInput, PtRestrictionContractExtensionUncheckedUpdateInput>
+    /**
+     * Choose, which PtRestrictionContractExtension to update.
+     */
+    where: PtRestrictionContractExtensionWhereUniqueInput
+  }
+
+  /**
+   * PtRestrictionContractExtension updateMany
+   */
+  export type PtRestrictionContractExtensionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtRestrictionContractExtensions.
+     */
+    data: XOR<PtRestrictionContractExtensionUpdateManyMutationInput, PtRestrictionContractExtensionUncheckedUpdateManyInput>
+    /**
+     * Filter which PtRestrictionContractExtensions to update
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+  }
+
+  /**
+   * PtRestrictionContractExtension upsert
+   */
+  export type PtRestrictionContractExtensionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtRestrictionContractExtension to update in case it exists.
+     */
+    where: PtRestrictionContractExtensionWhereUniqueInput
+    /**
+     * In case the PtRestrictionContractExtension found by the `where` argument doesn't exist, create a new PtRestrictionContractExtension with this data.
+     */
+    create: XOR<PtRestrictionContractExtensionCreateInput, PtRestrictionContractExtensionUncheckedCreateInput>
+    /**
+     * In case the PtRestrictionContractExtension was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtRestrictionContractExtensionUpdateInput, PtRestrictionContractExtensionUncheckedUpdateInput>
+  }
+
+  /**
+   * PtRestrictionContractExtension delete
+   */
+  export type PtRestrictionContractExtensionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+    /**
+     * Filter which PtRestrictionContractExtension to delete.
+     */
+    where: PtRestrictionContractExtensionWhereUniqueInput
+  }
+
+  /**
+   * PtRestrictionContractExtension deleteMany
+   */
+  export type PtRestrictionContractExtensionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtRestrictionContractExtensions to delete
+     */
+    where?: PtRestrictionContractExtensionWhereInput
+  }
+
+  /**
+   * PtRestrictionContractExtension without action
+   */
+  export type PtRestrictionContractExtensionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtRestrictionContractExtension
+     */
+    select?: PtRestrictionContractExtensionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtRestrictionContractExtensionInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -29987,6 +32563,7 @@ export namespace Prisma {
     email: 'email',
     isPT: 'isPT',
     ptSuspended: 'ptSuspended',
+    ptLockSeq: 'ptLockSeq',
     referralCode: 'referralCode',
     dateOfBirth: 'dateOfBirth',
     age: 'age',
@@ -30176,6 +32753,8 @@ export namespace Prisma {
     gymRate: 'gymRate',
     terminationReason: 'terminationReason',
     terminatedAt: 'terminatedAt',
+    clientExitAcceptedAt: 'clientExitAcceptedAt',
+    clientExitRestrictionId: 'clientExitRestrictionId',
     releasedToPt: 'releasedToPt',
     releasedToGym: 'releasedToGym',
     releasedToPlatform: 'releasedToPlatform',
@@ -30535,6 +33114,46 @@ export namespace Prisma {
   export type UserPreferenceScalarFieldEnum = (typeof UserPreferenceScalarFieldEnum)[keyof typeof UserPreferenceScalarFieldEnum]
 
 
+  export const PtRestrictionScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    type: 'type',
+    reasonCategory: 'reasonCategory',
+    reasonText: 'reasonText',
+    publicReason: 'publicReason',
+    imposedBy: 'imposedBy',
+    lockSeq: 'lockSeq',
+    startedAt: 'startedAt',
+    endedAt: 'endedAt',
+    endKind: 'endKind',
+    liftedBy: 'liftedBy',
+    liftReason: 'liftReason',
+    lastJustifiedAt: 'lastJustifiedAt',
+    lastJustifiedBy: 'lastJustifiedBy',
+    lastJustification: 'lastJustification',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    scope: 'scope',
+    contractId: 'contractId',
+    supersedesRestrictionId: 'supersedesRestrictionId'
+  };
+
+  export type PtRestrictionScalarFieldEnum = (typeof PtRestrictionScalarFieldEnum)[keyof typeof PtRestrictionScalarFieldEnum]
+
+
+  export const PtRestrictionContractExtensionScalarFieldEnum: {
+    id: 'id',
+    restrictionId: 'restrictionId',
+    contractId: 'contractId',
+    blockedMs: 'blockedMs',
+    previousEndDate: 'previousEndDate',
+    newEndDate: 'newEndDate',
+    appliedAt: 'appliedAt'
+  };
+
+  export type PtRestrictionContractExtensionScalarFieldEnum = (typeof PtRestrictionContractExtensionScalarFieldEnum)[keyof typeof PtRestrictionContractExtensionScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -30606,6 +33225,20 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -30992,6 +33625,62 @@ export namespace Prisma {
    */
   export type ListEnumSessionSettlementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionSettlementStatus[]'>
     
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionType'
+   */
+  export type EnumPtRestrictionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionType'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionType[]'
+   */
+  export type ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionReasonCategory'
+   */
+  export type EnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionReasonCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionReasonCategory[]'
+   */
+  export type ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionReasonCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionEndKind'
+   */
+  export type EnumPtRestrictionEndKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionEndKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionEndKind[]'
+   */
+  export type ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionEndKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionScope'
+   */
+  export type EnumPtRestrictionScopeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionScope'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtRestrictionScope[]'
+   */
+  export type ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionScope[]'>
+    
   /**
    * Deep Input Types
    */
@@ -31008,6 +33697,7 @@ export namespace Prisma {
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
     ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    ptLockSeq?: BigIntNullableFilter<"UserProfile"> | bigint | number | null
     referralCode?: StringNullableFilter<"UserProfile"> | string | null
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
@@ -31064,6 +33754,7 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    ptLockSeq?: SortOrderInput | SortOrder
     referralCode?: SortOrderInput | SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
@@ -31124,6 +33815,7 @@ export namespace Prisma {
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
     ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    ptLockSeq?: BigIntNullableFilter<"UserProfile"> | bigint | number | null
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
@@ -31179,6 +33871,7 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    ptLockSeq?: SortOrderInput | SortOrder
     referralCode?: SortOrderInput | SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
@@ -31238,6 +33931,7 @@ export namespace Prisma {
     email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     ptSuspended?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    ptLockSeq?: BigIntNullableWithAggregatesFilter<"UserProfile"> | bigint | number | null
     referralCode?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dateOfBirth?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
@@ -31799,6 +34493,8 @@ export namespace Prisma {
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientExitAcceptedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientExitRestrictionId?: StringNullableFilter<"Contract"> | string | null
     releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -31813,6 +34509,7 @@ export namespace Prisma {
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
     clientReviews?: ClientReviewListRelationFilter
+    ptRestrictions?: PtRestrictionListRelationFilter
   }
 
   export type ContractOrderByWithRelationInput = {
@@ -31867,6 +34564,8 @@ export namespace Prisma {
     gymRate?: SortOrder
     terminationReason?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
+    clientExitAcceptedAt?: SortOrderInput | SortOrder
+    clientExitRestrictionId?: SortOrderInput | SortOrder
     releasedToPt?: SortOrder
     releasedToGym?: SortOrder
     releasedToPlatform?: SortOrder
@@ -31881,6 +34580,7 @@ export namespace Prisma {
     sessions?: SessionOrderByRelationAggregateInput
     reviews?: SessionReviewOrderByRelationAggregateInput
     clientReviews?: ClientReviewOrderByRelationAggregateInput
+    ptRestrictions?: PtRestrictionOrderByRelationAggregateInput
   }
 
   export type ContractWhereUniqueInput = Prisma.AtLeast<{
@@ -31938,6 +34638,8 @@ export namespace Prisma {
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientExitAcceptedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientExitRestrictionId?: StringNullableFilter<"Contract"> | string | null
     releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -31952,6 +34654,7 @@ export namespace Prisma {
     sessions?: SessionListRelationFilter
     reviews?: SessionReviewListRelationFilter
     clientReviews?: ClientReviewListRelationFilter
+    ptRestrictions?: PtRestrictionListRelationFilter
   }, "id" | "agentActionId">
 
   export type ContractOrderByWithAggregationInput = {
@@ -32006,6 +34709,8 @@ export namespace Prisma {
     gymRate?: SortOrder
     terminationReason?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
+    clientExitAcceptedAt?: SortOrderInput | SortOrder
+    clientExitRestrictionId?: SortOrderInput | SortOrder
     releasedToPt?: SortOrder
     releasedToGym?: SortOrder
     releasedToPlatform?: SortOrder
@@ -32078,6 +34783,8 @@ export namespace Prisma {
     gymRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     terminationReason?: EnumTerminationReasonNullableWithAggregatesFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    clientExitAcceptedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    clientExitRestrictionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     releasedToPt?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -33834,6 +36541,214 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"UserPreference"> | Date | string
   }
 
+  export type PtRestrictionWhereInput = {
+    AND?: PtRestrictionWhereInput | PtRestrictionWhereInput[]
+    OR?: PtRestrictionWhereInput[]
+    NOT?: PtRestrictionWhereInput | PtRestrictionWhereInput[]
+    id?: StringFilter<"PtRestriction"> | string
+    ptUserId?: StringFilter<"PtRestriction"> | string
+    type?: EnumPtRestrictionTypeFilter<"PtRestriction"> | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFilter<"PtRestriction"> | $Enums.PtRestrictionReasonCategory
+    reasonText?: StringNullableFilter<"PtRestriction"> | string | null
+    publicReason?: StringNullableFilter<"PtRestriction"> | string | null
+    imposedBy?: StringFilter<"PtRestriction"> | string
+    lockSeq?: BigIntNullableFilter<"PtRestriction"> | bigint | number | null
+    startedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    endedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    endKind?: EnumPtRestrictionEndKindNullableFilter<"PtRestriction"> | $Enums.PtRestrictionEndKind | null
+    liftedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    liftReason?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustifiedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    lastJustifiedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustification?: StringNullableFilter<"PtRestriction"> | string | null
+    createdAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    updatedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    scope?: EnumPtRestrictionScopeFilter<"PtRestriction"> | $Enums.PtRestrictionScope
+    contractId?: StringNullableFilter<"PtRestriction"> | string | null
+    supersedesRestrictionId?: StringNullableFilter<"PtRestriction"> | string | null
+    contract?: XOR<ContractNullableRelationFilter, ContractWhereInput> | null
+    contractExtensions?: PtRestrictionContractExtensionListRelationFilter
+  }
+
+  export type PtRestrictionOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    type?: SortOrder
+    reasonCategory?: SortOrder
+    reasonText?: SortOrderInput | SortOrder
+    publicReason?: SortOrderInput | SortOrder
+    imposedBy?: SortOrder
+    lockSeq?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endKind?: SortOrderInput | SortOrder
+    liftedBy?: SortOrderInput | SortOrder
+    liftReason?: SortOrderInput | SortOrder
+    lastJustifiedAt?: SortOrderInput | SortOrder
+    lastJustifiedBy?: SortOrderInput | SortOrder
+    lastJustification?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    scope?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    supersedesRestrictionId?: SortOrderInput | SortOrder
+    contract?: ContractOrderByWithRelationInput
+    contractExtensions?: PtRestrictionContractExtensionOrderByRelationAggregateInput
+  }
+
+  export type PtRestrictionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PtRestrictionWhereInput | PtRestrictionWhereInput[]
+    OR?: PtRestrictionWhereInput[]
+    NOT?: PtRestrictionWhereInput | PtRestrictionWhereInput[]
+    ptUserId?: StringFilter<"PtRestriction"> | string
+    type?: EnumPtRestrictionTypeFilter<"PtRestriction"> | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFilter<"PtRestriction"> | $Enums.PtRestrictionReasonCategory
+    reasonText?: StringNullableFilter<"PtRestriction"> | string | null
+    publicReason?: StringNullableFilter<"PtRestriction"> | string | null
+    imposedBy?: StringFilter<"PtRestriction"> | string
+    lockSeq?: BigIntNullableFilter<"PtRestriction"> | bigint | number | null
+    startedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    endedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    endKind?: EnumPtRestrictionEndKindNullableFilter<"PtRestriction"> | $Enums.PtRestrictionEndKind | null
+    liftedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    liftReason?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustifiedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    lastJustifiedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustification?: StringNullableFilter<"PtRestriction"> | string | null
+    createdAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    updatedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    scope?: EnumPtRestrictionScopeFilter<"PtRestriction"> | $Enums.PtRestrictionScope
+    contractId?: StringNullableFilter<"PtRestriction"> | string | null
+    supersedesRestrictionId?: StringNullableFilter<"PtRestriction"> | string | null
+    contract?: XOR<ContractNullableRelationFilter, ContractWhereInput> | null
+    contractExtensions?: PtRestrictionContractExtensionListRelationFilter
+  }, "id">
+
+  export type PtRestrictionOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    type?: SortOrder
+    reasonCategory?: SortOrder
+    reasonText?: SortOrderInput | SortOrder
+    publicReason?: SortOrderInput | SortOrder
+    imposedBy?: SortOrder
+    lockSeq?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endKind?: SortOrderInput | SortOrder
+    liftedBy?: SortOrderInput | SortOrder
+    liftReason?: SortOrderInput | SortOrder
+    lastJustifiedAt?: SortOrderInput | SortOrder
+    lastJustifiedBy?: SortOrderInput | SortOrder
+    lastJustification?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    scope?: SortOrder
+    contractId?: SortOrderInput | SortOrder
+    supersedesRestrictionId?: SortOrderInput | SortOrder
+    _count?: PtRestrictionCountOrderByAggregateInput
+    _avg?: PtRestrictionAvgOrderByAggregateInput
+    _max?: PtRestrictionMaxOrderByAggregateInput
+    _min?: PtRestrictionMinOrderByAggregateInput
+    _sum?: PtRestrictionSumOrderByAggregateInput
+  }
+
+  export type PtRestrictionScalarWhereWithAggregatesInput = {
+    AND?: PtRestrictionScalarWhereWithAggregatesInput | PtRestrictionScalarWhereWithAggregatesInput[]
+    OR?: PtRestrictionScalarWhereWithAggregatesInput[]
+    NOT?: PtRestrictionScalarWhereWithAggregatesInput | PtRestrictionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtRestriction"> | string
+    ptUserId?: StringWithAggregatesFilter<"PtRestriction"> | string
+    type?: EnumPtRestrictionTypeWithAggregatesFilter<"PtRestriction"> | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryWithAggregatesFilter<"PtRestriction"> | $Enums.PtRestrictionReasonCategory
+    reasonText?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    publicReason?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    imposedBy?: StringWithAggregatesFilter<"PtRestriction"> | string
+    lockSeq?: BigIntNullableWithAggregatesFilter<"PtRestriction"> | bigint | number | null
+    startedAt?: DateTimeWithAggregatesFilter<"PtRestriction"> | Date | string
+    endedAt?: DateTimeNullableWithAggregatesFilter<"PtRestriction"> | Date | string | null
+    endKind?: EnumPtRestrictionEndKindNullableWithAggregatesFilter<"PtRestriction"> | $Enums.PtRestrictionEndKind | null
+    liftedBy?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    liftReason?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    lastJustifiedAt?: DateTimeNullableWithAggregatesFilter<"PtRestriction"> | Date | string | null
+    lastJustifiedBy?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    lastJustification?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PtRestriction"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PtRestriction"> | Date | string
+    scope?: EnumPtRestrictionScopeWithAggregatesFilter<"PtRestriction"> | $Enums.PtRestrictionScope
+    contractId?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+    supersedesRestrictionId?: StringNullableWithAggregatesFilter<"PtRestriction"> | string | null
+  }
+
+  export type PtRestrictionContractExtensionWhereInput = {
+    AND?: PtRestrictionContractExtensionWhereInput | PtRestrictionContractExtensionWhereInput[]
+    OR?: PtRestrictionContractExtensionWhereInput[]
+    NOT?: PtRestrictionContractExtensionWhereInput | PtRestrictionContractExtensionWhereInput[]
+    id?: StringFilter<"PtRestrictionContractExtension"> | string
+    restrictionId?: StringFilter<"PtRestrictionContractExtension"> | string
+    contractId?: StringFilter<"PtRestrictionContractExtension"> | string
+    blockedMs?: BigIntFilter<"PtRestrictionContractExtension"> | bigint | number
+    previousEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    newEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    appliedAt?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    restriction?: XOR<PtRestrictionRelationFilter, PtRestrictionWhereInput>
+  }
+
+  export type PtRestrictionContractExtensionOrderByWithRelationInput = {
+    id?: SortOrder
+    restrictionId?: SortOrder
+    contractId?: SortOrder
+    blockedMs?: SortOrder
+    previousEndDate?: SortOrder
+    newEndDate?: SortOrder
+    appliedAt?: SortOrder
+    restriction?: PtRestrictionOrderByWithRelationInput
+  }
+
+  export type PtRestrictionContractExtensionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    restrictionId_contractId?: PtRestrictionContractExtensionRestrictionIdContractIdCompoundUniqueInput
+    AND?: PtRestrictionContractExtensionWhereInput | PtRestrictionContractExtensionWhereInput[]
+    OR?: PtRestrictionContractExtensionWhereInput[]
+    NOT?: PtRestrictionContractExtensionWhereInput | PtRestrictionContractExtensionWhereInput[]
+    restrictionId?: StringFilter<"PtRestrictionContractExtension"> | string
+    contractId?: StringFilter<"PtRestrictionContractExtension"> | string
+    blockedMs?: BigIntFilter<"PtRestrictionContractExtension"> | bigint | number
+    previousEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    newEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    appliedAt?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    restriction?: XOR<PtRestrictionRelationFilter, PtRestrictionWhereInput>
+  }, "id" | "restrictionId_contractId">
+
+  export type PtRestrictionContractExtensionOrderByWithAggregationInput = {
+    id?: SortOrder
+    restrictionId?: SortOrder
+    contractId?: SortOrder
+    blockedMs?: SortOrder
+    previousEndDate?: SortOrder
+    newEndDate?: SortOrder
+    appliedAt?: SortOrder
+    _count?: PtRestrictionContractExtensionCountOrderByAggregateInput
+    _avg?: PtRestrictionContractExtensionAvgOrderByAggregateInput
+    _max?: PtRestrictionContractExtensionMaxOrderByAggregateInput
+    _min?: PtRestrictionContractExtensionMinOrderByAggregateInput
+    _sum?: PtRestrictionContractExtensionSumOrderByAggregateInput
+  }
+
+  export type PtRestrictionContractExtensionScalarWhereWithAggregatesInput = {
+    AND?: PtRestrictionContractExtensionScalarWhereWithAggregatesInput | PtRestrictionContractExtensionScalarWhereWithAggregatesInput[]
+    OR?: PtRestrictionContractExtensionScalarWhereWithAggregatesInput[]
+    NOT?: PtRestrictionContractExtensionScalarWhereWithAggregatesInput | PtRestrictionContractExtensionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtRestrictionContractExtension"> | string
+    restrictionId?: StringWithAggregatesFilter<"PtRestrictionContractExtension"> | string
+    contractId?: StringWithAggregatesFilter<"PtRestrictionContractExtension"> | string
+    blockedMs?: BigIntWithAggregatesFilter<"PtRestrictionContractExtension"> | bigint | number
+    previousEndDate?: DateTimeWithAggregatesFilter<"PtRestrictionContractExtension"> | Date | string
+    newEndDate?: DateTimeWithAggregatesFilter<"PtRestrictionContractExtension"> | Date | string
+    appliedAt?: DateTimeWithAggregatesFilter<"PtRestrictionContractExtension"> | Date | string
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -33842,6 +36757,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -33898,6 +36814,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -33954,6 +36871,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -34010,6 +36928,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -34066,6 +36985,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -34117,6 +37037,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -34168,6 +37089,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -34842,6 +37764,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -34856,6 +37780,7 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateInput = {
@@ -34910,6 +37835,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -34924,6 +37851,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractUpdateInput = {
@@ -34978,6 +37906,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -34992,6 +37922,7 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateInput = {
@@ -35046,6 +37977,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -35060,6 +37993,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type ContractCreateManyInput = {
@@ -35114,6 +38048,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -35178,6 +38114,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -35242,6 +38180,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -37273,6 +40213,246 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtRestrictionCreateInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    supersedesRestrictionId?: string | null
+    contract?: ContractCreateNestedOneWithoutPtRestrictionsInput
+    contractExtensions?: PtRestrictionContractExtensionCreateNestedManyWithoutRestrictionInput
+  }
+
+  export type PtRestrictionUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    contractId?: string | null
+    supersedesRestrictionId?: string | null
+    contractExtensions?: PtRestrictionContractExtensionUncheckedCreateNestedManyWithoutRestrictionInput
+  }
+
+  export type PtRestrictionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contract?: ContractUpdateOneWithoutPtRestrictionsNestedInput
+    contractExtensions?: PtRestrictionContractExtensionUpdateManyWithoutRestrictionNestedInput
+  }
+
+  export type PtRestrictionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractExtensions?: PtRestrictionContractExtensionUncheckedUpdateManyWithoutRestrictionNestedInput
+  }
+
+  export type PtRestrictionCreateManyInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    contractId?: string | null
+    supersedesRestrictionId?: string | null
+  }
+
+  export type PtRestrictionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtRestrictionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtRestrictionContractExtensionCreateInput = {
+    id?: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+    restriction: PtRestrictionCreateNestedOneWithoutContractExtensionsInput
+  }
+
+  export type PtRestrictionContractExtensionUncheckedCreateInput = {
+    id?: string
+    restrictionId: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+  }
+
+  export type PtRestrictionContractExtensionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    restriction?: PtRestrictionUpdateOneRequiredWithoutContractExtensionsNestedInput
+  }
+
+  export type PtRestrictionContractExtensionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    restrictionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtRestrictionContractExtensionCreateManyInput = {
+    id?: string
+    restrictionId: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+  }
+
+  export type PtRestrictionContractExtensionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtRestrictionContractExtensionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    restrictionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -37306,6 +40486,17 @@ export namespace Prisma {
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type BigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -37494,6 +40685,7 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
@@ -37538,6 +40730,7 @@ export namespace Prisma {
   }
 
   export type UserProfileAvgOrderByAggregateInput = {
+    ptLockSeq?: SortOrder
     age?: SortOrder
     heightCm?: SortOrder
     preferredTrainingDays?: SortOrder
@@ -37556,6 +40749,7 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
@@ -37601,6 +40795,7 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
@@ -37639,6 +40834,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumOrderByAggregateInput = {
+    ptLockSeq?: SortOrder
     age?: SortOrder
     heightCm?: SortOrder
     preferredTrainingDays?: SortOrder
@@ -37691,6 +40887,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -38254,6 +41466,12 @@ export namespace Prisma {
     none?: ClientReviewWhereInput
   }
 
+  export type PtRestrictionListRelationFilter = {
+    every?: PtRestrictionWhereInput
+    some?: PtRestrictionWhereInput
+    none?: PtRestrictionWhereInput
+  }
+
   export type SessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -38263,6 +41481,10 @@ export namespace Prisma {
   }
 
   export type ClientReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtRestrictionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -38318,6 +41540,8 @@ export namespace Prisma {
     gymRate?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
+    clientExitAcceptedAt?: SortOrder
+    clientExitRestrictionId?: SortOrder
     releasedToPt?: SortOrder
     releasedToGym?: SortOrder
     releasedToPlatform?: SortOrder
@@ -38402,6 +41626,8 @@ export namespace Prisma {
     gymRate?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
+    clientExitAcceptedAt?: SortOrder
+    clientExitRestrictionId?: SortOrder
     releasedToPt?: SortOrder
     releasedToGym?: SortOrder
     releasedToPlatform?: SortOrder
@@ -38466,6 +41692,8 @@ export namespace Prisma {
     gymRate?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
+    clientExitAcceptedAt?: SortOrder
+    clientExitRestrictionId?: SortOrder
     releasedToPt?: SortOrder
     releasedToGym?: SortOrder
     releasedToPlatform?: SortOrder
@@ -39904,6 +43132,239 @@ export namespace Prisma {
     defaultRestSeconds?: SortOrder
   }
 
+  export type EnumPtRestrictionTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionType | EnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionTypeFilter<$PrismaModel> | $Enums.PtRestrictionType
+  }
+
+  export type EnumPtRestrictionReasonCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionReasonCategory | EnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel> | $Enums.PtRestrictionReasonCategory
+  }
+
+  export type EnumPtRestrictionEndKindNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionEndKind | EnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel> | $Enums.PtRestrictionEndKind | null
+  }
+
+  export type EnumPtRestrictionScopeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionScope | EnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionScopeFilter<$PrismaModel> | $Enums.PtRestrictionScope
+  }
+
+  export type PtRestrictionContractExtensionListRelationFilter = {
+    every?: PtRestrictionContractExtensionWhereInput
+    some?: PtRestrictionContractExtensionWhereInput
+    none?: PtRestrictionContractExtensionWhereInput
+  }
+
+  export type PtRestrictionContractExtensionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtRestrictionCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    type?: SortOrder
+    reasonCategory?: SortOrder
+    reasonText?: SortOrder
+    publicReason?: SortOrder
+    imposedBy?: SortOrder
+    lockSeq?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+    endKind?: SortOrder
+    liftedBy?: SortOrder
+    liftReason?: SortOrder
+    lastJustifiedAt?: SortOrder
+    lastJustifiedBy?: SortOrder
+    lastJustification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    scope?: SortOrder
+    contractId?: SortOrder
+    supersedesRestrictionId?: SortOrder
+  }
+
+  export type PtRestrictionAvgOrderByAggregateInput = {
+    lockSeq?: SortOrder
+  }
+
+  export type PtRestrictionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    type?: SortOrder
+    reasonCategory?: SortOrder
+    reasonText?: SortOrder
+    publicReason?: SortOrder
+    imposedBy?: SortOrder
+    lockSeq?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+    endKind?: SortOrder
+    liftedBy?: SortOrder
+    liftReason?: SortOrder
+    lastJustifiedAt?: SortOrder
+    lastJustifiedBy?: SortOrder
+    lastJustification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    scope?: SortOrder
+    contractId?: SortOrder
+    supersedesRestrictionId?: SortOrder
+  }
+
+  export type PtRestrictionMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    type?: SortOrder
+    reasonCategory?: SortOrder
+    reasonText?: SortOrder
+    publicReason?: SortOrder
+    imposedBy?: SortOrder
+    lockSeq?: SortOrder
+    startedAt?: SortOrder
+    endedAt?: SortOrder
+    endKind?: SortOrder
+    liftedBy?: SortOrder
+    liftReason?: SortOrder
+    lastJustifiedAt?: SortOrder
+    lastJustifiedBy?: SortOrder
+    lastJustification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    scope?: SortOrder
+    contractId?: SortOrder
+    supersedesRestrictionId?: SortOrder
+  }
+
+  export type PtRestrictionSumOrderByAggregateInput = {
+    lockSeq?: SortOrder
+  }
+
+  export type EnumPtRestrictionTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionType | EnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionTypeWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionTypeFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionTypeFilter<$PrismaModel>
+  }
+
+  export type EnumPtRestrictionReasonCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionReasonCategory | EnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionReasonCategoryWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionReasonCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumPtRestrictionEndKindNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionEndKind | EnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtRestrictionEndKindNullableWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionEndKind | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPtRestrictionScopeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionScope | EnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionScopeWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionScope
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionScopeFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionScopeFilter<$PrismaModel>
+  }
+
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type PtRestrictionRelationFilter = {
+    is?: PtRestrictionWhereInput
+    isNot?: PtRestrictionWhereInput
+  }
+
+  export type PtRestrictionContractExtensionRestrictionIdContractIdCompoundUniqueInput = {
+    restrictionId: string
+    contractId: string
+  }
+
+  export type PtRestrictionContractExtensionCountOrderByAggregateInput = {
+    id?: SortOrder
+    restrictionId?: SortOrder
+    contractId?: SortOrder
+    blockedMs?: SortOrder
+    previousEndDate?: SortOrder
+    newEndDate?: SortOrder
+    appliedAt?: SortOrder
+  }
+
+  export type PtRestrictionContractExtensionAvgOrderByAggregateInput = {
+    blockedMs?: SortOrder
+  }
+
+  export type PtRestrictionContractExtensionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    restrictionId?: SortOrder
+    contractId?: SortOrder
+    blockedMs?: SortOrder
+    previousEndDate?: SortOrder
+    newEndDate?: SortOrder
+    appliedAt?: SortOrder
+  }
+
+  export type PtRestrictionContractExtensionMinOrderByAggregateInput = {
+    id?: SortOrder
+    restrictionId?: SortOrder
+    contractId?: SortOrder
+    blockedMs?: SortOrder
+    previousEndDate?: SortOrder
+    newEndDate?: SortOrder
+    appliedAt?: SortOrder
+  }
+
+  export type PtRestrictionContractExtensionSumOrderByAggregateInput = {
+    blockedMs?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -40002,6 +43463,14 @@ export namespace Prisma {
 
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
+  }
+
+  export type NullableBigIntFieldUpdateOperationsInput = {
+    set?: bigint | number | null
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -40433,6 +43902,13 @@ export namespace Prisma {
     connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
   }
 
+  export type PtRestrictionCreateNestedManyWithoutContractInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput> | PtRestrictionCreateWithoutContractInput[] | PtRestrictionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractInput | PtRestrictionCreateOrConnectWithoutContractInput[]
+    createMany?: PtRestrictionCreateManyContractInputEnvelope
+    connect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+  }
+
   export type ClientJourneyUncheckedCreateNestedManyWithoutContractInput = {
     create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
@@ -40459,6 +43935,13 @@ export namespace Prisma {
     connectOrCreate?: ClientReviewCreateOrConnectWithoutContractInput | ClientReviewCreateOrConnectWithoutContractInput[]
     createMany?: ClientReviewCreateManyContractInputEnvelope
     connect?: ClientReviewWhereUniqueInput | ClientReviewWhereUniqueInput[]
+  }
+
+  export type PtRestrictionUncheckedCreateNestedManyWithoutContractInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput> | PtRestrictionCreateWithoutContractInput[] | PtRestrictionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractInput | PtRestrictionCreateOrConnectWithoutContractInput[]
+    createMany?: PtRestrictionCreateManyContractInputEnvelope
+    connect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
   }
 
   export type EnumContractStatusFieldUpdateOperationsInput = {
@@ -40553,6 +44036,20 @@ export namespace Prisma {
     deleteMany?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
   }
 
+  export type PtRestrictionUpdateManyWithoutContractNestedInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput> | PtRestrictionCreateWithoutContractInput[] | PtRestrictionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractInput | PtRestrictionCreateOrConnectWithoutContractInput[]
+    upsert?: PtRestrictionUpsertWithWhereUniqueWithoutContractInput | PtRestrictionUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: PtRestrictionCreateManyContractInputEnvelope
+    set?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    disconnect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    delete?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    connect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    update?: PtRestrictionUpdateWithWhereUniqueWithoutContractInput | PtRestrictionUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: PtRestrictionUpdateManyWithWhereWithoutContractInput | PtRestrictionUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: PtRestrictionScalarWhereInput | PtRestrictionScalarWhereInput[]
+  }
+
   export type ClientJourneyUncheckedUpdateManyWithoutContractNestedInput = {
     create?: XOR<ClientJourneyCreateWithoutContractInput, ClientJourneyUncheckedCreateWithoutContractInput> | ClientJourneyCreateWithoutContractInput[] | ClientJourneyUncheckedCreateWithoutContractInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutContractInput | ClientJourneyCreateOrConnectWithoutContractInput[]
@@ -40607,6 +44104,20 @@ export namespace Prisma {
     update?: ClientReviewUpdateWithWhereUniqueWithoutContractInput | ClientReviewUpdateWithWhereUniqueWithoutContractInput[]
     updateMany?: ClientReviewUpdateManyWithWhereWithoutContractInput | ClientReviewUpdateManyWithWhereWithoutContractInput[]
     deleteMany?: ClientReviewScalarWhereInput | ClientReviewScalarWhereInput[]
+  }
+
+  export type PtRestrictionUncheckedUpdateManyWithoutContractNestedInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput> | PtRestrictionCreateWithoutContractInput[] | PtRestrictionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractInput | PtRestrictionCreateOrConnectWithoutContractInput[]
+    upsert?: PtRestrictionUpsertWithWhereUniqueWithoutContractInput | PtRestrictionUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: PtRestrictionCreateManyContractInputEnvelope
+    set?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    disconnect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    delete?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    connect?: PtRestrictionWhereUniqueInput | PtRestrictionWhereUniqueInput[]
+    update?: PtRestrictionUpdateWithWhereUniqueWithoutContractInput | PtRestrictionUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: PtRestrictionUpdateManyWithWhereWithoutContractInput | PtRestrictionUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: PtRestrictionScalarWhereInput | PtRestrictionScalarWhereInput[]
   }
 
   export type ContractCreateNestedOneWithoutSessionsInput = {
@@ -41102,6 +44613,102 @@ export namespace Prisma {
     update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutAgentDraftsInput, UserProfileUpdateWithoutAgentDraftsInput>, UserProfileUncheckedUpdateWithoutAgentDraftsInput>
   }
 
+  export type ContractCreateNestedOneWithoutPtRestrictionsInput = {
+    create?: XOR<ContractCreateWithoutPtRestrictionsInput, ContractUncheckedCreateWithoutPtRestrictionsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutPtRestrictionsInput
+    connect?: ContractWhereUniqueInput
+  }
+
+  export type PtRestrictionContractExtensionCreateNestedManyWithoutRestrictionInput = {
+    create?: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput> | PtRestrictionContractExtensionCreateWithoutRestrictionInput[] | PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput[]
+    connectOrCreate?: PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput | PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput[]
+    createMany?: PtRestrictionContractExtensionCreateManyRestrictionInputEnvelope
+    connect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+  }
+
+  export type PtRestrictionContractExtensionUncheckedCreateNestedManyWithoutRestrictionInput = {
+    create?: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput> | PtRestrictionContractExtensionCreateWithoutRestrictionInput[] | PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput[]
+    connectOrCreate?: PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput | PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput[]
+    createMany?: PtRestrictionContractExtensionCreateManyRestrictionInputEnvelope
+    connect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+  }
+
+  export type EnumPtRestrictionTypeFieldUpdateOperationsInput = {
+    set?: $Enums.PtRestrictionType
+  }
+
+  export type EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.PtRestrictionReasonCategory
+  }
+
+  export type NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput = {
+    set?: $Enums.PtRestrictionEndKind | null
+  }
+
+  export type EnumPtRestrictionScopeFieldUpdateOperationsInput = {
+    set?: $Enums.PtRestrictionScope
+  }
+
+  export type ContractUpdateOneWithoutPtRestrictionsNestedInput = {
+    create?: XOR<ContractCreateWithoutPtRestrictionsInput, ContractUncheckedCreateWithoutPtRestrictionsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutPtRestrictionsInput
+    upsert?: ContractUpsertWithoutPtRestrictionsInput
+    disconnect?: ContractWhereInput | boolean
+    delete?: ContractWhereInput | boolean
+    connect?: ContractWhereUniqueInput
+    update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutPtRestrictionsInput, ContractUpdateWithoutPtRestrictionsInput>, ContractUncheckedUpdateWithoutPtRestrictionsInput>
+  }
+
+  export type PtRestrictionContractExtensionUpdateManyWithoutRestrictionNestedInput = {
+    create?: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput> | PtRestrictionContractExtensionCreateWithoutRestrictionInput[] | PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput[]
+    connectOrCreate?: PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput | PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput[]
+    upsert?: PtRestrictionContractExtensionUpsertWithWhereUniqueWithoutRestrictionInput | PtRestrictionContractExtensionUpsertWithWhereUniqueWithoutRestrictionInput[]
+    createMany?: PtRestrictionContractExtensionCreateManyRestrictionInputEnvelope
+    set?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    disconnect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    delete?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    connect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    update?: PtRestrictionContractExtensionUpdateWithWhereUniqueWithoutRestrictionInput | PtRestrictionContractExtensionUpdateWithWhereUniqueWithoutRestrictionInput[]
+    updateMany?: PtRestrictionContractExtensionUpdateManyWithWhereWithoutRestrictionInput | PtRestrictionContractExtensionUpdateManyWithWhereWithoutRestrictionInput[]
+    deleteMany?: PtRestrictionContractExtensionScalarWhereInput | PtRestrictionContractExtensionScalarWhereInput[]
+  }
+
+  export type PtRestrictionContractExtensionUncheckedUpdateManyWithoutRestrictionNestedInput = {
+    create?: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput> | PtRestrictionContractExtensionCreateWithoutRestrictionInput[] | PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput[]
+    connectOrCreate?: PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput | PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput[]
+    upsert?: PtRestrictionContractExtensionUpsertWithWhereUniqueWithoutRestrictionInput | PtRestrictionContractExtensionUpsertWithWhereUniqueWithoutRestrictionInput[]
+    createMany?: PtRestrictionContractExtensionCreateManyRestrictionInputEnvelope
+    set?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    disconnect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    delete?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    connect?: PtRestrictionContractExtensionWhereUniqueInput | PtRestrictionContractExtensionWhereUniqueInput[]
+    update?: PtRestrictionContractExtensionUpdateWithWhereUniqueWithoutRestrictionInput | PtRestrictionContractExtensionUpdateWithWhereUniqueWithoutRestrictionInput[]
+    updateMany?: PtRestrictionContractExtensionUpdateManyWithWhereWithoutRestrictionInput | PtRestrictionContractExtensionUpdateManyWithWhereWithoutRestrictionInput[]
+    deleteMany?: PtRestrictionContractExtensionScalarWhereInput | PtRestrictionContractExtensionScalarWhereInput[]
+  }
+
+  export type PtRestrictionCreateNestedOneWithoutContractExtensionsInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractExtensionsInput, PtRestrictionUncheckedCreateWithoutContractExtensionsInput>
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractExtensionsInput
+    connect?: PtRestrictionWhereUniqueInput
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type PtRestrictionUpdateOneRequiredWithoutContractExtensionsNestedInput = {
+    create?: XOR<PtRestrictionCreateWithoutContractExtensionsInput, PtRestrictionUncheckedCreateWithoutContractExtensionsInput>
+    connectOrCreate?: PtRestrictionCreateOrConnectWithoutContractExtensionsInput
+    upsert?: PtRestrictionUpsertWithoutContractExtensionsInput
+    connect?: PtRestrictionWhereUniqueInput
+    update?: XOR<XOR<PtRestrictionUpdateToOneWithWhereWithoutContractExtensionsInput, PtRestrictionUpdateWithoutContractExtensionsInput>, PtRestrictionUncheckedUpdateWithoutContractExtensionsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -41133,6 +44740,17 @@ export namespace Prisma {
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
@@ -41265,6 +44883,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -41839,6 +45473,101 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumPtRestrictionTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionType | EnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionTypeFilter<$PrismaModel> | $Enums.PtRestrictionType
+  }
+
+  export type NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionReasonCategory | EnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel> | $Enums.PtRestrictionReasonCategory
+  }
+
+  export type NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionEndKind | EnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel> | $Enums.PtRestrictionEndKind | null
+  }
+
+  export type NestedEnumPtRestrictionScopeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionScope | EnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionScopeFilter<$PrismaModel> | $Enums.PtRestrictionScope
+  }
+
+  export type NestedEnumPtRestrictionTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionType | EnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionType[] | ListEnumPtRestrictionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionTypeWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionTypeFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtRestrictionReasonCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionReasonCategory | EnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionReasonCategory[] | ListEnumPtRestrictionReasonCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionReasonCategoryWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionReasonCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionReasonCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtRestrictionEndKindNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionEndKind | EnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtRestrictionEndKind[] | ListEnumPtRestrictionEndKindFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtRestrictionEndKindNullableWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionEndKind | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionEndKindNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtRestrictionScopeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtRestrictionScope | EnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    in?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtRestrictionScope[] | ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtRestrictionScopeWithAggregatesFilter<$PrismaModel> | $Enums.PtRestrictionScope
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtRestrictionScopeFilter<$PrismaModel>
+    _max?: NestedEnumPtRestrictionScopeFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type ClientJourneyCreateWithoutUserInput = {
@@ -42510,6 +46239,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -42565,6 +46295,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -42698,6 +46429,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -42753,6 +46485,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -43512,6 +47245,64 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type PtRestrictionCreateWithoutContractInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    supersedesRestrictionId?: string | null
+    contractExtensions?: PtRestrictionContractExtensionCreateNestedManyWithoutRestrictionInput
+  }
+
+  export type PtRestrictionUncheckedCreateWithoutContractInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    supersedesRestrictionId?: string | null
+    contractExtensions?: PtRestrictionContractExtensionUncheckedCreateNestedManyWithoutRestrictionInput
+  }
+
+  export type PtRestrictionCreateOrConnectWithoutContractInput = {
+    where: PtRestrictionWhereUniqueInput
+    create: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput>
+  }
+
+  export type PtRestrictionCreateManyContractInputEnvelope = {
+    data: PtRestrictionCreateManyContractInput | PtRestrictionCreateManyContractInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ClientJourneyUpsertWithWhereUniqueWithoutContractInput = {
     where: ClientJourneyWhereUniqueInput
     update: XOR<ClientJourneyUpdateWithoutContractInput, ClientJourneyUncheckedUpdateWithoutContractInput>
@@ -43636,6 +47427,49 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ClientReview"> | Date | string
   }
 
+  export type PtRestrictionUpsertWithWhereUniqueWithoutContractInput = {
+    where: PtRestrictionWhereUniqueInput
+    update: XOR<PtRestrictionUpdateWithoutContractInput, PtRestrictionUncheckedUpdateWithoutContractInput>
+    create: XOR<PtRestrictionCreateWithoutContractInput, PtRestrictionUncheckedCreateWithoutContractInput>
+  }
+
+  export type PtRestrictionUpdateWithWhereUniqueWithoutContractInput = {
+    where: PtRestrictionWhereUniqueInput
+    data: XOR<PtRestrictionUpdateWithoutContractInput, PtRestrictionUncheckedUpdateWithoutContractInput>
+  }
+
+  export type PtRestrictionUpdateManyWithWhereWithoutContractInput = {
+    where: PtRestrictionScalarWhereInput
+    data: XOR<PtRestrictionUpdateManyMutationInput, PtRestrictionUncheckedUpdateManyWithoutContractInput>
+  }
+
+  export type PtRestrictionScalarWhereInput = {
+    AND?: PtRestrictionScalarWhereInput | PtRestrictionScalarWhereInput[]
+    OR?: PtRestrictionScalarWhereInput[]
+    NOT?: PtRestrictionScalarWhereInput | PtRestrictionScalarWhereInput[]
+    id?: StringFilter<"PtRestriction"> | string
+    ptUserId?: StringFilter<"PtRestriction"> | string
+    type?: EnumPtRestrictionTypeFilter<"PtRestriction"> | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFilter<"PtRestriction"> | $Enums.PtRestrictionReasonCategory
+    reasonText?: StringNullableFilter<"PtRestriction"> | string | null
+    publicReason?: StringNullableFilter<"PtRestriction"> | string | null
+    imposedBy?: StringFilter<"PtRestriction"> | string
+    lockSeq?: BigIntNullableFilter<"PtRestriction"> | bigint | number | null
+    startedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    endedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    endKind?: EnumPtRestrictionEndKindNullableFilter<"PtRestriction"> | $Enums.PtRestrictionEndKind | null
+    liftedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    liftReason?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustifiedAt?: DateTimeNullableFilter<"PtRestriction"> | Date | string | null
+    lastJustifiedBy?: StringNullableFilter<"PtRestriction"> | string | null
+    lastJustification?: StringNullableFilter<"PtRestriction"> | string | null
+    createdAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    updatedAt?: DateTimeFilter<"PtRestriction"> | Date | string
+    scope?: EnumPtRestrictionScopeFilter<"PtRestriction"> | $Enums.PtRestrictionScope
+    contractId?: StringNullableFilter<"PtRestriction"> | string | null
+    supersedesRestrictionId?: StringNullableFilter<"PtRestriction"> | string | null
+  }
+
   export type ContractCreateWithoutSessionsInput = {
     agentActionId?: string | null
     dataOrigin?: string
@@ -43688,6 +47522,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -43701,6 +47537,7 @@ export namespace Prisma {
     journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutSessionsInput = {
@@ -43755,6 +47592,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -43768,6 +47607,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutSessionsInput = {
@@ -43922,6 +47762,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -43935,6 +47777,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutSessionsInput = {
@@ -43989,6 +47832,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44002,6 +47847,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type SessionReviewUpsertWithoutSessionInput = {
@@ -44219,6 +48065,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -44232,6 +48080,7 @@ export namespace Prisma {
     journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     sessions?: SessionCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutReviewsInput = {
@@ -44286,6 +48135,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -44299,6 +48150,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutReviewsInput = {
@@ -44446,6 +48298,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44459,6 +48313,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     sessions?: SessionUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutReviewsInput = {
@@ -44513,6 +48368,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44526,6 +48383,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type SessionCreateWithoutClientReviewInput = {
@@ -44651,6 +48509,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -44664,6 +48524,7 @@ export namespace Prisma {
     journeys?: ClientJourneyCreateNestedManyWithoutContractInput
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutClientReviewsInput = {
@@ -44718,6 +48579,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -44731,6 +48594,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutClientReviewsInput = {
@@ -44878,6 +48742,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44891,6 +48757,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutClientReviewsInput = {
@@ -44945,6 +48812,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44958,6 +48827,7 @@ export namespace Prisma {
     journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type VietnamWardCreateWithoutProvinceInput = {
@@ -45271,6 +49141,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -45326,6 +49197,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -45467,6 +49339,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -45522,6 +49395,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -45577,6 +49451,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -45632,6 +49507,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -45703,6 +49579,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -45758,6 +49635,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -45961,6 +49839,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -46016,6 +49895,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -46120,6 +50000,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -46133,6 +50015,7 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutContractInput
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionCreateNestedManyWithoutContractInput
   }
 
   export type ContractUncheckedCreateWithoutJourneysInput = {
@@ -46187,6 +50070,8 @@ export namespace Prisma {
     gymRate?: Decimal | DecimalJsLike | number | string
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
     releasedToPt?: Decimal | DecimalJsLike | number | string
     releasedToGym?: Decimal | DecimalJsLike | number | string
     releasedToPlatform?: Decimal | DecimalJsLike | number | string
@@ -46200,6 +50085,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
     clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+    ptRestrictions?: PtRestrictionUncheckedCreateNestedManyWithoutContractInput
   }
 
   export type ContractCreateOrConnectWithoutJourneysInput = {
@@ -46226,6 +50112,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -46281,6 +50168,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -46391,6 +50279,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -46404,6 +50294,7 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUpdateManyWithoutContractNestedInput
   }
 
   export type ContractUncheckedUpdateWithoutJourneysInput = {
@@ -46458,6 +50349,8 @@ export namespace Prisma {
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
     releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -46471,6 +50364,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
     clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+    ptRestrictions?: PtRestrictionUncheckedUpdateManyWithoutContractNestedInput
   }
 
   export type UserProfileCreateWithoutAgentDraftsInput = {
@@ -46481,6 +50375,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -46536,6 +50431,7 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
     age?: number | null
@@ -46607,6 +50503,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -46662,6 +50559,7 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
@@ -46707,6 +50605,471 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type ContractCreateWithoutPtRestrictionsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    journeys?: ClientJourneyCreateNestedManyWithoutContractInput
+    sessions?: SessionCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateWithoutPtRestrictionsInput = {
+    agentActionId?: string | null
+    dataOrigin?: string
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    sessionMode?: $Enums.SessionMode | null
+    description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
+    totalSessions: number
+    usedSessions?: number
+    compensatedSessions?: number
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    validityDays?: number | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
+    paymentDueAt?: Date | string | null
+    ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: Date | string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    clientExitAcceptedAt?: Date | string | null
+    clientExitRestrictionId?: string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
+    packageId?: string | null
+    packageSourceName?: string | null
+    sessionDurationMinutes?: number | null
+    lowAvailabilityWarned?: boolean
+    slotsAtPurchase?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutContractInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+    clientReviews?: ClientReviewUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractCreateOrConnectWithoutPtRestrictionsInput = {
+    where: ContractWhereUniqueInput
+    create: XOR<ContractCreateWithoutPtRestrictionsInput, ContractUncheckedCreateWithoutPtRestrictionsInput>
+  }
+
+  export type PtRestrictionContractExtensionCreateWithoutRestrictionInput = {
+    id?: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+  }
+
+  export type PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput = {
+    id?: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+  }
+
+  export type PtRestrictionContractExtensionCreateOrConnectWithoutRestrictionInput = {
+    where: PtRestrictionContractExtensionWhereUniqueInput
+    create: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput>
+  }
+
+  export type PtRestrictionContractExtensionCreateManyRestrictionInputEnvelope = {
+    data: PtRestrictionContractExtensionCreateManyRestrictionInput | PtRestrictionContractExtensionCreateManyRestrictionInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ContractUpsertWithoutPtRestrictionsInput = {
+    update: XOR<ContractUpdateWithoutPtRestrictionsInput, ContractUncheckedUpdateWithoutPtRestrictionsInput>
+    create: XOR<ContractCreateWithoutPtRestrictionsInput, ContractUncheckedCreateWithoutPtRestrictionsInput>
+    where?: ContractWhereInput
+  }
+
+  export type ContractUpdateToOneWithWhereWithoutPtRestrictionsInput = {
+    where?: ContractWhereInput
+    data: XOR<ContractUpdateWithoutPtRestrictionsInput, ContractUncheckedUpdateWithoutPtRestrictionsInput>
+  }
+
+  export type ContractUpdateWithoutPtRestrictionsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUpdateManyWithoutContractNestedInput
+    sessions?: SessionUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateWithoutPtRestrictionsInput = {
+    agentActionId?: NullableStringFieldUpdateOperationsInput | string | null
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    compensatedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    validityDays?: NullableIntFieldUpdateOperationsInput | number | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientExitRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    packageId?: NullableStringFieldUpdateOperationsInput | string | null
+    packageSourceName?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: NullableIntFieldUpdateOperationsInput | number | null
+    lowAvailabilityWarned?: BoolFieldUpdateOperationsInput | boolean
+    slotsAtPurchase?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutContractNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+    clientReviews?: ClientReviewUncheckedUpdateManyWithoutContractNestedInput
+  }
+
+  export type PtRestrictionContractExtensionUpsertWithWhereUniqueWithoutRestrictionInput = {
+    where: PtRestrictionContractExtensionWhereUniqueInput
+    update: XOR<PtRestrictionContractExtensionUpdateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedUpdateWithoutRestrictionInput>
+    create: XOR<PtRestrictionContractExtensionCreateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedCreateWithoutRestrictionInput>
+  }
+
+  export type PtRestrictionContractExtensionUpdateWithWhereUniqueWithoutRestrictionInput = {
+    where: PtRestrictionContractExtensionWhereUniqueInput
+    data: XOR<PtRestrictionContractExtensionUpdateWithoutRestrictionInput, PtRestrictionContractExtensionUncheckedUpdateWithoutRestrictionInput>
+  }
+
+  export type PtRestrictionContractExtensionUpdateManyWithWhereWithoutRestrictionInput = {
+    where: PtRestrictionContractExtensionScalarWhereInput
+    data: XOR<PtRestrictionContractExtensionUpdateManyMutationInput, PtRestrictionContractExtensionUncheckedUpdateManyWithoutRestrictionInput>
+  }
+
+  export type PtRestrictionContractExtensionScalarWhereInput = {
+    AND?: PtRestrictionContractExtensionScalarWhereInput | PtRestrictionContractExtensionScalarWhereInput[]
+    OR?: PtRestrictionContractExtensionScalarWhereInput[]
+    NOT?: PtRestrictionContractExtensionScalarWhereInput | PtRestrictionContractExtensionScalarWhereInput[]
+    id?: StringFilter<"PtRestrictionContractExtension"> | string
+    restrictionId?: StringFilter<"PtRestrictionContractExtension"> | string
+    contractId?: StringFilter<"PtRestrictionContractExtension"> | string
+    blockedMs?: BigIntFilter<"PtRestrictionContractExtension"> | bigint | number
+    previousEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    newEndDate?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+    appliedAt?: DateTimeFilter<"PtRestrictionContractExtension"> | Date | string
+  }
+
+  export type PtRestrictionCreateWithoutContractExtensionsInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    supersedesRestrictionId?: string | null
+    contract?: ContractCreateNestedOneWithoutPtRestrictionsInput
+  }
+
+  export type PtRestrictionUncheckedCreateWithoutContractExtensionsInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    contractId?: string | null
+    supersedesRestrictionId?: string | null
+  }
+
+  export type PtRestrictionCreateOrConnectWithoutContractExtensionsInput = {
+    where: PtRestrictionWhereUniqueInput
+    create: XOR<PtRestrictionCreateWithoutContractExtensionsInput, PtRestrictionUncheckedCreateWithoutContractExtensionsInput>
+  }
+
+  export type PtRestrictionUpsertWithoutContractExtensionsInput = {
+    update: XOR<PtRestrictionUpdateWithoutContractExtensionsInput, PtRestrictionUncheckedUpdateWithoutContractExtensionsInput>
+    create: XOR<PtRestrictionCreateWithoutContractExtensionsInput, PtRestrictionUncheckedCreateWithoutContractExtensionsInput>
+    where?: PtRestrictionWhereInput
+  }
+
+  export type PtRestrictionUpdateToOneWithWhereWithoutContractExtensionsInput = {
+    where?: PtRestrictionWhereInput
+    data: XOR<PtRestrictionUpdateWithoutContractExtensionsInput, PtRestrictionUncheckedUpdateWithoutContractExtensionsInput>
+  }
+
+  export type PtRestrictionUpdateWithoutContractExtensionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contract?: ContractUpdateOneWithoutPtRestrictionsNestedInput
+  }
+
+  export type PtRestrictionUncheckedUpdateWithoutContractExtensionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    contractId?: NullableStringFieldUpdateOperationsInput | string | null
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ClientJourneyCreateManyUserInput = {
@@ -47178,6 +51541,29 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type PtRestrictionCreateManyContractInput = {
+    id?: string
+    ptUserId: string
+    type: $Enums.PtRestrictionType
+    reasonCategory?: $Enums.PtRestrictionReasonCategory
+    reasonText?: string | null
+    publicReason?: string | null
+    imposedBy: string
+    lockSeq?: bigint | number | null
+    startedAt?: Date | string
+    endedAt?: Date | string | null
+    endKind?: $Enums.PtRestrictionEndKind | null
+    liftedBy?: string | null
+    liftReason?: string | null
+    lastJustifiedAt?: Date | string | null
+    lastJustifiedBy?: string | null
+    lastJustification?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scope?: $Enums.PtRestrictionScope
+    supersedesRestrictionId?: string | null
+  }
+
   export type ClientJourneyUpdateWithoutContractInput = {
     id?: StringFieldUpdateOperationsInput | string
     ptId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -47427,6 +51813,77 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtRestrictionUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractExtensions?: PtRestrictionContractExtensionUpdateManyWithoutRestrictionNestedInput
+  }
+
+  export type PtRestrictionUncheckedUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+    contractExtensions?: PtRestrictionContractExtensionUncheckedUpdateManyWithoutRestrictionNestedInput
+  }
+
+  export type PtRestrictionUncheckedUpdateManyWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    type?: EnumPtRestrictionTypeFieldUpdateOperationsInput | $Enums.PtRestrictionType
+    reasonCategory?: EnumPtRestrictionReasonCategoryFieldUpdateOperationsInput | $Enums.PtRestrictionReasonCategory
+    reasonText?: NullableStringFieldUpdateOperationsInput | string | null
+    publicReason?: NullableStringFieldUpdateOperationsInput | string | null
+    imposedBy?: StringFieldUpdateOperationsInput | string
+    lockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endKind?: NullableEnumPtRestrictionEndKindFieldUpdateOperationsInput | $Enums.PtRestrictionEndKind | null
+    liftedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    liftReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastJustifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    lastJustification?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scope?: EnumPtRestrictionScopeFieldUpdateOperationsInput | $Enums.PtRestrictionScope
+    supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type SessionRescheduleRequestCreateManySessionInput = {
     id?: string
     requestedBy: $Enums.RescheduleRequestedBy
@@ -47657,6 +52114,42 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtRestrictionContractExtensionCreateManyRestrictionInput = {
+    id?: string
+    contractId: string
+    blockedMs: bigint | number
+    previousEndDate: Date | string
+    newEndDate: Date | string
+    appliedAt?: Date | string
+  }
+
+  export type PtRestrictionContractExtensionUpdateWithoutRestrictionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtRestrictionContractExtensionUncheckedUpdateWithoutRestrictionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtRestrictionContractExtensionUncheckedUpdateManyWithoutRestrictionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    blockedMs?: BigIntFieldUpdateOperationsInput | bigint | number
+    previousEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    newEndDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -47686,6 +52179,10 @@ export namespace Prisma {
      * @deprecated Use VietnamWardCountOutputTypeDefaultArgs instead
      */
     export type VietnamWardCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtRestrictionCountOutputTypeDefaultArgs instead
+     */
+    export type PtRestrictionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtRestrictionCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
@@ -47782,6 +52279,14 @@ export namespace Prisma {
      * @deprecated Use UserPreferenceDefaultArgs instead
      */
     export type UserPreferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserPreferenceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtRestrictionDefaultArgs instead
+     */
+    export type PtRestrictionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtRestrictionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtRestrictionContractExtensionDefaultArgs instead
+     */
+    export type PtRestrictionContractExtensionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtRestrictionContractExtensionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

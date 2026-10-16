@@ -1,28 +1,41 @@
 import { logger } from "@gym-coach/shared";
-import { SessionSettlementKind } from "../generated/prisma";
-import { sessionSettlementRepository } from "../repositories/session-settlement.repository";
+import { Prisma, SessionSettlementKind } from "../generated/prisma";
+import { prisma } from "../repositories/profile.repository";
+import { isParkedError, sessionSettlementRepository } from "../repositories/session-settlement.repository";
 
 /**
- * Money-flow redesign plan 1.6 — "trạng thái buổi tập và trạng thái tiền phải tách nhau".
+ * Money-flow redesign plan 1.6 - "trạng thái buổi tập và trạng thái tiền phải tách nhau".
  *
  * A session's business status (NO_SHOW, CANCELLED, COMPLETED, ...) commits independently of
- * whether the money for it has actually moved. Before this, a no-show compensation or session
- * release that failed left the caller's status change already committed with NO way back to
- * retry it — every retry path is gated by a status guard ("Cannot mark no-show for session in
- * NO_SHOW status") that now refuses to touch the very session whose money never arrived.
+ * whether the money for it has actually moved. `settleTracked` is the one place that gap closes: it
+ * records the attempt, runs the actual payment-service call, and on failure records FAILED instead of
+ * throwing - the caller's business-status transition is never blocked or rolled back by a money-side
+ * failure. `session-settlement-sweep.service.ts` retries PENDING/FAILED/stale-PROCESSING rows later,
+ * using the exact same idempotency key payment-service de-duplicates on.
  *
- * `settleTracked` is the one place that gap closes: it records the attempt, runs the actual
- * payment-service call, and on failure records FAILED instead of throwing — the caller's
- * business-status transition is never blocked or rolled back by a money-side failure.
- * `session-settlement-sweep.service.ts` retries PENDING/FAILED/stale-PROCESSING rows later,
- * using the exact same idempotency key money-flow plan 1.1 already guards on the
- * payment-service side, so a retry — from the sweep, or from a live caller retrying the same
- * high-level operation — can never double-book.
+ * Phase 0 / D58 (atomicity + apply-once):
+ *  - The INTENT row is normally created by the decision itself, in the decision's own contract-locked transaction
+ *    (recordSessionMoneyIntent in contract-payout.service.ts), so "decided" and "money owed" are one fact. This
+ *    function then only EXECUTES it, outside any lock.
+ *  - The row is CLAIMED with a compare-and-set (PENDING / FAILED / stale PROCESSING -> PROCESSING), so a sweep and
+ *    a live request, or two instances, do not both start it. A live caller may take over a row a runner holds
+ *    (`takeover`): payment-service is idempotent on the key, so the second call replays.
+ *  - The sub-ledger bookkeeping of a result (`apply`: releasedTo*, compensatedSessions) runs in the SAME transaction
+ *    that flips the row to SETTLED, behind that flip: it is applied exactly once however many times the ledger call
+ *    is repeated, and a crash between "ledger answered" and "bookkeeping" simply repeats the (idempotent) call.
+ *  - A row is never SETTLED without a valid payment-service confirmation (`validate`).
  */
 
 export interface SettlementRow {
   id: string;
   status: string;
+}
+
+export interface ClaimResult {
+  claimed: boolean;
+  /** When not claimed: the row's status right now, and whether it is parked for a human. */
+  status?: string;
+  parked?: boolean;
 }
 
 export interface SettlementDeps {
@@ -36,6 +49,47 @@ export interface SettlementDeps {
   markProcessing: (id: string) => Promise<unknown>;
   markSettled: (id: string) => Promise<unknown>;
   markFailed: (id: string, error: string) => Promise<unknown>;
+  /** Compare-and-set claim (Phase 0). Absent (DI unit tests): markProcessing is used. */
+  claim?: (id: string, takeover: boolean) => Promise<ClaimResult>;
+  /** Flip the row to SETTLED and run `apply` in the same transaction, behind the flip. Absent: markSettled only. */
+  settleWith?: (id: string, apply: (tx: Prisma.TransactionClient) => Promise<void>) => Promise<boolean>;
+}
+
+/** A row stuck PROCESSING longer than this almost certainly means the runner crashed mid-call (read at call time). */
+export function staleProcessingMs(): number {
+  const raw = process.env.SESSION_SETTLEMENT_STALE_PROCESSING_MS;
+  // The longest legitimate runner holds a row for one payment-service call (<= 20 s) plus a few queries, so 2 minutes
+  // (was 10) is already far past "still in flight" - and an ending is blocked (CONTRACT_ENDING) until it is settled.
+  if (raw !== undefined && raw !== "" && Number.isFinite(Number(raw)) && Number(raw) >= 0) return Number(raw);
+  return 2 * 60 * 1000;
+}
+
+// ── attempt thresholds (D64-C) ──────────────────────────────────────────────────────────────────────────────────────
+// Starting values, all read at call time from the environment (an invalid / missing value falls back to the default):
+//   SETTLEMENT_WARN_ATTEMPTS  default 8   early warning "[MoneyAttention] ... early warning" from this failed attempt on, BEFORE the cap
+//   SETTLEMENT_MAX_ATTEMPTS   default 12  the cap: a session-level step is parked NEEDS_RECONCILIATION (a human) with an immediate
+//                                         "[MoneyAttention] ... needs a human" alert; an ending keeps being retried (idempotent) but
+//                                         alerts on every attempt from here on
+// The warning is always strictly below the cap (and absent when the cap is 1). With the default 60 s tick and the 60 s -> 1 h
+// back-off (session-settlement-sweep.service.ts), the 8th failed attempt comes about 20 minutes after the first and the 12th about
+// 3 hours after it - a person is told roughly 2.5 hours before the step is parked.
+function intFromEnv(name: string, fallback: number, min: number): number {
+  const raw = process.env[name];
+  const n = raw === undefined || raw.trim() === "" ? NaN : Number(raw);
+  return Number.isInteger(n) && n >= min ? n : fallback;
+}
+
+export const settlementMaxAttempts = (): number => intFromEnv("SETTLEMENT_MAX_ATTEMPTS", 12, 1);
+export const settlementWarnAttempts = (): number => {
+  const cap = settlementMaxAttempts();
+  return Math.min(intFromEnv("SETTLEMENT_WARN_ATTEMPTS", 8, 1), cap - 1);
+};
+
+/** Where a row with `attempts` failed attempts stands: nothing yet / early warning / at or past the cap. */
+export function settlementAttemptLevel(attempts: number): "OK" | "WARN" | "CAP" {
+  if (attempts >= settlementMaxAttempts()) return "CAP";
+  const warn = settlementWarnAttempts();
+  return warn >= 1 && attempts >= warn ? "WARN" : "OK";
 }
 
 const defaultSettlementDeps: SettlementDeps = {
@@ -43,6 +97,19 @@ const defaultSettlementDeps: SettlementDeps = {
   markProcessing: (id) => sessionSettlementRepository.markProcessing(id),
   markSettled: (id) => sessionSettlementRepository.markSettled(id),
   markFailed: (id, error) => sessionSettlementRepository.markFailed(id, error),
+  claim: async (id, takeover) => {
+    const row = await sessionSettlementRepository.claim(id, { staleBefore: new Date(Date.now() - staleProcessingMs()), takeover });
+    if (row) return { claimed: true };
+    const cur = await sessionSettlementRepository.findById(id);
+    return { claimed: false, status: cur?.status, parked: isParkedError(cur?.lastError) };
+  },
+  settleWith: (id, apply) =>
+    prisma.$transaction(async (tx) => {
+      const flipped = await sessionSettlementRepository.settleOnce(id, tx);
+      if (!flipped) return false; // somebody else settled (and applied) it first
+      await apply(tx);
+      return true;
+    }),
 };
 
 export interface SettleTrackedParams {
@@ -53,17 +120,36 @@ export interface SettleTrackedParams {
   reason?: string | null;
 }
 
+export interface SettleTrackedOptions<R> {
+  /** payment-service's answer -> an error text when it is NOT a valid confirmation (the row then stays FAILED, nothing is applied). */
+  validate?: (result: R) => string | null;
+  /** The sub-ledger bookkeeping of the answer; runs in the transaction that flips the row to SETTLED (apply-once). */
+  apply?: (tx: Prisma.TransactionClient, result: R) => Promise<void>;
+  /** A live caller may run a row another runner is processing (default true). The settlement sweep passes false. */
+  takeover?: boolean;
+}
+
+export type SettleOutcome<R> =
+  /** `applied` is false when another runner flipped the row (and applied the bookkeeping) first. */
+  | { state: "SETTLED"; applied: boolean; result: R }
+  | { state: "ALREADY_SETTLED" }
+  /** Another runner holds the row right now (only a sweep, or a caller that chose not to take over, sees this). */
+  | { state: "IN_FLIGHT" }
+  /** The row is parked for a human (NEEDS_RECONCILIATION / CONFLICT / ENDED_UNSETTLED): nothing is run. */
+  | { state: "PARKED" }
+  | { state: "FAILED"; error: string };
+
 /**
- * Runs `run` under retry tracking. Never throws — a failure is recorded on the row (visible to
- * the sweep and to anyone querying `session_settlements`) rather than propagated, because by
- * the time most callers reach this point their own business-status change has already
- * committed and cannot be meaningfully rolled back by surfacing an error here.
+ * Runs `run` under retry tracking. Never throws - a failure is recorded on the row (visible to the sweep and to anyone
+ * querying `session_settlements`) rather than propagated, because by the time most callers reach this point their own
+ * business-status change has already committed and cannot be meaningfully rolled back by surfacing an error here.
  */
-export async function settleTracked(
+export async function settleTracked<R = void>(
   params: SettleTrackedParams,
-  run: () => Promise<void>,
+  run: () => Promise<R>,
   deps: SettlementDeps = defaultSettlementDeps,
-): Promise<void> {
+  opts: SettleTrackedOptions<R> = {},
+): Promise<SettleOutcome<R>> {
   const row = await deps.upsertPending({
     kind: params.kind,
     idempotencyKey: params.idempotencyKey,
@@ -72,23 +158,44 @@ export async function settleTracked(
     reason: params.reason ?? null,
   });
 
-  // Already done — a caller re-entering the same high-level operation (a retried HTTP
+  // Already done - a caller re-entering the same high-level operation (a retried HTTP
   // request, or the sweep picking up a row a live caller just finished) must not run it again.
-  if (row.status === "SETTLED") return;
+  if (row.status === "SETTLED") return { state: "ALREADY_SETTLED" };
 
-  await deps.markProcessing(row.id);
+  if (deps.claim) {
+    const claim = await deps.claim(row.id, opts.takeover ?? true);
+    if (!claim.claimed) {
+      if (claim.status === "SETTLED") return { state: "ALREADY_SETTLED" };
+      return claim.parked ? { state: "PARKED" } : { state: "IN_FLIGHT" };
+    }
+  } else {
+    await deps.markProcessing(row.id);
+  }
+
   try {
-    await run();
-    await deps.markSettled(row.id);
+    const result = await run();
+    const invalid = opts.validate?.(result) ?? null;
+    if (invalid) throw new Error(`UNCONFIRMED: ${invalid}`);
+    let applied = true;
+    if (deps.settleWith) {
+      applied = await deps.settleWith(row.id, async (tx) => {
+        if (opts.apply) await opts.apply(tx, result);
+      });
+    } else {
+      await deps.markSettled(row.id);
+    }
+    return { state: "SETTLED", applied, result };
   } catch (e) {
-    await deps.markFailed(row.id, (e as Error).message);
+    const message = (e as Error).message;
+    await deps.markFailed(row.id, message);
     logger.error({
-      error: "Financial settlement failed — recorded for retry",
+      error: "Financial settlement failed - recorded for retry",
       kind: params.kind,
       idempotencyKey: params.idempotencyKey,
       contractId: params.contractId,
       sessionId: params.sessionId,
-      message: (e as Error).message,
+      message,
     });
+    return { state: "FAILED", error: message };
   }
 }

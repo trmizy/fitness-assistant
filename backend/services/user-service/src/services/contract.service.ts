@@ -7,7 +7,7 @@ import {
   PackageType,
   SessionMode,
   Prisma,
-  SessionSettlementKind,
+  PtRestrictionScope,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { sessionRepository } from "../repositories/session.repository";
@@ -23,10 +23,21 @@ import { ptServicePackageRepository } from "../repositories/pt_service_package.r
 import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
-import { releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
+import { recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
-import { settleTracked } from "./session-settlement.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
+import {
+  activeRestrictedContractIds,
+  activeRestrictedPtUserIds,
+  assertPtAcceptsNewBusiness,
+  assertPtMayAct,
+  assertPtMayActOnContract,
+  getActiveRestriction,
+  getBlockingRestriction,
+  getEffectiveContractStatuses,
+  isContractRestricted,
+  idleCutoffExcludingRestrictions,
+} from "./pt-restriction.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -168,16 +179,23 @@ export interface CompleteContractDeps {
 
 const defaultCompleteContractDeps: CompleteContractDeps = {
   findById: (id) => contractRepository.findById(id),
-  updateStatus: (id, status, extra) => contractRepository.updateStatus(id, status, extra),
+  // F4: guarded - only an ACTIVE contract is completed. A contract that was ended another way between the read and this write
+  // (client cancel, expiry, ban) is NOT rewritten to COMPLETED (null = lost the race; checkAndCompleteContract then stops).
+  updateStatus: (id, status, extra) => contractRepository.updateStatusIfCurrent(id, ContractStatus.ACTIVE, status, extra),
   deriveClientJourney: (id) => deriveForCompletedContract(id),
   // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
   // committed the contract to COMPLETED — there is no going back to retry a failed settlement
-  // through any status-gated endpoint, so the sweep is the only path left for it.
-  settleMoney: (id, reason) =>
-    settleTracked(
-      { kind: SessionSettlementKind.CONTRACT_TERMINATION, idempotencyKey: `CONTRACT_TERMINATE:${id}`, contractId: id, reason },
-      () => terminateContractMoney(id, reason),
-    ),
+  // through any status-gated endpoint, so the sweep is the only path left for it. The ending records its own
+  // CONTRACT_TERMINATION intent row (contract-payout.service.ts) and settles it on payment-service's confirmation; a failure
+  // BEFORE the row could be recorded (e.g. the database blinked) is recorded here so the sweep still finds the ending.
+  settleMoney: async (id, reason) => {
+    try {
+      return await terminateContractMoney(id, reason);
+    } catch (e) {
+      await recordTerminationAttemptFailed(id, reason, (e as Error).message).catch(() => undefined);
+      throw e;
+    }
+  },
 };
 
 /** The subset of a PTServicePackage a contract copies. */
@@ -414,8 +432,9 @@ export const contractService = {
     const ptProfile = await profileRepository.findByUserId(data.ptUserId);
     if (!ptProfile || !ptProfile.isPT)
       throw err("PT không tồn tại hoặc chưa được duyệt", 404);
-    if (ptProfile.ptSuspended)
-      throw err("PT đang bị tạm ngưng, không thể tạo hợp đồng", 422);
+    // A restricted PT (temporarily suspended OR banned) takes no new business. The restriction record
+    // decides (pt-restriction.service.ts); the profile flag is only its mirror and fails closed there.
+    await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
     if (!(ptProfile as any).isAcceptingClients)
       throw err("PT hiện đang tạm ngưng nhận khách mới", 422);
 
@@ -578,6 +597,8 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    // Restricted mode: a suspended PT cannot take on a new contract (the request waits, the client may cancel it).
+    await assertPtMayAct(ptUserId);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
@@ -729,6 +750,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    await assertPtMayAct(ptUserId); // restricted mode
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err(`Cannot reject contract in ${contract.status} status`, 400);
     }
@@ -773,6 +795,8 @@ export const contractService = {
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err("Not authorized", 403);
     }
+    // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
+    if (contract.ptUserId === userId) await assertPtMayAct(userId);
     if (
       contract.status !== ContractStatus.PENDING_REVIEW &&
       contract.status !== ContractStatus.PENDING_PAYMENT
@@ -849,6 +873,7 @@ export const contractService = {
       const updated = await deps.updateStatus(contractId, ContractStatus.COMPLETED, {
         completedAt: new Date(),
       });
+      if (updated === null) return null; // ended another way meanwhile - that ending owns the contract and its money
       try {
         await deps.settleMoney(contractId, "COMPLETED");
       } catch (e) {
@@ -905,8 +930,10 @@ export const contractService = {
 
   async getByPT(ptUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    const contracts = await contractRepository.findByPT(ptUserId, s);
-    if (contracts.length === 0) return contracts;
+    const rawContracts = await contractRepository.findByPT(ptUserId, s);
+    if (rawContracts.length === 0) return rawContracts;
+    // `effectiveStatus` (ACTIVE vs PAUSED_BY_ADMIN) rides along; `status` keeps its stored value.
+    const contracts = await getEffectiveContractStatuses(rawContracts);
 
     const clientIds = contracts.map((c) => c.clientUserId);
     const [profileMap, ratingMap] = await Promise.all([
@@ -928,8 +955,9 @@ export const contractService = {
 
   async getByClient(clientUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    const contracts = await contractRepository.findByClient(clientUserId, s);
-    if (contracts.length === 0) return contracts;
+    const rawContracts = await contractRepository.findByClient(clientUserId, s);
+    if (rawContracts.length === 0) return rawContracts;
+    const contracts = await getEffectiveContractStatuses(rawContracts);
 
     const profileMap = await counterpartyProfiles(
       contracts.map((c) => c.ptUserId),
@@ -942,7 +970,10 @@ export const contractService = {
   },
 
   async getById(id: string) {
-    return contractRepository.findByIdWithSessions(id);
+    const contract = await contractRepository.findByIdWithSessions(id);
+    if (!contract) return contract;
+    const [withEffective] = await getEffectiveContractStatuses([contract]);
+    return withEffective;
   },
 
   /**
@@ -976,6 +1007,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    await assertPtMayActOnContract(ptUserId, contractId); // restricted mode: no coaching messages while suspended (account or this contract)
     if (contract.status !== ContractStatus.ACTIVE) {
       throw err("Feedback can only be sent on an active contract", 409);
     }
@@ -1214,10 +1246,18 @@ export const contractService = {
    * retry safe against double settlement.
    */
   async expireContracts() {
-    const expired = await contractRepository.findExpiredContracts();
+    // A contract whose PT is restricted is PAUSED_BY_ADMIN (getEffectiveContractStatus): its clock is
+    // stopped, so it must never be ended as EXPIRED — that settles with a zero refund and hands the
+    // whole unused value to the PT/gym/platform, i.e. it would make the client pay for the pause.
+    // The end date is moved forward by the blocked time when the restriction is lifted.
+    // A contract paused on its own (CONTRACT-scope restriction) has the same stopped clock, for that contract only.
+    const restricted = await activeRestrictedPtUserIds();
+    const expired = await contractRepository.findExpiredContracts(restricted, await activeRestrictedContractIds());
     let count = 0;
     for (const c of expired) {
       try {
+        // Re-check right before the money call: a suspension may have begun since the list was read.
+        if (await isContractRestricted(c)) continue;
         await terminateContractMoney(c.id, "EXPIRED");
         count++;
       } catch (e) {
@@ -1316,11 +1356,38 @@ export const contractService = {
     const dayMs = 24 * 60 * 60 * 1000;
     const cutoff = new Date(now.getTime() - PT_HOLDBACK_IDLE_DAYS * dayMs);
     const window = { activatedBefore: cutoff, sessionsSince: cutoff };
-    const candidates = await contractRepository.findIdleHoldbackCandidates(window);
+    // A restricted PT's held amount is never released by the idle clock: nothing is "idle" while the
+    // PT is paused by an admin. (The list excludes them; the per-contract check below re-reads.)
+    const restricted = await activeRestrictedPtUserIds();
+    const candidates = await contractRepository.findIdleHoldbackCandidates({
+      ...window,
+      excludePtUserIds: restricted,
+      excludeContractIds: await activeRestrictedContractIds(),
+    });
     let count = 0;
     for (const c of candidates) {
       try {
-        const stillIdle = await contractRepository.findIdleHoldbackCandidates({ ...window, id: c.id, limit: 1 });
+        if (await isContractRestricted(c)) continue;
+        // Suspended time does not count toward the idle days: the window is pushed back by the time
+        // this PT spent restricted, so PT_HOLDBACK_IDLE_DAYS of NON-suspended days are required.
+        // ...counting only what blocked THIS contract: the PT's account episodes and this contract's own — never
+        // another contract's (a restriction on a different client's contract does not stop this clock).
+        const episodes = await prisma.ptRestriction.findMany({
+          where: {
+            OR: [
+              { ptUserId: c.ptUserId, scope: PtRestrictionScope.ACCOUNT },
+              { contractId: c.id, scope: PtRestrictionScope.CONTRACT },
+            ],
+          },
+          select: { startedAt: true, endedAt: true },
+        });
+        const idleSince = idleCutoffExcludingRestrictions(now, PT_HOLDBACK_IDLE_DAYS * dayMs, episodes);
+        const stillIdle = await contractRepository.findIdleHoldbackCandidates({
+          activatedBefore: idleSince,
+          sessionsSince: idleSince,
+          id: c.id,
+          limit: 1,
+        });
         if (stillIdle.length === 0) continue;
 
         const result = await releaseHoldbackMoney(c.id);
@@ -1365,6 +1432,11 @@ export const contractService = {
   // "can this PT write training data for this client").
   async checkActivePtClientRelationship(ptUserId: string, clientUserId: string) {
     const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
+    // A PAUSED_BY_ADMIN contract is not a working coaching relationship: fitness-service (which asks
+    // this before every PT client-data / plan-assignment request) must refuse a restricted PT.
+    if (contract && (await getBlockingRestriction({ id: contract.id, ptUserId }))) {
+      return { active: false, contractId: null, reason: "PT_RESTRICTED" as const };
+    }
     return { active: !!contract, contractId: contract?.id ?? null };
   },
 
@@ -1472,6 +1544,11 @@ export const contractService = {
     }
     if (!contract.price) throw err("Contract has no price set", 400);
 
+    // No new business with a restricted PT: payment is refused BEFORE any checkout exists, so the
+    // client is never charged. The contract itself is left exactly as it is — its payment deadline
+    // keeps running and the deadline sweep may cancel it.
+    await assertPtAcceptsNewBusiness(contract.ptUserId, "PAY_CONTRACT");
+
     // Quá hạn thanh toán thì từ chối ngay, không đợi sweep kịp huỷ.
     if (contract.paymentDueAt && contract.paymentDueAt.getTime() <= Date.now()) {
       throw codedErr(
@@ -1544,6 +1621,22 @@ export const contractService = {
       txn.relatedEntityId !== contractId
     ) {
       throw err("Transaction verification failed", 400);
+    }
+    // A payment that was already in flight when the PT got restricted must not start a new contract:
+    // answered with the definite 409 CONTRACT_NOT_ACTIVATABLE so payment-service refunds the client in
+    // full (the existing path). A replay of a payment that ALREADY activated the contract (status
+    // ACTIVE with this transaction) is not "new business" and falls through to the idempotent branch.
+    // (prisma directly, like activateIfPendingGuarded below: this is a read of the row, not a repository seam)
+    const beforeActivation = await prisma.contract.findUnique({ where: { id: contractId }, select: { status: true, ptUserId: true } });
+    if (beforeActivation?.status === ContractStatus.PENDING_PAYMENT && (await getActiveRestriction(beforeActivation.ptUserId))) {
+      logger.warn(
+        { contractId, transactionId },
+        "activate-after-payment: PT is restricted — refusing the activation, payment-service will refund the client",
+      );
+      throw Object.assign(
+        err("Contract cannot be activated by this payment (the trainer is temporarily unavailable)", 409),
+        { code: CONTRACT_NOT_ACTIVATABLE, currentStatus: beforeActivation.status },
+      );
     }
     // Một lần ghi có điều kiện (WHERE status = PENDING_PAYMENT) thay cho đọc-rồi-ghi: một lệnh huỷ
     // chen vào giữa không thể bị ghi đè thành ACTIVE. `flipped` chỉ đúng cho lần gọi thực sự

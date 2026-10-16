@@ -24,8 +24,7 @@ import { runContractHoldbackSweep } from "../services/contract-expiry-sweep.serv
 import { PT_HOLDBACK_IDLE_DAYS } from "../services/pt-holdback-rate";
 
 const DAY = 24 * 3600 * 1000;
-const usable = /_test/i.test(process.env.DATABASE_URL ?? "");
-const skip = usable ? false : "Requires DATABASE_URL pointing at a *_test database.";
+import { skip } from "./test-db-guard"; // D57-6-5: the database NAME must end with _test (was a loose /_test/ match on the whole URL)
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
   const original = obj[key];
@@ -261,6 +260,111 @@ test("idle rule: which contracts qualify", { skip }, async () => {
     }
   } finally {
     await cleanup(cases.map(([, c]) => c.id));
+  }
+});
+
+// ── A CANCELLED session counts as activity only when the PT cancelled it ─────
+
+/** A CANCELLED session with an explicit canceller — `by` is "PT" (the session's own ptUserId), "CLIENT", or a literal such as "ADMIN"/"SYSTEM"/null. */
+async function addCancelled(c: { id: string; ptUserId: string; clientUserId: string }, by: "PT" | "CLIENT" | string | null, startOffsetDays: number) {
+  const s = await addSession(c.id, c.ptUserId, c.clientUserId, "CANCELLED", startOffsetDays);
+  const cancelledBy = by === "PT" ? c.ptUserId : by === "CLIENT" ? c.clientUserId : by;
+  return prisma.session.update({ where: { id: s.id }, data: { cancelledBy, cancellationReason: "test" } });
+}
+
+test("idle rule: a session the PT cancelled counts as activity inside the window; one the client (or admin/system) cancelled does not", { skip }, async () => {
+  const mk = async (sessions: [string | null, number][]) => {
+    const c = await makeContract();
+    for (const [by, offset] of sessions) await addCancelled(c, by, offset);
+    return c;
+  };
+  const cases: [string, Awaited<ReturnType<typeof mk>>, boolean][] = [
+    ["PT cancelled a session 2 days ago", await mk([["PT", -2]]), false],
+    ["PT cancelled a session starting 29 days ago", await mk([["PT", -29]]), false],
+    ["PT cancelled a session starting in the future", await mk([["PT", 5]]), false],
+    ["PT cancelled a session starting 35 days ago (older than the window)", await mk([["PT", -35]]), true],
+    ["client cancelled a session 2 days ago", await mk([["CLIENT", -2]]), true],
+    ["client cancelled a session in the future", await mk([["CLIENT", 5]]), true],
+    ["admin ruling cancelled a session 2 days ago", await mk([["ADMIN", -2]]), true],
+    ["system cancelled a session 2 days ago", await mk([["SYSTEM", -2]]), true],
+    ["cancelled with no recorded canceller", await mk([[null, -2]]), true],
+    ["cancelled by some third user id", await mk([[randomUUID(), -2]]), true],
+    ["mixed: client cancel recent + PT cancel older than the window", await mk([["CLIENT", -2], ["PT", -40]]), true],
+    ["mixed: client cancel + PT cancel, both recent", await mk([["CLIENT", -3], ["PT", -4]]), false],
+  ];
+  const extra = await makeContract();
+  await addSession(extra.id, extra.ptUserId, extra.clientUserId, "COMPLETED", -35);
+  await addCancelled(extra, "CLIENT", -1);
+  cases.push(["mixed: COMPLETED older than the window + recent client cancel", extra, true]);
+  try {
+    for (const [name, c, expected] of cases) {
+      assert.equal(await isCandidate(c.id), expected, name);
+    }
+  } finally {
+    await cleanup(cases.map(([, c]) => c.id));
+  }
+});
+
+test("idle rule: another contract's PT cancel does not keep this contract busy (the PT is compared per session, not per PT account)", { skip }, async () => {
+  const a = await makeContract();
+  const b = await makeContract({ ptUserId: a.ptUserId, clientUserId: randomUUID() });
+  await addCancelled(b, "PT", -2);
+  try {
+    assert.equal(await isCandidate(a.id), true, "A has no activity of its own");
+    assert.equal(await isCandidate(b.id), false);
+  } finally {
+    await cleanup([a.id, b.id]);
+  }
+});
+
+test("sweep: a PT-cancelled recent session blocks the release; a client-cancelled one does not", { skip }, async () => {
+  const byPt = await makeContract();
+  await addCancelled(byPt, "PT", -2);
+  const byClient = await makeContract();
+  await addCancelled(byClient, "CLIENT", -2);
+  const oldByPt = await makeContract();
+  await addCancelled(oldByPt, "PT", -40);
+  const calls: any[] = [];
+  const restore = patch(paymentClient, "releaseHoldback", async (b: any) => {
+    calls.push(b);
+    return { released: "100000.00" };
+  });
+  try {
+    await runContractHoldbackSweep();
+    const ids = calls.map((b) => b.idempotencyKey);
+    assert.ok(!ids.includes(`HOLDBACK_RELEASE:${byPt.id}`), "PT cancel in the window: held");
+    assert.ok(ids.includes(`HOLDBACK_RELEASE:${byClient.id}`), "client cancel: released");
+    assert.ok(ids.includes(`HOLDBACK_RELEASE:${oldByPt.id}`), "PT cancel older than the window: released");
+    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: byPt.id } })).holdbackReleasedAt, null);
+    assert.ok((await prisma.contract.findUniqueOrThrow({ where: { id: byClient.id } })).holdbackReleasedAt);
+  } finally {
+    restore();
+    await cleanup([byPt.id, byClient.id, oldByPt.id]);
+  }
+});
+
+test("sweep: a PT cancel that lands between the candidate list and the money call stops the release (same rule in the re-check)", { skip }, async () => {
+  const c = await makeContract();
+  const original = contractRepository.findIdleHoldbackCandidates;
+  const restoreRepo = patch(contractRepository, "findIdleHoldbackCandidates", async (opts: any) => {
+    const rows = await original(opts);
+    // Right after the list query (no id) returns this contract, the PT cancels a session.
+    if (!opts.id && rows.some((r: any) => r.id === c.id)) await addCancelled(c, "PT", -1);
+    return rows;
+  });
+  const money: any[] = [];
+  const restoreMoney = patch(paymentClient, "releaseHoldback", async (b: any) => {
+    money.push(b);
+    return { released: "1.00" };
+  });
+  try {
+    await contractService.releaseIdleHoldbacks();
+    assert.ok(!money.some((b) => b.idempotencyKey === `HOLDBACK_RELEASE:${c.id}`), "no money call");
+    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).holdbackReleasedAt, null);
+  } finally {
+    restoreRepo();
+    restoreMoney();
+    await cleanup([c.id]);
   }
 });
 

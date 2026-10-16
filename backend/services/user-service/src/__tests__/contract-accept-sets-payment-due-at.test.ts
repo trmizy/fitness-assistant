@@ -9,6 +9,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 async function runAccept(esign: "true" | "false") {
   process.env.REQUIRE_CONTRACT_ESIGN = esign;

@@ -88,6 +88,16 @@ export const paymentClient = {
     return data.data;
   },
 
+  /**
+   * A session whose value payment-service HELD at termination (`unresolvedSessions` on terminate) has been
+   * decided: DELIVERED releases it to PT/gym/platform like a completed session, NOT_DELIVERED refunds it to
+   * the client. Idempotent per `UNRESOLVED_SESSION:<sessionId>`; a session is never resolved twice or both ways.
+   */
+  async resolveUnresolvedSession(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/resolve-unresolved-session`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
   async terminate(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, body, { headers, timeout: 20_000 });
     return data.data;

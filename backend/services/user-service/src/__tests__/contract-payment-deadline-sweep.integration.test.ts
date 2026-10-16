@@ -5,7 +5,7 @@
  * BACKEND INTEGRATION — Postgres thật qua DATABASE_URL (chạy với DB test cô lập
  * gymcoach_user_test, KHÔNG phải DB dev). Giống contract-validity-days-applied-on-activation.
  */
-import test from "node:test";
+import { guardedTest as test } from "./test-db-guard"; // D57-6-5: runs only on a database whose name ends with _test
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/profile.repository";

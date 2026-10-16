@@ -1,4 +1,6 @@
-import { Prisma, SessionStatus } from "../generated/prisma";
+import { ContractStatus, Prisma, SessionStatus } from "../generated/prisma";
+
+const FINAL_STATUSES: ContractStatus[] = [ContractStatus.COMPLETED, ContractStatus.EXPIRED, ContractStatus.CANCELLED, ContractStatus.REJECTED];
 import { prisma } from "./profile.repository";
 
 /**
@@ -50,9 +52,22 @@ export const sessionRepository = {
   /** Open-room online sessions whose window has just closed, still CONFIRMED (never entered
    *  via the room at all, or entered but nobody ever called completeSession/markNoShow by
    *  hand) — exactly what the room-close resolution sweep polls for. */
-  findConfirmedOnlineSessionsPastEnd: (before: Date, limit: number) =>
+  findConfirmedOnlineSessionsPastEnd: (before: Date, limit: number, excludePtUserIds: string[] = [], excludeContractIds: string[] = []) =>
     prisma.session.findMany({
-      where: { status: SessionStatus.CONFIRMED, sessionMode: "ONLINE", scheduledEndAt: { lte: before } },
+      where: {
+        status: SessionStatus.CONFIRMED,
+        sessionMode: "ONLINE",
+        scheduledEndAt: { lte: before },
+        // D45 / L2: only sessions of a RUNNING contract. A session left on an ended contract must never reach the
+        // no-show / late-arrival compensation this sweep triggers (the ending calls such sessions off; this is the
+        // guard for legacy leftovers and for the instant before the call-off).
+        contract: { status: ContractStatus.ACTIVE },
+        // A restricted PT's sessions are never resolved by the automation (no no-show, no case 1-5
+        // outcome) — nothing is decided against either side while the PT is paused; they resume at lift.
+        ...(excludePtUserIds.length > 0 ? { ptUserId: { notIn: excludePtUserIds } } : {}),
+        // Same for a contract paused on its own (CONTRACT-scope restriction): only that contract's sessions.
+        ...(excludeContractIds.length > 0 ? { contractId: { notIn: excludeContractIds } } : {}),
+      },
       take: limit,
       orderBy: { scheduledEndAt: "asc" },
     }),
@@ -62,6 +77,14 @@ export const sessionRepository = {
       where: { contractId },
       orderBy: { scheduledStartAt: "asc" },
       include: { review: true, clientReview: true },
+    }),
+
+  /** A contract's sessions that are still in one of `statuses` (what the PT-lock unwind has left to call off). */
+  findByContractInStatuses: (contractId: string, statuses: SessionStatus[]) =>
+    prisma.session.findMany({
+      where: { contractId, status: { in: statuses } },
+      select: { id: true, status: true, ptUserId: true, clientUserId: true, sessionMode: true, disputedAt: true },
+      orderBy: { scheduledStartAt: "asc" },
     }),
 
   /** Upcoming sessions for a user (as either client or PT) */
@@ -113,6 +136,33 @@ export const sessionRepository = {
   },
 
   /**
+   * The claim of a delivered session, as ONE step on a contract whose lock the caller holds (`tx`, see
+   * withContractLock): it reads whether the contract has already ended, flips `sessionDeducted` false -> true and, when
+   * `transition` is given, moves the session's STATUS to COMPLETED in the same UPDATE - only from one of
+   * `transition.from` (F3: a session that was cancelled / disputed / settled meanwhile matches zero rows and is never
+   * overwritten). `endedAtClaim` tells the caller whether the session's value is one the ending HELD (the contract
+   * ended before this claim) or an ordinary release.
+   *
+   * Phase 0 / D58: the caller counts the session on the contract (incrementSession, on the SAME `tx`) and records the money step's
+   * intent row in that transaction too, then commits and releases the lock BEFORE calling payment-service - so the claim, the count and
+   * the intent are one atomic decision.
+   */
+  claimDelivery: async (
+    tx: Prisma.TransactionClient,
+    id: string,
+    contractId: string,
+    transition?: { from: SessionStatus[]; extra?: Record<string, unknown> },
+  ): Promise<{ claimed: boolean; endedAtClaim: boolean }> => {
+    const contract = await tx.contract.findUnique({ where: { id: contractId }, select: { status: true } });
+    const endedAtClaim = !!contract && FINAL_STATUSES.includes(contract.status);
+    const { count } = await tx.session.updateMany({
+      where: { id, sessionDeducted: false, ...(transition ? { status: { in: transition.from } } : {}) },
+      data: { sessionDeducted: true, ...(transition ? { status: SessionStatus.COMPLETED, ...transition.extra } : {}) },
+    });
+    return { claimed: count === 1, endedAtClaim };
+  },
+
+  /**
    * Vòng 4 / Phase A — general-purpose version of the same CAS shape claimDeduction above
    * uses for `sessionDeducted`, but for `status`. `updateStatus` above is a plain
    * `db.session.update({ where: { id } })` — no status precondition at all, so two
@@ -138,11 +188,17 @@ export const sessionRepository = {
   },
 
   /** Sessions whose client-confirmation window has run out (drives the auto-confirm job). */
-  findExpiredPendingConfirmation: (now: Date, limit = 100) =>
+  findExpiredPendingConfirmation: (now: Date, limit = 100, excludePtUserIds: string[] = [], excludeContractIds: string[] = []) =>
     prisma.session.findMany({
       where: {
         status: SessionStatus.PENDING_CLIENT_CONFIRMATION,
         clientConfirmDeadline: { lte: now },
+        // A restricted PT's sessions do not auto-confirm: the client's window is frozen while the PT is
+        // paused and given back at lift (pt-restriction.service.ts closeEpisode). Excluded IN the query
+        // so suspended rows cannot fill the batch and starve everyone else.
+        ...(excludePtUserIds.length > 0 ? { ptUserId: { notIn: excludePtUserIds } } : {}),
+        // A contract paused on its own (CONTRACT-scope restriction) freezes the same way, for that contract only.
+        ...(excludeContractIds.length > 0 ? { contractId: { notIn: excludeContractIds } } : {}),
       },
       orderBy: { clientConfirmDeadline: "asc" },
       take: limit,
@@ -247,11 +303,15 @@ export const sessionRepository = {
       where: { sessionId, status: "ACCEPTED" },
     }),
 
-  /** Find all non-terminal sessions for a PT on a given date range */
+  /**
+   * Find all non-terminal sessions for a PT on a given date range - of RUNNING contracts only (D45 / L2): a PT
+   * blocking a day must never cancel / compensate a session that belongs to a contract that has already ended.
+   */
   findConflictsByDate: (ptUserId: string, dayStart: Date, dayEnd: Date) =>
     prisma.session.findMany({
       where: {
         ptUserId,
+        contract: { status: ContractStatus.ACTIVE },
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         scheduledStartAt: { gte: dayStart, lte: dayEnd },
       },

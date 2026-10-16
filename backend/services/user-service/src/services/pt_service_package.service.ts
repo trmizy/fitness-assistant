@@ -2,6 +2,7 @@ import { AuditEntityType, Prisma, SessionMode } from "../generated/prisma";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { auditService } from "./audit.service";
+import { assertPtMayAct, isPtRestricted } from "./pt-restriction.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -43,6 +44,8 @@ export const ptServicePackageService = {
     if (!profile || !(profile as any).isPT) {
       throw err("PT not found", 404);
     }
+    // A restricted PT offers nothing to NEW clients: their packages are not listed while it lasts.
+    if (await isPtRestricted(ptUserId)) return { packages: [] };
     const packages = await ptServicePackageRepository.findActiveByPT(ptUserId);
     return { packages };
   },
@@ -59,6 +62,7 @@ export const ptServicePackageService = {
       validityDays?: number;
     },
   ) {
+    await assertPtMayAct(ptUserId); // restricted mode: no new service activation while suspended
     // Business rules
     if (!data.name?.trim()) throw err("Tên gói không được để trống", 400);
     if (!Number.isInteger(data.sessionCount) || data.sessionCount < 1)
@@ -122,6 +126,7 @@ export const ptServicePackageService = {
       isActive?: boolean;
     },
   ) {
+    await assertPtMayAct(ptUserId); // restricted mode: a suspended PT does not re-activate or reprice offers
     const pkg = await ptServicePackageRepository.findByIdAndOwner(packageId, ptUserId);
     if (!pkg) throw err("Gói không tồn tại hoặc bạn không có quyền sửa", 404);
     if (pkg.archivedAt) throw err("Không thể sửa gói đã lưu trữ", 422);

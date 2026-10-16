@@ -1,5 +1,6 @@
 import { logger } from "@gym-coach/shared";
 import { contractService } from "./contract.service";
+import { trackJob } from "../lifecycle";
 
 const INTERVAL_MS = Number(process.env.CONTRACT_EXPIRY_SWEEP_INTERVAL_MS ?? 10 * 60 * 1000);
 
@@ -31,23 +32,32 @@ const PAYMENT_DEADLINE_INTERVAL_MS = Number(
   process.env.CONTRACT_PAYMENT_DEADLINE_SWEEP_INTERVAL_MS ?? 5 * 60 * 1000,
 );
 
-export function startContractExpirySweepJob(): void {
+/** Starts the periodic sweeps; returns the function that stops them all (graceful shutdown). */
+export function startContractExpirySweepJob(): () => void {
   logger.info(`Contract expiry sweep started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`);
-  setInterval(() => {
-    void runContractExpirySweep();
-  }, INTERVAL_MS);
+  const timers: NodeJS.Timeout[] = [];
+  timers.push(
+    setInterval(() => {
+      void trackJob(runContractExpirySweep());
+    }, INTERVAL_MS),
+  );
 
   logger.info(
     `Contract payment-deadline sweep started (interval: ${Math.round(PAYMENT_DEADLINE_INTERVAL_MS / 60000)} min)`,
   );
-  setInterval(() => {
-    void runContractPaymentDeadlineSweep();
-  }, PAYMENT_DEADLINE_INTERVAL_MS);
+  timers.push(
+    setInterval(() => {
+      void trackJob(runContractPaymentDeadlineSweep());
+    }, PAYMENT_DEADLINE_INTERVAL_MS),
+  );
 
   logger.info(`Contract holdback sweep started (interval: ${Math.round(HOLDBACK_SWEEP_INTERVAL_MS / 60000)} min)`);
-  setInterval(() => {
-    void runContractHoldbackSweep();
-  }, HOLDBACK_SWEEP_INTERVAL_MS);
+  timers.push(
+    setInterval(() => {
+      void trackJob(runContractHoldbackSweep());
+    }, HOLDBACK_SWEEP_INTERVAL_MS),
+  );
+  return () => timers.forEach((t) => clearInterval(t));
 }
 
 /**

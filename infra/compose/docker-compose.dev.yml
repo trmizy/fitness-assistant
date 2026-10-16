@@ -217,6 +217,9 @@ services:
       context: ../..
       dockerfile: backend/services/user-service/Dockerfile.dev
     container_name: gymcoach-user-dev
+    # D64-C: user-service drains in-flight money calls on SIGTERM for SHUTDOWN_GRACE_MS (30 s) - Docker's default stop timeout is 10 s,
+    # which would SIGKILL it in the middle of a 15-20 s payment-service call. Keep this >= SHUTDOWN_GRACE_MS + 10 s.
+    stop_grace_period: 45s
     ports:
       - "3004:3004"
     environment:

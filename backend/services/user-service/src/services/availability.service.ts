@@ -3,8 +3,10 @@ import { availabilityRepository } from "../repositories/availability.repository"
 import { sessionRepository } from "../repositories/session.repository";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
-import { compensateNoShowMoney } from "./contract-payout.service";
+import { compensateNoShowMoney, recordNoShowIntent } from "./contract-payout.service";
 import { resolveSessionOutcome } from "./session-outcome";
+import { assertPtMayAct } from "./pt-restriction.service";
+import { withRunningContract, CONTRACT_ENDED, CONTRACT_ENDING } from "./contract-lock";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -414,6 +416,9 @@ export const availabilityService = {
    * Both notify the affected client with the block's reason.
    */
   async addException(ptUserId: string, dateStr: string, reason?: string) {
+    // Restricted mode, enforced here as well as at the route: blocking a date cancels sessions and can
+    // compensate clients on the PT's account — never something to run for a suspended PT.
+    await assertPtMayAct(ptUserId);
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) throw err("Invalid date", 400);
     const exception = await availabilityRepository.addException(ptUserId, date, reason);
@@ -430,20 +435,48 @@ export const availabilityService = {
         // Money-flow plan 3.1: routed through the single shared matrix instead of always
         // treating a PT block as a compensated no-show — a block ≥24h out is just a
         // reschedule, no money changes hands (see session-outcome.ts for the full table).
-        const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
-        const outcome = resolveSessionOutcome({ actor: "PT", event: "CANCEL", hoursBeforeStart });
-
-        await sessionRepository.updateStatus(session.id, outcome.sessionStatus, {
-          sessionDeducted: outcome.clientQuotaEffect === "DEDUCT",
-          ptNotes: `PT chặn lịch ngày này${reasonSuffix}`,
-        });
+        // F4 / D56: the CAS on the status that was read (L2: a session the contract's ending / the client / the sweep has
+        // already dealt with is never overwritten, and its compensation never triggered a second time) and the
+        // compensation are ONE critical section on the contract, decided while it is still running. A contract that has
+        // ended (or ends while this block is being applied) is skipped: its sessions are the ending's to call off.
+        let outcome: ReturnType<typeof resolveSessionOutcome>;
+        let won = false;
+        try {
+          // Phase 0 / D58: the status CAS and the INTENT of the compensation commit as one short transaction; the
+          // payment-service call is made after the lock is released (idempotent on the intent's key).
+          const decided = await withRunningContract(session.contractId, async (tx) => {
+            const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
+            const o = resolveSessionOutcome({ actor: "PT", event: "CANCEL", hoursBeforeStart });
+            const ok = await sessionRepository.transitionStatus(
+              session.id,
+              [session.status],
+              o.sessionStatus,
+              {
+                sessionDeducted: o.clientQuotaEffect === "DEDUCT",
+                ptNotes: `PT chặn lịch ngày này${reasonSuffix}`,
+                // Ghi người huỷ cho trường hợp ≥24h (CANCELLED): đồng hồ "hợp đồng nhàn rỗi" của khoản
+                // giữ lại PT (findIdleHoldbackCandidates) tính buổi do chính PT huỷ là hoạt động.
+                ...(o.sessionStatus === SessionStatus.CANCELLED ? { cancelledBy: ptUserId } : {}),
+              },
+              tx,
+            );
+            if (ok && o.clientCompensation) await recordNoShowIntent(tx, session.contractId, session.id);
+            return { o, ok };
+          });
+          outcome = decided.o;
+          won = decided.ok;
+        } catch (e) {
+          // The contract has ended - or its ending is recorded and unconfirmed (D59): its sessions are the ending's to call off.
+          const code = (e as { code?: string }).code;
+          if (code === CONTRACT_ENDED || code === CONTRACT_ENDING) continue;
+          throw e;
+        }
+        if (!won) continue;
+        if (outcome.clientCompensation) await compensateNoShowMoney(session.contractId, session.id);
         if (outcome.clientCompensation) {
-          await compensateNoShowMoney(session.contractId, session.id);
-          // Money-flow plan 1.2/3.1: if this compensation was the contract's LAST remaining
-          // entitlement, the contract must be checked for natural completion here too — the
-          // same gap 1.2 fixed for the usual session-confirmation path also applies to a PT
-          // block landing on a contract's final session. Lazy import to avoid a circular
-          // dependency (contract.service.ts imports this module already).
+          // Money-flow plan 1.2/3.1: if this compensation was the contract's LAST remaining entitlement, the contract
+          // must be checked for natural completion here too (after the lock: completing takes it). Lazy import to avoid
+          // a circular dependency (contract.service.ts imports this module already).
           const { contractService } = await import("./contract.service");
           await contractService.checkAndCompleteContract(session.contractId);
         }
@@ -460,9 +493,11 @@ export const availabilityService = {
           })
           .catch(() => {});
       } else {
-        await sessionRepository.updateStatus(session.id, SessionStatus.CANCELLED, {
+        const won = await sessionRepository.transitionStatus(session.id, [session.status], SessionStatus.CANCELLED, {
           ptNotes: `PT chặn lịch ngày này trước khi xác nhận${reasonSuffix}`,
+          cancelledBy: ptUserId, // xem chú thích ở nhánh CONFIRMED bên trên
         });
+        if (!won) continue;
         await notificationService
           .create({
             userId: session.clientUserId,

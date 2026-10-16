@@ -4,11 +4,13 @@ import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { contractService, CONTRACT_NOT_ACTIVATABLE } from "../services/contract.service";
 import {
-  moneyBreakdown,
-  terminateContractMoney,
+  settleContractTermination,
 } from '../services/contract-payout.service';
 import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { assertPtMayActOnContract } from "../services/pt-restriction.service";
+import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
+import { errorCodeBody } from "../utils/error-code.util";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 import {
@@ -34,6 +36,7 @@ export const contractController = {
       // { error: message } here was silently swallowing all three, so the dialog's
       // `code === "LOW_AVAILABILITY"` check could never match and it never rendered.
       res.status(error.status || 500).json({
+        ...errorCodeBody(error),
         error: error.message || "Failed to request contract",
         ...(error.code === "LOW_AVAILABILITY"
           ? {
@@ -80,7 +83,7 @@ export const contractController = {
       logger.error(error, "Reject contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to reject contract" });
+        .json({ error: error.message || "Failed to reject contract", ...errorCodeBody(error) });
     }
   },
 
@@ -99,7 +102,7 @@ export const contractController = {
       logger.error(error, "Cancel contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to cancel contract" });
+        .json({ error: error.message || "Failed to cancel contract", ...errorCodeBody(error) });
     }
   },
 
@@ -552,7 +555,7 @@ export const contractController = {
       res.json(result);
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...errorCodeBody(error) });
         return;
       }
       logger.error(error, 'Contract sendFeedback error');
@@ -575,7 +578,11 @@ export const contractController = {
         res.status(403).json({ error: 'Not authorized' });
         return;
       }
-      const data = await moneyBreakdown(req.params.id);
+      // The preview is priced with the SAME terms the termination would send (reason + sessions held), via
+      // the one shared helper in client-exit.service.ts - so `refundIfCancelledNow` is what cancelling now
+      // really refunds, `exitReasonIfCancelledNow` says which reason that is, `unresolvedSessions` how many
+      // sessions' value would stay held, and payment-service's `reasonUsed` / `unresolvedAmountHeld` pass through.
+      const data = await previewClientExit(req.params.id);
       if (!data) {
         res.status(400).json({ error: 'Contract has no price or sessions to break down' });
         return;
@@ -648,7 +655,51 @@ export const contractController = {
         }
       }
 
-      const result = await terminateContractMoney(req.params.id, reason as any);
+      // Restricted mode: a suspended PT cannot end a contract on their own account (PT_CANCELLED carries
+      // a fine on the PT) — otherwise the system would book a PT-fault termination against a PT who
+      // is only paused. Admin terminations keep their own reasons and formulas.
+      if (isPt && !isAdmin) await assertPtMayActOnContract(userId, req.params.id);
+
+      // The client's own cancellation goes through the exit check (client-exit.service.ts): while the
+      // contract's PT is restricted the SERVER swaps the reason for CLIENT_EXIT_DUE_TO_PT_RESTRICTION
+      // (100% of the unused value back, no fee). The request never carries that reason, and it is
+      // never accepted from one (it is not in the `allowed` table above). Every other caller and
+      // reason takes the unchanged path below.
+      let result: any;
+      // D59: an ending that was already ACCEPTED (recorded) keeps its recorded reason - a retry, or another caller asking for
+      // a different reason, completes THAT ending and is told which reason it ended with.
+      let recordedReason: string = reason;
+      let alreadyEnding = false;
+      let exit: Awaited<ReturnType<typeof terminateAsClient>> | null = null;
+      if (reason === 'CLIENT_CANCELLED' && isClient) {
+        const outcome = await terminateAsClient(req.params.id, userId, {
+          audit: auditMeta(req),
+          // The client confirmed the no-fee terms they were shown: refuse (409 PT_RESTRICTION_LIFTED) rather than
+          // quietly charging the ordinary cancellation fee if those terms no longer hold.
+          expectNoPenalty: req.body?.expectNoPenalty === true,
+        });
+        result = outcome.settlement;
+        if (outcome.mode !== 'ORDINARY') exit = outcome;
+      } else {
+        const settled = await settleContractTermination(req.params.id, reason as any);
+        result = settled?.result ?? null;
+        recordedReason = settled?.reason ?? reason;
+        alreadyEnding = !!settled && !settled.statusWritten;
+      }
+
+      if (exit) {
+        // The exit service wrote its own audit row (once, by the call that changed the status).
+        res.json({
+          contractId: req.params.id,
+          reason: exit.reason,
+          requestedReason: reason,
+          exitWithoutPenalty: exit.reason === 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+          alreadyTerminated: exit.mode === 'ALREADY_EXITED' || exit.mode === 'ALREADY_ENDED',
+          unresolvedSessions: exit.unresolvedSessions,
+          settlement: result,
+        });
+        return;
+      }
 
       // The reason decides who pays, so record who declared it and under what authority.
       // "The admin ended it as MUTUAL" and "the PT ended it as MUTUAL" settle differently,
@@ -659,18 +710,26 @@ export const contractController = {
         entityType: AuditEntityType.CONTRACT,
         entityId: req.params.id,
         metadata: {
-          reason,
+          reason: recordedReason,
+          requestedReason: reason,
           actorRole: isAdmin ? "ADMIN" : isPt ? "PT" : isClient ? "CLIENT" : "UNKNOWN",
           refund: result?.refund ?? null,
           statusBefore: contract.status,
+          alreadyEnding,
         },
         ...auditMeta(req),
       });
 
-      res.json({ contractId: req.params.id, reason, settlement: result });
+      res.json({
+        contractId: req.params.id,
+        reason: recordedReason,
+        ...(recordedReason !== reason ? { requestedReason: reason } : {}),
+        ...(alreadyEnding ? { alreadyTerminated: true } : {}),
+        settlement: result,
+      });
     } catch (error: any) {
       logger.error(error, 'Contract terminate error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract' });
+      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract', ...errorCodeBody(error), ...(error.status && error.extra ? error.extra : {}) });
     }
   },
 

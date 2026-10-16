@@ -24,6 +24,9 @@ const CASES: [eventType: string, entityType: string][] = [
   ["CONTRACT_CANCELLED_PT_DEACTIVATED", "CONTRACT"],
   ["REFUND_NEEDS_MANUAL_SETTLEMENT", "CONTRACT"],
   ["PT_APPLICATION_REVIEWED", "PT_APPLICATION"],
+  // PT-suspension slice 4
+  ["CONTRACT_PAUSED_PT_SUSPENDED", "CONTRACT"],
+  ["CONTRACT_RESUMED_PT_REINSTATED", "CONTRACT"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

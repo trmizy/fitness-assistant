@@ -8,6 +8,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { contractService } from "../services/contract.service";
 import { notificationService } from "../services/notification.service";
 import { paymentClient } from "../clients/payment.client";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Cụm B5 — resolveDispute chỉ có hai kết quả (COMPLETED/CANCELLED), thiếu kết quả "xác nhận
@@ -44,6 +51,7 @@ function contractFixture(id: string) {
     ptUserId: "pt-1",
     gymId: null,
     clientUserId: "client-1",
+    status: "ACTIVE", // F2/F3: a running contract -> the ordinary compensation path
   };
 }
 
@@ -62,12 +70,13 @@ test("resolveDispute chấp nhận PT_NO_SHOW_CONFIRMED — bồi thường khá
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+    // F3: the ruling is a compare-and-set from DISPUTED
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
       calls.push(`updateStatus:${status}`);
       // Vòng 4 / Phase E2 — admin-confirmed PT no-show counts toward the client's right to
       // terminate after 3.
       assert.equal(extra?.ptAtFault, true, "admin-confirmed PT no-show must set ptAtFault");
-      return { ...session, status } as any;
+      return true;
     }),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementCompensatedSessions", async () => {

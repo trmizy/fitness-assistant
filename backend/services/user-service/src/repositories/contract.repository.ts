@@ -141,8 +141,12 @@ export const contractRepository = {
   update: (id: string, data: Record<string, any>) =>
     prisma.contract.update({ where: { id }, data }),
 
-  incrementSession: (id: string) =>
-    prisma.contract.update({
+  /**
+   * `db` = the contract-locked transaction of the decision this count belongs to (Phase 0 / D58 atomicity): the count
+   * must commit or roll back TOGETHER with the session claim and the settlement intent row, never on its own connection.
+   */
+  incrementSession: (id: string, db: Db = prisma) =>
+    db.contract.update({
       where: { id },
       data: { usedSessions: { increment: 1 } },
     }),
@@ -150,18 +154,40 @@ export const contractRepository = {
   /** Money-flow plan 1.5: a PT no-show consumes one entitlement WITHOUT touching
    * totalSessions (immutable once signed) or usedSessions (reserved for sessions the client
    * actually trained, or was charged for by cancelling late). */
-  incrementCompensatedSessions: (id: string, notes?: string) =>
-    prisma.contract.update({
+  incrementCompensatedSessions: (id: string, notes?: string, db: Db = prisma) =>
+    db.contract.update({
       where: { id },
       data: { compensatedSessions: { increment: 1 }, ...(notes !== undefined && { notes }) },
     }),
 
-  /** Find all expired active contracts */
-  findExpiredContracts: () =>
+  /** What the ledger really released to each party for a session - the sub-ledger termination hands back as `alreadyReleased`. */
+  addReleased: (
+    id: string,
+    moved: { pt: Prisma.Decimal.Value; gym: Prisma.Decimal.Value; platform: Prisma.Decimal.Value },
+    db: Db = prisma,
+  ) =>
+    db.contract.update({
+      where: { id },
+      data: {
+        releasedToPt: { increment: new Prisma.Decimal(moved.pt) },
+        releasedToGym: { increment: new Prisma.Decimal(moved.gym) },
+        releasedToPlatform: { increment: new Prisma.Decimal(moved.platform) },
+      },
+    }),
+
+  /**
+   * Find all expired active contracts. `excludePtUserIds` = PTs that are restricted right now: their
+   * contracts are PAUSED_BY_ADMIN (pt-restriction.service.ts), their clock is stopped, and they must
+   * never be picked up for expiry — the exclusion is IN the query so a batch can't be starved either.
+   * `excludeContractIds` = contracts paused on their own (CONTRACT-scope restriction): same rule, one contract.
+   */
+  findExpiredContracts: (excludePtUserIds: string[] = [], excludeContractIds: string[] = []) =>
     prisma.contract.findMany({
       where: {
         status: ContractStatus.ACTIVE,
         endDate: { lt: new Date() },
+        ...(excludePtUserIds.length > 0 ? { ptUserId: { notIn: excludePtUserIds } } : {}),
+        ...(excludeContractIds.length > 0 ? { id: { notIn: excludeContractIds } } : {}),
       },
     }),
 
@@ -220,17 +246,34 @@ export const contractRepository = {
    *       - in a state that still holds the contract's entitlement — REQUESTED, CONFIRMED,
    *         PENDING_CLIENT_CONFIRMATION, DISPUTED, PT_NO_SHOW_REPORTED (docs/money-flow.md
    *         "business-rules-session-lifecycle" §1.1), whatever its start time, future included; or
-   *       - COMPLETED or NO_SHOW with a start time inside the last `idleDays` days.
-   *     CANCELLED never counts: nothing happened and the slot no longer holds anything.
+   *       - COMPLETED or NO_SHOW with a start time inside the last `idleDays` days; or
+   *       - CANCELLED BY THE PT (cancelledBy = the session's own ptUserId) with a start time inside
+   *         the last `idleDays` days — so a PT cannot run the clock down by cancelling every session
+   *         and then collect the holdback before walking away.
+   *     Any other CANCELLED never counts: nothing happened and the slot no longer holds anything.
+   *     That covers a client cancel (cancelledBy = the client's id), an admin dispute ruling
+   *     ("ADMIN") and a system cancel ("SYSTEM": a room nobody joined, the PT-deactivation unwind).
+   *     "Counts as activity" here is ONLY about the idle clock — it does not mean the session was
+   *     delivered, and nothing about quota, entitlement or money reads this rule.
    * It is deliberately a SUPERSET of "a holding-state session starting in the last N days or in the
    * future": a session left unresolved for longer (a dispute waiting for an admin, say) must keep
    * the money held, and a PT who has stopped turning up (NO_SHOW) must not have the holdback
    * released as if the contract had merely been quiet.
    */
-  findIdleHoldbackCandidates: (opts: { activatedBefore: Date; sessionsSince: Date; limit?: number; id?: string }) =>
+  findIdleHoldbackCandidates: (opts: {
+    activatedBefore: Date;
+    sessionsSince: Date;
+    limit?: number;
+    id?: string;
+    /** PTs restricted right now: a paused contract is never idle (see contractService.releaseIdleHoldbacks). */
+    excludePtUserIds?: string[];
+    /** Contracts paused on their own (CONTRACT-scope restriction): never idle either. */
+    excludeContractIds?: string[];
+  }) =>
     prisma.contract.findMany({
       where: {
-        ...(opts.id ? { id: opts.id } : {}),
+        ...(opts.id ? { id: opts.id } : opts.excludeContractIds && opts.excludeContractIds.length > 0 ? { id: { notIn: opts.excludeContractIds } } : {}),
+        ...(opts.excludePtUserIds && opts.excludePtUserIds.length > 0 ? { ptUserId: { notIn: opts.excludePtUserIds } } : {}),
         status: ContractStatus.ACTIVE,
         holdbackReleasedAt: null,
         ptHoldbackRate: { gt: 0 },
@@ -252,6 +295,11 @@ export const contractRepository = {
               },
               {
                 status: { in: [SessionStatus.COMPLETED, SessionStatus.NO_SHOW] },
+                scheduledStartAt: { gte: opts.sessionsSince },
+              },
+              {
+                status: SessionStatus.CANCELLED,
+                cancelledBy: { equals: prisma.session.fields.ptUserId },
                 scheduledStartAt: { gte: opts.sessionsSince },
               },
             ],

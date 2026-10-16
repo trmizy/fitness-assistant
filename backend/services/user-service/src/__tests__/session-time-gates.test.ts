@@ -4,7 +4,15 @@ import { randomUUID } from "node:crypto";
 import { SessionStatus } from "../generated/prisma";
 import { bookingService } from "../services/booking.service";
 import { sessionRepository } from "../repositories/session.repository";
+import { contractRepository } from "../repositories/contract.repository";
 import { notificationService } from "../services/notification.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Cụm B3 + B4 — completeSession và markNoShow không kiểm tra thời gian, không đối xứng với
@@ -40,7 +48,11 @@ test("B3 — completeSession từ chối khi buổi tập chưa tới giờ kế
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
 
@@ -67,11 +79,11 @@ test("B3 — completeSession vẫn hoạt động bình thường sau khi buổi
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({
-      ...session,
-      status,
-      ...extra,
-    })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
   ];
 
   try {
@@ -94,7 +106,11 @@ test("B4 — markNoShow (PT tự nhận vắng mặt) từ chối khi buổi t�
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
 
@@ -122,7 +138,11 @@ test("E1 — markNoShow bị từ chối khi mới quá giờ hẹn 5 phút (cò
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
   try {
@@ -147,7 +167,11 @@ test("E1 — markNoShow cho phép báo vắng mặt sau khi hết grace window (
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
   try {
@@ -170,7 +194,11 @@ test("B4 — markNoShow (PT báo khách vắng mặt) từ chối khi buổi t�
   };
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => ({ ...session, status, ...extra })),
+    patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE", ptUserId: "pt-1" }) as any), // F1: the contract must be running
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus, extra: any) => {
+      Object.assign(session, { status }, extra);
+      return true;
+    }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
 

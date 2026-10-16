@@ -1,6 +1,8 @@
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { availabilityService } from "../services/availability.service";
+import { assertPtMayAct } from "../services/pt-restriction.service";
+import { errorCodeBody } from "../utils/error-code.util";
 
 export const availabilityController = {
   // Get own availability (for the logged-in PT)
@@ -31,6 +33,7 @@ export const availabilityController = {
   async setAvailability(req: any, res: Response) {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
+      await assertPtMayAct(ptUserId); // restricted mode: a suspended PT does not edit the schedule
       const { slots } = req.body;
       // A body without `slots` is a caller mistake, not a server fault. Without this the
       // request reached the service and died on `slots is not iterable` — a 500 that reads
@@ -45,7 +48,7 @@ export const availabilityController = {
       logger.error(error, "Set availability error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to set availability" });
+        .json({ error: error.message || "Failed to set availability", ...errorCodeBody(error) });
     }
   },
 
@@ -66,6 +69,7 @@ export const availabilityController = {
   async addException(req: any, res: Response) {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
+      await assertPtMayAct(ptUserId); // restricted mode (blocking a date would also compensate clients)
       const { date, reason } = req.body;
       const exception = await availabilityService.addException(
         ptUserId,
@@ -77,7 +81,7 @@ export const availabilityController = {
       logger.error(error, "Add exception error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to add exception" });
+        .json({ error: error.message || "Failed to add exception", ...errorCodeBody(error) });
     }
   },
 
@@ -85,11 +89,12 @@ export const availabilityController = {
   async removeException(req: any, res: Response) {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
+      await assertPtMayAct(ptUserId); // restricted mode
       await availabilityService.removeException(req.params.id, ptUserId);
       res.json({ success: true });
     } catch (error: any) {
       logger.error(error, "Remove exception error");
-      res.status(500).json({ error: "Failed to remove exception" });
+      res.status(error.status || 500).json({ error: error.status ? error.message : "Failed to remove exception", ...errorCodeBody(error) });
     }
   },
 
@@ -111,7 +116,7 @@ export const availabilityController = {
       logger.error(error, "Get available slots error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to fetch available slots" });
+        .json({ error: error.message || "Failed to fetch available slots", ...errorCodeBody(error) });
     }
   },
 };
