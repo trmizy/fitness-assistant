@@ -100,7 +100,7 @@ export const PAYMENT_DEADLINE_PASSED = "PAYMENT_DEADLINE_PASSED";
  *    bao giờ ghi đè tỷ lệ của hợp đồng, không bao giờ đi tiếp với tỷ lệ lệch.
  * Hợp đồng không có gymId: không gọi gym-service.
  */
-async function assertGymStillAcceptsContract(contract: {
+export async function assertGymStillAcceptsContract(contract: {
   gymId: string | null;
   ptUserId: string;
   platformRate: Prisma.Decimal | string;
@@ -468,6 +468,14 @@ export const contractService = {
     // 4. Resolve revenue split BEFORE any DB write — money-flow plan §1.4/B1.
     let rates: { platformRate: string; ptRate: string; gymRate: string };
     let source: ContractSource = ContractSource.INDEPENDENT;
+    // Phase 3 / P3.2 — which agreement the rates came from, snapshotted beside them. All null for an
+    // independent contract, and for any field gym-service did not send (never guessed).
+    let gymSnapshot: {
+      gymBrandId: string | null;
+      gymAgreementId: string | null;
+      gymAgreementScope: string | null;
+      gymMembershipId: string | null;
+    } = { gymBrandId: null, gymAgreementId: null, gymAgreementScope: null, gymMembershipId: null };
     if (data.gymId) {
       if (pkg.sessionMode === SessionMode.ONLINE) {
         throw err(
@@ -494,6 +502,12 @@ export const contractService = {
         );
       }
       rates = { platformRate: collab.platformRate, ptRate: collab.ptRate, gymRate: collab.gymRate };
+      gymSnapshot = {
+        gymBrandId: collab.brandId ?? null,
+        gymAgreementId: collab.collaborationId ?? null,
+        gymAgreementScope: collab.agreementScope ?? null,
+        gymMembershipId: null, // P3.3 (Membership check) fills this; not decided/enforced yet
+      };
       source = ContractSource.GYM;
     } else {
       rates = { platformRate: "0.10", ptRate: "0.90", gymRate: "0" };
@@ -526,6 +540,7 @@ export const contractService = {
       platformRate: rates.platformRate,
       ptRate: rates.ptRate,
       gymRate: rates.gymRate,
+      ...gymSnapshot,
       // PT holdback — a snapshot like the rates above, from the one place that decides it
       // (today always "0": the rule is built but switched off).
       ptHoldbackRate: await resolvePtHoldbackRate(data.ptUserId),

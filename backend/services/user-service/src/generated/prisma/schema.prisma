@@ -663,6 +663,21 @@ model Contract {
   ptRate       Decimal @default("0.90") @map("pt_rate") @db.Decimal(6, 4)
   gymRate      Decimal @default("0") @map("gym_rate") @db.Decimal(6, 4)
 
+  // ── Which PT↔gym agreement the rates above came from (Phase 3, slice P3.2) ──
+  // Snapshots like the rates: written once by requestContract from what gym-service answered at
+  // that moment, never refreshed. All four are NULL on every contract created before this slice and
+  // on every contract without a gym (INDEPENDENT) — NULL means "not recorded", not "no agreement".
+  // They are cross-service references: no foreign key (the rows live in gym-service's database).
+  // Nothing reads them yet — the Membership check (P3.3) and the agreement re-check are later slices.
+  /// Brand of `gymId` at request time (gym-service GymBrand.id). Null when gym-service did not say.
+  gymBrandId        String? @map("gym_brand_id")
+  /// The agreement that produced the rates (gym-service GymBrandPtAgreement.id, or the legacy per-branch row id).
+  gymAgreementId    String? @map("gym_agreement_id")
+  /// 'BRAND' | 'BRANCH' — which kind of agreement `gymAgreementId` names. Vocabulary is owned by gym-service.
+  gymAgreementScope String? @map("gym_agreement_scope")
+  /// The Client's gym membership relied on for this contract. Reserved for P3.3; stays null until that slice ships.
+  gymMembershipId   String? @map("gym_membership_id")
+
   // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
   terminationReason       TerminationReason? @map("termination_reason")
   terminatedAt            DateTime?          @map("terminated_at")
@@ -1273,7 +1288,7 @@ model UserPreference {
   restTimerVibration Boolean  @default(true)
   smartPrefill       Boolean  @default(true)
   showMacros         Boolean  @default(true)
-  // `@default(now())`, not `@updatedAt` ��� `@updatedAt` only sets the value
+  // `@default(now())`, not `@updatedAt` — `@updatedAt` only sets the value
   // client-side on Prisma Client `.update()` calls and emits no DB-level
   // DEFAULT, which produced a real (if harmless) `migrate diff` delta
   // against the live column's actual `DEFAULT CURRENT_TIMESTAMP`. This

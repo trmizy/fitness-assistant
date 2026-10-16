@@ -9017,6 +9017,10 @@ export namespace Prisma {
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
+    gymBrandId: string | null
+    gymAgreementId: string | null
+    gymAgreementScope: string | null
+    gymMembershipId: string | null
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
     clientExitAcceptedAt: Date | null
@@ -9083,6 +9087,10 @@ export namespace Prisma {
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
+    gymBrandId: string | null
+    gymAgreementId: string | null
+    gymAgreementScope: string | null
+    gymMembershipId: string | null
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
     clientExitAcceptedAt: Date | null
@@ -9149,6 +9157,10 @@ export namespace Prisma {
     platformRate: number
     ptRate: number
     gymRate: number
+    gymBrandId: number
+    gymAgreementId: number
+    gymAgreementScope: number
+    gymMembershipId: number
     terminationReason: number
     terminatedAt: number
     clientExitAcceptedAt: number
@@ -9257,6 +9269,10 @@ export namespace Prisma {
     platformRate?: true
     ptRate?: true
     gymRate?: true
+    gymBrandId?: true
+    gymAgreementId?: true
+    gymAgreementScope?: true
+    gymMembershipId?: true
     terminationReason?: true
     terminatedAt?: true
     clientExitAcceptedAt?: true
@@ -9323,6 +9339,10 @@ export namespace Prisma {
     platformRate?: true
     ptRate?: true
     gymRate?: true
+    gymBrandId?: true
+    gymAgreementId?: true
+    gymAgreementScope?: true
+    gymMembershipId?: true
     terminationReason?: true
     terminatedAt?: true
     clientExitAcceptedAt?: true
@@ -9389,6 +9409,10 @@ export namespace Prisma {
     platformRate?: true
     ptRate?: true
     gymRate?: true
+    gymBrandId?: true
+    gymAgreementId?: true
+    gymAgreementScope?: true
+    gymMembershipId?: true
     terminationReason?: true
     terminatedAt?: true
     clientExitAcceptedAt?: true
@@ -9542,6 +9566,10 @@ export namespace Prisma {
     platformRate: Decimal
     ptRate: Decimal
     gymRate: Decimal
+    gymBrandId: string | null
+    gymAgreementId: string | null
+    gymAgreementScope: string | null
+    gymMembershipId: string | null
     terminationReason: $Enums.TerminationReason | null
     terminatedAt: Date | null
     clientExitAcceptedAt: Date | null
@@ -9627,6 +9655,10 @@ export namespace Prisma {
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
+    gymBrandId?: boolean
+    gymAgreementId?: boolean
+    gymAgreementScope?: boolean
+    gymMembershipId?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
     clientExitAcceptedAt?: boolean
@@ -9699,6 +9731,10 @@ export namespace Prisma {
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
+    gymBrandId?: boolean
+    gymAgreementId?: boolean
+    gymAgreementScope?: boolean
+    gymMembershipId?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
     clientExitAcceptedAt?: boolean
@@ -9765,6 +9801,10 @@ export namespace Prisma {
     platformRate?: boolean
     ptRate?: boolean
     gymRate?: boolean
+    gymBrandId?: boolean
+    gymAgreementId?: boolean
+    gymAgreementScope?: boolean
+    gymMembershipId?: boolean
     terminationReason?: boolean
     terminatedAt?: boolean
     clientExitAcceptedAt?: boolean
@@ -9853,6 +9893,22 @@ export namespace Prisma {
       platformRate: Prisma.Decimal
       ptRate: Prisma.Decimal
       gymRate: Prisma.Decimal
+      /**
+       * Brand of `gymId` at request time (gym-service GymBrand.id). Null when gym-service did not say.
+       */
+      gymBrandId: string | null
+      /**
+       * The agreement that produced the rates (gym-service GymBrandPtAgreement.id, or the legacy per-branch row id).
+       */
+      gymAgreementId: string | null
+      /**
+       * 'BRAND' | 'BRANCH' — which kind of agreement `gymAgreementId` names. Vocabulary is owned by gym-service.
+       */
+      gymAgreementScope: string | null
+      /**
+       * The Client's gym membership relied on for this contract. Reserved for P3.3; stays null until that slice ships.
+       */
+      gymMembershipId: string | null
       terminationReason: $Enums.TerminationReason | null
       terminatedAt: Date | null
       /**
@@ -10331,6 +10387,10 @@ export namespace Prisma {
     readonly platformRate: FieldRef<"Contract", 'Decimal'>
     readonly ptRate: FieldRef<"Contract", 'Decimal'>
     readonly gymRate: FieldRef<"Contract", 'Decimal'>
+    readonly gymBrandId: FieldRef<"Contract", 'String'>
+    readonly gymAgreementId: FieldRef<"Contract", 'String'>
+    readonly gymAgreementScope: FieldRef<"Contract", 'String'>
+    readonly gymMembershipId: FieldRef<"Contract", 'String'>
     readonly terminationReason: FieldRef<"Contract", 'TerminationReason'>
     readonly terminatedAt: FieldRef<"Contract", 'DateTime'>
     readonly clientExitAcceptedAt: FieldRef<"Contract", 'DateTime'>
@@ -32751,6 +32811,10 @@ export namespace Prisma {
     platformRate: 'platformRate',
     ptRate: 'ptRate',
     gymRate: 'gymRate',
+    gymBrandId: 'gymBrandId',
+    gymAgreementId: 'gymAgreementId',
+    gymAgreementScope: 'gymAgreementScope',
+    gymMembershipId: 'gymMembershipId',
     terminationReason: 'terminationReason',
     terminatedAt: 'terminatedAt',
     clientExitAcceptedAt: 'clientExitAcceptedAt',
@@ -34491,6 +34555,10 @@ export namespace Prisma {
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymBrandId?: StringNullableFilter<"Contract"> | string | null
+    gymAgreementId?: StringNullableFilter<"Contract"> | string | null
+    gymAgreementScope?: StringNullableFilter<"Contract"> | string | null
+    gymMembershipId?: StringNullableFilter<"Contract"> | string | null
     terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     clientExitAcceptedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -34562,6 +34630,10 @@ export namespace Prisma {
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
+    gymBrandId?: SortOrderInput | SortOrder
+    gymAgreementId?: SortOrderInput | SortOrder
+    gymAgreementScope?: SortOrderInput | SortOrder
+    gymMembershipId?: SortOrderInput | SortOrder
     terminationReason?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
     clientExitAcceptedAt?: SortOrderInput | SortOrder
@@ -34636,6 +34708,10 @@ export namespace Prisma {
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymBrandId?: StringNullableFilter<"Contract"> | string | null
+    gymAgreementId?: StringNullableFilter<"Contract"> | string | null
+    gymAgreementScope?: StringNullableFilter<"Contract"> | string | null
+    gymMembershipId?: StringNullableFilter<"Contract"> | string | null
     terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     clientExitAcceptedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -34707,6 +34783,10 @@ export namespace Prisma {
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
+    gymBrandId?: SortOrderInput | SortOrder
+    gymAgreementId?: SortOrderInput | SortOrder
+    gymAgreementScope?: SortOrderInput | SortOrder
+    gymMembershipId?: SortOrderInput | SortOrder
     terminationReason?: SortOrderInput | SortOrder
     terminatedAt?: SortOrderInput | SortOrder
     clientExitAcceptedAt?: SortOrderInput | SortOrder
@@ -34781,6 +34861,10 @@ export namespace Prisma {
     platformRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymBrandId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    gymAgreementId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    gymAgreementScope?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    gymMembershipId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     terminationReason?: EnumTerminationReasonNullableWithAggregatesFilter<"Contract"> | $Enums.TerminationReason | null
     terminatedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     clientExitAcceptedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
@@ -37762,6 +37846,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -37833,6 +37921,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -37904,6 +37996,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37975,6 +38071,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38046,6 +38146,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -38112,6 +38216,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38178,6 +38286,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -41538,6 +41650,10 @@ export namespace Prisma {
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
+    gymBrandId?: SortOrder
+    gymAgreementId?: SortOrder
+    gymAgreementScope?: SortOrder
+    gymMembershipId?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
     clientExitAcceptedAt?: SortOrder
@@ -41624,6 +41740,10 @@ export namespace Prisma {
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
+    gymBrandId?: SortOrder
+    gymAgreementId?: SortOrder
+    gymAgreementScope?: SortOrder
+    gymMembershipId?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
     clientExitAcceptedAt?: SortOrder
@@ -41690,6 +41810,10 @@ export namespace Prisma {
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
+    gymBrandId?: SortOrder
+    gymAgreementId?: SortOrder
+    gymAgreementScope?: SortOrder
+    gymMembershipId?: SortOrder
     terminationReason?: SortOrder
     terminatedAt?: SortOrder
     clientExitAcceptedAt?: SortOrder
@@ -47520,6 +47644,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -47590,6 +47718,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -47760,6 +47892,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -47830,6 +47966,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -48063,6 +48203,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -48133,6 +48277,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -48296,6 +48444,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -48366,6 +48518,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -48507,6 +48663,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -48577,6 +48737,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -48740,6 +48904,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -48810,6 +48978,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -49998,6 +50170,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -50068,6 +50244,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -50277,6 +50457,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50347,6 +50531,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50657,6 +50845,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -50727,6 +50919,10 @@ export namespace Prisma {
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
     gymRate?: Decimal | DecimalJsLike | number | string
+    gymBrandId?: string | null
+    gymAgreementId?: string | null
+    gymAgreementScope?: string | null
+    gymMembershipId?: string | null
     terminationReason?: $Enums.TerminationReason | null
     terminatedAt?: Date | string | null
     clientExitAcceptedAt?: Date | string | null
@@ -50841,6 +51037,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50911,6 +51111,10 @@ export namespace Prisma {
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymBrandId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementId?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAgreementScope?: NullableStringFieldUpdateOperationsInput | string | null
+    gymMembershipId?: NullableStringFieldUpdateOperationsInput | string | null
     terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
     terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientExitAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

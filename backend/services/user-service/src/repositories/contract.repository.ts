@@ -38,6 +38,11 @@ export const contractRepository = {
     // PT holdback rate, snapshotted at creation (see pt-holdback-rate.ts). Omitted → schema default 0.
     ptHoldbackRate?: Prisma.Decimal | string;
     paymentTransactionId?: string;
+    /** Phase 3 / P3.2 snapshot of the PT-gym agreement behind the rates (all null when not recorded). */
+    gymBrandId?: string | null;
+    gymAgreementId?: string | null;
+    gymAgreementScope?: string | null;
+    gymMembershipId?: string | null;
   }) => prisma.contract.create({ data }),
 
   findById: (id: string, db: Db = prisma) => db.contract.findUnique({ where: { id } }),
