@@ -113,6 +113,13 @@ jobs:
             $f = Get-CiFailureClass -Stage unit -Message (Get-Content test.log -Raw)
             "### $($env:SERVICE): $($f.Class) ($($f.Status))" >> $env:GITHUB_STEP_SUMMARY
             if ($f.Blocking) { exit $code }       # NOT_RUN / BLOCKED classes do not fail the PR
+            # Without this, $LASTEXITCODE is still pnpm's stale non-zero value
+            # from above - pwsh.exe propagates that as the STEP's own exit
+            # code even though no `exit` statement in this branch ever runs,
+            # so a correctly-classified non-blocking failure still failed the
+            # job anyway. Confirmed via a real failing CI run + exact local
+            # reproduction (2026-10-16), not assumed.
+            exit 0
           }
 
   # 7-9: IaC + manifest validation, still offline.
