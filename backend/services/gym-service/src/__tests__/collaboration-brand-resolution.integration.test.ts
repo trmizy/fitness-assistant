@@ -217,7 +217,7 @@ integrationTest('brand agreement: rates at EVERY open approved branch, including
 
     for (const g of [g1, g2, g3]) {
       const rates = await collaborationService.activeRates(g, w.ptUserId);
-      assert.deepEqual(rates, { collaborationId: agreement.id, ...str(R_BRAND), agreementScope: 'BRAND' });
+      assert.deepEqual(rates, { collaborationId: agreement.id, ...str(R_BRAND), agreementScope: 'BRAND', brandId });
     }
     const listed = await assertPickerAgreesWithRates(w.ptUserId, [g1, g2, g3]);
     assert.equal(listed.size, 3);
@@ -287,7 +287,7 @@ integrationTest('brand agreement takes precedence over a still-unsuperseded lega
     await makeLegacy(g1, w.ptUserId, { rates: R_LEGACY_B }); // NOT superseded
 
     const rates = await collaborationService.activeRates(g1, w.ptUserId);
-    assert.deepEqual(rates, { collaborationId: agreement.id, ...str(R_BRAND), agreementScope: 'BRAND' });
+    assert.deepEqual(rates, { collaborationId: agreement.id, ...str(R_BRAND), agreementScope: 'BRAND', brandId });
     const listed = await assertPickerAgreesWithRates(w.ptUserId, [g1, g2]);
     assert.equal(listed.size, 2, 'g1 is listed once, not once per agreement');
     assert.equal(listed.get(g1)!.collaborationId, agreement.id);
@@ -306,7 +306,7 @@ integrationTest('an unusable brand agreement does not shadow a usable legacy row
     const legacy = await makeLegacy(g1, w.ptUserId, { rates: R_LEGACY_A });
 
     const rates = await collaborationService.activeRates(g1, w.ptUserId);
-    assert.deepEqual(rates, { collaborationId: legacy.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH' });
+    assert.deepEqual(rates, { collaborationId: legacy.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH', brandId });
     await assertPickerAgreesWithRates(w.ptUserId, [g1]);
   } finally {
     await cleanup(w);
@@ -328,6 +328,7 @@ integrationTest('legacy fallback for a not-migrated pair works only at its own b
       collaborationId: legacy.id,
       ...str(R_LEGACY_A),
       agreementScope: 'BRANCH',
+      brandId,
     });
     assert.equal(await collaborationService.activeRates(sibling, w.ptUserId), null);
     const listed = await assertPickerAgreesWithRates(w.ptUserId, [withRow, sibling]);
@@ -347,8 +348,8 @@ integrationTest('conflict pair (different legacy rates, no brand agreement): eac
     const c1 = await makeLegacy(g1, w.ptUserId, { rates: R_LEGACY_A });
     const c2 = await makeLegacy(g2, w.ptUserId, { rates: R_LEGACY_B });
 
-    assert.deepEqual(await collaborationService.activeRates(g1, w.ptUserId), { collaborationId: c1.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH' });
-    assert.deepEqual(await collaborationService.activeRates(g2, w.ptUserId), { collaborationId: c2.id, ...str(R_LEGACY_B), agreementScope: 'BRANCH' });
+    assert.deepEqual(await collaborationService.activeRates(g1, w.ptUserId), { collaborationId: c1.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH', brandId });
+    assert.deepEqual(await collaborationService.activeRates(g2, w.ptUserId), { collaborationId: c2.id, ...str(R_LEGACY_B), agreementScope: 'BRANCH', brandId });
     const listed = await assertPickerAgreesWithRates(w.ptUserId, [g1, g2]);
     assert.equal(listed.size, 2);
   } finally {
@@ -422,10 +423,10 @@ integrationTest('PT with agreements in two brands gets the right rates in each; 
     const soloLegacy = await makeLegacy(solo, w.ptUserId, { rates: R_LEGACY_A });
 
     for (const g of [a1, a2]) {
-      assert.deepEqual(await collaborationService.activeRates(g, w.ptUserId), { collaborationId: agA.id, ...str(R_BRAND), agreementScope: 'BRAND' });
+      assert.deepEqual(await collaborationService.activeRates(g, w.ptUserId), { collaborationId: agA.id, ...str(R_BRAND), agreementScope: 'BRAND', brandId: brandA });
     }
-    assert.deepEqual(await collaborationService.activeRates(b1, w.ptUserId), { collaborationId: agB.id, ...str(R_LEGACY_B), agreementScope: 'BRAND' });
-    assert.deepEqual(await collaborationService.activeRates(solo, w.ptUserId), { collaborationId: soloLegacy.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH' });
+    assert.deepEqual(await collaborationService.activeRates(b1, w.ptUserId), { collaborationId: agB.id, ...str(R_LEGACY_B), agreementScope: 'BRAND', brandId: brandB });
+    assert.deepEqual(await collaborationService.activeRates(solo, w.ptUserId), { collaborationId: soloLegacy.id, ...str(R_LEGACY_A), agreementScope: 'BRANCH', brandId: null });
     const listed = await assertPickerAgreesWithRates(w.ptUserId, [a1, a2, b1, solo]);
     assert.equal(listed.size, 4);
 

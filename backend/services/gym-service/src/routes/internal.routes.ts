@@ -3,6 +3,7 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { internalController } from '../controllers/internal.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
+import internalMembershipRoutes from './internal-memberships.routes';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
@@ -15,5 +16,8 @@ router.post('/gym-memberships/:id/cancel-after-refund', asyncHandler(internalCon
 // (plan §1.4). 404 (NO_ACTIVE_COLLABORATION) means the caller must fall back to its own
 // 400 — this endpoint never invents a rate table.
 router.get('/collaborations/active', asyncHandler(collaborationController.internalActiveRates));
+
+// Phase 3 / P3.1 - read-only membership lookups (new file, secret-protected by the router.use above).
+router.use(internalMembershipRoutes);
 
 export default router;

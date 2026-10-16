@@ -4,6 +4,7 @@ import { checkinRepository } from '../repositories/checkin.repository';
 import { gymService } from './gym.service';
 import { signGymCheckinToken, verifyGymCheckinToken } from '../utils/checkinToken';
 import { authServiceClient } from '../clients/auth-service.client';
+import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -100,7 +101,7 @@ export const checkinService = {
 
       // Lazy-expire a membership past its end date, then require ACTIVE.
       let status = m.status;
-      if (status === 'ACTIVE' && m.end_date && m.end_date < new Date()) {
+      if (status === 'ACTIVE' && hasPassedEndDate(m.end_date)) {
         await tx.gymMembershipContract.update({
           where: { id: m.id },
           data: { status: 'EXPIRED' },
@@ -117,7 +118,7 @@ export const checkinService = {
       if (recent) throw err('TOO_SOON', 429);
 
       // Visit limit (null total = unlimited).
-      if (m.total_visits != null && m.used_visits >= m.total_visits) {
+      if (!hasVisitsLeft(m.total_visits, m.used_visits)) {
         throw err('VISIT_LIMIT_REACHED', 409);
       }
 

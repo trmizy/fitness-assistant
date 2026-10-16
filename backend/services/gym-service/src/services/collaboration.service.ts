@@ -930,6 +930,8 @@ export const collaborationService = {
       ptRate: resolved.ptRate,
       gymRate: resolved.gymRate,
       agreementScope: resolved.scope,
+      // Phase 3 / P3.1 - additive: the branch's brand (null for a standalone legacy gym).
+      brandId: gym.brandId,
     };
   },
 
