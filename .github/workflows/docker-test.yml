@@ -34,8 +34,32 @@ jobs:
       # Confirmed via a real failing CI run + exact local reproduction
       # (2026-10-16). Fixing the resolver to be portable is a separate,
       # mobile-test-infra task, not a CI-activation one - out of scope here.
+      #
+      # Classification (not exclusion): a real audit (2026-10-16) found
+      # *.integration.test.ts files needing a real Postgres DATABASE_URL
+      # scattered across every backend service (even fitness-service, the
+      # one with the most consistent self-skip convention, has 10 of 74
+      # without it) - this job never provisions one (by design; see
+      # db-integration's own comment on why only a curated 4-file subset
+      # runs against a real DB in CI). Rather than excluding whole services
+      # (losing real coverage) or editing every test file (large, invasive,
+      # not this phase's scope), reuse the exact same Get-CiFailureClass
+      # logic pr-validation.yml's own `unit` job already uses successfully
+      # for this - single source of truth, already covered by
+      # CiHelpers.Tests.ps1, already proven working on ubuntu-latest.
       - name: Unit tests
-        run: pnpm run --recursive --filter "!mobile" test
+        shell: pwsh
+        run: |
+          pnpm run --recursive --filter "!mobile" test *> test.log
+          $code = $LASTEXITCODE
+          Get-Content test.log -Tail 200
+          if ($code -ne 0) {
+            Import-Module ./scripts/ci/CiHelpers.psm1 -Force
+            $f = Get-CiFailureClass -Stage unit -Message (Get-Content test.log -Raw)
+            "Unit tests: $($f.Class) ($($f.Status))" >> $env:GITHUB_STEP_SUMMARY
+            if ($f.Blocking) { exit $code }       # NOT_RUN / BLOCKED classes do not fail the PR
+            exit 0
+          }
       - name: AI evaluation tests (structural/policy regressions)
         run: pnpm --filter @gym-coach/ai-service run test:evaluation
       - name: AI policy behavior tests (routing/safety regressions)
