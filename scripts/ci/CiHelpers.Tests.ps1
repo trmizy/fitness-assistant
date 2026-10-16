@@ -309,6 +309,11 @@ Describe "Get-CiFailureClass (12)" {
         $r.Class | Should Be "INTEGRATION_ENV_UNAVAILABLE"
         $r.Blocking | Should Be $false
     }
+    It "a Prisma call with no DATABASE_URL set is also INTEGRATION_ENV_UNAVAILABLE, not a code failure (Phase 16B.2, real evidence: a *.integration.test.ts file swept up by the unit job's *.test.ts glob fails this way - never ECONNREFUSED - because Prisma refuses to even attempt a connection with no URL configured)" {
+        $r = Get-CiFailureClass -Stage unit -Message "PrismaClientInitializationError: `n  error: Environment variable not found: DATABASE_URL.`n   9 |   url      = env(`"DATABASE_URL`")"
+        $r.Class | Should Be "INTEGRATION_ENV_UNAVAILABLE"
+        $r.Blocking | Should Be $false
+    }
     It "plain stages map to their class" {
         (Get-CiFailureClass -Stage build -Message "TS2322").Class | Should Be "BUILD_FAIL"
         (Get-CiFailureClass -Stage unit -Message "1 failed").Class | Should Be "UNIT_TEST_FAIL"

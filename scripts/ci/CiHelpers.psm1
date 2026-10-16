@@ -272,7 +272,17 @@ function Get-CiFailureClass {
     if ($Message -match '(?i)ApprovalRequired|manual approval|awaiting approval' -or $Stage -eq 'approval') {
         return (& $r 'MANUAL_APPROVAL_REQUIRED' 'WAITING' $false)
     }
-    if ($Stage -in @('integration', 'unit') -and $Message -match '(?i)ECONNREFUSED.{0,40}543\d|\bP1001\b|database fixture|postgres.{0,40}(unavailable|not running|refused)') {
+    if ($Stage -in @('integration', 'unit') -and $Message -match '(?i)ECONNREFUSED.{0,40}543\d|\bP1001\b|database fixture|postgres.{0,40}(unavailable|not running|refused)|Environment variable not found:\s*DATABASE_URL') {
+        # The DATABASE_URL case (added 2026-10-16, real evidence): a Prisma
+        # call inside a *.integration.test.ts file never even attempts a
+        # connection when DATABASE_URL is unset - it fails at config-
+        # validation time with this exact message, not ECONNREFUSED/P1001.
+        # Confirmed via a real failing CI run + local reproduction: the
+        # `unit` job's glob (src/__tests__/*.test.ts) also matches
+        # *.integration.test.ts files, which were always meant to run only
+        # in docker-test.yml's db-integration job (real Postgres), never
+        # here - this is the exact "missing-DB failure, not a code
+        # failure" case this function already exists to classify.
         return (& $r 'INTEGRATION_ENV_UNAVAILABLE' 'NOT_RUN' $false)
     }
     if ($Stage -eq 'external' -or $Message -match '(?i)(smtp|payos|momo|vnpay|zalopay|stripe|paypal).{0,60}(ETIMEDOUT|ECONNREFUSED|503|unavailable)') {
