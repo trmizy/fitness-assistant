@@ -11,12 +11,16 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      # pnpm/action-setup MUST run before setup-node's `cache: pnpm`, which
+      # shells out to `pnpm` itself to resolve the cache key - confirmed via
+      # a real failing run (2026-10-16): "Unable to locate executable file:
+      # pnpm". `corepack enable` AFTER setup-node does not fix this.
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 } # matches package.json's "packageManager"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable pnpm
-        run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint
@@ -91,12 +95,12 @@ jobs:
       FITNESS_DISABLE_REDIS: "true"
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable pnpm
-        run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Create isolated test databases
