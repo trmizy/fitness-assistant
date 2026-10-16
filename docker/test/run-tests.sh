@@ -41,7 +41,8 @@ else
   printf '\n[docker-test] offline AI evaluation/policy and mobile tests\n'
   pnpm --filter @gym-coach/ai-service run test:evaluation
   pnpm --filter @gym-coach/ai-service run test:policy
-  pnpm --filter mobile test
+  pnpm --filter mobile run test:unit
+  pnpm --filter mobile run test:components --runInBand
 fi
 
 printf '\n[docker-test] ai-service build\n'
