@@ -21,7 +21,10 @@ import type { AgentIdentity } from "./fitness-agent-tools";
 import * as profileReader from "./enterprise-data/profile.reader";
 import * as nutritionReader from "./enterprise-data/nutrition.reader";
 import * as workoutReader from "./enterprise-data/workout.reader";
-import type { AuthoritativeRead, NutritionGoalFacts, WorkoutProgramSummary } from "./enterprise-data/types";
+import * as trainingReader from "./enterprise-data/training.reader";
+import * as nutritionAnalyticsReader from "./enterprise-data/nutrition-analytics.reader";
+import * as bodyGoalReader from "./enterprise-data/body-goal.reader";
+import type { AuthoritativeRead, BodyGoalStateWindow, NutritionAnalyticsWindow, NutritionGoalFacts, TrainingAnalyticsWindow, WorkoutProgramSummary } from "./enterprise-data/types";
 import type { ScheduleRange } from "./enterprise-data/workout.reader";
 import type { UserProfile } from "../llm/types";
 
@@ -31,7 +34,13 @@ export type ContextNeed =
   | "ACTIVE_NUTRITION_GOAL"
   | "CURRENT_WORKOUT_PROGRAM"
   | "WORKOUT_SCHEDULE"
-  | "RECENT_WORKOUT_HISTORY";
+  | "RECENT_WORKOUT_HISTORY"
+  /** Phase 4.1 — rolling-window training analytics (fitness-service-owned). Never fetched implicitly. */
+  | "TRAINING_COACH_STATE"
+  /** Phase 4.3 — normalized nutrition target-vs-actual window (fitness-service-owned). Never fetched implicitly. */
+  | "NUTRITION_COACH_STATE"
+  /** Phase 4.4 — observed body state + goal gap/trajectory (fitness-service-owned). Never fetched implicitly. */
+  | "BODY_GOAL_COACH_STATE";
 
 export interface AssembledContext {
   profile?: AuthoritativeRead<UserProfile>;
@@ -40,6 +49,9 @@ export interface AssembledContext {
   currentWorkoutProgram?: AuthoritativeRead<WorkoutProgramSummary>;
   workoutSchedule?: AuthoritativeRead<Record<string, unknown>[]>;
   recentWorkoutHistory?: AuthoritativeRead<Record<string, unknown>[]>;
+  trainingAnalytics?: AuthoritativeRead<TrainingAnalyticsWindow>;
+  nutritionAnalytics?: AuthoritativeRead<NutritionAnalyticsWindow>;
+  bodyGoalState?: AuthoritativeRead<BodyGoalStateWindow>;
   /** Equipment has no authoritative "list my real equipment" read today (docs/ai-product/
    * phase3-current-ai-map.md §C) — only transitive validation/substitution endpoints. This is a
    * truthful marker, never a fake local source. */
@@ -49,6 +61,12 @@ export interface AssembledContext {
 export interface AssembleContextOptions {
   scheduleRange?: ScheduleRange;
   historyLimit?: number;
+  /** Rolling window for TRAINING_COACH_STATE (default 28 server-side). */
+  trainingWindowDays?: number;
+  /** Rolling window for NUTRITION_COACH_STATE (default 28 server-side). */
+  nutritionWindowDays?: number;
+  /** Body-trend lookback for BODY_GOAL_COACH_STATE (default 90 server-side; 14-365). */
+  bodyLookbackDays?: number;
 }
 
 export async function assembleContext(
@@ -77,6 +95,18 @@ export async function assembleContext(
   }
   if (needSet.has("RECENT_WORKOUT_HISTORY")) {
     tasks.push(workoutReader.getRecentWorkoutHistory(identity, opts.historyLimit).then((r) => { result.recentWorkoutHistory = r; }));
+  }
+
+  if (needSet.has("TRAINING_COACH_STATE")) {
+    tasks.push(trainingReader.getTrainingAnalytics(identity, { days: opts.trainingWindowDays }).then((r) => { result.trainingAnalytics = r; }));
+  }
+
+  if (needSet.has("NUTRITION_COACH_STATE")) {
+    tasks.push(nutritionAnalyticsReader.getNutritionAnalytics(identity, { days: opts.nutritionWindowDays }).then((r) => { result.nutritionAnalytics = r; }));
+  }
+
+  if (needSet.has("BODY_GOAL_COACH_STATE")) {
+    tasks.push(bodyGoalReader.getBodyGoalState(identity, { lookbackDays: opts.bodyLookbackDays }).then((r) => { result.bodyGoalState = r; }));
   }
 
   await Promise.all(tasks);

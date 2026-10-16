@@ -146,6 +146,11 @@ training/data/raw/
 # Vendored upstream clone used only for GGUF conversion tooling (own .git,
 # ~200MB) — see training/scripts/merge_lora_unsloth.py's deployment flow.
 training/llama.cpp/
+# Semantic-understanding QLoRA fine-tune (Qwen3 4B) — same policy as the
+# coach pipeline above: adapters/checkpoints/eval outputs are local
+# artifacts, never committed; the dataset/config/scripts themselves are.
+training/semantic-qwen3-4b/outputs/
+training/semantic-qwen3-4b/optuna/
 backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf

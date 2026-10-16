@@ -67,6 +67,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path $PSScriptRoot "lib/DevLifecycle.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "api-gateway/lib/ChatIntegrationSync.psm1") -Force
+
 # -- Safety guards --------------------------------------------------------
 $ExpectedAccount = "191798898985"
 $ExpectedRegion  = "ap-southeast-1"
@@ -81,25 +84,11 @@ $FrontendBucket  = "fitness-assistant-frontend-dev-191798898985"
 $AossNetworkPolicyName = "auto-fitness-assistant-dev-ai-ve"
 $AuroraClusterId = "fitness-assistant-dev-aurora"
 $SchedulerStateFile = ".dev/aws/scheduler-state.json"
-# Every schedule this automation is allowed to touch. gym-partner-upload-sweep
-# is deliberately NOT in this list - it is independently DISABLED for a
-# product reason unrelated to DEV freeze/thaw, and this automation must
-# never touch it in either direction.
-$DevPausableSchedules = @(
-    "fitness-assistant-dev-ai-autoaccept",
-    "fitness-assistant-dev-ai-pubmed",
-    "fitness-assistant-dev-payment-reconciliation",
-    "fitness-assistant-dev-user-session-auto-confirm",
-    "fitness-assistant-dev-user-session-settlement",
-    "fitness-assistant-dev-ai-rss",
-    "fitness-assistant-dev-workout-unfinished-reminder",
-    "fitness-assistant-dev-ai-local-evidence",
-    "fitness-assistant-dev-user-reschedule-expiry",
-    "fitness-assistant-dev-ai-web",
-    "fitness-assistant-dev-gym-membership-payout",
-    "fitness-assistant-dev-gym-referral-settlement",
-    "fitness-assistant-dev-workout-upcoming-reminder"
-)
+# Every schedule this automation is allowed to touch (and the one it must
+# never touch, in either direction) now live in one shared place - see
+# scripts/aws/lib/DevLifecycle.psm1 - instead of being duplicated here and
+# in dev-stop.ps1.
+$DevPausableSchedules = Get-DevPausableSchedules
 
 # Re-reads the CURRENT network policy immediately before updating (never a
 # blind overwrite from a stale local copy - AOSS's policyVersion is an
@@ -260,27 +249,48 @@ if (-not ($Network -or $Chat -or $Ai -or $Backend -or $Secrets)) {
     Write-Host "No feature flags passed - nothing to start." -ForegroundColor Yellow
 }
 
-$impliedSecrets = $Chat -or $Ai -or $Backend
-if ($impliedSecrets -and -not $Secrets) {
-    Write-Host "Auto-enabling Secrets Manager connectivity: -Chat/-Ai/-Backend all need it." -ForegroundColor Yellow
+# -- Resolve desired state additively (Phase 12A) -------------------------
+# START must be a set UNION of whatever is already live and whatever was
+# newly requested - never a blind re-derivation from only this call's own
+# flags (that was the root cause of the Phase 11-discovered bug: calling
+# -Network alone used to reset EnableSecretsManagerEndpoint back to false
+# even though an earlier, separate -Backend call had turned it on).
+$currentStack = Get-CurrentStackState -StackName $StackName -Region $ExpectedRegion
+if ($currentStack.StackExists -and -not $currentStack.Safe) {
+    Write-Host "HARD STOP: stack '$StackName' is in status '$($currentStack.StackStatus)', not safe to read parameters from (transitional or failed state). Resolve manually (check the CloudFormation console) before continuing." -ForegroundColor Red
+    exit 1
 }
-$enableNat = if ($Network) { "true" } else { "false" }
-$enableChat = if ($Chat) { "true" } else { "false" }
-$enableAi = if ($Ai) { "true" } else { "false" }
-$enableSecrets = if ($Secrets -or $impliedSecrets) { "true" } else { "false" }
+$auroraForDisplay = Get-CurrentAuroraState -ClusterId $AuroraClusterId -Region $ExpectedRegion
+$currentForDisplay = @{
+    Network = $currentStack.Network; Chat = $currentStack.Chat; Ai = $currentStack.Ai
+    Secrets = $currentStack.Secrets; Backend = $auroraForDisplay.Available
+}
+$requested = @{
+    Backend = [bool]$Backend; Network = [bool]$Network; Chat = [bool]$Chat
+    Ai      = [bool]$Ai;      Secrets = [bool]$Secrets
+}
+$desired = Resolve-DesiredStartState -Current $currentStack -Requested $requested
+if ($desired.SecretsImpliedBy.Count -gt 0 -and -not $currentStack.Secrets) {
+    Write-Host "Auto-enabling Secrets Manager connectivity: $($desired.SecretsImpliedBy -join '/') need it." -ForegroundColor Yellow
+}
+
+$enableNat = if ($desired.Network) { "true" } else { "false" }
+$enableChat = if ($desired.Chat) { "true" } else { "false" }
+$enableAi = if ($desired.Ai) { "true" } else { "false" }
+$enableSecrets = if ($desired.Secrets) { "true" } else { "false" }
 
 Write-Host ""
-Write-Host "Requested feature flags: EnableNatGateway=$enableNat EnableChat=$enableChat EnableOpenSearchEndpoint=$enableAi EnableSecretsManagerEndpoint=$enableSecrets"
+Write-Host (Format-LifecyclePlan -Mode Start -Current $currentForDisplay -Requested $requested -Desired (@{
+    Network = $desired.Network; Chat = $desired.Chat; Ai = $desired.Ai; Secrets = $desired.Secrets
+    Backend = ($auroraForDisplay.Available -or $Backend)
+}))
+Write-Host ""
+Write-Host "Resolved CloudFormation parameters: EnableNatGateway=$enableNat EnableChat=$enableChat EnableOpenSearchEndpoint=$enableAi EnableSecretsManagerEndpoint=$enableSecrets"
 Write-Host ""
 
 if (-not $Execute) {
     Write-Host "1) Aurora status (read-only, dry run):"
-    $auroraStatus = "unknown"
-    try {
-        $result = aws rds describe-db-clusters --db-cluster-identifier $AuroraClusterId --region $ExpectedRegion --query "DBClusters[0].Status" --output text 2>&1
-        if ($LASTEXITCODE -eq 0) { $auroraStatus = $result }
-    } catch {}
-    Write-Host "   Aurora status: $auroraStatus"
+    Write-Host "   Aurora status: $($auroraForDisplay.Status)"
     if ($Backend) {
         Write-Host "   # (with -Execute) aws rds start-db-cluster --db-cluster-identifier $AuroraClusterId --region $ExpectedRegion ; aws rds wait db-cluster-available ..."
     } else {
@@ -319,12 +329,7 @@ if (-not $Execute) {
 
 # -- Real execution --------------------------------------------------------
 Write-Host "1) Aurora status (read-only; actual start happens in step 8 if -Backend):"
-$auroraStatus = "unknown"
-try {
-    $result = aws rds describe-db-clusters --db-cluster-identifier $AuroraClusterId --region $ExpectedRegion --query "DBClusters[0].Status" --output text 2>&1
-    if ($LASTEXITCODE -eq 0) { $auroraStatus = $result }
-} catch {}
-Write-Host "   Aurora status: $auroraStatus"
+Write-Host "   Aurora status: $($auroraForDisplay.Status)"
 
 Write-Host ""
 Write-Host "-Execute passed. Deploying gymini-dev-on-demand." -ForegroundColor Yellow
@@ -392,16 +397,34 @@ if ($enableChat -eq "true" -and $newTgArn) {
     Write-Host "   Verified: ECS service loadBalancers[0].targetGroupArn == $actualTgArn" -ForegroundColor Green
 
     Write-Host ""
-    Write-Host "6) API Gateway reconnect - pointing integration $ChatIntegrationId at $newAlbDns..."
-    $newUri = "http://$newAlbDns/chat/{proxy}"
-    aws apigatewayv2 update-integration --api-id $ApiId --integration-id $ChatIntegrationId --integration-uri $newUri --region $ExpectedRegion --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "HARD STOP: apigatewayv2 update-integration failed (exit $LASTEXITCODE)." -ForegroundColor Red
-        exit 1
+    Write-Host "6) API Gateway reconnect - CloudFormation-owned sync of ChatAlbDnsName -> $newAlbDns..."
+    # Phase 16A.2R: this used to be a direct `apigatewayv2 update-integration`
+    # call - correct for the live resource, but invisible to CloudFormation,
+    # so the API-Gateway stack's own ChatAlbDnsName parameter went stale on
+    # every ALB recreation (CloudFormation drift detection can't catch it
+    # either - AWS::ApiGatewayV2::Integration doesn't support drift
+    # detection at all). CloudFormation is now authoritative: this creates,
+    # safety-checks (reusing the Phase 16A.1-certified change-set guard), and
+    # executes a narrowly-scoped UPDATE change set that may ONLY touch
+    # ChatIntegration (Modify, Replacement=False) or be a true no-op -
+    # anything else blocks before ever executing.
+    $apiGatewayStackName = "fitness-assistant-dev-api-gateway"
+    $apiGatewayTemplatePath = Join-Path $PSScriptRoot "../../infra/cloudformation/api-gateway-baseline.yaml"
+    $syncResult = Sync-ChatApiGatewayIntegration -ApiGatewayStackName $apiGatewayStackName -CurrentAlbDns $newAlbDns `
+        -TemplatePath $apiGatewayTemplatePath -ProtectedApiId $ApiId -Region $ExpectedRegion -Execute
+    switch ($syncResult.Status) {
+        "NO_SYNC_NEEDED" { Write-Host "   No sync needed ($($syncResult.Reason)) - stack ChatAlbDnsName already matches." -ForegroundColor Green }
+        "NO_OP"          { Write-Host "   CloudFormation reported a true no-op ($($syncResult.Reason))." -ForegroundColor Green }
+        "EXECUTED"       { Write-Host "   Reconciled via change set $($syncResult.ChangeSetName) ($($syncResult.Reason)); stack status $($syncResult.StackStatus)." -ForegroundColor Green }
+        default {
+            Write-Host "HARD STOP: Chat API Gateway CloudFormation sync did not complete safely (status '$($syncResult.Status)', reason '$($syncResult.Reason)')." -ForegroundColor Red
+            exit 1
+        }
     }
     $actualUri = aws apigatewayv2 get-integration --api-id $ApiId --integration-id $ChatIntegrationId --region $ExpectedRegion --query "IntegrationUri" --output text
-    if ($actualUri -ne $newUri) {
-        Write-Host "HARD STOP: integration URI is '$actualUri', expected '$newUri'." -ForegroundColor Red
+    $expectedUri = "http://$newAlbDns/chat/{proxy}"
+    if ($actualUri -ne $expectedUri) {
+        Write-Host "HARD STOP: integration URI is '$actualUri', expected '$expectedUri'." -ForegroundColor Red
         exit 1
     }
     Write-Host "   Verified: integration $ChatIntegrationId IntegrationUri == $actualUri" -ForegroundColor Green

@@ -929,7 +929,7 @@ async function runInner(
           // R1 telemetry label only (never changes the request)
           purpose: routedIntent.intent === "general_fitness_knowledge" ? ("GENERAL_QA" as const) : ("GENERATION" as const),
           temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
-          // These caps were tuned for the small local fine-tuned Ollama model
+          // These caps were originally tuned for the small local fine-tuned Ollama model
           // (fitness-coach-qwen2.5-1.5b), where ~420 tokens is a full answer.
           // On a Claude model the same cap truncates hard — and with a
           // Vietnamese answer (far more tokens per word) it produced a
@@ -938,6 +938,16 @@ async function runInner(
           // hit exactly 420 with answer: ""). Scale the cap by provider instead
           // of blanket-raising it, so switching back to the local model keeps
           // its tuned budget.
+          // 2026-10-09: lowered 420 -> 320 for the general_fitness_knowledge/Ollama
+          // case specifically. LLM_MODEL here is now qwen3:4b-instruct-2507 (not the
+          // smaller 1.5b model the 420 figure was tuned for) on a CPU-only dev host
+          // measured at ~4.8 tokens/s — 420 tokens took ~87s, just over
+          // AI_CHAT_LLM_TIMEOUT_MS, so every real answer was silently replaced by the
+          // "AI unavailable" fallback. 320 tokens -> ~65-70s, inside the budget with
+          // margin. This raises truncation risk on this larger, more verbose model
+          // (the 420 cap already wasn't generous for it); if truncated/empty answers
+          // become a real problem, the fix is a faster host/model, not raising this
+          // back up (that just reproduces the timeout).
           numPredict:
             // bedrock added (AWS Bedrock Claude pass): same Claude model, same
             // truncation risk, so it takes the anthropic budget.
@@ -948,7 +958,7 @@ async function runInner(
               : bodyCompositionQuestion
                 ? 650
                 : routedIntent.intent === "general_fitness_knowledge"
-                  ? 420
+                  ? 320
                   : undefined,
         };
         const llmResponse = await timeAsync(timing, "llmGenerateMs", () =>

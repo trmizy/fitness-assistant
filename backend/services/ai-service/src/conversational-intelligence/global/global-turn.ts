@@ -12,7 +12,8 @@ import type { Goal } from "../schema";
 import { hasPendingDraft } from "./turn-state";
 import { rethrowProfileFailures } from "./profile-errors";
 import { readState } from "./readers";
-import { ciLlmAllowed } from "../index";
+import { ciLlmAllowed, unifiedCoachMode } from "../index";
+import { ragRetrievalV2Enabled } from "../../llm/retriever";
 import { limitLlmRoute, llmRoute } from "./llm-route";
 import { classifyGlobal, type GlobalRouteResult, type ReadTopic } from "./router";
 
@@ -115,7 +116,7 @@ export async function runGlobalTurn(question: string, identity: AgentIdentity, s
   // A pending DRAFT (workout/nutrition/roadmap preview awaiting confirmation, or a menu still generating) is conversation state the router
   // must know about BEFORE it classifies: the draft has its own deterministic router (routePendingDraftTurn) for revisions/confirmations.
   const pendingDraft = await hasPendingDraft(identity.userId, sessionId);
-  const gctx = { active: active && active.status === "COLLECTING_SLOTS" ? { wf: active.type, slot: active.expectedSlot } : null, proposal, draft: pendingDraft };
+  const gctx = { active: active && active.status === "COLLECTING_SLOTS" ? { wf: active.type, slot: active.expectedSlot } : null, proposal, draft: pendingDraft, trainingCoach: unifiedCoachMode() === "on", personalInterpretation: unifiedCoachMode() === "on" && ragRetrievalV2Enabled() };
   let route = classifyGlobal(question, gctx);
   const deterministicRoute = route;
   let llmCalled = false;

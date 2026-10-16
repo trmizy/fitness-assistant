@@ -30,7 +30,7 @@ function stubModel(answer: string | Error): Stub {
 
 // ── fixtures (partial objects: the narrators only read the fields below) ──
 const ptCandidate = (id: string) => ({
-  candidate: { id, name: `PT ${id}`, specialties: ["MUSCLE_GAIN"], availableDays: [1, 3, 5], packages: [{ price: 1000000 }], reviewCount: 10, averageRating: 4.5 },
+  candidate: { id, name: `PT ${id}`, specialties: ["MUSCLE_GAIN"], availableDays: [1, 3, 5], packages: [{ price: 1000000 }], reviewCount: 10, averageRating: 4.5, certificates: [], yearsExperience: "" },
   compatibility: { total: 80, components: {}, reasons: [] },
   history: { count: 1, note: "" },
 }) as any;

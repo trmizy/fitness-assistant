@@ -3766,7 +3766,7 @@ export const coachService = {
     }, 10000);
     const timeoutTimer = setTimeout(() => {
       controller.abort();
-    }, 75000);
+    }, 180000);
 
     (async () => {
       try {

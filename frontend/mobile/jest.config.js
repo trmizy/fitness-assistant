@@ -14,7 +14,7 @@ const { SHORTENED_PACKAGES } = require("./plugins/shortenPackagePaths");
  * See MOBILE_PLATFORM_ADAPTERS.md §16.
  */
 const relocatedModuleMap = Object.fromEntries(
-  Object.entries(SHORTENED_PACKAGES).flatMap(([pkgName, shortDir]) => [
+  Object.entries(process.platform === "win32" ? SHORTENED_PACKAGES : {}).flatMap(([pkgName, shortDir]) => [
     // Deep imports first: a bare-name pattern would otherwise swallow them.
     [`^${pkgName.replace("/", "\\/")}\\/(.*)$`, path.join(shortDir, "$1")],
     [`^${pkgName.replace("/", "\\/")}$`, shortDir],

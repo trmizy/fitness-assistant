@@ -1,0 +1,15 @@
+{
+  "annotatorId": "A01",
+  "human": true,
+  "independent": true,
+  "usedLLMForLabels": false,
+  "sawOtherAnnotatorLabels": false,
+  "sawClassifierPredictions": false,
+  "sawGoldLabels": false,
+  "annotationGuidelineVersion": "ANNOTATION_GUIDELINES_V1",
+  "annotationGuidelineHash": "<sha256 from ANNOTATION_GUIDELINES_V1.freeze.json>",
+  "batchHash": "<canonical batch hash printed by: human-intake / see ../pilot_batch.csv manifest>",
+  "annotationTimestampRange": { "start": "<ISO-8601>", "end": "<ISO-8601>" },
+  "authority": "INDEPENDENT_HUMAN_LABELS_ON_SYNTHETIC_UTTERANCES",
+  "notes": ""
+}

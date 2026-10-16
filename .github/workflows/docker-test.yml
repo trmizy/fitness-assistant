@@ -11,12 +11,13 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      # setup-node resolves the pnpm cache during setup, so pnpm must exist first.
+      - uses: pnpm/action-setup@v4
+        with: { run_install: false }
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable pnpm
-        run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint
@@ -91,12 +92,13 @@ jobs:
       FITNESS_DISABLE_REDIS: "true"
     steps:
       - uses: actions/checkout@v4
+      # setup-node resolves the pnpm cache during setup, so pnpm must exist first.
+      - uses: pnpm/action-setup@v4
+        with: { run_install: false }
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable pnpm
-        run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Create isolated test databases

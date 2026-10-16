@@ -204,6 +204,48 @@ test("CREATE_WORKOUT_PLAN no-repeat E2E (real DB): when daysPerWeek and sessionM
   }
 });
 
+test("CREATE_WORKOUT_PLAN exercise-count revision (real DB): '8 bai tap cho 1 ngay' is handled as draft shaping, never slow general QA", async () => {
+  stubWorkoutFixtures({ sessionMinutes: 60 });
+  const userId = `agent-workflow-workout-exercise-count-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    const r1 = await fitnessAgent.tryTurn("Tạo lịch tập cho tôi", identity, session.id);
+    const actionId = (r1!.blocks[0] as any).actionId as string;
+    const before = await prisma.fitnessAgentAction.findUnique({ where: { id: actionId } });
+    const beforePayload = before!.payload as any;
+
+    const r2 = await fitnessAgent.tryTurn("tôi muốn nâng lên 8 bài tập cho 1 ngày", identity, session.id);
+    assert.ok(r2, "exercise-count revision must be owned by the pending workout draft");
+    assert.equal(r2!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
+    assert.equal((r2!.blocks[0] as any).actionId, actionId);
+    assert.match(r2!.answer, /8 b[aà]i/i, "must answer about the requested exercises-per-session count");
+    assert.match(r2!.answer, /chưa thay đổi lịch|chua thay doi lich/i, "unsafe over-capacity requests must not silently mutate the draft");
+
+    const after = await prisma.fitnessAgentAction.findUnique({ where: { id: actionId } });
+    assert.deepEqual((after!.payload as any).weeklySchedule, beforePayload.weeklySchedule, "requesting more exercises than the current duration supports must leave the draft unchanged");
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});
+
+test("CREATE_WORKOUT_PLAN exercise-count revision with no live draft is answered deterministically, never delegated to general QA", async () => {
+  stubWorkoutFixtures({ sessionMinutes: 60 });
+  const userId = `agent-workflow-workout-exercise-count-no-draft-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    const r = await fitnessAgent.tryTurn("tôi muốn nâng lên 8 bài tập cho 1 ngày", identity, session.id);
+    assert.ok(r, "no-draft exercise-count correction must not return null to the LLM path");
+    assert.equal(r!.blocks.length, 0);
+    assert.match(r!.answer, /bản nháp lịch tập|ban nhap lich tap/i);
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});
+
 test("CREATE_WORKOUT_PLAN session-length revision (real DB): 'Buổi tập ngắn xuống 20 phút.' retrims exercises and is never misread as a day-count change", async () => {
   stubWorkoutFixtures({ sessionMinutes: 60 });
   const userId = `agent-workflow-workout-duration-${randomUUID()}`;
@@ -455,6 +497,78 @@ test("CREATE_WORKOUT_PLAN save-collision guard (real DB): a free-text 'lưu lị
     assert.equal((r2!.blocks[0] as any).actionId, actionId, "must redirect to the SAME pending CREATE_WORKOUT_PLAN action, never create a competing SAVE_GENERATED_PLAN one");
     const competing = await prisma.fitnessAgentAction.findMany({ where: { userId, kind: "SAVE_GENERATED_PLAN" } });
     assert.equal(competing.length, 0);
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});
+
+test("CREATE_WORKOUT_PLAN weekday exercise-count revision (real DB): '8 bai tap cho thu 7' stays on the pending draft and never falls through to RAG", async () => {
+  stubWorkoutFixtures({ days: [1, 2, 3, 4, 5, 6], sessionMinutes: 60 });
+  const userId = `agent-workflow-workout-exercise-count-weekday-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    const r1 = await fitnessAgent.tryTurn("tao lich tap cho toi", identity, session.id);
+    const actionId = (r1!.blocks[0] as any).actionId as string;
+    const before = await prisma.fitnessAgentAction.findUnique({ where: { id: actionId } });
+    const beforePayload = before!.payload as any;
+
+    const r2 = await fitnessAgent.tryTurn("bay gio tang 8 bai tap cho thu 7", identity, session.id);
+    assert.ok(r2, "weekday exercise-count revision must be owned by the workout draft");
+    assert.equal(r2!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
+    assert.equal((r2!.blocks[0] as any).actionId, actionId);
+    assert.match(r2!.answer, /8 b[aÃ ]i/i);
+    assert.match(r2!.answer, /Thá»© 7|Thu 7|thá»© 7|thu 7/i);
+    assert.match(r2!.answer, /chÆ°a thay Ä‘á»•i lá»‹ch|chua thay doi lich/i);
+
+    const after = await prisma.fitnessAgentAction.findUnique({ where: { id: actionId } });
+    assert.deepEqual((after!.payload as any).weeklySchedule, beforePayload.weeklySchedule, "over-capacity weekday revision must leave the draft unchanged");
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});
+
+test("CREATE_WORKOUT_PLAN preview block normalizes exerciseName-shaped draft items instead of rendering blank bullets", async () => {
+  stubWorkoutFixtures({ sessionMinutes: 60 });
+  const userId = `agent-workflow-workout-preview-shape-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    await prisma.fitnessAgentAction.create({
+      data: {
+        userId,
+        sessionId: session.id,
+        recommendationId: null,
+        kind: "CREATE_WORKOUT_PLAN",
+        risk: "MEDIUM",
+        status: "PENDING",
+        expiresAt: new Date(Date.now() + 10 * 60000),
+        payload: {
+          goal: "MUSCLE_GAIN",
+          sessionMinutes: 60,
+          selectedWeekdays: [6],
+          exclusions: [],
+          weeklySchedule: [{
+            day: "Thu 7 (Push)",
+            goal: "Chest + shoulders",
+            exercises: [
+              { exerciseId: "ex-bench", exerciseName: "Bench Press", sets: 4, reps: "8-10", restSeconds: 90 },
+              { exerciseId: "ex-incline", exercise: { exerciseName: "Incline Dumbbell Press" }, sets: 3, reps: "10-12", restSeconds: 75 },
+              { exerciseId: "ex-empty", sets: 3, reps: "12" },
+            ],
+          }],
+        },
+      },
+    });
+
+    const r = await fitnessAgent.tryTurn("them superset", identity, session.id);
+    assert.ok(r, "unsupported revision must still return the current preview");
+    assert.equal(r!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
+    const exercises = ((r!.blocks[0] as any).days[0].exercises as any[]);
+    assert.deepEqual(exercises.map((e) => e.name), ["Bench Press", "Incline Dumbbell Press"]);
+    assert.ok(exercises.every((e) => typeof e.name === "string" && e.name.length > 0), "preview must not emit blank exercise names");
   } finally {
     await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
     await prisma.chatSession.delete({ where: { id: session.id } });

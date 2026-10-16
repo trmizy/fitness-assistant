@@ -58,6 +58,8 @@ export interface WorkerUserContext {
     // (user-service). Passed through as-is from the profile response; may
     // be absent for accounts predating this field.
     startingWeight?: number;
+    /** Vietnamese regional food preference: BAC | TRUNG | NAM. */
+    region?: string;
     injuries?: string[];
   } | null;
   /** Recent workout logs (last 10, with exercise details) */
@@ -414,6 +416,17 @@ export function formatWorkerContextForPrompt(ctx: WorkerUserContext): string {
   }
 
   // Profile extras (injuries)
+  if (ctx.profile?.region) {
+    const regionLabel: Record<string, string> = {
+      BAC: "Miền Bắc",
+      TRUNG: "Miền Trung",
+      NAM: "Miền Nam",
+    };
+    lines.push(
+      `[Sở thích vùng miền món Việt: ${regionLabel[ctx.profile.region] ?? ctx.profile.region}]`,
+    );
+  }
+
   if (ctx.profile?.injuries?.length) {
     lines.push(`[Chấn thương / hạn chế: ${ctx.profile.injuries.join(", ")}]`);
   }

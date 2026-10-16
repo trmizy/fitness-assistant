@@ -92,6 +92,8 @@ export interface UserProfile {
     | "EXTREMELY_ACTIVE";
   experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   foodPreference?: string;
+  /** Vietnamese regional food preference from user-service profile.region. */
+  region?: "BAC" | "TRUNG" | "NAM" | string;
   training: TrainingConstraints;
   inBody?: InBodyMetrics;
   // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.

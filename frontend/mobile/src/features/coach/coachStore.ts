@@ -22,6 +22,7 @@ const EMPTY: CoachSessionState = Object.freeze({ messages: [], status: "idle", l
 
 const sessions = new Map<string, CoachSessionState>();
 const cancels = new Map<string, { token: string; cancel: () => void }>();
+const lastActiveSessionIds = new Map<string, string | null>();
 const listeners = new Set<() => void>();
 
 const bucket = (userId: string, key: string) => `${userId}::${key}`;
@@ -40,6 +41,15 @@ function setCoachSession(userId: string, key: string, next: CoachSessionState) {
 let draftSeq = 0;
 export const newDraftKey = () => `${DRAFT_PREFIX}${Date.now().toString(36)}-${(draftSeq++).toString(36)}`;
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+export function getLastActiveCoachSessionId(userId: string): string | null {
+  return lastActiveSessionIds.get(userId) ?? null;
+}
+
+export function setLastActiveCoachSessionId(userId: string, sessionId: string | null) {
+  if (sessionId) lastActiveSessionIds.set(userId, sessionId);
+  else lastActiveSessionIds.delete(userId);
+}
 
 /** Load a saved thread once — never over a thread that already has local messages (a live stream). */
 export function hydrateCoachSession(userId: string, sessionId: string, rows: AiSessionMessage[]) {
@@ -202,5 +212,6 @@ export function __resetCoachStore() {
   cancels.forEach((c) => c.cancel());
   cancels.clear();
   sessions.clear();
+  lastActiveSessionIds.clear();
   emit();
 }

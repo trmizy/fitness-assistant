@@ -1,6 +1,7 @@
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
 import type { InBodyMetrics, TrainingConstraints, UserProfile } from "./types";
+import { checkMacroCalorieConsistency } from "./nutrition_engine";
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL ||
@@ -42,6 +43,7 @@ type ProfileResponse = {
     // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.
     safetyScreeningStatus?: "UNKNOWN" | "CLEARED" | "FOLLOW_UP_SUGGESTED";
     safetyScreeningFlags?: string[];
+    region?: string;
   } | null;
 };
 
@@ -104,6 +106,77 @@ type NutritionEntry = {
   quantity?: number;
   unit?: string;
 };
+
+type NutritionGoalTarget = NonNullable<UserProfile["nutritionGoal"]>;
+
+function readPositiveNumber(value: unknown): number | undefined {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function toNutritionGoalTarget(raw: {
+  calories?: unknown;
+  protein?: unknown;
+  carbs?: unknown;
+  fat?: unknown;
+}): NutritionGoalTarget | undefined {
+  const calories = readPositiveNumber(raw.calories);
+  const protein = readPositiveNumber(raw.protein);
+  const carbs = readPositiveNumber(raw.carbs);
+  const fat = readPositiveNumber(raw.fat);
+  return calories && protein && carbs && fat
+    ? { calories, protein, carbs, fat }
+    : undefined;
+}
+
+function targetIsMacroConsistent(target: NutritionGoalTarget): boolean {
+  return checkMacroCalorieConsistency(
+    target.calories,
+    target.protein,
+    target.carbs,
+    target.fat,
+  ).consistent;
+}
+
+export function resolveEffectiveNutritionGoalForAiCoach(
+  rawGoal: any,
+  rawNutritionProgram: any,
+): NutritionGoalTarget | undefined {
+  const storedGoal =
+    rawGoal &&
+    typeof rawGoal.id === "string" &&
+    (rawGoal.status === undefined || rawGoal.status === "ACTIVE")
+      ? toNutritionGoalTarget(rawGoal)
+      : undefined;
+  if (storedGoal && targetIsMacroConsistent(storedGoal)) return storedGoal;
+
+  const programTarget = toNutritionGoalTarget({
+    calories: rawNutritionProgram?.dailyCaloriesTarget,
+    protein: rawNutritionProgram?.proteinTargetGrams,
+    carbs: rawNutritionProgram?.carbTargetGrams,
+    fat: rawNutritionProgram?.fatTargetGrams,
+  });
+  if (programTarget && targetIsMacroConsistent(programTarget)) {
+    if (storedGoal) {
+      logger.warn(
+        {
+          storedGoalCalories: storedGoal.calories,
+          programCalories: programTarget.calories,
+        },
+        "Ignoring inconsistent active NutritionGoal for AI coach; using active NutritionProgram target",
+      );
+    }
+    return programTarget;
+  }
+
+  if (storedGoal) {
+    logger.warn(
+      { storedGoalCalories: storedGoal.calories },
+      "Ignoring inconsistent active NutritionGoal for AI coach; no consistent active program target found",
+    );
+  }
+  return undefined;
+}
 
 /** Mirrors fitness-service's GET /nutrition/daily-history response shape
  * (nutrition.service.ts's getDailyConsumptionHistory). */
@@ -336,12 +409,6 @@ async function fetchAndCache(
       nutritionGoalRes.status === "fulfilled"
         ? ((nutritionGoalRes.value.data as any)?.data ?? (nutritionGoalRes.value.data as any))
         : null;
-    const nutritionGoal =
-      rawGoal && typeof rawGoal.id === "string" /* a real stored row — the API returns an id-less DEFAULT when none exists */ && [rawGoal.calories, rawGoal.protein, rawGoal.carbs, rawGoal.fat].every((n: unknown) => typeof n === "number" && Number.isFinite(n) && (n as number) > 0)
-        && (rawGoal.status === undefined || rawGoal.status === "ACTIVE")
-        ? { calories: rawGoal.calories, protein: rawGoal.protein, carbs: rawGoal.carbs, fat: rawGoal.fat }
-        : undefined;
-
     const profileData =
       profileRes.status === "fulfilled" ? profileRes.value.data.profile : null;
     const inBodyData =
@@ -370,6 +437,10 @@ async function fetchAndCache(
         ? ((nutritionProgramRes.value.data as any)?.data ??
           (nutritionProgramRes.value.data as any))
         : null;
+    const effectiveNutritionGoal = resolveEffectiveNutritionGoalForAiCoach(
+      rawGoal,
+      rawNutritionProgram,
+    );
 
     const failedCount = [
       profileRes,
@@ -426,7 +497,7 @@ async function fetchAndCache(
 
     const profile: UserProfile = {
       userId,
-      nutritionGoal,
+      nutritionGoal: effectiveNutritionGoal,
       age: profileData?.age,
       gender: profileData?.gender,
       heightCm: profileData?.heightCm,
@@ -438,6 +509,7 @@ async function fetchAndCache(
       currentWeightKg: latestInBody?.weightKg ?? profileData?.currentWeight,
       targetWeightKg: profileData?.targetWeight,
       startingWeightKg: profileData?.startingWeight,
+      region: profileData?.region,
       training: mapTraining(profileData),
       inBody: latestInBody,
       safetyScreeningStatus: profileData?.safetyScreeningStatus,
@@ -484,6 +556,22 @@ async function fetchAndCache(
             endDate: rawNutritionProgram.endDate,
             repeatEnabled: rawNutritionProgram.repeatEnabled,
             status: rawNutritionProgram.status,
+            daySummaries: Array.isArray(rawNutritionProgram.days)
+              ? rawNutritionProgram.days.slice(0, 3).map((d: any) => ({
+                  dayNumber: d.dayNumber,
+                  meals: Array.isArray(d.meals)
+                    ? d.meals.map((m: any) => ({
+                        mealType: m.mealType,
+                        itemNames: Array.isArray(m.items)
+                          ? m.items
+                              .map((it: any) => it.customFoodName || it.food?.name)
+                              .filter((name: unknown): name is string => typeof name === "string" && name.trim().length > 0)
+                              .slice(0, 6)
+                          : [],
+                      }))
+                    : [],
+                }))
+              : [],
           }
         : null;
 

@@ -118,14 +118,28 @@ export const coachService = {
     // reasonCodes, confidenceScore) — never the LLM's raw chain-of-
     // thought, never a second decision engine.
     let latestAssessment: {
-      decision: string | null; aiSummary: string | null; reasonCodes: unknown; confidenceScore: number | null;
+      id: string;
+      decision: string | null;
+      aiSummary: string | null;
+      reasonCodes: unknown;
+      confidenceScore: number | null;
+      userDecision: string;
+      reviewedAt: Date | null;
     } | null = null;
     if (activeCycle) {
       try {
         const assessment = await prisma.cycleAssessment.findFirst({
           where: { cycleId: activeCycle.cycle.id, status: "COMPLETED" },
           orderBy: { assessmentVersion: "desc" },
-          select: { decision: true, aiSummary: true, reasonCodes: true, confidenceScore: true },
+          select: {
+            id: true,
+            decision: true,
+            aiSummary: true,
+            reasonCodes: true,
+            confidenceScore: true,
+            userDecision: true,
+            reviewedAt: true,
+          },
         });
         if (assessment) latestAssessment = assessment;
       } catch (err: any) {
@@ -509,5 +523,73 @@ export const coachService = {
       latest: recent[0] ?? null,
       recent,
     };
+  },
+
+  /** PT read-only view of the client's actual WorkoutSchedule rows. This is
+   * separate from the client's own /workouts/schedules endpoint because the
+   * acting user is the PT, not the schedule owner; every call is gated by a
+   * fresh ACTIVE contract check and audited. */
+  async getClientWorkoutSchedules(
+    ptUserId: string,
+    clientUserId: string,
+    params: { limit?: number; startDate?: string; endDate?: string } = {},
+  ) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const schedules = await workoutService.listSchedules(clientUserId, params);
+
+    try {
+      await prisma.coachClientActionAudit.create({
+        data: {
+          ptUserId,
+          clientUserId,
+          action: "VIEW_CLIENT_WORKOUT_SCHEDULES",
+          metadata: { count: schedules.length, startDate: params.startDate ?? null, endDate: params.endDate ?? null } as any,
+        },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] client-workout-schedules audit write failed");
+    }
+
+    return schedules;
+  },
+
+  async approveTrainingRecommendation(ptUserId: string, clientUserId: string, cycleId: string, assessmentId?: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.acceptRecommendation(cycleId, clientUserId, assessmentId);
+    try {
+      await prisma.coachClientActionAudit.create({
+        data: { ptUserId, clientUserId, action: "APPROVE_TRAINING_RECOMMENDATION", metadata: { cycleId, assessmentId: assessmentId ?? null } as any },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] PT training approve audit write failed");
+    }
+    await createPersistentNotification({
+      userId: clientUserId,
+      text: "PT của bạn đã duyệt đề xuất điều chỉnh tập luyện của AI.",
+      eventType: "TRAINING_PLAN_UPDATED",
+      entityId: cycleId,
+      link: "/client/workout",
+    });
+    return result;
+  },
+
+  async rejectTrainingRecommendation(ptUserId: string, clientUserId: string, cycleId: string, assessmentId?: string) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const result = await trainingCycleService.rejectRecommendation(cycleId, clientUserId, assessmentId);
+    try {
+      await prisma.coachClientActionAudit.create({
+        data: { ptUserId, clientUserId, action: "REJECT_TRAINING_RECOMMENDATION", metadata: { cycleId, assessmentId: assessmentId ?? null } as any },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId, clientUserId }, "[coach] PT training reject audit write failed");
+    }
+    await createPersistentNotification({
+      userId: clientUserId,
+      text: "PT của bạn đã từ chối đề xuất điều chỉnh tập luyện của AI. Kế hoạch hiện tại được giữ nguyên.",
+      eventType: "TRAINING_PLAN_UPDATED",
+      entityId: cycleId,
+      link: "/client/workout",
+    });
+    return result;
   },
 };

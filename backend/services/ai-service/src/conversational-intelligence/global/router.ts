@@ -1,6 +1,9 @@
 import { normalizeAgentText, parseFitnessAgentIntent } from "../../services/fitness-agent-intent";
 import { interpretDeterministic } from "../interpreter";
 import { detectReferences, detectWhy, hasCorrectionCue, isQuestionForm } from "../signals";
+import { classifyTrainingQuestion } from "./training-coach";
+import { classifyProgressReviewQuestion } from "./progress-review";
+import { classifyInterpretationQuestion } from "./personalized-interpretation";
 
 /**
  * GLOBAL semantic routing: what does this turn WANT, inside or outside a workflow?
@@ -20,7 +23,13 @@ export type GlobalRoute =
   | "READ_STATE" | "RECOMMEND" | "WRITE_ACTION" | "START_WORKFLOW" | "KNOWLEDGE_QA" | "SLOT_ANSWER" | "CORRECTION"
   | "CANCEL" | "SWITCH_WORKFLOW" | "REFERENCE" | "EXPLAIN_AND_PROPOSE" | "NEGATE_ACTION" | "MULTI" | "UNKNOWN";
 
-export type ReadTopic = "ROADMAP_STATUS" | "PT_STATUS" | "CONTRACT_STATUS" | "PROGRAM_STATUS" | "SCHEDULE" | "NUTRITION_TARGET" | "NUTRITION_PROGRAM" | "GOAL" | "PROFILE_FACT";
+export type ReadTopic = "ROADMAP_STATUS" | "PT_STATUS" | "CONTRACT_STATUS" | "PROGRAM_STATUS" | "SCHEDULE" | "NUTRITION_TARGET" | "NUTRITION_PROGRAM" | "GOAL" | "PROFILE_FACT"
+  /** Phase 4.2 — rolling-window training analytics readback (CoachStateV0.training). Router-level only; never in the LLM routing prompt. */
+  | "TRAINING_PROGRESS"
+  /** Phase 4.5 — composed personal progress review (body+goal / training / nutrition slices). Router-level only; never in the LLM routing prompt. */
+  | "PROGRESS_REVIEW"
+  /** Phase 4.7 — personal facts + retrieved knowledge interpretation. Router-level only; never in the LLM routing prompt. */
+  | "PERSONAL_INTERPRETATION";
 export type RecommendTopic = "GOAL" | "TARGET_WEIGHT" | "SESSIONS" | "MEALS" | "HIRE_PT" | "PT" | "PROGRAM";
 
 export interface GlobalRouteResult {
@@ -42,6 +51,10 @@ export interface GlobalContext {
   proposal?: boolean;
   /** a workout/nutrition/roadmap DRAFT is pending confirmation for this session (it owns revision/confirmation turns, like a waiting workflow) */
   draft?: boolean;
+  /** Phase 4.2 — GYMINI_UNIFIED_AI_COACH=on: training-progress questions may route to READ_STATE/TRAINING_PROGRESS. Absent/false = legacy routing, byte-identical. */
+  trainingCoach?: boolean;
+  /** Phase 4.7 — requires trainingCoach AND RAG_RETRIEVAL_V2=on. Absent/false = legacy routing. */
+  personalInterpretation?: boolean;
 }
 
 const WF_BY_KIND: Record<string, string> = {
@@ -153,6 +166,24 @@ function classifyClause(text: string, sIn: string, ctx: GlobalContext): GlobalRo
   if (has(WRITE_START, s) && !question && !needsReferent) {
     const goalChange = has(GOAL_WORDS, s) || has(N.goal, s) || has(N.targetWeight, s);
     return { route: "WRITE_ACTION", topic: goalChange ? "GOAL_CHANGE" : undefined, confidence: 0.85, reason: "imperative write verb" };
+  }
+
+  // Phase 4.7: personal metric + 'what does it mean' wording ⇒ facts + grounded knowledge. Checked before 4.5/4.2 (it owns
+  // 'RPE của tôi có đáng chú ý không?' etc.); safety wording and action/recommendation wording are never claimed.
+  if (ctx.personalInterpretation && !has(WRITE_START, s) && !has(COMMAND_START, s) && classifyInterpretationQuestion(text)) {
+    return { route: "READ_STATE", topic: "PERSONAL_INTERPRETATION", confidence: 0.8, reason: "personalized evidence-grounded interpretation" };
+  }
+
+  // Phase 4.5: a personal PROGRESS REVIEW question (body/goal/nutrition/holistic). Checked before the single-domain training
+  // route; pure-training questions return null from the classifier and still reach Phase 4.2. Same flag as Phase 4.2.
+  if (ctx.trainingCoach && !has(WRITE_START, s) && !has(COMMAND_START, s) && classifyProgressReviewQuestion(text)) {
+    return { route: "READ_STATE", topic: "PROGRESS_REVIEW", confidence: 0.85, reason: "personal progress review (CoachStateV0 slices)" };
+  }
+
+  // Phase 4.2: a personal training-progress question ("28 ngày qua tôi tập đều không?") is a READ of the user's own analytics.
+  // Only when the unified-coach flag is on; recommendation/edit wording ("nên…", "chỉnh lịch giúp…") is never claimed here.
+  if (ctx.trainingCoach && !has(WRITE_START, s) && !has(COMMAND_START, s) && classifyTrainingQuestion(text)) {
+    return { route: "READ_STATE", topic: "TRAINING_PROGRESS", confidence: 0.85, reason: "training-progress readback (CoachStateV0.training)" };
   }
 
   // READ vs FIND: "Tôi đang có PT chưa?" is a read even though it contains "PT"

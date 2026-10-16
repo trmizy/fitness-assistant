@@ -1,0 +1,6 @@
+{
+  "name": "REFERENCE_REPRESENTATION_V1_OPTION_B",
+  "statement": "references contains ONLY successfully grounded references. If a reference expression exists but no target can be grounded, references=[]. The attempt is represented via clarificationRequired + ambiguities only.",
+  "decidedIn": "docs/ai-training/qwen4b-v2-3a3-unresolved-reference-representation-audit.md",
+  "ptPolicyUnchanged": "PT_DEICTIC_CANONICAL_POLICY_V1"
+}

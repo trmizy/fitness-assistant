@@ -17,6 +17,10 @@ const reviewNutritionRecommendationSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+const reviewTrainingRecommendationSchema = z.object({
+  assessmentId: z.string().min(1).optional(),
+});
+
 const triggerDietBreakSchema = z.object({
   note: z.string().max(1000).optional(),
 });
@@ -73,6 +77,21 @@ export const coachController = {
     }
   },
 
+  async getClientWorkoutSchedules(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const { startDate, endDate } = req.query as Record<string, string | undefined>;
+      const result = await coachService.getClientWorkoutSchedules(req.user!.id, req.params.clientId, {
+        limit,
+        startDate,
+        endDate,
+      });
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to fetch client workout schedules");
+    }
+  },
+
   async createAndAssignPlan(req: AuthRequest, res: Response): Promise<void> {
     try {
       const input = createManualProgramSchema.parse(req.body);
@@ -84,6 +103,44 @@ export const coachController = {
         return;
       }
       handleServiceError(res, error, "Failed to create and assign plan");
+    }
+  },
+
+  async approveTrainingRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { assessmentId } = reviewTrainingRecommendationSchema.parse(req.body ?? {});
+      const result = await coachService.approveTrainingRecommendation(
+        req.user!.id,
+        req.params.clientId,
+        req.params.cycleId,
+        assessmentId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid input" });
+        return;
+      }
+      handleServiceError(res, error, "Failed to approve training recommendation");
+    }
+  },
+
+  async rejectTrainingRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { assessmentId } = reviewTrainingRecommendationSchema.parse(req.body ?? {});
+      const result = await coachService.rejectTrainingRecommendation(
+        req.user!.id,
+        req.params.clientId,
+        req.params.cycleId,
+        assessmentId,
+      );
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid input" });
+        return;
+      }
+      handleServiceError(res, error, "Failed to reject training recommendation");
     }
   },
 

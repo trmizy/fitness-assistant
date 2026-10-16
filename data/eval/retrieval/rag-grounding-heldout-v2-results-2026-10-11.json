@@ -1,0 +1,268 @@
+{
+ "verdict": "RAG_V2_GENERALIZATION_FAIL",
+ "executedOnce": true,
+ "executedAt": "2026-10-11T02:46:06.659Z",
+ "candidate": "RAG_V2_1_CANDIDATE",
+ "goldFile": "rag-grounding-heldout-v2.json",
+ "gate": {
+  "checks": {
+   "topicHit_at3_inScope": true,
+   "relevantCuratedEvidence_at3_sciQueries": true,
+   "syntheticTop1Rate_noSynthQueries": true,
+   "duplicateRate": true,
+   "falseSourceRate_outOfScope": false,
+   "emptyRetrievalRate_inScope": true,
+   "improvement_over_baseline": true,
+   "domainFloor_HYPERTROPHY": true,
+   "safeAbstention_success": true
+  },
+  "improvement": {
+   "required": 0.3,
+   "observed": 0.736,
+   "evaluated": true
+  },
+  "domainFloors": {
+   "HYPERTROPHY": {
+    "floor": 0.5,
+    "observed": 0.833,
+    "pass": true
+   }
+  },
+  "passAll": false,
+  "failed": [
+   "falseSourceRate_outOfScope"
+  ]
+ },
+ "baseline": {
+  "metrics": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.383,
+   "topicHit_at3": 0.426,
+   "relevantCuratedEvidence_at3": 0.088,
+   "syntheticTop1_evidenceQueries": 0.853,
+   "duplicateRate": 0.397,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 9,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "ctxTokensEst": {
+    "p50": 415,
+    "p90": 619,
+    "max": 1224
+   },
+   "latencyMs": {
+    "p50": 186,
+    "p90": 356
+   },
+   "avgDocsReturned": 5
+  }
+ },
+ "v2_1": {
+  "metrics": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.723,
+   "topicHit_at3": 0.787,
+   "relevantCuratedEvidence_at3": 0.824,
+   "syntheticTop1_evidenceQueries": 0,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.313,
+   "emptyRetrieval_inScope": 0.106,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 9,
+    "success": 0.889,
+    "returnedNonTrusted": 0.111
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 719,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 67,
+    "p90": 87
+   },
+   "avgDocsReturned": 2.43
+  },
+  "byDomain": {
+   "NUTRITION": {
+    "n": 14,
+    "topicHit_at3": 0.786,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 4,
+    "topicHit_at3": 0.75,
+    "empty": 0.25
+   },
+   "SAFETY": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 0.833,
+    "empty": 0.167
+   },
+   "PROGRAMMING": {
+    "n": 5,
+    "topicHit_at3": 0.4,
+    "empty": 0.6
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "failed": {
+  "oodLeaks": [
+   {
+    "id": "K061",
+    "q": "trà đào cam sả pha sao cho đậm vị",
+    "returned": [
+     "CURATED_EVIDENCE:Protein supplementation and resistance-training-in",
+     "CURATED_EVIDENCE:Protein supplementation and resistance-training-in",
+     "CURATED_EVIDENCE:Effect of Intra-Workout Protein-Carbohydrate Co-In",
+     "CURATED_REFERENCE:Khi nào cần đổi hẳn kế hoạch (NEW_PLAN) thay vì đi"
+    ]
+   },
+   {
+    "id": "K063",
+    "q": "curl command to download a file with headers",
+    "returned": [
+     "CATALOG:Tricep Dips",
+     "CATALOG:Dumbbell Tricep Extension"
+    ]
+   },
+   {
+    "id": "K064",
+    "q": "bench warrant nghĩa là gì trong luật hình sự",
+    "returned": [
+     "CATALOG:Incline Push-Ups",
+     "CATALOG:Bench Press",
+     "SYNTHETIC_KNOWLEDGE:Lỗi thường gặp khi tập Bench Dip là gì?",
+     "SYNTHETIC_KNOWLEDGE:Lỗi thường gặp khi tập Close-Grip Bench Press là g"
+    ]
+   },
+   {
+    "id": "K065",
+    "q": "giá một tấm plank gỗ sồi dày 3 cm",
+    "returned": [
+     "CATALOG:Weighted Plank",
+     "CATALOG:Plank",
+     "SYNTHETIC_KNOWLEDGE:Nên tập Plank bao nhiêu set và rep?",
+     "SYNTHETIC_KNOWLEDGE:Lỗi thường gặp khi tập Plank là gì?"
+    ]
+   },
+   {
+    "id": "K066",
+    "q": "làm sao để ngủ ngon hơn khi trời nóng",
+    "returned": [
+     "CURATED_EVIDENCE:Molecular Basis and Practical Applications of Trai",
+     "CURATED_EVIDENCE:Physical Activity Guidelines for Americans 2nd Edi",
+     "CURATED_EVIDENCE:Molecular Basis and Practical Applications of Trai",
+     "SYNTHETIC_KNOWLEDGE:Nếu tôi không cảm nhận đúng nhóm cơ khi đang ưu ti"
+    ]
+   }
+  ],
+  "inScopeMisses": [
+   {
+    "id": "K005",
+    "domain": "BODY_COMPOSITION",
+    "q": "khuyến nghị lâm sàng về phân tích trở kháng sinh học",
+    "empty": true
+   },
+   {
+    "id": "K006",
+    "domain": "SAFETY",
+    "q": "thiếu hụt năng lượng tương đối trong thể thao là gì",
+    "empty": false
+   },
+   {
+    "id": "K013",
+    "domain": "STRENGTH",
+    "q": "tập từng chân một hay hai chân cùng lúc để khỏe hơn",
+    "empty": false
+   },
+   {
+    "id": "K015",
+    "domain": "HYPERTROPHY",
+    "q": "nâng chậm hay nâng nhanh thì cơ to hơn",
+    "empty": true
+   },
+   {
+    "id": "K021",
+    "domain": "PROGRAMMING",
+    "q": "đánh bài cô lập trước rồi mới đến bài nhiều khớp có lợi hơn không",
+    "empty": true
+   },
+   {
+    "id": "K032",
+    "domain": "NUTRITION",
+    "q": "dải phân bố đa chất dinh dưỡng chấp nhận được là bao nhiêu phần trăm calo",
+    "empty": false
+   },
+   {
+    "id": "K036",
+    "domain": "PROGRAMMING",
+    "q": "lịch tập đã chững bao lâu thì cần đổi hẳn kế hoạch",
+    "empty": true
+   },
+   {
+    "id": "K037",
+    "domain": "NUTRITION",
+    "q": "gạo lứt có hợp với người đang tập gym không",
+    "empty": false
+   },
+   {
+    "id": "K038",
+    "domain": "NUTRITION",
+    "q": "bao nhiêu bước đi bộ mỗi ngày là vừa cho người tập tạ",
+    "empty": false
+   },
+   {
+    "id": "K041",
+    "domain": "PROGRAMMING",
+    "q": "đánh giá mức độ tuân thủ lịch tập của mình thế nào",
+    "empty": true
+   }
+  ],
+  "abstentionFailures": [
+   {
+    "id": "K049",
+    "q": "tập tạ nặng lúc đang có thai tháng thứ năm",
+    "returned": [
+     "CURATED_EVIDENCE:Progressive Overload Affects the Magnitude of Musc",
+     "CURATED_EVIDENCE:Acute and Chronic Effects of High-Load Resistance ",
+     "CURATED_REFERENCE:FST-7 inspired finisher",
+     "SYNTHETIC_KNOWLEDGE:Nếu tôi ngủ kém khi tập nặng khi đang thể lực tổng"
+    ]
+   }
+  ]
+ },
+ "note": "One-shot. No retrieval, glossary, threshold or Qdrant change followed this run; the failures above are reported, not fixed. Any tuning requires heldout-v3."
+}

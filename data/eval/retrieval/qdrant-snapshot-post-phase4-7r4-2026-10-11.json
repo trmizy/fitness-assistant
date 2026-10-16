@@ -1,0 +1,1553 @@
+{
+ "takenAt": "2026-10-11T05:13:15.693Z",
+ "collections": {
+  "fitness_evidence": {
+   "points": 187,
+   "config": {
+    "size": 768,
+    "distance": "Cosine"
+   },
+   "payloadKeys": [
+    "all_citations",
+    "category",
+    "chunk_id",
+    "chunk_index",
+    "content",
+    "copyright_safe",
+    "created_from",
+    "document_id",
+    "evidence_level",
+    "extraction_method",
+    "ingested_at",
+    "language",
+    "method_id",
+    "published_at",
+    "quality_score",
+    "reviewed_at",
+    "reviewed_by",
+    "source_file",
+    "source_name",
+    "source_ref",
+    "source_tier",
+    "source_type",
+    "source_url",
+    "tags",
+    "target_level",
+    "text",
+    "title",
+    "topic",
+    "total_chunks",
+    "trust_score",
+    "usage_in_app",
+    "wording_rule"
+   ],
+   "idSetHash": "d1e74aaad31d0543",
+   "contentSetHash": "b4b61def7d35f077",
+   "sample": "{\"title\":\"The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)\",\"source_type\":\"curated_summary\",\"category\":\"training\",\"content\":\"Parkinson et al. (2021), Journal of Sports Science & Medicine — Inter-limb strength asymmetry, measureme",
+   "points_detail": [
+    {
+     "id": "009a4437-175c-5a13-4cab-714b59ec500a",
+     "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+     "chunk_id": "asymmetry-thresholds-2021-chunk-0000",
+     "source_file": "data/processed/evidence/asymmetry-thresholds-2021.jsonl",
+     "hash": "7e78dcc61dc46e85"
+    },
+    {
+     "id": "00ebc434-d34a-4c6d-b292-cf4d4284b917",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "3e188dcb-8c12-423a-a2fa-91bb4c18f996:0",
+     "document_id": "3e188dcb-8c12-423a-a2fa-91bb4c18f996",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "7f57b9ee30cef6f0"
+    },
+    {
+     "id": "02bc6b89-fd14-4cd7-be20-f46026c3b28f",
+     "title": "American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews.",
+     "chunk_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da:1",
+     "document_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da",
+     "source_file": "pubmed:eutils",
+     "hash": "acf6f9675e374716"
+    },
+    {
+     "id": "095e9c6b-3eb2-169b-ed53-b6d8b349df02",
+     "title": "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+     "chunk_id": "unilateral-bilateral-training-2022-chunk-0001",
+     "source_file": "data/processed/evidence/unilateral-bilateral-training-2022.jsonl",
+     "hash": "92b89e34b463c465"
+    },
+    {
+     "id": "09ac508d-f8f8-4724-9f6a-f8324f4b78f5",
+     "title": "Molecular Basis and Practical Applications of Training, Nutrition and Recovery for Maximum Gains in Lean Muscle Mass: A Narrative Review for Optimizing Muscular Hypertrophy.",
+     "chunk_id": "e0ed0397-e350-4289-a885-c8d75993cfdf:1",
+     "document_id": "e0ed0397-e350-4289-a885-c8d75993cfdf",
+     "source_file": "pubmed:eutils",
+     "hash": "aa787cd534449fb2"
+    },
+    {
+     "id": "0c7cf170-58b7-4e32-8d79-a8a563ce1544",
+     "title": "Does chronic polyphenol supplementation modify resistance training-induced strength and muscle morphology adaptations in adults? A systematic review and multilevel meta-analysis of randomized controlled trials.",
+     "chunk_id": "9edfd0e3-39da-406a-97ef-8e8656482649:2",
+     "document_id": "9edfd0e3-39da-406a-97ef-8e8656482649",
+     "source_file": "pubmed:eutils",
+     "hash": "50002b57bbc1a5e6"
+    },
+    {
+     "id": "0d432a88-0b8d-42ad-bd6e-7b3edff01eb2",
+     "title": "Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes (Garthe et al. 2011)",
+     "chunk_id": "64405549-8da4-4ae4-8fea-fbba20dbb343:0",
+     "document_id": "64405549-8da4-4ae4-8fea-fbba20dbb343",
+     "source_file": "data/processed/evidence/garthe-2011-weight-loss-rate-athletes.jsonl",
+     "hash": "c36b8195e98295c9"
+    },
+    {
+     "id": "0db861b1-4dda-4f14-b0f8-8fb4d43184e6",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "5e8bbcb9-4c7b-4664-aec3-e3a0dde482a5:0",
+     "document_id": "5e8bbcb9-4c7b-4664-aec3-e3a0dde482a5",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "73d11556f33d3e4d"
+    },
+    {
+     "id": "0fc4328e-b211-4f82-b2eb-b6458d079236",
+     "title": "A new predictive equation for resting energy expenditure in healthy individuals (Mifflin, St Jeor et al. 1990)",
+     "chunk_id": "30034e5a-fc60-4f7a-aede-a671f98f9427:0",
+     "document_id": "30034e5a-fc60-4f7a-aede-a671f98f9427",
+     "source_file": "data/processed/evidence/mifflin-1990-original-equation.jsonl",
+     "hash": "8a062eafd593e6d0"
+    },
+    {
+     "id": "10e7eb61-daa0-44bc-8a5a-e5b0d0a3319b",
+     "title": "Scientists discover hidden driver of aging — Simple supplement reversed brain decline",
+     "chunk_id": "63e31b13-61ab-4234-be50-93d09194764f:0",
+     "document_id": "63e31b13-61ab-4234-be50-93d09194764f",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260524012959.htm",
+     "hash": "9ebe398b3b55ba44"
+    },
+    {
+     "id": "1144352f-c674-0611-0d74-6445f75072b4",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "issn-performance-2017-chunk-0002",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "4681702a8ca41f10"
+    },
+    {
+     "id": "1243998f-0b69-426b-87d5-a8785b503212",
+     "title": "Acute and Chronic Effects of High-Load Resistance Training With Blood Flow Restriction in Healthy Adults: A Systematic Review and Meta-Analysis.",
+     "chunk_id": "98cb2373-1eff-443a-af9f-48d86c5086bd:0",
+     "document_id": "98cb2373-1eff-443a-af9f-48d86c5086bd",
+     "source_file": "pubmed:eutils",
+     "hash": "8be60bad1358b65a"
+    },
+    {
+     "id": "128bb58c-81ec-45ce-a6fb-2884ed2ed9a7",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "77732ce2-916e-4573-ae45-e482ed51eeb0:0",
+     "document_id": "77732ce2-916e-4573-ae45-e482ed51eeb0",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "8110ee7688e10c51"
+    },
+    {
+     "id": "12e50399-a8a7-4f01-992c-84340ea60079",
+     "title": "How Slow Should You Go? A Systematic Review With Meta-Analysis of the Effect of Resistance Training Repetition Tempo on Muscle Hypertrophy.",
+     "chunk_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd:2",
+     "document_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd",
+     "source_file": "pubmed:eutils",
+     "hash": "462c88da6e045605"
+    },
+    {
+     "id": "13753698-bf0b-4252-8af6-d6982541142a",
+     "title": "Progressive Overload Affects the Magnitude of Muscle Hypertrophy.",
+     "chunk_id": "3885fed4-3dff-4151-847a-f37ff186f219:2",
+     "document_id": "3885fed4-3dff-4151-847a-f37ff186f219",
+     "source_file": "pubmed:eutils",
+     "hash": "90887b6e4b0178c3"
+    },
+    {
+     "id": "13caaed6-8e59-47f9-a2d5-35d7b0b119fa",
+     "title": "Omega-3 fish oil shows promise against type 2 diabetes",
+     "chunk_id": "2b6bdebe-df8f-4f6c-bd33-cbfd9d317970:0",
+     "document_id": "2b6bdebe-df8f-4f6c-bd33-cbfd9d317970",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260530004626.htm",
+     "hash": "71aec540fb251192"
+    },
+    {
+     "id": "14c923d3-29a2-4707-bd18-0a6d3ae2fe10",
+     "title": "Responsiveness of muscle mass gain to different load intensities of resistance training in older women: A randomized crossover study.",
+     "chunk_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece:2",
+     "document_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece",
+     "source_file": "pubmed:eutils",
+     "hash": "977eb972eb9d4c63"
+    },
+    {
+     "id": "1693f185-6a90-064d-8ce4-f034438ea9fe",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "espen-bia-1-chunk-0003",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "2bf8e05f917bfabb"
+    },
+    {
+     "id": "1ae195e3-3848-4364-a44d-99e97ae7d770",
+     "title": "ISSN Position Stand: Nutrient Timing (2014)",
+     "chunk_id": "a60b7d6c-6112-4d0f-84ed-1c7a766abd66:0",
+     "document_id": "a60b7d6c-6112-4d0f-84ed-1c7a766abd66",
+     "source_file": "data/processed/evidence/issn-timing-2014.jsonl",
+     "hash": "4ccda78ae1e9c716"
+    },
+    {
+     "id": "1b4286c0-5595-4ea5-b9ea-c8d5c51d6ac6",
+     "title": "Does chronic polyphenol supplementation modify resistance training-induced strength and muscle morphology adaptations in adults? A systematic review and multilevel meta-analysis of randomized controlled trials.",
+     "chunk_id": "9edfd0e3-39da-406a-97ef-8e8656482649:1",
+     "document_id": "9edfd0e3-39da-406a-97ef-8e8656482649",
+     "source_file": "pubmed:eutils",
+     "hash": "7a79a0dc4f6a281f"
+    },
+    {
+     "id": "1c3ecd22-f8e3-40c6-9104-02cc0a69f73e",
+     "title": "American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews.",
+     "chunk_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da:2",
+     "document_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da",
+     "source_file": "pubmed:eutils",
+     "hash": "3350dcf7c30ad8dd"
+    },
+    {
+     "id": "1d25cda1-1282-3e4b-9078-f56294b28f1f",
+     "title": "Điều chỉnh calo khi chững lại (ADJUST)",
+     "chunk_id": "cycle-knowledge-2026-chunk-0004",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "a31b19c647d6db24"
+    },
+    {
+     "id": "1eeb3bb1-4a83-47aa-bba8-1141486df1a3",
+     "title": "How Slow Should You Go? A Systematic Review With Meta-Analysis of the Effect of Resistance Training Repetition Tempo on Muscle Hypertrophy.",
+     "chunk_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd:1",
+     "document_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd",
+     "source_file": "pubmed:eutils",
+     "hash": "11664f55edc034e1"
+    },
+    {
+     "id": "258f4064-4217-44a0-a667-c6e9b61acd20",
+     "title": "Acute and Chronic Effects of High-Load Resistance Training With Blood Flow Restriction in Healthy Adults: A Systematic Review and Meta-Analysis.",
+     "chunk_id": "98cb2373-1eff-443a-af9f-48d86c5086bd:2",
+     "document_id": "98cb2373-1eff-443a-af9f-48d86c5086bd",
+     "source_file": "pubmed:eutils",
+     "hash": "e7215547b4eb862f"
+    },
+    {
+     "id": "26399189-9368-42ef-a46f-eb1dd38d239c",
+     "title": "Cool in theory, not in practice: Effects of interset palm cooling on resistance exercise performance and psychophysiology responses.",
+     "chunk_id": "10fbe45b-c4a8-4881-92f7-e66614d2d315:1",
+     "document_id": "10fbe45b-c4a8-4881-92f7-e66614d2d315",
+     "source_file": "pubmed:eutils",
+     "hash": "343eb2dfac282cde"
+    },
+    {
+     "id": "26587886-1f20-49b6-90eb-d345a9ed087b",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "fb586dd6-d13d-4202-b44b-5fa0365dab89:0",
+     "document_id": "fb586dd6-d13d-4202-b44b-5fa0365dab89",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "eae0a258395e7419"
+    },
+    {
+     "id": "2be3ee2e-1b13-42df-b5b8-cf80dc5d4ae3",
+     "title": "National Athletic Trainers' Association Position Statement: Fluid Replacement for the Physically Active (2017 update)",
+     "chunk_id": "bf5d57a0-7870-4767-a90d-3d67b5518a25:0",
+     "document_id": "bf5d57a0-7870-4767-a90d-3d67b5518a25",
+     "source_file": "data/processed/evidence/nata-fluid-replacement-2017.jsonl",
+     "hash": "74086133a97e565d"
+    },
+    {
+     "id": "2e19f103-b115-4794-b360-9b834f4b03f0",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "81633f22-7b5e-4c8e-bfe1-b718f2034fed:0",
+     "document_id": "81633f22-7b5e-4c8e-bfe1-b718f2034fed",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "b6e304aab992cab8"
+    },
+    {
+     "id": "2ec4d2ec-c7d1-42d7-b3c4-98ea14acbf6d",
+     "title": "Menstrual Cycle Phase Does Not Influence Training-Induced Muscle Hypertrophy or Strength: A Randomized Controlled Trial.",
+     "chunk_id": "44f2926b-6727-4ce0-a636-4a4aaeb4a366:0",
+     "document_id": "44f2926b-6727-4ce0-a636-4a4aaeb4a366",
+     "source_file": "pubmed:eutils",
+     "hash": "9736faefc4ef1080"
+    },
+    {
+     "id": "313be381-1507-494b-b9f9-ab4857af2290",
+     "title": "IOC consensus statement: dietary supplements and the high-performance athlete (2018)",
+     "chunk_id": "ca540b82-c802-4380-8b77-0c27d70067dd:0",
+     "document_id": "ca540b82-c802-4380-8b77-0c27d70067dd",
+     "source_file": "data/processed/evidence/ioc-dietary-supplements-consensus-2018.jsonl",
+     "hash": "1b3bea961b8c21a2"
+    },
+    {
+     "id": "315f922d-c746-45fe-ab49-9c0c28d0214d",
+     "title": "The Effect of Long-Chain Omega-3 Polyunsaturated Fatty Acid Supplementation on Neuromuscular Function in Humans: A Systematic Review with Narrative Synthesis.",
+     "chunk_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9:1",
+     "document_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9",
+     "source_file": "pubmed:eutils",
+     "hash": "b128199b3e1bbdec"
+    },
+    {
+     "id": "317efe79-0788-4c96-a7c9-8ead1902cbd9",
+     "title": "ISSN Position Stand: Nutrient Timing (2014)",
+     "chunk_id": "57c4d87e-6e48-4a0f-8a1d-b80ba321049d:0",
+     "document_id": "57c4d87e-6e48-4a0f-8a1d-b80ba321049d",
+     "source_file": "data/processed/evidence/issn-timing-2014.jsonl",
+     "hash": "f37d32e6d1026e3b"
+    },
+    {
+     "id": "31b08ed9-cc75-41c4-8bc1-7fb8c28040ca",
+     "title": "Does chronic polyphenol supplementation modify resistance training-induced strength and muscle morphology adaptations in adults? A systematic review and multilevel meta-analysis of randomized controlled trials.",
+     "chunk_id": "9edfd0e3-39da-406a-97ef-8e8656482649:0",
+     "document_id": "9edfd0e3-39da-406a-97ef-8e8656482649",
+     "source_file": "pubmed:eutils",
+     "hash": "a30d8978edc1dac7"
+    },
+    {
+     "id": "324d92bf-5198-4ab7-8122-73dd763670e1",
+     "title": "Accuracy in Wrist-Worn, Sensor-Based Measurements of Heart Rate and Energy Expenditure in a Diverse Cohort (Shcherbina et al. 2017)",
+     "chunk_id": "65f7b652-9cae-4c1c-8b7c-5728cb7c7fba:0",
+     "document_id": "65f7b652-9cae-4c1c-8b7c-5728cb7c7fba",
+     "source_file": "data/processed/evidence/shcherbina-2017-wearable-accuracy.jsonl",
+     "hash": "9b992aca7b25315c"
+    },
+    {
+     "id": "32ee066c-4d31-32ba-36ae-8e247d3f75fe",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "espen-bia-2-chunk-0002",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "7fa5704045485fa4"
+    },
+    {
+     "id": "33695abe-f1aa-4877-b580-950380d3690e",
+     "title": "The supplements older adults actually need and the ones they don&#039;t",
+     "chunk_id": "9a2822b7-b8dd-4d85-ad95-bdf041553086:0",
+     "document_id": "9a2822b7-b8dd-4d85-ad95-bdf041553086",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/06/260605023408.htm",
+     "hash": "7fbd26fc9ff2e20a"
+    },
+    {
+     "id": "3648b53a-4760-4c70-9037-39c2275742cc",
+     "title": "Scientists discover the nutrient that can supercharge cellular energy",
+     "chunk_id": "12552035-b95e-41d6-bdac-23b2fa220fd8:0",
+     "document_id": "12552035-b95e-41d6-bdac-23b2fa220fd8",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260520233221.htm",
+     "hash": "f2fe0f23ec2c8a96"
+    },
+    {
+     "id": "36fae3b9-92e1-4695-92e9-2ee9e7086d09",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "0174e4e7-fb41-4c26-8b9c-e964f7918446:0",
+     "document_id": "0174e4e7-fb41-4c26-8b9c-e964f7918446",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "0912d7c8187742bc"
+    },
+    {
+     "id": "39437202-983f-5522-c762-fcd13a837ab4",
+     "title": "ISSN Position Stand: Nutrient Timing (2014)",
+     "chunk_id": "issn-timing-2014-chunk-0000",
+     "source_file": "data/processed/evidence/issn-timing-2014.jsonl",
+     "hash": "f37d32e6d1026e3b"
+    },
+    {
+     "id": "3989efc0-267b-d174-4a9d-cb447de26851",
+     "title": "ISSN Position Stand: Nutrient Timing (2014)",
+     "chunk_id": "issn-timing-2014-chunk-0002",
+     "source_file": "data/processed/evidence/issn-timing-2014.jsonl",
+     "hash": "3d13c7dce0a9a7da"
+    },
+    {
+     "id": "3b835ea2-c4e1-44c4-a5f2-0a1b2de39d72",
+     "title": "Validation of InBody 770 bioelectrical impedance analysis compared to a four-compartment model criterion in young adults (Brewer et al. 2021)",
+     "chunk_id": "f8a92626-a93b-4bed-85e8-9d3ce3414eb8:0",
+     "document_id": "f8a92626-a93b-4bed-85e8-9d3ce3414eb8",
+     "source_file": "data/processed/evidence/brewer-2021-inbody-validation.jsonl",
+     "hash": "8a2a1ebfee9d0f4f"
+    },
+    {
+     "id": "3fbfb820-2f6c-4793-bcbf-c239691349ad",
+     "title": "New AI body map reveals obesity’s hidden attack on facial nerves",
+     "chunk_id": "73769993-d303-42ed-a9ca-cb1be7b13f5a:0",
+     "document_id": "73769993-d303-42ed-a9ca-cb1be7b13f5a",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260522023308.htm",
+     "hash": "ec8e6fc595a743c5"
+    },
+    {
+     "id": "40122773-08ef-f667-c5e9-ec69c0d280cb",
+     "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+     "chunk_id": "unilateral-plyometric-asymmetry-2025-chunk-0001",
+     "source_file": "data/processed/evidence/unilateral-plyometric-asymmetry-2025.jsonl",
+     "hash": "f5cae1f48da6e11b"
+    },
+    {
+     "id": "404b2c1a-b09f-412e-b659-2b6cf274d4ba",
+     "title": "International society of sports nutrition position stand: caffeine and exercise performance (Guest et al. 2021)",
+     "chunk_id": "55b35aa5-caa4-479e-a44f-e105eda467f3:0",
+     "document_id": "55b35aa5-caa4-479e-a44f-e105eda467f3",
+     "source_file": "data/processed/evidence/issn-caffeine-2021.jsonl",
+     "hash": "c36cafea339ac412"
+    },
+    {
+     "id": "41c92712-06f4-0320-087e-b544b2fc9cb7",
+     "title": "Chu kỳ hóa huấn luyện (Periodization) và Mesocycle",
+     "chunk_id": "cycle-knowledge-2026-chunk-0000",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "2bb7d4b81b5a7db9"
+    },
+    {
+     "id": "42cf4d36-49d0-4a81-bd9f-0a285f2beb01",
+     "title": "Validation of InBody 770 bioelectrical impedance analysis compared to a four-compartment model criterion in young adults (Brewer et al. 2021)",
+     "chunk_id": "61f4e345-6178-495d-967b-aab7ef58d9a9:0",
+     "document_id": "61f4e345-6178-495d-967b-aab7ef58d9a9",
+     "source_file": "data/processed/evidence/brewer-2021-inbody-validation.jsonl",
+     "hash": "5bd35c6529a23b3b"
+    },
+    {
+     "id": "4359fe3d-0665-4818-a5d7-8c1f42e3cc88",
+     "title": "Responsiveness of muscle mass gain to different load intensities of resistance training in older women: A randomized crossover study.",
+     "chunk_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece:0",
+     "document_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece",
+     "source_file": "pubmed:eutils",
+     "hash": "4fb04f69a30c64a6"
+    },
+    {
+     "id": "464abeb0-5393-485b-a348-ed06f7cf54ad",
+     "title": "Is an Energy Surplus Required to Maximize Skeletal Muscle Hypertrophy Associated With Resistance Training? (Slater et al. 2019)",
+     "chunk_id": "f1fc61d4-7a21-460e-90aa-fc8452cc1a8c:0",
+     "document_id": "f1fc61d4-7a21-460e-90aa-fc8452cc1a8c",
+     "source_file": "data/processed/evidence/slater-2019-energy-surplus-hypertrophy.jsonl",
+     "hash": "808c06d7041f63ba"
+    },
+    {
+     "id": "48d56542-1313-d332-245d-49e6b329921b",
+     "title": "Tuần Deload — giảm tải chủ động khi mệt mỏi tích lũy",
+     "chunk_id": "cycle-knowledge-2026-chunk-0002",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "d2bc1f1425f21670"
+    },
+    {
+     "id": "4c917b9c-010d-4276-b366-2d4804e76017",
+     "title": "Acceptable Macronutrient Distribution Ranges (AMDR) — Dietary Reference Intakes for Macronutrients (National Academies / IOM)",
+     "chunk_id": "4553f3d9-521c-497b-9cea-24e7809e844f:0",
+     "document_id": "4553f3d9-521c-497b-9cea-24e7809e844f",
+     "source_file": "data/processed/evidence/iom-amdr-macronutrients.jsonl",
+     "hash": "5a24f48ed38e3e9e"
+    },
+    {
+     "id": "4cd4c5f5-67b2-4975-adc0-abad3d176f71",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "64e72946-5f6e-49d1-8323-3affaad74c43:0",
+     "document_id": "64e72946-5f6e-49d1-8323-3affaad74c43",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "66413253048bcc27"
+    },
+    {
+     "id": "506fb9e5-330e-49ca-a069-e9b143d6ed25",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "7a4f005d-e709-4acd-895e-6cb54bd54eff:0",
+     "document_id": "7a4f005d-e709-4acd-895e-6cb54bd54eff",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "1e8a3e72b640e07f"
+    },
+    {
+     "id": "51b5341b-1b44-6fb2-aab0-db31d9be8ddc",
+     "title": "FST-7 inspired finisher",
+     "chunk_id": "fst7_inspired_finisher",
+     "source_file": "data/catalog/knowledge/training_methods.json",
+     "hash": "5aeb46f6fc5e1dc2"
+    },
+    {
+     "id": "53e0531e-1030-4555-976e-7f45cc874cfb",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "d5dd8cbc-a9cc-4a5b-b1d8-91adeb80cad8:0",
+     "document_id": "d5dd8cbc-a9cc-4a5b-b1d8-91adeb80cad8",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "4681702a8ca41f10"
+    },
+    {
+     "id": "53fb7b3e-bfc3-4223-abb2-e90518aa0e0f",
+     "title": "Effects of Blood Flow Restriction Therapy in Individuals With Knee Osteoarthritis: Overview of Systematic Reviews.",
+     "chunk_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5:0",
+     "document_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5",
+     "source_file": "pubmed:eutils",
+     "hash": "ba8e878ad0009792"
+    },
+    {
+     "id": "54dca80e-4a59-4976-b70a-bfef7a1de204",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "cebb9291-816c-43a5-a093-631402aa9ec8:0",
+     "document_id": "cebb9291-816c-43a5-a093-631402aa9ec8",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "4f93ae400aa19f10"
+    },
+    {
+     "id": "55c6055c-1b15-4c09-aaaf-689ef2dfea8b",
+     "title": "Small vs. Large Energy Surplus for Hypertrophy and Body Composition (Helms et al.)",
+     "chunk_id": "f4a21314-78e7-47fd-95b2-d624452831ad:0",
+     "document_id": "f4a21314-78e7-47fd-95b2-d624452831ad",
+     "source_file": "data/processed/evidence/helms-2023-surplus-size-comparison.jsonl",
+     "hash": "dc4b0fc0712c66d8"
+    },
+    {
+     "id": "56c78232-eb9a-4e41-9d77-fac57610cb1f",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "e63e1f90-4355-4f3f-9edf-539f3893fe98:0",
+     "document_id": "e63e1f90-4355-4f3f-9edf-539f3893fe98",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "7fa5704045485fa4"
+    },
+    {
+     "id": "572b6e00-24e6-48d8-b8c9-e46aab243d4e",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "8b3e88b5-2557-4cf9-b633-84384c20a647:0",
+     "document_id": "8b3e88b5-2557-4cf9-b633-84384c20a647",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "8040ac00618140d4"
+    },
+    {
+     "id": "590afb4f-1fd1-0563-d3bc-9ae8f58ac259",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "issn-performance-2017-chunk-0001",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "04e8b0a3399b70f9"
+    },
+    {
+     "id": "59142898-5318-5bbc-a384-1c40e6124719",
+     "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+     "chunk_id": "unilateral-plyometric-asymmetry-2025-chunk-0002",
+     "source_file": "data/processed/evidence/unilateral-plyometric-asymmetry-2025.jsonl",
+     "hash": "15ea589e67cc2f2d"
+    },
+    {
+     "id": "5a14fa5c-705a-49b6-9eac-35eeeaee26ca",
+     "title": "Muscle growth mediates the increases in muscle strength in untrained older women.",
+     "chunk_id": "497aa40b-b50b-446e-928f-2cae19c532f7:1",
+     "document_id": "497aa40b-b50b-446e-928f-2cae19c532f7",
+     "source_file": "pubmed:eutils",
+     "hash": "c8346b83215e0d8b"
+    },
+    {
+     "id": "5b5cbbd5-da4b-459d-bb59-4afd862997c2",
+     "title": "This new diabetes pill burns fat without the downsides of Ozempic",
+     "chunk_id": "4d129fc3-2b6c-459d-8acc-9259dffaf84c:0",
+     "document_id": "4d129fc3-2b6c-459d-8acc-9259dffaf84c",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/06/260603015541.htm",
+     "hash": "1c84b049ae46065e"
+    },
+    {
+     "id": "5b5d8fbb-90c2-947e-b55e-40e48602f226",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "who-pa-2020-chunk-0001",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "eae0a258395e7419"
+    },
+    {
+     "id": "5f19dcbd-2ef7-f6b7-793f-8b665f8c3e58",
+     "title": "Is an Energy Surplus Required to Maximize Skeletal Muscle Hypertrophy Associated With Resistance Training? (Slater et al. 2019)",
+     "chunk_id": "slater-2019-energy-surplus-hypertrophy-chunk-0001",
+     "source_file": "data/processed/evidence/slater-2019-energy-surplus-hypertrophy.jsonl",
+     "hash": "2f86ffcccf5897b6"
+    },
+    {
+     "id": "61180d8b-878b-4a53-925b-324d1597892a",
+     "title": "Front-Loading Fatigue: Does the Pre-exhaustion Method influence Resistance Training-induced Muscular Adaptations?",
+     "chunk_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274:1",
+     "document_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274",
+     "source_file": "pubmed:eutils",
+     "hash": "6f561b5baaff18b0"
+    },
+    {
+     "id": "61264f3a-a2a3-49e4-a8be-d1cde62e08c2",
+     "title": "Protein supplementation and resistance-training-induced gains in muscle mass and strength: a systematic review, meta-analysis and meta-regression (Morton et al. 2018)",
+     "chunk_id": "e5120d27-96de-4321-bf9b-acc1ee4f090a:0",
+     "document_id": "e5120d27-96de-4321-bf9b-acc1ee4f090a",
+     "source_file": "data/processed/evidence/morton-2018-protein-meta-analysis.jsonl",
+     "hash": "bc981bd05d113001"
+    },
+    {
+     "id": "613ffe47-1bc0-4614-8755-dccb8ed275a1",
+     "title": "Effects of-3 PUFA supplementation during resistance training on muscle outcomes in healthy adult men: a randomised clinical trial.",
+     "chunk_id": "29ee18c6-ce09-4363-ae8f-bb63c9d725b5:1",
+     "document_id": "29ee18c6-ce09-4363-ae8f-bb63c9d725b5",
+     "source_file": "pubmed:eutils",
+     "hash": "8bc1a0506b29b70a"
+    },
+    {
+     "id": "62fd8d90-6db1-4b79-8df0-6dee0bcb42ad",
+     "title": "When Size Goes Inside: Visceromegaly in Bodybuilders Is Not Attributed to High Protein Intake but More Likely Associated with the Use of Appearance- and Performance-Enhancing Drugs.",
+     "chunk_id": "7753777f-642f-49d4-b5e4-beb48de75297:0",
+     "document_id": "7753777f-642f-49d4-b5e4-beb48de75297",
+     "source_file": "pubmed:eutils",
+     "hash": "fb03baeb66a84a7e"
+    },
+    {
+     "id": "6393123b-a0b7-4b16-b3b1-a27716f8673c",
+     "title": "Skeletal Muscles Do Not Compete for Growth: Activating Additional Muscle Mass Does Not Compromise Changes in Muscle Size.",
+     "chunk_id": "a561d3fe-ba82-4b0c-bde7-a35fbedb80d3:0",
+     "document_id": "a561d3fe-ba82-4b0c-bde7-a35fbedb80d3",
+     "source_file": "pubmed:eutils",
+     "hash": "550f99d352a5b2ef"
+    },
+    {
+     "id": "6460877c-420f-4b5e-9974-dc4b2c81cec6",
+     "title": "IOC consensus statement on Relative Energy Deficiency in Sport (REDs), 2023 update",
+     "chunk_id": "7a9aed5b-0743-45db-b173-cdd4a406154f:0",
+     "document_id": "7a9aed5b-0743-45db-b173-cdd4a406154f",
+     "source_file": "data/processed/evidence/ioc-red-s-consensus-2023.jsonl",
+     "hash": "b37eae0203f54ae9"
+    },
+    {
+     "id": "64cb49ad-50f4-477a-bfbe-8f0a53135ee0",
+     "title": "Accuracy of predictive equations for resting metabolic rate: a systematic review",
+     "chunk_id": "8ddb979c-cefd-4b8e-9821-df67f83e2fe6:0",
+     "document_id": "8ddb979c-cefd-4b8e-9821-df67f83e2fe6",
+     "source_file": "data/processed/evidence/rmr-equation-accuracy-review.jsonl",
+     "hash": "ac864bd4f0d7fc1d"
+    },
+    {
+     "id": "65d71b73-c059-4ca9-8ed3-e245082a4586",
+     "title": "Nutrition and Athletic Performance — Joint Position Statement (Academy of Nutrition and Dietetics, Dietitians of Canada, ACSM 2016)",
+     "chunk_id": "1f213bf6-1d7f-4050-b3b0-e5e1e3c68977:0",
+     "document_id": "1f213bf6-1d7f-4050-b3b0-e5e1e3c68977",
+     "source_file": "data/processed/evidence/acsm-nutrition-athletic-performance-2016.jsonl",
+     "hash": "456232da974b854d"
+    },
+    {
+     "id": "6615df9a-5045-4360-92bf-6989307cd3c1",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "27331086-fe5b-457f-835c-f7ee25f8f892:0",
+     "document_id": "27331086-fe5b-457f-835c-f7ee25f8f892",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "b04274820832ad8f"
+    },
+    {
+     "id": "68287fa6-2cff-8e0a-64aa-9c22a086d997",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "hhs-pa-2018-chunk-0002",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "6035ea7d28d649b5"
+    },
+    {
+     "id": "6c61036a-4dff-464e-ac28-a86a4e569a96",
+     "title": "The cold-water immersion recovery-adaptation paradox: Reconciling acute parasympathetic and analgesic benefits with chronic hypertrophy attenuation.",
+     "chunk_id": "f41c1681-500a-47c0-836a-6081be936b04:0",
+     "document_id": "f41c1681-500a-47c0-836a-6081be936b04",
+     "source_file": "pubmed:eutils",
+     "hash": "2b10b52ed207cf9e"
+    },
+    {
+     "id": "6d8bd123-3c39-ddf3-558b-f7b98af64eb5",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "issn-performance-2017-chunk-0000",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "89ad34303298c626"
+    },
+    {
+     "id": "6f2d47f2-6e85-4e5a-bb47-7394355709ae",
+     "title": "Progressive Overload Affects the Magnitude of Muscle Hypertrophy.",
+     "chunk_id": "3885fed4-3dff-4151-847a-f37ff186f219:0",
+     "document_id": "3885fed4-3dff-4151-847a-f37ff186f219",
+     "source_file": "pubmed:eutils",
+     "hash": "7aa4fff2181dd52a"
+    },
+    {
+     "id": "709244ff-aaad-4c18-8b3c-ea1f30e07cd6",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "d5e441f7-49cb-4575-83bf-d4ab3f405eed:0",
+     "document_id": "d5e441f7-49cb-4575-83bf-d4ab3f405eed",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "6035ea7d28d649b5"
+    },
+    {
+     "id": "711d2371-f93c-b633-113e-9f55261e7d16",
+     "title": "Mountain Dog inspired 3-phase session structure",
+     "chunk_id": "mountain_dog_phase_structure",
+     "source_file": "data/catalog/knowledge/training_methods.json",
+     "hash": "c77b07170e6cf96f"
+    },
+    {
+     "id": "71426acd-1708-a718-1d17-d53d6e796dbf",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "issn-diets-2017-chunk-0001",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "b04274820832ad8f"
+    },
+    {
+     "id": "71777ed4-0d7d-431f-ac75-533c65b49901",
+     "title": "Osteopenia is silently weakening bones in millions of people",
+     "chunk_id": "a6e5bd01-4857-4a69-8ea6-8da46d9777cb:0",
+     "document_id": "a6e5bd01-4857-4a69-8ea6-8da46d9777cb",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/06/260624025511.htm",
+     "hash": "71f3b07db8a4e859"
+    },
+    {
+     "id": "739a839d-51c8-4f35-8d40-bb1f11529110",
+     "title": "Blood Flow Restriction Training, Molecular Modulators, and Musculoskeletal Health: A Scoping Review and Translational Perspective.",
+     "chunk_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb:1",
+     "document_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb",
+     "source_file": "pubmed:eutils",
+     "hash": "2728e79e1ce59f4f"
+    },
+    {
+     "id": "75184f9f-a587-f0cd-7b06-e9b3fd0a7152",
+     "title": "Hướng dẫn macro theo mục tiêu — giảm mỡ (cut)",
+     "chunk_id": "cycle-knowledge-2026-chunk-0006",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "5cf4ce03db971c2e"
+    },
+    {
+     "id": "77fea692-3212-4edd-bb02-1584c0eb53e5",
+     "title": "Quantification of the effect of energy imbalance on bodyweight (Hall et al. 2011)",
+     "chunk_id": "5fa5d97f-53d0-4ee2-b366-0a563af371f4:0",
+     "document_id": "5fa5d97f-53d0-4ee2-b366-0a563af371f4",
+     "source_file": "data/processed/evidence/hall-2011-dynamic-energy-balance.jsonl",
+     "hash": "94ba327f893b2caa"
+    },
+    {
+     "id": "79340fc4-c56f-4551-9099-0490c75da67e",
+     "title": "Trending Topics & Resources",
+     "chunk_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47:2",
+     "document_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47",
+     "source_file": "https://www.acsm.org/education-resources/trending-topics-resources",
+     "hash": "6c0d63c2f9cb688b"
+    },
+    {
+     "id": "79592a03-af6b-472d-a375-24646ed9cf78",
+     "title": "The cold-water immersion recovery-adaptation paradox: Reconciling acute parasympathetic and analgesic benefits with chronic hypertrophy attenuation.",
+     "chunk_id": "f41c1681-500a-47c0-836a-6081be936b04:1",
+     "document_id": "f41c1681-500a-47c0-836a-6081be936b04",
+     "source_file": "pubmed:eutils",
+     "hash": "0ebacdd5759573ba"
+    },
+    {
+     "id": "79b136a0-b4ec-8021-c824-2bfca9aac229",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "espen-bia-1-chunk-0002",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "e986607b24608609"
+    },
+    {
+     "id": "79efe2cf-2995-4044-9e51-f9ed1de794a9",
+     "title": "Front-Loading Fatigue: Does the Pre-exhaustion Method influence Resistance Training-induced Muscular Adaptations?",
+     "chunk_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274:0",
+     "document_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274",
+     "source_file": "pubmed:eutils",
+     "hash": "d84faa3e08932524"
+    },
+    {
+     "id": "7bfb640c-75c9-4286-9e58-8738a79c6136",
+     "title": "The interplay between muscle length, range of motion, and exercise selection: a review.",
+     "chunk_id": "dae549fd-6a37-4574-b33f-82d0022bdc7f:0",
+     "document_id": "dae549fd-6a37-4574-b33f-82d0022bdc7f",
+     "source_file": "pubmed:eutils",
+     "hash": "b78c90fdb80318ce"
+    },
+    {
+     "id": "7c826bce-43d3-75a4-8c4e-1f1037d06ce8",
+     "title": "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+     "chunk_id": "unilateral-bilateral-training-2022-chunk-0000",
+     "source_file": "data/processed/evidence/unilateral-bilateral-training-2022.jsonl",
+     "hash": "860d2e3dc52c7476"
+    },
+    {
+     "id": "7e1a2d29-c017-4eb3-8d7a-43f138da9d88",
+     "title": "Skeletal Muscles Do Not Compete for Growth: Activating Additional Muscle Mass Does Not Compromise Changes in Muscle Size.",
+     "chunk_id": "a561d3fe-ba82-4b0c-bde7-a35fbedb80d3:1",
+     "document_id": "a561d3fe-ba82-4b0c-bde7-a35fbedb80d3",
+     "source_file": "pubmed:eutils",
+     "hash": "0ffd8dc3692c6620"
+    },
+    {
+     "id": "7f23a9b8-d822-4454-a6ce-0ec15f75f6c8",
+     "title": "Influence of the adaptation of lactate accumulation rate through physical training on muscle mass regulation.",
+     "chunk_id": "e1ba90cf-e157-43d0-b800-d40abe74fe84:0",
+     "document_id": "e1ba90cf-e157-43d0-b800-d40abe74fe84",
+     "source_file": "pubmed:eutils",
+     "hash": "0b605f5f49803c39"
+    },
+    {
+     "id": "80069c3f-c108-4564-811c-9842eaf2c136",
+     "title": "Molecular Basis and Practical Applications of Training, Nutrition and Recovery for Maximum Gains in Lean Muscle Mass: A Narrative Review for Optimizing Muscular Hypertrophy.",
+     "chunk_id": "e0ed0397-e350-4289-a885-c8d75993cfdf:0",
+     "document_id": "e0ed0397-e350-4289-a885-c8d75993cfdf",
+     "source_file": "pubmed:eutils",
+     "hash": "27eb53d8804cf4d9"
+    },
+    {
+     "id": "808e8f52-a745-4f8f-883d-26c6b7e90fcd",
+     "title": "Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes (Garthe et al. 2011)",
+     "chunk_id": "2ead1f27-7d0c-4f01-8d5d-a40c05a64055:0",
+     "document_id": "2ead1f27-7d0c-4f01-8d5d-a40c05a64055",
+     "source_file": "data/processed/evidence/garthe-2011-weight-loss-rate-athletes.jsonl",
+     "hash": "fb513de05f131f51"
+    },
+    {
+     "id": "821cd3ad-1a9b-4312-badc-939d4a3314dc",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "ace5bd88-9d78-435b-adc4-96b4ec65df12:0",
+     "document_id": "ace5bd88-9d78-435b-adc4-96b4ec65df12",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "0eedb66b8ad4da1b"
+    },
+    {
+     "id": "82f58b47-bbe8-453d-9839-52da63394ff2",
+     "title": "Blood Flow Restriction Training, Molecular Modulators, and Musculoskeletal Health: A Scoping Review and Translational Perspective.",
+     "chunk_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb:2",
+     "document_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb",
+     "source_file": "pubmed:eutils",
+     "hash": "dcb0fa569720192a"
+    },
+    {
+     "id": "835ba881-04a3-4c7c-badc-a3fad0e1812c",
+     "title": "Quantification of the effect of energy imbalance on bodyweight (Hall et al. 2011)",
+     "chunk_id": "535e84cc-d599-4f49-9a80-b8f57321c9b2:0",
+     "document_id": "535e84cc-d599-4f49-9a80-b8f57321c9b2",
+     "source_file": "data/processed/evidence/hall-2011-dynamic-energy-balance.jsonl",
+     "hash": "cc69f5b40021a74e"
+    },
+    {
+     "id": "847b2935-db60-407f-a07a-92b56035b756",
+     "title": "Molecular Basis and Practical Applications of Training, Nutrition and Recovery for Maximum Gains in Lean Muscle Mass: A Narrative Review for Optimizing Muscular Hypertrophy.",
+     "chunk_id": "e0ed0397-e350-4289-a885-c8d75993cfdf:2",
+     "document_id": "e0ed0397-e350-4289-a885-c8d75993cfdf",
+     "source_file": "pubmed:eutils",
+     "hash": "dba6204b87d3a580"
+    },
+    {
+     "id": "84e3b069-12cb-4992-843b-bc3482ac8ea6",
+     "title": "Trending Topics & Resources",
+     "chunk_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47:1",
+     "document_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47",
+     "source_file": "https://www.acsm.org/education-resources/trending-topics-resources",
+     "hash": "565516052d62d352"
+    },
+    {
+     "id": "86e3ced3-e3a7-a03d-1bb5-5fa8f160ce01",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "espen-bia-1-chunk-0001",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "296aed5350b6b443"
+    },
+    {
+     "id": "8739df6c-6b4e-5c53-2f7c-88cb9a1b1f74",
+     "title": "Renaissance Periodization inspired mesocycle + deload structure",
+     "chunk_id": "rp_mesocycle_deload_structure",
+     "source_file": "data/catalog/knowledge/training_methods.json",
+     "hash": "ddf214a9b44305b3"
+    },
+    {
+     "id": "88483372-e071-46a0-be4b-2745fdd1c66b",
+     "title": "The biggest collagen study yet reveals what actually works",
+     "chunk_id": "13728952-a3a6-4d34-b2f5-c104a4b9522e:0",
+     "document_id": "13728952-a3a6-4d34-b2f5-c104a4b9522e",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/06/260604044302.htm",
+     "hash": "9f3af1141d75e8e4"
+    },
+    {
+     "id": "8861eee4-5598-416a-8d6c-749488154491",
+     "title": "When Size Goes Inside: Visceromegaly in Bodybuilders Is Not Attributed to High Protein Intake but More Likely Associated with the Use of Appearance- and Performance-Enhancing Drugs.",
+     "chunk_id": "7753777f-642f-49d4-b5e4-beb48de75297:2",
+     "document_id": "7753777f-642f-49d4-b5e4-beb48de75297",
+     "source_file": "pubmed:eutils",
+     "hash": "315cac1366a00860"
+    },
+    {
+     "id": "88e49d66-eac1-4d01-5724-b2b8b76f4407",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "espen-bia-2-chunk-0001",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "73d11556f33d3e4d"
+    },
+    {
+     "id": "89b12d5f-f236-4fb3-b6d5-a00a0dab6a37",
+     "title": "Scientists reveal the hidden instructions that build the human brain",
+     "chunk_id": "78fd2ef9-7bed-488c-bca0-0d812ed062ef:0",
+     "document_id": "78fd2ef9-7bed-488c-bca0-0d812ed062ef",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/09/260904000308.htm",
+     "hash": "b7b0cd2f55740178"
+    },
+    {
+     "id": "8ac671e6-3ddc-4b3f-aefe-db306cad3d16",
+     "title": "ISSN Position Stand: Nutrient Timing (Kerksick et al. 2017)",
+     "chunk_id": "f7e8de83-f885-4c72-946e-ab41c96a75fc:0",
+     "document_id": "f7e8de83-f885-4c72-946e-ab41c96a75fc",
+     "source_file": "data/processed/evidence/issn-nutrient-timing-2017.jsonl",
+     "hash": "dc794fcd14f5f3fb"
+    },
+    {
+     "id": "8e050f7f-70bd-40e3-a773-fdd2c068ae9a",
+     "title": "National Athletic Trainers' Association Position Statement: Fluid Replacement for the Physically Active (2017 update)",
+     "chunk_id": "fa1260c1-b920-49a6-b4f0-56a62948b25b:0",
+     "document_id": "fa1260c1-b920-49a6-b4f0-56a62948b25b",
+     "source_file": "data/processed/evidence/nata-fluid-replacement-2017.jsonl",
+     "hash": "2a667ebcc9de530f"
+    },
+    {
+     "id": "8e582ada-ebe4-4e31-a1c5-87b71b55dc29",
+     "title": "The Effect of Long-Chain Omega-3 Polyunsaturated Fatty Acid Supplementation on Neuromuscular Function in Humans: A Systematic Review with Narrative Synthesis.",
+     "chunk_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9:2",
+     "document_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9",
+     "source_file": "pubmed:eutils",
+     "hash": "9514749d021d4940"
+    },
+    {
+     "id": "90287ffa-f89d-5634-1a80-8a3cddb114cd",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "espen-bia-2-chunk-0000",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "cbb2c9220e97a6aa"
+    },
+    {
+     "id": "91216260-d473-4273-baee-28108241cdf1",
+     "title": "Acceptable Macronutrient Distribution Ranges (AMDR) — Dietary Reference Intakes for Macronutrients (National Academies / IOM)",
+     "chunk_id": "3a0c71fb-c3e8-45cc-9e22-ac2011fba63a:0",
+     "document_id": "3a0c71fb-c3e8-45cc-9e22-ac2011fba63a",
+     "source_file": "data/processed/evidence/iom-amdr-macronutrients.jsonl",
+     "hash": "302fbc49380d7f8b"
+    },
+    {
+     "id": "9239b4c9-36fa-4601-94ae-e46eb565e618",
+     "title": "How Slow Should You Go? A Systematic Review With Meta-Analysis of the Effect of Resistance Training Repetition Tempo on Muscle Hypertrophy.",
+     "chunk_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd:0",
+     "document_id": "071d6fe5-3459-488f-97cc-bbc91ac915bd",
+     "source_file": "pubmed:eutils",
+     "hash": "aded79751aee9397"
+    },
+    {
+     "id": "944d40c1-5e27-ada3-3ecf-83f8ac22bccd",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "who-pa-2020-chunk-0000",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "8110ee7688e10c51"
+    },
+    {
+     "id": "97455c1f-9c2e-45bf-ae41-3d473984a974",
+     "title": "ISSN Position Stand: Nutrient Timing (Kerksick et al. 2017)",
+     "chunk_id": "c9c8075b-86b7-4a91-9bfe-9a394ade7418:0",
+     "document_id": "c9c8075b-86b7-4a91-9bfe-9a394ade7418",
+     "source_file": "data/processed/evidence/issn-nutrient-timing-2017.jsonl",
+     "hash": "658a67de742089c3"
+    },
+    {
+     "id": "98a4cb28-1877-4637-86da-83d80542637f",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "2aea27d7-5a91-4798-bd59-fa8f408b4430:0",
+     "document_id": "2aea27d7-5a91-4798-bd59-fa8f408b4430",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "e986607b24608609"
+    },
+    {
+     "id": "994eff94-b4df-4631-8fa7-2b18e4926e50",
+     "title": "Scientists uncover cancer-causing chemicals hidden in everyday foods",
+     "chunk_id": "34c464bd-7bb8-4be8-a7af-faff3590497c:0",
+     "document_id": "34c464bd-7bb8-4be8-a7af-faff3590497c",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260522030853.htm",
+     "hash": "8e9d2ea3a40f234d"
+    },
+    {
+     "id": "9be5279b-4a6a-4801-873b-0f577f052b8d",
+     "title": "Dietary Guidelines for Americans, 2020-2025 (U.S. HHS / USDA)",
+     "chunk_id": "b1efbb17-a219-4c08-9379-fedc393b8891:0",
+     "document_id": "b1efbb17-a219-4c08-9379-fedc393b8891",
+     "source_file": "data/processed/evidence/dietary-guidelines-americans-2020-2025.jsonl",
+     "hash": "f4c3b4bff94d00a2"
+    },
+    {
+     "id": "9c6158f5-f498-44ee-5ea1-2159a010027f",
+     "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+     "chunk_id": "asymmetry-thresholds-2021-chunk-0001",
+     "source_file": "data/processed/evidence/asymmetry-thresholds-2021.jsonl",
+     "hash": "b385475a5a9bed8c"
+    },
+    {
+     "id": "9eb266ea-9055-4557-bc9c-8948822f4937",
+     "title": "Acute and Chronic Effects of High-Load Resistance Training With Blood Flow Restriction in Healthy Adults: A Systematic Review and Meta-Analysis.",
+     "chunk_id": "98cb2373-1eff-443a-af9f-48d86c5086bd:1",
+     "document_id": "98cb2373-1eff-443a-af9f-48d86c5086bd",
+     "source_file": "pubmed:eutils",
+     "hash": "84590f88f4a95bb0"
+    },
+    {
+     "id": "9f12a41c-edeb-4711-bc6b-6c74dd819def",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "4539feb6-1475-4df5-a58e-81539401b4df:0",
+     "document_id": "4539feb6-1475-4df5-a58e-81539401b4df",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "2e90feff26f26f74"
+    },
+    {
+     "id": "a181585e-6e33-46de-b7df-d020aef43e8a",
+     "title": "Transient MYC Mimicking the Exercise Response Orchestrates Multifaceted Skeletal Muscle Adaptations.",
+     "chunk_id": "0a9914fe-6d7e-4fc2-92e9-604a8c51ba3a:0",
+     "document_id": "0a9914fe-6d7e-4fc2-92e9-604a8c51ba3a",
+     "source_file": "pubmed:eutils",
+     "hash": "f07d9d23d4b2fb41"
+    },
+    {
+     "id": "a1d61b66-d556-4fa4-a8aa-5cf8e959cf2f",
+     "title": "When Size Goes Inside: Visceromegaly in Bodybuilders Is Not Attributed to High Protein Intake but More Likely Associated with the Use of Appearance- and Performance-Enhancing Drugs.",
+     "chunk_id": "7753777f-642f-49d4-b5e4-beb48de75297:1",
+     "document_id": "7753777f-642f-49d4-b5e4-beb48de75297",
+     "source_file": "pubmed:eutils",
+     "hash": "7deddc152f12e53b"
+    },
+    {
+     "id": "a1f84ec3-925d-4305-aedd-3eaeda57ecee",
+     "title": "Effects of-3 PUFA supplementation during resistance training on muscle outcomes in healthy adult men: a randomised clinical trial.",
+     "chunk_id": "29ee18c6-ce09-4363-ae8f-bb63c9d725b5:0",
+     "document_id": "29ee18c6-ce09-4363-ae8f-bb63c9d725b5",
+     "source_file": "pubmed:eutils",
+     "hash": "1aabe8e852d44e47"
+    },
+    {
+     "id": "a2b03246-8034-cf73-e53c-2b60fc8a9213",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "issn-protein-2017-chunk-0000",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "7f57b9ee30cef6f0"
+    },
+    {
+     "id": "a37b3c73-3373-4a50-8618-70b3c6640a13",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "issn-protein-2017-chunk-0001",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "0912d7c8187742bc"
+    },
+    {
+     "id": "a4398490-f261-3548-e5ac-78e2b482493c",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "issn-diets-2017-chunk-0002",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "1e8a3e72b640e07f"
+    },
+    {
+     "id": "a4d3fd57-9571-48c2-b78a-96b5c3244147",
+     "title": "Intermittent fasting triggers surprising changes in the brain",
+     "chunk_id": "8a153061-12a4-4673-9b03-843d8f14cd74:0",
+     "document_id": "8a153061-12a4-4673-9b03-843d8f14cd74",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260530004622.htm",
+     "hash": "6dc9e7c66bc635f0"
+    },
+    {
+     "id": "a6bf8f1b-3ca5-4161-83aa-045474d69286",
+     "title": "Effect of Intra-Workout Protein-Carbohydrate Co-Ingestion Versus Isocaloric Carbohydrate During Resistance Training on Muscle Fibre Hypertrophy and Oxidative Capacities in Young Men: A Randomized Controlled Trial.",
+     "chunk_id": "c4076527-210b-4d6e-8669-816168c3fbe1:1",
+     "document_id": "c4076527-210b-4d6e-8669-816168c3fbe1",
+     "source_file": "pubmed:eutils",
+     "hash": "c9939084b5f43930"
+    },
+    {
+     "id": "aac2ee98-c43b-4fd5-a58a-bdd1ca64f24f",
+     "title": "Scientists create supercharged vitamin K that helps the brain heal itself",
+     "chunk_id": "7f10f8bd-efc4-49be-b2f7-65ad36359d80:0",
+     "document_id": "7f10f8bd-efc4-49be-b2f7-65ad36359d80",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260526233433.htm",
+     "hash": "ae439d1b2b514114"
+    },
+    {
+     "id": "abcac69a-8cfb-4147-aa55-69181f087ec3",
+     "title": "Scientists discover why Alzheimer’s risk hits women so much harder",
+     "chunk_id": "b3e75cf1-af9f-49ee-93d9-90146439e50e:0",
+     "document_id": "b3e75cf1-af9f-49ee-93d9-90146439e50e",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/05/260519224312.htm",
+     "hash": "4bc256ab7fe24991"
+    },
+    {
+     "id": "ad4e2eba-afa8-4798-a1d7-955f21184d00",
+     "title": "ESPEN BIA Guidelines Part II (2019)",
+     "chunk_id": "7bb9ddc1-23ac-4794-8c30-f60fa69cb3d6:0",
+     "document_id": "7bb9ddc1-23ac-4794-8c30-f60fa69cb3d6",
+     "source_file": "data/processed/evidence/espen-bia-2.jsonl",
+     "hash": "cbb2c9220e97a6aa"
+    },
+    {
+     "id": "ae0a566b-7f60-41c2-bd4c-1bf5ddadae38",
+     "title": "Small vs. Large Energy Surplus for Hypertrophy and Body Composition (Helms et al.)",
+     "chunk_id": "b89509f1-2090-4993-8ad3-5bc300a72bed:0",
+     "document_id": "b89509f1-2090-4993-8ad3-5bc300a72bed",
+     "source_file": "data/processed/evidence/helms-2023-surplus-size-comparison.jsonl",
+     "hash": "36452f9605b9e9de"
+    },
+    {
+     "id": "ae447d57-9a8b-4d6a-be27-b4a7e945ca25",
+     "title": "Accuracy of predictive equations for resting metabolic rate: a systematic review",
+     "chunk_id": "91c76ef3-37ea-414b-a7c5-b77833b3a0c7:0",
+     "document_id": "91c76ef3-37ea-414b-a7c5-b77833b3a0c7",
+     "source_file": "data/processed/evidence/rmr-equation-accuracy-review.jsonl",
+     "hash": "404c71bd5b010a28"
+    },
+    {
+     "id": "ae7e4900-c91c-4a8a-b396-fd4724ce398d",
+     "title": "Cool in theory, not in practice: Effects of interset palm cooling on resistance exercise performance and psychophysiology responses.",
+     "chunk_id": "10fbe45b-c4a8-4881-92f7-e66614d2d315:0",
+     "document_id": "10fbe45b-c4a8-4881-92f7-e66614d2d315",
+     "source_file": "pubmed:eutils",
+     "hash": "834be66db788b68b"
+    },
+    {
+     "id": "aea75204-82ea-42f3-a0fb-60bf8d6817a2",
+     "title": "Muscle growth mediates the increases in muscle strength in untrained older women.",
+     "chunk_id": "497aa40b-b50b-446e-928f-2cae19c532f7:0",
+     "document_id": "497aa40b-b50b-446e-928f-2cae19c532f7",
+     "source_file": "pubmed:eutils",
+     "hash": "8cfa7bd5f7ec3a38"
+    },
+    {
+     "id": "b3200718-a9e8-c29d-1307-bb29a1322dd5",
+     "title": "Protein supplementation and resistance-training-induced gains in muscle mass and strength: a systematic review, meta-analysis and meta-regression (Morton et al. 2018)",
+     "chunk_id": "morton-2018-protein-meta-analysis-chunk-0001",
+     "source_file": "data/processed/evidence/morton-2018-protein-meta-analysis.jsonl",
+     "hash": "945904ccc8e43423"
+    },
+    {
+     "id": "b5d9bfd0-0a83-20dc-64bb-7519a164d4e4",
+     "title": "WHO Guidelines on Physical Activity (2020)",
+     "chunk_id": "who-pa-2020-chunk-0002",
+     "source_file": "data/processed/evidence/who-pa-2020.jsonl",
+     "hash": "b6e304aab992cab8"
+    },
+    {
+     "id": "b5e71e48-2120-41a4-a438-c4ef79ac9092",
+     "title": "IOC consensus statement on Relative Energy Deficiency in Sport (REDs), 2023 update",
+     "chunk_id": "a347e46c-1415-405f-8187-1f69be798878:0",
+     "document_id": "a347e46c-1415-405f-8187-1f69be798878",
+     "source_file": "data/processed/evidence/ioc-red-s-consensus-2023.jsonl",
+     "hash": "044859537d4c69f0"
+    },
+    {
+     "id": "b6b60975-b328-e61b-4d36-262b53c1f587",
+     "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+     "chunk_id": "asymmetry-thresholds-2021-chunk-0002",
+     "source_file": "data/processed/evidence/asymmetry-thresholds-2021.jsonl",
+     "hash": "ec812044d1b88ee6"
+    },
+    {
+     "id": "b6e614d8-f8af-4efa-a609-73c1da9d84b7",
+     "title": "4 in 5 toddler foods are ultra-processed",
+     "chunk_id": "e8a8b577-09f3-4bc6-900f-915dde071b9c:0",
+     "document_id": "e8a8b577-09f3-4bc6-900f-915dde071b9c",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/07/260727012128.htm",
+     "hash": "b1d88748522cc75f"
+    },
+    {
+     "id": "bab14b50-b726-ea7a-26c3-334d80130858",
+     "title": "ISSN Position Stand: Nutrient Timing (2014)",
+     "chunk_id": "issn-timing-2014-chunk-0001",
+     "source_file": "data/processed/evidence/issn-timing-2014.jsonl",
+     "hash": "4ccda78ae1e9c716"
+    },
+    {
+     "id": "bab1ffeb-04e4-4233-b1fd-1ce2a172f9bb",
+     "title": "Responsiveness of muscle mass gain to different load intensities of resistance training in older women: A randomized crossover study.",
+     "chunk_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece:1",
+     "document_id": "66e1daa5-2729-4a1c-97ba-a0e40dc36ece",
+     "source_file": "pubmed:eutils",
+     "hash": "40c3a48b92ee58a8"
+    },
+    {
+     "id": "bb1123e8-481c-4e12-ba8a-04f8f7bd2dad",
+     "title": "Nutrition and Athletic Performance — Joint Position Statement (Academy of Nutrition and Dietetics, Dietitians of Canada, ACSM 2016)",
+     "chunk_id": "36ae9ac8-3312-4d6b-8794-a5bf526cf201:0",
+     "document_id": "36ae9ac8-3312-4d6b-8794-a5bf526cf201",
+     "source_file": "data/processed/evidence/acsm-nutrition-athletic-performance-2016.jsonl",
+     "hash": "ea4d92ffdd2b7ee8"
+    },
+    {
+     "id": "bddc359d-a714-40c3-8b20-c810934526cc",
+     "title": "Accuracy in Wrist-Worn, Sensor-Based Measurements of Heart Rate and Energy Expenditure in a Diverse Cohort (Shcherbina et al. 2017)",
+     "chunk_id": "5717af90-dc50-469e-bc8d-e6eb8c15c7b0:0",
+     "document_id": "5717af90-dc50-469e-bc8d-e6eb8c15c7b0",
+     "source_file": "data/processed/evidence/shcherbina-2017-wearable-accuracy.jsonl",
+     "hash": "d084c496a8e00f81"
+    },
+    {
+     "id": "bdf24da8-0ba7-41c8-db62-3fd2ef0416cf",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "espen-bia-1-chunk-0000",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "66413253048bcc27"
+    },
+    {
+     "id": "c10830ac-70d2-509e-a603-c0655d1ca370",
+     "title": "ISSN Position Stand: Protein and Exercise (2017)",
+     "chunk_id": "issn-protein-2017-chunk-0002",
+     "source_file": "data/processed/evidence/issn-protein-2017.jsonl",
+     "hash": "4f93ae400aa19f10"
+    },
+    {
+     "id": "c1f114d3-6a50-43d1-9d9b-bb3c8bc269c0",
+     "title": "One fat helped pancreatic cancer grow while another cut disease in half",
+     "chunk_id": "6e09fb43-0574-4ab5-bc9b-36c5a22e4d5b:0",
+     "document_id": "6e09fb43-0574-4ab5-bc9b-36c5a22e4d5b",
+     "source_file": "https://www.sciencedaily.com/rss/health_medicine/fitness.xml#https://www.sciencedaily.com/releases/2026/06/260601025349.htm",
+     "hash": "38ca41cff459fb76"
+    },
+    {
+     "id": "c56031fe-fa8c-dfff-3b2e-258bb270af17",
+     "title": "Hướng dẫn macro theo mục tiêu — tăng cơ (bulk)",
+     "chunk_id": "cycle-knowledge-2026-chunk-0005",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "fc3be6510b0ef93f"
+    },
+    {
+     "id": "c7c118c6-19c3-0680-536f-5b55ceaf5561",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "hhs-pa-2018-chunk-0001",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "8040ac00618140d4"
+    },
+    {
+     "id": "c8d4bedc-0bd7-5cf4-7fe3-090f64dac383",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "hhs-pa-2018-chunk-0003",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "2e90feff26f26f74"
+    },
+    {
+     "id": "c9d67202-d5f6-4e62-98b6-548f1e2415a4",
+     "title": "Effects of Blood Flow Restriction Therapy in Individuals With Knee Osteoarthritis: Overview of Systematic Reviews.",
+     "chunk_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5:2",
+     "document_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5",
+     "source_file": "pubmed:eutils",
+     "hash": "82cb7e8f265413a0"
+    },
+    {
+     "id": "ca2f6f0f-dd99-47fa-af2f-6e0e2d73c4cf",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "a930c33b-4134-48b5-898f-e8b340fdbc2d:0",
+     "document_id": "a930c33b-4134-48b5-898f-e8b340fdbc2d",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "2bf8e05f917bfabb"
+    },
+    {
+     "id": "cbbc2e4b-26fd-405b-9df5-5622393474b0",
+     "title": "International society of sports nutrition position stand: caffeine and exercise performance (Guest et al. 2021)",
+     "chunk_id": "1e332aa4-710a-4a0d-8bb7-0db45e1d636f:0",
+     "document_id": "1e332aa4-710a-4a0d-8bb7-0db45e1d636f",
+     "source_file": "data/processed/evidence/issn-caffeine-2021.jsonl",
+     "hash": "ae6832cdb06c2609"
+    },
+    {
+     "id": "cf57284c-58a2-4ec3-a112-f7e16d1a8d89",
+     "title": "Does adaptive thermogenesis occur after weight loss in adults? A systematic review (Nunes et al.)",
+     "chunk_id": "31898afb-c78e-4419-8cc8-6fe02a98efc7:0",
+     "document_id": "31898afb-c78e-4419-8cc8-6fe02a98efc7",
+     "source_file": "data/processed/evidence/nunes-adaptive-thermogenesis.jsonl",
+     "hash": "a1fa3b4bb91985a2"
+    },
+    {
+     "id": "cf873ada-2df0-4888-be77-b28053f67fe8",
+     "title": "The Effect of Long-Chain Omega-3 Polyunsaturated Fatty Acid Supplementation on Neuromuscular Function in Humans: A Systematic Review with Narrative Synthesis.",
+     "chunk_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9:0",
+     "document_id": "0547ee9a-1fcd-4c45-abbf-d80da89df4a9",
+     "source_file": "pubmed:eutils",
+     "hash": "98d42fdc4330fea2"
+    },
+    {
+     "id": "d056c34f-17ce-24d1-15d4-fe27283e9ed2",
+     "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+     "chunk_id": "hhs-pa-2018-chunk-0000",
+     "source_file": "data/processed/evidence/hhs-pa-2018.jsonl",
+     "hash": "0eedb66b8ad4da1b"
+    },
+    {
+     "id": "d079b52b-acb3-429e-a99d-8f6dc4c114f9",
+     "title": "American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews.",
+     "chunk_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da:0",
+     "document_id": "1fabba8b-96e3-4a89-8628-d5dbc4b003da",
+     "source_file": "pubmed:eutils",
+     "hash": "5c4e1bfa8dca8ebe"
+    },
+    {
+     "id": "d11a35a2-7a1a-fbf0-80ab-9537e025eff3",
+     "title": "Kỹ thuật isolation cuối buổi cho nhóm cơ tăng trưởng kém (chững lại)",
+     "chunk_id": "cycle-knowledge-2026-chunk-0003",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "b3212036e580e7f5"
+    },
+    {
+     "id": "d28d4c85-0173-4d21-87aa-1bf40a534841",
+     "title": "ESPEN BIA Guidelines Part I (2019)",
+     "chunk_id": "c606e14a-e2d9-426f-9183-b4f16222ca98:0",
+     "document_id": "c606e14a-e2d9-426f-9183-b4f16222ca98",
+     "source_file": "data/processed/evidence/espen-bia-1.jsonl",
+     "hash": "296aed5350b6b443"
+    },
+    {
+     "id": "d3c77ebf-67f2-4df8-8ef0-f7eef7651a7f",
+     "title": "Front-Loading Fatigue: Does the Pre-exhaustion Method influence Resistance Training-induced Muscular Adaptations?",
+     "chunk_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274:2",
+     "document_id": "86e965aa-3ff8-4a97-b436-14ae75b7d274",
+     "source_file": "pubmed:eutils",
+     "hash": "f626dd2ab0aadabf"
+    },
+    {
+     "id": "d5c05b21-49e1-4070-ae4d-21d594f3cc1f",
+     "title": "Trending Topics & Resources",
+     "chunk_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47:0",
+     "document_id": "ce1da8e5-403a-4ac5-915d-aa42eca02c47",
+     "source_file": "https://www.acsm.org/education-resources/trending-topics-resources",
+     "hash": "07af2a53a00f6f26"
+    },
+    {
+     "id": "d5c32919-c18b-4ef0-81fd-38ef244ef18e",
+     "title": "Blood Flow Restriction Training, Molecular Modulators, and Musculoskeletal Health: A Scoping Review and Translational Perspective.",
+     "chunk_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb:0",
+     "document_id": "a9c6fc0e-f158-4aba-a77d-a378e6fdf9eb",
+     "source_file": "pubmed:eutils",
+     "hash": "abfadad9b6f8290f"
+    },
+    {
+     "id": "d8597db6-2767-49d6-9fd6-8251588cf8c0",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "3c20b432-c284-4933-a9e8-609e7e94f230:0",
+     "document_id": "3c20b432-c284-4933-a9e8-609e7e94f230",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "7bda6bf03871deac"
+    },
+    {
+     "id": "d91cb844-1671-4c3f-85ca-9bf1c0d60e9b",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "8b7220a0-4028-4cf9-8cb3-d07606fa34e6:0",
+     "document_id": "8b7220a0-4028-4cf9-8cb3-d07606fa34e6",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "04e8b0a3399b70f9"
+    },
+    {
+     "id": "d947be47-6611-56db-8936-7d316113099d",
+     "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+     "chunk_id": "unilateral-plyometric-asymmetry-2025-chunk-0000",
+     "source_file": "data/processed/evidence/unilateral-plyometric-asymmetry-2025.jsonl",
+     "hash": "144127021074d837"
+    },
+    {
+     "id": "dbd33507-55a8-45f9-3840-1e09c387ea3a",
+     "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+     "chunk_id": "issn-diets-2017-chunk-0000",
+     "source_file": "data/processed/evidence/issn-diets-2017.jsonl",
+     "hash": "7bda6bf03871deac"
+    },
+    {
+     "id": "dc9d7982-d196-ae77-7e14-b16400a8389f",
+     "title": "Đánh giá tuân thủ lịch tập (adherence) và điều chỉnh lịch trình",
+     "chunk_id": "cycle-knowledge-2026-chunk-0008",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "da4fbe6dd420a989"
+    },
+    {
+     "id": "dcc76427-0e1d-4cae-be84-54f26f3499f9",
+     "title": "Progressive Overload Affects the Magnitude of Muscle Hypertrophy.",
+     "chunk_id": "3885fed4-3dff-4151-847a-f37ff186f219:1",
+     "document_id": "3885fed4-3dff-4151-847a-f37ff186f219",
+     "source_file": "pubmed:eutils",
+     "hash": "3943b67f1adebd55"
+    },
+    {
+     "id": "dd46f38e-eee9-42f3-bc49-2a7114c10024",
+     "title": "Tracking changes in body composition: comparison of methods and influence of pre-assessment standardisation (Tinsley et al. 2022)",
+     "chunk_id": "95c1aef7-9a2b-4b11-b0fb-37ee6205f1bb:0",
+     "document_id": "95c1aef7-9a2b-4b11-b0fb-37ee6205f1bb",
+     "source_file": "data/processed/evidence/tinsley-2022-bodycomp-standardization.jsonl",
+     "hash": "528a50e1bc454749"
+    },
+    {
+     "id": "ddc94c20-baa3-4c91-a4b1-7bad7f210aa9",
+     "title": "Menstrual Cycle Phase Does Not Influence Training-Induced Muscle Hypertrophy or Strength: A Randomized Controlled Trial.",
+     "chunk_id": "44f2926b-6727-4ce0-a636-4a4aaeb4a366:1",
+     "document_id": "44f2926b-6727-4ce0-a636-4a4aaeb4a366",
+     "source_file": "pubmed:eutils",
+     "hash": "e381c32a18e010e5"
+    },
+    {
+     "id": "df0d0926-6a3b-4bfe-9874-e2d1ac0856e2",
+     "title": "The interplay between muscle length, range of motion, and exercise selection: a review.",
+     "chunk_id": "dae549fd-6a37-4574-b33f-82d0022bdc7f:1",
+     "document_id": "dae549fd-6a37-4574-b33f-82d0022bdc7f",
+     "source_file": "pubmed:eutils",
+     "hash": "9234aefd6ef0de12"
+    },
+    {
+     "id": "e17f4a86-abf8-48b7-8544-77f99de7868c",
+     "title": "Effect of Intra-Workout Protein-Carbohydrate Co-Ingestion Versus Isocaloric Carbohydrate During Resistance Training on Muscle Fibre Hypertrophy and Oxidative Capacities in Young Men: A Randomized Controlled Trial.",
+     "chunk_id": "c4076527-210b-4d6e-8669-816168c3fbe1:2",
+     "document_id": "c4076527-210b-4d6e-8669-816168c3fbe1",
+     "source_file": "pubmed:eutils",
+     "hash": "03ad456732622bd3"
+    },
+    {
+     "id": "e19cf0ef-7d7c-4e76-99bc-0490331323ce",
+     "title": "IOC consensus statement: dietary supplements and the high-performance athlete (2018)",
+     "chunk_id": "bcea4717-4fe9-4e0c-b15c-b5a8e8c32b8e:0",
+     "document_id": "bcea4717-4fe9-4e0c-b15c-b5a8e8c32b8e",
+     "source_file": "data/processed/evidence/ioc-dietary-supplements-consensus-2018.jsonl",
+     "hash": "e689228d76099dea"
+    },
+    {
+     "id": "e1a26d50-1cd4-4384-b64a-e219b7e7edd8",
+     "title": "Influence of the adaptation of lactate accumulation rate through physical training on muscle mass regulation.",
+     "chunk_id": "e1ba90cf-e157-43d0-b800-d40abe74fe84:1",
+     "document_id": "e1ba90cf-e157-43d0-b800-d40abe74fe84",
+     "source_file": "pubmed:eutils",
+     "hash": "ca2181015a229aab"
+    },
+    {
+     "id": "e38aca67-2a8b-4164-ab29-1c50786b76cf",
+     "title": "ISSN Position Stand: Safety and Efficacy of Creatine Supplementation in Exercise, Sport, and Medicine (Kreider et al. 2017)",
+     "chunk_id": "5dc605c9-1275-4957-a6b9-65c8b12c48d9:0",
+     "document_id": "5dc605c9-1275-4957-a6b9-65c8b12c48d9",
+     "source_file": "data/processed/evidence/issn-creatine-2017.jsonl",
+     "hash": "402769f40e8855a8"
+    },
+    {
+     "id": "e4bf38e7-2a35-4ff5-ba86-7f910be2c3c4",
+     "title": "Transient MYC Mimicking the Exercise Response Orchestrates Multifaceted Skeletal Muscle Adaptations.",
+     "chunk_id": "0a9914fe-6d7e-4fc2-92e9-604a8c51ba3a:1",
+     "document_id": "0a9914fe-6d7e-4fc2-92e9-604a8c51ba3a",
+     "source_file": "pubmed:eutils",
+     "hash": "da988d2d62c30793"
+    },
+    {
+     "id": "e5237a10-2127-4989-bea1-e40625729926",
+     "title": "Dietary Guidelines for Americans, 2020-2025 (U.S. HHS / USDA)",
+     "chunk_id": "cd2076df-96e1-4cbc-bf6a-b5d9fffe96a7:0",
+     "document_id": "cd2076df-96e1-4cbc-bf6a-b5d9fffe96a7",
+     "source_file": "data/processed/evidence/dietary-guidelines-americans-2020-2025.jsonl",
+     "hash": "67fc62b12b798316"
+    },
+    {
+     "id": "e6c6a289-3c36-4227-a854-bee51563a064",
+     "title": "Effects of Blood Flow Restriction Therapy in Individuals With Knee Osteoarthritis: Overview of Systematic Reviews.",
+     "chunk_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5:1",
+     "document_id": "ef7d9ccb-75b5-4788-b3bc-d7177ae142f5",
+     "source_file": "pubmed:eutils",
+     "hash": "f0f542438d74e489"
+    },
+    {
+     "id": "e795caa8-a913-4777-890b-879b5d294f1e",
+     "title": "ISSN Position Stand: Nutritional Performance (2017)",
+     "chunk_id": "f68e1a00-fc90-4eba-97f3-e03f6330edfd:0",
+     "document_id": "f68e1a00-fc90-4eba-97f3-e03f6330edfd",
+     "source_file": "data/processed/evidence/issn-performance-2017.jsonl",
+     "hash": "89ad34303298c626"
+    },
+    {
+     "id": "eb2d0fe6-8409-5c6a-6160-54cca0531646",
+     "title": "Khi nào cần đổi hẳn kế hoạch (NEW_PLAN) thay vì điều chỉnh",
+     "chunk_id": "cycle-knowledge-2026-chunk-0007",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "2cec675bcdff6029"
+    },
+    {
+     "id": "ef1cb9d3-36bb-4813-ba53-96b79f76163a",
+     "title": "Does adaptive thermogenesis occur after weight loss in adults? A systematic review (Nunes et al.)",
+     "chunk_id": "761d1fe1-f111-4a94-88b6-a29799ae5e7c:0",
+     "document_id": "761d1fe1-f111-4a94-88b6-a29799ae5e7c",
+     "source_file": "data/processed/evidence/nunes-adaptive-thermogenesis.jsonl",
+     "hash": "490eb86b2efc3101"
+    },
+    {
+     "id": "efd32ab5-d6f4-d8f6-9b31-89dd048d758d",
+     "title": "Nguyên tắc Progressive Overload khi cơ thể đang tiến triển tốt",
+     "chunk_id": "cycle-knowledge-2026-chunk-0001",
+     "source_file": "data/processed/evidence/cycle_training_knowledge_2026.jsonl",
+     "hash": "d0184526f8cc9faf"
+    },
+    {
+     "id": "f9cc3498-f27a-46cb-a364-1d5527feabb4",
+     "title": "A new predictive equation for resting energy expenditure in healthy individuals (Mifflin, St Jeor et al. 1990)",
+     "chunk_id": "baab5b08-9c40-4e7e-848c-21fc7dfda9b7:0",
+     "document_id": "baab5b08-9c40-4e7e-848c-21fc7dfda9b7",
+     "source_file": "data/processed/evidence/mifflin-1990-original-equation.jsonl",
+     "hash": "30992c99e09835b2"
+    },
+    {
+     "id": "faf1d407-21f5-4b0d-b0a5-d83222f46475",
+     "title": "Effect of Intra-Workout Protein-Carbohydrate Co-Ingestion Versus Isocaloric Carbohydrate During Resistance Training on Muscle Fibre Hypertrophy and Oxidative Capacities in Young Men: A Randomized Controlled Trial.",
+     "chunk_id": "c4076527-210b-4d6e-8669-816168c3fbe1:0",
+     "document_id": "c4076527-210b-4d6e-8669-816168c3fbe1",
+     "source_file": "pubmed:eutils",
+     "hash": "3df49706fdafdaa7"
+    },
+    {
+     "id": "fb226a83-d8df-4809-a949-90b5eb65f6a0",
+     "title": "Tracking changes in body composition: comparison of methods and influence of pre-assessment standardisation (Tinsley et al. 2022)",
+     "chunk_id": "ddaaf9a4-bf61-4a7a-9d87-74fb3606b84c:0",
+     "document_id": "ddaaf9a4-bf61-4a7a-9d87-74fb3606b84c",
+     "source_file": "data/processed/evidence/tinsley-2022-bodycomp-standardization.jsonl",
+     "hash": "17943ef115ad9cf1"
+    },
+    {
+     "id": "fb4aba83-b60f-8982-c985-696e29a5febd",
+     "title": "ISSN Position Stand: Safety and Efficacy of Creatine Supplementation in Exercise, Sport, and Medicine (Kreider et al. 2017)",
+     "chunk_id": "issn-creatine-2017-chunk-0001",
+     "source_file": "data/processed/evidence/issn-creatine-2017.jsonl",
+     "hash": "d32a51cef5b3cf54"
+    },
+    {
+     "id": "fe1bc31e-d6c1-3479-88b8-e01a626e9bab",
+     "title": "PHAT-inspired power/hypertrophy split",
+     "chunk_id": "phat_inspired_power_hypertrophy_split",
+     "source_file": "data/catalog/knowledge/training_methods.json",
+     "hash": "cca686b8078ffe25"
+    }
+   ]
+  },
+  "fitness_knowledge": {
+   "points": 7072,
+   "config": {
+    "size": 768,
+    "distance": "Cosine"
+   },
+   "payloadKeys": [
+    "category",
+    "contentVi",
+    "docId",
+    "id",
+    "tags",
+    "titleVi"
+   ],
+   "idSetHash": "29a9d4b061f50bca",
+   "contentSetHash": "5f750300d23fe298",
+   "sample": "{\"id\":0,\"docId\":\"EX00001\",\"titleVi\":\"Đẩy ngực phẳng với tạ đòn\",\"contentVi\":\"Bài tập: Đẩy ngực phẳng với tạ đòn. Nhóm cơ chính: Ngực. Nhóm cơ phụ: Vai trước, Tay sau. Thiết bị: Tạ đòn, Ghế tập. Độ khó: Trung cấp. Setup: Thiết lập ghế phẳng, siết vai sau, đặt chân chắc trên sàn. Cách thực hiện: Hạ tạ"
+  },
+  "fitness_faq": {
+   "points": 5946,
+   "config": {
+    "size": 768,
+    "distance": "Cosine"
+   },
+   "payloadKeys": [
+    "answerVi",
+    "category",
+    "faqId",
+    "id",
+    "questionVi",
+    "tags"
+   ],
+   "idSetHash": "39f3933f84db0149",
+   "contentSetHash": "d38ca93b8e199a11",
+   "sample": "{\"id\":0,\"faqId\":\"FAQ000001\",\"questionVi\":\"Cách tập đúng bài Đẩy ngực phẳng với tạ đòn là gì?\",\"answerVi\":\"Đẩy ngực phẳng với tạ đòn chủ yếu tác động vào ngực. Hãy bắt đầu với setup: Thiết lập ghế phẳng, siết vai sau, đặt chân chắc trên sàn. Trong lúc thực hiện: Hạ tạ có kiểm soát về vùng ngực, khuỷu"
+  },
+  "exercises": {
+   "points": 207,
+   "config": {
+    "size": 768,
+    "distance": "Cosine"
+   },
+   "payloadKeys": [
+    "bodyPart",
+    "exerciseName",
+    "id",
+    "instructions",
+    "muscleGroupsActivated",
+    "type",
+    "typeOfActivity",
+    "typeOfEquipment"
+   ],
+   "idSetHash": "7c5e4349570e19f7",
+   "contentSetHash": "e87beac9ba16ddde",
+   "sample": "{\"id\":0,\"exerciseName\":\"Push-Ups\",\"typeOfActivity\":\"Strength\",\"typeOfEquipment\":\"Bodyweight\",\"bodyPart\":\"Upper Body\",\"type\":\"Push\",\"muscleGroupsActivated\":\"Pectorals, Triceps, Deltoids\",\"instructions\":\"Start in a high plank position with your hands under your shoulders. Lower your body until your ch"
+  }
+ }
+}

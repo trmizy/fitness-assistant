@@ -9,6 +9,26 @@ import { callService } from "./services/call.service";
 
 const app: Express = express();
 
+// Caller-side user-service sends INTERNAL_API_SECRET || INTERNAL_SERVICE_SECRET (see
+// notification.service.ts / open-room-call.service.ts there) — accept either here too, in
+// the same order, so local dev (the two configured to different real values; only
+// INTERNAL_API_SECRET is the one both sides have always agreed on) and Lambda (only
+// INTERNAL_SERVICE_SECRET ever set) both authenticate. Fixes a live 401 on
+// /internal/calls/end-by-session that left CallSession rows open after a PT completed a
+// session, reproducing "You are already in a call" (2026-10-08).
+const ACCEPTED_INTERNAL_SECRETS = [
+  process.env.INTERNAL_API_SECRET,
+  process.env.INTERNAL_SERVICE_SECRET,
+].filter((s): s is string => Boolean(s));
+
+function isValidInternalSecret(secret: unknown): boolean {
+  return (
+    typeof secret === "string" &&
+    secret.length > 0 &&
+    ACCEPTED_INTERNAL_SECRETS.includes(secret)
+  );
+}
+
 app.use(helmet());
 // No CORS middleware in local dev/docker-compose: this service is only reached via
 // backend/gateway's own Express proxy there, which already sets origin-scoped CORS
@@ -57,7 +77,7 @@ app.use("/chat/calls", callRoutes);
 // Internal notification push — validated by shared secret (Docker-internal only)
 app.post("/internal/push-notification", (req: Request, res: Response): void => {
   const secret = req.headers["x-internal-secret"];
-  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+  if (!isValidInternalSecret(secret)) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
@@ -92,7 +112,7 @@ app.post("/internal/push-notification", (req: Request, res: Response): void => {
 // endCallsForCoachingSession doc comment. Best-effort, fire-and-forget from the caller's side.
 app.post("/internal/calls/end-by-session", async (req: Request, res: Response): Promise<void> => {
   const secret = req.headers["x-internal-secret"];
-  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+  if (!isValidInternalSecret(secret)) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

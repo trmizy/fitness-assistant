@@ -13,6 +13,7 @@ import {
   type WorkflowIntent,
 } from "./schema";
 import { detectCorrections, detectGoalSignals, detectNegations, detectRecommendationRequest, detectReferences, detectWhy, hasCorrectionCue, isQuestionForm } from "./signals";
+import { groundReferences } from "./reference-grounding-guard";
 
 /**
  * InterpretConversationTurn — deterministic first, LLM only when the deterministic reading is unsure.
@@ -37,7 +38,16 @@ export function interpretDeterministic(text: string, ctx: InterpretContext = {})
   const goalSignals = detectGoalSignals(s);
   const corrections = detectCorrections(s, extracted.entities, goalSignals, ctx.expectedSlot);
   const negations = detectNegations(s, extracted.entities);
-  const references = detectReferences(s);
+  // V2.3A.7 phase 5 (frozen insertion point, V2.3A.6): grounding runs
+  // immediately after detection, before primaryIntent/confidence below ever
+  // read `references.length` — so an ungrounded THIS_ITEM/PREVIOUS_STATE
+  // reference (e.g. "PT đó" with no PT named anywhere in the message) can
+  // never silently flip primaryIntent to PROVIDE_INFORMATION or raise
+  // confidence (line ~76) on its way out. `detectReferences()` itself still
+  // runs unconditionally and is otherwise unchanged — the guard only
+  // decides whether its surface-pattern matches are actually safe to keep.
+  const grounding = groundReferences(detectReferences(s), text);
+  const references = grounding.references;
   const asksRecommendation = detectRecommendationRequest(s);
   const asksWhy = detectWhy(s);
 
@@ -71,9 +81,17 @@ export function interpretDeterministic(text: string, ctx: InterpretContext = {})
   if (asksWhy && /(doi|cap nhat|sua) (muc tieu|goal)/.test(s)) requestedAction = "PROPOSE_CHANGE";
 
   const ambiguities = [...extracted.ambiguities];
+  // V2.3A.7 phase 5: the one ambiguity entry the guard appends when it
+  // invalidates a reference — bounded correction, nothing else is touched.
+  if (grounding.activated && grounding.ambiguityEntry && !ambiguities.some((a) => a.field === "reference")) {
+    ambiguities.push(grounding.ambiguityEntry);
+  }
   const lowestEntity = asserted.length ? Math.min(...asserted.map((e) => e.confidence)) : 1;
-  const confidence =
+  let confidence =
     primaryIntent === "UNKNOWN" ? 0.3 : ambiguities.length ? Math.min(0.5, lowestEntity) : asserted.length ? Math.min(0.97, lowestEntity) : corrections.length || goalSignals.length || references.length || asksRecommendation ? 0.85 : 0.75;
+  if (grounding.activated && typeof grounding.confidenceFloor === "number") {
+    confidence = Math.min(confidence, grounding.confidenceFloor);
+  }
 
   return {
     primaryIntent,
@@ -86,7 +104,11 @@ export function interpretDeterministic(text: string, ctx: InterpretContext = {})
     ambiguities,
     requestedAction,
     asksWhy: asksWhy || undefined,
-    clarificationRequired: ambiguities.length > 0 || confidence < CONFIDENCE_LOW,
+    // grounding.activated is OR'd into the SAME frozen formula, not a
+    // separate override path — a deterministic grounding failure can only
+    // ever raise this to true, never be overruled by anything downstream
+    // (task's own "do not let model output overrule a grounding failure").
+    clarificationRequired: ambiguities.length > 0 || confidence < CONFIDENCE_LOW || grounding.activated,
     confidence,
     source: "DETERMINISTIC",
   };
@@ -107,17 +129,37 @@ const LlmOutputSchema = z.object({
   isCorrection: z.boolean().default(false),
 });
 
-function buildPrompt(text: string, ctx: InterpretContext): string {
+/**
+ * V2.3A.7 phase 1: split into an explicit system/user pair instead of one
+ * joined string — see docs/ai-training/
+ * qwen4b-v2-3a7-production-semantic-contract-alignment-implementation.md.
+ * Previously this was one `buildPrompt()` string with no role marker, which
+ * `buildOllamaMessages()`/`buildAnthropicRequest()` silently flattened into a
+ * single user-role message on every live provider (confirmed in V2.3A.6).
+ * `callLlmJson`'s new `systemPrompt` option (llm.service.ts) now carries
+ * `buildSystemInstructions()`'s output as a real system turn/block on every
+ * provider branch, bypassing that string-sniffing entirely for this call.
+ */
+function buildSystemInstructions(): string {
   return [
     "Bạn là bộ phân tích ngữ nghĩa cho một trợ lý thể hình tiếng Việt. CHỈ trả về một JSON object, không giải thích.",
     "Nhiệm vụ: đọc MỘT tin nhắn của người dùng và trích xuất ý định + dữ kiện. Không tự bịa số; mọi giá trị phải xuất hiện trong tin nhắn.",
     "Quy tắc đơn vị: '1m73' hoặc '173cm' là HEIGHT_CM=173 (KHÔNG BAO GIỜ là cân nặng). '80kg' là WEIGHT_KG (cân hiện tại) trừ khi câu nói đó là mục tiêu, khi đó là TARGET_WEIGHT_KG.",
     "primaryIntent ∈ ANSWER_QUESTION|START_WORKFLOW|PROVIDE_INFORMATION|CORRECT_INFORMATION|ASK_RECOMMENDATION|CONFIRM|DISMISS|UNKNOWN. ASK_RECOMMENDATION = người dùng nhờ trợ lý tự đề xuất/chọn giúp.",
-    "entities: mảng {type,value,sourceText,negated?}; type ∈ HEIGHT_CM|WEIGHT_KG|TARGET_WEIGHT_KG|AGE|SESSIONS_PER_WEEK|SESSION_MINUTES|MEALS_PER_DAY|BUDGET_VND. negated=true nếu người dùng PHỦ ĐỊNH giá trị đó.",
+    // V2.3A.6 found this list only advertised 8 of the real 10 ENTITY_TYPES
+    // (schema.ts) — WEIGHT_UNLABELED and GENDER are now included so the
+    // prompt text matches schema truth (task's own alignment instruction;
+    // the Zod schema already accepted both, it just never told the model).
+    "entities: mảng {type,value,sourceText,negated?}; type ∈ HEIGHT_CM|WEIGHT_KG|TARGET_WEIGHT_KG|WEIGHT_UNLABELED|AGE|GENDER|SESSIONS_PER_WEEK|SESSION_MINUTES|MEALS_PER_DAY|BUDGET_VND. negated=true nếu người dùng PHỦ ĐỊNH giá trị đó.",
     "goalSignals: mảng {goal,strength,negatesGoal?,sourceText}; goal ∈ WEIGHT_LOSS|MUSCLE_GAIN|MAINTENANCE|ATHLETIC_PERFORMANCE; strength ∈ EXPLICIT|IMPLICIT.",
+    'Ví dụ đầu ra: {"primaryIntent":"PROVIDE_INFORMATION","entities":[{"type":"HEIGHT_CM","value":173,"sourceText":"1m73"}],"goalSignals":[],"asksRecommendation":false,"isCorrection":false}',
+  ].join("\n");
+}
+
+function buildUserTurn(text: string, ctx: InterpretContext): string {
+  return [
     ctx.expectedSlot ? `Trợ lý vừa hỏi về ô: ${ctx.expectedSlot}.` : "",
     `Tin nhắn: """${text.slice(0, 500)}"""`,
-    'Ví dụ đầu ra: {"primaryIntent":"PROVIDE_INFORMATION","entities":[{"type":"HEIGHT_CM","value":173,"sourceText":"1m73"}],"goalSignals":[],"asksRecommendation":false,"isCorrection":false}',
   ].filter(Boolean).join("\n");
 }
 
@@ -150,11 +192,19 @@ export function validateLlmEntities(text: string, entities: Array<Pick<SemanticE
 
 export async function interpretWithLlm(text: string, ctx: InterpretContext, userId: string, base?: SemanticInterpretation): Promise<SemanticInterpretation | null> {
   const started = Date.now();
-  const raw = await callLlmJson(buildPrompt(text, ctx), LlmOutputSchema, { userId, phase: "conversation-interpretation", numPredict: 400, attempts: 1, logPrefix: "[ci-v2]" });
+  const raw = await callLlmJson(buildUserTurn(text, ctx), LlmOutputSchema, { userId, phase: "conversation-interpretation", numPredict: 400, attempts: 1, logPrefix: "[ci-v2]", systemPrompt: buildSystemInstructions() });
   if (!raw) return null;
   const det = base ?? interpretDeterministic(text, ctx);
   const entities = validateLlmEntities(text, raw.entities);
   logger.info({ latencyMs: Date.now() - started, intent: raw.primaryIntent, entityCount: entities.length }, "ci_v2_llm_interpretation");
+  // V2.3A.7 phase 5: a deterministic grounding failure (the guard already
+  // invalidated a reference and flagged it in det.ambiguities) must not be
+  // silently overruled by this merge's own clarificationRequired/confidence
+  // reset below — task's own "do not let model output overrule a
+  // deterministic grounding failure". Every other ambiguity source keeps
+  // the pre-existing behavior (merge resets clarificationRequired to
+  // false, confidence floors at 0.6) exactly as before this task.
+  const hasGroundingFailure = det.ambiguities.some((a) => a.field === "reference");
   const merged: SemanticInterpretation = {
     ...det,
     // deterministic entities always win on conflict (units are cross-checked there); LLM only ADDS types the parser missed.
@@ -162,8 +212,8 @@ export async function interpretWithLlm(text: string, ctx: InterpretContext, user
     goalSignals: det.goalSignals.length ? det.goalSignals : raw.goalSignals,
     primaryIntent: det.primaryIntent === "UNKNOWN" ? raw.primaryIntent : det.primaryIntent,
     requestedAction: det.requestedAction ?? (raw.asksRecommendation ? "SUGGEST" : undefined),
-    confidence: Math.max(det.confidence, 0.6),
-    clarificationRequired: false,
+    confidence: hasGroundingFailure ? det.confidence : Math.max(det.confidence, 0.6),
+    clarificationRequired: hasGroundingFailure ? true : false,
     source: "MERGED",
   };
   if (raw.asksRecommendation && merged.primaryIntent === "UNKNOWN") merged.primaryIntent = "ASK_RECOMMENDATION";
@@ -185,7 +235,7 @@ export async function interpretTurn(text: string, ctx: InterpretContext, opts: {
 
 /** The typed LLM reading ALONE (no deterministic merge) — used to measure the model on the corpus and to show what the validator catches. */
 export async function llmOnlyReading(text: string, ctx: InterpretContext, userId: string) {
-  const raw = await callLlmJson(buildPrompt(text, ctx), LlmOutputSchema, { userId, phase: "conversation-interpretation-eval", numPredict: 400, attempts: 1, logPrefix: "[ci-v2-eval]" });
+  const raw = await callLlmJson(buildUserTurn(text, ctx), LlmOutputSchema, { userId, phase: "conversation-interpretation-eval", numPredict: 400, attempts: 1, logPrefix: "[ci-v2-eval]", systemPrompt: buildSystemInstructions() });
   if (!raw) return null;
   return { raw, validatedEntities: validateLlmEntities(text, raw.entities) };
 }

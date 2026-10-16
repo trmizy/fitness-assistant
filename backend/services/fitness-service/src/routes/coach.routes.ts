@@ -16,8 +16,19 @@ router.get("/clients/:clientId/summary", authMiddleware, coachController.getClie
 // from the always-loaded summary above (§32: load detailed sections on
 // tab activation, not up front).
 router.get("/clients/:clientId/progress", authMiddleware, coachController.getClientProgress as any);
+router.get("/clients/:clientId/workout-schedules", authMiddleware, coachController.getClientWorkoutSchedules as any);
 router.post("/clients/:clientId/plans", authMiddleware, coachController.createAndAssignPlan as any);
 router.post("/clients/:clientId/plan-draft", authMiddleware, coachController.generatePlanDraft as any);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/recommendation/approve",
+  authMiddleware,
+  coachController.approveTrainingRecommendation as any,
+);
+router.post(
+  "/clients/:clientId/cycles/:cycleId/recommendation/reject",
+  authMiddleware,
+  coachController.rejectTrainingRecommendation as any,
+);
 
 // Phase 2 — PT Approve/Modify/Reject on a client's AI nutrition
 // recommendation (spec §XXIII).

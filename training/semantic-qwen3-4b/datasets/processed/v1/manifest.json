@@ -1,0 +1,31 @@
+{
+  "datasetVersion": "v1",
+  "createdAt": "2026-10-09T15:09:19.370963+00:00",
+  "seed": 42,
+  "totalCases": 143,
+  "splitCounts": {
+    "train": 99,
+    "validation": 21,
+    "heldout": 23
+  },
+  "categoryCounts": {
+    "AMBIGUITY_UNKNOWN": 12,
+    "CORRECTION": 13,
+    "ENTITY": 20,
+    "FITNESS_SHORTHAND": 8,
+    "FOLLOWUP_SLOT": 13,
+    "INTENT": 38,
+    "MULTI_INTENT": 6,
+    "REFERENCE": 18,
+    "REVISION": 9,
+    "SAFETY_NON_AUTHORITY": 6
+  },
+  "sha256": {
+    "train.jsonl": "11c041550c8cf6bd8826a1854bab2a66082249273466e9227e0654b2e6ba5b53",
+    "validation.jsonl": "eac3102493703f225f0ce73ff4d3dd8c3b8f652a28c0a92b0271c348b2338e3d",
+    "heldout.jsonl": "3e8fc3d25468803110444cf4471e409743ca519c6a2dc3e309df86306d3d402c"
+  },
+  "schemaFile": "datasets/semantic_instruction_schema.json",
+  "schemaEnumsExportedAt": "2026-10-09T15:01:54.191Z",
+  "provenance": "gymini-semantic-v1 - generated via a template-family generator (generate_dataset_v1.py) from hand-written base templates with real phrasing variants (canonical/casual/terse/no-accent/mixed) per the task's own category targets. Synthetic, de-identified, no real user data. Gold targets validated against the real TypeScript SemanticInterpretationSchema via validate_targets_against_schema.ts before being accepted into this set."
+}

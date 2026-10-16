@@ -1,0 +1,46 @@
+# QLoRA config for the semantic-understanding fine-tune, Qwen3-4B-Instruct-2507,
+# LOCAL training on a 4GB consumer GPU (RTX 3050). Starting point only - see
+# docs/ai-training/local-qwen4b-discovery.md §H for why this is more
+# conservative than the already-proven 1.5B coach config
+# (training/configs/qlora_coach_qwen2.5_1.5b.yaml): a 4B model is ~2.7x the
+# parameters, so max_seq_length is halved (512, vs 1024) and effective batch
+# size is kept identical rather than raised, pending real Phase D dry-run
+# evidence of how much VRAM headroom actually remains.
+#
+# Target modules and base model verified against the real HF model card
+# (unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit: 36 layers, GQA 32 query /
+# 8 KV heads, hidden_size 2560, max_position_embeddings 262144) - the training
+# script itself re-asserts num_hidden_layers/hidden_size/max_position_embeddings
+# at load time and refuses to train if they don't match (MODEL_IDENTITY_MISMATCH).
+#
+# max_seq_length=384 chosen from analyze_token_lengths.py's REAL distribution
+# over dataset v1 (full system+user+assistant sequence: p99=362, max=363) -
+# NOT copied from the Phase D smoke run's 256, which would truncate the
+# assistant completion on 126/143 (88%) of v1's real rows.
+base_model: unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit
+output_dir: training/semantic-qwen3-4b/outputs/train/qlora-baseline-v1
+train_file: training/semantic-qwen3-4b/datasets/processed/v1/train.jsonl
+eval_file: training/semantic-qwen3-4b/datasets/processed/v1/validation.jsonl
+max_seq_length: 384
+learning_rate: 0.00005
+num_train_epochs: 2
+max_steps: null
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+load_in_4bit: true
+bf16: true
+save_steps: 50
+eval_steps: 25
+logging_steps: 1
+seed: 3407

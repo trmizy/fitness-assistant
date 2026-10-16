@@ -247,6 +247,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     dailyCaloriesTarget?: number;
     dietPreference?: string;
     budgetLevel?: string;
+    cuisineCountry?: string;
+    vietnameseRegion?: "BAC" | "TRUNG" | "NAM";
     restrictions?: string[];
     excludedFoodKeys?: string[];
     notes?: string;
@@ -291,6 +293,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       dailyCaloriesTarget: params.dailyCaloriesTarget,
       dietPreference: params.dietPreference,
       budgetLevel: params.budgetLevel,
+      cuisineCountry: params.cuisineCountry,
+      vietnameseRegion: params.vietnameseRegion,
       restrictions: params.restrictions ?? [],
       excludedFoodKeys: params.excludedFoodKeys ?? [],
       // Extended fields passed through to the prompt

@@ -28,7 +28,10 @@ const ollama = http.createServer((req, res) => {
     } else if (req.url === "/api/embeddings") {
       res.end(JSON.stringify({ embedding: new Array(768).fill(0.1) }));
     } else if (req.url === "/api/tags") {
-      res.end(JSON.stringify({ models: [{ name: "llama3.2:3b" }, { name: "nomic-embed-text:latest" }] }));
+      // N7 — must reflect whatever llm.service.ts actually resolves LLM_MODEL/
+      // EMBEDDING_MODEL to (its own default is production config, not this
+      // test's business), never a hardcoded tag that drifts from it.
+      res.end(JSON.stringify({ models: [{ name: llm.LLM_MODEL }, { name: `${llm.EMBEDDING_MODEL}:latest` }] }));
     } else {
       res.end("{}");
     }
@@ -64,7 +67,7 @@ test("ollama chat payload is unchanged (model, split messages, num_predict as gi
   assert.equal(result.totalTokens, 8);
   const chat = requests.find((r) => r.path === "/api/chat");
   assert.ok(chat);
-  assert.equal(chat.body.model, "llama3.2:3b");
+  assert.equal(chat.body.model, llm.LLM_MODEL, "the configured chat model, not a hardcoded tag that can drift from it (N7)");
   assert.equal(chat.body.format, "json");
   assert.equal(chat.body.options.num_predict, 900, "no Claude floor applied to Ollama");
   assert.equal(chat.body.options.temperature, 0.2);

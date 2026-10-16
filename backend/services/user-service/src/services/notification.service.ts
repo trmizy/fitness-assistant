@@ -10,17 +10,23 @@ import { pushService } from "./push.service";
 
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
-// Historical naming inconsistency: chat-service's own routes validate this
-// against INTERNAL_API_SECRET, while every Lambda (including this one) is
-// actually configured with INTERNAL_SERVICE_SECRET - same fallback
-// precedence chat-service's own chat.policy.ts/push-relay.ts already use
-// for the identical reason, so both sides agree on the same value.
-// BUG FIX (found Phase 13C-A, fixed Phase 14A): this used to read ONLY
-// INTERNAL_API_SECRET, which no Lambda here has ever been configured with -
-// every call was silently sending an empty string as the auth header,
-// always rejected by chat-service, always swallowed by the .catch() below.
+// chat-service's /internal/push-notification validates against
+// INTERNAL_API_SECRET || INTERNAL_SERVICE_SECRET (see its app.ts) - mirror the
+// same precedence here so local dev (where the two are configured to
+// DIFFERENT real values) and Lambda (where only INTERNAL_SERVICE_SECRET is
+// ever set) both land on a value the receiving side actually accepts.
+// BUG FIX (found Phase 13C-A): this used to read ONLY INTERNAL_API_SECRET,
+// which no Lambda here has ever been configured with - every call was
+// silently sending an empty string as the auth header, always rejected by
+// chat-service, always swallowed by the .catch() below.
+// REGRESSION FIX: an earlier pass flipped the precedence to
+// INTERNAL_SERVICE_SECRET || INTERNAL_API_SECRET, which broke this call on
+// local dev (the two are configured to different real values there, and
+// chat-service's receiving side only ever checked INTERNAL_API_SECRET) -
+// INTERNAL_API_SECRET must come first since that's the value both sides
+// agree on everywhere it's actually set.
 const CHAT_INTERNAL_SECRET =
-  process.env.INTERNAL_SERVICE_SECRET || process.env.INTERNAL_API_SECRET || "";
+  process.env.INTERNAL_API_SECRET || process.env.INTERNAL_SERVICE_SECRET || "";
 
 function pushToSocket(payload: {
   userId?: string;

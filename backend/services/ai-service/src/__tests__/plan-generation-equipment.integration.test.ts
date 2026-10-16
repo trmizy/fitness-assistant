@@ -30,6 +30,7 @@ import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
+import net from "node:net";
 import path from "node:path";
 import { Client } from "pg";
 import axios from "axios";
@@ -37,6 +38,7 @@ import { conversationService } from "../services/conversation.service";
 import { prisma, PlanStatus } from "../repositories/conversation.repository";
 import { closeAiQueue } from "../workers/ai.queue";
 import { aiWorker } from "../workers/ai.worker.runtime";
+import { assertSafeTestDatabase } from "../test-utils/safe-test-db";
 
 const AI_DATABASE_URL = process.env.DATABASE_URL || "";
 const FITNESS_DATABASE_URL =
@@ -66,19 +68,40 @@ test.after(async () => {
   await prisma.$disconnect();
 });
 
-function assertSafeTestDatabase(urlValue: string, expectedDatabase: string): void {
-  const url = new URL(urlValue);
-  assert.equal(process.env.NODE_ENV, "test", "NODE_ENV must be test for live DB-backed suite");
-  assert.equal(url.hostname, "localhost", "DB host must be isolated localhost test Postgres");
-  assert.equal(url.port, "55433", "DB port must be isolated postgres-test port 55433");
-  assert.equal(url.pathname.slice(1), expectedDatabase);
-  assert.match(url.pathname, /_test/, "database name must include _test");
+
+// N6 (Phase 3 R2, §13) — a bounded, explicit readiness wait that fails fast
+// and loud instead of a blind 30s poll: if the spawned child errors or exits
+// before /health ever answers, that is reported immediately with its exit
+// code/signal and captured output, rather than a generic timeout message
+// that looks identical to "fitness-service is just slow."
+let fitnessServerOutput = "";
+function captureOutput(chunk: unknown): void {
+  fitnessServerOutput = (fitnessServerOutput + String(chunk)).slice(-4000);
 }
 
-async function waitForFitnessServer(): Promise<void> {
+async function isPortOccupied(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: "127.0.0.1", port, timeout: 500 });
+    socket.once("connect", () => { socket.destroy(); resolve(true); });
+    socket.once("error", () => resolve(false));
+    socket.once("timeout", () => { socket.destroy(); resolve(false); });
+  });
+}
+
+async function waitForFitnessServer(child: ChildProcess | undefined): Promise<void> {
   const deadline = Date.now() + 30_000;
   let lastError: unknown;
+  const state: { earlyExit: { code: number | null; signal: NodeJS.Signals | null } | null; spawnError: Error | null } = { earlyExit: null, spawnError: null };
+  child?.once("exit", (code, signal) => { state.earlyExit = { code, signal }; });
+  child?.once("error", (err) => { state.spawnError = err as Error; });
+
   while (Date.now() < deadline) {
+    if (state.spawnError) {
+      throw new Error(`INFRASTRUCTURE_BLOCKED: failed to spawn the test fitness-service: ${state.spawnError.message}`);
+    }
+    if (state.earlyExit) {
+      throw new Error(`INFRASTRUCTURE_BLOCKED: test fitness-service exited before becoming ready (code=${state.earlyExit.code}, signal=${state.earlyExit.signal}). Captured output:\n${fitnessServerOutput || "(none)"}`);
+    }
     try {
       await axios.get(`${FITNESS_SERVICE_URL}/health`, { timeout: 1000 });
       return;
@@ -87,7 +110,7 @@ async function waitForFitnessServer(): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
-  throw new Error(`Timed out waiting for test fitness-service at ${FITNESS_SERVICE_URL}: ${String(lastError)}`);
+  throw new Error(`INFRASTRUCTURE_BLOCKED: timed out waiting for test fitness-service at ${FITNESS_SERVICE_URL}: ${String(lastError)}. Captured output:\n${fitnessServerOutput || "(none)"}`);
 }
 
 test.before(async () => {
@@ -97,6 +120,10 @@ test.before(async () => {
   await cleanupLiveFitnessUsers();
 
   if (!process.env.TEST_FITNESS_SERVICE_URL) {
+    const port = Number(new URL(FITNESS_SERVICE_URL).port || "4302");
+    if (await isPortOccupied(port)) {
+      throw new Error(`INFRASTRUCTURE_BLOCKED: port ${port} is already in use by another process (a leftover test fitness-service from a previous aborted run?) — refusing to spawn a second one.`);
+    }
     const repoRoot = path.resolve(process.cwd(), "../../..");
     const command = process.execPath;
     const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
@@ -113,16 +140,16 @@ test.before(async () => {
           FITNESS_DATABASE_URL,
           FITNESS_DISABLE_REDIS: "true",
           INTERNAL_SERVICE_SECRET: INTERNAL_SECRET,
-          PORT: new URL(FITNESS_SERVICE_URL).port || "4302",
+          PORT: String(port),
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
-    fitnessServerProcess.stdout?.on("data", (chunk) => process.stdout.write(String(chunk)));
-    fitnessServerProcess.stderr?.on("data", (chunk) => process.stderr.write(String(chunk)));
+    fitnessServerProcess.stdout?.on("data", (chunk) => { captureOutput(chunk); process.stdout.write(String(chunk)); });
+    fitnessServerProcess.stderr?.on("data", (chunk) => { captureOutput(chunk); process.stderr.write(String(chunk)); });
   }
 
-  await waitForFitnessServer();
+  await waitForFitnessServer(fitnessServerProcess);
 });
 
 async function withFitnessDb<T>(fn: (client: Client) => Promise<T>): Promise<T> {

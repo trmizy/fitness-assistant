@@ -57,7 +57,7 @@ export const NARRATION_BUDGET = {
 export async function callLlmJson<T>(
   prompt: string,
   schema: z.ZodType<T, z.ZodTypeDef, any>,
-  opts: { userId: string; phase: string; numPredict: number; attempts?: number; logPrefix?: string; /** log only the error KIND, never its message (zod/JSON.parse messages quote the untrusted model output) */ redactErrorDetail?: boolean; /** Phase 3 R1: an explicit per-call budget. Callers that do not pass it keep the historical CYCLE_ANALYSIS_LLM_TIMEOUT_MS default, so no other flow changes. */ timeoutMs?: number; /** Phase 3 R1: why this call is made (telemetry only; never changes the request). */ purpose?: LlmCallPurpose },
+  opts: { userId: string; phase: string; numPredict: number; attempts?: number; logPrefix?: string; /** log only the error KIND, never its message (zod/JSON.parse messages quote the untrusted model output) */ redactErrorDetail?: boolean; /** Phase 3 R1: an explicit per-call budget. Callers that do not pass it keep the historical CYCLE_ANALYSIS_LLM_TIMEOUT_MS default, so no other flow changes. */ timeoutMs?: number; /** Phase 3 R1: why this call is made (telemetry only; never changes the request). */ purpose?: LlmCallPurpose; /** V2.3A.7: forwarded verbatim to llmService.callLLM's LlmCallOpts.systemPrompt — see its own doc comment. Omitted by every pre-existing caller, so their behavior is unchanged. */ systemPrompt?: string },
 ): Promise<T | null> {
   const attempts = opts.attempts ?? 2;
   const prefix = opts.logPrefix ?? "[llm-json-call]";
@@ -70,6 +70,7 @@ export async function callLlmJson<T>(
         numPredict: opts.numPredict,
         timeoutMs: opts.timeoutMs ?? Number(process.env.CYCLE_ANALYSIS_LLM_TIMEOUT_MS ?? 80_000),
         purpose: opts.purpose,
+        systemPrompt: opts.systemPrompt,
       });
       const jsonText = extractFirstJsonObject(result.answer);
       if (!jsonText) throw new Error("No JSON object found in LLM response");

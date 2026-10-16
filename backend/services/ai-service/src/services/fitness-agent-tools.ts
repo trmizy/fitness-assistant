@@ -325,6 +325,39 @@ export const fitnessAgentTools = {
       z.object({ status: z.literal("insufficient_data"), missingFields: z.array(z.string()) }),
     ]));
   },
+  // Read-only active NutritionGoal <-> active NutritionProgram consistency
+  // detector. This lets AI Coach disclose when the meal plan currently in use
+  // is stale/mismatched, while still generating new drafts from the
+  // authoritative NutritionGoal target above.
+  getNutritionActiveState(identity: AgentIdentity) {
+    return domain(identity, "fitness", "GET", "/nutrition/active-state", undefined, z.object({
+      status: z.enum(["NO_ACTIVE_GOAL", "NO_ACTIVE_PROGRAM", "MATCHED", "STALE_GOAL_CHANGED", "MACRO_MISMATCH", "LOW_CONFIDENCE"]),
+      activeGoal: z.object({
+        id: z.string(),
+        calories: z.number(),
+        protein: z.number(),
+        carbs: z.number(),
+        fat: z.number(),
+        goalMode: z.string().optional(),
+      }).passthrough().nullable(),
+      activeProgram: z.object({
+        id: z.string(),
+        name: z.string(),
+        dailyCaloriesTarget: z.number().nullable(),
+        proteinTargetGrams: z.number().nullable(),
+        carbTargetGrams: z.number().nullable(),
+        fatTargetGrams: z.number().nullable(),
+        sourceGoalId: z.string().nullable().optional(),
+      }).passthrough().nullable(),
+      mismatches: z.array(z.object({
+        field: z.enum(["calories", "protein", "carbs", "fat"]),
+        planValue: z.number(),
+        goalValue: z.number(),
+        diff: z.number().optional(),
+      }).passthrough()),
+      recommendedAction: z.string(),
+    }).passthrough());
+  },
   saveNutritionPlanFromAiPlan(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "fitness", "POST", "/nutrition/from-ai-plan", payload, z.record(z.unknown()));
   },

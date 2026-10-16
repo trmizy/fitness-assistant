@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logger } from "@gym-coach/shared";
 import { isLambdaRuntime } from "../utils/runtime.util";
 
 const redisEnabled =
@@ -11,6 +12,16 @@ const realRedisClient = redisEnabled
       url: `redis://${process.env.REDIS_HOST || "localhost"}:${process.env.REDIS_PORT || 6379}`,
     })
   : null;
+
+// N1 — an EventEmitter "error" event with no listener is a Node uncaught
+// exception (it rethrows synchronously), which previously crashed the whole
+// process on a socket error/timeout. The client's own default reconnect
+// strategy already handles reconnection; this listener only stops that error
+// from being unhandled. Callers still see failures (get/setEx reject) and
+// must treat Redis as unavailable themselves — see exercise.repository.ts.
+realRedisClient?.on("error", (err: unknown) => {
+  logger.error({ err: (err as Error)?.message }, "[redis] client error");
+});
 
 export const redisClient = realRedisClient ?? {
   isOpen: false,

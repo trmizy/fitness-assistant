@@ -1,0 +1,18 @@
+{
+  "annotatorId": "A01",
+  "human": true,
+  "independent": true,
+  "usedLLMForLabels": false,
+  "sawOtherAnnotatorLabels": false,
+  "sawClassifierPredictions": false,
+  "sawGoldLabels": false,
+  "annotationGuidelineVersion": "ANNOTATION_GUIDELINES_V1",
+  "annotationGuidelineHash": "c4d4c5f526d7d8d06b7af42c237919f74810da9ced7dd228af3709b2132649b3",
+  "batchHash": "da3a4789b0518179a64fde293773e7c73242f63179035472c85d197f5ac1078c",
+  "annotationTimestampRange": {
+    "start": "2020-10-02T00:00:00+07:00",
+    "end": "2026-10-12T21:12:00+07:00"
+  },
+  "authority": "INDEPENDENT_HUMAN_LABELS_ON_SYNTHETIC_UTTERANCES",
+  "notes": "Post-annotation technical normalization by ChatGPT/OpenAI assistant only; no safetyLabel or programmingLabel values were changed. Normalized annotator A1→A01, domain typo ODD→OOD, cleared schema-invalid or internally inconsistent optional tags without inferring replacements, normalized booleans/timestamps, converted semicolon-delimited input to standard comma-delimited UTF-8 CSV, and filled canonical guideline/batch hashes."
+}

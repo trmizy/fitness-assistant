@@ -1,0 +1,87 @@
+{
+  "ENTITY_TYPES": [
+    "HEIGHT_CM",
+    "WEIGHT_KG",
+    "TARGET_WEIGHT_KG",
+    "WEIGHT_UNLABELED",
+    "AGE",
+    "GENDER",
+    "SESSIONS_PER_WEEK",
+    "SESSION_MINUTES",
+    "MEALS_PER_DAY",
+    "BUDGET_VND"
+  ],
+  "GOALS": [
+    "WEIGHT_LOSS",
+    "MUSCLE_GAIN",
+    "MAINTENANCE",
+    "ATHLETIC_PERFORMANCE"
+  ],
+  "PRIMARY_INTENTS": [
+    "ANSWER_QUESTION",
+    "START_WORKFLOW",
+    "PROVIDE_INFORMATION",
+    "CORRECT_INFORMATION",
+    "ASK_RECOMMENDATION",
+    "REVISE_WORKFLOW",
+    "CONFIRM",
+    "DISMISS",
+    "UNKNOWN"
+  ],
+  "WORKFLOW_INTENTS": [
+    "CREATE_ROADMAP",
+    "CREATE_WORKOUT_PLAN",
+    "FIND_TRAINING_PROGRAM",
+    "FIND_PT",
+    "HIRE_PT",
+    "CREATE_NUTRITION_PLAN"
+  ],
+  "REQUESTED_ACTIONS": [
+    "ASK",
+    "SUGGEST",
+    "CLARIFY",
+    "PROPOSE_CHANGE",
+    "REVISE",
+    "CONFIRM",
+    "EXECUTE_AFTER_CONFIRM"
+  ],
+  "REFERENCE_KINDS": [
+    "ACCEPT_PROPOSAL",
+    "LOWER_OPTION",
+    "HIGHER_OPTION",
+    "MIDDLE_OPTION",
+    "FIRST_ITEM",
+    "THIS_ITEM",
+    "PREVIOUS_STATE",
+    "ORDINAL_ITEM"
+  ],
+  "CORRECTION_FIELDS": [
+    "HEIGHT_CM",
+    "WEIGHT_KG",
+    "TARGET_WEIGHT_KG",
+    "WEIGHT_UNLABELED",
+    "AGE",
+    "GENDER",
+    "SESSIONS_PER_WEEK",
+    "SESSION_MINUTES",
+    "MEALS_PER_DAY",
+    "BUDGET_VND",
+    "GOAL"
+  ],
+  "NEGATION_TARGETS": [
+    "HEIGHT_CM",
+    "WEIGHT_KG",
+    "TARGET_WEIGHT_KG",
+    "WEIGHT_UNLABELED",
+    "AGE",
+    "GENDER",
+    "SESSIONS_PER_WEEK",
+    "SESSION_MINUTES",
+    "MEALS_PER_DAY",
+    "BUDGET_VND",
+    "GOAL",
+    "ACTION"
+  ],
+  "exportedAt": "2026-10-10T16:18:03.352Z",
+  "sourceFile": "backend/services/ai-service/src/conversational-intelligence/schema.ts"
+}

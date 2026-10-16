@@ -244,6 +244,46 @@ test("READ topics use real services (flag ON): calorie target, program, goal, PT
   } finally { await cleanup(userId, s.id); }
 });
 
+test("READ nutrition-program answers inspect the saved menu instead of generating a new one", async () => {
+  process.env.CONVERSATIONAL_INTELLIGENCE_V2 = "on";
+  stubWorld({ contracts: [] });
+  fitnessAgentDeps.profileExtractor.extract = async () => ({
+    profile: { nutritionGoal: { calories: 2200, protein: 165, carbs: 248, fat: 61 } },
+    inBodyHistory: [],
+    workoutHistory: [],
+    nutritionHistory: [],
+    currentNutritionProgram: {
+      name: "Cutting Plan",
+      dailyCaloriesTarget: 2200,
+      proteinTargetGrams: 165,
+      carbTargetGrams: 248,
+      fatTargetGrams: 61,
+      mealsPerDay: 3,
+      status: "ACTIVE",
+      daySummaries: [{
+        dayNumber: 1,
+        meals: [
+          { mealType: "BREAKFAST", itemNames: ["Yến mạch", "Trứng", "Chuối"] },
+          { mealType: "LUNCH", itemNames: ["Cơm trắng", "Cá", "Rau xanh"] },
+        ],
+      }],
+    },
+  } as any);
+  const userId = `g-menu-read-${randomUUID()}`; const s = await newSession(userId);
+  const identity = { userId, authorizationHeader: "Bearer x" } as any;
+  try {
+    assert.equal(classifyGlobal("đã có thực đơn chưa").route, "READ_STATE");
+    assert.equal(classifyGlobal("đã có thực đơn chưa").topic, "NUTRITION_PROGRAM");
+    const r = await fitnessAgent.tryTurn("đã có thực đơn chưa", identity, s.id);
+    assert.ok(r, "answered");
+    assert.match(r!.answer, /Cutting Plan/);
+    assert.match(r!.answer, /2\.200 kcal|2200 kcal/);
+    assert.match(r!.answer, /Yến mạch|Yáº¿n máº¡ch/);
+    assert.doesNotMatch(r!.answer, /Mình đang tính thực đơn|Gợi Ý Bữa Ăn|Gá»£i Ã Bá»¯a Ä‚n/);
+    assert.equal((await workflowRows(userId)).length, 0, "read creates no nutrition workflow");
+  } finally { await cleanup(userId, s.id); }
+});
+
 test("PURE Q&A causes no business write and starts no workflow (flag ON)", async () => {
   process.env.CONVERSATIONAL_INTELLIGENCE_V2 = "on";
   const { calls } = stubWorld();

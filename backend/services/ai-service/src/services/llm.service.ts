@@ -32,6 +32,16 @@ export interface LlmCallOpts {
   temperature?: number;
   numPredict?: number;
   purpose?: LlmCallPurpose;
+  /**
+   * V2.3A.7: explicit system/user role split. When set, `prompt` is sent as
+   * the user turn as-is and `systemPrompt` becomes the system turn/block for
+   * every provider branch — bypassing `buildOllamaMessages()`'s brittle
+   * "Câu hỏi của user:" substring-sniffing entirely for this call. Callers
+   * that omit it keep the exact pre-existing string-sniffing behavior
+   * (backwards compatible by construction — see
+   * docs/ai-training/qwen4b-v2-3a7-production-semantic-contract-alignment-implementation.md).
+   */
+  systemPrompt?: string;
 }
 
 export const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
@@ -68,12 +78,24 @@ function getAnthropicClient(): Anthropic {
 function buildAnthropicRequest(
   prompt: string,
   responseFormat?: "json" | "text",
+  explicitSystemPrompt?: string,
 ): { system?: string; messages: Anthropic.MessageParam[] } {
-  const split = buildOllamaMessages(prompt);
-  const systemMessage = split.find((m) => m.role === "system");
-  const userMessage = split.find((m) => m.role === "user") ?? split[0];
-
-  let system = systemMessage?.content;
+  // V2.3A.7: an explicit systemPrompt (LlmCallOpts.systemPrompt) always wins
+  // and skips buildOllamaMessages()'s string-sniffing — see its own doc
+  // comment. Prompts without one (every caller before this task) keep the
+  // exact prior behavior.
+  let system: string | undefined;
+  let userContent: string;
+  if (typeof explicitSystemPrompt === "string") {
+    system = explicitSystemPrompt;
+    userContent = prompt;
+  } else {
+    const split = buildOllamaMessages(prompt);
+    const systemMessage = split.find((m) => m.role === "system");
+    const userMessage = split.find((m) => m.role === "user") ?? split[0];
+    system = systemMessage?.content;
+    userContent = userMessage.content;
+  }
   if (responseFormat === "json") {
     const jsonInstruction =
       "Respond with valid JSON only — no prose, no markdown code fences, no explanation.";
@@ -82,7 +104,7 @@ function buildAnthropicRequest(
 
   return {
     system,
-    messages: [{ role: "user", content: userMessage.content }],
+    messages: [{ role: "user", content: userContent }],
   };
 }
 export const EMBEDDING_MODEL =
@@ -518,6 +540,7 @@ export const llmService = {
         const { system, messages } = buildAnthropicRequest(
           prompt,
           opts?.responseFormat,
+          opts?.systemPrompt,
         );
         // Real bug found live this session: several callers (e.g.
         // roadmap-draft.service.ts's callLlmJson with numPredict: 900) tuned
@@ -566,6 +589,7 @@ export const llmService = {
         const { system, messages } = buildAnthropicRequest(
           prompt,
           opts?.responseFormat,
+          opts?.systemPrompt,
         );
         const userContent = messages[0]?.content;
         // Same token-budget rule as the anthropic branch above: a caller's
@@ -592,7 +616,15 @@ export const llmService = {
         // The prompt is split into a system message (rules) and a user message (question + context).
         const payload: any = {
           model: LLM_MODEL,
-          messages: buildOllamaMessages(prompt),
+          // V2.3A.7: an explicit systemPrompt always wins over the brittle
+          // "Câu hỏi của user:" substring-sniffing in buildOllamaMessages().
+          messages:
+            typeof opts?.systemPrompt === "string"
+              ? [
+                  { role: "system", content: opts.systemPrompt },
+                  { role: "user", content: prompt },
+                ]
+              : buildOllamaMessages(prompt),
           stream: false,
           options: {
             num_ctx:

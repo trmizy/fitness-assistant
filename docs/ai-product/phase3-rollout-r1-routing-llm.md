@@ -164,11 +164,11 @@ Partially closed:
 - **General QA latency** — the turn is now bounded at ~47 s (was 181.9 s), and failures are truthful. But on this CPU host a general answer with the full RAG prompt does not complete within 45 s, so general QA currently returns the fallback. Reducing the budget further would worsen this trade-off; the fix is hardware or a smaller prompt, and both are outside R1.
 
 Open:
-- **Recommendation narration** can still wait up to 2 × 80 s (`callLlmJson` default, 2 attempts) on recommendation turns. Not measured in R1 and not changed; it needs the same bound as §7 before rollout.
+- ~~**Recommendation narration** can still wait up to 2 × 80 s...~~ **Closed in R1.1** — see `docs/ai-product/phase3-rollout-r1-1-narration.md`. Narration now has its own one-attempt, 20 s budget with a deterministic fallback; it was never business authority (it only chooses which claims to show, never the candidate ids/order/scores).
 - **N1** — fitness-service unhandled Redis error (out of AI scope).
 - Cold-load after keep-alive expiry not measured.
 - Draft-path gate (`!pendingDraft`) verified by code inspection only; no live probe with an active draft yet.
-- Concurrent merge (§14) needs owner review.
-- Batch 5 unresolved items: draft-time equipment gate fails open (N4), `.env` test database default (N5, mitigated by explicit env in every run), `adoptPlan` live-dependency (N6), Ollama stale expectation (N7).
+- Concurrent merge (§14): resolved factually in R1.1 — HEAD advanced through several further merges after §14 was written; R1's own uncommitted code was swept into a later commit (`2bbee3d1`) by that process and verified intact at the new HEAD. See the R1.1 report for the full chain.
+- Batch 5 unresolved items: draft-time equipment gate fails open (N4), `.env` test database default (N5, mitigated by explicit env in every run), `adoptPlan` live-dependency (N6), Ollama stale expectation (N7) — all still open as of R1.1, unchanged.
 
-Verdict: **`R1_AI_BLOCKERS_PARTIAL`**. N2 and the measured N3 are closed. Latency is bounded and truthful but not yet acceptable for general QA, and narration timing is not bounded. This is not a rollout decision; production defaults stay off.
+Verdict: **`R1_AI_BLOCKERS_PARTIAL`**. N2 and the measured N3 are closed. Latency is bounded and truthful but not yet acceptable for general QA. Narration timing was open at the end of R1 and was closed in the R1.1 follow-up (see that report for its own verdict). This is not a rollout decision; production defaults stay off.

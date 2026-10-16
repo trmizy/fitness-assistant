@@ -1,0 +1,535 @@
+{
+  "generatedAt": "2026-10-09T08:25:55.056Z",
+  "note": "Phase 15B-B1: batch 2 of the import (Auth + Payment, 66 resources). Cannot be tested via a real change-set until batch 1 (fitness-assistant-dev-api-gateway stack) has been ACTUALLY EXECUTED - creating a real change-set for an existing stack requires the stack to already exist. This file is the verified resource specification only, ready for Phase 15B-B2 to consume once batch 1 executes.",
+  "totalResources": 66,
+  "resources": [
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "PaymentIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "w9fjro0"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthLoginIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1vnd68s"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthLogoutIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "vq6v245"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthMeIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "mg2016a"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRefreshIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "1m2k0ec"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRegisterIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "6l59zzc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthRegisterVerifyIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "4y4qfnr"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersListIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9ibcmaf"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersDisableIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "ai0sybi"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersEnableIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "9291bod"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthUsersRoleIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "5z0d625"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Integration",
+      "LogicalResourceId": "AuthVerifyIntegration",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "IntegrationId": "0dz9hk6"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentadminpaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6xzii05"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentadminpaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "xem7w3d"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthLoginRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "pdyttwa"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthLogoutRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "qzs0h76"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthMeRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "udx6zk8"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthMePasswordRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "kglwdf4"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRefreshRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b4qz92c"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRegisterRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "v1ulrmi"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthRegisterVerifyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "s6u0xlk"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersListRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "t5rs0fv"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersDisableRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "b13kqj2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersEnableRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "inqm7z3"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthUsersRoleRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "od61vtj"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "AuthVerifyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "bql2ffm"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmepaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "q2x73ci"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmepaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "aexyi40"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmeptwalletBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ky8pdte"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmeptwalletProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "fnw2xg2"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewalletBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "wz6h20l"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewalletProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "18pp73s"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewithdrawalsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "hccamfd"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentmewithdrawalsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "6sa0fv8"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentpaymentsBareRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "ggous3t"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentpaymentsProxyRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "25k6vpo"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentVnpayReturnRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "1a39mw9"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentWebhookProviderRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "gd8slzc"
+      }
+    },
+    {
+      "ResourceType": "AWS::ApiGatewayV2::Route",
+      "LogicalResourceId": "PaymentWebhookVnpayRoute",
+      "ResourceIdentifier": {
+        "ApiId": "id1iz7upbl",
+        "RouteId": "lc4uib6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRegisterPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "2b81f718-d9c4-5ad0-a608-a095b2e5cf19"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthLoginPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "8c5bd12a-f704-59ba-8b1c-1fd1b443312f"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRefreshPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "4b688a74-fac9-55d1-9aea-f2991a612f30"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthLogoutPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "76615900-0d3e-5b89-9d91-0bd373206d23"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthVerifyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "72afdf9d-7781-5b76-9d15-3934874f10d6"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersListPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "f553221d-5393-559b-9674-fc44edd40b6e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersRolePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "0fcfe73c-7fa5-5e64-8663-61d76f2e6dba"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthRegisterVerifyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "ebf2f04e-95b9-5a57-ab25-72b54a7f9801"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersDisablePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "243bcfe0-270c-5634-9451-a7eff781cc8a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthUsersEnablePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "161e1a2d-183d-5ae7-bffb-29310adaf3ff"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthMePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "d320efbb-5b94-5605-a88e-0c84fa2299f9"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "AuthMePasswordPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-auth",
+        "Id": "apigw-auth-me-password"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentadminpaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "ad16c206-6bf8-56b2-b564-51afa40764ab"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentadminpaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "24e3e0fb-a876-505a-b857-d145ce1e9522"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewalletBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "4ffd67f3-ba68-5082-9ed0-d9f4b059bbf7"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewalletProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "bad0bcde-985e-59af-97a7-f7ca98de6902"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewithdrawalsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "c2627d1c-a232-5769-916b-e013479ed8ef"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmewithdrawalsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "be3b441a-f86a-5910-a007-4d7a142096a5"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmepaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "d0955da6-ec61-52f8-9c44-2331da64ea0a"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmepaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "83e8c4bf-7d55-55b1-a0c3-03c1336e905d"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmeptwalletBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "27dfa253-38d1-553f-86cb-d33f459fbab8"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentmeptwalletProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "cc4008ee-6c01-5247-85d0-2e4b294b882e"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentpaymentsBarePermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "b3662570-3dfb-5270-ae0b-784ad916ab1c"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentpaymentsProxyPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "544c730d-fe5c-50cd-ab97-e03aa7d383af"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentVnpayReturnPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "3f918279-e486-532f-8f24-9642831b81c8"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentWebhookProviderPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "9e68fb48-61a1-5de1-8098-dad2b49ee291"
+      }
+    },
+    {
+      "ResourceType": "AWS::Lambda::Permission",
+      "LogicalResourceId": "PaymentWebhookVnpayPermission",
+      "ResourceIdentifier": {
+        "FunctionName": "fitness-assistant-dev-payment",
+        "Id": "64dfbfa3-2b1c-5b9a-8ba3-c81114edae3b"
+      }
+    }
+  ]
+}

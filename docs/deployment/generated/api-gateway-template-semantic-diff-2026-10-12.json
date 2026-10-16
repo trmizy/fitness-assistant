@@ -1,0 +1,12 @@
+{
+  "note": "Phase 16A.3: real, read-only comparison of the live deployed fitness-assistant-dev-api-gateway template against the local canonical infra/cloudformation/api-gateway-baseline.yaml, via the new TemplateSemanticGuard.psm1 (Get-TemplateSemanticModel + Compare-TemplateSemantics). Confirms HttpApiIdOut (added out-of-band during Phase 16A.2R, invisible to describe-change-set's own Changes array) is now semantically identical on both sides.",
+  "deployedTemplateSemanticDigest": "4103b5289c3c27370bcb16ce0fd7368a60ec992eb879028ceb353cc143794a4d",
+  "localTemplateSemanticDigest": "4103b5289c3c27370bcb16ce0fd7368a60ec992eb879028ceb353cc143794a4d",
+  "overall": "NO_SEMANTIC_CHANGE",
+  "findings": [],
+  "httpApiIdOutput": {
+    "presentLocal": true,
+    "presentDeployed": true,
+    "semanticMatch": true
+  }
+}

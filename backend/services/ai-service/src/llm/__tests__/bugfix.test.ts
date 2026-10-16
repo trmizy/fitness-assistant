@@ -445,6 +445,33 @@ describe("C. meal_plan deterministic formatter — no workout table headings", (
     }
   });
 
+  it("meal_plan quick chat falls back when a dataset meal day is too sparse for realistic macros", () => {
+    const profile: UserProfile = {
+      age: 22,
+      gender: "MALE",
+      heightCm: 173,
+      currentWeightKg: 76.3,
+      goal: "MUSCLE_GAIN",
+      nutritionGoal: { calories: 2200, protein: 165, carbs: 248, fat: 61 },
+      training: { availableEquipment: [], injuries: [], preferredTrainingDays: [] },
+    };
+    const rec = recommendationEngine.recommend(profile, minimalIntent("meal_plan_request"), "vi");
+    assert.ok(rec.mealPlan, "mealPlan should be present");
+
+    const breakfast = rec.mealPlan!.meals[0];
+    const breakfastText = breakfast.foods.join(" ");
+    assert.match(breakfastText, /Yến mạch|Yáº¿n máº¡ch|Cơm|CÆ¡m|Khoai|Bánh mì|BÃ¡nh mÃ¬/);
+    assert.doesNotMatch(
+      breakfast.foods.join(", "),
+      /Thịt bò nạc.*Kiwi|Thá»‹t bÃ² náº¡c.*Kiwi/,
+      "breakfast must not be the sparse protein+fruit-only sample",
+    );
+
+    const answer = responseFormatter.format(rec, "vi");
+    assert.match(answer, /2200 kcal/);
+    assert.match(answer, /chưa lưu vào trang Dinh dưỡng|chÆ°a lÆ°u vÃ o trang Dinh dÆ°á»¡ng/);
+  });
+
   // Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,
   // Persona B/C — profile missing age/height, exactly minimalProfile()'s
   // shape). Root cause: nutritionCalculator.calculate() legitimately

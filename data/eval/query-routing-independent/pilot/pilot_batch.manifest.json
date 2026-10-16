@@ -1,0 +1,13 @@
+{
+  "file": "pilot_batch.csv",
+  "rows": 149,
+  "uniqueIds": 149,
+  "canonicalBatchHash": "da3a4789b0518179a64fde293773e7c73242f63179035472c85d197f5ac1078c",
+  "fileSha256": "f21a0d6dd863ee0b2197f4174e4b24d3076416f453c96d3e85021d3cc711d6c9",
+  "columns": [
+    "id",
+    "text"
+  ],
+  "utteranceStatus": "SYNTHETIC_UTTERANCES_WITH_FUTURE_HUMAN_LABELS",
+  "note": "blind batch (id,text only); hidden writer-intended labels are NOT in this file"
+}

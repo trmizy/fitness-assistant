@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV - CloudFront CDN in front of the existing frontend S3 bucket.
+  Additive only: the bucket's existing public-read policy is preserved
+  (nothing that currently depends on direct S3 access breaks), and a new
+  CloudFront-scoped read statement is added via Origin Access Control (OAC).
+  No custom domain/Route 53 (default *.cloudfront.net). SPA routing handled
+  via CloudFront custom error responses (403/404 -> /index.html, 200).
+
+Parameters:
+  FrontendBucketName:
+    Type: String
+    Default: fitness-assistant-frontend-dev-191798898985
+  FrontendBucketRegion:
+    Type: String
+    Default: ap-southeast-1
+
+Resources:
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${FrontendBucketName}-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: "Gymini DEV frontend CDN (additive - S3 public access unchanged)"
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_200 # includes Asia edge locations (SEA audience)
+        HttpVersion: http2
+        Origins:
+          - Id: frontend-s3-origin
+            DomainName: !Sub "${FrontendBucketName}.s3.${FrontendBucketRegion}.amazonaws.com"
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: frontend-s3-origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          # AWS managed "CachingOptimized" policy (1 day default/max TTL).
+          # NOTE: the frontend deploy pipeline must run
+          # `aws cloudfront create-invalidation` after each deploy, or
+          # cached HTML/JS can serve stale content for up to a day.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  # NOTE: the bucket's policy is intentionally NOT managed here.
+  # AWS::S3::BucketPolicy cannot adopt a policy that already exists on a
+  # bucket this stack didn't create (CREATE_FAILED: "The bucket policy
+  # already exists..." - a real, confirmed CloudFormation limitation, not a
+  # guess). The CloudFront-read statement is added via a direct
+  # `aws s3api put-bucket-policy` call after this stack deploys (merging
+  # into, never replacing, the bucket's existing public-read statement) -
+  # see the deployment report for the exact command used.
+
+Outputs:
+  DistributionId:
+    Value: !Ref FrontendDistribution
+  DistributionDomainName:
+    Value: !GetAtt FrontendDistribution.DomainName
+  DistributionUrl:
+    Value: !Sub "https://${FrontendDistribution.DomainName}"

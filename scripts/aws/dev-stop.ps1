@@ -64,6 +64,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path $PSScriptRoot "lib/DevLifecycle.psm1") -Force
+
 $ExpectedAccount = "191798898985"
 $ExpectedRegion  = "ap-southeast-1"
 $StackName       = "gymini-dev-on-demand"
@@ -75,26 +77,12 @@ $AossCollectionName = "fitness-assistant-dev-ai-vectors"
 $AuroraClusterId = "fitness-assistant-dev-aurora"
 $SchedulerStateFile = ".dev/aws/scheduler-state.json"
 $AiTasksQueueUrl = "https://sqs.ap-southeast-1.amazonaws.com/191798898985/fitness-assistant-dev-ai-tasks"
-# Schedules this automation is allowed to pause/restore. Deliberately
-# excludes fitness-assistant-dev-gym-partner-upload-sweep, which is
-# independently DISABLED for a product reason unrelated to DEV freeze -
-# it is captured in the snapshot for completeness but never toggled.
-$DevPausableSchedules = @(
-    "fitness-assistant-dev-ai-autoaccept",
-    "fitness-assistant-dev-ai-pubmed",
-    "fitness-assistant-dev-payment-reconciliation",
-    "fitness-assistant-dev-user-session-auto-confirm",
-    "fitness-assistant-dev-user-session-settlement",
-    "fitness-assistant-dev-ai-rss",
-    "fitness-assistant-dev-workout-unfinished-reminder",
-    "fitness-assistant-dev-ai-local-evidence",
-    "fitness-assistant-dev-user-reschedule-expiry",
-    "fitness-assistant-dev-ai-web",
-    "fitness-assistant-dev-gym-membership-payout",
-    "fitness-assistant-dev-gym-referral-settlement",
-    "fitness-assistant-dev-workout-upcoming-reminder"
-)
-$AllKnownSchedules = $DevPausableSchedules + @("fitness-assistant-dev-gym-partner-upload-sweep")
+# Schedules this automation is allowed to pause/restore (and the one it must
+# never touch) now live in one shared place - see
+# scripts/aws/lib/DevLifecycle.psm1 - instead of being duplicated here and
+# in dev-start.ps1.
+$DevPausableSchedules = Get-DevPausableSchedules
+$AllKnownSchedules = Get-DevAllKnownSchedules
 
 function Set-AossNetworkPolicyVpce {
     param([string]$PolicyName, [string]$OldVpceId, [string]$NewVpceId, [string]$Region)
@@ -159,11 +147,7 @@ function Suspend-DevSchedules {
     # actually transitioning (i.e., currently ENABLED). If every pausable
     # schedule is already DISABLED, there is nothing new to capture -
     # leave whatever snapshot is already on disk untouched.
-    $anyTransitioning = $false
-    foreach ($name in $PausableNames) {
-        if ($snapshot[$name] -eq "ENABLED") { $anyTransitioning = $true; break }
-    }
-    if ($anyTransitioning) {
+    if (Test-ShouldCaptureScheduleSnapshot -CurrentStates $snapshot -PausableNames $PausableNames) {
         $stateDir = Split-Path $StateFile -Parent
         if ($stateDir -and -not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
         (ConvertTo-Json -InputObject $snapshot -Depth 5) | Set-Content -Path $StateFile -Encoding ASCII
@@ -270,15 +254,47 @@ if ($Backend) {
     Write-Host "   OK: no in-flight messages."
 }
 
+# -- Resolve desired state subtractively, with dependency protection ------
+# (Phase 12A) STOP must only turn off what was explicitly requested,
+# preserving everything else - and must refuse outright (no partial
+# mutation at all) rather than silently breaking a still-active dependent,
+# if -Secrets is requested while Backend/Chat/Ai would still be ON
+# afterward. Resolved BEFORE any mutation (schedules/Aurora/runtime-config/
+# CloudFormation) so an unsafe request never gets partway applied.
+$currentStack = Get-CurrentStackState -StackName $StackName -Region $ExpectedRegion
+if ($currentStack.StackExists -and -not $currentStack.Safe) {
+    Write-Host "HARD STOP: stack '$StackName' is in status '$($currentStack.StackStatus)', not safe to read parameters from (transitional or failed state). Resolve manually (check the CloudFormation console) before continuing." -ForegroundColor Red
+    exit 1
+}
+$auroraForDisplay = Get-CurrentAuroraState -ClusterId $AuroraClusterId -Region $ExpectedRegion
+$currentState = @{
+    Network = $currentStack.Network; Chat = $currentStack.Chat; Ai = $currentStack.Ai
+    Secrets = $currentStack.Secrets; Backend = $auroraForDisplay.Available
+}
+$requestedOff = @{
+    Backend = [bool]$Backend; Network = [bool]$Network; Chat = [bool]$Chat
+    Ai      = [bool]$Ai;      Secrets  = [bool]$Secrets
+}
+$resolution = Resolve-DesiredStopState -Current $currentState -RequestedOff $requestedOff
+
+Write-Host ""
+Write-Host (Format-LifecyclePlan -Mode Stop -Current $currentState -Requested $requestedOff -Desired $resolution.Desired)
+Write-Host ""
+
+if ($resolution.Blocked) {
+    Write-Host "HARD STOP: $($resolution.Reason)" -ForegroundColor Red
+    exit 1
+}
+$desired = $resolution.Desired
+
 if (-not $Execute) {
-    Write-Host ""
     Write-Host "DRY RUN (default) - the following would run, nothing was executed:" -ForegroundColor Yellow
     Write-Host ""
     if ($Chat) {
         Write-Host "2) Push graceful-disable runtime-config.json BEFORE any teardown"
     }
     Write-Host ""
-    Write-Host "3) Read current stack parameters, turn off the requested flag(s), preserve the rest"
+    Write-Host "3) Apply resolved target state to the stack (only the requested flag(s) change, everything else preserved)"
     if ($Backend) {
         Write-Host ""
         Write-Host "8) Suspend DEV-pausable schedules (capture state to $SchedulerStateFile first), then stop Aurora"
@@ -325,33 +341,20 @@ if ($Backend) {
 }
 
 Write-Host ""
-Write-Host "3) Reading current stack parameters..."
-$stackExists = $true
-$currentParams = @{}
-try {
-    $result = aws cloudformation describe-stacks --stack-name $StackName --region $ExpectedRegion --query "Stacks[0].Parameters" --output json 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        ($result | ConvertFrom-Json) | ForEach-Object { $currentParams[$_.ParameterKey] = $_.ParameterValue }
-    } else {
-        $stackExists = $false
-    }
-} catch { $stackExists = $false }
+Write-Host "3) Applying resolved target state (already computed above, before any mutation)..."
+$stackExists = $currentStack.StackExists
 
 if (-not $stackExists) {
     Write-Host "   Stack does not exist - nothing to tear down on the CloudFormation side." -ForegroundColor Yellow
     if (-not ($Network -or $Chat -or $Ai -or $Secrets)) { exit 0 }
 } else {
 
-$curNat = if ($currentParams.ContainsKey("EnableNatGateway")) { $currentParams["EnableNatGateway"] } else { "false" }
-$curChat = if ($currentParams.ContainsKey("EnableChat")) { $currentParams["EnableChat"] } else { "false" }
-$curAi = if ($currentParams.ContainsKey("EnableOpenSearchEndpoint")) { $currentParams["EnableOpenSearchEndpoint"] } else { "false" }
-$curSecrets = if ($currentParams.ContainsKey("EnableSecretsManagerEndpoint")) { $currentParams["EnableSecretsManagerEndpoint"] } else { "false" }
-Write-Host "   Current: EnableNatGateway=$curNat EnableChat=$curChat EnableOpenSearchEndpoint=$curAi EnableSecretsManagerEndpoint=$curSecrets"
+$curAi = if ($currentStack.Ai) { "true" } else { "false" }
 
-$targetNat = if ($Network) { "false" } else { $curNat }
-$targetChat = if ($Chat) { "false" } else { $curChat }
-$targetAi = if ($Ai) { "false" } else { $curAi }
-$targetSecrets = if ($Secrets) { "false" } else { $curSecrets }
+$targetNat = if ($desired.Network) { "true" } else { "false" }
+$targetChat = if ($desired.Chat) { "true" } else { "false" }
+$targetAi = if ($desired.Ai) { "true" } else { "false" }
+$targetSecrets = if ($desired.Secrets) { "true" } else { "false" }
 Write-Host "   Target:  EnableNatGateway=$targetNat EnableChat=$targetChat EnableOpenSearchEndpoint=$targetAi EnableSecretsManagerEndpoint=$targetSecrets"
 
 $oldVpceIdBeforeTeardown = $null

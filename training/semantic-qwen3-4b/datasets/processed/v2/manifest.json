@@ -1,0 +1,31 @@
+{
+  "datasetVersion": "v2",
+  "createdAt": "2026-10-10T16:29:26.802035+00:00",
+  "seed": 42,
+  "totalCases": 464,
+  "splitCounts": {
+    "train": 327,
+    "validation": 71,
+    "heldout": 66
+  },
+  "categoryCounts": {
+    "AMBIGUITY_UNKNOWN": 34,
+    "CORRECTION": 60,
+    "ENTITY": 74,
+    "FITNESS_SHORTHAND": 27,
+    "FOLLOWUP_SLOT": 32,
+    "INTENT": 103,
+    "MULTI_INTENT": 20,
+    "REFERENCE": 60,
+    "REVISION": 34,
+    "SAFETY_NON_AUTHORITY": 20
+  },
+  "sha256": {
+    "train.jsonl": "c668ab49697a0ae85d12675e0e46f66994f7110dd319bda35147c6aab3fac60a",
+    "validation.jsonl": "c0eff7044f53ba1bff147480df7d804dfd1f32684d06d3e46e22e11f15cd13b1",
+    "heldout.jsonl": "e47fad8cf6b9781843dda283332a38d24b557143f356650146873255d032e425"
+  },
+  "schemaFile": "datasets/semantic_instruction_schema.json",
+  "schemaEnumsExportedAt": "2026-10-10T16:18:03.352Z",
+  "provenance": "gymini-semantic-v2 - Dataset V2 task (post-D1): expanded template-family generator (generate_dataset_v2.py), same ontology/schema as v1 (no new intents/enums - SOURCE_HEAD's SemanticInterpretationSchema, schema.ts sha256 e2d76742ff3b01d45ac2c8b8649947f2e2f773d02bd25c373bdd1c93de7cd598, no drift from v1's snapshot), broader contrastive/entity-co-occurrence/correction/reference/ambiguity coverage per D1's findings. Synthetic, de-identified, no real user data, no external model/API generation - local rule/template generation only. Gold targets validated against the real TypeScript SemanticInterpretationSchema via validate-semantic-dataset-targets.ts before being accepted into this set."
+}

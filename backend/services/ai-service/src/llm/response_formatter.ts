@@ -405,9 +405,13 @@ function formatMealPlan(
   }
 
   const lines: string[] = [];
+  const unsavedChatSuggestionNote =
+    "> Đây là bản gợi ý trong chat, chưa lưu vào trang Dinh dưỡng. Để tạo bản có thể lưu, nhắn: \"tạo thực đơn cho tôi\" rồi xác nhận lưu.";
 
   if (language === "vi") {
     lines.push("## 🥗 Thực Đơn Của Bạn");
+    lines.push("");
+    lines.push(unsavedChatSuggestionNote);
     lines.push("");
     if ((rec.personalizationSummary || []).length > 0) {
       lines.push("**Cá nhân hóa theo dữ liệu của bạn:**");

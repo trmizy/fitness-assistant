@@ -15,11 +15,13 @@ import { agentErrorMessage, greetingText, relativeTime, suggestions, visibleEvid
 import {
   appendAgentReply,
   appendImageChatExchange,
+  getLastActiveCoachSessionId,
   hydrateCoachSession,
   newDraftKey,
   resetCoachSession,
   seedCoachGreeting,
   sendCoachQuestion,
+  setLastActiveCoachSessionId,
   useCoachSession,
 } from "../../src/features/coach/coachStore";
 import { AgentBlock } from "../../src/features/coach/AgentBlocks";
@@ -48,12 +50,9 @@ export default function AiCoachScreen() {
   const userId = user?.id ?? "guest";
 
   const [view, setView] = useState<"chat" | "list">("chat");
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => getLastActiveCoachSessionId(userId));
   const [draftKey, setDraftKey] = useState(() => newDraftKey());
-  const key = activeSessionId ?? draftKey;
-  const session = useCoachSession(userId, key);
-  const messages = session.messages;
-  const processing = session.status === "processing";
+  const [restoreLatestOnOpen, setRestoreLatestOnOpen] = useState(() => !getLastActiveCoachSessionId(userId));
 
   const [input, setInput] = useState("");
   const [attachOpen, setAttachOpen] = useState(false);
@@ -63,6 +62,7 @@ export default function AiCoachScreen() {
   const [renameTarget, setRenameTarget] = useState<AiChatSessionSummary | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const scrollRef = useRef<ScrollView>(null);
+  const previousUserIdRef = useRef(userId);
 
   // Tab screens stay mounted when you leave them, and a BottomSheet is its own native window —
   // an open sheet would otherwise stay on top of whatever screen comes next.
@@ -77,16 +77,39 @@ export default function AiCoachScreen() {
   );
 
   const sessionsQuery = useQuery({ queryKey: sessionsKey(userId), queryFn: coachService.listSessions, refetchInterval: 10_000, enabled: !!user?.id });
-  const sessions = sessionsQuery.data ?? [];
+  const sessions = useMemo(() => sessionsQuery.data ?? [], [sessionsQuery.data]);
+  const latestRestorableSessionId = useMemo(() => {
+    if (!restoreLatestOnOpen || sessions.length === 0) return null;
+    return [...sessions].sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())[0]?.id ?? null;
+  }, [restoreLatestOnOpen, sessions]);
+  const resolvedSessionId = activeSessionId ?? latestRestorableSessionId;
+  const key = resolvedSessionId ?? draftKey;
+  const session = useCoachSession(userId, key);
+  const messages = session.messages;
+  const processing = session.status === "processing";
+
+  useEffect(() => {
+    if (previousUserIdRef.current !== userId) {
+      previousUserIdRef.current = userId;
+      const rememberedForUser = getLastActiveCoachSessionId(userId);
+      setDraftKey(newDraftKey());
+      setActiveSessionId(rememberedForUser);
+      setRestoreLatestOnOpen(!rememberedForUser);
+      return;
+    }
+    const remembered = getLastActiveCoachSessionId(userId);
+    setActiveSessionId((current) => current ?? remembered);
+    setRestoreLatestOnOpen(!remembered);
+  }, [userId]);
 
   const threadQuery = useQuery({
-    queryKey: ["ai-session-messages", userId, activeSessionId],
-    queryFn: () => coachService.getSessionMessages(activeSessionId!),
-    enabled: !!activeSessionId && !!user?.id,
+    queryKey: ["ai-session-messages", userId, resolvedSessionId],
+    queryFn: () => coachService.getSessionMessages(resolvedSessionId!),
+    enabled: !!resolvedSessionId && !!user?.id,
   });
   useEffect(() => {
-    if (activeSessionId && threadQuery.data) hydrateCoachSession(userId, activeSessionId, threadQuery.data);
-  }, [userId, activeSessionId, threadQuery.data]);
+    if (resolvedSessionId && threadQuery.data) hydrateCoachSession(userId, resolvedSessionId, threadQuery.data);
+  }, [userId, resolvedSessionId, threadQuery.data]);
 
   const inbodyQuery = useQuery({ queryKey: ["inbody-history"], queryFn: inbodyService.getHistory });
   const history: any[] = useMemo(() => (Array.isArray(inbodyQuery.data) ? inbodyQuery.data : []), [inbodyQuery.data]);
@@ -94,8 +117,8 @@ export default function AiCoachScreen() {
 
   // Only a brand-new thread gets the greeting; a saved one is hydrated from the server instead.
   useEffect(() => {
-    if (!activeSessionId && !inbodyLoading && messages.length === 0) seedCoachGreeting(userId, key, greetingText(history[0], history[1]));
-  }, [activeSessionId, inbodyLoading, messages.length, userId, key, history]);
+    if (!resolvedSessionId && !inbodyLoading && messages.length === 0) seedCoachGreeting(userId, key, greetingText(history[0], history[1]));
+  }, [resolvedSessionId, inbodyLoading, messages.length, userId, key, history]);
 
   const lastText = messages[messages.length - 1]?.text;
   useEffect(() => {
@@ -108,9 +131,11 @@ export default function AiCoachScreen() {
   const onAdopted = useCallback(
     (sessionId: string) => {
       setActiveSessionId(sessionId);
+      setLastActiveCoachSessionId(userId, sessionId);
+      setRestoreLatestOnOpen(false);
       invalidateSessions();
     },
-    [invalidateSessions],
+    [invalidateSessions, userId],
   );
 
   const send = useCallback(
@@ -125,11 +150,15 @@ export default function AiCoachScreen() {
   const receiveAgentReply = useCallback(
     (reply: AgentReply) => {
       appendAgentReply(userId, key, reply);
-      if (reply.sessionId && reply.sessionId !== activeSessionId) setActiveSessionId(reply.sessionId);
+      if (reply.sessionId) {
+        setLastActiveCoachSessionId(userId, reply.sessionId);
+        setRestoreLatestOnOpen(false);
+        if (reply.sessionId !== resolvedSessionId) setActiveSessionId(reply.sessionId);
+      }
       setView("chat");
       invalidateSessions();
     },
-    [userId, key, activeSessionId, invalidateSessions],
+    [userId, key, resolvedSessionId, invalidateSessions],
   );
 
   const sendImageChat = async () => {
@@ -141,9 +170,11 @@ export default function AiCoachScreen() {
     setImageBusy("chat");
     setImageError("");
     try {
-      const reply = await fitnessAgentService.imageChat(picked.image, question, activeSessionId ?? undefined);
+      const reply = await fitnessAgentService.imageChat(picked.image, question, resolvedSessionId ?? undefined);
       appendImageChatExchange(userId, key, reply, question, picked.uri);
-      if (reply.sessionId !== activeSessionId) setActiveSessionId(reply.sessionId);
+      setLastActiveCoachSessionId(userId, reply.sessionId);
+      setRestoreLatestOnOpen(false);
+      if (reply.sessionId !== resolvedSessionId) setActiveSessionId(reply.sessionId);
       invalidateSessions();
     } catch (e) {
       setImageError(agentErrorMessage(e, "Không thể phân tích ảnh. Vui lòng thử lại."));
@@ -169,7 +200,7 @@ export default function AiCoachScreen() {
     }
     setImageBusy("goal");
     try {
-      receiveAgentReply(await fitnessAgentService.image(picked.image, activeSessionId ?? undefined));
+      receiveAgentReply(await fitnessAgentService.image(picked.image, resolvedSessionId ?? undefined));
     } catch (e) {
       setImageError(agentErrorMessage(e, "Không thể phân tích ảnh. Bạn có thể nhập mục tiêu bằng lời."));
     } finally {
@@ -180,11 +211,15 @@ export default function AiCoachScreen() {
   const startNewChat = () => {
     setDraftKey(newDraftKey());
     setActiveSessionId(null);
+    setLastActiveCoachSessionId(userId, null);
+    setRestoreLatestOnOpen(false);
     setView("chat");
   };
 
   const openSession = (id: string) => {
     setActiveSessionId(id);
+    setLastActiveCoachSessionId(userId, id);
+    setRestoreLatestOnOpen(false);
     setView("chat");
   };
 
@@ -198,7 +233,7 @@ export default function AiCoachScreen() {
           try {
             await coachService.archiveSession(s.id);
             resetCoachSession(userId, s.id);
-            if (s.id === activeSessionId) startNewChat();
+            if (s.id === resolvedSessionId) startNewChat();
             invalidateSessions();
           } catch (e) {
             toast.show(agentErrorMessage(e, "Không xoá được cuộc trò chuyện."), "danger");
@@ -251,7 +286,7 @@ export default function AiCoachScreen() {
               <Tappable
                 key={s.id}
                 onPress={() => openSession(s.id)}
-                className={`flex-row items-center gap-3 rounded-2xl border p-3.5 ${s.id === activeSessionId ? "border-primary/60 bg-primary/10" : "border-border bg-card"}`}
+                className={`flex-row items-center gap-3 rounded-2xl border p-3.5 ${s.id === resolvedSessionId ? "border-primary/60 bg-primary/10" : "border-border bg-card"}`}
               >
                 <MessageSquare size={18} color={designTokens.mutedForeground} />
                 <View className="min-w-0 flex-1">
@@ -316,7 +351,7 @@ export default function AiCoachScreen() {
       </View>
 
       <ScrollView ref={scrollRef} className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1, justifyContent: "flex-end" }}>
-        {(activeSessionId && threadQuery.isLoading && messages.length === 0) || (!activeSessionId && inbodyLoading && messages.length === 0) ? (
+        {(resolvedSessionId && threadQuery.isLoading && messages.length === 0) || (!resolvedSessionId && inbodyLoading && messages.length === 0) ? (
           <ActivityIndicator color={accent.primary} />
         ) : (
           messages.map((m) => (
@@ -330,7 +365,7 @@ export default function AiCoachScreen() {
                     <CoachText text={m.text} />
                     <EvidenceSources items={visibleEvidence(m)} />
                     {m.structuredBlocks?.map((b, i) => (
-                      <AgentBlock key={`${m.id}-b${i}`} block={b} sessionId={activeSessionId ?? undefined} onReply={receiveAgentReply} onQuickReply={send} />
+                      <AgentBlock key={`${m.id}-b${i}`} block={b} sessionId={resolvedSessionId ?? undefined} onReply={receiveAgentReply} onQuickReply={send} />
                     ))}
                   </>
                 )}

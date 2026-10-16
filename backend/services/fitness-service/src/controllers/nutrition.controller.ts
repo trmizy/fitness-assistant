@@ -6,8 +6,15 @@ import {
   createNutritionSchema,
   upsertNutritionGoalSchema,
 } from "../models/fitness.models";
-import { resolveNutritionTargetForUser } from "../services/nutrition-onboarding-bootstrap.service";
+import {
+  computeRecommendedNutritionTargetForUser,
+  resolveNutritionTargetForUser,
+} from "../services/nutrition-onboarding-bootstrap.service";
 import type { AuthRequest } from "../middleware/auth.middleware";
+import {
+  getNutritionAnalyticsWindow,
+  normalizeNutritionWindowDays,
+} from "../services/nutrition-analytics-window.service";
 
 const foodSubstituteSchema = z.object({
   foodId: z.string().optional().nullable(),
@@ -19,6 +26,25 @@ const foodSubstituteSchema = z.object({
 });
 
 export const nutritionController = {
+  // Phase 4.3 — normalized target-vs-actual window. Read-only; identity from the
+  // authenticated request only (no userId parameter exists).
+  async getAnalyticsWindow(req: AuthRequest, res: Response): Promise<void> {
+    let days: number;
+    try {
+      const raw = req.query.days;
+      days = normalizeNutritionWindowDays(raw === undefined ? undefined : Number(raw));
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+    try {
+      res.json(await getNutritionAnalyticsWindow(req.user!.id, { days }));
+    } catch (error) {
+      logger.error("Error fetching nutrition analytics window:", error);
+      res.status(500).json({ error: "Failed to fetch nutrition analytics" });
+    }
+  },
+
   async listLogs(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { startDate, endDate, mealType } = req.query as Record<
@@ -105,7 +131,15 @@ export const nutritionController = {
   // resolveNutritionTargetForUser. Never writes.
   async getTargetPreview(req: AuthRequest, res: Response): Promise<void> {
     try {
-      res.json(await resolveNutritionTargetForUser(req.user!.id));
+      const fresh =
+        req.query.fresh === "true" ||
+        req.query.fresh === "1" ||
+        req.query.mode === "recommended";
+      res.json(
+        fresh
+          ? await computeRecommendedNutritionTargetForUser(req.user!.id)
+          : await resolveNutritionTargetForUser(req.user!.id),
+      );
     } catch (error) {
       logger.error("Error resolving nutrition target preview:", error);
       res.status(500).json({ error: "Failed to resolve nutrition target" });

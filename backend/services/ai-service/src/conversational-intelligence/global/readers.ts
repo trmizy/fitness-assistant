@@ -7,6 +7,9 @@ import { GOAL_LABEL } from "../responses";
 import type { Goal } from "../schema";
 import type { ReadTopic } from "./router";
 import { isProfileReadError, profileFailureAnswer } from "./profile-errors";
+import { answerTrainingProgress } from "./training-coach";
+import { answerProgressReview } from "./progress-review";
+import { answerPersonalizedInterpretation } from "./personalized-interpretation";
 
 /**
  * ENTERPRISE DATA reads for "what is my current …?" questions. Mutable business facts (goal, PT contract, program, nutrition target,
@@ -115,7 +118,22 @@ async function readNutritionProgram(identity: AgentIdentity): Promise<ReadResult
   if (read.status === "absent") return { topic: "NUTRITION_PROGRAM", source: "fitness-service:/nutrition/plans/current", facts: { active: false }, text: "Hiện bạn chưa lưu thực đơn nào. Bạn nhắn \"tạo thực đơn cho tôi\" nếu muốn mình soạn một bản để bạn xem trước." };
   const plan = read.value;
   const name = plan.name ?? "thực đơn của bạn";
-  return { topic: "NUTRITION_PROGRAM", source: "fitness-service:/nutrition/plans/current", facts: { active: true }, text: `Bạn đang theo thực đơn "${name}"${plan.mealsPerDay ? ` (${plan.mealsPerDay} bữa/ngày)` : ""}.` };
+  const target = typeof plan.dailyCaloriesTarget === "number"
+    ? ` Mục tiêu: ${fmt(plan.dailyCaloriesTarget)} kcal/ngày${typeof plan.proteinTargetGrams === "number" ? `, đạm ${plan.proteinTargetGrams}g` : ""}${typeof plan.carbTargetGrams === "number" ? `, carb ${plan.carbTargetGrams}g` : ""}${typeof plan.fatTargetGrams === "number" ? `, béo ${plan.fatTargetGrams}g` : ""}.`
+    : "";
+  const firstDay = Array.isArray(plan.daySummaries) ? plan.daySummaries[0] : undefined;
+  const mealLines = firstDay?.meals
+    ?.filter((meal) => meal.itemNames.length > 0)
+    .slice(0, 5)
+    .map((meal) => `• ${meal.mealType ?? "Bữa ăn"}: ${meal.itemNames.slice(0, 5).join(", ")}`)
+    .join("\n");
+  const details = mealLines ? `\nThực đơn ngày ${firstDay?.dayNumber ?? 1}:\n${mealLines}` : "";
+  return {
+    topic: "NUTRITION_PROGRAM",
+    source: "fitness-service:/nutrition/plans/current",
+    facts: { active: true, name, dailyCaloriesTarget: plan.dailyCaloriesTarget, mealsPerDay: plan.mealsPerDay },
+    text: `Bạn đang theo thực đơn "${name}"${plan.mealsPerDay ? ` (${plan.mealsPerDay} bữa/ngày)` : ""}.${target}${details}`,
+  };
 }
 
 async function readProgram(identity: AgentIdentity): Promise<ReadResult> {
@@ -151,6 +169,18 @@ export async function readState(topic: ReadTopic, identity: AgentIdentity, quest
       case "NUTRITION_TARGET": return await readNutritionTarget(identity);
       case "NUTRITION_PROGRAM": return await readNutritionProgram(identity);
       case "PROGRAM_STATUS": return await readProgram(identity);
+      case "PERSONAL_INTERPRETATION": {
+        const a = await answerPersonalizedInterpretation(identity, question);
+        return { topic, text: a.text, source: a.source, facts: a.facts };
+      }
+      case "PROGRESS_REVIEW": {
+        const a = await answerProgressReview(identity, question);
+        return { topic, text: a.text, source: a.source, facts: a.facts };
+      }
+      case "TRAINING_PROGRESS": {
+        const a = await answerTrainingProgress(identity, question);
+        return { topic, text: a.text, source: a.source, facts: a.facts };
+      }
       case "ROADMAP_STATUS":
       case "SCHEDULE": return null; // answered by the existing deterministic schedule context (workout_schedule_context) in the chat pipeline
       default: return null;

@@ -1,0 +1,27 @@
+{
+  "GyminiDevCiReadRole": {
+    "arn": "arn:aws:iam::191798898985:role/GyminiDevCiReadRole",
+    "createDate": "2026-10-12T13:19:51+00:00",
+    "maxSessionDuration": 3600
+  },
+  "GyminiDevAppDeployRole": {
+    "arn": "arn:aws:iam::191798898985:role/GyminiDevAppDeployRole",
+    "createDate": "2026-10-12T13:19:50+00:00",
+    "maxSessionDuration": 3600
+  },
+  "GyminiDevInfraPlanRole": {
+    "arn": "arn:aws:iam::191798898985:role/GyminiDevInfraPlanRole",
+    "createDate": "2026-10-12T13:20:13+00:00",
+    "maxSessionDuration": 3600
+  },
+  "GyminiDevInfraApplyRole": {
+    "arn": "arn:aws:iam::191798898985:role/GyminiDevInfraApplyRole",
+    "createDate": "2026-10-12T13:20:13+00:00",
+    "maxSessionDuration": 3600
+  },
+  "GyminiDevCfnExecutionRole": {
+    "arn": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole",
+    "createDate": "2026-10-12T13:19:50+00:00",
+    "maxSessionDuration": 3600
+  }
+}

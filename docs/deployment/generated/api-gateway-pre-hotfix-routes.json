@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-10-09T00:00:00.000Z",
+  "note": "Pre-mutation snapshot (Phase 15B-HF.6). No mutation has occurred - this records the state BEFORE the planned hotfix, for later before/after comparison once gymini-admin credentials are available.",
+  "apiId": "id1iz7upbl",
+  "apiName": "fitness-assistant-dev-api",
+  "protocolType": "HTTP",
+  "stage": "$default",
+  "autoDeploy": true,
+  "currentRouteCount": 107,
+  "currentIntegrationCount": 18,
+  "existingGymIntegration": {
+    "integrationId": "045z1ul",
+    "integrationType": "AWS_PROXY",
+    "integrationUri": "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+    "payloadFormatVersion": "2.0",
+    "timeoutInMillis": 30000,
+    "integrationMethod": "POST",
+    "note": "The canonical, already-existing integration every gym-service route (gyms, collaborations, owner, and all 9 admin/<x> sub-paths) already uses. The hotfix plan reuses this exact integration ID for every new route - no new Gym integration is created."
+  },
+  "existingGymLambdaPermissions": {
+    "totalStatements": 24,
+    "note": "Every existing Sid is scoped to one exact route path (never a broad /* grant) - confirmed via aws lambda get-policy. None of the 12 new exact route paths this hotfix targets are covered by any existing statement - each needs its own new, narrowly-scoped permission, following the same convention."
+  },
+  "plannedNewRoutes": [
+    { "method": "GET", "path": "/me/gym-memberships" },
+    { "method": "GET", "path": "/me/gym-memberships/{id}" },
+    { "method": "POST", "path": "/me/gym-memberships/{id}/pay" },
+    { "method": "POST", "path": "/me/gym-memberships/{id}/cancel" },
+    { "method": "POST", "path": "/me/gym-memberships/{id}/cancel-membership" },
+    { "method": "GET", "path": "/me/gym-checkins" },
+    { "method": "POST", "path": "/me/gym-checkins" },
+    { "method": "GET", "path": "/me/complaints" },
+    { "method": "GET", "path": "/pt/gym-invitations" },
+    { "method": "PATCH", "path": "/pt/gym-invitations/{id}" },
+    { "method": "GET", "path": "/pt/gym-affiliations" },
+    { "method": "GET", "path": "/pt/{ptUserId}/gyms" }
+  ],
+  "plannedNewRouteCountIfApplied": 12,
+  "expectedRouteCountAfterHotfix": 119
+}

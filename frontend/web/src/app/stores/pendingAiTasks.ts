@@ -57,6 +57,7 @@ export interface AiCoachSessionState {
 
 const TASK_STORAGE_PREFIX = "ai_pending_tasks_v1";
 const COACH_STORAGE_PREFIX = "ai_coach_session_v1";
+const LAST_ACTIVE_COACH_SESSION_PREFIX = "ai_coach_last_active_session_v1";
 // Sentinel sessionKey prefix for a thread that hasn't been adopted by the
 // server yet (no real ChatSession row exists until the first message lands).
 const DRAFT_SESSION_PREFIX = "draft:";
@@ -93,6 +94,10 @@ function coachKey(userId: string, sessionKey: string): string {
 
 function coachStorageKey(userId: string, sessionKey: string): string {
   return `${COACH_STORAGE_PREFIX}:${userId}:${sessionKey}`;
+}
+
+function lastActiveCoachSessionKey(userId: string): string {
+  return `${LAST_ACTIVE_COACH_SESSION_PREFIX}:${userId}`;
 }
 
 function emit(): void {
@@ -389,6 +394,25 @@ export function usePendingAiTasks(userId?: string) {
 /** Generates a fresh local placeholder key for a not-yet-adopted "New Chat" thread. */
 export function newDraftSessionKey(): string {
   return `${DRAFT_SESSION_PREFIX}${safeUuid()}`;
+}
+
+export function getLastActiveCoachSessionId(userId?: string): string | null {
+  if (!userId || !isBrowser()) return null;
+  try {
+    return localStorage.getItem(lastActiveCoachSessionKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export function setLastActiveCoachSessionId(userId: string | undefined, sessionId: string | null): void {
+  if (!userId || !isBrowser()) return;
+  try {
+    if (sessionId) localStorage.setItem(lastActiveCoachSessionKey(userId), sessionId);
+    else localStorage.removeItem(lastActiveCoachSessionKey(userId));
+  } catch {
+    // Ignore storage quota failures.
+  }
 }
 
 function isDraftSessionKey(sessionKey: string): boolean {

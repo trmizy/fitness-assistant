@@ -2463,6 +2463,14 @@ export const marketplaceService = {
     }>(`/admin/ai/marketplace/plans/${id}/review/${action}`, { note });
     return data.data;
   },
+
+  adminDeleteApprovedPlan: async (id: string) => {
+    const { data } = await api.delete<{
+      success: boolean;
+      data: { id: string; title: string; deleted: boolean };
+    }>(`/admin/ai/marketplace/plans/${id}`);
+    return data.data;
+  },
 };
 
 export interface TrainingPackage {
@@ -3415,6 +3423,8 @@ export const planService = {
     dailyCaloriesTarget?: number;
     dietPreference?: string;
     budgetLevel?: string;
+    cuisineCountry?: string;
+    vietnameseRegion?: "BAC" | "TRUNG" | "NAM";
     restrictions?: string[];
     notes?: string;
     weightKg?: number;
@@ -3618,7 +3628,7 @@ export const coachService = {
     }, 10000);
     const timeoutTimer = window.setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 180000);
 
     (async () => {
       try {
@@ -4553,6 +4563,30 @@ export const nutritionService = {
       goalMode?: "RECOMMENDED" | "CUSTOM";
     };
   },
+  getTargetPreview: async (fresh = false) => {
+    const { data } = await api.get("/nutrition/target-preview", {
+      params: fresh ? { fresh: "true" } : undefined,
+    });
+    return data as
+      | {
+          status: "ACTIVE_GOAL";
+          goalId: string;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        }
+      | {
+          status: "COMPUTED";
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          waterMl?: number;
+          professionalReviewRequired: boolean;
+        }
+      | { status: "insufficient_data"; missingFields: string[] };
+  },
   upsertGoal: async (goal: {
     calories: number;
     protein: number;
@@ -4843,10 +4877,13 @@ export interface CoachClientSummary {
   // the fields the client's own Journey UI already reads. Never a new
   // decision engine, never raw chain-of-thought.
   latestAssessment?: {
+    id: string;
     decision: string | null;
     aiSummary: string | null;
     reasonCodes: string[] | null;
     confidenceScore: number | null;
+    userDecision: string;
+    reviewedAt: string | null;
   } | null;
   // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
   nutrition?: {
@@ -4908,6 +4945,15 @@ export const ptCoachService = {
     const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
+  getClientWorkoutSchedules: async (
+    clientId: string,
+    params?: { limit?: number; startDate?: string; endDate?: string },
+  ) => {
+    const { data } = await api.get<WorkoutScheduleRecord[]>(`/coach/clients/${clientId}/workout-schedules`, {
+      params,
+    });
+    return data;
+  },
   createAndAssignPlan: async (
     clientId: string,
     input: {
@@ -4947,6 +4993,21 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  approveTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/reject`,
+      { assessmentId },
+    );
     return data;
   },
 

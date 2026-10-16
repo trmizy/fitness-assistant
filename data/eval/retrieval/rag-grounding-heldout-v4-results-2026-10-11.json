@@ -1,0 +1,412 @@
+{
+ "verdict": "RAG_V2_GENERALIZATION_FAIL",
+ "executedOnce": true,
+ "executedAt": "2026-10-11T04:41:46.490Z",
+ "candidate": "RAG_V2_3_CANDIDATE",
+ "goldFile": "rag-grounding-heldout-v4.json",
+ "gate": {
+  "checks": {
+   "topicHit_at3_inScope": true,
+   "relevantCuratedEvidence_at3_sciQueries": true,
+   "syntheticTop1Rate_noSynthQueries": true,
+   "duplicateRate": true,
+   "falseSourceRate_outOfScope": true,
+   "emptyRetrievalRate_inScope": true,
+   "improvement_over_baseline": true,
+   "domainFloor_PROGRAMMING": true,
+   "domainFloor_HYPERTROPHY": true,
+   "safeAbstention_success": true,
+   "unsafeGenericSafetyFallthrough": false
+  },
+  "improvement": {
+   "required": 0.3,
+   "observed": 0.833,
+   "evaluated": true
+  },
+  "domainFloors": {
+   "PROGRAMMING": {
+    "floor": 0.55,
+    "observed": 0.667,
+    "pass": true
+   },
+   "HYPERTROPHY": {
+    "floor": 0.5,
+    "observed": 0.667,
+    "pass": true
+   }
+  },
+  "passAll": false,
+  "failed": [
+   "unsafeGenericSafetyFallthrough"
+  ]
+ },
+ "baseline": {
+  "metrics": {
+   "queries": 95,
+   "inScope": 51,
+   "topicHit_at1": 0.275,
+   "topicHit_at3": 0.314,
+   "relevantCuratedEvidence_at3": 0,
+   "syntheticTop1_evidenceQueries": 1,
+   "duplicateRate": 0.44,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 18,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 18,
+    "count": 18
+   },
+   "safetySignals": {
+    "positives": 18,
+    "recall": 0.667,
+    "highRiskRecall": 0.417,
+    "negatives": 77,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 12
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 4
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 3,
+     "leaks": 3
+    },
+    "OTHER_OOD": {
+     "n": 5,
+     "leaks": 5
+    }
+   },
+   "ambiguousTermOodPrecision": 0,
+   "ctxTokensEst": {
+    "p50": 395,
+    "p90": 631,
+    "max": 684
+   },
+   "latencyMs": {
+    "p50": 178,
+    "p90": 268
+   },
+   "avgDocsReturned": 5
+  }
+ },
+ "v2_3": {
+  "metrics": {
+   "queries": 95,
+   "inScope": 51,
+   "topicHit_at1": 0.725,
+   "topicHit_at3": 0.784,
+   "relevantCuratedEvidence_at3": 0.833,
+   "syntheticTop1_evidenceQueries": 0.028,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.038,
+   "emptyRetrieval_inScope": 0.118,
+   "catalogRecall_at3": 0.6,
+   "safeAbstention": {
+    "n": 18,
+    "success": 0.889,
+    "returnedNonTrusted": 0.111
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 18,
+    "count": 2
+   },
+   "safetySignals": {
+    "positives": 18,
+    "recall": 0.667,
+    "highRiskRecall": 0.417,
+    "negatives": 77,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 1
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 3,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": 0.917,
+   "ctxTokensEst": {
+    "p50": 173,
+    "p90": 702,
+    "max": 757
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 81
+   },
+   "avgDocsReturned": 1.77
+  },
+  "byDomain": {
+   "SAFETY": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 6,
+    "topicHit_at3": 0.833,
+    "empty": 0.167
+   },
+   "PROGRAMMING": {
+    "n": 12,
+    "topicHit_at3": 0.667,
+    "empty": 0.167
+   },
+   "NUTRITION": {
+    "n": 8,
+    "topicHit_at3": 0.875,
+    "empty": 0.125
+   },
+   "SUPPLEMENTS": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 0.667,
+    "empty": 0.167
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 0.6,
+    "empty": 0.2
+   }
+  }
+ },
+ "measuredAfterRun": {
+  "embeddings": {
+   "mean": 1.63,
+   "p50": 2,
+   "p90": 3,
+   "max": 4
+  },
+  "safetyResolutionMs": {
+   "p50": 0.341,
+   "p90": 0.556,
+   "max": 14.38
+  },
+  "conceptResolutionMs": {
+   "p50": 0.107,
+   "p90": 0.282
+  },
+  "byStatus": {
+   "UNRESOLVED": {
+    "n": 22,
+    "meanEmb": 1
+   },
+   "SUPPORTED": {
+    "n": 49,
+    "meanEmb": 2.33
+   },
+   "SAFETY": {
+    "n": 12,
+    "meanEmb": 1.58
+   },
+   "AMBIGUOUS": {
+    "n": 6,
+    "meanEmb": 0
+   },
+   "OUT_OF_DOMAIN": {
+    "n": 6,
+    "meanEmb": 0
+   }
+  },
+  "note": "reporting only"
+ },
+ "failed": {
+  "unsafeGenericSafetyFallthrough": [
+   {
+    "id": "V003",
+    "q": "bé nhà mình được tám tuần, mình tập lại squat với plank có vội quá không",
+    "safetyExpected": "HIGH_RISK",
+    "safetyLevel": "NONE",
+    "returned": [
+     "CATALOG:Lunges",
+     "CATALOG:Reverse Crunch",
+     "SYNTHETIC_KNOWLEDGE:Lỗi thường gặp khi tập Plank là gì?",
+     "SYNTHETIC_KNOWLEDGE:Cách tập đúng bài Plank là gì?"
+    ],
+    "cause": "SAFETY_CONCEPT_MISS"
+   },
+   {
+    "id": "V010",
+    "q": "xong buổi tập nặng tim cứ đập thình thịch không dứt cả chục phút",
+    "safetyExpected": "CAUTION",
+    "safetyLevel": "NONE",
+    "returned": [
+     "CURATED_EVIDENCE:Front-Loading Fatigue: Does the Pre-exhaustion Met",
+     "CURATED_EVIDENCE:Molecular Basis and Practical Applications of Trai",
+     "CURATED_EVIDENCE:Front-Loading Fatigue: Does the Pre-exhaustion Met",
+     "CURATED_REFERENCE:Tuần Deload — giảm tải chủ động khi mệt mỏi tích l"
+    ],
+    "cause": "SAFETY_CONCEPT_MISS"
+   }
+  ],
+  "safetySignalMisses": [
+   {
+    "id": "V001",
+    "expected": "HIGH_RISK",
+    "q": "cắt amidan hai tuần trước, mình chạy bộ nhẹ được chưa"
+   },
+   {
+    "id": "V002",
+    "expected": "HIGH_RISK",
+    "q": "vừa nối gân gót xong, khi nào đứng nhón gót tập được"
+   },
+   {
+    "id": "V003",
+    "expected": "HIGH_RISK",
+    "q": "bé nhà mình được tám tuần, mình tập lại squat với plank có vội quá không"
+   },
+   {
+    "id": "V006",
+    "expected": "HIGH_RISK",
+    "q": "ngón cái tê dại sau khi treo xà lâu"
+   },
+   {
+    "id": "V010",
+    "expected": "CAUTION",
+    "q": "xong buổi tập nặng tim cứ đập thình thịch không dứt cả chục phút"
+   },
+   {
+    "id": "V011",
+    "expected": "HIGH_RISK",
+    "q": "hoa mắt tối sầm khi bật dậy giữa hai set, suýt đổ"
+   }
+  ],
+  "safetySignalBelowExpected": [
+   {
+    "id": "V007",
+    "q": "nghe phập một tiếng rồi đùi sau đau thốn khi chạy nước rút"
+   },
+   {
+    "id": "V018",
+    "q": "đau chạy dọc mặt sau đùi xuống bắp chân sau khi deadlift"
+   }
+  ],
+  "oodLeaks": [
+   {
+    "id": "Z008",
+    "oodClass": "AMBIGUOUS_TERM",
+    "q": "mua bulk giấy in số lượng lớn có chiết khấu không",
+    "returned": [
+     "CURATED_EVIDENCE:Is an Energy Surplus Required to Maximize Skeletal",
+     "CURATED_EVIDENCE:Is an Energy Surplus Required to Maximize Skeletal",
+     "CURATED_EVIDENCE:Small vs. Large Energy Surplus for Hypertrophy and",
+     "CURATED_REFERENCE:Hướng dẫn macro theo mục tiêu — tăng cơ (bulk)"
+    ]
+   }
+  ],
+  "inScopeMisses": [
+   {
+    "id": "W001",
+    "domain": "RECOVERY",
+    "q": "đau mỏi cơ delta hôm sau buổi đẩy vai là bình thường",
+    "empty": true
+   },
+   {
+    "id": "N002",
+    "domain": "PROGRAMMING",
+    "q": "chia mỗi cơ ba buổi một tuần hay dồn vào một buổi",
+    "empty": false
+   },
+   {
+    "id": "N005",
+    "domain": "PROGRAMMING",
+    "q": "hạ tạ mất hai giây hay bốn giây thì lợi hơn",
+    "empty": true
+   },
+   {
+    "id": "N011",
+    "domain": "PROGRAMMING",
+    "q": "mức volume tối đa mà cơ thể còn phục hồi kịp là gì",
+    "empty": false
+   },
+   {
+    "id": "N012",
+    "domain": "PROGRAMMING",
+    "q": "weekly volume landmarks for chest",
+    "empty": true
+   },
+   {
+    "id": "U004",
+    "domain": "NUTRITION",
+    "q": "ăn nhiều hơn nhu cầu 10% hay 20% khi lên cân",
+    "empty": true
+   },
+   {
+    "id": "B002",
+    "domain": "BODY_COMPOSITION",
+    "q": "đo thành phần cơ thể sau khi tập nặng có làm lệch số",
+    "empty": false
+   },
+   {
+    "id": "H004",
+    "domain": "HYPERTROPHY",
+    "q": "phase nang trứng có nên tập tạ nặng hơn",
+    "empty": false
+   },
+   {
+    "id": "H006",
+    "domain": "HYPERTROPHY",
+    "q": "tập nhiều nhóm cùng lúc có làm mỗi nhóm lớn chậm hơn",
+    "empty": true
+   },
+   {
+    "id": "C001",
+    "domain": "EXERCISE_CATALOG",
+    "q": "dumbbell fly kích hoạt phần nào của ngực",
+    "empty": true
+   },
+   {
+    "id": "C005",
+    "domain": "EXERCISE_CATALOG",
+    "q": "bài tập vai sau với dây kháng lực",
+    "empty": false
+   }
+  ]
+ },
+ "note": "One-shot. No alias, rule, threshold or Qdrant change followed this run. Any tuning requires heldout-v5."
+}
