@@ -169,26 +169,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
-      # EXPERIMENT (2026-10-16): this build crashed consistently with a low-level
-      # Node/corepack file-read error deep inside `pnpm install --frozen-lockfile`
-      # (Dockerfile step, chat-service), while the identical build succeeded 100%
-      # locally. Hypothesis: the runner's 7GB RAM is exhausted resolving this
-      # repo's full 17,914-line pnpm-lock.yaml inside the Docker build sandbox.
-      # Adding swap is the standard, reversible fix for exactly this GitHub
-      # Actions OOM pattern - if this still fails identically, the hypothesis is
-      # wrong and this step should be removed again, not left as cargo-culted.
-      - name: Add swap space (large monorepo lockfile may exceed the 7GB runner RAM during Docker build)
-        run: |
-          # `fallocate` failed outright on this exact step (confirmed via a
-          # real failing CI run, 2026-10-16: the whole job failed in 7s,
-          # before ever reaching the Docker build) - a known incompatibility
-          # between fallocate and the overlay/aufs-backed root filesystem
-          # some GitHub-hosted runner images use. `dd` works everywhere.
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+      # KNOWN, ACCEPTED LIMITATION (2026-10-16) - do not re-attempt a swap-space
+      # fix without new evidence. This build crashes deep inside
+      # `pnpm install --frozen-lockfile` (Dockerfile step, chat-service) with a
+      # low-level Node/corepack file-read error, while the identical build
+      # succeeds 100% locally (587MB image, every layer clean). Working
+      # hypothesis: the runner's 7GB RAM is exhausted resolving this repo's
+      # full 17,914-line pnpm-lock.yaml inside the Docker build sandbox - but
+      # two independent real attempts to add swap space both failed before
+      # ever reaching the Docker build at all (fallocate: incompatible with
+      # this runner image's filesystem; dd: also failed, reason unconfirmed -
+      # full logs are sign-in-gated and unavailable to this session). Real
+      # fixes that were NOT attempted here (out of scope for CI activation):
+      # a GitHub-hosted larger runner (paid), or restructuring the Dockerfile
+      # around `pnpm deploy` to avoid resolving the full monorepo lockfile.
       - run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:pr-validation .
 
   # CI helper logic. This repo's own machine ships Windows PowerShell 5.1
