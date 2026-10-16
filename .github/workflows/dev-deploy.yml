@@ -12,7 +12,6 @@
 # `environment: dev` gate below additionally requires the configured reviewer
 # to click "Approve and deploy" before the job starts, even in a real run.
 name: DEV Application Deploy (Lambda code)
-name: DEV Application Deploy (Lambda code)
 
 on:
   workflow_dispatch:
