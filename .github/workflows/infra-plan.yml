@@ -1,0 +1,188 @@
+# Promoted for manual dispatch; adoption and environment gates remain enforced.
+#
+# API Gateway CloudFormation PLAN: creates a change set, scans it, publishes it.
+# It can NEVER execute (GyminiDevInfraPlanRole has an explicit Deny on ExecuteChangeSet).
+#
+# HARD PRECONDITION: the repository/environment variable APIGW_ADOPTION_COMPLETE
+# must equal "true". The owner sets it only after Batch 2 is executed and the
+# adoption is verified (all baseline resources managed, API id id1iz7upbl unchanged,
+# route parity stable, drift acceptable). Until then this workflow refuses to run.
+name: DEV Infrastructure Plan (API Gateway)
+
+on:
+  workflow_dispatch:
+    inputs:
+      allowlist_file:
+        description: "Optional repo path to an intentional-change allowlist JSON (ApprovedBy/Reason/ExpiresOn)"
+        required: false
+  # schedule:                      # drift detection - enable in 16B step 14, read-only
+  #   - cron: "17 2 * * 1"
+
+concurrency:
+  group: gymini-dev-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+  STACK: fitness-assistant-dev-api-gateway
+  API_ID: id1iz7upbl
+  BUCKET: fitness-assistant-deployments-dev-191798898985
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require deployment branch and verified adoption
+        env:
+          DEPLOY_REF: ${{ github.ref }}
+          DONE: ${{ vars.APIGW_ADOPTION_COMPLETE }}
+        run: |
+          [ "$DEPLOY_REF" = "refs/heads/aws-deploy" ] || { echo "::error::DEPLOY_BRANCH_BLOCKED"; exit 1; }
+          [ "$DONE" = "true" ] || { echo "::error::CI_ACTIVATION_BLOCKED: API Gateway adoption is not verified"; exit 1; }
+
+  plan:
+    needs: gate
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    environment: dev-infra-plan
+    timeout-minutes: 20
+    steps:
+      - name: Adoption gate
+        env: { DONE: "${{ vars.APIGW_ADOPTION_COMPLETE }}" }
+        run: '[ "$DONE" = "true" ] || { echo "::error::CI_ACTIVATION_BLOCKED: API Gateway CloudFormation adoption is not marked complete"; exit 1; }'
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::191798898985:role/GyminiDevInfraPlanRole
+          aws-region: ap-southeast-1
+          role-session-name: gh-plan-${{ github.run_id }}
+      - run: pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -Identity -Mode Mutate -Context CI
+
+      - name: Stack must be in a stable state and the protected API must exist
+        run: |
+          st=$(aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].StackStatus" --output text)
+          case "$st" in UPDATE_COMPLETE|CREATE_COMPLETE|IMPORT_COMPLETE) ;; *) echo "::error::stack status $st"; exit 1;; esac
+          aws apigatewayv2 get-api --api-id "$API_ID" --query "ApiId" --output text
+
+      # Phase 16A.3: covers Outputs/Parameters/Conditions/Mappings/Transform/
+      # Rules changes, which never appear in describe-change-set's own
+      # .Changes array (the exact Phase 16A.2R blind spot). Complements,
+      # never replaces, the resource-action scan below.
+      - name: Template semantic diff
+        id: semdiff
+        run: |
+          aws cloudformation get-template --stack-name "$STACK" --template-stage Original --output json \
+            | node -e "const t=JSON.parse(require('fs').readFileSync(0,'utf8')).TemplateBody;process.stdout.write(typeof t==='string'?t:JSON.stringify(t))" \
+            > deployed-template.yaml
+          pwsh -NoProfile -Command '
+            Import-Module ./scripts/ci/TemplateSemanticGuard.psm1 -Force
+            $deployed = Get-TemplateSemanticModel -TemplatePath "deployed-template.yaml"
+            $proposed = Get-TemplateSemanticModel -TemplatePath "infra/cloudformation/api-gateway-baseline.yaml"
+            if (-not $deployed.Success -or -not $proposed.Success) {
+              Write-Host "::error::TEMPLATE_PARSE_FAILED deployed=$($deployed.Error) proposed=$($proposed.Error)"; exit 1
+            }
+            $r = Compare-TemplateSemantics -Current $deployed.Model -Proposed $proposed.Model
+            $r | ConvertTo-Json -Depth 10 | Set-Content semantic-diff.json
+            "current_template_digest=$($deployed.Digest)" >> $env:GITHUB_OUTPUT
+            "proposed_template_digest=$($proposed.Digest)" >> $env:GITHUB_OUTPUT
+            "semantic_overall=$($r.Overall)" >> $env:GITHUB_OUTPUT
+            "## Template semantic diff: $($r.Overall)" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($f in $r.Findings) { "- $($f.Category) ($($f.Severity))" >> $env:GITHUB_STEP_SUMMARY }
+            if ($r.Overall -in @("FAIL_CLOSED", "BLOCK")) {
+              Write-Host "::error::TEMPLATE_SEMANTIC_GUARD_$($r.Overall): $($r.Findings | ConvertTo-Json -Compress)"
+              exit 1
+            }
+          '
+
+      - name: Upload template (content-addressed) and create change set
+        id: cs
+        run: |
+          h=$(sha256sum infra/cloudformation/api-gateway-baseline.yaml | cut -c1-16)
+          key="ci-templates/$h/api-gateway-baseline.yaml"
+          aws s3 cp infra/cloudformation/api-gateway-baseline.yaml "s3://$BUCKET/$key" --only-show-errors
+          name="ci-${GITHUB_SHA::7}-${GITHUB_RUN_ID}"
+          acct=$(aws sts get-caller-identity --query Account --output text)
+          arn() { echo "arn:aws:lambda:$AWS_REGION:$acct:function:fitness-assistant-dev-$1"; }
+          aws cloudformation create-change-set --stack-name "$STACK" --change-set-name "$name" --change-set-type UPDATE \
+            --template-url "https://s3.$AWS_REGION.amazonaws.com/$BUCKET/$key" \
+            --role-arn "arn:aws:iam::$acct:role/GyminiDevCfnExecutionRole" \
+            --capabilities CAPABILITY_AUTO_EXPAND \
+            --parameters ParameterKey=HttpApiId,ParameterValue="$API_ID" \
+              ParameterKey=AuthLambdaArn,UsePreviousValue=true ParameterKey=UserLambdaArn,UsePreviousValue=true \
+              ParameterKey=FitnessLambdaArn,UsePreviousValue=true ParameterKey=GymLambdaArn,UsePreviousValue=true \
+              ParameterKey=PaymentLambdaArn,UsePreviousValue=true ParameterKey=AiLambdaArn,UsePreviousValue=true \
+              ParameterKey=ChatAlbDnsName,UsePreviousValue=true \
+            --query Id --output text > /dev/null
+          aws cloudformation wait change-set-create-complete --stack-name "$STACK" --change-set-name "$name" || true
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Destructive-action scan (fails the job on BLOCK)
+        id: scan
+        env: { NAME: "${{ steps.cs.outputs.name }}", ALLOW: "${{ inputs.allowlist_file }}" }
+        run: |
+          status=$(aws cloudformation describe-change-set --stack-name "$STACK" --change-set-name "$NAME" --query Status --output text)
+          reason=$(aws cloudformation describe-change-set --stack-name "$STACK" --change-set-name "$NAME" --query StatusReason --output text)
+          if [ "$status" = "FAILED" ] && echo "$reason" | grep -qi "didn't contain changes\|No updates"; then
+            echo "NO-OP change set (nothing to apply)"; echo "verdict=NOOP" >> "$GITHUB_STEP_SUMMARY"; echo "noop=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ "$status" = "CREATE_COMPLETE" ] || { echo "::error::CHANGESET_NOT_READY: $reason"; exit 1; }
+          # Phase 16A.1 fix: capture the FULL describe-change-set object (both
+          # Changes AND Parameters), never just --query Changes. The real/
+          # planned HttpApiId lives in .Parameters, and the wrapper now reads
+          # it from exactly this file - never from -ProtectedApiId - so the
+          # API_ID_MISMATCH gate can actually fire on a real mismatch.
+          aws cloudformation describe-change-set --stack-name "$STACK" --change-set-name "$NAME" --output json > changes.json
+          args=(-ChangeSetFile changes.json -ProtectedApiId "$API_ID")
+          [ -n "$ALLOW" ] && args+=(-AllowListFile "$ALLOW")
+          pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 "${args[@]}" | tee verdict.json
+          echo "reviewed_digest=$(sha256sum changes.json | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"   # pass to infra-deploy.yml
+
+      - name: Build the full reviewable plan artifact (16A.3.7) - never only `.Changes`
+        if: steps.scan.outputs.noop != 'true'
+        env:
+          NAME: "${{ steps.cs.outputs.name }}"
+          CURRENT_DIGEST: "${{ steps.semdiff.outputs.current_template_digest }}"
+          PROPOSED_DIGEST: "${{ steps.semdiff.outputs.proposed_template_digest }}"
+        run: |
+          stack_id=$(aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].StackId" --output text)
+          cs_id=$(aws cloudformation describe-change-set --stack-name "$STACK" --change-set-name "$NAME" --query "ChangeSetId" --output text)
+          digest=$(sha256sum changes.json | cut -d' ' -f1)
+          node -e "
+            const fs = require('fs');
+            const semantic = JSON.parse(fs.readFileSync('semantic-diff.json','utf8'));
+            fs.writeFileSync('plan-artifact.json', JSON.stringify({
+              STACK_NAME: '$STACK', STACK_ID: '$stack_id', CHANGE_SET_ID: '$cs_id', CHANGE_SET_NAME: '$NAME',
+              CHANGE_SET_TYPE: 'UPDATE', CHANGE_SET_DIGEST: '$digest',
+              CURRENT_TEMPLATE_SEMANTIC_DIGEST: '$CURRENT_DIGEST', PROPOSED_TEMPLATE_SEMANTIC_DIGEST: '$PROPOSED_DIGEST',
+              SOURCE_COMMIT_SHA: '$GITHUB_SHA',
+              RESOURCE_ACTION_SUMMARY: 'see changes.json / verdict.json',
+              PARAMETER_DIFF: (semantic.Findings||[]).filter(f=>f.Category==='PARAMETER_CHANGE'),
+              OUTPUT_DIFF: semantic.OutputDiff,
+              CONDITION_DIFF: (semantic.Findings||[]).filter(f=>f.Category==='CONDITION_CHANGE'),
+              MAPPING_DIFF: (semantic.Findings||[]).filter(f=>f.Category==='MAPPING_CHANGE'),
+              TRANSFORM_DIFF: (semantic.Findings||[]).filter(f=>f.Category==='TRANSFORM_CHANGE'),
+              RULE_DIFF: (semantic.Findings||[]).filter(f=>f.Category==='RULE_CHANGE')
+            }, null, 2));
+          "
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "changeset-${{ github.run_id }}", path: "changes.json\nverdict.json\nsemantic-diff.json\nplan-artifact.json" }
+      - name: Summary
+        if: always()
+        run: |
+          echo "## DEV infra plan" >> "$GITHUB_STEP_SUMMARY"
+          echo "stack: $STACK | change set: ${{ steps.cs.outputs.name }} | commit: $GITHUB_SHA | NOT EXECUTED" >> "$GITHUB_STEP_SUMMARY"
+          echo "proposed_template_digest=${{ steps.semdiff.outputs.proposed_template_digest }}" >> "$GITHUB_STEP_SUMMARY"   # pass to infra-deploy.yml
+          echo "Review verdict.json + semantic-diff.json; execute only via infra-deploy.yml (manual approval)." >> "$GITHUB_STEP_SUMMARY"
