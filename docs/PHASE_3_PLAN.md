@@ -204,3 +204,23 @@ Phần dưới giữ nguyên làm hồ sơ phương án đã cân nhắc.
 ## 9. Backlog (không thuộc Phase 3)
 
 Financial Hardening (GĐ1 SETTLING, GĐ2 idempotency payment, gỡ nhánh tự đền từ ví chung, Financial Hold/10%, đối soát, cổng production, dữ liệu tồn đọng) và Security Hardening (xoay khóa, `ALLOW_INSECURE_DEV_SECRETS` fail-closed) nằm ở M-C của `docs/PHASE_2_5_EXIT_CHECKLIST.md`, không chặn Phase 3 và Phase 3 không được dùng để mở thanh toán thật. Lỗi kỹ thuật nhỏ phát hiện ở đây (đường `active-gyms` không tồn tại, gym-service chưa có guard tên DB `_test`) đi vào backlog hoặc được P3.1 xử lý.
+
+## 10. Checkpoint 17/10/2026 — PHASE 3 FUNCTIONAL SCOPE COMPLETE + VERIFIED
+
+**Đã hoàn thành**
+
+| Lát | Commit | Nội dung |
+|---|---|---|
+| P3.1 | `0e021aa` | gym-service: tra gói hội viên theo thương hiệu, `active-gyms`, `brandId` trong tỷ lệ |
+| P3.2, P3.4, P3.5 | `07514f2` | Hợp đồng lưu thương hiệu/thỏa thuận/gói; `GET /contracts/gym-options`; `GET /contracts/:id/checkout-context` |
+| P3.3 | `517ac34` | Chặn khi thiếu gói hội viên (`MEMBERSHIP_REQUIRED`) hoặc gói không bao phủ thời hạn (`MEMBERSHIP_DOES_NOT_COVER_CONTRACT`) |
+| P3.7 | `e46b1aa` | Kiểm thử toàn luồng: gym-service + payment-service thật, sổ cái thật trên DB kiểm thử, cổng mô phỏng — 13/13 |
+| P3.6 | `2654201` | Giao diện web + mobile; **VERIFIED trên trình duyệt thật** 360/375/390/412 (49/49 + thanh toán mô phỏng thành công/thất bại) |
+
+**Kết quả kiểm thử chính:** P3.3 18/18; gym-options 16/16; checkout-context 10/10; snapshot 9/9; phase3-flow 13/13; cross-service-money 12/12; logic hiển thị 28/28 (web, mobile); REAL BROWSER 49/49 (Chromium, backend thật trên DB `*_p36_test`, cổng VNPay mô phỏng). Mobile (Expo) chưa chạy trên thiết bị/trình giả lập.
+
+**Quy tắc đã chốt (không mở lại):** thiếu/không đủ hạn gói hội viên → chặn khi gửi yêu cầu; `PENDING_PAYMENT` sau khi PT nhận = hợp đồng nháp; gym đóng/khóa/chấm dứt không chọn được; hạn chế đúng hợp đồng chặn, hạn chế hợp đồng khác không chặn; không lộ tỷ lệ cho khách; checkout chỉ đọc và khớp số tiền Payment ghi nhận; callback lặp/đồng thời chỉ kích hoạt + ghi tiền một lần; tỷ lệ chia lấy từ thỏa thuận cấp thương hiệu (70/20/10 chỉ là dữ liệu kiểm thử).
+
+**Backlog (không chặn Phase 3):** chưa kiểm lại gói hội viên lúc PT nhận/thanh toán; chưa so số lượt tập với số buổi; gói hiển thị có thể khác gói dùng để xét (chỉ hiển thị, quyết định vẫn đúng); tiền thanh toán thừa về ví nội bộ; chữ tiếng Anh trên trang hợp đồng; nút "Về Ví" ở màn thanh toán thất bại; nhãn "Nạp ví" trên trang VNPay mô phỏng; cảnh báo React button lồng button; mobile chưa kiểm trên thiết bị.
+
+**Không phải Phase 3 (track riêng, chặn tiền thật):** Financial Hardening (SETTLING, Payment idempotency, gỡ nhánh tự đền từ ví AVAILABLE chung, đối soát, cổng khác, Financial Hold 10%) và Security Hardening (xoay khóa đã lộ — việc của Owner, `ALLOW_INSECURE_DEV_SECRETS`). **Phase 3 hoàn thành ≠ production-ready.**
