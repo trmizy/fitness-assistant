@@ -100,7 +100,9 @@ export function Button({
         "flex-row items-center justify-center",
         sizeContainer[size],
         container[variant],
-        full ? "w-full" : "self-start",
+        // A caller that aligns the button itself (e.g. EmptyState's `self-center`) must win —
+        // two self-* classes on one view resolve by stylesheet order, not by intent.
+        full ? "w-full" : /(^|\s)self-/.test(className) ? "" : "self-start",
         disabled ? "opacity-40" : "",
         className,
       ]
@@ -111,7 +113,12 @@ export function Button({
         <Icon size={size === "lg" ? 20 : 18} strokeWidth={2.25} color={iconColor} />
       ) : null}
       {typeof children === "string" ? (
-        <Text className={`${sizeLabel[size]} ${label[variant]}`}>{children}</Text>
+        // `simple`: chiến lược ngắt dòng mặc định của Android (highQuality) đo hụt chữ tiếng Việt có dấu với
+        // font tuỳ biến, nên chữ cuối rơi xuống dòng hai và bị chiều cao cố định của nút che mất
+        // ("Đã cập nhật" hiện thành "Đã cập", gặp thật 28/9). Nhãn nút là một dòng, không cần ngắt đẹp.
+        <Text textBreakStrategy="simple" className={`${sizeLabel[size]} ${label[variant]}`}>
+          {children}
+        </Text>
       ) : (
         children
       )}

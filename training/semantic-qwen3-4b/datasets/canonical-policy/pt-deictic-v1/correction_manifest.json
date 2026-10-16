@@ -1,0 +1,42 @@
+{
+  "expectedConflictRowCount": 20,
+  "actualConflictRowCount": 20,
+  "expectedEligibleCount": 12,
+  "actualEligibleCount": 12,
+  "correctedCaseIds": [
+    "ref-this-item-person-ask-price-1",
+    "ref-this-item-person-ask-price-2",
+    "ref-this-item-pt-revise-1",
+    "ref-this-item-pt-revise-2",
+    "ref-this-item-pt-revise-3",
+    "ref-this-item-pt-switch-corrected-1",
+    "ref-this-item-pt-switch-corrected-2",
+    "ref-this-item-pt-switch-corrected-3",
+    "ref-this-item-pt-switch-val-1",
+    "ref-this-item-pt-switch-val-2",
+    "reference-this-item-pt-price-1",
+    "reference-this-item-pt-price-2"
+  ],
+  "alreadyConsistentCaseIds": [
+    "ambiguity-pt-switch-no-proposal-1",
+    "ambiguity-pt-switch-no-proposal-2",
+    "v22-deictic-no-target-2",
+    "v22-pt-switch-no-antecedent-1",
+    "v22-pt-switch-no-antecedent-2",
+    "v22-pt-switch-no-antecedent-3",
+    "v22dev-pt-switch-no-antecedent-1",
+    "v22dev-pt-switch-no-antecedent-2"
+  ],
+  "hashes": {
+    "A_v2_validation_source_sha256": "46ad2c4dc385d6af11002f661ba27bba6daf89e3749703733e3c80e00de88cfe",
+    "original71_corrected.jsonl_sha256": "d582c5a0c938b427af9849862045f19793514d6bb73abcd190005cf1e3de98ff",
+    "C_v21_validation_remediation_source_sha256": "664ff981bb3ceb96ce970f0e5964dcb138e1d25a1b75fd4e72a74c502063ac23",
+    "v2_1_remediation12_corrected.jsonl_sha256": "9ca33726ba720e5fe0c0b97e81cd0de1512deb8bc79aea605908372757d8d332",
+    "E_v22_dev_challenge_source_sha256": "acbc853befe3d9a679ae91796c09ce0306b7d765764bc0b99b387a1e32bdb03c",
+    "v2_2_dev12_corrected.jsonl_sha256": "acbc853befe3d9a679ae91796c09ce0306b7d765764bc0b99b387a1e32bdb03c",
+    "corrections.jsonl_sha256": "6046669fb8010bb9561e72ef7e71fb539565ba6308c0c79ee068cc2f6411db83",
+    "policy.json_sha256": "21fe820dbe5dd02ff58b7ecb4605cf5bdcd32b4e18363f752c610bfc36ced7f4",
+    "correction_manifest.json_sha256": "c72bb24492eca26bfe6c1f2ea52bedb897875d1836a8239789c5dc6e37d48c5a"
+  },
+  "historicalFilesModified": false
+}

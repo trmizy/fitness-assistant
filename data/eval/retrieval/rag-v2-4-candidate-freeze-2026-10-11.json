@@ -1,0 +1,66 @@
+{
+ "candidate": "RAG_V2_4_CANDIDATE",
+ "frozenAt": "2026-10-11T05:10:17.644Z",
+ "files": {
+  "backend/services/ai-service/src/llm/retrieval-v2.ts": "e2eb1715d4a404c343b55e75c040284dd2796db4f25bd5e430f9a61cabd786a3",
+  "backend/services/ai-service/src/llm/fitness-concepts.ts": "39ea3fc2b2a3617e287e62576cfc491b26cefb078ec7d344bc12b4fab5959534",
+  "backend/services/ai-service/src/llm/knowledge-source.ts": "b33bb5d9a47fcf5f04988c594fa1706b05e5752f29414a24804c6cbfb50839f7",
+  "backend/services/ai-service/src/llm/safety-signals.ts": "64c24652e210c08da10516791e7916eb2ad2447b89a094e0a1a816e0d375ec4c",
+  "backend/services/ai-service/src/llm/safety-narrative.ts": "e21d51ce0ed42993215e10ee18019f8d317cf199274ffbd0ba19f03dc068324e",
+  "backend/services/ai-service/src/conversational-intelligence/global/personalized-interpretation.ts": "19bc0de996cadeb33a40e7a3c8ad35ff040dd57bde5a3fd9ea2fcbd9b9b88559"
+ },
+ "qdrant": {
+  "fitness_evidence": {
+   "points": 187,
+   "idSetHash": "d1e74aaad31d0543",
+   "contentSetHash": "b4b61def7d35f077"
+  },
+  "fitness_knowledge": {
+   "points": 7072,
+   "idSetHash": "29a9d4b061f50bca",
+   "contentSetHash": "5f750300d23fe298"
+  },
+  "fitness_faq": {
+   "points": 5946,
+   "idSetHash": "39f3933f84db0149",
+   "contentSetHash": "d38ca93b8e199a11"
+  },
+  "exercises": {
+   "points": 207,
+   "idSetHash": "7c5e4349570e19f7",
+   "contentSetHash": "e87beac9ba16ddde"
+  }
+ },
+ "evaluatorFiles": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "9acdbaa0261534cd3603d2e9d9b178a96ea95c208a94274ea8154d8e7ba07979",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "934fd03e974f7e8fe815fc10222ec1c982ddc8ddbe5cfe90500f28a7866f036c"
+ },
+ "developmentSetsUsed": [
+  "rag-grounding-eval-v1.json",
+  "rag-grounding-heldout-v1.json (Diagnostic V1)",
+  "rag-grounding-generalization-dev-v2.json",
+  "rag-grounding-heldout-v2.json (Diagnostic V2)",
+  "rag-grounding-ood-safety-dev-v3.json",
+  "rag-grounding-heldout-v3.json (Diagnostic V3)",
+  "rag-grounding-safety-programming-dev-v4.json",
+  "rag-grounding-heldout-v4.json (Diagnostic V4)",
+  "rag-grounding-personal-safety-dev-v5.json"
+ ],
+ "note": "No tuning of the safety narrative resolver, safety signal patterns, temporal composition, functional logic, benign negative controls, normalisation, OOD, concept dictionary, ranking, topic guard, source merge or Qdrant after this record. Fresh held-out V5 is created AFTER this file.",
+ "configHash": "4b33b0770c9aae3c7f74b7053df0dea7ff0345491b26c815d472f9e113ca7d9a",
+ "evaluatorFilesAtRun": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "9acdbaa0261534cd3603d2e9d9b178a96ea95c208a94274ea8154d8e7ba07979",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "934fd03e974f7e8fe815fc10222ec1c982ddc8ddbe5cfe90500f28a7866f036c"
+ },
+ "heldoutV5": {
+  "file": "data/eval/retrieval/rag-grounding-heldout-v5.json",
+  "sha256BeforeExecution": "060a41a6a6ee990e8845cfe36d2bfa7e8b156e1498f6827c12422e901119742c",
+  "recordedAt": "2026-10-11T05:11:37.955Z",
+  "executedAt": "2026-10-11T05:13:15.558Z",
+  "executions": 1,
+  "resultsFile": "data/eval/retrieval/rag-grounding-heldout-v5-results-2026-10-11.json",
+  "resultsSha256": "193813a09ad5a4925874ac3f075c191f36ea7365fee6d47199ff820b75ad9bec",
+  "sha256AfterExecution": "060a41a6a6ee990e8845cfe36d2bfa7e8b156e1498f6827c12422e901119742c",
+  "byteIdentical": true
+ }
+}

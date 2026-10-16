@@ -1,0 +1,19 @@
+{
+  "datasetVersion": "v2.1",
+  "createdAt": "2026-10-11T02:56:42.334981+00:00",
+  "baseVersion": "v2",
+  "composition": {
+    "v2TrainRowsCarriedOver": 327,
+    "v2_1NewTrainRows": 62,
+    "totalTrainRows": 389,
+    "validationRemediationRows": 12,
+    "validationV2Frozen": "datasets/processed/v2/validation.jsonl (unchanged, referenced directly, not copied)",
+    "heldout": "datasets/processed/v2/heldout.jsonl (SEALED, not touched, not opened in this task)"
+  },
+  "sha256": {
+    "train.jsonl": "4ad71c1a973cb9addaa57d8bbfad248c5e0cc5846bc45ad84fb89425850bcb2c",
+    "validation_remediation.jsonl": "6f106f2ef2bfe5cf9331a95283519bedf60fb117d102c8b7d36e4f97fe901846"
+  },
+  "schemaHash": "e2d76742ff3b01d45ac2c8b8649947f2e2f773d02bd25c373bdd1c93de7cd598",
+  "provenance": "V2.1 = V2's 327 train rows (unmodified, carried over) + 62 new targeted-remediation rows (generate_dataset_v2_1.py) addressing 3 diagnosed failure modes: (1) REFERENCE patterns the model under-learned despite being resolvable from visible text alone per the real detectReferences() regex; (2) an internal V2 gold-label inconsistency between reference-pt-switch-request (train, CONFIRM) and ambiguity-pt-switch-no-proposal (validation, UNKNOWN) for the identical phenomenon, replaced with one consistent confident resolution; (3) 4 residual NATURAL_SYNONYM_MAPPING_GAP invented-enum cases. validation_remediation.jsonl (12 rows, 6 families) is fully disjoint from training (zero template-family and zero exact-text overlap, verified directly) and from V2's original validation/heldout (verified directly). No sentence-level paraphrase of any V2 validation item was used anywhere in train_additions.jsonl."
+}

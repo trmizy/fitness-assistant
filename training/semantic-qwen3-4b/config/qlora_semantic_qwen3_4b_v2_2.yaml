@@ -1,0 +1,30 @@
+# V2.2 ambiguity micro-remediation - task §10: hyperparameters are FROZEN,
+# identical to V2/V2.1. Only train_file/output_dir differ (418 rows:
+# V2.1's 389 + 29 new V2.2 ambiguity/reference-boundary rows).
+base_model: unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit
+output_dir: training/semantic-qwen3-4b/outputs/train/qlora-baseline-v2.2
+train_file: training/semantic-qwen3-4b/datasets/processed/v2.2/train.jsonl
+eval_file: training/semantic-qwen3-4b/datasets/processed/v2/validation.jsonl
+max_seq_length: 384
+learning_rate: 0.00005
+num_train_epochs: 2
+max_steps: null
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+load_in_4bit: true
+bf16: true
+save_steps: 50
+eval_steps: 25
+logging_steps: 1
+seed: 3407

@@ -1,0 +1,21 @@
+{
+  "label": "post-remediation",
+  "corpusSha256": "fefad93dc4d9c77141cec2415585d00f92ce4297d0bf56a8f926a6f60af9a8f6",
+  "total": 164,
+  "routeAccuracy": "100.0% (164/164)",
+  "readVsFindAccuracy": "100.0% (41/41)",
+  "readVsRecommendAccuracy": "100.0% (62/62)",
+  "workflowStartAccuracy": "100.0% (16/16)",
+  "interruptionAccuracy": "100.0% (42/42)",
+  "switchCancelAccuracy": "100.0% (8/8)",
+  "correctionAccuracy": "100.0% (10/10)",
+  "referenceAccuracy": "100.0% (10/10)",
+  "multiIntentAccuracy": "100.0% (8/8)",
+  "topicAccuracy": "100.0% (75/75)",
+  "knowledgeQaAccuracy": "100.0% (19/19)",
+  "negationAccuracy": "100.0% (5/5)",
+  "writeIsProposalOnlyAccuracy": "100.0% (11/11)",
+  "unsafeMisroutes": 0,
+  "failureCount": 0,
+  "failures": []
+}

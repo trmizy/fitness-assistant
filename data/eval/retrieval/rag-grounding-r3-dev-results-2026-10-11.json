@@ -1,0 +1,645 @@
+{
+ "note": "Phase 4.7R3 development-side metrics; every set below was available for tuning — NOT a generalisation verdict.",
+ "devV4": {
+  "baseline": {
+   "queries": 145,
+   "inScope": 64,
+   "topicHit_at1": 0.313,
+   "topicHit_at3": 0.328,
+   "relevantCuratedEvidence_at3": 0.049,
+   "syntheticTop1_evidenceQueries": 0.878,
+   "duplicateRate": 0.432,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 51,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 52,
+    "count": 52
+   },
+   "safetySignals": {
+    "positives": 51,
+    "recall": 0.961,
+    "highRiskRecall": 0.868,
+    "negatives": 94,
+    "falsePositiveRate": 0.011,
+    "falsePositives": [
+     "S039"
+    ]
+   },
+   "falseSourceByClass": {
+    "OTHER_OOD": {
+     "n": 10,
+     "leaks": 10
+    },
+    "AMBIGUOUS_TERM": {
+     "n": 13,
+     "leaks": 13
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 3,
+     "leaks": 3
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 444,
+    "p90": 604,
+    "max": 853
+   },
+   "latencyMs": {
+    "p50": 63,
+    "p90": 99
+   }
+  },
+  "v2_3": {
+   "queries": 145,
+   "inScope": 64,
+   "topicHit_at1": 0.688,
+   "topicHit_at3": 0.828,
+   "relevantCuratedEvidence_at3": 0.902,
+   "syntheticTop1_evidenceQueries": 0.024,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.047,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 51,
+    "success": 0.98,
+    "returnedNonTrusted": 0.02
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 51,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 51,
+    "recall": 1,
+    "highRiskRecall": 1,
+    "negatives": 94,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "OTHER_OOD": {
+     "n": 10,
+     "leaks": 0
+    },
+    "AMBIGUOUS_TERM": {
+     "n": 13,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 3,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 703,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 63,
+    "p90": 76
+   }
+  },
+  "byDomain": {
+   "SAFETY": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 12,
+    "topicHit_at3": 0.583,
+    "empty": 0.25
+   },
+   "EXERCISE_CATALOG": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 25,
+    "topicHit_at3": 0.8,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "empty": 0
+   },
+   "TERMINOLOGY": {
+    "n": 1,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "NUTRITION": {
+    "n": 6,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "diagnosticV3": {
+  "baseline": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.333,
+   "topicHit_at3": 0.373,
+   "relevantCuratedEvidence_at3": 0.077,
+   "syntheticTop1_evidenceQueries": 0.872,
+   "duplicateRate": 0.407,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0.2,
+   "safeAbstention": {
+    "n": 12,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 14
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 8
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 4
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 3
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 7
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 449,
+    "p90": 663,
+    "max": 1367
+   },
+   "latencyMs": {
+    "p50": 164,
+    "p90": 280
+   }
+  },
+  "v2_2_oneShot": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.725,
+   "topicHit_at3": 0.804,
+   "relevantCuratedEvidence_at3": 0.795,
+   "syntheticTop1_evidenceQueries": 0.026,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.083,
+   "emptyRetrieval_inScope": 0.137,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 12,
+    "success": 0.75,
+    "returnedNonTrusted": 0.25
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 3
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 1
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 1
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 357,
+    "p90": 702,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 64,
+    "p90": 84
+   }
+  },
+  "v2_3": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.824,
+   "topicHit_at3": 0.902,
+   "relevantCuratedEvidence_at3": 0.872,
+   "syntheticTop1_evidenceQueries": 0,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.059,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 12,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 73,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 219,
+    "p90": 702,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 65,
+    "p90": 86
+   }
+  },
+  "byDomain_v2_3": {
+   "NUTRITION": {
+    "n": 10,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0.2
+   },
+   "RECOVERY": {
+    "n": 4,
+    "topicHit_at3": 0.5,
+    "empty": 0.5
+   },
+   "STRENGTH": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 0.833,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 10,
+    "topicHit_at3": 0.9,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "devV3": {
+  "v2_3": {
+   "queries": 145,
+   "inScope": 61,
+   "topicHit_at1": 0.852,
+   "topicHit_at3": 0.934,
+   "relevantCuratedEvidence_at3": 0.949,
+   "syntheticTop1_evidenceQueries": 0.026,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.049,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 27,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 30,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 115,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 15,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 11,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 9,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 8,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 14,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 696,
+    "max": 771
+   },
+   "latencyMs": {
+    "p50": 63,
+    "p90": 76
+   }
+  }
+ },
+ "diagnosticV2": {
+  "v2_3": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.787,
+   "topicHit_at3": 0.894,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.021,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 9,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 12,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 60,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 16,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 712,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 69,
+    "p90": 83
+   }
+  }
+ },
+ "generalizationDevV2": {
+  "v2_3": {
+   "queries": 104,
+   "inScope": 77,
+   "topicHit_at1": 0.831,
+   "topicHit_at3": 0.896,
+   "relevantCuratedEvidence_at3": 0.925,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.052,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 8,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 10,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 94,
+    "falsePositiveRate": 0.011,
+    "falsePositives": [
+     "G075"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 19,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 525,
+    "p90": 716,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 67,
+    "p90": 85
+   }
+  }
+ },
+ "originalDev111": {
+  "v2_3": {
+   "queries": 111,
+   "inScope": 106,
+   "topicHit_at1": 0.67,
+   "topicHit_at3": 0.764,
+   "relevantCuratedEvidence_at3": 0.852,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.17,
+   "catalogRecall_at3": 0.778,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 7,
+    "count": 1
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 104,
+    "falsePositiveRate": 0.019,
+    "falsePositives": [
+     "T08",
+     "R03"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 711,
+    "max": 756
+   },
+   "latencyMs": {
+    "p50": 68,
+    "p90": 81
+   }
+  }
+ },
+ "diagnosticV1": {
+  "v2_3": {
+   "queries": 56,
+   "inScope": 50,
+   "topicHit_at1": 0.74,
+   "topicHit_at3": 0.82,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.1,
+   "catalogRecall_at3": null,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 4,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 52,
+    "falsePositiveRate": 0.019,
+    "falsePositives": [
+     "HR02"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 6,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 683,
+    "p90": 719,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 71,
+    "p90": 85
+   }
+  }
+ }
+}

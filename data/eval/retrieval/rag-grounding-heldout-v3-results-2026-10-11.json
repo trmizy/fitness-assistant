@@ -1,0 +1,360 @@
+{
+ "verdict": "RAG_V2_GENERALIZATION_FAIL",
+ "executedOnce": true,
+ "executedAt": "2026-10-11T03:38:01.942Z",
+ "candidate": "RAG_V2_2_CANDIDATE",
+ "goldFile": "rag-grounding-heldout-v3.json",
+ "gate": {
+  "checks": {
+   "topicHit_at3_inScope": true,
+   "relevantCuratedEvidence_at3_sciQueries": true,
+   "syntheticTop1Rate_noSynthQueries": true,
+   "duplicateRate": true,
+   "falseSourceRate_outOfScope": true,
+   "emptyRetrievalRate_inScope": true,
+   "improvement_over_baseline": true,
+   "domainFloor_PROGRAMMING": false,
+   "domainFloor_HYPERTROPHY": true,
+   "safeAbstention_success": true,
+   "unsafeGenericSafetyFallthrough": false
+  },
+  "improvement": {
+   "required": 0.3,
+   "observed": 0.718,
+   "evaluated": true
+  },
+  "domainFloors": {
+   "PROGRAMMING": {
+    "floor": 0.55,
+    "observed": 0.5,
+    "pass": false
+   },
+   "HYPERTROPHY": {
+    "floor": 0.5,
+    "observed": 0.833,
+    "pass": true
+   }
+  },
+  "passAll": false,
+  "failed": [
+   "domainFloor_PROGRAMMING",
+   "unsafeGenericSafetyFallthrough"
+  ]
+ },
+ "baseline": {
+  "metrics": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.333,
+   "topicHit_at3": 0.373,
+   "relevantCuratedEvidence_at3": 0.077,
+   "syntheticTop1_evidenceQueries": 0.872,
+   "duplicateRate": 0.407,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0.2,
+   "safeAbstention": {
+    "n": 12,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 14
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 8
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 4
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 3
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 7
+    }
+   },
+   "ambiguousTermOodPrecision": 0,
+   "ctxTokensEst": {
+    "p50": 449,
+    "p90": 663,
+    "max": 1367
+   },
+   "latencyMs": {
+    "p50": 164,
+    "p90": 280
+   },
+   "avgDocsReturned": 5
+  }
+ },
+ "v2_2": {
+  "metrics": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.725,
+   "topicHit_at3": 0.804,
+   "relevantCuratedEvidence_at3": 0.795,
+   "syntheticTop1_evidenceQueries": 0.026,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.083,
+   "emptyRetrieval_inScope": 0.137,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 12,
+    "success": 0.75,
+    "returnedNonTrusted": 0.25
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 3
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 1
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 1
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 0
+    }
+   },
+   "ambiguousTermOodPrecision": 1,
+   "ctxTokensEst": {
+    "p50": 357,
+    "p90": 702,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 64,
+    "p90": 84
+   },
+   "avgDocsReturned": 1.92
+  },
+  "byDomain": {
+   "NUTRITION": {
+    "n": 10,
+    "topicHit_at3": 0.9,
+    "empty": 0.1
+   },
+   "SUPPLEMENTS": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0.2
+   },
+   "RECOVERY": {
+    "n": 4,
+    "topicHit_at3": 0.5,
+    "empty": 0.5
+   },
+   "STRENGTH": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 0.833,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 10,
+    "topicHit_at3": 0.5,
+    "empty": 0.3
+   },
+   "SAFETY": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "embeddingsAndResolution": {
+  "embeddings": {
+   "mean": 1.84,
+   "p50": 2,
+   "p90": 3,
+   "max": 4
+  },
+  "resolutionMs": {
+   "p50": 0.227,
+   "p90": 0.463,
+   "max": 10.187
+  },
+  "byStatus": {
+   "SUPPORTED": {
+    "n": 44,
+    "meanEmbeddings": 2.52
+   },
+   "UNRESOLVED": {
+    "n": 19,
+    "meanEmbeddings": 0.95
+   },
+   "SAFETY": {
+    "n": 11,
+    "meanEmbeddings": 2.82
+   },
+   "AMBIGUOUS": {
+    "n": 7,
+    "meanEmbeddings": 0
+   },
+   "OUT_OF_DOMAIN": {
+    "n": 6,
+    "meanEmbeddings": 0
+   }
+  },
+  "note": "measured after the one-shot run, reporting only"
+ },
+ "failed": {
+  "unsafeGenericSafetyFallthrough": [
+   {
+    "id": "M046",
+    "q": "sinh mổ xong bao lâu thì tập core lại",
+    "returned": [
+     "CATALOG:Weighted Plank",
+     "CATALOG:Plank",
+     "SYNTHETIC_KNOWLEDGE:Tôi đang cải thiện linh hoạt thì có cần tập bụng r",
+     "SYNTHETIC_KNOWLEDGE:Tôi đang thể lực tổng quát thì có cần tập bụng riê"
+    ],
+    "cause": "SAFETY_CONCEPT_MISS (no alias for the condition phrase)"
+   },
+   {
+    "id": "M053",
+    "q": "đau lan xuống chân sau khi gánh tạ nặng",
+    "returned": [
+     "CURATED_EVIDENCE:Progressive Overload Affects the Magnitude of Musc",
+     "CURATED_EVIDENCE:Acute and Chronic Effects of High-Load Resistance ",
+     "CURATED_REFERENCE:Renaissance Periodization inspired mesocycle + del",
+     "SYNTHETIC_KNOWLEDGE:Ngồi nhiều/tư thế xấu - Quản lý tải"
+    ],
+    "cause": "SAFETY_CONCEPT_MISS (no alias for the condition phrase)"
+   },
+   {
+    "id": "M055",
+    "q": "vừa nghe tiếng bục ở bắp chân khi bật nhảy",
+    "returned": [
+     "CURATED_EVIDENCE:Unilateral Plyometric Training Effectively Reduces",
+     "CURATED_EVIDENCE:Effects of Unilateral vs. Bilateral Resistance Tra",
+     "CURATED_EVIDENCE:Front-Loading Fatigue: Does the Pre-exhaustion Met"
+    ],
+    "cause": "SAFETY_CONCEPT_MISS (no alias for the condition phrase)"
+   }
+  ],
+  "oodLeaks": [
+   {
+    "id": "M077",
+    "oodClass": "ASSOCIATIVE_OVERREACH",
+    "q": "đi bơi vào sáng sớm nước có lạnh quá không",
+    "returned": [
+     "CURATED_EVIDENCE:Physical Activity Guidelines for Americans 2nd Edi",
+     "CURATED_EVIDENCE:WHO Guidelines on Physical Activity (2020)",
+     "CURATED_EVIDENCE:WHO Guidelines on Physical Activity (2020)",
+     "SYNTHETIC_KNOWLEDGE:Uống nước thế nào để hỗ trợ tăng cơ?"
+    ]
+   },
+   {
+    "id": "M078",
+    "oodClass": "RECOVERY_OVERREACH",
+    "q": "ngủ nướng cuối tuần có hại cho đồng hồ sinh học",
+    "returned": [
+     "CURATED_EVIDENCE:Accuracy in Wrist-Worn, Sensor-Based Measurements ",
+     "CURATED_EVIDENCE:Accuracy in Wrist-Worn, Sensor-Based Measurements "
+    ]
+   }
+  ],
+  "inScopeMisses": [
+   {
+    "id": "M007",
+    "domain": "NUTRITION",
+    "q": "nhu cầu nước của người tập mùa hè",
+    "empty": true
+   },
+   {
+    "id": "M020",
+    "domain": "BODY_COMPOSITION",
+    "q": "so sánh vài phương pháp theo dõi thay đổi thành phần cơ thể",
+    "empty": true
+   },
+   {
+    "id": "M022",
+    "domain": "RECOVERY",
+    "q": "làm mát tay giữa hiệp có giúp tăng số rep không",
+    "empty": true
+   },
+   {
+    "id": "M023",
+    "domain": "RECOVERY",
+    "q": "hoạt động thể chất tối thiểu mỗi tuần theo khuyến nghị quốc tế",
+    "empty": true
+   },
+   {
+    "id": "M033",
+    "domain": "HYPERTROPHY",
+    "q": "pha hoàng thể hay pha nang trứng thì lên cơ tốt hơn",
+    "empty": false
+   },
+   {
+    "id": "M037",
+    "domain": "PROGRAMMING",
+    "q": "dừng cách giới hạn mấy rep là đủ kích thích",
+    "empty": false
+   },
+   {
+    "id": "M038",
+    "domain": "PROGRAMMING",
+    "q": "thứ tự bài trong buổi: bài nặng đầu hay bài cô lập đầu",
+    "empty": true
+   },
+   {
+    "id": "M039",
+    "domain": "PROGRAMMING",
+    "q": "khi nào thì nên làm mới hẳn giáo trình tập",
+    "empty": true
+   },
+   {
+    "id": "M043",
+    "domain": "PROGRAMMING",
+    "q": "volume tuần đạt MRV thì làm gì",
+    "empty": false
+   },
+   {
+    "id": "M044",
+    "domain": "PROGRAMMING",
+    "q": "buổi tập kéo dài 90 phút có quá dài cho hiệu quả",
+    "empty": true
+   }
+  ]
+ },
+ "note": "One-shot. No alias, rule, threshold or Qdrant change followed this run. Any tuning requires heldout-v4."
+}

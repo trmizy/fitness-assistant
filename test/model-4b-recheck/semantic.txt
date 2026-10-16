@@ -1,0 +1,27 @@
+{
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "sampled": 24,
+  "invalidJson": 0,
+  "intentAccuracy": "66.7% (6/9)",
+  "recommendationIntent": "100.0% (3/3)",
+  "entityExactMatchRaw": "87.0% (20/23)",
+  "entityExactMatchAfterValidator": "87.0% (20/23)",
+  "forbiddenEntityRaw": 0,
+  "forbiddenEntityAfterValidator": 0,
+  "latencyMs": {
+    "min": 2378,
+    "p50": 6574,
+    "p90": 13945,
+    "max": 15425,
+    "mean": 6580
+  },
+  "notes": [
+    "GEN-138 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION",
+    "COR-067 intent CONFIRM ≠ CORRECT_INFORMATION",
+    "MUL-100 tôi 22 tuổi, cao 1m73, nặng 80kg, tôi là nam giới, → missing AGE=22",
+    "GEN-139 intent PROVIDE_INFORMATION ≠ ANSWER_QUESTION",
+    "TAR-033 xuống 72 ký → missing TARGET_WEIGHT_KG=72",
+    "MUL-101 nữ, 30 tuổi, 1m60, 55kg, muốn xuống 52kg → missing AGE=30"
+  ]
+}
+

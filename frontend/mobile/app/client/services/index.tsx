@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, useLocalSearchParams } from "expo-router";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CalendarClock,
   ChevronRight,
   FileText,
   MapPin,
+  QrCode,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -36,6 +37,7 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
 import { QUICK_FILTERS } from "../../../src/constants/specialties";
 import {
+  canReportMembership,
   daysRemaining,
   groupByBrand,
   gymBlockedReason,
@@ -44,7 +46,10 @@ import {
   normalizeMemberships,
   searchGyms,
   type GymRow,
+  type MembershipRow,
 } from "../../../src/features/services/gymDirectory";
+import { PaymentMethodSheet } from "../../../src/components/payment/PaymentMethodSheet";
+import { useGatewayCheckout } from "../../../src/features/payments/useGatewayCheckout";
 import {
   CLIENT_TERMINATION_CHOICES,
   contractStatus,
@@ -62,13 +67,20 @@ import {
   activeFilterCount,
   buildListParams,
   filterError,
+  PT_PAGE_SIZE,
   matchesSpecialty,
-  normalizePts,
+  mergePtPages,
+  nextPtPage,
   type PtFilters,
   type PtRow,
 } from "../../../src/features/services/ptDiscovery";
 
 const TABS = ["Tìm PT", "Phòng gym", "Hội viên", "Hợp đồng"] as const;
+const TAB_FROM_PARAM: Record<string, (typeof TABS)[number]> = {
+  gyms: "Phòng gym",
+  memberships: "Hội viên",
+  contracts: "Hợp đồng",
+};
 type Tab = (typeof TABS)[number];
 
 /**
@@ -84,7 +96,17 @@ export default function ClientServicesScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
 
-  const [tab, setTab] = useState<Tab>("Tìm PT");
+  // `?tab=memberships|contracts` — where the payment result screen sends a settled purchase.
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<Tab>(TAB_FROM_PARAM[String(tabParam)] ?? "Tìm PT");
+  // The tab is already mounted when the result screen navigates back here, so a new param must
+  // still switch it — adjusted during render (React's "storing information from previous renders").
+  const [seenParam, setSeenParam] = useState(tabParam);
+  if (tabParam !== seenParam) {
+    setSeenParam(tabParam);
+    const next = TAB_FROM_PARAM[String(tabParam)];
+    if (next) setTab(next);
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -148,14 +170,17 @@ function FindPtTab() {
   const applied = useMemo<PtFilters>(() => ({ ...filters, q: query }), [filters, query]);
   const params = useMemo(() => buildListParams(applied), [applied]);
 
-  const ptsQuery = useQuery({
-    queryKey: ["pts-list", params],
-    queryFn: () => profileService.listPTs(params),
+  // Its own key: the detail screen keeps an unpaged copy under ["pts-list", {}].
+  const ptsQuery = useInfiniteQuery({
+    queryKey: ["pts-list-pages", params],
+    queryFn: ({ pageParam }) => profileService.listPTs({ ...params, page: pageParam, limit: PT_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (_last, pages) => nextPtPage(pages),
   });
 
-  const { refreshing, onRefresh } = usePullToRefresh([["pts-list", params]]);
+  const { refreshing, onRefresh } = usePullToRefresh([["pts-list-pages", params]]);
 
-  const trainers = useMemo(() => normalizePts(ptsQuery.data), [ptsQuery.data]);
+  const trainers = useMemo(() => mergePtPages(ptsQuery.data?.pages), [ptsQuery.data]);
   const visible = useMemo(
     () => trainers.filter((pt) => matchesSpecialty(pt, chip)),
     [trainers, chip],
@@ -255,6 +280,18 @@ function FindPtTab() {
             ))}
           </Stagger>
         )}
+        {ptsQuery.hasNextPage && !ptsQuery.isLoading && !ptsQuery.isError ? (
+          <View className="mt-4 px-5">
+            <Button
+              variant="secondary"
+              full
+              disabled={ptsQuery.isFetchingNextPage}
+              onPress={() => void ptsQuery.fetchNextPage()}
+            >
+              {ptsQuery.isFetchingNextPage ? "Đang tải…" : "Xem thêm huấn luyện viên"}
+            </Button>
+          </View>
+        ) : null}
       </ScrollView>
 
       <FilterSheet
@@ -570,18 +607,45 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
     return map;
   }, [gymsQuery.data]);
 
+  // Phase 14.1 — a membership waiting for payment is paid from here (web: GymMembershipsPage).
+  const checkout = useGatewayCheckout<MembershipRow>({
+    start: (membership, provider) => gymService.payMembership(membership.id, provider),
+    invalidate: [["my-memberships"]],
+  });
+
   const cancelMutation = useMutation({
     mutationFn: (membershipId: string) => gymService.cancelMembership(membershipId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
       toast.show("Đã huỷ yêu cầu chờ thanh toán.", "success");
     },
-    onError: (error: any) => {
-      toast.show(error?.response?.data?.error ?? "Không huỷ được yêu cầu", "danger");
-    },
+    onError: (error: any) => toast.show(gymError(error, "Không huỷ được yêu cầu"), "danger"),
   });
 
+  // 14B.6 (PG-B1) — web's "Hủy membership" on an ACTIVE membership. The server forfeits the unused
+  // part (no refund — a prorated refund is an admin-only action), so the confirmation says so.
+  const cancelActiveMutation = useMutation({
+    mutationFn: (membershipId: string) => gymService.cancelActiveMembership(membershipId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
+      toast.show("Đã huỷ gói hội viên.", "success");
+    },
+    onError: (error: any) => toast.show(gymError(error, "Không huỷ được gói hội viên"), "danger"),
+  });
+  const confirmCancelActive = (membership: MembershipRow) => {
+    const left = daysRemaining(membership);
+    Alert.alert(
+      "Huỷ gói hội viên?",
+      `${left != null ? `Gói còn ${left}/${membership.durationDays} ngày. ` : ""}Bạn sẽ không được hoàn lại tiền của phần thời gian chưa dùng.`,
+      [
+        { text: "Giữ lại", style: "cancel" },
+        { text: "Xác nhận huỷ", style: "destructive", onPress: () => cancelActiveMutation.mutate(membership.id) },
+      ],
+    );
+  };
+
   return (
+    <>
     <ScrollView
       className="flex-1"
       contentContainerStyle={{ paddingBottom: 120, paddingTop: 12 }}
@@ -635,21 +699,53 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                   {membership.status === "ACTIVE" && left != null ? (
                     <Text className="font-body text-xs text-muted-foreground">{`Còn ${left} ngày`}</Text>
                   ) : null}
+                  {/* Phase 14.3 — check in at the desk by scanning the gym's QR (web: GymMembershipsPage). */}
+                  {membership.status === "ACTIVE" ? (
+                    <Button size="sm" icon={QrCode} onPress={() => router.push("/client/services/checkin" as never)}>
+                      Quét mã check-in
+                    </Button>
+                  ) : null}
+                  {membership.status === "ACTIVE" ? (
+                    <Button variant="ghost" size="sm" disabled={cancelActiveMutation.isPending} onPress={() => confirmCancelActive(membership)}>
+                      Huỷ gói hội viên
+                    </Button>
+                  ) : null}
+
+                  {canReportMembership(membership) ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => router.push({ pathname: "/client/services/report-issue", params: { gymId: membership.gymId, gymName: gym?.name ?? "" } })}
+                    >
+                      Báo cáo vấn đề
+                    </Button>
+                  ) : null}
 
                   {membership.status === "PENDING_PAYMENT" ? (
                     <>
                       <Text className="font-body text-xs text-muted-foreground">
-                        Cổng thanh toán sẽ mở trong bản cập nhật tới. Huỷ yêu cầu nếu bạn muốn chọn
-                        gói khác tại phòng gym này.
+                        Gói chỉ kích hoạt sau khi cổng thanh toán xác nhận. Huỷ yêu cầu nếu bạn muốn
+                        chọn gói khác tại phòng gym này.
                       </Text>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={cancelMutation.isPending}
-                        onPress={() => cancelMutation.mutate(membership.id)}
-                      >
-                        Huỷ yêu cầu
-                      </Button>
+                      <View className="flex-row gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={checkout.submitting || cancelMutation.isPending}
+                          onPress={() => checkout.choose(membership)}
+                        >
+                          Thanh toán
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          disabled={cancelMutation.isPending || checkout.submitting}
+                          onPress={() => cancelMutation.mutate(membership.id)}
+                        >
+                          Huỷ yêu cầu
+                        </Button>
+                      </View>
                     </>
                   ) : null}
                 </Card>
@@ -659,6 +755,16 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
         </Stagger>
       )}
     </ScrollView>
+    <PaymentMethodSheet
+      open={checkout.target != null}
+      amount={checkout.target?.price ?? 0}
+      title="Thanh toán gói hội viên"
+      note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
+      submitting={checkout.submitting}
+      onConfirm={checkout.pay}
+      onClose={checkout.close}
+    />
+    </>
   );
 }
 
@@ -690,6 +796,12 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
   );
   const open = contracts.filter(isOpen);
   const past = contracts.filter((contract) => !isOpen(contract));
+
+  // Phase 14.1 — an accepted contract waiting for payment is paid from its card (web: ContractPage).
+  const checkout = useGatewayCheckout<ContractRow>({
+    start: (contract, provider) => contractService.pay(contract.id, provider),
+    invalidate: [["client-contracts"]],
+  });
 
   const endMutation = useMutation({
     mutationFn: async (input: { contract: ContractRow; reason: TerminationChoice["reason"] }) =>
@@ -741,6 +853,8 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
               <ContractCard
                 key={contract.id}
                 contract={contract}
+                paying={checkout.submitting}
+                onPay={() => checkout.choose(contract)}
                 onEnd={() => {
                   setReason("CLIENT_CANCELLED");
                   setEnding(contract);
@@ -808,6 +922,16 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
           </View>
         </View>
       </BottomSheet>
+
+      <PaymentMethodSheet
+        open={checkout.target != null}
+        amount={checkout.target?.price ?? 0}
+        title="Thanh toán hợp đồng"
+        note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Hợp đồng chỉ được kích hoạt sau khi cổng xác nhận giao dịch thành công."
+        submitting={checkout.submitting}
+        onConfirm={checkout.pay}
+        onClose={checkout.close}
+      />
     </>
   );
 }
@@ -815,9 +939,13 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
 function ContractCard({
   contract,
   onEnd,
+  onPay,
+  paying,
 }: {
   contract: ContractRow;
   onEnd?: () => void;
+  onPay?: () => void;
+  paying?: boolean;
 }) {
   const accent = useWorkspaceAccent();
   const status = contractStatus(contract.status);
@@ -875,7 +1003,7 @@ function ContractCard({
 
       {contract.status === "PENDING_PAYMENT" ? (
         <Text className="font-body text-xs text-muted-foreground">
-          Cổng thanh toán sẽ mở trong bản cập nhật tới.
+          Hợp đồng chỉ bắt đầu sau khi cổng thanh toán xác nhận giao dịch.
         </Text>
       ) : null}
 
@@ -892,6 +1020,11 @@ function ContractCard({
       ) : null}
 
       <View className="flex-row flex-wrap gap-2">
+        {contract.status === "PENDING_PAYMENT" && onPay ? (
+          <Button size="sm" disabled={paying} onPress={onPay}>
+            Thanh toán
+          </Button>
+        ) : null}
         {contract.status === "ACTIVE" ? (
           <Button
             variant="secondary"
@@ -910,4 +1043,10 @@ function ContractCard({
       </View>
     </Card>
   );
+}
+
+/** gym-service answers `{ error: { code, message } }` (some older routes a bare string). */
+function gymError(error: any, fallback: string): string {
+  const e = error?.response?.data?.error;
+  return (typeof e === "string" ? e : e?.message) || fallback;
 }

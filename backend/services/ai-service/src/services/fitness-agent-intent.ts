@@ -15,21 +15,11 @@ export function normalizeAgentText(text: string): string {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
 }
 
-/** Only explicit user constraints are extracted. Missing fields stay missing.
- * Ranking, prescription and action execution are never inferred by a model.
- */
-export function parseFitnessAgentIntent(text: string): {
-  kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
-    | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
-    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
-    | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
-    | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL" | null;
-  preferences: Partial<AgentPreferences>;
-  candidateNumber?: number;
-  /** kind === "REVIEW" only — which pending recommendation and which way. */
-  reviewDecision?: "ACCEPT" | "REJECT";
-  reviewTarget?: "TRAINING" | "NUTRITION";
-} {
+/** Only explicit user constraints are extracted (goal/days/sessionMinutes/budgetVnd/mode). Missing
+ * fields stay missing — never inferred/guessed. Factored out of parseFitnessAgentIntent (Phase 3
+ * Batch 4) so the new revision module (services/revision/*) can extract a budget/day refinement from
+ * a follow-up turn without duplicating these regexes. */
+export function parseConstraintPhrase(text: string): Partial<AgentPreferences> {
   const s = normalizeAgentText(text);
   const preferences: Partial<AgentPreferences> = {};
   if (/giam (mo|can)|fat loss|lose weight/.test(s)) preferences.goal = "WEIGHT_LOSS";
@@ -45,7 +35,27 @@ export function parseFitnessAgentIntent(text: string): {
   if (budget) preferences.budgetVnd = Math.round(Number(budget[1].replace(",", ".")) * (/^(trieu|tr|m|million)$/.test(budget[2] ?? "") ? 1e6 : /^(k|nghin)$/.test(budget[2] ?? "") ? 1000 : 1));
   if (/online|truc tuyen/.test(s)) preferences.mode = "ONLINE";
   else if (/offline|truc tiep/.test(s)) preferences.mode = "OFFLINE";
-  const select = /\b(chon|dang ky|ap|apply|choose|select)\b/.test(s) && /\b(pt|plan|chuong trinh|huan luyen vien)\b/.test(s);
+  return preferences;
+}
+
+export function parseFitnessAgentIntent(text: string): {
+  kind: "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | "REVIEW" | "CREATE_PLAN_BUNDLE" | "SAVE_GENERATED_PLAN"
+    | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
+    | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
+    | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
+    | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL" | null;
+  preferences: Partial<AgentPreferences>;
+  candidateNumber?: number;
+  /** kind === "REVIEW" only — which pending recommendation and which way. */
+  reviewDecision?: "ACCEPT" | "REJECT";
+  reviewTarget?: "TRAINING" | "NUTRITION";
+} {
+  const s = normalizeAgentText(text);
+  const preferences: Partial<AgentPreferences> = parseConstraintPhrase(text);
+  const select = (/\b(chon|dang ky|ap|apply|choose|select)\b/.test(s) && /\b(pt|plan|chuong trinh|huan luyen vien)\b/.test(s))
+    // "thuê PT này / PT thứ 2 / PT số 1": hiring a SPECIFIC recommended PT is a selection (which still goes through the
+    // draft + explicit confirmations); a bare "thuê PT" / "tôi muốn thuê PT" stays a PT search.
+    || (/\b(thue|hire)\b/.test(s) && /\b(pt|huan luyen vien)\b/.test(s) && /\b(nay|do|kia|thu\s+(?:nhat|hai|ba|bon|tu|nam|\d+)|so\s*\d+|dau tien|first)\b/.test(s));
   const noPt = /khong (?:muon |can )?(?:thue )?pt|tu tap|self.training|without.*trainer/.test(s);
 
   // Adaptive Cycle Evaluation via chat (docs/agentic-fitness/01_NUTRITION_
@@ -95,12 +105,16 @@ export function parseFitnessAgentIntent(text: string): {
   // (both already returned above) so a "lộ trình" or save-verb request
   // always keeps its existing, more specific meaning.
   const mentionsCreateWorkoutPlan = /\b(tao|len|xay|thiet ke)\b/.test(s)
-    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap)\b/.test(s);
+    && /\b(lich tap|chuong trinh tap|ke hoach tap|plan tap|workout plan|training plan|workout program)\b/.test(s);
   if (mentionsCreateWorkoutPlan) {
     return { kind: "CREATE_WORKOUT_PLAN", preferences: {} };
   }
-  const mentionsCreateNutritionPlan = /\b(tao|len|thiet ke)\b/.test(s)
-    && /\b(thuc don|ke hoach dinh duong|meal plan)\b/.test(s);
+  const mentionsCreateNutritionPlan = (/\b(tao|len|thiet ke)\b/.test(s)
+    && /\b(thuc don|ke hoach dinh duong|meal plan)\b/.test(s))
+    // a menu request that states how many meals it should have ("thực đơn giảm mỡ 4 bữa") is a creation request; lookups
+    // ("thực đơn hôm nay", "thực đơn của tôi") and questions never state a meal count.
+    || (/\b(thuc don|meal plan)\b/.test(s) && /\b[2-6]\s*bua\b/.test(s)
+      && !/\b(cua toi|hom nay|hien tai|dang|la gi|tai sao|vi sao|sao)\b/.test(s));
   if (mentionsCreateNutritionPlan) {
     return { kind: "CREATE_NUTRITION_PLAN", preferences: {} };
   }
@@ -127,6 +141,15 @@ export function parseFitnessAgentIntent(text: string): {
     if (/\b(hien tai|the nao|ra sao|tien do|giai doan|xem|kiem tra)\b/.test(s)) {
       return { kind: "ROADMAP_STATUS", preferences: {} };
     }
+  }
+
+  // Roadmap-only creation ("tạo lộ trình giảm mỡ cho tôi", "lên roadmap cut"). Deliberately AFTER the roadmap-management
+  // verbs above (rebuild/archive/advance/status keep their meaning) so it only claims phrasing that previously reached
+  // no agent at all, and it is skipped for how-to/definition questions. It opens the SAME create workflow (missing-slot
+  // questions, then a preview that still needs an explicit confirmation); nothing is written by routing alone.
+  if (/\b(lo trinh|roadmap)\b/.test(s) && /\b(tao|len|xay|lap|thiet ke|create|build)\b/.test(s)
+    && !/\b(la gi|nhu the nao|cach|tai sao|vi sao|how|what)\b/.test(s)) {
+    return { kind: "CREATE_PLAN_BUNDLE", preferences: {} };
   }
 
   // Training-cycle management for the currently ACTIVE cycle. The
@@ -166,7 +189,10 @@ export function parseFitnessAgentIntent(text: string): {
   }
 
   const kind = select ? "SELECT" : noPt ? "PROGRAM" : /\bpt\b|personal trainer|huan luyen vien/.test(s) ? "PT"
-    : /goi y.*(?:plan|chuong trinh)|recommend.*program|self.training/.test(s) ? "PROGRAM" : null;
+    : /goi y.*(?:plan|chuong trinh)|recommend.*program|self.training/.test(s) ? "PROGRAM"
+    // "tìm/kiếm/đề xuất chương trình tập", "có chương trình tập nào hợp với tôi không": searching existing programs.
+    : /\b(tim|kiem|de xuat|giai thieu|find|suggest)\b.*\b(chuong trinh tap|giao an|program)\b|^\s*co (chuong trinh tap|giao an)\b.*\b(nao|khong)\b/.test(s) ? "PROGRAM"
+    : null;
   // Validate extracted values rather than accepting impossible durations/budgets.
   const valid = AgentPreferencesSchema.partial().safeParse(preferences);
   const numbered = s.match(/(?:so|thu|#)\s*(\d+)/);

@@ -1,0 +1,240 @@
+{
+ "note": "Phase 4.7 held-out gate, run ONCE against frozen RAG V2 (retrieval-v2.ts sha256 prefix cb70211f35e45df3). No retuning after this run.",
+ "verdict": "RAG_V2_GENERALIZATION_FAIL",
+ "gate": {
+  "checks": {
+   "topicHit_at3_inScope": false,
+   "relevantCuratedEvidence_at3_sciQueries": true,
+   "syntheticTop1Rate_noSynthQueries": true,
+   "duplicateRate": true,
+   "falseSourceRate_outOfScope": false,
+   "emptyRetrievalRate_inScope": true
+  },
+  "improvementMinRequired": 0.3,
+  "passAllAbsolute": false
+ },
+ "baseline": {
+  "metrics": {
+   "mode": "baseline",
+   "queries": 56,
+   "inScope": 50,
+   "emptyRetrievalRate_inScope": 0,
+   "falseSourceRate_outOfScope": 1,
+   "topicHit_at3_inScope": 0.38,
+   "topicHit_at1_inScope": 0.32,
+   "curatedEvidence_at1_sciQueries": 0.059,
+   "curatedEvidence_at3_sciQueries": 0.059,
+   "relevantCuratedEvidence_at1_sciQueries": 0.059,
+   "relevantCuratedEvidence_at3_sciQueries": 0.059,
+   "syntheticTop1Rate_noSynthQueries": 0.941,
+   "syntheticTop1Rate_all": 0.96,
+   "catalogTop1Rate_catalogQueries": null,
+   "catalogRecall_at3_catalogQueries": null,
+   "duplicateRate": 0.468,
+   "provenanceCompleteness_curatedEvidence": 1,
+   "ctxTokensEst": {
+    "p50": 445,
+    "p90": 619,
+    "max": 810
+   },
+   "latencyMs": {
+    "p50": 195,
+    "p90": 299
+   },
+   "avgDocsReturned": 5
+  },
+  "byDomain": {
+   "NUTRITION": {
+    "n": 8,
+    "topicHit_at3": 0.5,
+    "relevantCuratedEvidence_at3": 0.125,
+    "syntheticTop1": 0.875,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 6,
+    "topicHit_at3": 0.5,
+    "relevantCuratedEvidence_at3": 0.167,
+    "syntheticTop1": 0.833,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 5,
+    "topicHit_at3": 0.2,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 4,
+    "topicHit_at3": 0,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 6,
+    "topicHit_at3": 0,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 5,
+    "topicHit_at3": 0.4,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 4,
+    "topicHit_at3": 0.75,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "TERMINOLOGY": {
+    "n": 4,
+    "topicHit_at3": 0,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "TECHNIQUE": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   }
+  }
+ },
+ "v2": {
+  "metrics": {
+   "mode": "v2",
+   "queries": 56,
+   "inScope": 50,
+   "emptyRetrievalRate_inScope": 0.2,
+   "falseSourceRate_outOfScope": 0.333,
+   "topicHit_at3_inScope": 0.58,
+   "topicHit_at1_inScope": 0.48,
+   "curatedEvidence_at1_sciQueries": 0.676,
+   "curatedEvidence_at3_sciQueries": 0.676,
+   "relevantCuratedEvidence_at1_sciQueries": 0.471,
+   "relevantCuratedEvidence_at3_sciQueries": 0.559,
+   "syntheticTop1Rate_noSynthQueries": 0.059,
+   "syntheticTop1Rate_all": 0.06,
+   "catalogTop1Rate_catalogQueries": null,
+   "catalogRecall_at3_catalogQueries": null,
+   "duplicateRate": 0,
+   "provenanceCompleteness_curatedEvidence": 1,
+   "ctxTokensEst": {
+    "p50": 464,
+    "p90": 686,
+    "max": 710
+   },
+   "latencyMs": {
+    "p50": 178,
+    "p90": 244
+   },
+   "avgDocsReturned": 2.21
+  },
+  "byDomain": {
+   "NUTRITION": {
+    "n": 8,
+    "topicHit_at3": 0.625,
+    "relevantCuratedEvidence_at3": 0.625,
+    "syntheticTop1": 0.125,
+    "empty": 0.125
+   },
+   "PROGRAMMING": {
+    "n": 6,
+    "topicHit_at3": 0.5,
+    "relevantCuratedEvidence_at3": 0.5,
+    "syntheticTop1": 0,
+    "empty": 0.333
+   },
+   "HYPERTROPHY": {
+    "n": 5,
+    "topicHit_at3": 0,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 0.2,
+    "empty": 0.6
+   },
+   "STRENGTH": {
+    "n": 4,
+    "topicHit_at3": 0.75,
+    "relevantCuratedEvidence_at3": 0.25,
+    "syntheticTop1": 0,
+    "empty": 0.25
+   },
+   "BODY_COMPOSITION": {
+    "n": 6,
+    "topicHit_at3": 1,
+    "relevantCuratedEvidence_at3": 1,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 5,
+    "topicHit_at3": 0.6,
+    "relevantCuratedEvidence_at3": 0.6,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "relevantCuratedEvidence_at3": 0.8,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 4,
+    "topicHit_at3": 0.25,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 0.25,
+    "empty": 0.5
+   },
+   "TERMINOLOGY": {
+    "n": 4,
+    "topicHit_at3": 0.5,
+    "relevantCuratedEvidence_at3": 0.25,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "TECHNIQUE": {
+    "n": 3,
+    "topicHit_at3": 0.667,
+    "relevantCuratedEvidence_at3": 0.333,
+    "syntheticTop1": 0,
+    "empty": 0.333
+   }
+  }
+ },
+ "failedQueries": {
+  "v2Empty": [
+   "HN02: cắt mỡ mà sợ mất cơ thì phải làm sao về khoản ăn uống",
+   "HP02: lên tạ từ từ mỗi buổi là kiểu tập gì vậy",
+   "HP05: bao lâu thì nên đổi giáo án một lần",
+   "HH01: cơ nở ra nhờ tạ nặng hay tạ nhẹ nhiều rep, nghiên cứu nói gì",
+   "HH02: hạ tạ chậm 4 giây có to cơ hơn không",
+   "HH04: tập với dây quấn hạn chế máu chảy có tác dụng không",
+   "HS02: chân trái khỏe hơn chân phải cỡ nào thì phải chỉnh",
+   "HZ02: phụ nữ tập quá nhiều mà kinh nguyệt mất thì sao",
+   "HZ04: bị thoát vị đĩa đệm có được deadlift không",
+   "HT03: khuỷu tay mở rộng khi đẩy ngực có sai không"
+  ],
+  "v2OutOfScopeLeaks": [
+   "HX01: cách pha cà phê cold brew tại nhà",
+   "HX03: lãi suất ngân hàng tháng này bao nhiêu"
+  ]
+ }
+}

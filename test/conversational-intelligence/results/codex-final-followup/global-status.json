@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-27T15:15:55.151Z",
+  "exit": 0,
+  "ms": 19770,
+  "command": "node",
+  "args": [
+    "test/conversational-intelligence/live-global.mjs"
+  ],
+  "artifactUpdated": true
+}

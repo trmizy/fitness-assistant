@@ -546,7 +546,7 @@ export default function ClientOnboardingScreen() {
                     keyboardType="number-pad"
                     value={sessionDurationMinutes}
                     onChangeText={(v) => setSessionDurationMinutes(v.replace(/\D/g, ""))}
-                    placeholder="60"
+                    placeholder="VD: 60"
                   />
                 </Field>
                 <Field label="Kiểu chia lịch tập">
@@ -670,7 +670,7 @@ export default function ClientOnboardingScreen() {
                       keyboardType="number-pad"
                       value={age}
                       onChangeText={(v) => setAge(v.replace(/\D/g, ""))}
-                      placeholder="25"
+                      placeholder="VD: 25"
                     />
                   </Field>
                   <Field label="Giới tính" className="flex-[1.4]">
@@ -722,7 +722,7 @@ export default function ClientOnboardingScreen() {
                       keyboardType="decimal-pad"
                       value={heightCm}
                       onChangeText={(v) => setHeightCm(normalizeDecimal(v))}
-                      placeholder="175"
+                      placeholder="VD: 175"
                     />
                   ) : (
                     <View className="flex-row gap-3">

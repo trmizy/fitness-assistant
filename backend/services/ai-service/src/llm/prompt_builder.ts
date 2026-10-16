@@ -5,6 +5,7 @@ import type {
   RetrievalResult,
   UserProfile,
 } from "./types";
+import { buildKnowledgeContext, renderKnowledgeContext } from "./knowledge-source";
 import type { PersonalizationContext } from "./profile_extractor";
 import { evaluateProteinIntake, evaluateCalorieSurplus } from "./nutrition_engine";
 
@@ -326,9 +327,22 @@ function formatHistorySections(
   return sections;
 }
 
-function compactRetrieval(result: RetrievalResult): string {
+export function compactRetrieval(result: RetrievalResult): string {
   if (result.isEmpty || result.documents.length === 0) {
     return "- No relevant context retrieved. Use conservative recommendations.";
+  }
+
+  // Phase 4.6: documents produced by retrieval V2 carry a typed knowledgeSource — render them with explicit source classes.
+  // Documents without it (flag OFF) take the unchanged legacy path below.
+  if (result.documents.some((d) => (d.metadata as any)?.knowledgeSource)) {
+    const items = buildKnowledgeContext(result.documents as any);
+    const conflict = (result.documents.find((d) => (d.metadata as any)?.conflictNote)?.metadata as any)?.conflictNote ?? null;
+    let rendered = renderKnowledgeContext(items, conflict);
+    // Phase 4.7R: figures whose scope differs (per meal vs per day, body weight vs fat-free mass) are not a conflict — say so, neutrally
+    if (!conflict && result.documents.some((d) => (d.metadata as any)?.conflictScopeUncertain)) {
+      rendered += "\n\n[Lưu ý: các nguồn nêu số liệu theo phạm vi khác nhau (ví dụ theo bữa hay theo ngày, theo cân nặng hay khối lượng nạc) — không so sánh trực tiếp các con số với nhau.]";
+    }
+    if (rendered) return rendered;
   }
 
   // Separate evidence docs from exercise/knowledge docs

@@ -8,6 +8,7 @@ import {
   Check,
   ChevronLeft,
   MapPin,
+  MessageCircle,
   MessageSquare,
   ShieldCheck,
   Star,
@@ -34,6 +35,7 @@ import {
   ptServicePackageService,
 } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
+import { useOpenChat } from "../../../../src/features/chat/useOpenChat";
 import { formatVND } from "../../../../src/utils/currency";
 import {
   buildContractRequestPayload,
@@ -50,6 +52,8 @@ import {
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
+import { contractRequestError } from "../../../../src/features/services/contracts";
+import { GOAL_OPTIONS, TARGET_OPTIONS } from "../../../../src/features/ptApplication/ptApplication";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
 
@@ -119,6 +123,7 @@ export default function TrainerDetailScreen() {
   const reviews: any[] = Array.isArray((raw as any)?.recentReviews) ? (raw as any).recentReviews : [];
 
   const blocked = pt ? requestBlockedReason(pt, selected) : "Đang tải huấn luyện viên...";
+  const { openChat, opening } = useOpenChat();
 
   const requestMutation = useMutation({
     mutationFn: (acknowledged: boolean) =>
@@ -145,10 +150,7 @@ export default function TrainerDetailScreen() {
         setLowAvailability(info);
         return;
       }
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được yêu cầu",
-        "danger",
-      );
+      toast.show(contractRequestError(error), "danger");
     },
   });
 
@@ -234,6 +236,18 @@ export default function TrainerDetailScreen() {
                 ) : null}
               </View>
 
+              {/* Web's "Nhắn tin" on the trainer card — the way to ask before (or after) signing up. */}
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={MessageCircle}
+                className="mt-3 self-start"
+                disabled={opening}
+                onPress={() => openChat(pt.userId)}
+              >
+                Nhắn tin
+              </Button>
+
               {pt.suspended || !pt.acceptingClients ? (
                 <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-border bg-panel p-3">
                   <TriangleAlert size={16} color="#f59e0b" />
@@ -269,6 +283,39 @@ export default function TrainerDetailScreen() {
                     <Text className="flex-1 font-body text-xs text-muted-foreground">
                       {pt.gymAffiliation}
                     </Text>
+                  </View>
+                ) : null}
+                {/* 14B.7 (PG-C5) — web's remaining "Giới thiệu" blocks, only when the PT filled them in. */}
+                {pt.education || pt.workExperience ? (
+                  <View className="gap-1 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Kinh nghiệm & học vấn</Text>
+                    {pt.education ? <Text className="font-body text-sm leading-6 text-foreground">{`Học vấn: ${pt.education}`}</Text> : null}
+                    {pt.workExperience ? <Text className="font-body text-sm leading-6 text-foreground">{`Kinh nghiệm: ${pt.workExperience}`}</Text> : null}
+                  </View>
+                ) : null}
+                {pt.methods ? (
+                  <View className="gap-1 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Phương pháp huấn luyện</Text>
+                    <Text className="font-body text-sm leading-6 text-foreground">{pt.methods}</Text>
+                  </View>
+                ) : null}
+                {pt.targetGroups.length > 0 || pt.trainingGoals.length > 0 ? (
+                  <View className="gap-2 border-t border-border pt-3">
+                    <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">Đối tượng & mục tiêu</Text>
+                    {pt.targetGroups.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {pt.targetGroups.map((g) => (
+                          <Badge key={`t-${g}`} tone="info">{optionLabel(TARGET_OPTIONS, g)}</Badge>
+                        ))}
+                      </View>
+                    ) : null}
+                    {pt.trainingGoals.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {pt.trainingGoals.map((g) => (
+                          <Badge key={`g-${g}`}>{optionLabel(GOAL_OPTIONS, g)}</Badge>
+                        ))}
+                      </View>
+                    ) : null}
                   </View>
                 ) : null}
               </Card>
@@ -479,3 +526,9 @@ function PackageCard({
     </Tappable>
   );
 }
+
+/** The application form stores the English option value; show its Vietnamese label (unknown → as stored). */
+function optionLabel(options: { value: string; label: string }[], value: string): string {
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+

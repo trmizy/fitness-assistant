@@ -6,6 +6,7 @@ import {
 } from "../repositories/conversation.repository";
 import type { ResponseLanguage } from "./types";
 import { checkMacroCalorieConsistency } from "./nutrition_engine";
+import { getActiveNutritionGoal } from "../services/enterprise-data/nutrition.reader";
 
 const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL ||
@@ -462,13 +463,17 @@ async function fetchDailyTask(
   return unwrap<any>(res);
 }
 
-async function fetchGoal(authHeader?: string): Promise<any | null> {
-  if (!authHeader) return null;
-  const res = await axios.get(`${FITNESS_SERVICE_URL}/nutrition/goals`, {
-    headers: authHeaders(authHeader),
-    timeout: 3500,
-  });
-  return unwrap<any>(res);
+// Phase 3 Batch 1 (docs/ai-product/phase3-batch1-context-foundation.md) — routed through the
+// Enterprise Data Layer's getActiveNutritionGoal instead of a raw, unguarded /nutrition/goals
+// call. This is an intentional behavior fix: the old code here passed through whatever
+// /nutrition/goals returned, including fitness-service's id-less DEFAULT placeholder and a
+// stored-but-not-ACTIVE row, either of which contextFromGoal would then show as the user's real
+// saved target. getActiveNutritionGoal applies the same ACTIVE+id guard profile_extractor.ts
+// already used elsewhere.
+async function fetchGoal(userId: string | undefined, authHeader?: string): Promise<any | null> {
+  if (!userId || !authHeader) return null;
+  const read = await getActiveNutritionGoal({ userId, authorizationHeader: authHeader });
+  return read.status === "ok" ? read.value : null;
 }
 
 function contextFromLogs(
@@ -809,7 +814,7 @@ export const nutritionContextResolver = {
       const taskContext = contextFromDailyTask(intent, task);
       if (taskContext?.plannedMealsFound) return taskContext;
       if (taskContext?.source === "nutrition_goal") {
-        const goal = await fetchGoal(authHeader).catch(() => null);
+        const goal = await fetchGoal(userId, authHeader).catch(() => null);
         return contextFromGoal(intent, goal) ?? taskContext;
       }
     } catch (err) {
@@ -834,7 +839,7 @@ export const nutritionContextResolver = {
     }
 
     try {
-      const goal = await fetchGoal(authHeader);
+      const goal = await fetchGoal(userId, authHeader);
       const goalContext = contextFromGoal(intent, goal);
       if (goalContext) return goalContext;
     } catch (err) {

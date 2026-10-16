@@ -2,7 +2,21 @@ const { chromium } = require("D:/fitnessassistant-playwright-e2e/node_modules/pl
 const fs = require("fs");
 const path = require("path");
 
-const BASE = "http://localhost:5173";
+// Chạy qua tunnel/IP khác: BASE_URL=https://....trycloudflare.com node ...
+const BASE = process.env.BASE_URL || "http://localhost:5173";
+// No default admin credential — see docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
+// BASE_URL above can point this script at any real environment; the admin login it drives
+// must never fall back to the seed's well-known password.
+function requireEnv(name) {
+  const v = process.env[name];
+  if (!v) {
+    console.error(`Missing required environment variable: ${name}. Set it explicitly (e.g. ADMIN_EMAIL/ADMIN_PASSWORD) — this script no longer falls back to a default credential.`);
+    process.exit(1);
+  }
+  return v;
+}
+const ADMIN_EMAIL = requireEnv("ADMIN_EMAIL");
+const ADMIN_PASSWORD = requireEnv("ADMIN_PASSWORD");
 const OUT = path.join(require("os").tmpdir(), "partner-e2e-shots");
 fs.mkdirSync(OUT, { recursive: true });
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -142,7 +156,14 @@ const check = (name, ok, extra = "") => {
   const idCard = page.locator("main div.rounded-xl", { hasText: "Giấy tờ tuỳ thân người đại diện" }).first();
   await idCard.locator('img[alt^="Tệp"]').nth(1).waitFor({ timeout: 20000 });
   check("ID card holds 2 files (front + back) with thumbnails", (await idCard.locator('img[alt^="Tệp"]').count()) === 2);
-  const thumbsLoaded = await idCard.locator('img[alt^="Tệp"]').evaluateAll((els) => els.every((e) => e.complete && e.naturalWidth > 0));
+  // Chờ ảnh tải xong (qua tunnel Internet chậm hơn local) thay vì kiểm ngay lúc thẻ <img> vừa xuất hiện.
+  const thumbsLoaded = await page
+    .waitForFunction(() => {
+      const card = [...document.querySelectorAll("main div.rounded-xl")].find((d) => d.innerText.includes("Giấy tờ tuỳ thân người đại diện"));
+      const imgs = card ? [...card.querySelectorAll('img[alt^="Tệp"]')] : [];
+      return imgs.length > 0 && imgs.every((e) => e.complete && e.naturalWidth > 0);
+    }, null, { timeout: 15000 })
+    .then(() => true, () => false);
   check("thumbnails actually load from private storage (signed URL)", thumbsLoaded);
   await idCard.getByRole("button", { name: "Xem tệp 1" }).click();
   const big = page.locator('[role="dialog"] img');
@@ -178,8 +199,8 @@ const check = (name, ok, extra = "") => {
   const ap = await actx.newPage(); ap.setDefaultNavigationTimeout(120000); ap.setDefaultTimeout(30000);
   ap.on("pageerror", (e) => errors.push("admin pageerror: " + e.message));
   await ap.goto(BASE + "/login");
-  await ap.fill('input[type="email"], input[placeholder*="mail" i]', "admin@example.com");
-  await ap.fill('input[type="password"]', "password123");
+  await ap.fill('input[type="email"], input[placeholder*="mail" i]', ADMIN_EMAIL);
+  await ap.fill('input[type="password"]', ADMIN_PASSWORD);
   await ap.getByRole("button", { name: /Đăng nhập/ }).first().click();
   await ap.waitForURL("**/admin/**", { timeout: 20000 });
   await ap.goto(BASE + "/admin/partners");

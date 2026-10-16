@@ -8,6 +8,7 @@ import {
   apiBaseUrl,
   clearServerOverride,
   getServerOverride,
+  serverUrlError,
   setServerOverride,
 } from "../../src/config/serverUrl";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
@@ -31,8 +32,12 @@ export default function ServerConfigScreen() {
   const [value, setValue] = useState(getServerOverride());
   const [current, setCurrent] = useState(apiBaseUrl());
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
+    const problem = serverUrlError(value);
+    setError(problem);
+    if (problem) return;
     setSaving(true);
     try {
       const trimmed = value.trim();
@@ -74,8 +79,12 @@ export default function ServerConfigScreen() {
             autoCorrect={false}
             keyboardType="url"
             value={value}
-            onChangeText={setValue}
+            onChangeText={(t) => {
+              setValue(t);
+              setError(null);
+            }}
             editable={!saving}
+            error={error}
           />
           <Text className="mt-2 text-xs font-body leading-5 text-muted-foreground">
             Dán địa chỉ LAN hoặc đường hầm rồi bấm Lưu. Để trống rồi Lưu để quay về địa chỉ mặc

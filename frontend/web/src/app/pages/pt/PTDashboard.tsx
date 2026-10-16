@@ -221,9 +221,15 @@ export function PTDashboard() {
       loading: earningsLoading,
     },
     {
-      label: "Tổng thu nhập",
+      // NOT "Tổng thu nhập": getEarnings() sums contract.price of COMPLETED contracts, i.e.
+      // gross contract revenue. The platform keeps a commission on every PT contract
+      // (payment-service wallet.service.ts transferWithCommission, PLATFORM_COMMISSION_RATE,
+      // default 0.10 — platform_commissions rows for partner_type='PT' show 4.000.000 gross →
+      // 3.600.000 paid out), so labelling this as income overstated what the trainer receives
+      // by exactly the fee. The wallet KPI above is the authority for money actually held.
+      label: "Doanh thu hợp đồng",
       value: formatVND(totalEarned),
-      change: "Tổng cộng",
+      change: "Trước phí nền tảng",
       icon: TrendingUp,
       color: "text-amber-400",
       bg: "bg-amber-500/10",

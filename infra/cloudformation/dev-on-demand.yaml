@@ -1,0 +1,321 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV — on-demand, hourly-cost infrastructure (gymini-dev-on-demand).
+  NOT YET DEPLOYED. Phase 1 design artifact only — see
+  docs/deployment/AWS_DEV_ON_DEMAND_INFRA_DESIGN_2026-10-01.md.
+
+  Scope: NAT Gateway + EIP + private default route, optional Chat ALB +
+  listener + target group + API Gateway Chat integration, optional
+  OpenSearch Serverless VPC endpoint. Everything else (VPC, subnets, Aurora,
+  Lambda, API Gateway base, SQS, S3, IAM, Secrets Manager + its own VPC
+  endpoint) is intentionally OUTSIDE this stack — it is persistent
+  (gymini-dev-core / gymini-dev-data / gymini-dev-services) and must survive
+  a `dev-stop` cycle untouched.
+
+  This template references existing resources by parameter (never
+  hardcodes a newly-created resource's ID) and only CREATES resources that
+  are genuinely reconstructable from scratch each time `dev-start` runs.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedValues: [dev]
+    Description: Safety guard — this stack is DEV-only, never paid/prod.
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing VPC (vpc-010c13afd8920c8f1 at time of writing — do not hardcode in app code, pass as a parameter/SSM value).
+
+  PublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet the NAT Gateway lives in (subnet-0f1a5fcd6ed0401ee at time of writing — the public subnet with an Internet Gateway route).
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: The 2 private subnets every Lambda/ECS task uses (subnet-09e3230f7bca04c8e, subnet-02b39d77762465ef8 at time of writing).
+
+  ChatAlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: "subnet-043180192466a53b5,subnet-0f1a5fcd6ed0401ee"
+    Description: >
+      The 2 PUBLIC subnets the internet-facing Chat ALB must sit in (Phase 1
+      flagged this as a template bug when PrivateSubnetIds was reused by
+      mistake for the ALB — fixed Phase 3 with its own parameter. An
+      internet-facing ALB requires subnets with an Internet Gateway route;
+      PrivateSubnetIds does not have one).
+
+  PrivateRouteTableId:
+    Type: String
+    Description: The private route table that needs the 0.0.0.0/0 -> NAT route (rtb-0f743d4fd0949f9aa at time of writing). AWS::EC2::RouteTable::Id is not a native parameter type in all CFN versions, so this is a plain String by design — validate it resolves to a real route table before deploy.
+
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group used by the OpenSearch Serverless VPC endpoint today (sg-0b38ab22927b284ab, named "fitness-assistant-dev-lambda-sg" at time of writing).
+
+  ChatAlbSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group for the Chat ALB itself (sg-0ed91f8e8a4617d62 at time of writing). Must allow inbound 80 from the internet and outbound to the Chat ECS task's security group.
+
+  ApiGatewayId:
+    Type: String
+    Default: id1iz7upbl
+    Description: The existing HTTP API (fitness-assistant-dev-api). Used only to label outputs for the dev-start script's post-deploy route-repoint step — this template does NOT create/own the API Gateway route itself (see "Chat API Gateway reconnect" note below).
+
+  OpenSearchCollectionName:
+    Type: String
+    Default: fitness-assistant-dev-ai-vectors
+    Description: Existing OpenSearch Serverless collection. Used only for labeling/outputs — this template does NOT own the collection's network security policy (see note below); dev-start.ps1 updates it via CLI after this stack's VPC endpoint exists.
+
+  EnableNatGateway:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Feature flag. NAT is required for any Lambda outbound internet call (Bedrock Runtime has no VPC endpoint today).
+
+  EnableChat:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Feature flag. Creates the Chat ALB + listener + target group. Does NOT change ECS desiredCount — that remains a separate, manual decision (this template never touches ECS).
+
+  EnableOpenSearchEndpoint:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Feature flag. Creates the OpenSearch Serverless VPC endpoint. Only matters once Bedrock/RAG access is actually usable — see AWS_DEV_BEDROCK_ACCESS_ROOT_CAUSE_2026-09-30.md.
+
+  SecretsManagerVpceSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group used by the current persistent Secrets Manager VPC endpoint (sg-0198527f052b3f386, "fitness-assistant-dev-vpce-sg" at time of writing). Reused as-is — this template never creates or modifies security group rules.
+
+  EnableSecretsManagerEndpoint:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >
+      Phase 7 feature flag. Creates the Secrets Manager VPC Interface
+      endpoint on demand. Every VPC-attached Lambda needs this (or NAT) to
+      fetch its DATABASE_URL secret on a cold start — it is the one
+      on-demand flag that other modes (Aurora/Backend, Chat, AI) imply
+      automatically rather than requiring the operator to remember it
+      separately. See AWS_DEV_PERSISTENT_BASELINE_REDUCTION_2026-10-01.md
+      for the full safety analysis of removing this previously-persistent
+      endpoint.
+
+Conditions:
+  CreateNat: !Equals [!Ref EnableNatGateway, "true"]
+  CreateChat: !Equals [!Ref EnableChat, "true"]
+  CreateOpenSearchEndpoint: !Equals [!Ref EnableOpenSearchEndpoint, "true"]
+  CreateSecretsManagerEndpoint: !Equals [!Ref EnableSecretsManagerEndpoint, "true"]
+
+Resources:
+  # ───────────────────────── NAT (network mode) ─────────────────────────
+  NatEip:
+    Type: AWS::EC2::EIP
+    Condition: CreateNat
+    Properties:
+      Domain: vpc
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-ondemand-nat-eip" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Condition: CreateNat
+    Properties:
+      AllocationId: !GetAtt NatEip.AllocationId
+      SubnetId: !Ref PublicSubnetId
+      ConnectivityType: public
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-ondemand-nat" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
+
+  # Re-points the EXISTING private route table's default route at the newly
+  # created NAT. This is an UPDATE to an externally-created route table
+  # (rtb-0f743d4fd0949f9aa), not a brand-new route table — CloudFormation
+  # can manage a single Route resource inside an existing table without
+  # importing the table itself, as long as no OTHER stack/process also
+  # tries to own that exact (RouteTableId, DestinationCidrBlock) pair.
+  PrivateDefaultRoute:
+    Type: AWS::EC2::Route
+    Condition: CreateNat
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableId
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  # ───────────────────────── Chat ALB (chat mode) ─────────────────────────
+  ChatLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: CreateChat
+    Properties:
+      Name: !Sub "${EnvironmentName}-chat-alb"
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets: !Ref ChatAlbSubnetIds
+      SecurityGroups:
+        - !Ref ChatAlbSecurityGroupId
+      LoadBalancerAttributes:
+        - { Key: idle_timeout.timeout_seconds, Value: "120" }
+        - { Key: deletion_protection.enabled, Value: "false" }
+        - { Key: routing.http2.enabled, Value: "true" }
+        - { Key: load_balancing.cross_zone.enabled, Value: "true" }
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-chat-alb" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
+
+  ChatTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: CreateChat
+    Properties:
+      Name: !Sub "${EnvironmentName}-chat-tg"
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 3005
+      TargetType: ip
+      ProtocolVersion: HTTP1
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 20
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200"
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-chat-tg" }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
+
+  ChatListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: CreateChat
+    Properties:
+      LoadBalancerArn: !Ref ChatLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ChatTargetGroup
+
+  # NOTE — API Gateway Chat integration reconnect, deliberately NOT a CFN
+  # resource in Phase 1:
+  #
+  # The LIVE route (ANY /chat/{proxy+}, RouteId 15ai11p) and its integration
+  # (ebe69nj, HTTP_PROXY, ConnectionType=INTERNET) were both created OUTSIDE
+  # CloudFormation. Phase 1R forbids importing existing resources into this
+  # stack, and CloudFormation cannot safely "adopt" a route it didn't create
+  # without that import step. The integration's IntegrationUri hardcodes the
+  # ALB's DNS name (http://fitness-assistant-dev-chat-alb-1556383256...../chat/{proxy}),
+  # which WILL be different every time ChatLoadBalancer above is recreated
+  # (ALB DNS names are not stable/predictable across create/delete cycles).
+  #
+  # Chosen design: dev-start.ps1 (NOT this template) performs the reconnect
+  # as a scripted, idempotent AWS CLI step AFTER this stack reaches
+  # CREATE_COMPLETE/UPDATE_COMPLETE, using this stack's own
+  # ChatLoadBalancerDnsName output:
+  #
+  #   aws apigatewayv2 update-integration --api-id <ApiGatewayId> \
+  #     --integration-id ebe69nj \
+  #     --integration-uri "http://<NEW ChatLoadBalancerDnsName>/chat/{proxy}"
+  #
+  # This keeps the existing RouteId/IntegrationId stable (so nothing else in
+  # API Gateway needs to change) and only updates the one field that is
+  # actually dynamic. See AWS_DEV_ON_DEMAND_INFRA_DESIGN_2026-10-01.md's
+  # completeness matrix for the explicit READY/BLOCKED call on this.
+
+  # ───────────────────── OpenSearch Serverless endpoint (ai mode) ─────────
+  OpenSearchVpcEndpoint:
+    Type: AWS::OpenSearchServerless::VpcEndpoint
+    Condition: CreateOpenSearchEndpoint
+    Properties:
+      Name: !Sub "${EnvironmentName}-opensearch-vpce"
+      VpcId: !Ref VpcId
+      SubnetIds: !Ref PrivateSubnetIds
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroupId
+
+  # NOTE — OpenSearch Serverless network security policy auto-update,
+  # deliberately NOT a CFN resource in Phase 1:
+  #
+  # The EXISTING network security policy ("auto-fitness-assistant-dev-ai-ve",
+  # type=network) has `SourceVPCEs: ["vpce-067d43742cdb6b4d4"]` — hardcoded
+  # to the CURRENT endpoint's ID (confirmed live, 2026-10-01). A newly
+  # created OpenSearchVpcEndpoint above will get a DIFFERENT id, and the
+  # policy would then reference a non-existent endpoint, silently blocking
+  # all OpenSearch Serverless access. This policy was created OUTSIDE
+  # CloudFormation (likely via the console/API wizard when the collection
+  # was first set up) — adopting it here would require Phase 1R's forbidden
+  # import. Chosen design, same shape as the API Gateway reconnect above:
+  # dev-start.ps1 updates it via CLI after this stack is up, using this
+  # stack's own OpenSearchVpcEndpointId output:
+  #
+  #   aws opensearchserverless update-security-policy \
+  #     --name auto-fitness-assistant-dev-ai-ve --type network \
+  #     --policy-version <current-policy-version> \
+  #     --policy '[{"Rules":[{"Resource":["collection/fitness-assistant-dev-ai-vectors"],"ResourceType":"collection"}],"AllowFromPublic":false,"SourceVPCEs":["<NEW OpenSearchVpcEndpointId>"]}]'
+  #
+  # (--policy-version must be re-read immediately before this call — it is
+  # an optimistic-concurrency token that changes on every update.)
+
+  # ───────────────── Secrets Manager VPC endpoint (Phase 7) ──────────────
+  # Was persistent (vpce-063c1b646aa3de049) through Phases 1-6. Migrated
+  # on-demand here after AWS_DEV_PERSISTENT_BASELINE_REDUCTION_2026-10-01.md
+  # proved it safe: every VPC-attached Lambda only calls Secrets Manager on
+  # a cold start (cached for the container's lifetime after that), and the
+  # EventBridge-scheduled jobs that would otherwise cold-start while frozen
+  # are paused by the same phase's schedule-freeze automation. Reuses the
+  # existing endpoint policy (wide-open Action:*/Resource:*/Principal:* —
+  # never broadened) and the existing persistent SG, never creates new SG
+  # rules.
+  SecretsManagerVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: CreateSecretsManagerEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
+      SubnetIds: !Ref PrivateSubnetIds
+      SecurityGroupIds:
+        - !Ref SecretsManagerVpceSecurityGroupId
+      PrivateDnsEnabled: true
+      PolicyDocument:
+        Statement:
+          - Action: "*"
+            Effect: Allow
+            Principal: "*"
+            Resource: "*"
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-secretsmanager-vpce" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
+
+Outputs:
+  NatGatewayId:
+    Condition: CreateNat
+    Value: !Ref NatGateway
+  NatPublicIp:
+    Condition: CreateNat
+    Value: !GetAtt NatEip.PublicIp
+  ChatLoadBalancerArn:
+    Condition: CreateChat
+    Value: !Ref ChatLoadBalancer
+  ChatLoadBalancerDnsName:
+    Condition: CreateChat
+    Value: !GetAtt ChatLoadBalancer.DNSName
+  ChatListenerArn:
+    Condition: CreateChat
+    Value: !Ref ChatListener
+  ChatTargetGroupArn:
+    Condition: CreateChat
+    Value: !Ref ChatTargetGroup
+  OpenSearchVpcEndpointId:
+    Condition: CreateOpenSearchEndpoint
+    Value: !GetAtt OpenSearchVpcEndpoint.Id
+  SecretsManagerVpcEndpointId:
+    Condition: CreateSecretsManagerEndpoint
+    Value: !Ref SecretsManagerVpcEndpoint

@@ -4,10 +4,6 @@ import {
   Area,
   BarChart,
   Bar,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -18,7 +14,8 @@ import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon a
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WarningIcon as AlertTriangle, CalendarCheckIcon as CalendarClock, FlagIcon as Flag } from "@phosphor-icons/react";
-import { inbodyService, trainingCycleService } from "../../services/api";
+import { inbodyService, profileService, trainingCycleService } from "../../services/api";
+import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.utils";
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
 
@@ -145,6 +142,53 @@ function SectionCard({
   );
 }
 
+const BALANCE_BADGE: Record<BalanceRow["verdict"], string> = {
+  low: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+  normal: "bg-green-500/10 text-green-400 border-green-500/20",
+  high: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  veryHigh: "bg-red-500/10 text-red-400 border-red-500/20",
+};
+const BALANCE_MARKER: Record<BalanceRow["verdict"], string> = {
+  low: "bg-zinc-400",
+  normal: "bg-green-500",
+  high: "bg-amber-500",
+  veryHigh: "bg-red-500",
+};
+
+/** One rated metric: Thấp / Chuẩn / Cao zones with a marker, like the bars on an InBody sheet. */
+function BalanceGauge({ row }: { row: BalanceRow }) {
+  const [lo, hi] = row.scale;
+  const span = hi - lo;
+  const lowPart = Math.max(0, (row.normal[0] - lo) / span);
+  const normalPart = Math.max(0, (Math.min(row.normal[1], hi) - Math.max(row.normal[0], lo)) / span);
+  const highPart = Math.max(0, 1 - lowPart - normalPart);
+  const left = gaugePosition(row.value, row.scale) * 100;
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-sm text-zinc-400 truncate">
+          {row.label} · <span className="font-semibold text-zinc-100">{row.valueText}</span>
+        </span>
+        <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${BALANCE_BADGE[row.verdict]}`}>
+          {row.verdictLabel}
+        </span>
+      </div>
+      <div className="relative h-3 flex items-center">
+        <div className="flex h-2 w-full overflow-hidden rounded-full">
+          <div className="bg-zinc-800" style={{ width: `${lowPart * 100}%` }} />
+          <div className="bg-green-500/40" style={{ width: `${normalPart * 100}%` }} />
+          <div className="bg-amber-500/25" style={{ width: `${highPart * 100}%` }} />
+        </div>
+        <div
+          className={`absolute h-3.5 w-3.5 -ml-[7px] rounded-full border-2 border-zinc-900 ${BALANCE_MARKER[row.verdict]}`}
+          style={{ left: `${left}%` }}
+        />
+      </div>
+      <p className="text-[11px] text-zinc-500 mt-1">{row.note}</p>
+    </div>
+  );
+}
+
 /* ── Input style ─────────────────────────────────────────── */
 const inp =
   "w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 transition-all";
@@ -154,6 +198,12 @@ const inp =
 ═══════════════════════════════════════════════════════════ */
 export function InBodyModule() {
   const { user } = useApp();
+  // Gender + height for the reference ranges. Same key as the dashboard (and InBody upload invalidation).
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => (await profileService.getProfile()).profile,
+    enabled: !!user?.id,
+  });
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
   const [uploadStep, setUploadStep] = useState<UploadStep>("drop");
@@ -272,13 +322,8 @@ export function InBodyModule() {
       };
     });
 
-  const radarData = [
-    { subject: "Weight", A: (latest.weight / 100) * 100 },
-    { subject: "Muscle", A: (latest.muscleMass / 50) * 100 },
-    { subject: "Fat", A: (latest.bodyFat / 30) * 100 },
-    { subject: "BMI", A: (latest.bmi / 35) * 100 },
-    { subject: "BMR", A: ((latest.bmr || 1500) / 2500) * 100 },
-  ];
+  // "Cân bằng cơ thể" — rated against reference ranges (body-balance.utils.ts), not the old radar.
+  const balance = bodyBalance(history[0] ?? null, profile);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview", label: "Tổng quan", icon: Activity },
@@ -583,22 +628,22 @@ export function InBodyModule() {
             </SectionCard>
 
             <SectionCard title="Cân bằng cơ thể">
-              <ResponsiveContainer width="100%" height={200}>
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="#27272a" />
-                  <PolarAngleAxis
-                    dataKey="subject"
-                    tick={{ fontSize: 9, fill: "#71717a" }}
-                  />
-                  <Radar
-                    dataKey="A"
-                    stroke="#22c55e"
-                    fill="#22c55e"
-                    fillOpacity={0.12}
-                    strokeWidth={2}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+              <p className="text-xs text-zinc-500 -mt-2 mb-3">
+                Lần đo mới nhất, đối chiếu với khoảng tham chiếu
+              </p>
+              <div className="space-y-4">
+                {balance.rows.map((row) => (
+                  <BalanceGauge key={row.key} row={row} />
+                ))}
+                {balance.missing.map((m) => (
+                  <p key={m} className="text-xs text-zinc-500">
+                    Chưa đánh giá được {m}
+                  </p>
+                ))}
+              </div>
+              <p className="text-[11px] leading-4 text-zinc-500 mt-4">
+                Chỉ để tham khảo, không phải chẩn đoán. Máy đo trở kháng (InBody) có sai số theo lượng nước, bữa ăn và giờ đo.
+              </p>
             </SectionCard>
           </div>
 

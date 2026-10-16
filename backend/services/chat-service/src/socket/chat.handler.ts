@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import { logger, chatMessagesTotal } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
 import { sendMessageSchema } from "../models/chat.models";
+import { pushNewMessage } from "../services/push-relay";
 
 interface JoinPayload {
   conversationId: string;
@@ -108,6 +109,13 @@ export function registerChatHandlers(
             },
           });
         }
+        // Mobile E3 — and a phone push to everyone else in it (best-effort, not awaited).
+        void pushNewMessage({
+          conversationId,
+          senderId: user.id,
+          content: message.content,
+          participantIds: conversation.participants.map((p) => p.userId),
+        });
       }
     } catch (error) {
       logger.error(error, "chat:send_message error");

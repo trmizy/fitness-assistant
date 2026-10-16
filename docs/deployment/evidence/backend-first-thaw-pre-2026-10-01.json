@@ -1,0 +1,163 @@
+{
+  "captured_at_utc": "2026-10-01T15:01:09Z",
+  "purpose": "Pre-test evidence for Phase 8 first real Backend lifecycle test (Secrets VPCE -> Aurora start -> schedule restore). See docs/deployment/AWS_DEV_BACKEND_FIRST_LIFECYCLE_TEST_2026-10-01.md",
+  "aurora":
+{
+    "DBClusters": [
+        {
+            "AllocatedStorage": 1,
+            "AvailabilityZones": [
+                "ap-southeast-1b",
+                "ap-southeast-1a",
+                "ap-southeast-1c"
+            ],
+            "BackupRetentionPeriod": 7,
+            "DatabaseName": "fitness_assistant",
+            "DBClusterIdentifier": "fitness-assistant-dev-aurora",
+            "DBClusterParameterGroup": "default.aurora-postgresql17",
+            "DBSubnetGroup": "fitness-assistant-dev-db-subnet-group",
+            "Status": "stopped",
+            "EarliestRestorableTime": "2026-09-23T02:33:23.309000+00:00",
+            "Endpoint": "fitness-assistant-dev-aurora.cluster-cda2u2ycivaj.ap-southeast-1.rds.amazonaws.com",
+            "ReaderEndpoint": "fitness-assistant-dev-aurora.cluster-ro-cda2u2ycivaj.ap-southeast-1.rds.amazonaws.com",
+            "MultiAZ": false,
+            "Engine": "aurora-postgresql",
+            "EngineVersion": "17.7",
+            "LatestRestorableTime": "2026-09-30T09:48:02.841000+00:00",
+            "Port": 5432,
+            "MasterUsername": "postgres",
+            "PreferredBackupWindow": "14:17-14:47",
+            "PreferredMaintenanceWindow": "tue:16:09-tue:16:39",
+            "UpgradeRolloutOrder": "second",
+            "ReadReplicaIdentifiers": [],
+            "DBClusterMembers": [
+                {
+                    "DBInstanceIdentifier": "fitness-assistant-dev-aurora-instance-1",
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "in-sync",
+                    "PromotionTier": 0
+                }
+            ],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "sg-00e8e01671812bf44",
+                    "Status": "active"
+                }
+            ],
+            "HostedZoneId": "Z2G0U3KFCY8NZ5",
+            "StorageEncrypted": true,
+            "StorageEncryptionType": "sse-kms",
+            "KmsKeyId": "arn:aws:kms:ap-southeast-1:191798898985:key/88132358-773c-4937-a316-bf88655cadc7",
+            "DbClusterResourceId": "cluster-S6XTVAQ3OY35LY32GMGZWHUHLE",
+            "DBClusterArn": "arn:aws:rds:ap-southeast-1:191798898985:cluster:fitness-assistant-dev-aurora",
+            "AssociatedRoles": [],
+            "IAMDatabaseAuthenticationEnabled": false,
+            "ClusterCreateTime": "2026-08-26T07:19:17.362000+00:00",
+            "EngineMode": "provisioned",
+            "AutoMinorVersionUpgrade": true,
+            "DeletionProtection": false,
+            "HttpEndpointEnabled": false,
+            "ActivityStreamStatus": "stopped",
+            "CopyTagsToSnapshot": true,
+            "CrossAccountClone": false,
+            "DomainMemberships": [],
+            "TagList": [
+                {
+                    "Key": "phase",
+                    "Value": "3"
+                },
+                {
+                    "Key": "project",
+                    "Value": "fitness-assistant"
+                },
+                {
+                    "Key": "environment",
+                    "Value": "dev"
+                }
+            ],
+            "NetworkType": "IPV4",
+            "AutomaticRestartTime": "2026-10-07T09:51:16.892000+00:00",
+            "ServerlessV2ScalingConfiguration": {
+                "MinCapacity": 0.5,
+                "MaxCapacity": 2.0
+            },
+            "ServerlessV2PlatformVersion": "4",
+            "DatabaseInsightsMode": "standard",
+            "PerformanceInsightsEnabled": true,
+            "PerformanceInsightsKMSKeyId": "arn:aws:kms:ap-southeast-1:191798898985:key/88132358-773c-4937-a316-bf88655cadc7",
+            "PerformanceInsightsRetentionPeriod": 7,
+            "LocalWriteForwardingStatus": "disabled",
+            "EngineLifecycleSupport": "open-source-rds-extended-support-disabled",
+            "VPCNetworkingEnabled": true,
+            "InternetAccessGatewayEnabled": false
+        }
+    ]
+}
+  ,
+  "schedules":
+[
+    {
+        "Name": "fitness-assistant-dev-ai-autoaccept",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-ai-pubmed",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-payment-reconciliation",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-user-session-auto-confirm",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-user-session-settlement",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-ai-rss",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-gym-partner-upload-sweep",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-workout-unfinished-reminder",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-ai-local-evidence",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-user-reschedule-expiry",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-ai-web",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-gym-membership-payout",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-gym-referral-settlement",
+        "State": "DISABLED"
+    },
+    {
+        "Name": "fitness-assistant-dev-workout-upcoming-reminder",
+        "State": "DISABLED"
+    }
+]
+  ,
+  "secrets_vpce":
+{
+    "VpcEndpoints": []
+}
+  ,
+  "stack_state": "gymini-dev-on-demand stack does not exist (confirmed via describe-stacks ValidationError before this test)"
+}

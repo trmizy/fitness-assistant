@@ -17,6 +17,7 @@ export function ChatPage() {
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">(
     searchParams.get("conversationId") ? "chat" : "list",
   );
@@ -73,12 +74,20 @@ export function ChatPage() {
   const activeConv = conversations.find((c: any) => c.id === activeConvId);
 
   // Send message via Socket.IO. Backend persists messages before broadcasting.
-  const sendMessage = useCallback(() => {
-    if (!input.trim() || !activeConvId || sending) return;
+  const sendMessage = useCallback(async () => {
+    const text = input.trim();
+    if (!text || !activeConvId || sending) return;
     setSending(true);
-    const sent = realtimeChat.sendMessage(activeConvId, input.trim());
-    if (sent) setInput("");
-    setSending(false);
+    setSendError(null);
+    try {
+      const sent = await realtimeChat.sendMessage(activeConvId, text);
+      // Clear only what was sent — the user may have kept typing while it was in flight.
+      if (sent) setInput((current) => (current.trim() === text ? "" : current));
+    } catch {
+      setSendError("Chưa gửi được tin nhắn. Kiểm tra kết nối rồi thử lại.");
+    } finally {
+      setSending(false);
+    }
   }, [input, activeConvId, realtimeChat, sending]);
 
   if (convsLoading) {
@@ -287,6 +296,12 @@ export function ChatPage() {
 
             {/* Input */}
             <div className="bg-zinc-900 border-t border-zinc-800/60 p-3 flex-shrink-0">
+              {sendError && (
+                <p role="alert" className="mb-2 flex items-center gap-1.5 text-xs text-red-400">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  {sendError}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <button className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
                   <Paperclip className="w-4 h-4" />

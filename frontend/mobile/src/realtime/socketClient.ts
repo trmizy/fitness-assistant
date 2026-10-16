@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { gatewaySocketUrl, onServerUrlChange } from "../config/serverUrl";
 import { ensureFreshAccessToken } from "../services/session";
 import { tokenStore } from "../services/tokenStore";
+import { isAccessTokenExpiringSoon } from "../services/token";
 
 /**
  * The GATEWAY's realtime Socket.IO connection — notifications, contract/session status pushes.
@@ -20,6 +21,10 @@ import { tokenStore } from "../services/tokenStore";
  */
 
 let socket: Socket | null = null;
+// The access token the CURRENT connection was opened with. The gateway keeps that handshake token
+// for the socket's whole life and uses it to call chat-service on every join/send — so once it
+// expires (15 min), those calls are refused even though the socket itself stays connected.
+let handshakeToken: string | null = null;
 
 function readAccessToken(): string | null {
   const token = tokenStore.get();
@@ -34,7 +39,8 @@ export function getSocket(): Socket {
       // dead token, gets rejected, and retries with the same dead token until it gives up.
       auth: async (cb) => {
         await ensureFreshAccessToken();
-        cb({ token: readAccessToken() });
+        handshakeToken = readAccessToken();
+        cb({ token: handshakeToken });
       },
       autoConnect: false,
       reconnection: true,
@@ -69,6 +75,33 @@ export function connectSocket(): Socket {
     current.connect();
   }
   return current;
+}
+
+/**
+ * Makes sure the gateway holds a live token for this connection before a chat join/send.
+ * If the handshake token is expired or about to be, reconnect: the `auth` callback refreshes the
+ * session and hands the gateway a fresh token. Resolves true once connected with a fresh token.
+ * Mobile-side workaround for MOBILE_BACKEND_GAPS GAP-14 — the gateway never re-reads the token.
+ */
+export async function ensureFreshSocket(timeoutMs = 8000): Promise<boolean> {
+  const current = getSocket();
+  if (current.connected && !isAccessTokenExpiringSoon(handshakeToken, 60)) return true;
+  return new Promise<boolean>((resolve) => {
+    const done = (ok: boolean) => {
+      clearTimeout(timer);
+      current.off("connect", onConnect);
+      resolve(ok);
+    };
+    const onConnect = () => done(true);
+    const timer = setTimeout(() => done(false), timeoutMs);
+    current.on("connect", onConnect);
+    if (current.connected) current.disconnect();
+    current.connect();
+  });
+}
+
+export function isSocketTokenStale(): boolean {
+  return isAccessTokenExpiringSoon(handshakeToken, 60);
 }
 
 export function disconnectSocket() {

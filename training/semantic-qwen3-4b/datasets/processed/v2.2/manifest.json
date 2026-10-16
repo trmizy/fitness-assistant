@@ -1,0 +1,16 @@
+{
+  "datasetVersion": "v2.2",
+  "createdAt": "2026-10-13T09:50:48.620379+00:00",
+  "composition": {
+    "v21TrainRows": 389,
+    "v22AdditionRows": 29,
+    "totalTrainRows": 418
+  },
+  "sha256": {
+    "train.jsonl": "a55748731269b502ca1a799f6e0fc31049e380dd370d802304e92fdbad020d5a"
+  },
+  "validationOriginal": "datasets/processed/v2/validation.jsonl (71 rows, unchanged, referenced directly)",
+  "validationRemediation": "datasets/raw/v2.1/validation_remediation.jsonl (12 rows, unchanged)",
+  "devChallenge": "datasets/raw/v2.2/dev_challenge.jsonl (12 rows, frozen, referenced directly)",
+  "heldout": "datasets/processed/v2/heldout.jsonl (SEALED, not touched)"
+}

@@ -1,0 +1,2 @@
+id,column,labelA,labelB,final_label,reason_code,adjudicator,adjudication_note
+EX-0001,safetyLabel,NORMAL_FITNESS,GENERAL_INFORMATION_ONLY,GENERAL_INFORMATION_ONLY,GUIDELINE_AMBIGUITY,J01,"reason_code in GUIDELINE_AMBIGUITY|GENUINE_QUERY_AMBIGUITY|ANNOTATOR_ERROR|DOMAIN_OVERLAP|SAFETY_POLICY_UNCLEAR|OTHER. labelA/labelB are kept as originally given (never overwritten). SAFETY_POLICY_UNCLEAR rows are NOT finalised - they go back to the product owner."

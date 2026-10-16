@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-27T15:13:19.233Z",
+  "exit": 0,
+  "ms": 305004,
+  "command": "node",
+  "args": [
+    "test/conversational-intelligence/x4-confirmation-matrix.mjs",
+    "codex-resumed",
+    "1"
+  ],
+  "artifactUpdated": false
+}

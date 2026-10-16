@@ -1,0 +1,33 @@
+{
+    "ApiEndpoint": "https://id1iz7upbl.execute-api.ap-southeast-1.amazonaws.com",
+    "ApiId": "id1iz7upbl",
+    "ApiKeySelectionExpression": "$request.header.x-api-key",
+    "CorsConfiguration": {
+        "AllowCredentials": false,
+        "AllowHeaders": [
+            "authorization",
+            "content-type"
+        ],
+        "AllowMethods": [
+            "GET",
+            "POST",
+            "OPTIONS",
+            "PATCH",
+            "PUT",
+            "DELETE",
+            "HEAD",
+            "*"
+        ],
+        "AllowOrigins": [
+            "http://fitness-assistant-frontend-dev-191798898985.s3-website-ap-southeast-1.amazonaws.com"
+        ],
+        "MaxAge": 300
+    },
+    "CreatedDate": "2026-08-27T03:10:01+00:00",
+    "DisableExecuteApiEndpoint": false,
+    "IpAddressType": "ipv4",
+    "Name": "fitness-assistant-dev-api",
+    "ProtocolType": "HTTP",
+    "RouteSelectionExpression": "$request.method $request.path",
+    "Tags": {}
+}

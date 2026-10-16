@@ -325,3 +325,43 @@ export async function isActivePtClientRelationship(
     return false;
   }
 }
+
+/**
+ * Phase 4.4 — STRICT variants for read models that must tell "no data" apart
+ * from "could not read". fetchInBodyHistory / fetchUserProfile above swallow
+ * every failure into []/null (right for their cycle callers, wrong for a
+ * coach read where a transport error must not look like "no measurements").
+ * These throw on transport/HTTP failure; an unknown profile resolves to null.
+ */
+export async function fetchInBodyHistoryStrict(userId: string): Promise<InBodyEntrySnapshot[]> {
+  const res = await userServiceGet(`/internal/inbody/${encodeURIComponent(userId)}`);
+  if (!Array.isArray(res.data)) throw new Error("Malformed InBody history response");
+  return (res.data as any[]).map((e) => ({
+    id: e.id,
+    date: e.date ?? e.dateOnly,
+    weight: e.weight,
+    bodyFatPct: e.bodyFatPct ?? null,
+    muscleMass: e.muscleMass,
+    visceralFat: e.visceralFat ?? null,
+    bmr: e.bmr ?? null,
+    status: e.status ?? null,
+  }));
+}
+
+export async function fetchUserProfileStrict(userId: string): Promise<UserProfileSnapshot | null> {
+  let res: { data: any };
+  try {
+    res = await userServiceGet(`/internal/profile/${encodeURIComponent(userId)}`);
+  } catch (error) {
+    if ((error as { response?: { status?: number } })?.response?.status === 404) return null;
+    throw error;
+  }
+  const profile = res.data?.profile ?? res.data ?? null;
+  if (!profile || typeof profile !== "object") return null;
+  return {
+    goal: profile.goal ?? null,
+    targetWeight: profile.targetWeight ?? null,
+    currentWeight: profile.currentWeight ?? null,
+    startingWeight: profile.startingWeight ?? null,
+  } as UserProfileSnapshot;
+}

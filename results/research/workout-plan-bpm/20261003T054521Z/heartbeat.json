@@ -1,0 +1,14 @@
+{
+  "runId": "20261003T054521Z",
+  "config": "A",
+  "pid": null,
+  "stage": "STOPPED_CONFIG_A_QWEN_INVOCATION",
+  "currentCase": null,
+  "currentAttempt": 1,
+  "casesTotal": 150,
+  "casesCompleted": 18,
+  "timeouts": 0,
+  "errors": 0,
+  "heartbeatAt": "2026-10-03T06:27:14.720Z",
+  "note": "Runner stopped by protocol stop rule. See STOP-REPORT.md. Config A checkpoint archived in ABORTED-config-A-evaluator-v3/."
+}

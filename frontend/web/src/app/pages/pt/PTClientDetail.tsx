@@ -37,6 +37,21 @@ function formatDateTime(d: string | null | undefined) {
   });
 }
 
+function toDateOnly(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getVisibleScheduleRange() {
+  const start = new Date();
+  start.setDate(start.getDate() - 14);
+  const end = new Date();
+  end.setDate(end.getDate() + 45);
+  return { startDate: toDateOnly(start), endDate: toDateOnly(end) };
+}
+
 function SessionStatusBadge({ status }: { status: string }) {
   const map: Record<
     string,
@@ -188,6 +203,18 @@ export function PTClientDetail() {
     queryKey: ["contract-sessions", contract?.id],
     queryFn: () => sessionService.getContractSessions(contract!.id),
     enabled: !!contract?.id,
+  });
+
+  const scheduleRange = getVisibleScheduleRange();
+  const { data: workoutSchedules = [], isLoading: schedulesLoading } = useQuery({
+    queryKey: ["pt-client-workout-schedules", clientUserId, scheduleRange.startDate, scheduleRange.endDate],
+    queryFn: () =>
+      ptCoachService.getClientWorkoutSchedules(clientUserId!, {
+        limit: 120,
+        startDate: scheduleRange.startDate,
+        endDate: scheduleRange.endDate,
+      }),
+    enabled: !!clientUserId && contract?.status === "ACTIVE" && activeTab === "training",
   });
 
   const sessionsUsed = contract?.usedSessions ?? 0;
@@ -390,7 +417,53 @@ export function PTClientDetail() {
 
       {activeTab === "training" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60">
+          <div className="lg:col-span-2 space-y-4">
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
+              <h4 className="text-sm font-bold text-zinc-200">Lịch tập của học viên</h4>
+              <span className="text-xs text-zinc-500">{workoutSchedules.length} buổi</span>
+            </div>
+            {schedulesLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : workoutSchedules.length === 0 ? (
+              <div className="px-4 py-10 text-center text-zinc-500 text-sm">
+                Chưa có lịch tập trong khoảng gần đây.
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800/40">
+                {workoutSchedules.map((s: any) => (
+                  <div key={s.id} className="px-4 py-3 hover:bg-zinc-800/20 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm text-zinc-300">
+                          <Calendar className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+                          <span>{formatDate(s.date)}</span>
+                          <span className="text-zinc-600">•</span>
+                          <span className="truncate">{s.programDay?.title ?? "Buổi tập tự do"}</span>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1 line-clamp-1">
+                          {s.programDay?.program?.name ?? "Không thuộc chương trình"} · {s.programDay?.exercises?.length ?? 0} bài
+                        </p>
+                        {Array.isArray(s.programDay?.exercises) && s.programDay.exercises.length > 0 && (
+                          <p className="text-[11px] text-zinc-600 mt-1 line-clamp-2">
+                            {s.programDay.exercises
+                              .slice(0, 5)
+                              .map((e: any) => e.exercise?.exerciseName ?? "Bài tập")
+                              .join(", ")}
+                            {s.programDay.exercises.length > 5 ? "..." : ""}
+                          </p>
+                        )}
+                      </div>
+                      <SessionStatusBadge status={s.status ?? "NOT_STARTED"} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
               <h4 className="text-sm font-bold text-zinc-200">Buổi tập</h4>
               <span className="text-xs text-zinc-500">
@@ -439,6 +512,7 @@ export function PTClientDetail() {
                   ))}
               </div>
             )}
+          </div>
           </div>
           <div className="space-y-4">
             {isActive && clientUserId ? (

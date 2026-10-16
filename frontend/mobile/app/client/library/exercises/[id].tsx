@@ -1,17 +1,10 @@
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Dumbbell } from "lucide-react-native";
 
-import { Badge, Card, EmptyState, ExerciseMedia, Tappable } from "../../../../src/components/ui";
-import { workoutService } from "../../../../src/services/api";
-import {
-  bodyPartLabel,
-  difficultyLabel,
-  equipmentLabel,
-  loggingModeLabel,
-} from "../../../../src/config/exerciseLabels";
+import { EmptyState, Tappable } from "../../../../src/components/ui";
+import { ExerciseGuide, useExercise } from "../../../../src/features/workout/ExerciseGuide";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 
 /**
@@ -27,13 +20,7 @@ export default function ExerciseDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const query = useQuery({
-    queryKey: ["exercise", id],
-    queryFn: () => workoutService.getExercise(String(id)),
-    enabled: !!id,
-  });
-
-  const exercise: any = (query.data as any)?.exercise ?? query.data;
+  const { query, exercise } = useExercise(id);
 
   return (
     <ScrollView
@@ -63,56 +50,8 @@ export default function ExerciseDetailScreen() {
           description="Bài tập này có thể đã bị gỡ khỏi catalog."
         />
       ) : (
-        <View className="gap-3 px-5 pt-5">
-          <ExerciseMedia
-            videoUrl={exercise.videoUrl}
-            className="aspect-video w-full rounded-2xl"
-            animate
-            badge
-            iconSize={32}
-          />
-
-          <View className="flex-row flex-wrap gap-1.5">
-            <Badge tone="neutral">{bodyPartLabel(exercise.bodyPart)}</Badge>
-            <Badge tone="neutral">{equipmentLabel(exercise.typeOfEquipment)}</Badge>
-            <Badge tone="info">{loggingModeLabel(exercise.loggingMode)}</Badge>
-            {exercise.difficultyLevel ? (
-              <Badge tone="warning">{difficultyLabel(exercise.difficultyLevel)}</Badge>
-            ) : null}
-            {exercise.source === "USER_CUSTOM" ? <Badge tone="success">Bài tự tạo</Badge> : null}
-          </View>
-
-          {exercise.aliases?.length > 0 ? (
-            <Text className="font-body text-xs text-muted-foreground">
-              Tên khác: {exercise.aliases.map((a: any) => a.alias).join(", ")}
-            </Text>
-          ) : null}
-
-          {exercise.instructions ? (
-            <Card className="p-4">
-              <Text className="mb-2 font-display text-base text-foreground">Hướng dẫn</Text>
-              <Text className="font-body text-sm leading-6 text-muted-foreground">
-                {exercise.instructions}
-              </Text>
-              {exercise.movementPattern ? (
-                <Text className="mt-3 font-body text-xs text-muted-foreground">
-                  Kiểu chuyển động: {String(exercise.movementPattern).replace(/_/g, " ")}
-                  {exercise.mechanics ? ` · ${exercise.mechanics}` : ""}
-                </Text>
-              ) : null}
-            </Card>
-          ) : null}
-
-          {exercise.sources?.length > 0 ? (
-            <Card className="p-4">
-              <Text className="mb-2 font-display text-base text-foreground">Nguồn</Text>
-              {exercise.sources.map((s: any, i: number) => (
-                <Text key={i} className="font-body text-xs leading-5 text-muted-foreground">
-                  • {s?.title ?? s?.url ?? String(s)}
-                </Text>
-              ))}
-            </Card>
-          ) : null}
+        <View className="px-5 pt-5">
+          <ExerciseGuide exercise={exercise} />
         </View>
       )}
     </ScrollView>

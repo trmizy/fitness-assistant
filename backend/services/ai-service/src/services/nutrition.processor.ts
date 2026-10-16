@@ -10,6 +10,7 @@ import {
 import type { NutritionPlanContent } from "../schemas/nutrition-plan.schemas";
 import { safeParseJsonCandidate } from "../utils/json";
 import { validateNutritionPlanInvariants } from "./nutrition-plan-invariant.service";
+import { repairNutritionPlanQuantities } from "./nutrition-plan-repair";
 import { filterFoodsByExclusions, findExclusionViolations, isKnownExclusionKey } from "./nutrition-food-constraints";
 
 type AiFood = {
@@ -37,6 +38,156 @@ type NutritionTemplate = {
   nutritionNotes?: string[];
 };
 
+type VietnameseRegion = "BAC" | "TRUNG" | "NAM";
+
+const CUISINE_LABELS: Record<string, string> = {
+  VN: "Việt Nam",
+  VIETNAM: "Việt Nam",
+  JP: "Nhật Bản",
+  JAPAN: "Nhật Bản",
+  KR: "Hàn Quốc",
+  KOREA: "Hàn Quốc",
+  TH: "Thái Lan",
+  THAILAND: "Thái Lan",
+  CN: "Trung Quốc",
+  CHINA: "Trung Quốc",
+  US: "Mỹ",
+  USA: "Mỹ",
+  MEDITERRANEAN: "Địa Trung Hải",
+  IT: "Ý",
+  ITALY: "Ý",
+};
+
+const CUISINE_KEYWORDS: Record<string, string[]> = {
+  VN: ["rice", "rice noodles", "fish sauce", "shrimp", "pork", "tofu", "catfish", "tilapia", "cucumber", "cilantro", "bean sprouts", "lime"],
+  VIETNAM: ["rice", "rice noodles", "fish sauce", "shrimp", "pork", "tofu", "catfish", "tilapia", "cucumber", "cilantro", "bean sprouts", "lime"],
+  JP: ["rice", "salmon", "tuna", "tofu", "soy", "miso", "seaweed", "egg", "shrimp"],
+  JAPAN: ["rice", "salmon", "tuna", "tofu", "soy", "miso", "seaweed", "egg", "shrimp"],
+  KR: ["rice", "beef", "pork", "chicken", "tofu", "cabbage", "spinach", "egg", "soy"],
+  KOREA: ["rice", "beef", "pork", "chicken", "tofu", "cabbage", "spinach", "egg", "soy"],
+  TH: ["rice", "rice noodles", "shrimp", "fish", "chicken", "lime", "coconut", "peanut"],
+  THAILAND: ["rice", "rice noodles", "shrimp", "fish", "chicken", "lime", "coconut", "peanut"],
+  CN: ["rice", "noodles", "pork", "chicken", "beef", "tofu", "soy", "bok choy", "egg"],
+  CHINA: ["rice", "noodles", "pork", "chicken", "beef", "tofu", "soy", "bok choy", "egg"],
+  US: ["chicken", "beef", "turkey", "potato", "bread", "oat", "milk", "yogurt", "cheese", "apple"],
+  USA: ["chicken", "beef", "turkey", "potato", "bread", "oat", "milk", "yogurt", "cheese", "apple"],
+  MEDITERRANEAN: ["fish", "salmon", "tuna", "yogurt", "cheese", "beans", "chickpea", "lentils", "tomato", "cucumber", "pasta"],
+  IT: ["pasta", "tomato", "cheese", "chicken", "fish", "beans", "bread"],
+  ITALY: ["pasta", "tomato", "cheese", "chicken", "fish", "beans", "bread"],
+};
+
+function normalizeCuisine(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toUpperCase();
+  if (/\b(VN|VIET|VIETNAM|VIET NAM)\b/.test(normalized)) return "VN";
+  if (/\b(JP|JAPAN|NHAT|NHAT BAN)\b/.test(normalized)) return "JP";
+  if (/\b(KR|KOREA|HAN|HAN QUOC)\b/.test(normalized)) return "KR";
+  if (/\b(TH|THAI|THAI LAN|THAILAND)\b/.test(normalized)) return "TH";
+  if (/\b(CN|CHINA|TRUNG QUOC|TRUNG)\b/.test(normalized)) return "CN";
+  if (/\b(US|USA|AMERICAN|MY)\b/.test(normalized)) return "US";
+  if (/\b(MEDITERRANEAN|DIA TRUNG HAI)\b/.test(normalized)) return "MEDITERRANEAN";
+  if (/\b(IT|ITALY|Y|ITALIAN)\b/.test(normalized)) return "IT";
+  return raw.slice(0, 80);
+}
+
+function cuisineLabel(value?: string | null): string | null {
+  const key = normalizeCuisine(value);
+  if (!key) return null;
+  return CUISINE_LABELS[key] ?? key;
+}
+
+const VIETNAMESE_REGION_LABELS: Record<VietnameseRegion, string> = {
+  BAC: "Miền Bắc",
+  TRUNG: "Miền Trung",
+  NAM: "Miền Nam",
+};
+
+const VIETNAMESE_REGION_PREP_STYLE: Record<VietnameseRegion, string> = {
+  BAC: "ưu tiên vị thanh, ít ngọt, món luộc/hấp/canh, nước mắm dùng vừa phải",
+  TRUNG: "ưu tiên vị đậm hơn, có thể cay nhẹ, món kho/canh/chế biến gọn",
+  NAM: "ưu tiên vị mềm, dễ ăn, có thể hơi ngọt nhẹ, nhiều rau thơm/canh/chua ngọt vừa phải",
+};
+
+const VIETNAMESE_REGION_KEYWORDS: Record<VietnameseRegion, string[]> = {
+  BAC: ["rice", "fish sauce", "tofu", "egg", "tilapia", "chicken", "lean pork", "greens", "cabbage"],
+  TRUNG: ["rice", "fish sauce", "mackerel", "shrimp", "lean pork", "chicken", "egg", "tofu", "chili"],
+  NAM: ["rice", "fish sauce", "catfish", "basa", "shrimp", "tofu", "chicken", "pineapple", "cucumber"],
+};
+
+function normalizeVietnameseRegion(value?: string | null): VietnameseRegion | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toUpperCase();
+  if (/\b(BAC|MIEN BAC|NORTH|NORTHERN)\b/.test(normalized)) return "BAC";
+  if (/\b(TRUNG|MIEN TRUNG|CENTRAL)\b/.test(normalized)) return "TRUNG";
+  if (/\b(NAM|MIEN NAM|SOUTH|SOUTHERN)\b/.test(normalized)) return "NAM";
+  return null;
+}
+
+function shouldApplyVietnameseRegion(cuisineCountry?: string | null): boolean {
+  const cuisine = normalizeCuisine(cuisineCountry);
+  return !cuisine || cuisine === "VN";
+}
+
+function vietnameseRegionPromptLine(region?: string | null, cuisineCountry?: string | null): string {
+  const key = shouldApplyVietnameseRegion(cuisineCountry)
+    ? normalizeVietnameseRegion(region)
+    : null;
+  if (!key) return "";
+  return `Vùng miền món Việt ưu tiên: ${VIETNAMESE_REGION_LABELS[key]}; gợi ý chế biến: ${VIETNAMESE_REGION_PREP_STYLE[key]}. Đây là định hướng khẩu vị, không được làm lệch calorie/macro và vẫn chỉ dùng foodId thật trong danh sách.`;
+}
+
+function prioritizeFoodsForCuisine(foods: AiFood[], cuisineCountry?: string): AiFood[] {
+  const key = normalizeCuisine(cuisineCountry);
+  const keywords = key ? CUISINE_KEYWORDS[key] : undefined;
+  if (!keywords?.length) return foods;
+  const score = (food: AiFood) => {
+    const name = food.name.toLowerCase();
+    return keywords.reduce((total, keyword, index) => total + (name.includes(keyword) ? keywords.length - index : 0), 0);
+  };
+  return [...foods].sort((a, b) => score(b) - score(a));
+}
+
+function prioritizeFoodsForVietnameseRegion(
+  foods: AiFood[],
+  region?: string | null,
+  cuisineCountry?: string | null,
+): AiFood[] {
+  if (!shouldApplyVietnameseRegion(cuisineCountry)) return foods;
+  const key = normalizeVietnameseRegion(region);
+  const keywords = key ? VIETNAMESE_REGION_KEYWORDS[key] : undefined;
+  if (!keywords?.length) return foods;
+  const score = (food: AiFood) => {
+    const name = food.name.toLowerCase();
+    return keywords.reduce(
+      (total, keyword, index) => total + (name.includes(keyword) ? keywords.length - index : 0),
+      0,
+    );
+  };
+  return [...foods].sort((a, b) => score(b) - score(a));
+}
+
+export function describeVietnameseRegionPreference(
+  region?: string | null,
+  cuisineCountry?: string | null,
+): string | null {
+  const key = shouldApplyVietnameseRegion(cuisineCountry)
+    ? normalizeVietnameseRegion(region)
+    : null;
+  return key ? VIETNAMESE_REGION_LABELS[key] : null;
+}
+
 const NutritionPlanJobDataSchema = z.object({
   planId: z.string().uuid(),
   userId: z.string().min(1),
@@ -46,6 +197,8 @@ const NutritionPlanJobDataSchema = z.object({
   dailyCaloriesTarget: z.number().int().optional(),
   dietPreference: z.string().optional(),
   budgetLevel: z.string().optional(),
+  cuisineCountry: z.string().optional(),
+  vietnameseRegion: z.enum(["BAC", "TRUNG", "NAM"]).optional(),
   restrictions: z.array(z.string()).optional(),
   // Canonical, ENFORCED food exclusions (nutrition-food-constraints.ts) —
   // unlike `restrictions` (free text, prompt-only), these filter the food
@@ -98,6 +251,8 @@ export async function processNutritionPlanJob(job: Job) {
     dailyCaloriesTarget,
     dietPreference,
     budgetLevel,
+    cuisineCountry,
+    vietnameseRegion,
     restrictions,
     excludedFoodKeys = [],
     proteinTargetG,
@@ -175,6 +330,7 @@ export async function processNutritionPlanJob(job: Job) {
     let resolvedWeightKg: number | undefined;
     let resolvedBodyFatPct: number | undefined;
     let resolvedBmr: number | undefined;
+    let profileVietnameseRegion: string | undefined;
     let userContextNote = "";
     try {
       const { fetchWorkerUserContext, formatWorkerContextForPrompt } =
@@ -185,6 +341,7 @@ export async function processNutritionPlanJob(job: Job) {
         resolvedBodyFatPct = ctx.latestInBody.bodyFatPct;
         resolvedBmr = ctx.latestInBody.bmr;
       }
+      profileVietnameseRegion = ctx.profile?.region;
       userContextNote = formatWorkerContextForPrompt(ctx);
       logger.info(
         {
@@ -205,6 +362,14 @@ export async function processNutritionPlanJob(job: Job) {
     const effectiveWeightKg = resolvedWeightKg ?? dataResult.data.weightKg;
     const effectiveBodyFatPct =
       resolvedBodyFatPct ?? dataResult.data.bodyFatPct;
+    const effectiveVietnameseRegion = vietnameseRegion ?? profileVietnameseRegion;
+
+    allowedFoods = prioritizeFoodsForCuisine(allowedFoods, cuisineCountry);
+    allowedFoods = prioritizeFoodsForVietnameseRegion(
+      allowedFoods,
+      effectiveVietnameseRegion,
+      cuisineCountry,
+    );
 
     // 4. Ask the LLM for a compact one-day meal template, then expand it with DB foods.
     // Small local models are unreliable when asked to emit 7 full days of nested JSON.
@@ -214,6 +379,8 @@ export async function processNutritionPlanJob(job: Job) {
       dailyCaloriesTarget,
       dietPreference,
       budgetLevel,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
       restrictions: [
         ...(restrictions ?? []),
         // Inject InBody-derived note as a soft constraint
@@ -283,6 +450,8 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       dailyCaloriesTarget,
       template: templateResult.template,
       allowedFoods,
+      cuisineCountry,
+      vietnameseRegion: effectiveVietnameseRegion,
       proteinTargetG,
       carbTargetG,
       fatTargetG,
@@ -354,11 +523,46 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       );
       return;
     }
-    const nutritionInvariant = validateNutritionPlanInvariants({
+    let finalContent = content;
+    let nutritionInvariant = validateNutritionPlanInvariants({
       content,
       mealsPerDay,
       allowedFoodIds,
     });
+    if (!nutritionInvariant.ok) {
+      // Deterministic numeric repair (no LLM): re-size ONLY the gram quantities of the foods the plan already
+      // contains so the authoritative kcal/macro targets are met. Invariants, tolerances and exclusions are
+      // unchanged: the repaired plan must pass the SAME checks below, otherwise the plan still fails closed.
+      const foodById = new Map(allowedFoods.map((f) => [String(f.id), f]));
+      const repair = repairNutritionPlanQuantities(content, {
+        foodById,
+        capG: (f) => realisticServingCapG(f.name, f.realisticServingMaxG),
+      });
+      const repairedInvariant = repair.report.changed
+        ? validateNutritionPlanInvariants({ content: repair.content, mealsPerDay, allowedFoodIds })
+        : nutritionInvariant;
+      const repairedExclusions = repair.report.changed ? findExclusionViolations(repair.content, excludedFoodKeys) : [];
+      const repairOk = repairedInvariant.ok && repairedExclusions.length === 0;
+      logger.info(
+        {
+          jobId: job.id,
+          planId,
+          repairInvoked: true,
+          repairSucceeded: repairOk,
+          repairedDays: repair.report.repairedDays.length,
+          failedDays: repair.report.failedDays.length,
+          violationsBefore: [...new Set(nutritionInvariant.violations.map((v) => v.code))],
+          before: repair.report.before,
+          after: repair.report.after,
+          repairMs: repair.report.ms,
+        },
+        "[nutrition-repair] deterministic quantity repair after invariant failure",
+      );
+      if (repairOk) {
+        finalContent = repair.content;
+        nutritionInvariant = repairedInvariant;
+      }
+    }
     if (!nutritionInvariant.ok) {
       logger.error(
         { jobId: job.id, planId, violations: nutritionInvariant.violations },
@@ -371,7 +575,7 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
       return;
     }
     // 7. Complete plan
-    await conversationRepository.updateNutritionPlanCompletion(planId, content);
+    await conversationRepository.updateNutritionPlanCompletion(planId, finalContent);
     logger.info(
       { jobId: job.id, planId, userId },
       "Nutrition plan generation completed successfully",
@@ -383,7 +587,7 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     // succeeds, and the user's deterministic NutritionGoal already makes
     // Nutrition usable even if this fails (spec §LI fallback rule).
     if (autoSaveOnComplete) {
-      await autoSaveCompletedNutritionPlan(planId, userId, goal, content, fitnessServiceUrl, internalSecret);
+      await autoSaveCompletedNutritionPlan(planId, userId, goal, finalContent, fitnessServiceUrl, internalSecret);
     }
   } catch (err: any) {
     logger.error(
@@ -485,6 +689,8 @@ function buildCompactNutritionTemplatePrompt(params: {
   dailyCaloriesTarget?: number;
   dietPreference?: string;
   budgetLevel?: string;
+  cuisineCountry?: string;
+  vietnameseRegion?: string;
   restrictions?: string[];
   allowedFoods: AiFood[];
   weightKg?: number;
@@ -496,6 +702,8 @@ function buildCompactNutritionTemplatePrompt(params: {
     dailyCaloriesTarget,
     dietPreference,
     budgetLevel,
+    cuisineCountry,
+    vietnameseRegion,
     restrictions,
     allowedFoods,
     weightKg,
@@ -523,6 +731,8 @@ function buildCompactNutritionTemplatePrompt(params: {
   );
   const userCtxBlock =
     userContextNotes.length > 0 ? userContextNotes.join("\n") : "";
+  const cuisine = cuisineLabel(cuisineCountry);
+  const regionLine = vietnameseRegionPromptLine(vietnameseRegion, cuisineCountry);
 
   return `Bạn là chuyên gia dinh dưỡng. Hãy tạo MẪU 1 NGÀY ăn uống cho mục tiêu "${goal}".
 
@@ -532,6 +742,8 @@ ${userCtxBlock}
 Mục tiêu calo/ngày: ${dailyCaloriesTarget ?? 2200}.
 Số bữa trong ngày: ${mealsPerDay}.
 Sở thích/chế độ: ${dietPreference || "không có"}.
+Quốc gia/phong cách ẩm thực ưu tiên: ${cuisine || "không có"}. Nếu có, ưu tiên tên bữa và phối món theo phong cách này nhưng chỉ dùng foodId thật trong danh sách.
+${regionLine}
 Ngân sách: ${budgetLevel || "bình thường"}.
 Hạn chế: ${realRestrictions.join("; ") || "không có"}.
 
@@ -559,7 +771,7 @@ JSON:
 }`;
 }
 
-function parseNutritionTemplate(
+export function parseNutritionTemplate(
   raw: string,
 ): { ok: true; template: NutritionTemplate } | { ok: false; reason: string } {
   const parsed = safeParseJsonCandidate(raw);
@@ -658,6 +870,8 @@ export function buildNutritionPlanFromTemplate(params: {
   dailyCaloriesTarget?: number;
   template: NutritionTemplate;
   allowedFoods: AiFood[];
+  cuisineCountry?: string;
+  vietnameseRegion?: string;
   proteinTargetG?: number;
   carbTargetG?: number;
   fatTargetG?: number;
@@ -668,10 +882,17 @@ export function buildNutritionPlanFromTemplate(params: {
     dailyCaloriesTarget,
     template,
     allowedFoods,
+    cuisineCountry,
+    vietnameseRegion,
     proteinTargetG,
     carbTargetG,
     fatTargetG,
   } = params;
+  const cuisine = cuisineLabel(cuisineCountry);
+  const regionLabel = describeVietnameseRegionPreference(vietnameseRegion, cuisineCountry);
+  const regionNote = regionLabel
+    ? `Ưu tiên khẩu vị món Việt theo vùng miền: ${regionLabel}.`
+    : null;
   const targetCalories = dailyCaloriesTarget ?? 2200;
   const allowedById = new Map(allowedFoods.map((food) => [food.id, food]));
   // realisticServingCapG()-aware selection helpers, defined up front so
@@ -968,8 +1189,14 @@ export function buildNutritionPlanFromTemplate(params: {
     fatTargetGrams: finalFatTargetGrams,
     weeklySchedule,
     generalNotes: template.nutritionNotes?.length
-      ? template.nutritionNotes
+      ? [
+          ...template.nutritionNotes,
+          ...(regionNote ? [regionNote] : []),
+          ...(cuisine ? [`Ưu tiên phong cách ẩm thực: ${cuisine}.`] : []),
+        ]
       : [
+          ...(regionNote ? [regionNote] : []),
+          ...(cuisine ? [`Ưu tiên phong cách ẩm thực: ${cuisine}.`] : []),
           "Ưu tiên đủ protein, chia đều năng lượng trong ngày và điều chỉnh khẩu phần theo tiến độ thực tế.",
         ],
   };

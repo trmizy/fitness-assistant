@@ -6,6 +6,16 @@ const router = Router();
 
 router.get("/workouts", authMiddleware, statsController.getWorkoutStats as any);
 router.get(
+  "/body-goal-state",
+  authMiddleware,
+  statsController.getBodyGoalState as any,
+);
+router.get(
+  "/training-window",
+  authMiddleware,
+  statsController.getTrainingWindow as any,
+);
+router.get(
   "/nutrition",
   authMiddleware,
   statsController.getNutritionStats as any,

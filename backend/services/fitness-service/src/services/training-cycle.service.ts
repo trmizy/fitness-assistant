@@ -22,7 +22,7 @@ import { cycleThresholds } from "../config/cycle-thresholds.config";
 import { computeCycleMetrics, type CycleMetricsResult } from "./cycle-metrics.engine";
 import { cycleFeedbackAggregator, type CycleFeedbackSummaryResult } from "./cycle-feedback-aggregator";
 import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScope } from "./cycle-decision.engine";
-import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE, scheduledDateLabel, todayAsScheduleDate } from "../utils/schedule-lock.util";
+import { assertScheduleDateEditable, APP_SCHEDULE_TIME_ZONE, cycleStartScheduleDate, scheduledDateLabel, todayAsScheduleDate } from "../utils/schedule-lock.util";
 import { classifyDayState } from "../utils/activity-heatmap.util";
 import { aggregateCycleAdherence, type CycleAdherenceDayInput } from "../utils/cycle-adherence.util";
 import {
@@ -550,14 +550,14 @@ export const trainingCycleService = {
       }
     }
 
-    const rawStart = startDate ? new Date(startDate) : clock.now();
-    if (Number.isNaN(rawStart.getTime())) {
-      throw { status: 400, message: "startDate must be a valid date" };
-    }
     // Date-only, not an instant — see startOfUtcDay's doc comment. Using the
     // raw instant here excluded the cycle's own start-day sessions from
-    // every subsequent adherence/metrics query.
-    const start = startOfUtcDay(rawStart);
+    // every subsequent adherence/metrics query. With no explicit startDate
+    // the label is today in the app's timezone, not the server's UTC day.
+    const start = cycleStartScheduleDate(startDate, clock.now());
+    if (!start) {
+      throw { status: 400, message: "startDate must be a valid date" };
+    }
     const end = new Date(start);
     end.setDate(end.getDate() + durationDays);
 
@@ -636,7 +636,7 @@ export const trainingCycleService = {
       throw { status: 409, message: "An active training cycle already exists" };
     }
 
-    const start = startOfUtcDay(clock.now());
+    const start = todayAsScheduleDate(clock.now());
     const end = new Date(start);
     end.setDate(end.getDate() + cycle.durationDays);
     const [startInBody, profile] = await Promise.all([

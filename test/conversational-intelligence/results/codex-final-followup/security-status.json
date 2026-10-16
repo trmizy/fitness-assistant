@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-27T15:16:06.050Z",
+  "exit": 1,
+  "ms": 596,
+  "command": "node",
+  "args": [
+    "test/conversational-intelligence/codex-security-http.mjs"
+  ],
+  "artifactUpdated": false
+}

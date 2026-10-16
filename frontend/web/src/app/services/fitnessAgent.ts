@@ -28,7 +28,7 @@ export interface AgentChatBlock {
   decision?: string | null; aiSummary?: string | null; userDecision?: string;
   nutritionDecision?: string | null; nutritionAiHeadline?: string | null; nutritionAiExplanation?: string | null; nutritionUserDecision?: string;
   // WORKFLOW_MISSING_DATA (agent-workflow/orchestrator.ts) — "known so far" vs "still missing" slot summary.
-  workflowId?: string; workflowType?: string; known?: string[]; missing?: string[];
+  workflowId?: string; workflowType?: string; known?: Array<{ label: string; value: string }>; missing?: string[];
   // PROFILE_UPDATE_CONFIRMATION — proposed profile field changes awaiting explicit user confirmation.
   changes?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   // Codex Conversational AI Coach Evaluation #1 — server-computed from slot

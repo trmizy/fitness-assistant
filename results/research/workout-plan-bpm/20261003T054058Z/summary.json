@@ -1,0 +1,11 @@
+{
+  "runId": "20261003T054058Z",
+  "overall": "BLOCKED",
+  "exitCode": 4,
+  "stagesCompleted": ["preflight"],
+  "stagesBlocked": ["dataset-construction", "config-A", "config-B", "config-C", "frozen-150", "existing-http-evidence", "report-generation"],
+  "preflight": { "requiredDocs": "14/14 present", "requiredTestPaths": "11/11 present", "globs": "conversational-intelligence-* 3, agent-workflow-* 12, fitness-agent-* 10", "functionalRequirementsParsed": 22, "exceptionsParsed": 20, "acceptanceCriteriaParsed": 42 },
+  "tooling": { "python": "not installed on host", "python-docx": "unavailable", "mermaid-cli": "not installed on host", "node": "v24.14.1", "docker": "29.5.2" },
+  "metrics": "NOT_COMPUTED — no per-case or per-config experimental data was produced in this run",
+  "datasetBlockers": "see frozen-150/dataset-blockers.json (4 items)"
+}

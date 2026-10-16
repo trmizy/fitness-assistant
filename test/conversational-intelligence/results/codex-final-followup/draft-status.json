@@ -1,0 +1,11 @@
+{
+  "at": "2026-09-27T15:16:05.446Z",
+  "exit": 0,
+  "ms": 10292,
+  "command": "node",
+  "args": [
+    "test/conversational-intelligence/codex-draft-db.mjs",
+    "codex-resumed"
+  ],
+  "artifactUpdated": false
+}

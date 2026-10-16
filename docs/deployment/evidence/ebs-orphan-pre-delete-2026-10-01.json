@@ -1,0 +1,256 @@
+{
+  "captured_at_utc": "2026-10-01T12:34:41Z",
+  "purpose": "Pre-delete forensic evidence for vol-0c0a7abcb61186356, Phase 5 EBS orphan cleanup. See docs/deployment/AWS_DEV_EBS_ORPHAN_CLEANUP_2026-10-01.md",
+  "volume":
+{
+    "Volumes": [
+        {
+            "AvailabilityZoneId": "apse1-az2",
+            "Iops": 100,
+            "VolumeType": "gp2",
+            "MultiAttachEnabled": false,
+            "Operator": {
+                "Managed": false,
+                "HiddenByDefault": false
+            },
+            "VolumeId": "vol-0c0a7abcb61186356",
+            "Size": 20,
+            "SnapshotId": "snap-0e8998fbd84787b5f",
+            "AvailabilityZone": "ap-southeast-1a",
+            "State": "available",
+            "CreateTime": "2026-07-08T09:15:20.444000+00:00",
+            "Attachments": [],
+            "Encrypted": false
+        }
+    ]
+}
+  ,
+  "tags":
+{
+    "Tags": []
+}
+  ,
+  "instance_lifecycle_events_i-0e461d34f76b84b53":
+{
+    "Events": [
+        {
+            "EventId": "adeceb29-e63a-41e4-8d2c-07289b494cb8",
+            "EventName": "TerminateInstances",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EU3SJCG6B6",
+            "EventTime": "2026-07-08T16:29:39+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "root",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Instance",
+                    "ResourceName": "i-0e461d34f76b84b53"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"191798898985\",\"arn\":\"arn:aws:iam::191798898985:root\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EU3SJCG6B6\",\"sessionContext\":{\"attributes\":{\"creationDate\":\"2026-07-08T07:24:10Z\",\"mfaAuthenticated\":\"true\"}}},\"eventTime\":\"2026-07-08T09:29:39Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"TerminateInstances\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"123.20.226.254\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0\",\"requestParameters\":{\"instancesSet\":{\"items\":[{\"instanceId\":\"i-0e461d34f76b84b53\"}]},\"force\":false,\"skipOsShutdown\":false},\"responseElements\":{\"requestId\":\"9c1c3a86-7928-4a22-b892-d62e6bd54f70\",\"instancesSet\":{\"items\":[{\"instanceId\":\"i-0e461d34f76b84b53\",\"currentState\":{\"code\":32,\"name\":\"shutting-down\"},\"previousState\":{\"code\":16,\"name\":\"running\"}}]}},\"requestID\":\"9c1c3a86-7928-4a22-b892-d62e6bd54f70\",\"eventID\":\"adeceb29-e63a-41e4-8d2c-07289b494cb8\",\"readOnly\":false,\"resources\":[{\"accountId\":\"191798898985\",\"type\":\"AWS::EC2::Instance\",\"ARN\":\"arn:aws:ec2:ap-southeast-1:191798898985:instance/i-0e461d34f76b84b53\"}],\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_128_GCM_SHA256\",\"clientProvidedHostHeader\":\"ec2.ap-southeast-1.amazonaws.com\"},\"sessionCredentialFromConsole\":\"true\"}"
+        },
+        {
+            "EventId": "8a2c7ac1-5b30-4403-a318-d362dd1ed804",
+            "EventName": "RunInstances",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EU4G7U4SBT",
+            "EventTime": "2026-07-08T16:15:19+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "root",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::VPC",
+                    "ResourceName": "vpc-0e3087c919c5f76ae"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Ami",
+                    "ResourceName": "ami-0f7f7a0d1841cedca"
+                },
+                {
+                    "ResourceType": "AWS::EC2::NetworkInterface",
+                    "ResourceName": "eni-0daafbc0ff7ec017a"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Instance",
+                    "ResourceName": "i-0e461d34f76b84b53"
+                },
+                {
+                    "ResourceType": "AWS::EC2::KeyPair",
+                    "ResourceName": "Import-Server-key"
+                },
+                {
+                    "ResourceType": "AWS::EC2::SecurityGroup",
+                    "ResourceName": "launch-wizard-2"
+                },
+                {
+                    "ResourceType": "AWS::EC2::SecurityGroup",
+                    "ResourceName": "sg-06c6fb383dbbe7389"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Subnet",
+                    "ResourceName": "subnet-084e14a9f7ada021d"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"191798898985\",\"arn\":\"arn:aws:iam::191798898985:root\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EU4G7U4SBT\",\"sessionContext\":{\"attributes\":{\"creationDate\":\"2026-07-08T07:24:10Z\",\"mfaAuthenticated\":\"true\"}}},\"eventTime\":\"2026-07-08T09:15:19Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"RunInstances\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"123.20.226.254\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0\",\"requestParameters\":{\"instancesSet\":{\"items\":[{\"imageId\":\"ami-0f7f7a0d1841cedca\",\"minCount\":1,\"maxCount\":1,\"keyName\":\"Import-Server-key\"}]},\"instanceType\":\"t3.micro\",\"blockDeviceMapping\":{},\"monitoring\":{\"enabled\":false},\"disableApiTermination\":false,\"disableApiStop\":false,\"clientToken\":\"289af2b7-01ea-4dbb-a2e4-4cd5f101529f\",\"networkInterfaceSet\":{\"items\":[{\"deviceIndex\":0,\"associatePublicIpAddress\":true,\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\"}]}}]},\"ebsOptimized\":true,\"tagSpecificationSet\":{\"items\":[{\"resourceType\":\"instance\",\"tags\":[{\"key\":\"Name\",\"value\":\"Import-Server\"}]}]},\"creditSpecification\":{\"cpuCredits\":\"unlimited\"},\"privateDnsNameOptions\":{\"hostnameType\":\"ip-name\",\"enableResourceNameDnsARecord\":true,\"enableResourceNameDnsAAAARecord\":false}},\"responseElements\":{\"requestId\":\"810b3c70-766b-4143-80fe-66c42a5eb81f\",\"reservationId\":\"r-0f4fd526aa955fea1\",\"ownerId\":\"191798898985\",\"groupSet\":{},\"instancesSet\":{\"items\":[{\"instanceId\":\"i-0e461d34f76b84b53\",\"imageId\":\"ami-0f7f7a0d1841cedca\",\"currentInstanceBootMode\":\"legacy-bios\",\"instanceState\":{\"code\":0,\"name\":\"pending\"},\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"keyName\":\"Import-Server-key\",\"operator\":{\"managed\":false},\"amiLaunchIndex\":0,\"productCodes\":{},\"instanceType\":\"t3.micro\",\"launchTime\":1783502119000,\"placement\":{\"availabilityZone\":\"ap-southeast-1a\",\"availabilityZoneId\":\"apse1-az2\",\"tenancy\":\"default\"},\"monitoring\":{\"state\":\"disabled\"},\"subnetId\":\"subnet-084e14a9f7ada021d\",\"vpcId\":\"vpc-0e3087c919c5f76ae\",\"privateIpAddress\":\"172.31.40.218\",\"stateReason\":{\"code\":\"pending\",\"message\":\"pending\"},\"architecture\":\"x86_64\",\"rootDeviceType\":\"ebs\",\"rootDeviceName\":\"/dev/sda1\",\"blockDeviceMapping\":{},\"virtualizationType\":\"hvm\",\"hypervisor\":\"xen\",\"tagSet\":{\"items\":[{\"key\":\"Name\",\"value\":\"Import-Server\"}]},\"clientToken\":\"289af2b7-01ea-4dbb-a2e4-4cd5f101529f\",\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\",\"groupName\":\"launch-wizard-2\"}]},\"sourceDestCheck\":true,\"networkInterfaceSet\":{\"items\":[{\"networkInterfaceId\":\"eni-0daafbc0ff7ec017a\",\"subnetId\":\"subnet-084e14a9f7ada021d\",\"vpcId\":\"vpc-0e3087c919c5f76ae\",\"ownerId\":\"191798898985\",\"operator\":{\"managed\":false},\"status\":\"in-use\",\"macAddress\":\"06:c9:76:31:fc:85\",\"privateIpAddress\":\"172.31.40.218\",\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"sourceDestCheck\":true,\"interfaceType\":\"interface\",\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\",\"groupName\":\"launch-wizard-2\"}]},\"attachment\":{\"attachmentId\":\"eni-attach-017d0a4633e187d10\",\"deviceIndex\":0,\"networkCardIndex\":0,\"status\":\"attaching\",\"attachTime\":1783502119000,\"deleteOnTermination\":true},\"privateIpAddressesSet\":{\"item\":[{\"privateIpAddress\":\"172.31.40.218\",\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"primary\":true}]},\"ipv6AddressesSet\":{},\"tagSet\":{}}]},\"ebsOptimized\":true,\"enaSupport\":true,\"cpuOptions\":{\"coreCount\":1,\"threadsPerCore\":2},\"capacityReservationSpecification\":{\"capacityReservationPreference\":\"open\"},\"enclaveOptions\":{\"enabled\":false},\"metadataOptions\":{\"state\":\"pending\",\"httpTokens\":\"optional\",\"httpPutResponseHopLimit\":1,\"httpEndpoint\":\"enabled\",\"httpProtocolIpv4\":\"enabled\",\"httpProtocolIpv6\":\"disabled\",\"instanceMetadataTags\":\"disabled\"},\"maintenanceOptions\":{\"autoRecovery\":\"default\",\"rebootMigration\":\"default\"},\"privateDnsNameOptions\":{\"hostnameType\":\"ip-name\",\"enableResourceNameDnsARecord\":true,\"enableResourceNameDnsAAAARecord\":false}}]}},\"requestID\":\"810b3c70-766b-4143-80fe-66c42a5eb81f\",\"eventID\":\"8a2c7ac1-5b30-4403-a318-d362dd1ed804\",\"readOnly\":false,\"resources\":[{\"accountId\":\"191798898985\",\"type\":\"AWS::EC2::Instance\",\"ARN\":\"arn:aws:ec2:ap-southeast-1:191798898985:instance/i-0e461d34f76b84b53\"}],\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_128_GCM_SHA256\",\"clientProvidedHostHeader\":\"ec2.ap-southeast-1.amazonaws.com\"},\"sessionCredentialFromConsole\":\"true\"}"
+        }
+    ]
+}
+  ,
+  "snapshot_lifecycle_events_snap-0e8998fbd84787b5f":
+{
+    "Events": [
+        {
+            "EventId": "e30c0413-871e-3d56-bee7-49c5c7732dbd",
+            "EventName": "DeleteSnapshot",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EUUCML3HIU",
+            "EventTime": "2026-07-08T16:30:17+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "root",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Snapshot",
+                    "ResourceName": "snap-0e8998fbd84787b5f"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"191798898985\",\"arn\":\"arn:aws:iam::191798898985:root\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EUUCML3HIU\",\"sessionContext\":{\"attributes\":{\"creationDate\":\"2026-07-08T07:24:10Z\",\"mfaAuthenticated\":\"true\"}},\"invokedBy\":\"ec2-images.amazonaws.com\"},\"eventTime\":\"2026-07-08T09:30:17Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"DeleteSnapshot\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"ec2-images.amazonaws.com\",\"userAgent\":\"ec2-images.amazonaws.com\",\"requestParameters\":{\"snapshotId\":\"snap-0e8998fbd84787b5f\",\"force\":false},\"responseElements\":{\"requestId\":\"9cdd12f5-e4c2-4e20-b9ad-d9c454da77fe\",\"_return\":true},\"requestID\":\"9cdd12f5-e4c2-4e20-b9ad-d9c454da77fe\",\"eventID\":\"e30c0413-871e-3d56-bee7-49c5c7732dbd\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"sharedEventID\":\"e4ed1a69-e724-4dfb-9ebe-537ab25ba04c\",\"vpcEndpointId\":\"AWS Internal\",\"vpcEndpointAccountId\":\"AWS Internal\",\"eventCategory\":\"Management\",\"sessionCredentialFromConsole\":\"true\"}"
+        },
+        {
+            "EventId": "a486aeb3-fcc6-4108-b2c6-c01e3c534dc0",
+            "EventName": "RegisterImage",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EUYPWABFR2",
+            "EventTime": "2026-07-08T16:11:24+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "vm_import_image-191798898985",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Snapshot",
+                    "ResourceName": "snap-0e8998fbd84787b5f"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Ami",
+                    "ResourceName": "ami-0f7f7a0d1841cedca"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROASZKA26EUREYJIMGRS:vm_import_image-191798898985\",\"arn\":\"arn:aws:sts::191798898985:assumed-role/vmimport/vm_import_image-191798898985\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EUYPWABFR2\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROASZKA26EUREYJIMGRS\",\"arn\":\"arn:aws:iam::191798898985:role/vmimport\",\"accountId\":\"191798898985\",\"userName\":\"vmimport\"},\"attributes\":{\"creationDate\":\"2026-07-08T09:11:23Z\",\"mfaAuthenticated\":\"false\"}},\"invokedBy\":\"vmie.amazonaws.com\"},\"eventTime\":\"2026-07-08T09:11:24Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"RegisterImage\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"vmie.amazonaws.com\",\"userAgent\":\"vmie.amazonaws.com\",\"requestParameters\":{\"name\":\"import-ami-3842cc4193e8abb4t\",\"description\":\"AWS-VMImport service: Linux - Ubuntu 26.04 LTS - 7.0.0-27-generic\",\"architecture\":\"x86_64\",\"rootDeviceName\":\"/dev/sda1\",\"blockDeviceMapping\":{\"items\":[{\"deviceName\":\"/dev/sda1\",\"ebs\":{\"snapshotId\":\"snap-0e8998fbd84787b5f\",\"deleteOnTermination\":false,\"volumeType\":\"gp2\"}}]},\"enaSupport\":true},\"responseElements\":{\"requestId\":\"4d777ffb-8d25-4d51-a547-eec361c21d10\",\"imageId\":\"ami-0f7f7a0d1841cedca\"},\"requestID\":\"4d777ffb-8d25-4d51-a547-eec361c21d10\",\"eventID\":\"a486aeb3-fcc6-4108-b2c6-c01e3c534dc0\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\"}"
+        },
+        {
+            "EventId": "1e54bf21-efbf-3804-8a9a-c4809dd8d9df",
+            "EventName": "CopySnapshot",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EUQQLS2I6Y",
+            "EventTime": "2026-07-08T16:11:17+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "vm_import_image-191798898985",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Snapshot",
+                    "ResourceName": "snap-0e8998fbd84787b5f"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Snapshot",
+                    "ResourceName": "snap-0e690c198532e12b6"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROASZKA26EUREYJIMGRS:vm_import_image-191798898985\",\"arn\":\"arn:aws:sts::191798898985:assumed-role/vmimport/vm_import_image-191798898985\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EUQQLS2I6Y\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROASZKA26EUREYJIMGRS\",\"arn\":\"arn:aws:iam::191798898985:role/vmimport\",\"accountId\":\"191798898985\",\"userName\":\"vmimport\"},\"attributes\":{\"creationDate\":\"2026-07-08T09:11:17Z\",\"mfaAuthenticated\":\"false\"}},\"invokedBy\":\"vmie.amazonaws.com\"},\"eventTime\":\"2026-07-08T09:11:17Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"CopySnapshot\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"vmie.amazonaws.com\",\"userAgent\":\"vmie.amazonaws.com\",\"requestParameters\":{\"sourceRegion\":\"ap-southeast-1\",\"sourceSnapshotId\":\"snap-0e690c198532e12b6\",\"description\":\"Created by AWS-VMImport service for import-ami-3842cc4193e8abb4t\",\"destinationRegion\":\"ap-southeast-1\",\"presignedUrl\":\"<sensitiveDataRemoved>\"},\"responseElements\":{\"requestId\":\"f930effa-9d4e-4aff-862e-5b30197b77d7\",\"snapshotId\":\"snap-0e8998fbd84787b5f\"},\"requestID\":\"f930effa-9d4e-4aff-862e-5b30197b77d7\",\"eventID\":\"1e54bf21-efbf-3804-8a9a-c4809dd8d9df\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"sharedEventID\":\"45ba4127-fa45-49ec-88f1-141884a60a0e\",\"eventCategory\":\"Management\"}"
+        }
+    ]
+}
+  ,
+  "ami_lifecycle_events_ami-0f7f7a0d1841cedca":
+{
+    "Events": [
+        {
+            "EventId": "51a1d92c-1d21-4c0b-afb0-9f557bb6951b",
+            "EventName": "DeregisterImage",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EURCQMCBS4",
+            "EventTime": "2026-07-08T16:30:17+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "root",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Ami",
+                    "ResourceName": "ami-0f7f7a0d1841cedca"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"191798898985\",\"arn\":\"arn:aws:iam::191798898985:root\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EURCQMCBS4\",\"sessionContext\":{\"attributes\":{\"creationDate\":\"2026-07-08T07:24:10Z\",\"mfaAuthenticated\":\"true\"}}},\"eventTime\":\"2026-07-08T09:30:17Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"DeregisterImage\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"123.20.226.254\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0\",\"requestParameters\":{\"imageId\":\"ami-0f7f7a0d1841cedca\",\"deleteAssociatedSnapshots\":true},\"responseElements\":{\"requestId\":\"2b42b6a7-7914-496e-adcc-c7ed39388264\",\"_return\":true,\"deleteSnapshotResultSet\":{\"items\":[{\"snapshotId\":\"snap-0e8998fbd84787b5f\",\"returnCode\":\"success\"}]}},\"requestID\":\"2b42b6a7-7914-496e-adcc-c7ed39388264\",\"eventID\":\"51a1d92c-1d21-4c0b-afb0-9f557bb6951b\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_128_GCM_SHA256\",\"clientProvidedHostHeader\":\"ec2.ap-southeast-1.amazonaws.com\"},\"sessionCredentialFromConsole\":\"true\"}"
+        },
+        {
+            "EventId": "8a2c7ac1-5b30-4403-a318-d362dd1ed804",
+            "EventName": "RunInstances",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EU4G7U4SBT",
+            "EventTime": "2026-07-08T16:15:19+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "root",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::VPC",
+                    "ResourceName": "vpc-0e3087c919c5f76ae"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Ami",
+                    "ResourceName": "ami-0f7f7a0d1841cedca"
+                },
+                {
+                    "ResourceType": "AWS::EC2::NetworkInterface",
+                    "ResourceName": "eni-0daafbc0ff7ec017a"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Instance",
+                    "ResourceName": "i-0e461d34f76b84b53"
+                },
+                {
+                    "ResourceType": "AWS::EC2::KeyPair",
+                    "ResourceName": "Import-Server-key"
+                },
+                {
+                    "ResourceType": "AWS::EC2::SecurityGroup",
+                    "ResourceName": "launch-wizard-2"
+                },
+                {
+                    "ResourceType": "AWS::EC2::SecurityGroup",
+                    "ResourceName": "sg-06c6fb383dbbe7389"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Subnet",
+                    "ResourceName": "subnet-084e14a9f7ada021d"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"Root\",\"principalId\":\"191798898985\",\"arn\":\"arn:aws:iam::191798898985:root\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EU4G7U4SBT\",\"sessionContext\":{\"attributes\":{\"creationDate\":\"2026-07-08T07:24:10Z\",\"mfaAuthenticated\":\"true\"}}},\"eventTime\":\"2026-07-08T09:15:19Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"RunInstances\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"123.20.226.254\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0\",\"requestParameters\":{\"instancesSet\":{\"items\":[{\"imageId\":\"ami-0f7f7a0d1841cedca\",\"minCount\":1,\"maxCount\":1,\"keyName\":\"Import-Server-key\"}]},\"instanceType\":\"t3.micro\",\"blockDeviceMapping\":{},\"monitoring\":{\"enabled\":false},\"disableApiTermination\":false,\"disableApiStop\":false,\"clientToken\":\"289af2b7-01ea-4dbb-a2e4-4cd5f101529f\",\"networkInterfaceSet\":{\"items\":[{\"deviceIndex\":0,\"associatePublicIpAddress\":true,\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\"}]}}]},\"ebsOptimized\":true,\"tagSpecificationSet\":{\"items\":[{\"resourceType\":\"instance\",\"tags\":[{\"key\":\"Name\",\"value\":\"Import-Server\"}]}]},\"creditSpecification\":{\"cpuCredits\":\"unlimited\"},\"privateDnsNameOptions\":{\"hostnameType\":\"ip-name\",\"enableResourceNameDnsARecord\":true,\"enableResourceNameDnsAAAARecord\":false}},\"responseElements\":{\"requestId\":\"810b3c70-766b-4143-80fe-66c42a5eb81f\",\"reservationId\":\"r-0f4fd526aa955fea1\",\"ownerId\":\"191798898985\",\"groupSet\":{},\"instancesSet\":{\"items\":[{\"instanceId\":\"i-0e461d34f76b84b53\",\"imageId\":\"ami-0f7f7a0d1841cedca\",\"currentInstanceBootMode\":\"legacy-bios\",\"instanceState\":{\"code\":0,\"name\":\"pending\"},\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"keyName\":\"Import-Server-key\",\"operator\":{\"managed\":false},\"amiLaunchIndex\":0,\"productCodes\":{},\"instanceType\":\"t3.micro\",\"launchTime\":1783502119000,\"placement\":{\"availabilityZone\":\"ap-southeast-1a\",\"availabilityZoneId\":\"apse1-az2\",\"tenancy\":\"default\"},\"monitoring\":{\"state\":\"disabled\"},\"subnetId\":\"subnet-084e14a9f7ada021d\",\"vpcId\":\"vpc-0e3087c919c5f76ae\",\"privateIpAddress\":\"172.31.40.218\",\"stateReason\":{\"code\":\"pending\",\"message\":\"pending\"},\"architecture\":\"x86_64\",\"rootDeviceType\":\"ebs\",\"rootDeviceName\":\"/dev/sda1\",\"blockDeviceMapping\":{},\"virtualizationType\":\"hvm\",\"hypervisor\":\"xen\",\"tagSet\":{\"items\":[{\"key\":\"Name\",\"value\":\"Import-Server\"}]},\"clientToken\":\"289af2b7-01ea-4dbb-a2e4-4cd5f101529f\",\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\",\"groupName\":\"launch-wizard-2\"}]},\"sourceDestCheck\":true,\"networkInterfaceSet\":{\"items\":[{\"networkInterfaceId\":\"eni-0daafbc0ff7ec017a\",\"subnetId\":\"subnet-084e14a9f7ada021d\",\"vpcId\":\"vpc-0e3087c919c5f76ae\",\"ownerId\":\"191798898985\",\"operator\":{\"managed\":false},\"status\":\"in-use\",\"macAddress\":\"06:c9:76:31:fc:85\",\"privateIpAddress\":\"172.31.40.218\",\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"sourceDestCheck\":true,\"interfaceType\":\"interface\",\"groupSet\":{\"items\":[{\"groupId\":\"sg-06c6fb383dbbe7389\",\"groupName\":\"launch-wizard-2\"}]},\"attachment\":{\"attachmentId\":\"eni-attach-017d0a4633e187d10\",\"deviceIndex\":0,\"networkCardIndex\":0,\"status\":\"attaching\",\"attachTime\":1783502119000,\"deleteOnTermination\":true},\"privateIpAddressesSet\":{\"item\":[{\"privateIpAddress\":\"172.31.40.218\",\"privateDnsName\":\"ip-172-31-40-218.ap-southeast-1.compute.internal\",\"primary\":true}]},\"ipv6AddressesSet\":{},\"tagSet\":{}}]},\"ebsOptimized\":true,\"enaSupport\":true,\"cpuOptions\":{\"coreCount\":1,\"threadsPerCore\":2},\"capacityReservationSpecification\":{\"capacityReservationPreference\":\"open\"},\"enclaveOptions\":{\"enabled\":false},\"metadataOptions\":{\"state\":\"pending\",\"httpTokens\":\"optional\",\"httpPutResponseHopLimit\":1,\"httpEndpoint\":\"enabled\",\"httpProtocolIpv4\":\"enabled\",\"httpProtocolIpv6\":\"disabled\",\"instanceMetadataTags\":\"disabled\"},\"maintenanceOptions\":{\"autoRecovery\":\"default\",\"rebootMigration\":\"default\"},\"privateDnsNameOptions\":{\"hostnameType\":\"ip-name\",\"enableResourceNameDnsARecord\":true,\"enableResourceNameDnsAAAARecord\":false}}]}},\"requestID\":\"810b3c70-766b-4143-80fe-66c42a5eb81f\",\"eventID\":\"8a2c7ac1-5b30-4403-a318-d362dd1ed804\",\"readOnly\":false,\"resources\":[{\"accountId\":\"191798898985\",\"type\":\"AWS::EC2::Instance\",\"ARN\":\"arn:aws:ec2:ap-southeast-1:191798898985:instance/i-0e461d34f76b84b53\"}],\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_128_GCM_SHA256\",\"clientProvidedHostHeader\":\"ec2.ap-southeast-1.amazonaws.com\"},\"sessionCredentialFromConsole\":\"true\"}"
+        },
+        {
+            "EventId": "a486aeb3-fcc6-4108-b2c6-c01e3c534dc0",
+            "EventName": "RegisterImage",
+            "ReadOnly": "false",
+            "AccessKeyId": "ASIASZKA26EUYPWABFR2",
+            "EventTime": "2026-07-08T16:11:24+07:00",
+            "EventSource": "ec2.amazonaws.com",
+            "Username": "vm_import_image-191798898985",
+            "Resources": [
+                {
+                    "ResourceType": "AWS::EC2::Snapshot",
+                    "ResourceName": "snap-0e8998fbd84787b5f"
+                },
+                {
+                    "ResourceType": "AWS::EC2::Ami",
+                    "ResourceName": "ami-0f7f7a0d1841cedca"
+                }
+            ],
+            "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"AssumedRole\",\"principalId\":\"AROASZKA26EUREYJIMGRS:vm_import_image-191798898985\",\"arn\":\"arn:aws:sts::191798898985:assumed-role/vmimport/vm_import_image-191798898985\",\"accountId\":\"191798898985\",\"accessKeyId\":\"ASIASZKA26EUYPWABFR2\",\"sessionContext\":{\"sessionIssuer\":{\"type\":\"Role\",\"principalId\":\"AROASZKA26EUREYJIMGRS\",\"arn\":\"arn:aws:iam::191798898985:role/vmimport\",\"accountId\":\"191798898985\",\"userName\":\"vmimport\"},\"attributes\":{\"creationDate\":\"2026-07-08T09:11:23Z\",\"mfaAuthenticated\":\"false\"}},\"invokedBy\":\"vmie.amazonaws.com\"},\"eventTime\":\"2026-07-08T09:11:24Z\",\"eventSource\":\"ec2.amazonaws.com\",\"eventName\":\"RegisterImage\",\"awsRegion\":\"ap-southeast-1\",\"sourceIPAddress\":\"vmie.amazonaws.com\",\"userAgent\":\"vmie.amazonaws.com\",\"requestParameters\":{\"name\":\"import-ami-3842cc4193e8abb4t\",\"description\":\"AWS-VMImport service: Linux - Ubuntu 26.04 LTS - 7.0.0-27-generic\",\"architecture\":\"x86_64\",\"rootDeviceName\":\"/dev/sda1\",\"blockDeviceMapping\":{\"items\":[{\"deviceName\":\"/dev/sda1\",\"ebs\":{\"snapshotId\":\"snap-0e8998fbd84787b5f\",\"deleteOnTermination\":false,\"volumeType\":\"gp2\"}}]},\"enaSupport\":true},\"responseElements\":{\"requestId\":\"4d777ffb-8d25-4d51-a547-eec361c21d10\",\"imageId\":\"ami-0f7f7a0d1841cedca\"},\"requestID\":\"4d777ffb-8d25-4d51-a547-eec361c21d10\",\"eventID\":\"a486aeb3-fcc6-4108-b2c6-c01e3c534dc0\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"191798898985\",\"eventCategory\":\"Management\"}"
+        }
+    ]
+}
+  ,
+  "classification": {
+    "result": "SAFE_ORPHAN",
+    "root_volume_of": "i-0e461d34f76b84b53 (tagged Name=Import-Server)",
+    "instance_state": "terminated (confirmed InvalidInstanceID.NotFound)",
+    "source_snapshot": "snap-0e8998fbd84787b5f (deleted 2026-07-08, confirmed InvalidSnapshot.NotFound)",
+    "source_ami": "ami-0f7f7a0d1841cedca (deregistered 2026-07-08, confirmed InvalidAMIID.NotFound)",
+    "narrative": "One-time manual Ubuntu VM import test (via VM Import/Export, vmimport-admin IAM user) on 2026-07-08: ImportImage -> RegisterImage (ami-0f7f7a0d1841cedca) -> RunInstances at 09:15:19Z created instance i-0e461d34f76b84b53, whose root volume (vol-0c0a7abcb61186356) was created 1 second later at 09:15:20.444Z from the AMI root snapshot snap-0e8998fbd84787b5f. The SAME root user terminated the instance at 09:29:39Z and deregistered the AMI with deleteAssociatedSnapshots=true at 09:30:17Z, all within one ~15-minute cleanup session. The root volume alone survived because the imported AMIs block device mapping had deleteOnTermination=false (an AWS VM-import default), which the launch request never overrode. It has sat unattached ever since (~85 days). Unrelated to the Gymini/fitness-assistant application in any way.",
+    "active_dependencies_checked": ["EC2 instances (0 in account)", "launch templates (0)", "Auto Scaling groups (0)", "AMIs owned by account (0)", "snapshots owned by account (0)", "CloudFormation stacks (0)", "repo references (DOC_ONLY only, no ACTIVE_CONFIG)"]
+  }
+}

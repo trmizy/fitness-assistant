@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-27T04:52:32.453Z",
+  "exit": 1,
+  "ms": 274236,
+  "cmd": "node",
+  "args": [
+    "test/conversational-intelligence/live-global.mjs"
+  ]
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CircleNotchIcon as Loader2, MapPinIcon as MapPin } from "@phosphor-icons/react";
+import { addBaseTiles } from "./mapTiles";
 
 export interface BranchPin {
   id: string;
@@ -38,10 +39,7 @@ export function BranchMap({ branches, currentId, onSelect }: { branches: BranchP
         if (cancelled || !el.current) return;
         const Lf: any = (L as any).default ?? L;
         const map = Lf.map(el.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
-        Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
+        addBaseTiles(Lf, map);
         const current = Lf.divIcon({ className: "", html: dot("#22C55E", 24), iconSize: [24, 24], iconAnchor: [12, 12] });
         const other = Lf.divIcon({ className: "", html: dot("#71717A", 18), iconSize: [18, 18], iconAnchor: [9, 9] });
         const latlngs: [number, number][] = [];

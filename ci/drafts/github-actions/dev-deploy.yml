@@ -1,0 +1,164 @@
+# DRAFT - Phase 16A. NOT ACTIVE (ci/drafts/). Activate in 16B step 9 (manual dispatch only).
+#
+# Lambda CODE deploy only. Never: update-function-configuration, secrets, migrations,
+# scheduler changes, dev-start/dev-stop, API Gateway writes. Those are separate,
+# explicit pipelines/runbooks (see report: CODE_DEPLOY vs CONFIG_DEPLOY vs SECRET_ROTATION).
+#
+# Authentication: GitHub OIDC -> GyminiDevAppDeployRole. No static keys.
+name: DEV Application Deploy (Lambda code)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Run ID of the dev-build.yml run whose artifacts to deploy"
+        required: true
+      services:
+        description: "Comma list of services to deploy (must exist in that build)"
+        required: true
+      dry_run:
+        description: "true = verify + print plan only, no AWS mutation"
+        type: boolean
+        default: true
+
+# One DEV mutation at a time across ALL deploy workflows. cancel-in-progress is
+# false on purpose: cancelling a deploy halfway through update-function-code /
+# a CloudFormation execution leaves a mixed fleet. A newer queued run replaces
+# an older *pending* one (GitHub keeps one running + one pending) - acceptable for DEV.
+concurrency:
+  group: gymini-dev-deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write       # OIDC
+  contents: read
+  actions: read         # download artifacts from the build run
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_ACCOUNT_ID: "191798898985"
+  AWS_PAGER: ""
+  DEPLOY_BUCKET: fitness-assistant-deployments-dev-191798898985
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev               # deployment-branch rule: aws-deploy only; OIDC sub = ...:environment:dev
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve service list
+        id: svc
+        shell: pwsh
+        env: { SERVICES: "${{ inputs.services }}" }
+        run: |
+          $ok = 'auth','user','fitness','gym','payment','ai'
+          $l = @($env:SERVICES.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+          $bad = @($l | Where-Object { $_ -notin $ok })
+          if ($bad) { throw "Unknown/unsupported service(s): $($bad -join ',')" }
+          "list=$($l -join ' ')" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lambda-*
+          path: artifacts
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify artifact hashes against manifests (before any AWS call)
+        shell: pwsh
+        run: |
+          foreach ($m in Get-ChildItem artifacts -Recurse -Filter *.manifest.json) {
+            $man = Get-Content $m -Raw | ConvertFrom-Json
+            $zip = Join-Path $m.DirectoryName "$($man.service)-$($man.gitSha).zip"
+            $h = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+            if ($h -ne $man.sha256) { throw "ARTIFACT_HASH_MISMATCH for $($man.service)" }
+            "verified $($man.service) $h"
+          }
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ !inputs.dry_run }}
+        with:
+          role-to-assume: arn:aws:iam::191798898985:role/GyminiDevAppDeployRole
+          aws-region: ap-southeast-1
+          role-session-name: gh-${{ github.run_id }}
+
+      - name: Identity gate (OIDC assumed-role only; not root, not an IAM user)
+        if: ${{ !inputs.dry_run }}
+        run: pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -Identity -Mode Mutate -Context CI
+
+      - name: Snapshot scheduler state (must be identical afterwards)
+        if: ${{ !inputs.dry_run }}
+        run: aws scheduler list-schedules --query "Schedules[].[Name,State]" --output text | sort > schedules.before
+
+      - name: Deploy services
+        shell: bash
+        env:
+          LIST: ${{ steps.svc.outputs.list }}
+          DRY: ${{ inputs.dry_run }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          scan() { pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -ScanLogFile "$1" >/dev/null \
+                     || { echo "::error::secret-like output suppressed (SECRET_OUTPUT_BLOCKED)"; exit 3; }; cat "$1"; }
+          for s in $LIST; do
+            man=$(ls artifacts/*/"$s"-*.manifest.json | head -1)
+            zip="${man%.manifest.json}.zip"
+            sha256=$(jq -r .sha256 "$man"); gsha=$(jq -r .gitSha "$man")
+            fns=$(jq -r '.targetFunctions[]' "$man")
+            key="ci-artifacts/$s/$gsha/$sha256.zip"      # immutable: content-addressed
+            echo "== $s  git=$gsha  sha256=$sha256  functions: $(echo $fns | tr '\n' ' ')"
+            [ "$DRY" = "true" ] && { echo "DRY RUN: would upload s3://$DEPLOY_BUCKET/$key and update-function-code"; continue; }
+            # rollback record: previous CodeSha256 only (NARROW query - never print configuration)
+            for f in $fns; do
+              aws lambda get-function --function-name "$f" --query "Configuration.[FunctionName,CodeSha256,LastUpdateStatus]" --output text > prev.txt
+              scan prev.txt | tee -a rollback-record.txt
+            done
+            aws s3 cp "$zip" "s3://$DEPLOY_BUCKET/$key" --only-show-errors
+            for f in $fns; do
+              aws lambda update-function-code --function-name "$f" --s3-bucket "$DEPLOY_BUCKET" --s3-key "$key" \
+                --query "{Fn:FunctionName,CodeSha256:CodeSha256,Status:LastUpdateStatus}" --output text > out.txt
+              scan out.txt
+              aws lambda wait function-updated-v2 --function-name "$f"
+              aws lambda get-function --function-name "$f" --query "Configuration.[LastUpdateStatus,State]" --output text > st.txt
+              scan st.txt
+            done
+          done
+
+      - name: Smoke (read-only /health; no payment, no email, no AI/Bedrock)
+        if: ${{ !inputs.dry_run }}
+        shell: pwsh
+        env: { LIST: "${{ steps.svc.outputs.list }}" }
+        run: |
+          Import-Module ./scripts/ci/CiHelpers.psm1 -Force
+          $matrix = Get-Content ci/smoke-matrix.json -Raw | ConvertFrom-Json
+          $plan = Get-SmokePlan -Matrix $matrix -Services @($env:LIST.Split(' '))
+          foreach ($e in $plan) {
+            if ($e.channel -eq 'lambda-invoke') {
+              '{"version":"2.0","routeKey":"GET /health","rawPath":"/health","rawQueryString":"","headers":{},"requestContext":{"http":{"method":"GET","path":"/health","sourceIp":"127.0.0.1"}},"isBase64Encoded":false}' | Set-Content ev.json
+              $o = aws lambda invoke --function-name $e.function --cli-binary-format raw-in-base64-out --payload file://ev.json out.json --query "{S:StatusCode,E:FunctionError}" --output json | ConvertFrom-Json
+              $body = (Get-Content out.json -Raw | ConvertFrom-Json)
+              if ($o.E -or $body.statusCode -ne $e.expectedStatus) { Write-Error "SMOKE_FAIL $($e.service)"; exit 1 }
+              "$($e.service): $($body.statusCode)"
+            }
+            elseif ($e.channel -eq 'http') {
+              $api = aws apigatewayv2 get-api --api-id id1iz7upbl --query ApiEndpoint --output text
+              $code = (Invoke-WebRequest "$api$($e.path)" -UseBasicParsing -Method $e.method).StatusCode
+              if ($code -ne $e.expectedStatus) { Write-Error "SMOKE_FAIL $($e.service)"; exit 1 }
+              "$($e.service): $code"
+            }
+          }
+
+      - name: Scheduler state must be unchanged
+        if: ${{ !inputs.dry_run }}
+        run: |
+          aws scheduler list-schedules --query "Schedules[].[Name,State]" --output text | sort > schedules.after
+          diff schedules.before schedules.after && echo "scheduler state preserved"
+
+      - name: Deployment summary (no credentials, no env values)
+        if: always()
+        shell: pwsh
+        run: |
+          "## DEV application deploy" >> $env:GITHUB_STEP_SUMMARY
+          "commit: ``${{ github.sha }}``  | services: ${{ steps.svc.outputs.list }}  | dry_run: ${{ inputs.dry_run }}  | result: ${{ job.status }}" >> $env:GITHUB_STEP_SUMMARY
+          if (Test-Path rollback-record.txt) { "### Rollback reference (previous CodeSha256)`n" + (Get-Content rollback-record.txt -Raw) >> $env:GITHUB_STEP_SUMMARY }

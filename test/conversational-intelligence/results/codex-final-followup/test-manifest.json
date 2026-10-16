@@ -1,0 +1,106 @@
+[
+  {
+    "path": "agent-workflow-create-nutrition-plan.test.ts",
+    "sha256": "32a854b393c4e9a05237b7732923b82e7a2d328799d28678f4988eb5b40ac84f"
+  },
+  {
+    "path": "agent-workflow-create-workout-plan.test.ts",
+    "sha256": "0c27725047461d7b94d990a757cb5c420c2fbb93d658c62cf2d37ffae875f74a"
+  },
+  {
+    "path": "agent-workflow-cross-domain.test.ts",
+    "sha256": "0a03b334838298c13337c3fd6b33915c3a077b1e3093b2bc4074f79f9d51810f"
+  },
+  {
+    "path": "agent-workflow-finalization-race.test.ts",
+    "sha256": "8dc6be21e187b175e2eb7de609b2fee510266a6aa5e3a2ef8a97df064438880c"
+  },
+  {
+    "path": "agent-workflow-product-final-remediation.test.ts",
+    "sha256": "abf31f0887d6a0380bde493c7dbe711f4bfee0fc4b2439de4e31b19685a49ebf"
+  },
+  {
+    "path": "agent-workflow-product-remediation-1.test.ts",
+    "sha256": "bbced3b02175224d183fd3bf9548cb92bb692eb9a7f2fa1619348559e9c048a3"
+  },
+  {
+    "path": "agent-workflow-program-e2e.test.ts",
+    "sha256": "d7d6e80af90ed3d2c2411b44faf5e65a47f3e3974ccc24ca6148ed3f2aca2db5"
+  },
+  {
+    "path": "agent-workflow-remediation-1.test.ts",
+    "sha256": "fff840294b4ce200d875947459a412573728c71e60e5d00b644a83f0d56da51b"
+  },
+  {
+    "path": "agent-workflow-remediation-2.test.ts",
+    "sha256": "b86c4ffedf3acf1000a2da32a50ada84db271a691739dbe52fe824c4490f5e14"
+  },
+  {
+    "path": "agent-workflow-roadmap-e2e.test.ts",
+    "sha256": "83fe9c8eba5b429a42397297b4f7d9312c9a1694de263ba2d9dec6b2188fab82"
+  },
+  {
+    "path": "agent-workflow-security-e2e.test.ts",
+    "sha256": "f29299b4761d419906f8de0c81c9d22d874eae4de7bd456d042bcafe4cc97717"
+  },
+  {
+    "path": "codex-remediation-boundary.test.ts",
+    "sha256": "652a73d6313334503d55165aa51350b23b60c624d724e295a7a55e30bee1ff80"
+  },
+  {
+    "path": "conversational-intelligence-global.test.ts",
+    "sha256": "63edbf453238e57251d60903da70f0f269a185a3108da61aca911e896f1ae87d"
+  },
+  {
+    "path": "conversational-intelligence-remediation.test.ts",
+    "sha256": "c31d8b3615314532e8c2b879f656bb3400fee9f16b1fa32bf97c94b1e4f9d88c"
+  },
+  {
+    "path": "conversational-intelligence-v2.test.ts",
+    "sha256": "71c89a7d4eaf793aa606aabdcf09a0e96322ae557cc2be3fb294a80ffeaac8b6"
+  },
+  {
+    "path": "fitness-agent-chat-verification-fixes.test.ts",
+    "sha256": "09d278806dba13e55c7f6b37dba580efcb0d6834c220af587cb1ee41115308b9"
+  },
+  {
+    "path": "fitness-agent-context-days.test.ts",
+    "sha256": "8834942805fe32a7293817daea269cba309b62b09e488b66268757f2212198c1"
+  },
+  {
+    "path": "fitness-agent-evaluate-review.test.ts",
+    "sha256": "d3fc93ab91c64ee1fbde4986d5f17d7cb530150e17b246cf597e75ea1727d4c2"
+  },
+  {
+    "path": "fitness-agent-goal-intent-loop.test.ts",
+    "sha256": "fd993225a0f016387bdba812f3de8160e24dc231ca69ca9cc69156a5a7acf8c9"
+  },
+  {
+    "path": "fitness-agent-intent-coverage.test.ts",
+    "sha256": "110016b97e4f40be3e94e45442596ba4cc5a6a9b494c96ccc561bf3937bd2bb2"
+  },
+  {
+    "path": "fitness-agent-intent-evaluate.test.ts",
+    "sha256": "9c3098a2908bad5e6c55344537a1012fd9f40b3cc247f69acde8a5f3949bc393"
+  },
+  {
+    "path": "fitness-agent-profile-cache-invalidation.test.ts",
+    "sha256": "90f04ba140aed413967d8b8ba64195d534f4109e154f7c7155adae666cf0b449"
+  },
+  {
+    "path": "fitness-agent-program-e2e.test.ts",
+    "sha256": "5b4b3f0e93e7cffd285b903841203df377cb961fe11fac031010a4cb387ae43e"
+  },
+  {
+    "path": "fitness-agent-scoring.test.ts",
+    "sha256": "f2915c13e71912a7ca07cda3a0f61a36f624c62cc6e45f958a3ae21547ccef2a"
+  },
+  {
+    "path": "fitness-agent-substitution.test.ts",
+    "sha256": "08f4538d10cb757dfbef900301c444917dcfeeb73100990aa58583419f185135"
+  },
+  {
+    "path": "x4-confirmation-followup.test.ts",
+    "sha256": "97948b86cf7c4de2fcce66ecb4e378f695e14a355dc557d50286b86a6a1249bd"
+  }
+]

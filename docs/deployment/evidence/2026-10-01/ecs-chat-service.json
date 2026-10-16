@@ -1,0 +1,25 @@
+{
+    "desired": 0,
+    "running": 0,
+    "pending": 0,
+    "loadBalancers": [
+        {
+            "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+            "containerName": "chat-service",
+            "containerPort": 3005
+        }
+    ],
+    "networkConfig": {
+        "awsvpcConfiguration": {
+            "subnets": [
+                "subnet-09e3230f7bca04c8e",
+                "subnet-02b39d77762465ef8"
+            ],
+            "securityGroups": [
+                "sg-00726a813b1163459"
+            ],
+            "assignPublicIp": "DISABLED"
+        }
+    },
+    "taskDef": "arn:aws:ecs:ap-southeast-1:191798898985:task-definition/fitness-assistant-dev-chat:6"
+}

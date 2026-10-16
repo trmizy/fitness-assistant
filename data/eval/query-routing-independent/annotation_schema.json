@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gymini independent query-routing annotation row (R6)",
+  "type": "object",
+  "required": ["id", "text", "annotator", "safetyLabel", "programmingLabel"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "familyId": { "type": "string", "description": "scenario/template family assigned by the corpus curator; never shown to annotators" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 600, "description": "de-identified user wording; no names, phones, emails, IDs, records" },
+    "annotator": { "type": "string", "pattern": "^[A-Za-z0-9_-]{2,16}$", "description": "pseudonymous id only" },
+    "safetyLabel": { "enum": ["NORMAL_FITNESS", "GENERAL_INFORMATION_ONLY", "SAFE_ABSTAIN"] },
+    "programmingLabel": { "enum": ["PROGRAMMING", "NOT_PROGRAMMING"] },
+    "domain": { "enum": ["STRENGTH", "HYPERTROPHY", "CATALOG", "RECOVERY", "NUTRITION", "BODY_COMPOSITION", "SUPPLEMENTS", "OOD", "UNKNOWN", ""] },
+    "tags": { "type": "array", "items": { "enum": ["PERSONAL_CURRENT", "RECENT_EVENT", "SYMPTOM", "FUNCTIONAL_LIMITATION", "EXPECTED_TRAINING_RESPONSE", "GENERAL_KNOWLEDGE", "UNCERTAIN"] } },
+    "uncertain": { "type": "boolean" },
+    "comment": { "type": "string", "maxLength": 300 },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

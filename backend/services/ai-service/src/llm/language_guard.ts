@@ -20,9 +20,11 @@ function detectLanguage(message: string): ResponseLanguage {
   const text = message.toLowerCase();
   // Vietnamese-specific diacritics (tone marks + vowel modifiers outside basic Latin)
   const hasVietnameseDiacritics = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(message);
-  // Common Vietnamese words without diacritics as fallback
+  // Common Vietnamese words without diacritics as fallback — kept as multi-word
+  // phrases (not single short words) to avoid false-positives against English
+  // (e.g. a bare "la"/"do"/"an" could be English too; "cho toi"/"an uong" can't be).
   const viSignals =
-    /(lich tap|bai tap|giam mo|tang co|thuc don|tieng viet|tap gym|buoi tap|tuan nay|hom nay|cho toi|minh nen|lam sao|nhu the nao)/i;
+    /(lich tap|bai tap|giam mo|tang co|thuc don|tieng viet|tap gym|buoi tap|tuan nay|hom nay|hom qua|ngay mai|cho toi|minh nen|minh muon|lam sao|nhu the nao|the nao|xin chao|chao ban|cam on|giup toi|giup minh|cho hoi|bao nhieu|bao lau|khi nao|o dau|tai sao|duoc khong|an uong|dinh duong|giam can|tang can|suc khoe|the duc|khong the|khong biet)/i;
   if (hasVietnameseDiacritics || viSignals.test(text)) return "vi";
   return "en";
 }

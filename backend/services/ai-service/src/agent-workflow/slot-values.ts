@@ -29,23 +29,59 @@ const CORRECTION_CUE_RE = /\b(khong|a khong|y la|doi thanh|sua lai|thanh)\b/;
  * "khoảng 10" alone (no unit, no context) is NOT parsed as a weight here;
  * the caller decides whether to treat a bare number as an answer based on
  * which slot is actually expected. */
-export function parseWeightKg(raw: string): SlotParseResult<number> {
+// Cues that label a number as the TARGET weight / the CURRENT weight (text is diacritic-stripped by normalizeAgentText).
+const TARGET_CUE_RE = /(muc tieu|muon xuong|muon giam|muon len|muon tang|xuong con|xuong|giam con|len den|len toi|target)/;
+const CURRENT_CUE_RE = /(hien tai|hien nay|\bhien\b|\bdang\b|can nang|\bnang\b)/;
+
+type WeightCandidate = { value: number; index: number; hasUnit: boolean };
+
+/** Weight-shaped numbers of a message, minus the ones that are obviously something else: the "73" of "1m73" (a height
+ * fragment), "173cm", "22 tuoi". Without this "1m73, muon xuong 72kg" answered the target slot with 73. */
+function weightCandidates(s: string): WeightCandidate[] {
+  return [...s.matchAll(/(\d{2,3}(?:[.,]\d)?)\s*(kg|ky|can)?/g)]
+    .map((m) => ({ value: Number(m[1].replace(",", ".")), index: m.index ?? 0, hasUnit: Boolean(m[2]), end: (m.index ?? 0) + m[0].length }))
+    .filter((m) => !/\dm\s*$/.test(s.slice(Math.max(0, m.index - 3), m.index)))
+    .filter((m) => !/^\s*(cm|tuoi|m\b)/.test(s.slice(m.end, m.end + 6)))
+    .map(({ value, index, hasUnit }) => ({ value, index, hasUnit }));
+}
+
+/** The number whose nearest preceding words (back to the previous number) carry the cue. */
+function pickByCue(s: string, cands: WeightCandidate[], cue: RegExp): WeightCandidate | undefined {
+  const cued = cands.filter((c) => {
+    const before = s.slice(0, c.index);
+    const prevNumber = before.search(/\d(?!.*\d)/);
+    const window = (prevNumber >= 0 ? before.slice(prevNumber + 1) : before).slice(-28);
+    return cue.test(window);
+  });
+  return cued[cued.length - 1];
+}
+
+function parseWeightWithCue(raw: string, cue: RegExp): SlotParseResult<number> {
   const s = normalizeAgentText(raw);
-  const matches = [...s.matchAll(/(\d{2,3}(?:[.,]\d)?)\s*(kg|ky|can)?/g)];
+  const matches = weightCandidates(s);
   if (matches.length === 0) return { ok: false, reason: "no_number_found", clarifyingQuestion: "Bạn có thể cho mình một con số cụ thể, ví dụ '72 kg' không?" };
   let chosen = matches[0];
   if (matches.length > 1) {
     const cueMatch = CORRECTION_CUE_RE.exec(s);
-    if (cueMatch) {
-      const after = matches.filter((m) => (m.index ?? 0) > cueMatch.index);
-      if (after.length > 0) chosen = after[after.length - 1];
-    }
+    const afterCorrection = cueMatch ? matches.filter((m) => m.index > cueMatch.index) : [];
+    if (afterCorrection.length > 0) chosen = afterCorrection[afterCorrection.length - 1];
+    else chosen = pickByCue(s, matches, cue) ?? matches.find((m) => m.hasUnit) ?? matches[0];
   }
-  const value = Number(chosen[1].replace(",", "."));
+  const value = chosen.value;
   if (!Number.isFinite(value) || value < 25 || value > 300) {
     return { ok: false, reason: "out_of_range", clarifyingQuestion: "Con số đó có vẻ chưa hợp lý — bạn nhập lại cân nặng (kg) giúp mình nhé?" };
   }
   return { ok: true, value };
+}
+
+/** Current body weight: prefers the number labelled "nặng/hiện tại/đang". */
+export function parseWeightKg(raw: string): SlotParseResult<number> {
+  return parseWeightWithCue(raw, CURRENT_CUE_RE);
+}
+
+/** Target body weight: prefers the number labelled "mục tiêu/muốn xuống/lên tới". */
+export function parseTargetWeightKg(raw: string): SlotParseResult<number> {
+  return parseWeightWithCue(raw, TARGET_CUE_RE);
 }
 
 /** cm height, e.g. "170", "1m70", "170cm". */
@@ -101,6 +137,21 @@ export function parseGoal(raw: string): SlotParseResult<"WEIGHT_LOSS" | "MUSCLE_
     if (s.includes(key)) return { ok: true, value };
   }
   return { ok: false, reason: "unrecognized", clarifyingQuestion: "Mục tiêu của bạn là giảm mỡ, tăng cơ, duy trì hay hiệu suất thể thao?" };
+}
+
+const EXPERIENCE_MAP: Array<[RegExp, "BEGINNER" | "INTERMEDIATE" | "ADVANCED"]> = [
+  // No bare "moi": after diacritics are stripped it is also "mỗi" (mỗi buổi) and "mời".
+  [/\b(moi tap|moi bat dau|nguoi moi|chua tap|it kinh nghiem|co ban|beginner|newbie)\b/, "BEGINNER"],
+  [/\b(trung binh|kha|da tap mot thoi gian|intermediate)\b/, "INTERMEDIATE"],
+  [/\b(nang cao|lau nam|kinh nghiem lau|chuyen nghiep|advanced)\b/, "ADVANCED"],
+];
+/** "mới tập", "trung bình", "nâng cao" → UserProfile.experienceLevel (BEGINNER/INTERMEDIATE/ADVANCED). */
+export function parseExperienceLevel(raw: string): SlotParseResult<"BEGINNER" | "INTERMEDIATE" | "ADVANCED"> {
+  const s = normalizeAgentText(raw);
+  for (const [re, value] of EXPERIENCE_MAP) {
+    if (re.test(s)) return { ok: true, value };
+  }
+  return { ok: false, reason: "unrecognized", clarifyingQuestion: "Bạn đang ở mức nào: mới tập, trung bình hay nâng cao?" };
 }
 
 /** "T2-T4-T6", "thứ 2, thứ 4", "3 buổi" (a bare count, not specific days —

@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-27T15:15:35.376Z",
+  "exit": 0,
+  "ms": 136137,
+  "command": "node",
+  "args": [
+    "test/conversational-intelligence/live-golden.mjs"
+  ],
+  "artifactUpdated": true
+}

@@ -34,5 +34,16 @@ router.put(
   authMiddleware,
   notificationController.updatePreferences as any,
 );
+// Mobile Phase 14.2 — this phone subscribes to / unsubscribes from push notifications.
+router.post(
+  "/devices",
+  authMiddleware,
+  notificationController.registerDevice as any,
+);
+router.delete(
+  "/devices/:token",
+  authMiddleware,
+  notificationController.unregisterDevice as any,
+);
 
 export default router;

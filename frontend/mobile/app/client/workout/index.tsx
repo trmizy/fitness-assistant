@@ -1,29 +1,28 @@
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Apple,
-  BarChart3,
   CalendarClock,
   Check,
   ChevronRight,
-  Compass,
   Dumbbell,
-  LayoutTemplate,
   Play,
   Plus,
   Repeat,
-  Upload,
-  type LucideIcon,
 } from "lucide-react-native";
 
+import { CyclePanel } from "../../../src/features/cycle/CyclePanel";
+import { DaySheet, scheduleTitle } from "../../../src/features/workout/DaySheet";
+import { WorkoutToolsMenu } from "../../../src/features/workout/WorkoutToolsMenu";
+import { BodyJourneyCard, TrainingDistributionCard } from "../../../src/features/workout/TrainingInsights";
+import type { TrainingDay } from "../../../src/features/workout/trainingWeek";
+import { RoadmapJourney } from "../../../src/features/roadmap/RoadmapJourney";
 import {
   Badge,
   Button,
   Card,
-  CountUp,
   EmptyState,
   ProgressRing,
   Segmented,
@@ -32,13 +31,16 @@ import {
   StaggerItem,
   Tappable,
 } from "../../../src/components/ui";
-import { trainingCycleService, workoutService } from "../../../src/services/api";
+import { workoutService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { addDays, parseApiDateOnly, startOfWeek, toDateInputValue } from "../../../src/utils/date";
+import { useCalendarDay } from "../../../src/hooks/useCalendarDay";
 import { buildTrainingWeek } from "../../../src/features/workout/trainingWeek";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
-const TABS = ["Lịch tuần", "Nhật ký", "Chu kỳ"] as const;
+// "Lộ trình" (WB-11, Phase 8) is web's Training-page "Lộ trình" tab: the long-term journey, with the
+// current cycle shown inline and "Chu kỳ" kept for the full cycle drill-down.
+const TABS = ["Lịch tuần", "Nhật ký", "Chu kỳ", "Lộ trình"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -58,12 +60,18 @@ type Tab = (typeof TABS)[number];
 export default function WorkoutScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Tab>("Lịch tuần");
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<Tab>(() => (TABS as readonly string[]).includes(String(params.tab)) ? (params.tab as Tab) : "Lịch tuần");
 
-  const weekStart = useMemo(() => startOfWeek(new Date()), []);
+  // Re-read the calendar day on focus / foreground: left open past midnight, the week and its
+  // "Hôm nay" row (and so the day sheet's actions) would otherwise stay on yesterday.
+  const { dayKey } = useCalendarDay();
+  const weekStart = useMemo(() => startOfWeek(parseApiDateOnly(dayKey)), [dayKey]);
+  // 14B.4 — tapping a day opens its sheet (start today's session, reschedule, hide, add a session).
+  const [openDay, setOpenDay] = useState<TrainingDay | null>(null);
 
   const schedulesQuery = useQuery({
-    queryKey: ["workout-schedules", "week"],
+    queryKey: ["workout-schedules", "week", toDateInputValue(weekStart)],
     queryFn: () =>
       workoutService.getSchedules(50, {
         startDate: toDateInputValue(weekStart),
@@ -75,49 +83,51 @@ export default function WorkoutScreen() {
     queryKey: ["workout-history", "recent"],
     queryFn: () => workoutService.getHistory(1, 10),
   });
-
-  const cycleQuery = useQuery({
-    queryKey: ["training-cycle", "active"],
-    queryFn: () => trainingCycleService.getActive(),
-    // An account with no active cycle answers 404 — that is a normal state, not an outage, so it
-    // must not be retried three times before the empty state can render.
-    retry: false,
+  // 14B.4 — a longer window for the "Phân bổ" charts (30 days / all), loaded with the Nhật ký tab.
+  const analyticsQuery = useQuery({
+    queryKey: ["workout-history", "analytics"],
+    queryFn: () => workoutService.getHistory(1, 100),
+    enabled: tab === "Nhật ký",
   });
+  const analyticsWorkouts: any[] = Array.isArray(analyticsQuery.data)
+    ? analyticsQuery.data
+    : Array.isArray((analyticsQuery.data as any)?.workouts)
+      ? (analyticsQuery.data as any).workouts
+      : [];
 
   const { refreshing, onRefresh } = usePullToRefresh([
     ["workout-schedules", "week"],
     ["workout-history", "recent"],
-    ["training-cycle", "active"],
+    // Prefix: every query of the Chu kỳ segment (active, history, progress, assessment...).
+    ["training-cycle"],
   ]);
 
   // Day-state rules (rest / past / in progress / done) live in buildTrainingWeek, where they are tested.
   const week = useMemo(
-    () => buildTrainingWeek(schedulesQuery.data, weekStart),
-    [schedulesQuery.data, weekStart],
+    () => buildTrainingWeek(schedulesQuery.data, weekStart, parseApiDateOnly(dayKey)),
+    [schedulesQuery.data, weekStart, dayKey],
   );
 
   const planned = week.filter((d) => !d.rest).length;
   const done = week.filter((d) => d.done).length;
 
   return (
+    <View className="flex-1 bg-background">
     <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 32 }}
+      className="flex-1"
+      // Bottom room so the last card clears the floating tool button.
+      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 96 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent.primary} colors={[accent.primary]} />
       }
     >
       <View className="px-5">
         <View className="mb-4 flex-row items-center justify-between">
-          <Text className="font-display text-2xl text-foreground">Tập luyện</Text>
-          <View className="flex-row items-center gap-2">
-            {/* Nutrition lives under this tab (doc 08 §4.2), so its door is here rather than a
-                sixth tab. */}
-            <ToolButton icon={Apple} onPress={() => router.push("/client/workout/nutrition")} />
-            <ToolButton icon={Compass} onPress={() => router.push("/client/library")} />
-            <ToolButton icon={LayoutTemplate} onPress={() => router.push("/client/workout/templates")} />
-            <ToolButton icon={Upload} onPress={() => router.push("/client/workout/import")} />
-            <ToolButton icon={BarChart3} onPress={() => router.push("/client/stats/activity")} />
+          <Text className="mr-3 font-display text-2xl text-foreground">Tập luyện</Text>
+          {/* The tool doors (nutrition, plans, programs, templates, import, stats) moved to
+              WorkoutToolsMenu at the bottom-left, where each has its name; "+" — start/log a
+              session — stays here as the primary action. */}
+          <View className="ml-2">
             <Tappable
               className="h-10 w-10 items-center justify-center rounded-full bg-primary"
               onPress={() => router.push("/client/workout/log")}
@@ -160,14 +170,9 @@ export default function WorkoutScreen() {
                   <StaggerItem key={day.key}>
                     <Card
                       className={`flex-row items-center gap-3 p-4 ${day.today ? "border-primary/40 bg-primary/5" : ""}`}
-                      onPress={
-                        // Only today's session can be started: the logging screen always opens
-                        // TODAY's schedule, so letting a past or future day open it would log the
-                        // wrong session under that day's card.
-                        day.today && day.schedule && !day.done
-                          ? () => router.push("/client/workout/log")
-                          : undefined
-                      }
+                      // Every day opens its sheet; only today's session can be started from it — the
+                      // logging screen always opens TODAY's schedule.
+                      onPress={() => setOpenDay(day)}
                     >
                       <View className="w-14 shrink-0">
                         <Text
@@ -181,9 +186,8 @@ export default function WorkoutScreen() {
                           className={`font-body text-sm ${day.rest ? "text-muted-foreground" : "font-body-semibold text-foreground"}`}
                           numberOfLines={1}
                         >
-                          {day.rest
-                            ? "Nghỉ ngơi"
-                            : (day.schedule?.programDay?.name ?? day.schedule?.name ?? "Buổi tập")}
+                          {/* programDay carries `title` (the old `.name` read always fell back to "Buổi tập"). */}
+                          {day.rest ? "Nghỉ ngơi" : scheduleTitle(day.schedule)}
                         </Text>
                       </View>
                       {day.done ? (
@@ -224,12 +228,19 @@ export default function WorkoutScreen() {
             ) : (
               <RecentWorkouts data={historyQuery.data} />
             )}
+            <BodyJourneyCard />
+            <TrainingDistributionCard workouts={analyticsWorkouts} />
           </View>
+        ) : tab === "Chu kỳ" ? (
+          <CyclePanel />
         ) : (
-          <CycleTab query={cycleQuery} />
+          <RoadmapJourney onOpenCycle={() => setTab("Chu kỳ")} />
         )}
       </View>
+      <DaySheet day={openDay} onClose={() => setOpenDay(null)} />
     </ScrollView>
+    <WorkoutToolsMenu />
+    </View>
   );
 }
 
@@ -292,84 +303,5 @@ function RecentWorkouts({ data }: { data: any }) {
         })}
       </Stagger>
     </View>
-  );
-}
-
-function CycleTab({ query }: { query: { isLoading: boolean; data: any; isError: boolean } }) {
-  const accent = useWorkspaceAccent();
-  // Read the clock once per mount, not on every render: the cycle's week index is day-grained, and a
-  // render-time Date.now() makes the output depend on when React happens to re-render.
-  const [now] = useState(() => Date.now());
-
-  if (query.isLoading) {
-    return <Skeleton className="h-40 rounded-2xl" />;
-  }
-
-  const cycle = query.data?.cycle;
-  if (query.isError || !cycle) {
-    return (
-      <EmptyState
-        icon={CalendarClock}
-        title="Chưa có chu kỳ nào đang chạy"
-        description="Chu kỳ tập luyện được tạo cùng kế hoạch — bắt đầu một kế hoạch để mở chu kỳ đầu tiên."
-      />
-    );
-  }
-
-  const start = parseApiDateOnly(cycle.startDate);
-  const end = parseApiDateOnly(cycle.endDate);
-  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000));
-  const elapsed = Math.min(
-    totalDays,
-    Math.max(0, Math.round((now - start.getTime()) / 86_400_000)),
-  );
-  const weekIndex = Math.floor(elapsed / 7) + 1;
-  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-
-  return (
-    <View className="gap-5">
-      <Card className="p-5">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Badge tone="info">
-              Tuần {Math.min(weekIndex, totalWeeks)} / {totalWeeks}
-            </Badge>
-            <Text className="font-display mt-2 text-xl text-foreground" numberOfLines={2}>
-              {cycle.name ?? cycle.goal ?? "Chu kỳ hiện tại"}
-            </Text>
-            <Text className="mt-1 font-body text-sm text-muted-foreground">
-              {start.toLocaleDateString("vi-VN")} – {end.toLocaleDateString("vi-VN")}
-            </Text>
-          </View>
-          <ProgressRing progress={elapsed / totalDays} size={72} stroke={7} color={accent.chart3}>
-            <Text className="font-display text-base text-foreground">
-              <CountUp to={Math.round((elapsed / totalDays) * 100)} suffix="%" />
-            </Text>
-          </ProgressRing>
-        </View>
-      </Card>
-
-      {cycle.summary ? (
-        <Card className="p-4">
-          <Text className="mb-2 font-display text-base text-foreground">Tổng kết tới hiện tại</Text>
-          <Text className="font-body text-sm leading-6 text-muted-foreground">
-            {typeof cycle.summary === "string"
-              ? cycle.summary
-              : JSON.stringify(cycle.summary, null, 2)}
-          </Text>
-        </Card>
-      ) : null}
-    </View>
-  );
-}
-
-function ToolButton({ icon: Icon, onPress }: { icon: LucideIcon; onPress: () => void }) {
-  return (
-    <Tappable
-      className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-      onPress={onPress}
-    >
-      <Icon size={19} color="#8b9299" />
-    </Tappable>
   );
 }

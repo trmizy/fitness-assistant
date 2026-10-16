@@ -1,0 +1,87 @@
+{
+  "measuredAt": "2026-10-06T06:58:45.018Z",
+  "runs": "single run per turn (not p50/p90)",
+  "userId": "9c90e490-089d-4b76-8183-d5ebfa23b8cb",
+  "turns": [
+    {
+      "label": "READ deterministic",
+      "text": "Cân nặng hiện tại của tôi là bao nhiêu?",
+      "httpStatus": 200,
+      "httpMs": 1272,
+      "answerChars": 47,
+      "route": null,
+      "qwenChatCalls": 0,
+      "qwenDurations": [],
+      "traceId": "ai_1791269732391_2hgewb"
+    },
+    {
+      "label": "Workout create (start)",
+      "text": "Tạo lịch tập 4 buổi mỗi tuần, mỗi buổi 60 phút. Tôi chỉ có tạ tay.",
+      "httpStatus": 200,
+      "httpMs": 249,
+      "answerChars": 102,
+      "route": null,
+      "qwenChatCalls": 0,
+      "qwenDurations": [],
+      "traceId": "ai_1791269733508_ywgm7a"
+    },
+    {
+      "label": "Workout revision/slot",
+      "text": "Buổi chân hơi nặng.",
+      "httpStatus": 200,
+      "httpMs": 3972,
+      "answerChars": 137,
+      "route": null,
+      "qwenChatCalls": 1,
+      "qwenDurations": [
+        "3.882722743s"
+      ],
+      "traceId": "ai_1791269733978_xobyi7"
+    },
+    {
+      "label": "PT READ",
+      "text": "PT hiện tại của tôi là ai?",
+      "httpStatus": 200,
+      "httpMs": 103,
+      "answerChars": 143,
+      "route": null,
+      "qwenChatCalls": 1,
+      "qwenDurations": [
+        "3.882722743s"
+      ],
+      "traceId": "ai_1791269738144_qczsi8"
+    },
+    {
+      "label": "Nutrition READ",
+      "text": "Macro hiện tại của tôi bao nhiêu?",
+      "httpStatus": 200,
+      "httpMs": 63,
+      "answerChars": 76,
+      "route": null,
+      "qwenChatCalls": 1,
+      "qwenDurations": [
+        "3.882722743s"
+      ],
+      "traceId": "ai_1791269738426_qwgnm2"
+    },
+    {
+      "label": "General QA (Qwen path)",
+      "text": "Progressive overload là gì?",
+      "httpStatus": 200,
+      "httpMs": 181880,
+      "answerChars": 151,
+      "route": null,
+      "qwenChatCalls": 2,
+      "qwenDurations": [
+        "3.882722743s",
+        "2m50s"
+      ],
+      "traceId": "ai_1791269738680_u39tm4"
+    }
+  ],
+  "state": {
+    "pendingActions": "0",
+    "completedActions": "0",
+    "workoutPrograms": "0"
+  }
+}

@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "vn.fitnessassistant.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0a0a0a",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -62,6 +63,15 @@
         {
           "cameraPermission": "Gymini cần quyền camera để gọi video với PT.",
           "microphonePermission": "Gymini cần quyền microphone để gọi thoại/video với PT."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
+          "locationWhenInUsePermission": "Gymini dùng vị trí của bạn để ghim sẵn chi nhánh trên bản đồ khi bạn đang đứng tại phòng gym.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
         }
       ],
       "./plugins/shortenPackagePaths.js",

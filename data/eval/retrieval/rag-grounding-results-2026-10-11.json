@@ -1,0 +1,230 @@
+{
+ "note": "Phase 4.6 live-Qdrant measurement (CPU embeddings, nomic-embed-text). baseline=RAG_RETRIEVAL_V2 unset; v2=on. Gold: rag-grounding-eval-v1.json. Calibrated on the same set — no held-out split.",
+ "qdrant": {
+  "fitness_evidence": 184,
+  "fitness_knowledge": 7072,
+  "fitness_faq": 5946,
+  "exercises": 207,
+  "vector": "768 Cosine"
+ },
+ "baseline": {
+  "metrics": {
+   "mode": "baseline",
+   "queries": 111,
+   "inScope": 106,
+   "emptyRetrievalRate_inScope": 0,
+   "falseSourceRate_outOfScope": 1,
+   "topicHit_at3_inScope": 0.575,
+   "topicHit_at1_inScope": 0.528,
+   "curatedEvidence_at1_sciQueries": 0.204,
+   "curatedEvidence_at3_sciQueries": 0.204,
+   "relevantCuratedEvidence_at1_sciQueries": 0.185,
+   "relevantCuratedEvidence_at3_sciQueries": 0.185,
+   "syntheticTop1Rate_noSynthQueries": 0.796,
+   "syntheticTop1Rate_all": 0.868,
+   "catalogTop1Rate_catalogQueries": 0.111,
+   "catalogRecall_at3_catalogQueries": 0,
+   "duplicateRate": 0.375,
+   "provenanceCompleteness_curatedEvidence": 1,
+   "ctxTokensEst": {
+    "p50": 349,
+    "p90": 610,
+    "max": 1393
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 84
+   },
+   "avgDocsReturned": 5
+  },
+  "byDomain": {
+   "PROGRAMMING": {
+    "n": 10,
+    "topicHit_at3": 0.6,
+    "relevantCuratedEvidence_at3": 0.1,
+    "syntheticTop1": 0.9,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 9,
+    "topicHit_at3": 0.556,
+    "relevantCuratedEvidence_at3": 0.444,
+    "syntheticTop1": 0.444,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 6,
+    "topicHit_at3": 0.167,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "TECHNIQUE": {
+    "n": 8,
+    "topicHit_at3": 1,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "NUTRITION": {
+    "n": 20,
+    "topicHit_at3": 0.65,
+    "relevantCuratedEvidence_at3": 0.1,
+    "syntheticTop1": 0.9,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 11,
+    "topicHit_at3": 0.364,
+    "relevantCuratedEvidence_at3": 0.273,
+    "syntheticTop1": 0.727,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 8,
+    "topicHit_at3": 0.375,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 10,
+    "topicHit_at3": 0.7,
+    "relevantCuratedEvidence_at3": 0.1,
+    "syntheticTop1": 0.9,
+    "empty": 0
+   },
+   "SAFETY": {
+    "n": 7,
+    "topicHit_at3": 0.571,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 1,
+    "empty": 0
+   },
+   "TERMINOLOGY": {
+    "n": 9,
+    "topicHit_at3": 0.556,
+    "relevantCuratedEvidence_at3": 0.111,
+    "syntheticTop1": 0.889,
+    "empty": 0
+   },
+   "EXERCISE_CATALOG": {
+    "n": 8,
+    "topicHit_at3": 0.625,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 0.875,
+    "empty": 0
+   }
+  }
+ },
+ "v2": {
+  "metrics": {
+   "mode": "v2",
+   "queries": 111,
+   "inScope": 106,
+   "emptyRetrievalRate_inScope": 0.075,
+   "falseSourceRate_outOfScope": 0,
+   "topicHit_at3_inScope": 0.792,
+   "topicHit_at1_inScope": 0.679,
+   "curatedEvidence_at1_sciQueries": 0.944,
+   "curatedEvidence_at3_sciQueries": 0.944,
+   "relevantCuratedEvidence_at1_sciQueries": 0.778,
+   "relevantCuratedEvidence_at3_sciQueries": 0.852,
+   "syntheticTop1Rate_noSynthQueries": 0,
+   "syntheticTop1Rate_all": 0.113,
+   "catalogTop1Rate_catalogQueries": 0.333,
+   "catalogRecall_at3_catalogQueries": 0.333,
+   "duplicateRate": 0,
+   "provenanceCompleteness_curatedEvidence": 1,
+   "ctxTokensEst": {
+    "p50": 554,
+    "p90": 710,
+    "max": 793
+   },
+   "latencyMs": {
+    "p50": 68,
+    "p90": 88
+   },
+   "avgDocsReturned": 2.95
+  },
+  "byDomain": {
+   "PROGRAMMING": {
+    "n": 10,
+    "topicHit_at3": 0.8,
+    "relevantCuratedEvidence_at3": 0.6,
+    "syntheticTop1": 0,
+    "empty": 0.1
+   },
+   "HYPERTROPHY": {
+    "n": 9,
+    "topicHit_at3": 0.778,
+    "relevantCuratedEvidence_at3": 0.778,
+    "syntheticTop1": 0,
+    "empty": 0.111
+   },
+   "STRENGTH": {
+    "n": 6,
+    "topicHit_at3": 0.667,
+    "relevantCuratedEvidence_at3": 0.5,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "TECHNIQUE": {
+    "n": 8,
+    "topicHit_at3": 0.875,
+    "relevantCuratedEvidence_at3": 0.125,
+    "syntheticTop1": 0.25,
+    "empty": 0.125
+   },
+   "NUTRITION": {
+    "n": 20,
+    "topicHit_at3": 0.95,
+    "relevantCuratedEvidence_at3": 0.95,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 11,
+    "topicHit_at3": 0.909,
+    "relevantCuratedEvidence_at3": 0.909,
+    "syntheticTop1": 0,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 8,
+    "topicHit_at3": 0.75,
+    "relevantCuratedEvidence_at3": 0.5,
+    "syntheticTop1": 0.125,
+    "empty": 0
+   },
+   "SUPPLEMENTS": {
+    "n": 10,
+    "topicHit_at3": 0.9,
+    "relevantCuratedEvidence_at3": 0.8,
+    "syntheticTop1": 0,
+    "empty": 0.1
+   },
+   "SAFETY": {
+    "n": 7,
+    "topicHit_at3": 0.429,
+    "relevantCuratedEvidence_at3": 0.286,
+    "syntheticTop1": 0,
+    "empty": 0.143
+   },
+   "TERMINOLOGY": {
+    "n": 9,
+    "topicHit_at3": 0.556,
+    "relevantCuratedEvidence_at3": 0.222,
+    "syntheticTop1": 0.333,
+    "empty": 0.333
+   },
+   "EXERCISE_CATALOG": {
+    "n": 8,
+    "topicHit_at3": 0.75,
+    "relevantCuratedEvidence_at3": 0,
+    "syntheticTop1": 0.75,
+    "empty": 0
+   }
+  }
+ }
+}

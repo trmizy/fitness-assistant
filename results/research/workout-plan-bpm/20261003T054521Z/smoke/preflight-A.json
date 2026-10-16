@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-03T06:18:36.759Z",
+  "config": "A",
+  "checks": {
+    "datasetSha256": true,
+    "datasetCounts": true,
+    "warmupNotInDataset": true,
+    "gitHeadMatchesGate1": true,
+    "productionSourceAggregate": true,
+    "qwenManifestDigest": true,
+    "qwenTagInstalled": true,
+    "evaluatorManifest": true,
+    "aiHealthy": true,
+    "aiV2On": true,
+    "aiLlmFlagMatchesConfig": true,
+    "aiModelTag": true,
+    "aiDatabaseIsTest": true,
+    "safetyTestOnlyDb": true
+  },
+  "ok": true,
+  "productionAggregateSha256": "bd9269003a03883e6b68a46c0cd14fbdf37c3a3d566e4723c7543e2b20de23ef",
+  "gate1AggregateSha256": "bd9269003a03883e6b68a46c0cd14fbdf37c3a3d566e4723c7543e2b20de23ef",
+  "gitHead": "81d9f432fa856c4e4f06d6b412071f4dbd6c15be",
+  "dirtyEntries": 171,
+  "qwenManifestSha256": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+  "ollamaOffsetMinutes": 0,
+  "aiEnvFlags": {
+    "CONVERSATIONAL_INTELLIGENCE_V2": "on",
+    "CONVERSATIONAL_INTELLIGENCE_V2_LLM": "off",
+    "LLM_MODEL": "qwen3:4b-instruct-2507-q4_K_M"
+  }
+}

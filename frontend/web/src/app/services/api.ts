@@ -39,7 +39,7 @@ export function gymPhotoUrl(fileName: string, url?: string | null): string {
 // through THIS instance. Its request interceptor is what reads the token correctly (via
 // @capacitor/preferences); reaching for a bare `axios` import and `localStorage.getItem`
 // instead skips both, silently sends every request unauthenticated, and is exactly what put
-// AdminDashboard.tsx and AdminWorkflowStudio.tsx into a permanent "failed to load" state.
+// AdminDashboard.tsx into a permanent "failed to load" state.
 export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -694,6 +694,12 @@ export const workoutService = {
 
   getHistory: async (page: number = 1, limit: number = 50) => {
     const { data } = await api.get(`/workouts?page=${page}&limit=${limit}`);
+    return data;
+  },
+
+  /** `GET /workouts?startDate&endDate` — fitness-service filters by date (newest first). */
+  getInRange: async (startDate: string, endDate: string, limit: number = 200) => {
+    const { data } = await api.get("/workouts", { params: { startDate, endDate, limit } });
     return data;
   },
 
@@ -2457,6 +2463,14 @@ export const marketplaceService = {
     }>(`/admin/ai/marketplace/plans/${id}/review/${action}`, { note });
     return data.data;
   },
+
+  adminDeleteApprovedPlan: async (id: string) => {
+    const { data } = await api.delete<{
+      success: boolean;
+      data: { id: string; title: string; deleted: boolean };
+    }>(`/admin/ai/marketplace/plans/${id}`);
+    return data.data;
+  },
 };
 
 export interface TrainingPackage {
@@ -3409,6 +3423,8 @@ export const planService = {
     dailyCaloriesTarget?: number;
     dietPreference?: string;
     budgetLevel?: string;
+    cuisineCountry?: string;
+    vietnameseRegion?: "BAC" | "TRUNG" | "NAM";
     restrictions?: string[];
     notes?: string;
     weightKg?: number;
@@ -3527,6 +3543,13 @@ export const planService = {
 };
 
 function aiFriendlyErrorMessage(status?: number): string {
+  // 401 falls through to here only after api.ts's interceptor already attempted a silent
+  // refresh-and-retry and either the session is genuinely over or /auth/refresh itself could
+  // not be reached — either way "Không thể kết nối AI Coach" (the old fallback) told the user
+  // nothing actionable. See AIPlansPage.tsx's summarizeApiError for the same 401 case.
+  if (status === 401) {
+    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  }
   if (status === 408 || status === 504) {
     return "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
   }
@@ -3605,7 +3628,7 @@ export const coachService = {
     }, 10000);
     const timeoutTimer = window.setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 180000);
 
     (async () => {
       try {
@@ -3875,47 +3898,6 @@ export const adminService = {
     return data?.data ?? data;
   },
 
-  getWorkflowMeta: async () => {
-    const { data } = await api.get("/admin/workflows/meta");
-    return data;
-  },
-
-  getStudioAuthState: async () => {
-    const { data } = await api.get("/admin/workflows/studio-auth-state", {
-      withCredentials: true,
-    });
-    return data;
-  },
-
-  listWorkflows: async () => {
-    const { data } = await api.get("/admin/workflows");
-    return data;
-  },
-
-  getWorkflowExecutions: async (workflowId: string, limit = 20) => {
-    const { data } = await api.get(
-      `/admin/workflows/${workflowId}/executions?limit=${limit}`,
-    );
-    return data;
-  },
-
-  getExecutionDetail: async (executionId: string) => {
-    const { data } = await api.get(
-      `/admin/workflows/executions/${executionId}`,
-    );
-    return data;
-  },
-
-  runSmokeTest: async () => {
-    const { data } = await api.post("/admin/workflows/smoke-test", {});
-    return data;
-  },
-
-  setupSampleWorkflows: async () => {
-    const { data } = await api.post("/admin/workflows/setup-samples", {});
-    return data;
-  },
-
   listPTProfiles: async () => {
     const { data } = await api.get("/profile/pts");
     return data;
@@ -3930,15 +3912,6 @@ export const adminService = {
     const { data } = await api.patch(
       `/profile/admin/users/${userId}/pt-status`,
       { isPT },
-    );
-    return data;
-  },
-
-  runFullSystemTest: async () => {
-    const { data } = await api.post(
-      "/admin/workflows/full-system-test",
-      {},
-      { timeout: 120000 },
     );
     return data;
   },
@@ -4432,8 +4405,10 @@ export const nutritionService = {
     const { data } = await api.post("/nutrition", log);
     return data;
   },
+  // GAP-25 (4/10): PATCH — the only method fitness-service routes for /nutrition/:id; PUT 404'd
+  // ("Cannot PUT"), so editing a log never saved.
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {
@@ -4587,6 +4562,30 @@ export const nutritionService = {
       waterMl: number | null;
       goalMode?: "RECOMMENDED" | "CUSTOM";
     };
+  },
+  getTargetPreview: async (fresh = false) => {
+    const { data } = await api.get("/nutrition/target-preview", {
+      params: fresh ? { fresh: "true" } : undefined,
+    });
+    return data as
+      | {
+          status: "ACTIVE_GOAL";
+          goalId: string;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        }
+      | {
+          status: "COMPUTED";
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          waterMl?: number;
+          professionalReviewRequired: boolean;
+        }
+      | { status: "insufficient_data"; missingFields: string[] };
   },
   upsertGoal: async (goal: {
     calories: number;
@@ -4878,10 +4877,13 @@ export interface CoachClientSummary {
   // the fields the client's own Journey UI already reads. Never a new
   // decision engine, never raw chain-of-thought.
   latestAssessment?: {
+    id: string;
     decision: string | null;
     aiSummary: string | null;
     reasonCodes: string[] | null;
     confidenceScore: number | null;
+    userDecision: string;
+    reviewedAt: string | null;
   } | null;
   // AI Nutrition Cycle Engine (Gymini) — spec §XXIII PT nutrition workflow.
   nutrition?: {
@@ -4943,6 +4945,15 @@ export const ptCoachService = {
     const { data } = await api.get<CoachClientProgress>(`/coach/clients/${clientId}/progress`);
     return data;
   },
+  getClientWorkoutSchedules: async (
+    clientId: string,
+    params?: { limit?: number; startDate?: string; endDate?: string },
+  ) => {
+    const { data } = await api.get<WorkoutScheduleRecord[]>(`/coach/clients/${clientId}/workout-schedules`, {
+      params,
+    });
+    return data;
+  },
   createAndAssignPlan: async (
     clientId: string,
     input: {
@@ -4982,6 +4993,21 @@ export const ptCoachService = {
       warnings: string[];
       summaryForPt: string;
     }>(`/coach/clients/${clientId}/plan-draft`, input, { timeout: 90000 });
+    return data;
+  },
+
+  approveTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/approve`,
+      { assessmentId },
+    );
+    return data;
+  },
+  rejectTrainingRecommendation: async (clientId: string, cycleId: string, assessmentId?: string) => {
+    const { data } = await api.post(
+      `/coach/clients/${clientId}/cycles/${cycleId}/recommendation/reject`,
+      { assessmentId },
+    );
     return data;
   },
 

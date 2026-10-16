@@ -448,10 +448,24 @@ export const planController = {
       }
 
       // Enrich with live BullMQ state when available.
-      const bullJob = await aiQueue.getJob(jobId);
+      //
+      // BUG (found live on AWS DEV, 2026-09-30 — the exact cause of the frontend's queued-plan
+      // status appearing stuck at "Đang tạo kế hoạch AI..." forever): this call was unconditional,
+      // but `aiQueue` (workers/ai.queue.ts) lazily opens a real ioredis connection to REDIS_HOST
+      // (default "localhost") on first property access. In the AWS deployment (QUEUE_PROVIDER=sqs)
+      // there is no Redis reachable from this Lambda, so EVERY call to this endpoint — the exact
+      // one the frontend polls repeatedly while a plan is generating — hung/timed out instead of
+      // ever returning the plan's real status, which the DB (dbPlan.status/failReason, populated
+      // by worker-lambda.ts/ai.worker.ts regardless of queue backend) already had correctly. Same
+      // bug class as BUG-A1 (/admin/ai/overview, /admin/ai/queue), same fix: never touch
+      // BullMQ/Redis at all when QUEUE_PROVIDER=sqs — the DB alone is authoritative there.
+      let bullJob: Awaited<ReturnType<typeof aiQueue.getJob>> | null = null;
       let bullState: string | null = null;
-      if (bullJob) {
-        bullState = await bullJob.getState();
+      if (process.env.QUEUE_PROVIDER !== "sqs") {
+        bullJob = await aiQueue.getJob(jobId);
+        if (bullJob) {
+          bullState = await bullJob.getState();
+        }
       }
 
       if (!dbPlan && !bullJob) {

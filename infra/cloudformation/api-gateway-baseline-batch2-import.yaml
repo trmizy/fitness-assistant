@@ -1,0 +1,905 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::LanguageExtensions
+Description: >
+  Phase 15B-B2B1 IMPORT BATCH 2 of 2 — the full 254-resource adoption
+  template (188 already stack-owned from batch 1: User/Fitness/Gym/Ai/
+  Chat/Health, unchanged, byte-identical to the active stack template +
+  66 newly imported this batch: Auth/Payment). Required because a single
+  IMPORT change-set's template must represent the stack's complete
+  desired end-state, not a delta. Never creates a new
+  AWS::ApiGatewayV2::Api — HttpApiId stays a plain parameter. See
+  docs/deployment/AWS_DEV_API_GATEWAY_IMPORT_BATCH1_2026-10-09.md and
+  docs/deployment/AWS_DEV_API_GATEWAY_IMPORT_BATCH2_CHANGESET_2026-10-09.md.
+
+Parameters:
+  HttpApiId:
+    Type: String
+    Default: id1iz7upbl
+    Description: >
+      The EXISTING fitness-assistant-dev-api HTTP API ID. Never create a new
+      Api resource in this template.
+
+  AuthLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth
+  UserLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user
+  FitnessLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness
+  GymLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym
+  PaymentLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment
+  AiLambdaArn:
+    Type: String
+    Description: arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai
+  ChatAlbDnsName:
+    Type: String
+    Description: >
+      dev-chat-alb's DNS name. On-demand (only exists while Chat is started) —
+      reconnected imperatively by dev-start.ps1 -Chat each session, same as
+      today; this baseline only records the route/integration shape, not a
+      competing lifecycle for it.
+
+Resources:
+  # NOTE (Phase 15B-B1 finding): auth-service has NO single shared
+  # integration live - it is the one service in this account registered
+  # with 12 DISTINCT AWS_PROXY integrations (one per route, each targeting
+  # the same Lambda), confirmed via a real `aws apigatewayv2 get-routes`/
+  # `get-integrations` read (docs/deployment/generated/
+  # api-gateway-pre-import-resource-map.json). A single shared
+  # `AuthIntegration` logical resource (as this template previously had)
+  # cannot correctly import 12 distinct physical IntegrationIds - each
+  # needs its own logical resource for a 1:1 import mapping. PATCH /auth/me
+  # and PATCH /auth/me/password are the one exception that legitimately
+  # SHARE one live integration (mg2016a); GET /health also reuses auth's
+  # Lambda via its own distinct integration (uvqqpy4).
+  AuthLoginIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthLogoutIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthMeIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthRefreshIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthRegisterIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthRegisterVerifyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthUsersListIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthUsersDisableIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthUsersEnableIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthUsersRoleIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  AuthVerifyIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  HealthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AuthLambdaArn
+      PayloadFormatVersion: "2.0"
+  UserIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref UserLambdaArn
+      PayloadFormatVersion: "2.0"
+  FitnessIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref FitnessLambdaArn
+      PayloadFormatVersion: "2.0"
+  GymIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref GymLambdaArn
+      PayloadFormatVersion: "2.0"
+  PaymentIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref PaymentLambdaArn
+      PayloadFormatVersion: "2.0"
+  AiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref AiLambdaArn
+      PayloadFormatVersion: "2.0"
+  ChatIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "http://${ChatAlbDnsName}/chat/{proxy}"
+      PayloadFormatVersion: "1.0"
+
+  # NOTE (Phase 15B-B1 finding, verified via two real, non-executed test
+  # change sets, then resolved per AWS's own documented pattern): a Prefix
+  # like "pt-applications" or "admin/branch-documents" is invalid directly
+  # inside a logical ID - confirmed by a real CREATE-type test change set
+  # that failed with "OutputKey 'Userpt-applicationsBareRoute' should be
+  # alphanumeric" (validate-template alone did NOT catch this - it doesn't
+  # fully resolve AWS::LanguageExtensions). A {Prefix, Id} object-per-item
+  # collection was tried next and ALSO failed ("Fn::ForEach collection must
+  # be a list of strings" - Fn::ForEach's Collection must be flat strings
+  # when using a single Identifier). The actually-documented fix (AWS's own
+  # "Passing non-alphanumeric characters within the Collection for
+  # Fn::ForEach" example): keep the collection a plain string list, and use
+  # the `&{Identifier}` form (not `${Identifier}`) specifically in logical-ID
+  # positions - it strips non-alphanumeric characters automatically there,
+  # while `${Prefix}` in property VALUES (RouteKey/SourceArn) keeps the
+  # literal path unchanged.
+  "Fn::ForEach::UserPrefixRoutes":
+    - Prefix
+    - - profile
+      - inbody
+      - pt-applications
+      - contracts
+      - notifications
+      - sessions
+      - availability
+      - admin
+      - locations
+      - pt
+      - me
+    - "User&{Prefix}BareRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}"
+          Target: !Sub "integrations/${UserIntegration}"
+      "User&{Prefix}ProxyRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}/{proxy+}"
+          Target: !Sub "integrations/${UserIntegration}"
+      "User&{Prefix}BarePermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref UserLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}"
+      "User&{Prefix}ProxyPermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref UserLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}/{proxy+}"
+      # NOTE (Phase 15B-A finding, RESOLVED in Phase 15B-HF, 2026-10-09): live
+      # /pt/{proxy+} and /me/{proxy+} forward ALL traffic to user-service,
+      # which previously left gym-service's own real handlers under those
+      # same prefixes unreachable (confirmed via 4 real HTTP 404s). Fixed via
+      # an exact-route hotfix (12 new routes, see GymExactRoutes below,
+      # reusing the existing GymIntegration - no change to this generic
+      # /pt/{proxy+} or /me/{proxy+} route itself, by design: the fix was
+      # adding more-specific routes, never touching the wildcard).
+
+  "Fn::ForEach::FitnessPrefixRoutes":
+    - Prefix
+    - - exercises
+      - workouts
+      - nutrition
+      - stats
+      - food
+      - training-cycles
+      - fitness-roadmaps
+      - coach
+      - equipment
+      - imports
+      - exports
+      - templates
+    - "Fitness&{Prefix}BareRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}"
+          Target: !Sub "integrations/${FitnessIntegration}"
+      "Fitness&{Prefix}ProxyRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}/{proxy+}"
+          Target: !Sub "integrations/${FitnessIntegration}"
+      "Fitness&{Prefix}BarePermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref FitnessLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}"
+      "Fitness&{Prefix}ProxyPermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref FitnessLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}/{proxy+}"
+
+  "Fn::ForEach::GymPrefixRoutes":
+    - Prefix
+    - - gyms
+      - collaborations
+      - owner
+      - admin/branch-documents
+      - admin/brands
+      - admin/commission-rate
+      - admin/complaint-photos
+      - admin/complaints
+      - admin/gym-memberships
+      - admin/gyms
+      - admin/partner-accounts
+      - admin/partners
+    - "Gym&{Prefix}BareRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}"
+          Target: !Sub "integrations/${GymIntegration}"
+      "Gym&{Prefix}ProxyRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}/{proxy+}"
+          Target: !Sub "integrations/${GymIntegration}"
+      "Gym&{Prefix}BarePermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref GymLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}"
+      "Gym&{Prefix}ProxyPermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref GymLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}/{proxy+}"
+
+  # ── Phase 15B-HF hotfix (2026-10-09, live-applied with gymini-admin): 12
+  #    exact routes restoring gym-service's real /me/* and /pt/* handlers,
+  #    previously shadowed by user-service's generic /pt/{proxy+} and
+  #    /me/{proxy+} (see the note above GymPrefixRoutes). Each reuses the
+  #    same existing GymIntegration - no second Gym integration was created,
+  #    and neither wildcard route was touched. Live-verified: the 3 GET-only
+  #    reads (gym-memberships, gym-checkins, complaints) return a real
+  #    HTTP 200 from gym-service's own JSON response shape; the 2 PT-scoped
+  #    reads return a real 403 FORBIDDEN from gym-service (role-gated, not
+  #    reachable as this test account) - neither is the old wrong-service
+  #    404. The 5 mutation routes (pay/cancel/cancel-membership/checkin-scan/
+  #    respond-invitation) were added identically but deliberately NOT
+  #    live-smoke-tested, per that phase's own instruction. ────────────────
+  # NOTE (Phase 15B-B1 finding): Fn::ForEach's Collection must be a flat list
+  # of strings when using a single Identifier - a {Key, Method, Path} object
+  # collection (3 independent fields per item) hits the same "collection must
+  # be a list of strings" error as the Prefix blocks above, and unlike a bare
+  # Prefix, there's no single documented `&{Identifier}` substitution that
+  # recovers 3 independent fields from one string cleanly. Expanded as plain,
+  # explicit resources instead of a loop - only 12 routes, no real loss of
+  # maintainability, zero transform ambiguity. GymMeGymCheckins{Get,Post}
+  # deliberately SHARE one Permission (GymMeGymCheckinsPermission) since
+  # Lambda Permission SourceArn scoping is per-path, not per-method - the
+  # exact convention Phase 15B-HF's own 11-permissions-for-12-routes grant
+  # already used live; creating a 12th, separate permission here would be a
+  # real behavior diff versus live, not zero-change adoption.
+  GymMeGymMembershipsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /me/gym-memberships"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymMembershipsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-memberships"
+  GymMeGymMembershipsIdRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /me/gym-memberships/{id}"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymMembershipsIdPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-memberships/{id}"
+  GymMeGymMembershipsPayRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /me/gym-memberships/{id}/pay"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymMembershipsPayPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-memberships/{id}/pay"
+  GymMeGymMembershipsCancelRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /me/gym-memberships/{id}/cancel"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymMembershipsCancelPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-memberships/{id}/cancel"
+  GymMeGymMembershipsCancelMembershipRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /me/gym-memberships/{id}/cancel-membership"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymMembershipsCancelMembershipPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-memberships/{id}/cancel-membership"
+  GymMeGymCheckinsGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /me/gym-checkins"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymCheckinsPostRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /me/gym-checkins"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeGymCheckinsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/gym-checkins"
+  GymMeComplaintsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /me/complaints"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymMeComplaintsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/me/complaints"
+  GymPtGymInvitationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /pt/gym-invitations"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymPtGymInvitationsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/pt/gym-invitations"
+  GymPtGymInvitationsIdRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /pt/gym-invitations/{id}"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymPtGymInvitationsIdPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/pt/gym-invitations/{id}"
+  GymPtGymAffiliationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /pt/gym-affiliations"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymPtGymAffiliationsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/pt/gym-affiliations"
+  GymPtPtUserIdGymsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /pt/{ptUserId}/gyms"
+      Target: !Sub "integrations/${GymIntegration}"
+  GymPtPtUserIdGymsPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GymLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/pt/{ptUserId}/gyms"
+
+  "Fn::ForEach::PaymentPrefixRoutes":
+    - Prefix
+    - - payments
+      - me/payments
+      - me/wallet
+      - me/pt-wallet
+      - me/withdrawals
+      - admin/payments
+    - "Payment&{Prefix}BareRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}"
+          Target: !Sub "integrations/${PaymentIntegration}"
+      "Payment&{Prefix}ProxyRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}/{proxy+}"
+          Target: !Sub "integrations/${PaymentIntegration}"
+      "Payment&{Prefix}BarePermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref PaymentLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}"
+      "Payment&{Prefix}ProxyPermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref PaymentLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}/{proxy+}"
+
+  # payment-service's webhook/vnpay-return sub-paths are modeled as their own
+  # literal routes, matching live exactly (NOT a generic {proxy+} - see the
+  # report's "Route Count Reconciliation" for why this granularity matters).
+  PaymentWebhookProviderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "ANY /payments/webhook/{provider}"
+      Target: !Sub "integrations/${PaymentIntegration}"
+  PaymentWebhookProviderPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PaymentLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/payments/webhook/{provider}"
+  PaymentWebhookVnpayRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "ANY /payments/webhook/vnpay"
+      Target: !Sub "integrations/${PaymentIntegration}"
+  PaymentWebhookVnpayPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PaymentLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/payments/webhook/vnpay"
+  PaymentVnpayReturnRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "ANY /payments/vnpay/return"
+      Target: !Sub "integrations/${PaymentIntegration}"
+  PaymentVnpayReturnPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PaymentLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/payments/vnpay/return"
+
+  "Fn::ForEach::AiPrefixRoutes":
+    - Prefix
+    - - ai
+      - plans
+      - marketplace
+      - admin/ai
+    - "Ai&{Prefix}BareRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}"
+          Target: !Sub "integrations/${AiIntegration}"
+      "Ai&{Prefix}ProxyRoute":
+        Type: AWS::ApiGatewayV2::Route
+        DeletionPolicy: Retain
+        Properties:
+          ApiId: !Ref HttpApiId
+          RouteKey: !Sub "ANY /${Prefix}/{proxy+}"
+          Target: !Sub "integrations/${AiIntegration}"
+      "Ai&{Prefix}BarePermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref AiLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}"
+      "Ai&{Prefix}ProxyPermission":
+        Type: AWS::Lambda::Permission
+        DeletionPolicy: Retain
+        Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref AiLambdaArn
+          Principal: apigateway.amazonaws.com
+          SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/${Prefix}/{proxy+}"
+
+  ChatProxyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "ANY /chat/{proxy+}"
+      Target: !Sub "integrations/${ChatIntegration}"
+
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /health"
+      Target: !Sub "integrations/${HealthIntegration}"
+  HealthPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/health"
+
+  # auth: every one of its CURRENTLY LIVE 12 routes, individually - no
+  # password-reset/request here (that is the one genuinely NEW route; see
+  # api-gateway-additions.yaml).
+  # NOTE (Phase 15B-B1 finding): same "collection must be a list of strings"
+  # constraint as GymExactRoutes above - a {Key, Method, Path} object
+  # collection is invalid Fn::ForEach syntax. Expanded as plain, explicit
+  # resources (auth-service has no catch-all by design - every route here
+  # was already individually, explicitly registered live, matching this
+  # 1:1).
+  AuthRegisterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/register"
+      Target: !Sub "integrations/${AuthRegisterIntegration}"
+  AuthRegisterPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/register"
+  AuthRegisterVerifyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/register/verify"
+      Target: !Sub "integrations/${AuthRegisterVerifyIntegration}"
+  AuthRegisterVerifyPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/register/verify"
+  AuthLoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/login"
+      Target: !Sub "integrations/${AuthLoginIntegration}"
+  AuthLoginPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/login"
+  AuthRefreshRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/refresh"
+      Target: !Sub "integrations/${AuthRefreshIntegration}"
+  AuthRefreshPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/refresh"
+  AuthLogoutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/logout"
+      Target: !Sub "integrations/${AuthLogoutIntegration}"
+  AuthLogoutPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/logout"
+  AuthVerifyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/verify"
+      Target: !Sub "integrations/${AuthVerifyIntegration}"
+  AuthVerifyPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/verify"
+  AuthMeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/me"
+      Target: !Sub "integrations/${AuthMeIntegration}"
+  AuthMePermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/me"
+  AuthMePasswordRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/me/password"
+      Target: !Sub "integrations/${AuthMeIntegration}"
+  AuthMePasswordPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/me/password"
+  AuthUsersListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "GET /auth/users"
+      Target: !Sub "integrations/${AuthUsersListIntegration}"
+  AuthUsersListPermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/users"
+  AuthUsersRoleRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/users/{userId}/role"
+      Target: !Sub "integrations/${AuthUsersRoleIntegration}"
+  AuthUsersRolePermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/users/{userId}/role"
+  AuthUsersDisableRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/users/{userId}/disable"
+      Target: !Sub "integrations/${AuthUsersDisableIntegration}"
+  AuthUsersDisablePermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/users/{userId}/disable"
+  AuthUsersEnableRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DeletionPolicy: Retain
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/users/{userId}/enable"
+      Target: !Sub "integrations/${AuthUsersEnableIntegration}"
+  AuthUsersEnablePermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/users/{userId}/enable"
+# NOTE (Phase 15B-B2B1): CloudFormation IMPORT change sets reject any Outputs block
+# outright ("you cannot modify or add [Outputs]", confirmed via a real, non-executed
+# change-set attempt in Phase 15B-B1) - Outputs is intentionally omitted from this
+# batch-2 import template for that reason alone, exactly like batch 1's.

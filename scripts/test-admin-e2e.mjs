@@ -1,22 +1,48 @@
+// No default credential fallback — see
+// docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md. This script
+// used to silently fall back to admin@example.com/password123 and three
+// pt.flow.*@example.com/Test@12345 accounts when the corresponding env vars
+// were unset, which is exactly the kind of well-known default credential that
+// must never be the path of least resistance for running a script against a
+// real environment. Every credential is now required explicitly; there is no
+// value this script will supply on your behalf.
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    console.error(
+      JSON.stringify(
+        {
+          success: false,
+          error: `Missing required environment variable: ${name}. This script does not fall back to a default credential — set ${name} explicitly (e.g. in an untracked .env.test.local), pointing at a dedicated test account for the target environment.`,
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(1);
+  }
+  return value;
+}
+
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password123';
+const ADMIN_EMAIL = requireEnv('ADMIN_EMAIL');
+const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');
 
 const PT_FLOW_USERS = [
   {
-    email: process.env.PT_REQINFO_EMAIL || 'pt.flow.reqinfo@example.com',
-    password: process.env.PT_REQINFO_PASSWORD || 'Test@12345',
+    email: requireEnv('PT_REQINFO_EMAIL'),
+    password: requireEnv('PT_REQINFO_PASSWORD'),
     tag: 'REQINFO',
   },
   {
-    email: process.env.PT_REJECT_EMAIL || 'pt.flow.reject@example.com',
-    password: process.env.PT_REJECT_PASSWORD || 'Test@12345',
+    email: requireEnv('PT_REJECT_EMAIL'),
+    password: requireEnv('PT_REJECT_PASSWORD'),
     tag: 'REJECT',
   },
   {
-    email: process.env.PT_APPROVE_EMAIL || 'pt.flow.approve@example.com',
-    password: process.env.PT_APPROVE_PASSWORD || 'Test@12345',
+    email: requireEnv('PT_APPROVE_EMAIL'),
+    password: requireEnv('PT_APPROVE_PASSWORD'),
     tag: 'APPROVE',
   },
 ];
@@ -84,7 +110,6 @@ async function run() {
     process.exit(1);
   }
 
-  const workflows = await call('/admin/workflows', { token: admin.token });
 
   const appBuild = [];
   for (const actor of PT_FLOW_USERS) {
@@ -232,20 +257,6 @@ async function run() {
   const output = {
     success: true,
     baseUrl: BASE_URL,
-    n8nWorkflowsTest: {
-      endpoint: '/admin/workflows',
-      status: workflows.status,
-      ok: workflows.ok,
-      summary: workflows.body?.data
-        ? {
-            total: workflows.body.data.total,
-            active: workflows.body.data.active,
-            inactive: workflows.body.data.inactive,
-            workflowsIsArray: Array.isArray(workflows.body.data.workflows),
-          }
-        : null,
-      error: workflows.body?.error || null,
-    },
     ptApplicationBuild: appBuild,
     ptReviewFlow: reviewDetails,
     approvedUserRoleAfterApprove: approvedLogin.user?.role || null,

@@ -1,15 +1,20 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
   Check,
   ChevronLeft,
   Dumbbell,
+  ExternalLink,
+  Mail,
   MapPin,
+  Navigation,
   Phone,
+  Signpost,
   Ticket,
   TriangleAlert,
 } from "lucide-react-native";
@@ -22,13 +27,22 @@ import {
   EmptyState,
   Input,
   Tappable,
-  useToast,
 } from "../../../../src/components/ui";
-import { gymService } from "../../../../src/services/api";
+import { gymService, locationService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { formatVND } from "../../../../src/utils/currency";
+import { BranchMap } from "../../../../src/features/services/BranchMap";
+import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
+import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
+import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { GymReviews } from "../../../../src/features/services/GymReviews";
 import {
+  aboutText,
   daysRemaining,
+  directionsUrl,
+  facilityLabels,
+  fullAddress,
+  socialLinks,
   gymBlockedReason,
   membershipStatusLabel,
   multiGymWarningText,
@@ -54,15 +68,14 @@ import {
  * only has to be shown and acknowledged, and that acknowledgement rides along as `multiGymWarned` —
  * evidence that the client was told, not a permission gate.
  *
- * Phase 7 stops at "chờ thanh toán" by design: the purchase creates the membership (the row exists
- * before payment is ever attempted) and the gateway itself is Phase 14's work, so this screen
- * deliberately does not open a checkout page.
+ * Phase 14.1: buying is one call with the chosen gateway (web: GymDetailModal) — the server creates
+ * the membership (PENDING_PAYMENT) and the checkout together, the gateway opens in a browser tab,
+ * and the membership activates only once the gateway confirms. Warning first, then the gateway
+ * picker, same order as web.
  */
 export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
-  const toast = useToast();
-  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const gymId = String(id ?? "");
 
@@ -94,6 +107,35 @@ export default function GymDetailScreen() {
   });
 
   const gym = useMemo(() => (gymQuery.data ? normalizeGym(gymQuery.data) : null), [gymQuery.data]);
+  // Tên phường/tỉnh tra từ mã (gym chỉ lưu mã) — cùng nguồn /locations/* với web; lỗi thì chỉ thiếu tên.
+  const provincesQuery = useQuery({
+    queryKey: ["locations", "provinces"],
+    queryFn: () => locationService.getProvinces(),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: gym?.provinceCode != null,
+  });
+  const wardsQuery = useQuery({
+    queryKey: ["locations", "wards", gym?.provinceCode],
+    queryFn: () => locationService.getWards(gym!.provinceCode!),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: gym?.provinceCode != null,
+  });
+  const address = gym
+    ? fullAddress(gym, {
+        province: provincesQuery.data?.find((p) => p.code === gym.provinceCode)?.name ?? null,
+        ward: wardsQuery.data?.find((w) => w.code === gym.wardCode)?.name ?? null,
+      })
+    : "";
+  const about = gym ? aboutText(gym) : null;
+  const socials = gym ? socialLinks(gym) : [];
+  const directions = gym ? directionsUrl(gym) : null;
+  const otherBranches = gym ? gym.brandBranches.filter((b) => b.id !== gym.id) : [];
+  // Bản đồ: mọi chi nhánh cùng thương hiệu; API cũ chưa có brandBranches thì ít nhất là chính chi nhánh này.
+  const mapBranches = gym
+    ? gym.brandBranches.length > 0
+      ? gym.brandBranches
+      : [{ id: gym.id, name: gym.name, address: gym.address ?? "", latitude: gym.latitude, longitude: gym.longitude }]
+    : [];
   const plans = useMemo(() => normalizePlans(plansQuery.data), [plansQuery.data]);
   const onSale = useMemo(() => plans.filter((plan) => planOnSale(plan)), [plans]);
   const warnings = useMemo(() => normalizeWarnings(warningsQuery.data), [warningsQuery.data]);
@@ -108,42 +150,27 @@ export default function GymDetailScreen() {
   const blocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
   const gymClosed = gym ? gymBlockedReason(gym) : null;
 
-  const buyMutation = useMutation({
-    mutationFn: (acknowledged: boolean) =>
+  // `acknowledged` rides along as evidence the multi-gym warning was shown, never as a permission.
+  const checkout = useGatewayCheckout<{ planId: string; price: number; acknowledged: boolean }>({
+    start: (target, provider) =>
       gymService.buyMembership(
         gymId,
-        selected!.id,
-        // No provider on purpose: Phase 7 creates the membership and stops. Opening a real gateway
-        // is Phase 14, and passing a provider here would start a checkout nobody can finish yet.
-        undefined,
+        target.planId,
+        provider,
         referral.trim() || undefined,
-        acknowledged,
+        target.acknowledged,
       ),
-    onSuccess: () => {
-      setWarningOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
-      toast.show("Đã giữ gói cho bạn — gói đang ở trạng thái chờ thanh toán.", "success");
-    },
-    onError: (error: any) => {
-      setWarningOpen(false);
-      const code = error?.response?.data?.error ?? error?.response?.data?.message;
-      toast.show(
-        code === "ALREADY_HAS_PENDING_MEMBERSHIP"
-          ? "Bạn đã có một gói chờ thanh toán tại phòng gym này."
-          : code === "ALREADY_HAS_OPEN_MEMBERSHIP"
-            ? "Bạn đang có gói còn hiệu lực tại phòng gym này."
-            : (code ?? "Không mua được gói"),
-        "danger",
-      );
-    },
+    invalidate: [["my-memberships"]],
   });
 
-  const startPurchase = () => {
-    if (warnings.length > 0) {
+  const startPurchase = (acknowledged: boolean) => {
+    if (!selected) return;
+    if (!acknowledged && warnings.length > 0) {
       setWarningOpen(true);
       return;
     }
-    buyMutation.mutate(false);
+    setWarningOpen(false);
+    checkout.choose({ planId: selected.id, price: selected.price, acknowledged });
   };
 
   return (
@@ -178,6 +205,14 @@ export default function GymDetailScreen() {
           <View className="gap-4 px-5 pt-4">
             <Card className="gap-2.5 p-4">
               <View className="flex-row items-start justify-between gap-3">
+                {gym.brandLogoUrl ? (
+                  <Image
+                    source={{ uri: gym.brandLogoUrl }}
+                    contentFit="contain"
+                    style={{ width: 44, height: 44, borderRadius: 12 }}
+                    accessibilityLabel={`Logo ${gym.brandName}`}
+                  />
+                ) : null}
                 <View className="flex-1">
                   <Text className="font-display text-lg text-foreground">{gym.name}</Text>
                   <View className="mt-0.5 flex-row items-center gap-1.5">
@@ -194,27 +229,70 @@ export default function GymDetailScreen() {
                 )}
               </View>
 
-              {gym.address || gym.city ? (
-                <View className="flex-row items-start gap-1.5">
-                  <MapPin size={13} color="#8b9299" />
-                  <Text className="flex-1 font-body text-xs text-muted-foreground">
-                    {[gym.address, gym.city].filter(Boolean).join(", ")}
-                  </Text>
+              {/* CL-09 vá 21/9 theo web: "Thông tin giới thiệu" (≤300, chưa có thì của thương hiệu) đứng ĐẦU, trước ảnh. */}
+              {about ? (
+                <View className="gap-1 pt-1">
+                  <Text className="font-body-medium text-sm text-foreground">Thông tin giới thiệu</Text>
+                  <Text className="font-body text-sm leading-6 text-muted-foreground">{about}</Text>
+                </View>
+              ) : null}
+            </Card>
+
+            <GymPhotoGallery photos={gym.photos} title={gym.name} />
+
+            <Card className="gap-2.5 p-4">
+              {address ? (
+                <View className="flex-row items-start gap-2">
+                  <MapPin size={15} color="#8b9299" />
+                  <Text className="flex-1 font-body text-sm text-foreground">{address}</Text>
+                </View>
+              ) : null}
+              {gym.locationNote ? (
+                <View className="flex-row items-start gap-2">
+                  <Signpost size={15} color="#8b9299" />
+                  <Text className="flex-1 font-body text-sm text-muted-foreground">{gym.locationNote}</Text>
                 </View>
               ) : null}
               {gym.phone ? (
-                <View className="flex-row items-center gap-1.5">
-                  <Phone size={13} color="#8b9299" />
-                  <Text className="font-body text-xs text-muted-foreground">{gym.phone}</Text>
-                </View>
+                <Tappable
+                  className="flex-row items-center gap-2"
+                  onPress={() => void Linking.openURL(`tel:${gym.phone!.replace(/\s+/g, "")}`)}
+                  accessibilityLabel={`Gọi ${gym.phone}`}
+                >
+                  <Phone size={15} color="#8b9299" />
+                  <Text className="font-body text-sm text-foreground">{gym.phone}</Text>
+                </Tappable>
               ) : null}
-              {gym.description ? (
-                <Text className="font-body text-sm leading-6 text-foreground">{gym.description}</Text>
+              {gym.email ? (
+                <Tappable
+                  className="flex-row items-center gap-2"
+                  onPress={() => void Linking.openURL(`mailto:${gym.email}`)}
+                  accessibilityLabel={`Gửi email ${gym.email}`}
+                >
+                  <Mail size={15} color="#8b9299" />
+                  <Text className="font-body text-sm text-foreground">{gym.email}</Text>
+                </Tappable>
               ) : null}
 
-              {gym.facilities.length > 0 ? (
+              {socials.length > 0 ? (
+                <View className="flex-row flex-wrap gap-2 pt-1">
+                  {socials.map((so) => (
+                    <Tappable
+                      key={so.key}
+                      onPress={() => void Linking.openURL(so.url)}
+                      accessibilityLabel={so.label}
+                      className="flex-row items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5"
+                    >
+                      <ExternalLink size={13} color="#8b9299" />
+                      <Text className="font-body-medium text-xs text-foreground">{so.label}</Text>
+                    </Tappable>
+                  ))}
+                </View>
+              ) : null}
+
+              {facilityLabels(gym.facilities).length > 0 ? (
                 <View className="flex-row flex-wrap gap-1.5 pt-1">
-                  {gym.facilities.map((facility) => (
+                  {facilityLabels(gym.facilities).map((facility) => (
                     <Badge key={facility} tone="neutral">
                       {facility}
                     </Badge>
@@ -222,6 +300,43 @@ export default function GymDetailScreen() {
                 </View>
               ) : null}
             </Card>
+
+            {directions || otherBranches.length > 0 || mapBranches.some((b) => b.latitude != null) ? (
+              <Card className="gap-2.5 p-4">
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 font-body-medium text-sm text-foreground">
+                    {otherBranches.length > 0
+                      ? `${gym.brandBranches.length} chi nhánh ${gym.brandName}`
+                      : "Vị trí chi nhánh"}
+                  </Text>
+                  {directions ? (
+                    <Button size="sm" variant="secondary" onPress={() => void Linking.openURL(directions)}>
+                      <View className="flex-row items-center gap-1.5">
+                        <Navigation size={13} color={accent.primary} />
+                        <Text className="font-body-medium text-xs text-foreground">Chỉ đường</Text>
+                      </View>
+                    </Button>
+                  ) : null}
+                </View>
+                <BranchMap branches={mapBranches} currentId={gym.id} />
+                {otherBranches.map((b) => (
+                  <Tappable
+                    key={b.id}
+                    className="flex-row items-start gap-2 rounded-lg bg-muted/40 px-3 py-2"
+                    onPress={() => router.push(`/client/services/gyms/${b.id}`)}
+                    accessibilityLabel={`Xem ${b.name}`}
+                  >
+                    <MapPin size={13} color="#8b9299" />
+                    <View className="flex-1">
+                      <Text className="font-body-medium text-xs text-foreground">{b.name}</Text>
+                      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+                        {b.address}
+                      </Text>
+                    </View>
+                  </Tappable>
+                ))}
+              </Card>
+            ) : null}
 
             {gymClosed ? (
               <Card className="flex-row items-start gap-2 p-4">
@@ -297,15 +412,17 @@ export default function GymDetailScreen() {
                   />
                 </Card>
 
-                <Button full disabled={!!blocked || buyMutation.isPending} onPress={startPurchase}>
-                  {buyMutation.isPending ? "Đang xử lý..." : "Mua gói hội viên"}
+                <Button full disabled={!!blocked || checkout.submitting} onPress={() => startPurchase(false)}>
+                  {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
                 </Button>
                 <Text className="text-center font-body text-xs text-muted-foreground">
                   {blocked ??
-                    "Gói sẽ được giữ ở trạng thái chờ thanh toán. Cổng thanh toán sẽ mở trong bản cập nhật tới."}
+                    "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
                 </Text>
               </>
             ) : null}
+            {/* 14B.6 (PG-B2) — reviews, and the member's own one to write / edit / delete. */}
+            {gymId ? <GymReviews gymId={gymId} /> : null}
           </View>
         )}
       </ScrollView>
@@ -323,16 +440,22 @@ export default function GymDetailScreen() {
             <Button variant="secondary" className="flex-1" onPress={() => setWarningOpen(false)}>
               Để sau
             </Button>
-            <Button
-              className="flex-1"
-              disabled={buyMutation.isPending}
-              onPress={() => buyMutation.mutate(true)}
-            >
+            <Button className="flex-1" onPress={() => startPurchase(true)}>
               Tôi vẫn mua
             </Button>
           </View>
         </View>
       </BottomSheet>
+
+      <PaymentMethodSheet
+        open={checkout.target != null}
+        amount={checkout.target?.price ?? 0}
+        title="Thanh toán gói hội viên"
+        note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
+        submitting={checkout.submitting}
+        onConfirm={checkout.pay}
+        onClose={checkout.close}
+      />
     </View>
   );
 }

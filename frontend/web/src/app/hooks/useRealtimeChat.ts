@@ -5,6 +5,7 @@ import {
   type RealtimeChatMessage,
 } from "../realtime/events";
 import { useApp } from "../context/AppContext";
+import { chatService } from "../services/api";
 import { useSocket } from "./useSocket";
 
 function normalizeMessage(message: RealtimeChatMessage) {
@@ -83,16 +84,34 @@ export function useRealtimeChat(
     };
   }, [socket, JSON.stringify(allConversationIds)]);
 
+  // Over the socket when it is actually connected; over REST otherwise. `socket.emit` on a socket
+  // that never connected only buffers: the box cleared, nothing was saved and nothing said so
+  // (real browser, 7/10). The gateway relays a REST send to the conversation room, so the other
+  // side still gets it live. A REST failure rejects — the caller keeps the text and says why.
   const sendMessage = useCallback(
-    (conversationId: string, content: string) => {
-      if (!socket || !content.trim()) return false;
-      socket.emit(REALTIME_EVENTS.chatMessageSend, {
-        conversationId,
-        content: content.trim(),
-      });
+    async (conversationId: string, content: string) => {
+      const text = content.trim();
+      if (!text) return false;
+      if (socket?.connected) {
+        socket.emit(REALTIME_EVENTS.chatMessageSend, { conversationId, content: text });
+        return true;
+      }
+      const saved = await chatService.sendMessage(conversationId, text);
+      if (saved?.id) {
+        const mapped = normalizeMessage({ ...saved, conversationId: saved.conversationId ?? conversationId });
+        queryClient.setQueryData(
+          ["messages", userScopeId, conversationId],
+          (old: any[] | undefined) => {
+            if (!old) return [mapped];
+            if (old.some((item) => item.id === mapped.id)) return old;
+            return [...old, mapped];
+          },
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
       return true;
     },
-    [socket],
+    [socket, queryClient, userScopeId],
   );
 
   const sendTyping = useCallback(

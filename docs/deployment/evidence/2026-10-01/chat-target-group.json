@@ -1,0 +1,28 @@
+{
+    "TargetGroups": [
+        {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+            "TargetGroupName": "fitness-assistant-dev-chat-tg",
+            "Protocol": "HTTP",
+            "Port": 3005,
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "HealthCheckProtocol": "HTTP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckEnabled": true,
+            "HealthCheckIntervalSeconds": 20,
+            "HealthCheckTimeoutSeconds": 5,
+            "HealthyThresholdCount": 2,
+            "UnhealthyThresholdCount": 3,
+            "HealthCheckPath": "/health",
+            "Matcher": {
+                "HttpCode": "200"
+            },
+            "LoadBalancerArns": [
+                "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74"
+            ],
+            "TargetType": "ip",
+            "ProtocolVersion": "HTTP1",
+            "IpAddressType": "ipv4"
+        }
+    ]
+}

@@ -5,24 +5,64 @@ import {
   NotificationEntityType,
 } from "../generated/prisma";
 import { notificationRepository } from "../repositories/notification.repository";
+import { pushDeviceRepository } from "../repositories/push-device.repository";
+import { pushService } from "./push.service";
 
 const CHAT_SERVICE_URL =
   process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
+// chat-service's /internal/push-notification validates against
+// INTERNAL_API_SECRET || INTERNAL_SERVICE_SECRET (see its app.ts) - mirror the
+// same precedence here so local dev (where the two are configured to
+// DIFFERENT real values) and Lambda (where only INTERNAL_SERVICE_SECRET is
+// ever set) both land on a value the receiving side actually accepts.
+// BUG FIX (found Phase 13C-A): this used to read ONLY INTERNAL_API_SECRET,
+// which no Lambda here has ever been configured with - every call was
+// silently sending an empty string as the auth header, always rejected by
+// chat-service, always swallowed by the .catch() below.
+// REGRESSION FIX: an earlier pass flipped the precedence to
+// INTERNAL_SERVICE_SECRET || INTERNAL_API_SECRET, which broke this call on
+// local dev (the two are configured to different real values there, and
+// chat-service's receiving side only ever checked INTERNAL_API_SECRET) -
+// INTERNAL_API_SECRET must come first since that's the value both sides
+// agree on everywhere it's actually set.
+const CHAT_INTERNAL_SECRET =
+  process.env.INTERNAL_API_SECRET || process.env.INTERNAL_SERVICE_SECRET || "";
 
 function pushToSocket(payload: {
   userId?: string;
   adminBroadcast?: boolean;
   notification: any;
 }) {
+  if (!CHAT_INTERNAL_SECRET) {
+    // A missing secret is a configuration bug, not "chat-service is down" -
+    // must stay observable and must never be sent as an empty/undefined
+    // auth header (chat-service would just reject it anyway).
+    logger.error(
+      "[notification] INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET not configured - skipping real-time push to chat-service",
+    );
+    return;
+  }
   axios
     .post(`${CHAT_SERVICE_URL}/internal/push-notification`, payload, {
       timeout: 3000,
-      headers: { "x-internal-secret": INTERNAL_API_SECRET },
+      headers: { "x-internal-secret": CHAT_INTERNAL_SECRET },
     })
-    .catch((err) =>
-      logger.warn({ err }, "Failed to push realtime notification"),
-    );
+    .catch((err) => {
+      if (err?.response?.status === 401) {
+        // Secret configured but rejected - the shared value is out of sync
+        // between this service and chat-service. A real defect; must stay
+        // observable, never collapsed into the generic "unreachable" case.
+        logger.error(
+          { status: err.response.status },
+          "[notification] chat-service rejected internal auth - INTERNAL_SERVICE_SECRET/INTERNAL_API_SECRET may be out of sync",
+        );
+        return;
+      }
+      logger.warn(
+        { err: err?.message },
+        "Failed to push realtime notification",
+      );
+    });
 }
 
 // Roadmap P4.1 "Notifications/reminders" (§27) — "Need preference
@@ -75,17 +115,30 @@ export const notificationService = {
       }
     }
 
-    const notification = await notificationRepository.create({
-      userId: data.userId,
-      text: data.text,
-      eventType: data.eventType as NotificationEventType,
-      entityType: data.entityType as NotificationEntityType,
-      entityId: data.entityId,
-      link: data.link,
-    });
+    // Callers treat a notification as best-effort and swallow its failure — which is how seven
+    // event types the enum did not have went unsent for months without a trace. Whatever the
+    // caller does with the error, it is logged here first.
+    const notification = await notificationRepository
+      .create({
+        userId: data.userId,
+        text: data.text,
+        eventType: data.eventType as NotificationEventType,
+        entityType: data.entityType as NotificationEntityType,
+        entityId: data.entityId,
+        link: data.link,
+      })
+      .catch((error: unknown) => {
+        logger.error(
+          { eventType: data.eventType, entityType: data.entityType, entityId: data.entityId, message: (error as Error)?.message?.slice(0, 300) },
+          "Failed to store notification",
+        );
+        throw error;
+      });
 
     // Push real-time (non-blocking)
     pushToSocket({ userId: data.userId, notification });
+    // Mobile Phase 14.2 — and to the user's phones (non-blocking, never throws).
+    void pushService.sendToUser(notification);
 
     return notification;
   },
@@ -126,5 +179,14 @@ export const notificationService = {
 
   async getUnreadCount(userId: string) {
     return notificationRepository.countUnread(userId);
+  },
+
+  // Mobile Phase 14.2 — the caller's phone subscribes / unsubscribes (see PushDevice).
+  async registerDevice(userId: string, token: string, platform: string) {
+    await pushDeviceRepository.register(token, userId, platform);
+  },
+
+  async unregisterDevice(userId: string, token: string) {
+    await pushDeviceRepository.unregister(token, userId);
   },
 };

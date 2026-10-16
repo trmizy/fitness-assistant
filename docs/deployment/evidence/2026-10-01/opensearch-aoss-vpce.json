@@ -1,0 +1,19 @@
+{
+    "vpcEndpointDetails": [
+        {
+            "id": "vpce-067d43742cdb6b4d4",
+            "name": "fitness-dev-opensearch-vpce",
+            "vpcId": "vpc-010c13afd8920c8f1",
+            "subnetIds": [
+                "subnet-09e3230f7bca04c8e",
+                "subnet-02b39d77762465ef8"
+            ],
+            "securityGroupIds": [
+                "sg-0b38ab22927b284ab"
+            ],
+            "status": "ACTIVE",
+            "createdDate": 1789460114247
+        }
+    ],
+    "vpcEndpointErrorDetails": []
+}

@@ -139,12 +139,14 @@ describe("POST /nutrition", () => {
   });
 });
 
-describe("PUT and DELETE /nutrition/:id", () => {
+describe("PATCH and DELETE /nutrition/:id", () => {
+  // 14B.3 / GAP-25 — fitness-service only routes PATCH for /nutrition/:id; the PUT this used to pin
+  // (copied from web) 404s, so no log edit ever saved.
   it("edits and deletes by id", async () => {
     http = stubHttp(() => ({ data: { ok: true } }));
 
     await nutritionService.updateLog("log-7", { calories: 300 });
-    expect(http.last().method).toBe("PUT");
+    expect(http.last().method).toBe("PATCH");
     expect(http.last().path).toBe("/nutrition/log-7");
     expect(http.last().body).toEqual({ calories: 300 });
 

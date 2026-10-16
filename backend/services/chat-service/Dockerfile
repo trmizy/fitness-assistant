@@ -4,6 +4,18 @@ RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# AWS deployment readiness fix: pnpm-lock.yaml records a patch for
+# react-native-gesture-handler@2.32.0 (a frontend/Capacitor dependency
+# elsewhere in this pnpm workspace) — pnpm validates and applies every
+# patch entry in the lockfile on `install`, even when filtering to just
+# this service, so `--frozen-lockfile` fails outright with
+# "ENOENT: no such file or directory, open '/app/patches/react-native-
+# gesture-handler@2.32.0.patch'" unless the patches directory is present.
+# Dockerfile.dev already copies it for exactly this reason; this
+# production Dockerfile was missing it and had apparently never been
+# built successfully since that patch was added — confirmed by actually
+# running this build locally before this fix.
+COPY patches ./patches
 COPY backend/shared/package.json ./backend/shared/
 COPY backend/services/chat-service/package.json ./backend/services/chat-service/
 RUN pnpm install --filter @gym-coach/chat-service --frozen-lockfile

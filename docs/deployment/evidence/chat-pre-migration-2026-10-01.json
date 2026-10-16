@@ -1,0 +1,866 @@
+{
+  "captured_at_utc": "2026-10-01T09:54:52Z",
+  "purpose": "Pre-migration rollback evidence for the current manually-created Chat ALB/listener/target-group/ECS wiring, captured before Phase 3 Chat reconnect migration. See docs/deployment/AWS_DEV_CHAT_ON_DEMAND_MIGRATION_2026-10-01.md",
+  "alb":
+{
+    "LoadBalancers": [
+        {
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74",
+            "DNSName": "fitness-assistant-dev-chat-alb-1556383256.ap-southeast-1.elb.amazonaws.com",
+            "CanonicalHostedZoneId": "Z1LMS91P8CMLE5",
+            "CreatedTime": "2026-09-22T08:25:28.527000+00:00",
+            "LoadBalancerName": "fitness-assistant-dev-chat-alb",
+            "Scheme": "internet-facing",
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "State": {
+                "Code": "active"
+            },
+            "Type": "application",
+            "AvailabilityZones": [
+                {
+                    "ZoneName": "ap-southeast-1b",
+                    "SubnetId": "subnet-043180192466a53b5",
+                    "LoadBalancerAddresses": []
+                },
+                {
+                    "ZoneName": "ap-southeast-1a",
+                    "SubnetId": "subnet-0f1a5fcd6ed0401ee",
+                    "LoadBalancerAddresses": []
+                }
+            ],
+            "SecurityGroups": [
+                "sg-0ed91f8e8a4617d62"
+            ],
+            "IpAddressType": "ipv4",
+            "EnablePrefixForIpv6SourceNat": "off"
+        }
+    ]
+}
+  ,
+  "alb_attributes":
+{
+    "Attributes": [
+        {
+            "Key": "access_logs.s3.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "access_logs.s3.bucket",
+            "Value": ""
+        },
+        {
+            "Key": "access_logs.s3.prefix",
+            "Value": ""
+        },
+        {
+            "Key": "health_check_logs.s3.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "health_check_logs.s3.bucket",
+            "Value": ""
+        },
+        {
+            "Key": "health_check_logs.s3.prefix",
+            "Value": ""
+        },
+        {
+            "Key": "idle_timeout.timeout_seconds",
+            "Value": "120"
+        },
+        {
+            "Key": "deletion_protection.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "routing.http2.enabled",
+            "Value": "true"
+        },
+        {
+            "Key": "routing.http.drop_invalid_header_fields.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "routing.http.xff_client_port.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "routing.http.preserve_host_header.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "routing.http.xff_header_processing.mode",
+            "Value": "append"
+        },
+        {
+            "Key": "load_balancing.cross_zone.enabled",
+            "Value": "true"
+        },
+        {
+            "Key": "routing.http.desync_mitigation_mode",
+            "Value": "defensive"
+        },
+        {
+            "Key": "client_keep_alive.seconds",
+            "Value": "3600"
+        },
+        {
+            "Key": "waf.fail_open.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "routing.http.x_amzn_tls_version_and_cipher_suite.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "ddos_protection.syn_cookie.mode",
+            "Value": "reactive"
+        },
+        {
+            "Key": "zonal_shift.config.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "connection_logs.s3.enabled",
+            "Value": "false"
+        },
+        {
+            "Key": "connection_logs.s3.bucket",
+            "Value": ""
+        },
+        {
+            "Key": "connection_logs.s3.prefix",
+            "Value": ""
+        }
+    ]
+}
+  ,
+  "alb_tags":
+{
+    "TagDescriptions": [
+        {
+            "ResourceArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74",
+            "Tags": []
+        }
+    ]
+}
+  ,
+  "listeners":
+{
+    "Listeners": [
+        {
+            "ListenerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:listener/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74/b35f6a76b4f1c219",
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74",
+            "Port": 80,
+            "Protocol": "HTTP",
+            "DefaultActions": [
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                    "Order": 1,
+                    "ForwardConfig": {
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                                "Weight": 1
+                            }
+                        ],
+                        "TargetGroupStickinessConfig": {
+                            "Enabled": false,
+                            "DurationSeconds": 3600
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
+  ,
+  "listener_rules":
+{
+    "Rules": [
+        {
+            "RuleArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:listener-rule/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74/b35f6a76b4f1c219/4f61826011cef511",
+            "Priority": "1",
+            "Conditions": [
+                {
+                    "Field": "path-pattern",
+                    "Values": [
+                        "/internal/*"
+                    ],
+                    "PathPatternConfig": {
+                        "Values": [
+                            "/internal/*"
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "fixed-response",
+                    "Order": 1,
+                    "FixedResponseConfig": {
+                        "MessageBody": "Not found",
+                        "StatusCode": "404",
+                        "ContentType": "text/plain"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Transforms": []
+        },
+        {
+            "RuleArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:listener-rule/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74/b35f6a76b4f1c219/461a7d89b3642cf3",
+            "Priority": "2",
+            "Conditions": [
+                {
+                    "Field": "path-pattern",
+                    "Values": [
+                        "/metrics"
+                    ],
+                    "PathPatternConfig": {
+                        "Values": [
+                            "/metrics"
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "fixed-response",
+                    "Order": 1,
+                    "FixedResponseConfig": {
+                        "MessageBody": "Not found",
+                        "StatusCode": "404",
+                        "ContentType": "text/plain"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Transforms": []
+        },
+        {
+            "RuleArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:listener-rule/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74/b35f6a76b4f1c219/1bd24e0f3d23f198",
+            "Priority": "default",
+            "Conditions": [],
+            "Actions": [
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                    "Order": 1,
+                    "ForwardConfig": {
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                                "Weight": 1
+                            }
+                        ],
+                        "TargetGroupStickinessConfig": {
+                            "Enabled": false,
+                            "DurationSeconds": 3600
+                        }
+                    }
+                }
+            ],
+            "IsDefault": true,
+            "Transforms": []
+        }
+    ]
+}
+  ,
+  "target_group":
+{
+    "TargetGroups": [
+        {
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+            "TargetGroupName": "fitness-assistant-dev-chat-tg",
+            "Protocol": "HTTP",
+            "Port": 3005,
+            "VpcId": "vpc-010c13afd8920c8f1",
+            "HealthCheckProtocol": "HTTP",
+            "HealthCheckPort": "traffic-port",
+            "HealthCheckEnabled": true,
+            "HealthCheckIntervalSeconds": 20,
+            "HealthCheckTimeoutSeconds": 5,
+            "HealthyThresholdCount": 2,
+            "UnhealthyThresholdCount": 3,
+            "HealthCheckPath": "/health",
+            "Matcher": {
+                "HttpCode": "200"
+            },
+            "LoadBalancerArns": [
+                "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74"
+            ],
+            "TargetType": "ip",
+            "ProtocolVersion": "HTTP1",
+            "IpAddressType": "ipv4"
+        }
+    ]
+}
+  ,
+  "target_group_attributes":
+{
+    "Attributes": [
+        {
+            "Key": "target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage",
+            "Value": "off"
+        },
+        {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "30"
+        },
+        {
+            "Key": "stickiness.type",
+            "Value": "lb_cookie"
+        },
+        {
+            "Key": "stickiness.lb_cookie.duration_seconds",
+            "Value": "86400"
+        },
+        {
+            "Key": "slow_start.duration_seconds",
+            "Value": "0"
+        },
+        {
+            "Key": "stickiness.app_cookie.duration_seconds",
+            "Value": "86400"
+        },
+        {
+            "Key": "load_balancing.algorithm.type",
+            "Value": "round_robin"
+        },
+        {
+            "Key": "load_balancing.cross_zone.enabled",
+            "Value": "use_load_balancer_configuration"
+        },
+        {
+            "Key": "target_group_health.dns_failover.minimum_healthy_targets.percentage",
+            "Value": "off"
+        },
+        {
+            "Key": "target_group_health.unhealthy_state_routing.minimum_healthy_targets.count",
+            "Value": "1"
+        },
+        {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+        },
+        {
+            "Key": "target_group_health.dns_failover.minimum_healthy_targets.count",
+            "Value": "1"
+        },
+        {
+            "Key": "stickiness.app_cookie.cookie_name",
+            "Value": ""
+        },
+        {
+            "Key": "load_balancing.algorithm.anomaly_mitigation",
+            "Value": "off"
+        }
+    ]
+}
+  ,
+  "target_group_health":
+{
+    "TargetHealthDescriptions": []
+}
+  ,
+  "ecs_service":
+{
+    "services": [
+        {
+            "serviceArn": "arn:aws:ecs:ap-southeast-1:191798898985:service/fitness-assistant-dev-cluster/fitness-assistant-dev-chat-service",
+            "serviceName": "fitness-assistant-dev-chat-service",
+            "clusterArn": "arn:aws:ecs:ap-southeast-1:191798898985:cluster/fitness-assistant-dev-cluster",
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                    "containerName": "chat-service",
+                    "containerPort": 3005
+                }
+            ],
+            "serviceRegistries": [],
+            "status": "ACTIVE",
+            "desiredCount": 0,
+            "runningCount": 0,
+            "pendingCount": 0,
+            "launchType": "FARGATE",
+            "platformVersion": "LATEST",
+            "platformFamily": "Linux",
+            "taskDefinition": "arn:aws:ecs:ap-southeast-1:191798898985:task-definition/fitness-assistant-dev-chat:6",
+            "deploymentConfiguration": {
+                "deploymentCircuitBreaker": {
+                    "enable": true,
+                    "rollback": true,
+                    "resetOnHealthyTask": false,
+                    "thresholdConfiguration": {
+                        "type": "BOUNDED_PERCENT",
+                        "value": 50
+                    }
+                },
+                "maximumPercent": 200,
+                "minimumHealthyPercent": 100,
+                "strategy": "ROLLING",
+                "bakeTimeInMinutes": 0
+            },
+            "deployments": [
+                {
+                    "id": "ecs-svc/1870494414358697333",
+                    "status": "PRIMARY",
+                    "taskDefinition": "arn:aws:ecs:ap-southeast-1:191798898985:task-definition/fitness-assistant-dev-chat:6",
+                    "desiredCount": 0,
+                    "pendingCount": 0,
+                    "runningCount": 0,
+                    "failedTasks": 0,
+                    "createdAt": "2026-09-30T09:33:34.578000+07:00",
+                    "updatedAt": "2026-09-30T16:42:28.051000+07:00",
+                    "launchType": "FARGATE",
+                    "platformVersion": "1.4.0",
+                    "platformFamily": "Linux",
+                    "networkConfiguration": {
+                        "awsvpcConfiguration": {
+                            "subnets": [
+                                "subnet-09e3230f7bca04c8e",
+                                "subnet-02b39d77762465ef8"
+                            ],
+                            "securityGroups": [
+                                "sg-00726a813b1163459"
+                            ],
+                            "assignPublicIp": "DISABLED"
+                        }
+                    },
+                    "rolloutState": "COMPLETED",
+                    "rolloutStateReason": "ECS deployment ecs-svc/1870494414358697333 completed."
+                }
+            ],
+            "roleArn": "arn:aws:iam::191798898985:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+            "events": [
+                {
+                    "id": "3642e229-e68a-4f1f-a194-adc7ddbe6497",
+                    "createdAt": "2026-10-01T16:44:12.393000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "e6741363-e58a-4bc3-8669-4555ebdb5a6e",
+                    "createdAt": "2026-10-01T10:43:35.960000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "51c5f37f-728c-486b-9c89-7c587946707a",
+                    "createdAt": "2026-10-01T04:43:10.503000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "a08c4a42-4af1-41e2-9afb-929cc11c2486",
+                    "createdAt": "2026-09-30T22:42:47.809000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "5eac1162-2783-46ec-8b30-444e959bbd63",
+                    "createdAt": "2026-09-30T16:42:28.057000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "92676a95-bd83-4db3-8051-ebad46487ac3",
+                    "createdAt": "2026-09-30T16:42:27.989000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service, taskSet ecs-svc/1870494414358697333) has begun draining connections on 1 tasks."
+                },
+                {
+                    "id": "7c551603-0e88-4d4e-a2be-0e02d363ca8a",
+                    "createdAt": "2026-09-30T16:42:27.985000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "9c7e0e26-f287-4512-ab2e-9c204ee0df58",
+                    "createdAt": "2026-09-30T16:42:19.092000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has stopped 1 running tasks: (task 1d39d6a22d5f46a484dbd85107099254)."
+                },
+                {
+                    "id": "63ef1afe-1d11-492a-a36e-3c75176ba3a4",
+                    "createdAt": "2026-09-30T15:36:52.097000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "3aec3486-f447-49bd-8b0a-9ca216324a55",
+                    "createdAt": "2026-09-30T09:36:15.092000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "7c772631-d498-4eeb-accd-1cd9f1b8be7e",
+                    "createdAt": "2026-09-30T09:36:15.091000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) (deployment ecs-svc/1870494414358697333) deployment completed."
+                },
+                {
+                    "id": "821c9964-7699-4383-a948-d27ffba38c60",
+                    "createdAt": "2026-09-30T09:35:14.536000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service, taskSet ecs-svc/6374149623240450993) has begun draining connections on 1 tasks."
+                },
+                {
+                    "id": "b1030d16-deb6-4615-85d5-a129e6a15315",
+                    "createdAt": "2026-09-30T09:35:14.532000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "a4bdf9e4-fba6-4bd7-bbe2-624a573a3693",
+                    "createdAt": "2026-09-30T09:35:04.023000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has stopped 1 running tasks: (task b47f3f8ee85f401385cc287b27a56b73)."
+                },
+                {
+                    "id": "6254a6e7-72df-46ce-a17a-43f6b337e095",
+                    "createdAt": "2026-09-30T09:34:04.649000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "f2a1458b-9984-4354-8503-250bfa1a456b",
+                    "createdAt": "2026-09-30T09:33:45.348000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task 1d39d6a22d5f46a484dbd85107099254)."
+                },
+                {
+                    "id": "391dacda-8081-4fa5-b423-0c2e091f3ca8",
+                    "createdAt": "2026-09-30T09:33:38.509000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task b47f3f8ee85f401385cc287b27a56b73)."
+                },
+                {
+                    "id": "15eb1a38-420b-49ad-9cad-a8b35ced96c4",
+                    "createdAt": "2026-09-30T04:49:23.884000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "79877aba-5447-4322-a9d7-6dcf9d1ed275",
+                    "createdAt": "2026-09-29T22:49:19.774000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "48e0961d-902e-46d8-b63a-75330626d02c",
+                    "createdAt": "2026-09-29T16:48:48.421000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "c8683cbe-15ce-401b-8a79-5078aea761a0",
+                    "createdAt": "2026-09-29T16:48:48.355000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service, taskSet ecs-svc/6374149623240450993) has begun draining connections on 1 tasks."
+                },
+                {
+                    "id": "c6271025-ef7f-43a4-aba4-5056cce52756",
+                    "createdAt": "2026-09-29T16:48:48.334000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "d3c0d9b5-3968-4ea5-b6a6-0d7823002676",
+                    "createdAt": "2026-09-29T16:48:38.312000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has stopped 1 running tasks: (task d4c6ac504cde4bfc88ace6b71d5b5e2d)."
+                },
+                {
+                    "id": "43e627dd-8e1c-4919-85a5-deb000a73e12",
+                    "createdAt": "2026-09-29T14:25:37.171000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "b45af3ea-f28b-4fa1-971d-c0ac02da7fe8",
+                    "createdAt": "2026-09-29T14:25:37.170000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) (deployment ecs-svc/6374149623240450993) deployment completed."
+                },
+                {
+                    "id": "41c2ad4e-9aeb-4ea0-ac65-5f5d00c6ad94",
+                    "createdAt": "2026-09-29T14:24:25.989000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service, taskSet ecs-svc/3963834362935060150) has begun draining connections on 1 tasks."
+                },
+                {
+                    "id": "ebeb2564-2b6f-441f-80f9-f68a0dd14d7e",
+                    "createdAt": "2026-09-29T14:24:25.984000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "ccbff9f1-e978-4a26-9878-c1cbc587fc40",
+                    "createdAt": "2026-09-29T14:24:16.773000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has stopped 1 running tasks: (task 53dfa1bbf53640ff9585772b55951296)."
+                },
+                {
+                    "id": "7c7da0e6-f90a-41bd-8aeb-bcca3e2c4793",
+                    "createdAt": "2026-09-29T14:23:16.575000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "583dcaf3-b35e-4df6-9d5f-8e1a314c31ed",
+                    "createdAt": "2026-09-29T14:22:56.692000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task d4c6ac504cde4bfc88ace6b71d5b5e2d)."
+                },
+                {
+                    "id": "d9264f6c-95c0-43ef-bf9b-a31b2abe0557",
+                    "createdAt": "2026-09-29T14:22:47.680000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task 53dfa1bbf53640ff9585772b55951296)."
+                },
+                {
+                    "id": "552c8dad-5aa0-4b34-b359-2757356e8e20",
+                    "createdAt": "2026-09-29T11:28:47.442000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "0bfc4625-2e1a-42a8-87eb-f7e0e12ca91a",
+                    "createdAt": "2026-09-29T05:28:34.589000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "01e662d4-3f31-4d48-9e44-65b4af9d72ee",
+                    "createdAt": "2026-09-28T23:28:12.070000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "fe79bafa-1144-4dd0-b73d-ff23636f724f",
+                    "createdAt": "2026-09-28T17:27:45.709000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "6c89ffc7-0460-4480-b0fa-823ae98c2146",
+                    "createdAt": "2026-09-28T11:27:28.632000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "d64bc753-49ef-458f-acd3-f5037dd2d5dd",
+                    "createdAt": "2026-09-28T05:27:08.955000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "d37c5cab-d9eb-4a89-b8e7-cff9b84f0ed3",
+                    "createdAt": "2026-09-27T23:26:22.801000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "4a85ebbc-5e0e-48fb-99f7-9c53a8419235",
+                    "createdAt": "2026-09-27T17:25:44.189000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "c2d382d7-a72b-4050-9050-bee309c295e2",
+                    "createdAt": "2026-09-27T11:25:26.626000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "7311635e-218f-414e-837d-f59f9588561a",
+                    "createdAt": "2026-09-27T05:25:22.430000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "9e475fb0-d126-4b77-924e-26bcc871967a",
+                    "createdAt": "2026-09-26T23:25:19.227000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "485be80a-43bb-4512-839a-d96ac142eaa1",
+                    "createdAt": "2026-09-26T17:24:42.508000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "e18bfe28-9120-4d41-a1f3-6c4b5884cfd0",
+                    "createdAt": "2026-09-26T11:24:37.539000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "83e542a3-1f73-476b-a5ac-b8ab5fedea54",
+                    "createdAt": "2026-09-26T05:23:53.989000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "5d8d3bab-c69b-487b-99eb-d3252ff4a10f",
+                    "createdAt": "2026-09-25T23:23:32.425000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "4d0e949e-bdd8-448f-9b61-25ecb94dd717",
+                    "createdAt": "2026-09-25T17:23:05.083000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "10856c95-b4ba-491a-86ab-ca3f554d3563",
+                    "createdAt": "2026-09-25T11:22:40.558000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "58e34f7a-86cd-4ca7-b640-da0b73096ad4",
+                    "createdAt": "2026-09-25T05:22:17.860000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "d84a7cbd-bf85-4a2d-b09e-5b5bff3a5104",
+                    "createdAt": "2026-09-24T23:22:07.231000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "010ca848-3fa1-445d-8423-8c9cff042327",
+                    "createdAt": "2026-09-24T17:21:22.595000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "0e7ba465-93a3-4ce2-ac5f-c872d93e9c74",
+                    "createdAt": "2026-09-24T11:20:56.116000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "d430be21-9994-46f6-a090-bcff932e5e0e",
+                    "createdAt": "2026-09-24T05:20:21.558000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "dbcd40f6-56c8-47ca-8d4b-8a10f62b5dbc",
+                    "createdAt": "2026-09-23T23:20:04.548000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "ac962f31-38fc-4bf2-bc22-5410d41173c9",
+                    "createdAt": "2026-09-23T23:20:04.465000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service, taskSet ecs-svc/3963834362935060150) has begun draining connections on 1 tasks."
+                },
+                {
+                    "id": "2af5e46e-fc86-424e-897c-7fb5f177d6b7",
+                    "createdAt": "2026-09-23T23:20:04.460000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "71fc51d8-49b6-4285-acd7-ddc350b072cd",
+                    "createdAt": "2026-09-23T23:19:54.562000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has stopped 1 running tasks: (task 4952661af9c34e89bb2d8e9d7c7f7362)."
+                },
+                {
+                    "id": "f1bb2ce8-805f-4629-9939-e7ebdeea6b71",
+                    "createdAt": "2026-09-23T17:37:05.745000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "684443b8-81a6-4b65-adb3-d21628bb75b8",
+                    "createdAt": "2026-09-23T11:36:34.422000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "c2fadb2a-08f2-434d-8576-436f44377d6e",
+                    "createdAt": "2026-09-23T05:36:11.363000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "f42a2305-b42f-4cb7-99c2-6126c87932e0",
+                    "createdAt": "2026-09-22T23:36:01.472000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has reached a steady state."
+                },
+                {
+                    "id": "67551c1f-4c13-40f5-bda4-6ac51298a44a",
+                    "createdAt": "2026-09-22T23:36:01.471000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) (deployment ecs-svc/3963834362935060150) deployment completed."
+                },
+                {
+                    "id": "635e2092-5572-4422-8cf2-e50077924835",
+                    "createdAt": "2026-09-22T23:35:51.651000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0)"
+                },
+                {
+                    "id": "8a8d7e2b-5ee6-4c31-a7ea-d2f6ea82aea2",
+                    "createdAt": "2026-09-22T23:35:21.772000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task 4952661af9c34e89bb2d8e9d7c7f7362)."
+                },
+                {
+                    "id": "9eb18eb4-a1ad-43ec-8eb3-9dce847309eb",
+                    "createdAt": "2026-09-22T23:23:45.668000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) was unable to place a task. Reason: ResourceInitializationError: unable to pull secrets or registry auth: unable to retrieve secret from asm: There is a connection issue between the task and AWS Secrets Manager. Check your task network configuration. failed to fetch secret arn:aws:secretsmanager:ap-southeast-1:191798898985:secret:fitness-assistant/dev/chat-database-url-MpSeMU from secrets manager: operation error Secrets Manager: GetSecretValue, https response error StatusCode: 0, RequestID: , canceled, context deadline exceeded."
+                },
+                {
+                    "id": "40723dc8-13a2-4654-bb43-23f82ca7a5d6",
+                    "createdAt": "2026-09-22T23:21:15.845000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) (deployment ecs-svc/2018135431446768512) deployment failed: tasks failed to start."
+                },
+                {
+                    "id": "b12cc371-fdbf-421d-bd58-d44167c85f41",
+                    "createdAt": "2026-09-22T23:19:26.468000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task f6aa01a0314043cdbe54c3252fba6330)."
+                },
+                {
+                    "id": "add180a7-e912-44a3-af9d-e3bb7a8d92d3",
+                    "createdAt": "2026-09-22T23:18:56.187000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) was unable to place a task. Reason: ResourceInitializationError: unable to pull secrets or registry auth: unable to retrieve secret from asm: There is a connection issue between the task and AWS Secrets Manager. Check your task network configuration. failed to fetch secret arn:aws:secretsmanager:ap-southeast-1:191798898985:secret:fitness-assistant/dev/chat-database-url-MpSeMU from secrets manager: operation error Secrets Manager: GetSecretValue, https response error StatusCode: 0, RequestID: , canceled, context deadline exceeded."
+                },
+                {
+                    "id": "cf048b59-5afa-4131-b8bd-db90388feed8",
+                    "createdAt": "2026-09-22T23:14:40.857000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task dec205fc40f4409592ed61ddd58cf023)."
+                },
+                {
+                    "id": "2c4e98e8-739d-46bf-b8cd-bace550edca2",
+                    "createdAt": "2026-09-22T23:14:10+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) was unable to place a task. Reason: ResourceInitializationError: unable to pull secrets or registry auth: unable to retrieve secret from asm: There is a connection issue between the task and AWS Secrets Manager. Check your task network configuration. failed to fetch secret arn:aws:secretsmanager:ap-southeast-1:191798898985:secret:fitness-assistant/dev/chat-database-url-MpSeMU from secrets manager: operation error Secrets Manager: GetSecretValue, https response error StatusCode: 0, RequestID: , canceled, context deadline exceeded."
+                },
+                {
+                    "id": "6373cc74-9957-4403-82b5-1f7c535e60a1",
+                    "createdAt": "2026-09-22T23:09:50.377000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task 36e151cbefff40d396a17d232c0fefaf)."
+                },
+                {
+                    "id": "6ebe5e56-335b-4e84-a226-c97641c96b35",
+                    "createdAt": "2026-09-22T23:09:17.874000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) was unable to place a task. Reason: ResourceInitializationError: unable to pull secrets or registry auth: unable to retrieve secret from asm: There is a connection issue between the task and AWS Secrets Manager. Check your task network configuration. failed to fetch secret arn:aws:secretsmanager:ap-southeast-1:191798898985:secret:fitness-assistant/dev/chat-database-url-MpSeMU from secrets manager: operation error Secrets Manager: GetSecretValue, https response error StatusCode: 0, RequestID: , canceled, context deadline exceeded."
+                },
+                {
+                    "id": "3419d398-65d5-4c21-90d8-f77187ecfcb7",
+                    "createdAt": "2026-09-22T23:05:06.145000+07:00",
+                    "message": "(service fitness-assistant-dev-chat-service) has started 1 tasks: (task 1a0aca1ca9ab497eb2952b3c6f2c36fe)."
+                }
+            ],
+            "createdAt": "2026-09-22T23:04:53.538000+07:00",
+            "currentServiceRevisions": [
+                {
+                    "arn": "arn:aws:ecs:ap-southeast-1:191798898985:service-revision/fitness-assistant-dev-cluster/fitness-assistant-dev-chat-service/1870494414358697333",
+                    "requestedTaskCount": 0,
+                    "runningTaskCount": 0,
+                    "pendingTaskCount": 0
+                }
+            ],
+            "placementConstraints": [],
+            "placementStrategy": [],
+            "networkConfiguration": {
+                "awsvpcConfiguration": {
+                    "subnets": [
+                        "subnet-09e3230f7bca04c8e",
+                        "subnet-02b39d77762465ef8"
+                    ],
+                    "securityGroups": [
+                        "sg-00726a813b1163459"
+                    ],
+                    "assignPublicIp": "DISABLED"
+                }
+            },
+            "healthCheckGracePeriodSeconds": 0,
+            "schedulingStrategy": "REPLICA",
+            "deploymentController": {
+                "type": "ECS"
+            },
+            "createdBy": "arn:aws:iam::191798898985:root",
+            "enableECSManagedTags": true,
+            "propagateTags": "NONE",
+            "enableExecuteCommand": false,
+            "availabilityZoneRebalancing": "ENABLED",
+            "resourceManagementType": "CUSTOMER"
+        }
+    ],
+    "failures": []
+}
+  ,
+  "ecs_cluster":
+{
+    "clusters": [
+        {
+            "clusterArn": "arn:aws:ecs:ap-southeast-1:191798898985:cluster/fitness-assistant-dev-cluster",
+            "clusterName": "fitness-assistant-dev-cluster",
+            "status": "ACTIVE",
+            "registeredContainerInstancesCount": 0,
+            "runningTasksCount": 0,
+            "pendingTasksCount": 0,
+            "activeServicesCount": 1,
+            "statistics": [],
+            "tags": [],
+            "settings": [],
+            "capacityProviders": [
+                "FARGATE",
+                "FARGATE_SPOT"
+            ],
+            "defaultCapacityProviderStrategy": []
+        }
+    ],
+    "failures": []
+}
+}

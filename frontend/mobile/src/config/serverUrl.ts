@@ -32,8 +32,24 @@ const STORAGE_KEY = "serverUrl";
  */
 const DEFAULT_GATEWAY_URL = "http://10.0.2.2:3000";
 
+/**
+ * Expo inlines EXPO_PUBLIC_* at build time only for the literal `process.env.EXPO_PUBLIC_X` form —
+ * a dynamic `process.env[key]` reads an empty object in a release bundle. That silently dropped
+ * every build flag in release (realtime/chat stayed off however the APK was built; dev hid it
+ * because the defaults follow __DEV__). Each key is therefore read statically, behind a getter so
+ * tests can still set process.env at runtime.
+ */
+const ENV_READERS: Record<string, () => string | undefined> = {
+  EXPO_PUBLIC_API_URL: () => process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_SOCKET_URL: () => process.env.EXPO_PUBLIC_SOCKET_URL,
+  EXPO_PUBLIC_CHAT_WS_URL: () => process.env.EXPO_PUBLIC_CHAT_WS_URL,
+  EXPO_PUBLIC_ENABLE_REALTIME: () => process.env.EXPO_PUBLIC_ENABLE_REALTIME,
+  EXPO_PUBLIC_ENABLE_CHAT: () => process.env.EXPO_PUBLIC_ENABLE_CHAT,
+  EXPO_PUBLIC_ENABLE_CHAT_WS: () => process.env.EXPO_PUBLIC_ENABLE_CHAT_WS,
+};
+
 function env(key: string): string {
-  return (process.env[key] as string | undefined)?.trim() || "";
+  return ENV_READERS[key]?.()?.trim() || "";
 }
 
 function envFlag(key: string, defaultValue: boolean): boolean {
@@ -58,6 +74,26 @@ function normalize(url: string): string {
     }
   }
   return clean;
+}
+
+const SERVER_URL_RE = /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?(\/[^\s]*)?$/i;
+
+/**
+ * Why a typed server address cannot be used, or null when it can. Saving used to accept anything:
+ * a stray key before a pasted link stored "https://lhttps://…" and every request then failed with
+ * nothing pointing at the address (real phone, 6/10). `allowHttp` is false in a release build,
+ * whose network config refuses cleartext — an http:// address there can only ever fail.
+ */
+export function serverUrlError(input: string, allowHttp: boolean = isDevBuild()): string | null {
+  const clean = normalize(input);
+  if (!clean) return null; // empty = back to the build's default
+  if (!SERVER_URL_RE.test(clean) || clean.indexOf("://", 8) !== -1) {
+    return "Địa chỉ không hợp lệ. Ví dụ đúng: https://ten-mien.trycloudflare.com";
+  }
+  if (!allowHttp && clean.startsWith("http://")) {
+    return "Bản phát hành chỉ kết nối được địa chỉ https://";
+  }
+  return null;
 }
 
 // Synchronous mirror of the stored override — see the doc comment above.

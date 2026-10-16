@@ -1,0 +1,28 @@
+{
+  "expectedApprovedIds": [
+    "ambiguity-pt-switch-no-proposal-1",
+    "ambiguity-pt-switch-no-proposal-2"
+  ],
+  "foundIds": [
+    "ambiguity-pt-switch-no-proposal-1",
+    "ambiguity-pt-switch-no-proposal-2"
+  ],
+  "physicalRowsCorrected": 2,
+  "physicalRowLocations": [
+    "original71_corrected.jsonl/ambiguity-pt-switch-no-proposal-1",
+    "original71_corrected.jsonl/ambiguity-pt-switch-no-proposal-2"
+  ],
+  "hashes": {
+    "source_original71_corrected.jsonl_sha256": "d582c5a0c938b427af9849862045f19793514d6bb73abcd190005cf1e3de98ff",
+    "original71_canonical_representation.jsonl_sha256": "f327bce560f353838ede10f2262bde5b4cd01b5bc348a641acf28fe007e8416e",
+    "source_v2_1_remediation12_corrected.jsonl_sha256": "9ca33726ba720e5fe0c0b97e81cd0de1512deb8bc79aea605908372757d8d332",
+    "remediation12_canonical_representation.jsonl_sha256": "9ca33726ba720e5fe0c0b97e81cd0de1512deb8bc79aea605908372757d8d332",
+    "source_v2_2_dev12_corrected.jsonl_sha256": "acbc853befe3d9a679ae91796c09ce0306b7d765764bc0b99b387a1e32bdb03c",
+    "dev12_canonical_representation.jsonl_sha256": "acbc853befe3d9a679ae91796c09ce0306b7d765764bc0b99b387a1e32bdb03c",
+    "representation_corrections.jsonl_sha256": "14d350016f44ff17f45770a9bb6125ebe2ae8d5a9dafde7f6485484a106bb5fb",
+    "representation_policy_v1.json_sha256": "fcc4b21f443306c6c219dabef9569fc5f38bcc56d45639ac38c42a1255ab7459",
+    "correction_manifest.json_sha256": "d5f6ed0b3893f613339ca9d192fb086900f9ab86ad47a293a37d6026baa79ade"
+  },
+  "historicalFilesModified": false,
+  "v2_3a2_canonical_files_modified": false
+}

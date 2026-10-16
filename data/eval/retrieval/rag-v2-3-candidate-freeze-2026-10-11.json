@@ -1,0 +1,63 @@
+{
+ "candidate": "RAG_V2_3_CANDIDATE",
+ "frozenAt": "2026-10-11T04:38:11.745Z",
+ "files": {
+  "backend/services/ai-service/src/llm/retrieval-v2.ts": "a6741be981e9fa94864a94b2d56977518fd9a9b207f1cc6597a86f8da381c1b7",
+  "backend/services/ai-service/src/llm/fitness-concepts.ts": "cbb4f34b1462bdcf7c28c6a7a88d811e90f48ae530d93e6b72c329f4ef6c9e88",
+  "backend/services/ai-service/src/llm/knowledge-source.ts": "b33bb5d9a47fcf5f04988c594fa1706b05e5752f29414a24804c6cbfb50839f7",
+  "backend/services/ai-service/src/llm/safety-signals.ts": "b260d28726b1c048d47baf1291b50bd7ccbaf6188ce89fc26dd16f4709e4a9ce",
+  "backend/services/ai-service/src/conversational-intelligence/global/personalized-interpretation.ts": "19bc0de996cadeb33a40e7a3c8ad35ff040dd57bde5a3fd9ea2fcbd9b9b88559"
+ },
+ "qdrant": {
+  "fitness_evidence": {
+   "points": 187,
+   "idSetHash": "d1e74aaad31d0543",
+   "contentSetHash": "b4b61def7d35f077"
+  },
+  "fitness_knowledge": {
+   "points": 7072,
+   "idSetHash": "29a9d4b061f50bca",
+   "contentSetHash": "5f750300d23fe298"
+  },
+  "fitness_faq": {
+   "points": 5946,
+   "idSetHash": "39f3933f84db0149",
+   "contentSetHash": "d38ca93b8e199a11"
+  },
+  "exercises": {
+   "points": 207,
+   "idSetHash": "7c5e4349570e19f7",
+   "contentSetHash": "e87beac9ba16ddde"
+  }
+ },
+ "evaluatorFiles": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "622424adaefc84343b2b3208a125484533a8376736262b022a0f86934808535f",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "37b9fb7f21863c5eccb37124d5aa540d08e06f84a0d2205d52af657162f66007"
+ },
+ "developmentSetsUsed": [
+  "rag-grounding-eval-v1.json",
+  "rag-grounding-heldout-v1.json (Diagnostic V1)",
+  "rag-grounding-generalization-dev-v2.json",
+  "rag-grounding-heldout-v2.json (Diagnostic V2)",
+  "rag-grounding-ood-safety-dev-v3.json",
+  "rag-grounding-heldout-v3.json (Diagnostic V3)",
+  "rag-grounding-safety-programming-dev-v4.json"
+ ],
+ "note": "No tuning of safety-signal rules, concept dictionary, normalisation, OOD logic, domain mapping, Programming aliases, ranking, topic guard, source merge or Qdrant after this record. Fresh held-out V4 is created AFTER this file.",
+ "configHash": "3318f0abdc5764f528309948278fe680befd34934a0a48498a0895cb85414599",
+ "evaluatorFilesAtRun": {
+  "backend/services/ai-service/src/llm/rag-gate.ts": "622424adaefc84343b2b3208a125484533a8376736262b022a0f86934808535f",
+  "backend/services/ai-service/src/scripts/evaluateRagGrounding.ts": "37b9fb7f21863c5eccb37124d5aa540d08e06f84a0d2205d52af657162f66007"
+ },
+ "heldoutV4": {
+  "file": "data/eval/retrieval/rag-grounding-heldout-v4.json",
+  "sha256BeforeExecution": "90a0ce9c8cf0b59804b63a2da10c1c272dbdbaab2d2e320ca27c256219515040",
+  "recordedAt": "2026-10-11T04:39:39.701Z",
+  "executedAt": "2026-10-11T04:41:46.490Z",
+  "executions": 1,
+  "resultsFile": "data/eval/retrieval/rag-grounding-heldout-v4-results-2026-10-11.json",
+  "resultsSha256": "cce442a243dc899f6087b1a3b7125371898cfa04d088855a7b3e09248b005b47",
+  "sha256AfterExecution": "90a0ce9c8cf0b59804b63a2da10c1c272dbdbaab2d2e320ca27c256219515040",
+  "byteIdentical": true
+ }
+}

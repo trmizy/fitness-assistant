@@ -1,0 +1,68 @@
+# Verification-only override for infra/compose/docker-compose.dev.yml (does NOT modify the dev compose).
+# Services run in the normal dev containers (real Dockerfiles, source mounted), but every write goes to the ISOLATED
+# test databases (postgres-test :55433, redis-test :56379) reached through host.docker.internal — never the dev DB.
+# LLM: local qwen3:4b on the host (127.0.0.1:11434).
+# Usage:
+#   docker compose -f infra/compose/docker-compose.dev.yml -f test/ai-chat-full-verification/docker-compose.verification.override.yml \
+#     up -d --no-deps api-gateway auth-service user-service fitness-service ai-service web
+x-test-secrets: &secrets
+  JWT_SECRET: test_jwt_secret_for_ai_chat_verification_only_32+chars
+  INTERNAL_SERVICE_SECRET: test_internal_service_secret_32_chars_minimum
+  INTERNAL_API_SECRET: test_internal_service_secret_32_chars_minimum
+x-test-redis: &redis
+  REDIS_HOST: host.docker.internal
+  REDIS_PORT: "56379"
+  REDIS_URL: redis://host.docker.internal:56379
+x-extra-hosts: &hosts
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  api-gateway:
+    environment:
+      <<: [*secrets, *redis]
+      AI_ASK_RATE_LIMIT_MAX_REQUESTS: "1000"
+      PARTNER_APPLICATION_START_RATE_MAX: "1000"
+      PARTNER_APPLICATION_RATE_MAX: "1000"
+  auth-service:
+    <<: *hosts
+    environment:
+      <<: [*secrets, *redis]
+      DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_auth_test?schema=public
+      AUTH_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_auth_test?schema=public
+      # No real mail from a verification run: with SMTP unset, register/verify returns devOtp (non-production).
+      SMTP_HOST: ""
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      JWT_ACCESS_EXPIRY: 3h
+      JWT_REFRESH_EXPIRY: 7d
+  user-service:
+    <<: *hosts
+    environment:
+      <<: [*secrets, *redis]
+      DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_user_test?schema=public
+      USER_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_user_test?schema=public
+  fitness-service:
+    <<: *hosts
+    environment:
+      <<: [*secrets, *redis]
+      DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_fitness_test?schema=public
+      FITNESS_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_fitness_test?schema=public
+  ai-service:
+    environment:
+      <<: [*secrets, *redis]
+      DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_ai_test?schema=public
+      AI_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@host.docker.internal:55433/gymcoach_ai_test?schema=public
+      LLM_PROVIDER: ollama
+      LLM_MODEL: qwen3:4b-instruct-2507-q4_K_M
+      LLM_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      EMBEDDING_PROVIDER: ollama
+      EMBEDDING_MODEL: nomic-embed-text
+      LLM_TIMEOUT_MS: "170000"
+      AI_CHAT_LLM_TIMEOUT_MS: "45000"   # R1: bounded user-facing chat generation (was 170000 for everything)
+      ENABLE_TOOL_CALLING: "false"
+      CONVERSATIONAL_INTELLIGENCE_V2: "on"
+      CONVERSATIONAL_INTELLIGENCE_V2_LLM: "${CI_V2_LLM_FOR_VERIFICATION:-on}"
+      AI_ASK_RATE_LIMIT_MAX: "1000"
+      AI_EXPENSIVE_RATE_LIMIT_MAX: "1000"

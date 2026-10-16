@@ -68,6 +68,8 @@ interface SetRow {
   completed: boolean;
   date: Date;
   exerciseName: string;
+  /** Canonical Exercise.id — optional so pre-existing SetRow fixtures stay valid. */
+  exerciseId?: string;
   muscleGroups: string[];
   /** SET_TYPES from fitness.models.ts (WARMUP/WORKING/TOP/BACKOFF/FAILURE),
    * null for pre-advanced-set-logging rows. Used to exclude warm-up sets
@@ -102,7 +104,7 @@ async function fetchCompletedSets(
       date: true,
       exercises: {
         select: {
-          exercise: { select: { exerciseName: true, muscleGroupsActivated: true } },
+          exercise: { select: { id: true, exerciseName: true, muscleGroupsActivated: true } },
           workoutSets: {
             where: { completed: true },
             select: { weight: true, reps: true, rpe: true, rir: true, completed: true, setType: true },
@@ -124,6 +126,7 @@ async function fetchCompletedSets(
           completed: set.completed,
           date: w.date,
           exerciseName: ex.exercise.exerciseName,
+          exerciseId: ex.exercise.id,
           muscleGroups: ex.exercise.muscleGroupsActivated ?? [],
           setType: set.setType,
         });

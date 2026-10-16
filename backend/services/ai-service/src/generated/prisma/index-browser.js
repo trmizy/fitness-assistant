@@ -519,7 +519,8 @@ exports.Prisma.FitnessAgentActionScalarFieldEnum = {
   status: 'status',
   result: 'result',
   expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.AgentWorkflowSessionScalarFieldEnum = {

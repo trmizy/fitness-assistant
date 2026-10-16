@@ -1,0 +1,214 @@
+{
+  "docs": [
+    {
+      "relativePath": "docs/research/workout-plan-bpm/README.md",
+      "sha256": "dc92cfe82b982bc2a4bc7055eb565c4d0cda6efe78872b7a9afd5250ee1df142",
+      "bytes": 5143,
+      "mtime": "2026-10-02T20:36:30.193Z",
+      "role": "supervisor-summary"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/00-scope-and-research-question.md",
+      "sha256": "42d509c7f428b042c1a2bf2d7d4f3d3682b572247678e14ac98856a5eaffa1d3",
+      "bytes": 4851,
+      "mtime": "2026-10-02T20:27:42.305Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/01-business-scenario.md",
+      "sha256": "b802c0af76fc6dde2d1716a8bf745054ba14919a33f84046b34c2381fbbb0c36",
+      "bytes": 4595,
+      "mtime": "2026-10-02T20:28:04.822Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/02-as-is-process.md",
+      "sha256": "9a607eb89a48cef38f14ed15ebdbd064388c18e952438da8a42203a340a5331a",
+      "bytes": 12823,
+      "mtime": "2026-10-02T20:29:02.771Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/03-to-be-bpm.md",
+      "sha256": "02c7e977fe6009aec24a81eebdda395a0475437423adc4af933f68cb4671c752",
+      "bytes": 7316,
+      "mtime": "2026-10-02T20:29:36.508Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/04-functional-requirements.md",
+      "sha256": "6d38a1f7d5a4809d87b5e5ad057aaad19abc7f3abd28e1db86b169b9688a7bb0",
+      "bytes": 4980,
+      "mtime": "2026-10-02T20:29:59.938Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/05-exception-catalogue.md",
+      "sha256": "dfb1734ae703d34ebcd3cfb4787ed5bd926c7af923fe2748a831f5a0416619ba",
+      "bytes": 13879,
+      "mtime": "2026-10-02T20:30:59.814Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/06-acceptance-criteria.md",
+      "sha256": "dc60007c90c777751fa9da8f63b759d575550c5020be71f7ee8f397676d221de",
+      "bytes": 9086,
+      "mtime": "2026-10-02T20:31:40.419Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/07-context-model.md",
+      "sha256": "d250b34c31db7fb578445625b8c13fba2551903e8418f79380dd73495bc41f40",
+      "bytes": 7982,
+      "mtime": "2026-10-02T20:32:34.917Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/08-agent-input-output.md",
+      "sha256": "c6169560d81d7b8073c3b20b253ca20e4fbdad21eed1d60c1ed444db8167ab6f",
+      "bytes": 7496,
+      "mtime": "2026-10-02T20:33:11.289Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/09-domain-knowledge-hitl.md",
+      "sha256": "cb5579db2d1a94ee3d8ffe187890af5677543eb2f983eb2af3699251867546cb",
+      "bytes": 4416,
+      "mtime": "2026-10-02T20:33:33.923Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/10-traceability-matrix.md",
+      "sha256": "af8e58891ff90eff576d849026b21dc394853ff504ae0d788e6ccc9372b68223",
+      "bytes": 10409,
+      "mtime": "2026-10-02T20:35:07.003Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/11-qwen3-4b-evaluation-plan.md",
+      "sha256": "8bf85399efa4b9f09c3ba79ee5af7b2ba2c1a11cac844a0b19fa7d194bf9f5d6",
+      "bytes": 6395,
+      "mtime": "2026-10-02T20:35:37.763Z",
+      "role": "design-document"
+    },
+    {
+      "relativePath": "docs/research/workout-plan-bpm/12-gap-analysis-and-next-implementation.md",
+      "sha256": "e294a5cb2cc82ff98dadfbbdf81ff8faa0a65eae39b5f9ee60adc4396326fc32",
+      "bytes": 5105,
+      "mtime": "2026-10-02T20:36:06.161Z",
+      "role": "design-document"
+    }
+  ],
+  "globCounts": [
+    {
+      "glob": "conversational-intelligence-*.test.ts",
+      "matches": 3
+    },
+    {
+      "glob": "agent-workflow-*.test.ts",
+      "matches": 12
+    },
+    {
+      "glob": "fitness-agent-*.test.ts",
+      "matches": 10
+    }
+  ],
+  "definitionCounts": {
+    "functionalRequirements": 22,
+    "exceptions": 20,
+    "acceptanceCriteria": 42
+  },
+  "definitionIds": {
+    "FR": [
+      "FR01",
+      "FR02",
+      "FR03",
+      "FR04",
+      "FR05",
+      "FR06",
+      "FR07",
+      "FR08",
+      "FR09",
+      "FR10",
+      "FR11",
+      "FR12",
+      "FR13",
+      "FR14",
+      "FR15",
+      "FR16",
+      "FR17",
+      "FR18",
+      "FR19",
+      "FR20",
+      "FR21",
+      "FR22"
+    ],
+    "EX": [
+      "EX01",
+      "EX02",
+      "EX03",
+      "EX04",
+      "EX05",
+      "EX06",
+      "EX07",
+      "EX08",
+      "EX09",
+      "EX10",
+      "EX11",
+      "EX12",
+      "EX13",
+      "EX14",
+      "EX15",
+      "EX16",
+      "EX17",
+      "EX18",
+      "EX19",
+      "EX20"
+    ],
+    "AC": [
+      "AC01",
+      "AC02",
+      "AC03",
+      "AC04",
+      "AC05",
+      "AC06",
+      "AC07",
+      "AC08",
+      "AC09",
+      "AC10",
+      "AC11",
+      "AC12",
+      "AC13",
+      "AC14",
+      "AC15",
+      "AC16",
+      "AC17",
+      "AC18",
+      "AC19",
+      "AC20",
+      "AC21",
+      "AC22",
+      "AC23",
+      "AC24",
+      "AC25",
+      "AC26",
+      "AC27",
+      "AC28",
+      "AC29",
+      "AC30",
+      "AC31",
+      "AC32",
+      "AC33",
+      "AC34",
+      "AC35",
+      "AC36",
+      "AC37",
+      "AC38",
+      "AC39",
+      "AC40",
+      "AC41",
+      "AC42"
+    ]
+  },
+  "_carriedForwardFrom": "20261003T054058Z (preflight); design-doc sha256 re-verified against current files at benchmark freeze"
+}

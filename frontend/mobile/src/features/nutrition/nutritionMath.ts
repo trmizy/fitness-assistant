@@ -37,6 +37,8 @@ export type NutritionLogRow = {
   carbs: number;
   fat: number;
   notes: string | null;
+  /** Grams, when the log recorded it (14B.3 — the edit form shows it, as on web). */
+  quantity?: number | null;
 };
 
 export type MacroTotals = { calories: number; protein: number; carbs: number; fat: number };
@@ -72,6 +74,7 @@ export function normalizeLog(raw: any): NutritionLogRow {
     // `fats` is what the API returns; `fat` is only here for a hand-written row or a future rename.
     fat: num(raw?.fats ?? raw?.fat),
     notes: raw?.notes ?? null,
+    quantity: raw?.quantity != null && Number.isFinite(Number(raw.quantity)) ? Number(raw.quantity) : null,
   };
 }
 
@@ -120,6 +123,18 @@ export function scaleFood(food: any, grams: number): ScaledFood {
 
 export function isValidQuantity(grams: number): boolean {
   return Number.isFinite(grams) && grams >= MIN_GRAMS && grams <= MAX_GRAMS;
+}
+
+/**
+ * The `date` a log for local calendar day `day` (YYYY-MM-DD) must carry — noon UTC of that day,
+ * web's own convention (NutritionPage). The server buckets a log by the UTC date of this stamp and
+ * `GET /nutrition?startDate=day&endDate=day` reads UTC midnight→midnight, so noon lands in the
+ * right day from any timezone. Sending no date lets the server stamp "now": in Vietnam that is
+ * still yesterday in UTC until 07:00, and a meal logged before then vanished from today's diary
+ * (real phone, 7/10).
+ */
+export function logDateForDay(day: string): string {
+  return `${day}T12:00:00.000Z`;
 }
 
 /**

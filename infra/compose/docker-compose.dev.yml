@@ -110,12 +110,6 @@ services:
       CHAT_SERVICE_URL: http://chat-service:3005
       PAYMENT_SERVICE_URL: http://payment-service:3007
       GYM_SERVICE_URL: http://gym-service:3006
-      N8N_BASE_URL: http://n8n:5678
-      N8N_EDITOR_BASE_PATH: /admin/workflows/studio
-      N8N_SMOKE_TEST_WEBHOOK_URL: http://n8n:5678/webhook/gym-smoke-test
-      N8N_E2E_WEBHOOK_URL: http://n8n:5678/webhook/gym-e2e-run
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
@@ -129,10 +123,18 @@ services:
       # Dev/E2E: generous per-IP ceilings for the partner-application endpoints (code defaults are 10 and 60).
       PARTNER_APPLICATION_START_RATE_MAX: ${PARTNER_APPLICATION_START_RATE_MAX:-200}
       PARTNER_APPLICATION_RATE_MAX: ${PARTNER_APPLICATION_RATE_MAX:-600}
+      # Tệp riêng tư của hồ sơ đối tác đi qua CÙNG cửa với API (localhost, IP LAN, tunnel Cloudflare):
+      # gateway chuyển /<bucket>/… sang MinIO (src/routes/storage.proxy.ts). Chỉ dev — production gọi S3.
+      MINIO_PROXY_TARGET: http://minio:9000
+      PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      # Địa chỉ web công khai hiện tại, do Khoi-dong-Tunnel-Web.bat ghi (src/utils/publicWebOrigin.ts):
+      # dùng làm host cho link trong email + được CORS tin. Không có tệp / tệp cũ >2 phút = bỏ qua.
+      PUBLIC_WEB_ORIGIN_FILE: /run/gymini/public-web-origin
     env_file:
       - ../../.env
     volumes:
       - ../../backend/gateway/src:/app/backend/gateway/src
+      - ./runtime:/run/gymini:ro
     depends_on:
       auth-service:
         condition: service_healthy
@@ -269,6 +271,7 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      FIREBASE_CREDENTIALS_DIR: /app/secret
       # TEMPORARY (requested to unblock local testing): this dev environment has no public
       # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
       # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
@@ -282,6 +285,10 @@ services:
       - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
+      # Mobile Phase 14.2 — Firebase service-account key for phone push (push.service.ts reads
+      # the first service_account JSON in FIREBASE_CREDENTIALS_DIR). Read-only; the folder is
+      # git-ignored and never baked into an image. Missing folder = push simply off.
+      - ../../secret:/app/secret:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -379,6 +386,10 @@ services:
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
+      # Without this the value comes from ../../.env (http://localhost:3001), which a container
+      # cannot reach: ai-service's own token check then fails and /ai/ask answers 503
+      # "Unable to verify session right now" (found on the partner's stack, 6/10).
+      AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       PAYMENT_SERVICE_URL: http://payment-service:3007
@@ -390,10 +401,11 @@ services:
       # set LLM_BASE_URL=http://ollama:11434.
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      AI_CHAT_LLM_TIMEOUT_MS: ${AI_CHAT_LLM_TIMEOUT_MS:-80000}  # Above this, tunnel (~100s) and app (120s) time out first anyway.
       EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
       LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
       LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
@@ -480,7 +492,7 @@ services:
       # to run against Docker-local Ollama instead.
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
@@ -639,6 +651,7 @@ services:
       NVIDIA_VISIBLE_DEVICES: void
       CUDA_VISIBLE_DEVICES: ""
       OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: "30m"   # R1: keep the approved model resident between turns; cold loads measured at 60-82 s
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
@@ -660,40 +673,8 @@ services:
       [
         "sh",
         "-c",
-        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-qwen3:4b-instruct-2507-q4_K_M}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
       ]
-    networks:
-      - default
-
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: gymcoach-n8n
-    profiles:
-      - automation
-    ports:
-      - "5678:5678"
-    environment:
-      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
-      N8N_HOST: ${N8N_HOST:-localhost}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      N8N_PATH: ${N8N_PATH:-/}
-      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
-      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Ho_Chi_Minh}
-      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
-      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
-      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
-    volumes:
-      - n8n_data:/home/node/.n8n
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: "no"
     networks:
       - default
 
@@ -931,6 +912,9 @@ services:
       PARTNER_S3_ENDPOINT: http://minio:9000
       # Presigned URLs are signed for the host the BROWSER will call, so they use this one.
       PARTNER_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      # Ký link theo đúng địa chỉ người gọi đang dùng (qua gateway → MinIO) thay vì cố định localhost:9000,
+      # để điện thoại / app Android / tunnel xem và tải được tệp. Fallback ở trên cho job/test không có request.
+      PARTNER_S3_PUBLIC_VIA_REQUEST: "true"
       PARTNER_S3_REGION: us-east-1
       PARTNER_S3_FORCE_PATH_STYLE: "true"
       PARTNER_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}
@@ -1004,7 +988,6 @@ volumes:
   redis_data:
   qdrant_data:
   ollama_data:
-  n8n_data:
   prometheus_data:
   grafana_data:
   seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)

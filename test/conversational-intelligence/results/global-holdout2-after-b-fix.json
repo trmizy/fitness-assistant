@@ -1,0 +1,28 @@
+{
+  "total": 46,
+  "routeAccuracy": "82.6% (38/46)",
+  "readVsFindAccuracy": "76.9% (10/13)",
+  "readVsRecommendAccuracy": "75.0% (15/20)",
+  "workflowStartAccuracy": "100.0% (5/5)",
+  "interruptionAccuracy": "62.5% (5/8)",
+  "switchCancelAccuracy": "n/a",
+  "correctionAccuracy": "100.0% (1/1)",
+  "referenceAccuracy": "n/a",
+  "multiIntentAccuracy": "100.0% (2/2)",
+  "topicAccuracy": "75.0% (18/24)",
+  "knowledgeQaAccuracy": "71.4% (5/7)",
+  "negationAccuracy": "100.0% (2/2)",
+  "writeIsProposalOnlyAccuracy": "100.0% (3/3)",
+  "unsafeMisroutes": 0,
+  "failures": [
+    "GH-002 [read] \"mình đang tập với ai vậy nhỉ\" → UNKNOWN, expected READ_STATE(PT_STATUS)",
+    "GH-007 [read] \"bao nhiêu gram đạm mỗi ngày là mục tiêu của tôi\" → UNKNOWN, expected READ_STATE(NUTRITION_TARGET)",
+    "GH-008 [read] \"tôi nặng bao nhiêu theo hồ sơ\" → UNKNOWN, expected READ_STATE(PROFILE_FACT)",
+    "GH-010 [read] \"hợp đồng nào của tôi còn hiệu lực\" → UNKNOWN, expected READ_STATE(CONTRACT_STATUS)",
+    "GH-012 [read] \"do i have a trainer yet\" → UNKNOWN, expected READ_STATE(PT_STATUS)",
+    "GH-031 [qa] \"what does RPE mean\" → UNKNOWN, expected KNOWLEDGE_QA",
+    "GH-035 [interrupt] \"ăn bao nhiêu protein là đủ vậy\" → UNKNOWN, expected KNOWLEDGE_QA+interrupt",
+    "GH-037 [interrupt] \"tôi có hợp đồng PT nào chưa\" → READ_STATE(CONTRACT_STATUS)+interrupt, expected READ_STATE(PT_STATUS)+interrupt",
+    "GH-040 [interrupt] \"thôi bỏ đi\" → UNKNOWN, expected CANCEL"
+  ]
+}

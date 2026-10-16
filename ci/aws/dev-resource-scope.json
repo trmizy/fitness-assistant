@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "purpose": "Phase 16B.1A - machine-readable inventory of the exact AWS resource ARNs the 5 proposed Gymini*/ci-cd-oidc.yaml roles are scoped to. Every ARN below was read from a real, live AWS API call on 2026-10-12 under --profile gymini-admin - none are guessed or templated from naming convention alone.",
+    "account": "191798898985",
+    "region": "ap-southeast-1",
+    "partition": "aws",
+    "generatedAt": "2026-10-12",
+    "sourceTemplate": "infra/cloudformation/ci-cd-oidc.yaml",
+    "verificationMethod": "REAL HTTP/API (aws lambda list-functions / ecs describe-services / ecr describe-repositories / iam get-role / cloudformation describe-stacks / s3api get-bucket-location, all --profile gymini-admin)"
+  },
+  "oidcProvider": {
+    "arn": "arn:aws:iam::191798898985:oidc-provider/token.actions.githubusercontent.com",
+    "audience": "sts.amazonaws.com",
+    "iacOwner": "Terraform (infra/terraform/modules/iam/main.tf: aws_iam_openid_connect_provider.github)",
+    "newProviderPlanned": false
+  },
+  "githubRepository": "trmizy/fitness-assistant",
+  "defaultBranch": "master",
+  "apiGateway": {
+    "protectedApiId": "id1iz7upbl",
+    "apiArnRoot": "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl",
+    "apiArnWildcard": "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*",
+    "tagsArnWildcard": "arn:aws:apigateway:ap-southeast-1::/tags/*",
+    "cloudformationStack": {
+      "name": "fitness-assistant-dev-api-gateway",
+      "stackArn": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/1ba058b0-c3bb-11f1-97a6-06ffe6971553",
+      "stackArnPatternUsedInPolicies": "arn:aws:cloudformation:ap-southeast-1:191798898985:stack/fitness-assistant-dev-api-gateway/*",
+      "statusAtPlanTime": "UPDATE_COMPLETE"
+    }
+  },
+  "lambdaFunctions": {
+    "_note": "16 functions exist live (aws lambda list-functions, 2026-10-12). AppDeployRole's LambdaCodeOnly statement authorizes exactly the 12 non-migrate, API-facing or worker functions below - it deliberately excludes the 4 *-migrate functions (ai-migrate, gym-migrate, payment-migrate, chat-migrate) so normal CI code-deploy can never touch a migration Lambda. CfnExecutionRole's InvokePermissionsOnApiFacingLambdas is scoped to only the 6 functions that are actually wired into API Gateway integrations (matches the 18-integration/6-Lambda topology adopted in Phase 15B).",
+    "allLiveFunctions": [
+      "fitness-assistant-dev-auth",
+      "fitness-assistant-dev-user",
+      "fitness-assistant-dev-user-jobs",
+      "fitness-assistant-dev-fitness",
+      "fitness-assistant-dev-fitness-jobs",
+      "fitness-assistant-dev-gym",
+      "fitness-assistant-dev-gym-jobs",
+      "fitness-assistant-dev-gym-migrate",
+      "fitness-assistant-dev-payment",
+      "fitness-assistant-dev-payment-jobs",
+      "fitness-assistant-dev-payment-migrate",
+      "fitness-assistant-dev-ai",
+      "fitness-assistant-dev-ai-jobs",
+      "fitness-assistant-dev-ai-migrate",
+      "fitness-assistant-dev-ai-worker",
+      "fitness-assistant-dev-chat-migrate"
+    ],
+    "appDeployCodeDeployScope": [
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user-jobs",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness-jobs",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym-jobs",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment-jobs",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai-jobs",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai-worker"
+    ],
+    "appDeploySmokeInvokeScope": [
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+    ],
+    "cfnExecutionApiFacingScope": [
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-user",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+      "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+    ],
+    "explicitlyExcludedFromCodeDeploy": [
+      "fitness-assistant-dev-ai-migrate",
+      "fitness-assistant-dev-gym-migrate",
+      "fitness-assistant-dev-payment-migrate",
+      "fitness-assistant-dev-chat-migrate"
+    ]
+  },
+  "ecs": {
+    "clusterArn": "arn:aws:ecs:ap-southeast-1:191798898985:cluster/fitness-assistant-dev-cluster",
+    "serviceArn": "arn:aws:ecs:ap-southeast-1:191798898985:service/fitness-assistant-dev-cluster/fitness-assistant-dev-chat-service",
+    "currentTaskDefinitionArn": "arn:aws:ecs:ap-southeast-1:191798898985:task-definition/fitness-assistant-dev-chat:8",
+    "registerTaskDefinitionResourceLevel": "none (RegisterTaskDefinition has no resource-level ARN support in IAM - Resource: \"*\" is the AWS-documented requirement, scoped down by action to only RegisterTaskDefinition/DescribeTaskDefinition/ListTaskDefinitions)"
+  },
+  "ecr": {
+    "repositoryArn": "arn:aws:ecr:ap-southeast-1:191798898985:repository/fitness-assistant-dev-chat",
+    "getAuthorizationTokenResourceLevel": "none (ecr:GetAuthorizationToken is account-level only, AWS-documented requirement for Resource: \"*\")"
+  },
+  "chatPassRoleTargets": [
+    "arn:aws:iam::191798898985:role/fitness-assistant-dev-chat-execution-role",
+    "arn:aws:iam::191798898985:role/fitness-assistant-dev-chat-task-role"
+  ],
+  "cfnExecutionRolePassRoleTarget": {
+    "_note": "Resolved via !GetAtt CfnExecutionRole.Arn in the template, not yet a real ARN until the role is created - recorded here as the EXPECTED ARN for the activation manifest.",
+    "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole"
+  },
+  "s3ArtifactBucket": {
+    "bucketName": "fitness-assistant-deployments-dev-191798898985",
+    "bucketArn": "arn:aws:s3:::fitness-assistant-deployments-dev-191798898985",
+    "region": "ap-southeast-1",
+    "appDeployPrefix": "ci-artifacts/*",
+    "infraPlanPrefix": "ci-templates/*"
+  },
+  "cloudWatchLogs": {
+    "lambdaLogGroupWildcard": "arn:aws:logs:ap-southeast-1:191798898985:log-group:/aws/lambda/fitness-assistant-dev-*:*"
+  },
+  "proposedNewIamRoles": [
+    { "name": "GyminiDevCiReadRole", "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevCiReadRole" },
+    { "name": "GyminiDevAppDeployRole", "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevAppDeployRole" },
+    { "name": "GyminiDevInfraPlanRole", "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevInfraPlanRole" },
+    { "name": "GyminiDevInfraApplyRole", "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevInfraApplyRole" },
+    { "name": "GyminiDevCfnExecutionRole", "expectedArn": "arn:aws:iam::191798898985:role/GyminiDevCfnExecutionRole" }
+  ],
+  "legacyRoleLeftUnchanged": {
+    "name": "fitness-assistant-github-actions-ci",
+    "arn": "arn:aws:iam::191798898985:role/fitness-assistant-github-actions-ci",
+    "iacOwner": "Terraform (infra/terraform/modules/iam/main.tf: aws_iam_role.github_actions_ci)",
+    "action": "LEAVE_UNCHANGED"
+  }
+}

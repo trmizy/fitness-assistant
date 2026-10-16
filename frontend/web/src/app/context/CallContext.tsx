@@ -218,6 +218,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
           () => dispatch({ type: "TICK_DURATION" }),
           1000,
         );
+        // Media really flows now — the server starts the call's duration from the first report.
+        const connectedId = stateRef.current.callInfo?.callSessionId;
+        if (connectedId && chatWsEnabled) {
+          getSocket().emit("call:connected", { callSessionId: connectedId });
+        }
       } else if (connState === "failed") {
         const s = stateRef.current;
         if (s.callInfo?.callSessionId && chatWsEnabled) {

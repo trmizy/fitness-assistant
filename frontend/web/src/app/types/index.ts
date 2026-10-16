@@ -544,6 +544,8 @@ export interface GymBrand {
   approvedName?: string | null;
   pendingName?: string | null;
   description?: string;
+  /** Logo (link ký tạm) — có ở GET /owner/brands. */
+  logoUrl?: string | null;
   /** Trang mạng xã hội của thương hiệu — hiện ở "Chi tiết" khi khách xem phòng gym. */
   facebookUrl?: string | null;
   instagramUrl?: string | null;

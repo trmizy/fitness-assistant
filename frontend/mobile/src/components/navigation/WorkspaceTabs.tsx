@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
 
@@ -49,13 +50,21 @@ export function WorkspaceTabs({
   fullScreenRoutes?: string[];
 }) {
   const accent = workspaceAccents[workspace];
+  const insets = useSafeAreaInsets();
 
   return (
     <WorkspaceProvider value={workspace}>
       <View className="flex-1 bg-background" style={workspaceVars[workspace]}>
         <Tabs
+            // Back returns to the tab the user came from. The default ("firstRoute") sent Back from
+            // any screen opened out of another tab — the roadmap wizard from "Tập luyện" — to the
+            // first tab instead (real phone, 6/10).
+            backBehavior="history"
             screenOptions={{
               headerShown: false,
+              // The root KeyboardAvoidingView shrinks the app above the keyboard; without this the
+              // tab bar would ride up with it and eat the space a composer or form field needs.
+              tabBarHideOnKeyboard: true,
               tabBarActiveTintColor: accent.primary,
               tabBarInactiveTintColor: designTokens.mutedForeground,
               tabBarStyle: {
@@ -63,9 +72,13 @@ export function WorkspaceTabs({
                 borderTopColor: darkColors.border,
                 // RN's default is a hairline that reads as a smudge on a dark background.
                 borderTopWidth: 1,
-                height: 62,
+                // A fixed height replaces React Navigation's own inset handling, so the system bar
+                // inset is added back by hand: the app is edge-to-edge, and on a phone with 3-button
+                // navigation those buttons drew over the tabs (Galaxy S21 FE, 6/10). AiCoachFab sits
+                // at insets.bottom + 62 + 20 and relies on this.
+                height: 62 + insets.bottom,
                 paddingTop: 6,
-                paddingBottom: 8,
+                paddingBottom: 8 + insets.bottom,
               },
               tabBarLabelStyle: {
                 fontFamily: "Inter_500Medium",

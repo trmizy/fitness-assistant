@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "661695379962",
+    "project_id": "gymini-8ea09",
+    "storage_bucket": "gymini-8ea09.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:661695379962:android:c4e06f69c40d2f1e7d8c43",
+        "android_client_info": {
+          "package_name": "vn.fitnessassistant.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0aLWeflFeHEekZ49EPWVfQL5_7cpoYug"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

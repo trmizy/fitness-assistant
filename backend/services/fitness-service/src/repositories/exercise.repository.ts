@@ -1,5 +1,27 @@
+import { logger } from "@gym-coach/shared";
 import { prisma } from "./prisma";
 import { redisClient } from "./redis";
+
+// N1 — this cache is optional-by-design (every read already falls through to
+// Prisma on a miss), but a Redis error from get/setEx was previously
+// unhandled here and propagated to the caller as a request failure. Best-
+// effort, same fail-soft pattern already used by training-cycle.service.ts's
+// cache calls and this file's own create() cache invalidation below.
+async function cacheGet(key: string): Promise<string | null> {
+  try {
+    return await redisClient.get(key);
+  } catch (err) {
+    logger.warn({ err: (err as Error)?.message, key }, "[exercise.repository] cache read failed; falling back to DB");
+    return null;
+  }
+}
+async function cacheSetEx(key: string, seconds: number, value: string): Promise<void> {
+  try {
+    await redisClient.setEx(key, seconds, value);
+  } catch (err) {
+    logger.warn({ err: (err as Error)?.message, key }, "[exercise.repository] cache write failed; continuing without caching");
+  }
+}
 
 export const exerciseRepository = {
   async findMany(
@@ -7,7 +29,7 @@ export const exerciseRepository = {
     options?: { skip?: number; take?: number },
   ) {
     const cacheKey = `exercises:${JSON.stringify({ where, options })}`;
-    const cached = await redisClient.get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
       return { data: JSON.parse(cached), fromCache: true };
     }
@@ -19,7 +41,7 @@ export const exerciseRepository = {
       take: options?.take,
     });
 
-    await redisClient.setEx(cacheKey, 300, JSON.stringify(exercises));
+    await cacheSetEx(cacheKey, 300, JSON.stringify(exercises));
     return { data: exercises, fromCache: false };
   },
 
@@ -84,12 +106,12 @@ export const exerciseRepository = {
 
   async findById(id: string) {
     const cacheKey = `exercise:${id}`;
-    const cached = await redisClient.get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) return JSON.parse(cached);
 
     const exercise = await prisma.exercise.findUnique({ where: { id } });
     if (exercise)
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(exercise));
+      await cacheSetEx(cacheKey, 300, JSON.stringify(exercise));
     return exercise;
   },
 
@@ -101,7 +123,7 @@ export const exerciseRepository = {
   // shared cache key with two different shapes would be a real footgun.
   async findByIdWithDetails(id: string) {
     const cacheKey = `exercise-detail:${id}`;
-    const cached = await redisClient.get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) return JSON.parse(cached);
 
     const exercise = await prisma.exercise.findUnique({
@@ -112,7 +134,7 @@ export const exerciseRepository = {
       },
     });
     if (exercise)
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(exercise));
+      await cacheSetEx(cacheKey, 300, JSON.stringify(exercise));
     return exercise;
   },
 

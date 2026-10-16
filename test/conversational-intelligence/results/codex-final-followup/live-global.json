@@ -1,0 +1,248 @@
+{
+  "at": "2026-09-27T15:15:55.128Z",
+  "evidence": "REAL HTTP/API (Docker ai-service, CONVERSATIONAL_INTELLIGENCE_V2=on, isolated test DBs, configured qwen3:30b)",
+  "results": [
+    {
+      "name": "READ: 'Tôi đang có PT chưa?' returns the real contract state (not a PT search)",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "READ: it matches the DB contract (package name present)",
+      "pass": false,
+      "detail": "PENDING_REVIEW|Gói 10 buổi | "
+    },
+    {
+      "name": "READ: no workflow created for the read",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "READ: a user with no contract hears 'chưa có PT' and nothing starts/writes",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "RECOMMEND: 'PT nào hợp với tôi?' starts the PT recommendation workflow",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "WRITE stays behind confirmation: nothing written by the search",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "PENDING: the calorie question is answered from the ACTIVE NutritionGoal",
+      "pass": false,
+      "detail": " | "
+    },
+    {
+      "name": "PENDING: the PT workflow survives untouched (same row, same status, same slot)",
+      "pass": false,
+      "detail": " -> "
+    },
+    {
+      "name": "PENDING: the reply reminds how to continue",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "PENDING: answering the slot afterwards resumes the workflow (no restart, no lost state)",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "RECOMMEND (standalone): loads real context and explains (173cm, 80kg, BMI) without any write",
+      "pass": true,
+      "detail": "Với 173cm và 80kg (BMI khoảng 26,7), BMI đang cao hơn khoảng bình thường (18,5–24,9), nên giảm mỡ (cut) trước rồi mới tăng cơ thường hợp lý hơn. Mục tiêu đang lưu của bạn là tăng cơ. Đây là gợi ý tham khảo, không phải ch"
+    },
+    {
+      "name": "ASK → ACTION: 'ok đổi theo đề xuất đó' produces a PROFILE_UPDATE_CONFIRMATION (no write yet)",
+      "pass": true,
+      "detail": "[{\"field\":\"goal\",\"oldValue\":\"MUSCLE_GAIN\",\"newValue\":\"WEIGHT_LOSS\"}]"
+    },
+    {
+      "name": "CONFIRM: the goal is written once after the explicit confirmation",
+      "pass": true,
+      "detail": "WEIGHT_LOSS | Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ."
+    },
+    {
+      "name": "FRESH: 'mục tiêu hiện tại' immediately returns the NEW authoritative goal",
+      "pass": true,
+      "detail": "Mục tiêu hiện tại của bạn là giảm mỡ."
+    },
+    {
+      "name": "READ: program status returns the real saved program (not a program search)",
+      "pass": true,
+      "detail": "Lịch tập do AI Coach tạo | Bạn đang theo chương trình \"Lịch tập do AI Coach tạo\", khoảng 4 buổi/tuần."
+    },
+    {
+      "name": "READ: 'Hôm nay tôi tập gì?' is answered from the schedule and does NOT start CREATE_WORKOUT_PLAN",
+      "pass": true,
+      "detail": "Theo lịch tập đã lưu, Chủ Nhật 2026-09-27 của bạn là **Core + Cardio** trong plan **Lịch tập do AI Coach tạo**.\n**Nhóm c"
+    },
+    {
+      "name": "READ: calorie question equals the ACTIVE NutritionGoal in the DB",
+      "pass": true,
+      "detail": "2187 | Mục tiêu dinh dưỡng đang áp dụng của bạn là 2.187 kcal/ngày — đạm 193g, carb 201g, béo 68g."
+    },
+    {
+      "name": "FRESH(before hire): no PT yet",
+      "pass": true,
+      "detail": "Hiện bạn chưa có PT nào. Nếu muốn, bạn nhắn \"tìm PT cho tôi\" để mình lọc PT phù hợp — mình sẽ không tự đăng ký giúp bạn khi chưa được xác nhận."
+    },
+    {
+      "name": "WRITE: PT candidates available for the hire test",
+      "pass": false,
+      "detail": "no PT candidate matched this fixture user"
+    },
+    {
+      "name": "Q&A answered: Progressive overload là gì?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Q&A answered: RIR là gì?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Q&A answered: Superset khác dropset thế nào?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Q&A answered: PT là gì?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Q&A answered: Thâm hụt calo là gì?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Q&A answered: Creatine có an toàn không?",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "PURE Q&A: no profile/program/nutrition/contract/action/workflow writes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SECURITY: user A's contract read never contains another user's contract/PT",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SECURITY: writing into another user's session id does not run under that user's identity",
+      "pass": true,
+      "detail": "503"
+    }
+  ],
+  "traces": {
+    "pt_read": [
+      {
+        "level": 30,
+        "time": 1790522148025,
+        "pid": 3953,
+        "hostname": "77e9cecfff08",
+        "correlationId": "ai_1790522147986_ccp6wh",
+        "userId": "574f45b1-dab8-4d24-88b6-bdb99f17a47c",
+        "sessionId": "22f1f2de-b89d-4ff2-bd7a-72762b981cb7",
+        "proposalStored": false,
+        "pendingDraft": false,
+        "deterministicRoute": "READ_STATE",
+        "deterministicTopic": "PT_STATUS",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "READ_STATE",
+        "topic": "PT_STATUS",
+        "reason": "state question about the user's own data",
+        "agent": "EnterpriseDataAgent",
+        "source": "user-service:/contracts/client",
+        "factKeys": [
+          "total",
+          "live",
+          "statuses"
+        ],
+        "msg": "ci_global_trace"
+      }
+    ],
+    "interruption": [],
+    "recommendation": [
+      {
+        "level": 30,
+        "time": 1790521994909,
+        "pid": 141,
+        "hostname": "77e9cecfff08",
+        "correlationId": "ai_1790521994731_72vyp1",
+        "userId": "68fbf223-413c-4a41-bb58-a37044701e89",
+        "sessionId": "31fe6025-4ef5-4c57-9d1c-42c39f25379e",
+        "proposalStored": false,
+        "pendingDraft": false,
+        "deterministicRoute": "RECOMMEND",
+        "deterministicTopic": "GOAL",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "RECOMMEND",
+        "topic": "GOAL",
+        "reason": "personalized recommendation cue",
+        "agent": "EnterpriseDataAgent+FitnessRecommendationAgent",
+        "action": "deterministic recommendation",
+        "write": false,
+        "msg": "ci_global_trace"
+      },
+      {
+        "level": 30,
+        "time": 1790522143380,
+        "pid": 3953,
+        "hostname": "77e9cecfff08",
+        "correlationId": "ai_1790522143007_708nmp",
+        "userId": "cb52573a-9ce3-480b-a525-b006d988c5f5",
+        "sessionId": "29887172-4eeb-4f67-a8b3-14cf172aaf37",
+        "proposalStored": false,
+        "pendingDraft": false,
+        "deterministicRoute": "RECOMMEND",
+        "deterministicTopic": "GOAL",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "RECOMMEND",
+        "topic": "GOAL",
+        "reason": "personalized recommendation cue",
+        "agent": "EnterpriseDataAgent+FitnessRecommendationAgent",
+        "action": "deterministic recommendation",
+        "write": false,
+        "msg": "ci_global_trace"
+      }
+    ],
+    "proposal": [],
+    "pass": [
+      {
+        "level": 30,
+        "time": 1790522094500,
+        "pid": 141,
+        "hostname": "77e9cecfff08",
+        "correlationId": "ai_1790522094481_maze5s",
+        "userId": "abf6bab6-ac0d-4ae9-8420-2a5cb3d63e19",
+        "sessionId": "c21960ab-92ff-4955-94aa-c091d55faa55",
+        "proposalStored": false,
+        "pendingDraft": false,
+        "deterministicRoute": "KNOWLEDGE_QA",
+        "legacySpecialistCue": false,
+        "llmCalled": false,
+        "llmAccepted": null,
+        "route": "KNOWLEDGE_QA",
+        "reason": "impersonal knowledge question",
+        "action": "knowledge question → existing RAG pipeline (no CI-V2 involvement needed)",
+        "msg": "ci_global_trace"
+      }
+    ]
+  }
+}

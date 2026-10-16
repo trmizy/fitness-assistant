@@ -1023,7 +1023,21 @@ function buildMealPlanTemplate(
     preference,
   );
 
-  const applyMealConstraints = (plan: MealPlanTemplate): MealPlanTemplate => {
+  // The header numbers of a chat meal plan must be the user's ACTIVE NutritionGoal (single source of truth), not the
+  // kcal of whichever dataset template happened to be the closest sample.
+  const withAuthoritativeTargets = (plan: MealPlanTemplate): MealPlanTemplate =>
+    profile.nutritionGoal
+      ? {
+          ...plan,
+          kcal: profile.nutritionGoal.calories,
+          proteinGrams: profile.nutritionGoal.protein,
+          carbsGrams: profile.nutritionGoal.carbs,
+          fatGrams: profile.nutritionGoal.fat,
+        }
+      : plan;
+
+  const applyMealConstraints = (rawPlan: MealPlanTemplate): MealPlanTemplate => {
+    const plan = withAuthoritativeTargets(rawPlan);
     if (!isDairyFree) return plan;
     return {
       ...plan,
@@ -1044,6 +1058,44 @@ function buildMealPlanTemplate(
     };
   };
 
+  const normalizeFoodText = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const hasProtein = (foods: string[]) =>
+    foods.some((f) => /(ga|bo|thit|ca|tom|trung|long trang|dau hu|tofu|sua chua|whey|yogurt|salmon|chicken|beef|shrimp|egg)/.test(normalizeFoodText(f)));
+  const hasStapleCarb = (foods: string[]) =>
+    foods.some((f) => /(com|gao|bun|pho|mien|mi\b|banh mi|khoai|yen mach|oat|pasta|nui|quinoa|ngu coc|bap|ngo|chickpea|dau lang|dau den|beans)/.test(normalizeFoodText(f)));
+  const hasFatSource = (foods: string[]) =>
+    foods.some((f) => /(dau|hat|olive|lanh|bi |avocado|peanut|nuts|ca hoi|salmon)/.test(normalizeFoodText(f)));
+  const isLowCarb = /low_carb|keto|it carb|Ã­t carb/i.test(preference);
+  const isBalancedTemplate = (plan: MealPlanTemplate) => {
+    const mainMeals = plan.meals.slice(0, Math.min(3, plan.meals.length));
+    if (mainMeals.length === 0) return false;
+    const mainMealsBalanced = mainMeals.every((meal) => {
+      if (meal.foods.length < 3) return false;
+      if (!hasProtein(meal.foods)) return false;
+      if (!isLowCarb && !hasStapleCarb(meal.foods)) return false;
+      return true;
+    });
+    if (!mainMealsBalanced) return false;
+    return plan.meals.some((meal) => hasFatSource(meal.foods));
+  };
+
+  const fallbackMeals = (): MealPlanTemplate["meals"] => {
+    const breakfast = isDairyFree
+      ? { mealName: "Bữa sáng", foods: ["Yến mạch 70g", "Trứng 2 quả", "Chuối 1 quả", "Hạt chia 10g"] }
+      : { mealName: "Bữa sáng", foods: ["Yến mạch 70g", "Sữa chua Hy Lạp 200g", "Chuối 1 quả", "Hạt chia 10g"] };
+    const lunch = { mealName: "Bữa trưa", foods: ["Cơm trắng 220g", "Ức gà hoặc cá 150g", "Rau xanh 200g", "Dầu ô liu 10g"] };
+    const dinner = { mealName: "Bữa tối", foods: ["Khoai lang 250g", "Cá hồi hoặc đậu hũ 150g", "Salad 1 tô", "Bơ 1/4 quả"] };
+    const snack1 = isDairyFree
+      ? { mealName: "Bữa phụ", foods: ["Sữa hạt không đường 250ml", "Táo 1 quả", "Hạt điều 15g"] }
+      : { mealName: "Bữa phụ", foods: ["Sữa chua Hy Lạp 150g", "Táo 1 quả", "Hạt điều 15g"] };
+    const snack2 = { mealName: "Bữa phụ 2", foods: ["Bánh mì nguyên cám 2 lát", "Trứng 1-2 quả", "Dưa leo/cà chua"] };
+    if (mealsPerDay <= 2) return [breakfast, dinner];
+    if (mealsPerDay === 3) return [breakfast, lunch, dinner];
+    if (mealsPerDay === 4) return [breakfast, lunch, snack1, dinner];
+    return [breakfast, snack1, lunch, snack2, dinner].slice(0, Math.min(mealsPerDay, 5));
+  };
+
   // Try to load a real plan from the dataset
   const loaded = mealPlanLoader.load(
     objective,
@@ -1054,39 +1106,10 @@ function buildMealPlanTemplate(
     mealsPerDay,
     intent.mealPreferenceHint,
   );
-  if (loaded) return applyMealConstraints(loaded);
+  if (loaded && isBalancedTemplate(loaded)) return applyMealConstraints(loaded);
 
   // Fallback when dataset unavailable
-  const meals = isDairyFree
-    ? [
-        {
-          mealName: "Bữa sáng",
-          foods: ["Yến mạch 60g", "Sữa hạt không đường 250ml", "Chuối 1 quả"],
-        },
-        {
-          mealName: "Bữa trưa",
-          foods: ["Ức gà 150g", "Cơm trắng 180g", "Rau xanh 200g"],
-        },
-        {
-          mealName: "Bữa tối",
-          foods: ["Cá hồi 150g", "Khoai lang 250g", "Salad 1 tô"],
-        },
-      ]
-    : [
-        {
-          mealName: "Bữa sáng",
-          foods: ["Yến mạch 60g", "Sữa chua Hy Lạp 200g", "Chuối 1 quả"],
-        },
-        {
-          mealName: "Bữa trưa",
-          foods: ["Ức gà 150g", "Cơm trắng 180g", "Rau xanh 200g"],
-        },
-        {
-          mealName: "Bữa tối",
-          foods: ["Cá hồi 150g", "Khoai lang 250g", "Salad 1 tô"],
-        },
-      ];
-
+  const meals = fallbackMeals();
   return applyMealConstraints({
     isDefaultTemplate: true,
     kcal: nutrition.targetCalories ?? 2100,
@@ -1098,7 +1121,7 @@ function buildMealPlanTemplate(
       "Đổi ức gà → đậu hũ hoặc bò nạc (giữ nguyên gram protein).",
       "Đổi cơm trắng → khoai lang hoặc bánh mì nguyên cám (giữ nguyên gram carb).",
       isDairyFree
-        ? "Nếu dị ứng sữa: thay toàn bộ sữa/sữa chua/whey bằng sữa hạt, đậu phụ, trứng hoặc thịt nạc."
+        ? "Nếu dị ứng sữa: ưu tiên sữa hạt, đậu phụ, trứng, cá hoặc thịt nạc làm nguồn đạm thay thế."
         : "Đổi cá hồi → trứng + dầu ô liu (giữ nguyên gram fat).",
     ],
   });

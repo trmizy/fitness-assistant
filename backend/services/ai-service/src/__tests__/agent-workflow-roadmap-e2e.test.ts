@@ -286,3 +286,29 @@ test("CREATE_ROADMAP decline-persistence E2E (real DB): 'chỉ dùng cho lần n
     await prisma.chatSession.delete({ where: { id: session.id } });
   }
 });
+
+test("CREATE_PLAN_BUNDLE honesty (real DB): bootstrapNutrition 'insufficient_data' (no goal written) is reported as a failed step, never a ✅", async () => {
+  const { profile, calls } = stubRoadmapFixtures();
+  profile.targetWeight = 68;
+  fitnessAgentDeps.tools.bootstrapNutrition = async () => {
+    calls.bootstrapNutrition++;
+    return { data: { status: "insufficient_data", missingFields: ["activityLevel"] } } as any;
+  };
+  const userId = `agent-workflow-roadmap-honest-${randomUUID()}`;
+  const session = await seedSession(userId);
+  const identity = { userId } as any;
+  try {
+    const r1 = await fitnessAgent.tryTurn("tôi muốn tạo lộ trình và chương trình tập cho tôi", identity, session.id);
+    const actionId = (r1 as any).blocks[0].actionId as string;
+    const result = (await fitnessAgent.execute(identity, actionId, true)) as any;
+    const nutritionLine = (result.steps as string[]).find((s) => s.includes("Mục tiêu dinh dưỡng"));
+    assert.ok(nutritionLine?.startsWith("❌"), nutritionLine);
+    assert.match(nutritionLine!, /activityLevel/);
+    assert.doesNotMatch(result.message, /^Đã tạo và kích hoạt lộ trình, chương trình tập và mục tiêu dinh dưỡng/);
+  } finally {
+    await prisma.fitnessAgentAction.deleteMany({ where: { userId } });
+    await prisma.agentWorkflowSession.deleteMany({ where: { userId } });
+    await prisma.fitnessRecommendation.deleteMany({ where: { userId } });
+    await prisma.chatSession.delete({ where: { id: session.id } });
+  }
+});

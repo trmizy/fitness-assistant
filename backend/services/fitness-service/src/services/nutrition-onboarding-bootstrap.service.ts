@@ -195,8 +195,25 @@ async function assembleBootstrapInput(userId: string): Promise<AssembledBootstra
 
 export type NutritionTargetResolution =
   | { status: "ACTIVE_GOAL"; goalId: string; calories: number; protein: number; carbs: number; fat: number }
-  | { status: "COMPUTED"; calories: number; protein: number; carbs: number; fat: number; professionalReviewRequired: boolean }
+  | { status: "COMPUTED"; calories: number; protein: number; carbs: number; fat: number; professionalReviewRequired: boolean; waterMl?: number }
   | { status: "insufficient_data"; missingFields: string[] };
+
+export async function computeRecommendedNutritionTargetForUser(
+  userId: string,
+): Promise<NutritionTargetResolution> {
+  const assembled = await assembleBootstrapInput(userId);
+  if (!assembled.ok) return { status: "insufficient_data", missingFields: assembled.missingFields };
+  const prescription = computeInitialNutritionPrescription(assembled.input);
+  return {
+    status: "COMPUTED",
+    calories: prescription.targetCalories,
+    protein: prescription.proteinGrams,
+    carbs: prescription.carbGrams,
+    fat: prescription.fatGrams,
+    waterMl: prescription.waterMl,
+    professionalReviewRequired: assembled.screening.professionalReviewRequired,
+  };
+}
 
 /** READ-ONLY authoritative nutrition target — never writes. An existing
  * ACTIVE NutritionGoal always wins (it already embodies every cycle-
@@ -211,15 +228,7 @@ export async function resolveNutritionTargetForUser(userId: string): Promise<Nut
       calories: existingGoal.calories, protein: existingGoal.protein, carbs: existingGoal.carbs, fat: existingGoal.fat,
     };
   }
-  const assembled = await assembleBootstrapInput(userId);
-  if (!assembled.ok) return { status: "insufficient_data", missingFields: assembled.missingFields };
-  const prescription = computeInitialNutritionPrescription(assembled.input);
-  return {
-    status: "COMPUTED",
-    calories: prescription.targetCalories, protein: prescription.proteinGrams,
-    carbs: prescription.carbGrams, fat: prescription.fatGrams,
-    professionalReviewRequired: assembled.screening.professionalReviewRequired,
-  };
+  return computeRecommendedNutritionTargetForUser(userId);
 }
 
 export async function bootstrapNutritionForUser(

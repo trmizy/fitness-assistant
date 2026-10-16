@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { ActivityIndicator, AppState, View } from "react-native";
 import { usePathname } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Preferences } from "../services/storage";
@@ -15,6 +16,7 @@ import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
 import { onSessionExpired } from "../services/sessionEvents";
+import { unregisterPushToken } from "../features/push/pushDevice";
 import { darkColors } from "../theme/colors";
 
 // Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
@@ -155,6 +157,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // Phase 14.2 — take this phone off the account while the session still authorizes the call,
+    // and clear the shade so the next account never sees the previous one's notifications.
+    await unregisterPushToken();
+    void Notifications.dismissAllNotificationsAsync().catch(() => undefined);
     // Web also cleared its pending-AI-task store here; that store belongs to the AI Coach
     // screens and arrives with them in Phase 8.
     queryClient.clear();
@@ -164,6 +170,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setActiveView("client");
   };
+
+  // A user handed over from outside this file — registration's OTP step, which has just stored
+  // that account's tokens — IS a signed-in session. Exposing the bare state setter left
+  // `isAuthenticated` false, so the role guard bounced a freshly verified account from onboarding
+  // back to the login screen (real phone, 6/10). Same cache hygiene as login().
+  const adoptUser = useCallback(
+    (next: User | null) => {
+      if (next) queryClient.clear();
+      setUser(next);
+      setIsAuth(!!next);
+    },
+    [queryClient],
+  );
 
   const updateUser = useCallback(
     async (updates: Partial<User>) => {
@@ -202,7 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         login,
         logout,
-        setUser,
+        setUser: adoptUser,
         updateUser,
       }}
     >

@@ -24,10 +24,12 @@ import { PlanStatus } from "../generated/prisma";
 
 const originalHasCompletedCycleForPlan = marketplaceDeps.hasCompletedCycleForPlan;
 const originalFetchPtMarketplaceEligibility = marketplaceDeps.fetchPtMarketplaceEligibility;
+const originalValidateMarketplaceSchedulesMappable = marketplaceDeps.validateMarketplaceSchedulesMappable;
 
 test.after(async () => {
   marketplaceDeps.hasCompletedCycleForPlan = originalHasCompletedCycleForPlan;
   marketplaceDeps.fetchPtMarketplaceEligibility = originalFetchPtMarketplaceEligibility;
+  marketplaceDeps.validateMarketplaceSchedulesMappable = originalValidateMarketplaceSchedulesMappable;
   await prisma.$disconnect();
 });
 
@@ -137,6 +139,17 @@ test("republishVersion: sets publisherIsVerifiedPt on the new version from the c
 
 async function seedApprovedListingFor(publisherId: string) {
   marketplaceDeps.hasCompletedCycleForPlan = async () => true;
+  // N6 (phase3-rollout-r1-routing-llm.md) — the adoptPlan customizedWeeklySchedule
+  // tests below exercise ai-service's OWN day-count/invented-exercise/empty-day
+  // validation (marketplace.service.ts's adoptPlan, after the mappability gate).
+  // That gate itself is a genuine cross-service check against fitness-service's
+  // real Exercise catalog (fitness.client.ts's validateMarketplaceSchedulesMappable)
+  // and this file's fixture exercise ids ("a"/"b"/"c") are not real catalog rows,
+  // so it was failing the gate before the logic under test ever ran (422, not
+  // the 400 these tests assert). Stubbed here exactly like hasCompletedCycleForPlan
+  // above — the real cross-service check is untouched in production.
+  marketplaceDeps.validateMarketplaceSchedulesMappable = async (items) =>
+    new Set(items.map((item) => item.listingId));
   const plan = await prisma.workoutPlan.create({ data: simplePlanData(publisherId) });
   const listing = await prisma.publishedPlan.create({
     data: {

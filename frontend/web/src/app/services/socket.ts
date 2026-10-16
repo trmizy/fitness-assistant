@@ -14,12 +14,15 @@ import { tokenStore } from "./tokenStore";
 // A stored runtime override (in-app "Cấu hình máy chủ") routes chat through the
 // gateway's "/chat-socket.io" proxy so the APK only needs ONE public URL — see
 // config/serverUrl.ts.
-const { url: CHAT_WS_URL, path: CHAT_WS_PATH } = chatSocketTarget();
-
+//
+// Evaluated lazily inside getSocket() (not at module load) so it picks up
+// serverUrl.ts's fetched /runtime-config.json once that resolves, instead of
+// freezing on the build-time value the instant this module is first imported.
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
+    const { url: CHAT_WS_URL, path: CHAT_WS_PATH } = chatSocketTarget();
     socket = io(CHAT_WS_URL, {
       path: CHAT_WS_PATH,
       // Same reasoning as the gateway socket: refresh first, so a reconnect after a long

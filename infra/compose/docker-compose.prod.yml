@@ -27,7 +27,7 @@
 #     so there's no CORS/mixed-content issue even without a domain/TLS yet).
 #   - Postgres container removed; DATABASE_URL points at the RDS endpoint
 #     from ../../.env instead. Redis/Qdrant/Ollama stay as containers.
-#   - chat-service, n8n / Prometheus / Grafana / exporters / db-seeder
+#   - chat-service, Prometheus / Grafana / exporters / db-seeder
 #     omitted — this is the MVP production surface.
 #
 # Required ../../.env keys (see ../../.env.example — same file, prod values):
@@ -237,13 +237,14 @@ services:
       # Proposal §8/§11). LLM_PROVIDER=anthropic is available as an opt-in
       # override in ../../.env, but is NOT the MVP default for this report.
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       LLM_BASE_URL: http://ollama:11434
       OLLAMA_BASE_URL: http://ollama:11434
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      AI_CHAT_LLM_TIMEOUT_MS: ${AI_CHAT_LLM_TIMEOUT_MS:-45000}   # R1: bounded user-facing chat generation (was 300 s here)
       EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
       ENABLE_TOOL_CALLING: "false"
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
@@ -403,7 +404,7 @@ services:
       [
         "sh",
         "-c",
-        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LLM_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
       ]
     networks:
       - default

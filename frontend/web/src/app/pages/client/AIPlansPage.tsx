@@ -226,6 +226,22 @@ function asExplanationText(value: string | UnknownRecord): string {
 }
 
 function summarizeApiError(error: unknown, fallback: string): string {
+  // Live bug (2026-09-30): this used to surface raw backend text verbatim — "Invalid or
+  // expired token", "Service Unavailable" — straight from error.response.data.error/message.
+  // Both are true statements about the HTTP response but misleading or alarming as user-facing
+  // copy, and a 401 in particular means the axios interceptor's silent refresh-and-retry
+  // (api.ts) already tried and either couldn't reach /auth/refresh or the session is genuinely
+  // over — the user needs "log in again", not a raw protocol string. Handled before the
+  // generic body-text fallback below so every plan-related error box gets this, not just one.
+  if (isRecord(error) && isRecord(error.response)) {
+    const status = error.response.status;
+    if (status === 401) {
+      return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    }
+    if (status === 503 || status === 502) {
+      return "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau ít phút.";
+    }
+  }
   if (
     isRecord(error) &&
     isRecord(error.response) &&

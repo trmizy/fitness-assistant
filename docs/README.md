@@ -87,7 +87,6 @@ Use [STATUS](STATUS.md) for follow-ups.
 ## Component guides
 
 - [Fitness Assistant Web](../frontend/web/README.md)
-- [n8n Workflow Orchestration](../infra/n8n/README.md)
 - [Terraform bootstrap](../infra/terraform/bootstrap/README.md)
 - [Fitness Assistant AWS dev environment](../infra/terraform/environments/dev/README.md)
 - [Dataset Integration — AI Service](../backend/services/ai-service/DATASETS.md)

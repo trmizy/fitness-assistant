@@ -10,7 +10,7 @@ workspaces: customer, personal trainer, gym owner, and administrator.
 - `/pt`: dashboard, clients, contracts, plan review, schedule, chat, wallet, and
   profile
 - `/gym-owner`: gym management
-- `/admin`: users, PT applications, marketplace moderation, system health, n8n,
+- `/admin`: users, PT applications, marketplace moderation, system health,
   and AI observability
 
 ## Run Locally

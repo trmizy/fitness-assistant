@@ -32,7 +32,16 @@ export type PtRow = {
   gymAffiliation: string | null;
   bio: string | null;
   yearsOfExperience: string | null;
+  /** 14B.7 (PG-C5) — the rest of web's "Giới thiệu": education, past work, method, who / what for. */
+  education: string | null;
+  workExperience: string | null;
+  methods: string | null;
+  targetGroups: string[];
+  trainingGoals: string[];
 };
+
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()) : []);
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 const isValidPrice = (p: unknown): p is number => typeof p === "number" && p > 0;
 
@@ -82,6 +91,11 @@ export function normalizePt(raw: any): PtRow {
     gymAffiliation: app?.gymAffiliation ?? null,
     bio: app?.professionalBio ?? null,
     yearsOfExperience: app?.yearsOfExperience ?? null,
+    education: text(app?.educationBackground),
+    workExperience: text(app?.previousWorkExperience),
+    methods: text(app?.trainingMethodsApproach),
+    targetGroups: strList(app?.targetClientGroups),
+    trainingGoals: strList(app?.primaryTrainingGoals),
   };
 }
 
@@ -109,6 +123,11 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
     lowestPrice: fromDetail.lowestPrice ?? listRow.lowestPrice,
     bio: fromDetail.bio ?? listRow.bio,
     yearsOfExperience: fromDetail.yearsOfExperience ?? listRow.yearsOfExperience,
+    education: fromDetail.education ?? listRow.education,
+    workExperience: fromDetail.workExperience ?? listRow.workExperience,
+    methods: fromDetail.methods ?? listRow.methods,
+    targetGroups: fromDetail.targetGroups.length ? fromDetail.targetGroups : listRow.targetGroups,
+    trainingGoals: fromDetail.trainingGoals.length ? fromDetail.trainingGoals : listRow.trainingGoals,
     gymAffiliation: fromDetail.gymAffiliation ?? listRow.gymAffiliation,
     slots28: fromDetail.slots28 ?? listRow.slots28,
     specialties: fromDetail.specialties.length ? fromDetail.specialties : listRow.specialties,
@@ -121,6 +140,44 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
 export function normalizePts(raw: any): PtRow[] {
   const list = Array.isArray(raw?.pts) ? raw.pts : Array.isArray(raw) ? raw : [];
   return list.map(normalizePt).filter((pt: PtRow) => pt.userId);
+}
+
+/**
+ * The list is paged. The server answers 50 trainers when asked for no page at all, and the screen
+ * used to ask exactly that once — with 107 trainers on the server, the other 57 could not be
+ * reached by browsing (7/10). A full page means "there may be more"; a short one is the end.
+ */
+export const PT_PAGE_SIZE = 50;
+
+export function hasMorePts(lastPage: unknown): boolean {
+  return normalizePts(lastPage).length >= PT_PAGE_SIZE;
+}
+
+/**
+ * The page to ask for next, or undefined at the end. Besides a short page, a page that brought
+ * NOTHING new also ends it: some server orderings ignore paging and answer the whole list every
+ * time, and "Xem thêm" must not then stay on screen fetching the same rows forever.
+ */
+export function nextPtPage(pages: unknown[]): number | undefined {
+  const last = pages[pages.length - 1];
+  if (!hasMorePts(last)) return undefined;
+  if (pages.length > 1 && mergePtPages(pages).length === mergePtPages(pages.slice(0, -1)).length) return undefined;
+  return pages.length + 1;
+}
+
+/** Pages → one list, first occurrence wins: a trainer who shifts between pages while more are
+ * being loaded must not appear twice (duplicate keys) or push anyone else out. */
+export function mergePtPages(pages: unknown[] | undefined): PtRow[] {
+  const seen = new Set<string>();
+  const rows: PtRow[] = [];
+  for (const page of pages ?? []) {
+    for (const row of normalizePts(page)) {
+      if (seen.has(row.userId)) continue;
+      seen.add(row.userId);
+      rows.push(row);
+    }
+  }
+  return rows;
 }
 
 /** The chip filter runs on the client, on the same field the server searches. */

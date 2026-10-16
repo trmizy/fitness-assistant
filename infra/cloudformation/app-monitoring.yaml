@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV - application-level observability. Complements the existing
+  NAT-Gateway/VPC-only CloudWatch alarms (gymini-dev-on-demand stack) with
+  alarms for the 6 core Lambda services, Aurora, and the protected API
+  Gateway. Read-only monitoring - creates no Lambda/Aurora/API Gateway
+  resources, only watches the existing ones. All alarms notify a single new
+  SNS topic; subscribe your own email to it after this stack deploys (see
+  the SubscribeCommand output) - no email address is baked into this
+  template or committed anywhere.
+
+Parameters:
+  ApiId:
+    Type: String
+    Default: id1iz7upbl
+  AuroraClusterIdentifier:
+    Type: String
+    Default: fitness-assistant-dev-aurora
+
+Resources:
+  AppAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: fitness-assistant-dev-app-alerts
+      DisplayName: "Gymini DEV app alerts"
+
+  # ---------------------------------------------------------------- Lambda
+  # Errors (not Throttles/Duration): a sustained error burst is the clearest
+  # "something is actually broken" signal for a low-traffic DEV environment.
+  # Threshold of 5 errors in a single 5-minute window, 1 period (no need to
+  # wait for 2 consecutive breaches - a burst of 5 real errors is already
+  # actionable). TreatMissingData=notBreaching: Lambdas are idle most of the
+  # time in DEV (desiredCount-style on-demand usage), so "no invocations"
+  # must never page anyone.
+  AuthLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-auth-lambda-errors
+      AlarmDescription: "Auth Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-auth }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  UserLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-user-lambda-errors
+      AlarmDescription: "User Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-user }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  FitnessLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-fitness-lambda-errors
+      AlarmDescription: "Fitness Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-fitness }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  PaymentLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-payment-lambda-errors
+      AlarmDescription: "Payment Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-payment }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  GymLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-gym-lambda-errors
+      AlarmDescription: "Gym Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-gym }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  AiLambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-ai-lambda-errors
+      AlarmDescription: "AI Lambda: >=5 errors in 5 minutes"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: fitness-assistant-dev-ai }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  # ----------------------------------------------------------------- Aurora
+  # CPU: 2 consecutive 5-min periods >80% (sustained, not a brief spike).
+  # TreatMissingData=notBreaching - Aurora is fully STOPPED between dev
+  # sessions (dev-stop.ps1), which must never be reported as a CPU breach.
+  AuroraCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-aurora-cpu-high
+      AlarmDescription: "Aurora cluster: CPU >80% for 2 consecutive 5-min periods"
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions: [{ Name: DBClusterIdentifier, Value: !Ref AuroraClusterIdentifier }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  # Serverless v2 capacity pinned at/near MaxCapacity (2.0 ACU, see
+  # ServerlessV2ScalingConfiguration) for a sustained period signals the
+  # cluster needs a higher ceiling, not just a transient burst.
+  AuroraCapacityAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-aurora-capacity-pinned
+      AlarmDescription: "Aurora Serverless v2: ACU >=1.8 (near the 2.0 MaxCapacity ceiling) for 3 consecutive 5-min periods"
+      Namespace: AWS/RDS
+      MetricName: ServerlessDatabaseCapacity
+      Dimensions: [{ Name: DBClusterIdentifier, Value: !Ref AuroraClusterIdentifier }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 1.8
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+  # ----------------------------------------------------------- API Gateway
+  # 5xx is a gateway/integration-level signal (distinct from each Lambda's
+  # own Errors metric above - a 5xx can also mean a timed-out integration,
+  # a bad Lambda permission, or a downstream failure never reaching the
+  # Lambda's own error count). >=10 in 5 minutes on the protected HTTP API.
+  ApiGateway5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: fitness-assistant-dev-apigw-5xx-high
+      AlarmDescription: "Protected API Gateway (HTTP API): >=10 5xx responses in 5 minutes"
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions: [{ Name: ApiId, Value: !Ref ApiId }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AppAlertsTopic]
+      OKActions: [!Ref AppAlertsTopic]
+
+Outputs:
+  AlertsTopicArn:
+    Value: !Ref AppAlertsTopic
+  SubscribeCommand:
+    Description: "Run this yourself to receive alerts by email (no address stored in IaC)"
+    Value: !Sub "aws sns subscribe --profile gymini-admin --region ap-southeast-1 --topic-arn ${AppAlertsTopic} --protocol email --notification-endpoint YOUR_EMAIL_HERE"

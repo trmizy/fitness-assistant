@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-27T15:02:24.738Z",
+  "exit": 1,
+  "ms": 11467,
+  "command": "docker",
+  "args": [
+    "exec",
+    "gymcoach-ai-dev",
+    "sh",
+    "-c",
+    "cd /app/backend/services/ai-service && npx tsx --test src/__tests__/codex-x4-resolution-independent.test.ts"
+  ]
+}

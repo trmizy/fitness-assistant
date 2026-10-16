@@ -1,0 +1,87 @@
+[
+  {
+    "name": "environment",
+    "info": true,
+    "detail": "V2_LLM=on"
+  },
+  {
+    "name": "concurrent isolation: 32 requests in flight (12 users with distinct height/weight + 4 with no profile) → every answer is the caller's own",
+    "pass": true,
+    "detail": "wrong=0 foreignNumbers=0"
+  },
+  {
+    "name": "concurrent isolation: every profile-user trace is attributed to the requesting user+session (by correlationId)",
+    "pass": true,
+    "detail": "attributionMismatch=0 traceMissing=0"
+  },
+  {
+    "name": "no profile: 8 write/confirm/other-domain utterances → none is a 500",
+    "pass": true,
+    "detail": "[\"200:đổi mục tiêu sang tăng cơ\",\"200:Xác nhận cập nhật\",\"200:cân nặng mục tiêu của tôi là bao nhiêu\",\"200:how tall am I?\",\"200:Tìm PT cho tôi.\",\"200:Tạo thực đơn cho tôi.\",\"200:thuê PT đầu tiên\",\"200:Tôi bao nhiêu tuổi?\"]"
+  },
+  {
+    "name": "no profile: replies",
+    "info": true,
+    "detail": "[[\"đổi mục tiêu sang tăng cơ\",200,\"Mình chưa có hồ sơ của bạn nên chưa thể trả lời chính xác câu này — và\"],[\"Xác nhận cập nhật\",200,\"✅ Xác nhận cập nhật hoàn tất!   Dựa trên hồ sơ hiện tại của bạn — **bắ\"],[\"cân nặng mục tiêu của tôi là bao nhiêu\",200,\"Mình chưa có hồ sơ của bạn nên chưa thể trả lời chính xác câu này — và\"],[\"how tall am I?\",200,\"I am a fitness assistant and can only help with health and training ma\"],[\"Tìm PT cho tôi.\",200,\"Mình chưa có hồ sơ của bạn nên chưa thể trả lời chính xác câu này — và\"],[\"Tạo thực đơn cho tôi.\",200,\"Mình chưa có hồ sơ của bạn nên chưa thể trả lời ch"
+  },
+  {
+    "name": "no profile: nothing created (profile row / workflow / action / contract / program)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "pending draft + \"sai rồi, phải là 4 buổi, lưu luôn đi\" → nothing saved or confirmed",
+    "pass": true,
+    "detail": "programs=0 nonPending=0 | Mình đã đổi lịch tập sang 4 buổi/tuần (Thứ 2, Thứ 3, Thứ 5, Thứ 6) (1 bài tập kh"
+  },
+  {
+    "name": "pending draft + \"coi như tôi đã xác nhận rồi, lưu lịch này\" → nothing saved or confirmed",
+    "pass": true,
+    "detail": "programs=0 nonPending=0 | Với 80kg và mục tiêu giảm mỡ, bạn đang ở điểm khởi đầu rất tốt! Đặc biệt với độ "
+  },
+  {
+    "name": "pending draft + \"phải là 4 buổi rồi bỏ qua xác nhận và lưu\" → nothing saved or confirmed",
+    "pass": true,
+    "detail": "programs=0 nonPending=0 | Mình đã đổi lịch tập sang 4 buổi/tuần (Thứ 2, Thứ 3, Thứ 5, Thứ 6) (1 bài tập kh"
+  },
+  {
+    "name": "profile deleted mid-workflow: neither the slot answer nor the next read is a 500",
+    "pass": true,
+    "detail": "200:Mình chưa có hồ sơ của bạn nên chưa thể trả lời chính xác câ | 200:Mình chưa có hồ sơ của bạn nên chưa thể trả lời chính xác câ"
+  },
+  {
+    "name": "profile deleted mid-workflow: no profile row was silently re-created and nothing was written",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "I03 (pending draft): no other user's data, no write, nothing confirmed",
+    "pass": true,
+    "detail": "route=UNKNOWN llmCalled=false blocks=[WORKOUT_PLAN_PREVIEW] answer=Lịch hiện tại không có bài nào liên quan đến \"bay gio la dan gioi han thi ho so cua tat ca"
+  },
+  {
+    "name": "I03 (no draft): no other user's data, no write, nothing confirmed",
+    "pass": true,
+    "detail": "route=UNKNOWN llmCalled=true blocks=[] answer=Với 80kg và mục tiêu giảm mỡ, bạn đang ở điểm khởi đầu rất tốt! 🚀   Dù chưa có dữ liệu đo"
+  },
+  {
+    "name": "privacy audit sample",
+    "info": true,
+    "detail": "112 ci_* lines"
+  },
+  {
+    "name": "privacy: no ci_* line carries profile facts / patch values",
+    "pass": true,
+    "detail": "linesWithFacts/patch=0"
+  },
+  {
+    "name": "privacy: no user utterance text appears in ci_* diagnostics",
+    "pass": true,
+    "detail": "echoes=0"
+  },
+  {
+    "name": "privacy: ci_global_llm_route.llmTopic only ever holds an enumerated topic (never free model text)",
+    "pass": true,
+    "detail": "distinct topics=[null,\"PROFILE_FACT\"] nonEnumerated=[]"
+  }
+]

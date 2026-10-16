@@ -80,3 +80,13 @@ export function writeLocalFile(fileName: string, contents: string): string {
   file.write(contents);
   return file.uri;
 }
+
+/** Same as writeLocalFile, for binary content the app holds as base64 (e.g. an SVG rendered to
+ *  PNG with `toDataURL`, to hand to the share sheet for printing). */
+export function writeLocalBase64File(fileName: string, base64: string): string {
+  const file = new File(downloadDirectory(), safeFileName(fileName));
+  if (file.exists) file.delete();
+  file.create();
+  file.write(base64, { encoding: "base64" });
+  return file.uri;
+}

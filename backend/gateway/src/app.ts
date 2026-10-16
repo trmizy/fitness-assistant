@@ -5,7 +5,8 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
-import { isAllowedOrigin, trustedWebOrigin } from "./utils/corsOrigins";
+import { emailLinkOrigin, isAllowedOrigin } from "./utils/corsOrigins";
+import { storageProxy } from "./routes/storage.proxy";
 import { validateInternalSecret } from "./utils/internal-secret";
 
 const app = express();
@@ -19,6 +20,11 @@ const app = express();
 // single-hop topology both deployments actually use — not `true` (trust every hop, spoofable
 // by the client itself supplying its own X-Forwarded-For).
 app.set("trust proxy", 1);
+
+// Tệp riêng tư (MinIO, CHỈ môi trường dev) đi qua cùng cửa với API — xem routes/storage.proxy.ts. Đặt
+// TRƯỚC helmet/cors: MinIO tự trả header CORS của nó, cors ở đây sẽ nhân đôi Access-Control-Allow-Origin
+// và trình duyệt từ chối. Không cần đăng nhập — chữ ký trên URL chính là quyền truy cập.
+if (storageProxy) app.use(storageProxy.path, storageProxy.handler);
 
 app.use(
   helmet({
@@ -97,7 +103,8 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   // browser's Origin, set only when it passes the CORS trust policy (utils/corsOrigins.ts), with
   // any client-sent copy stripped first. Absent for native app requests (no Origin).
   delete req.headers["x-trusted-web-origin"];
-  const trustedOrigin = trustedWebOrigin(req.get("origin") || undefined);
+  // Host GỐC (không phải X-Forwarded-Host) — chỉ dùng cho dự phòng IP LAN của app Android.
+  const trustedOrigin = emailLinkOrigin(req.get("origin") || undefined, req.headers.host);
   if (trustedOrigin) req.headers["x-trusted-web-origin"] = trustedOrigin;
   next();
 });
@@ -129,26 +136,6 @@ app.get("/metrics", async (_req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
 });
-
-// ── n8n CSP bypass ───────────────────────────────────────────────────────────
-// Helmet adds strict CSP / noSniff headers to ALL responses. Strip them for
-// every path that proxies to n8n so the editor and its assets load cleanly.
-function removeN8nHelmetHeaders(
-  _req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  res.removeHeader("X-Frame-Options");
-  res.removeHeader("Content-Security-Policy");
-  res.removeHeader("X-Content-Type-Options");
-  next();
-}
-app.use("/admin/workflows/studio", removeN8nHelmetHeaders);
-app.use("/rest", removeN8nHelmetHeaders);
-app.use("/assets", removeN8nHelmetHeaders);
-app.use("/static", removeN8nHelmetHeaders);
-app.use("/signin", removeN8nHelmetHeaders);
-app.use("/login", removeN8nHelmetHeaders);
 
 app.use("/", translateRoutes);
 app.use("/", proxyRoutes);

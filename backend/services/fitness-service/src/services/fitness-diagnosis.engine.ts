@@ -220,6 +220,10 @@ export function buildDiagnosisReasoning(args: {
     } else {
       lines.push("Tỷ lệ mỡ hiện tại đã gần với mục tiêu — lộ trình có thể tập trung vào duy trì và cải thiện vóc dáng.");
     }
+  } else if (args.currentBodyFatPct != null) {
+    // The measurement exists; only the optional TARGET is missing. Saying "not enough body-fat
+    // data" right under a measured 45% read as a contradiction (real phone, 6/10).
+    lines.push("Bạn chưa đặt tỷ lệ mỡ mục tiêu nên Gymini chưa so sánh chi tiết — lộ trình dựa trên mục tiêu bạn đã chọn.");
   } else {
     lines.push("Chưa đủ dữ liệu tỷ lệ mỡ cơ thể để so sánh chi tiết — lộ trình dựa trên mục tiêu bạn đã chọn.");
   }

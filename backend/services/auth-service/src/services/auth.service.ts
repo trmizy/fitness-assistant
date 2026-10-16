@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { logger } from "@gym-coach/shared";
-import { authRepository } from "../repositories/auth.repository";
+import { authRepository, prisma } from "../repositories/auth.repository";
 import type { Role } from "../generated/prisma";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
@@ -571,12 +571,19 @@ export const authService = {
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, 10);
-    const updated = await authRepository.updateUserPasswordById(
-      user.id,
-      passwordHash,
-    );
-
-    await authRepository.deleteRefreshTokensByUserId(user.id);
+    // The password update and the revocation of every existing refresh token for this
+    // user must commit together or not at all — a crash/connection-drop between the two
+    // used to be able to leave the password changed but old sessions still valid. See
+    // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedUser = await authRepository.updateUserPasswordById(
+        user.id,
+        passwordHash,
+        tx,
+      );
+      await authRepository.deleteRefreshTokensByUserId(user.id, tx);
+      return updatedUser;
+    });
 
     return {
       user: {
@@ -656,9 +663,17 @@ export const authService = {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     // updateUserPasswordById cũng xoá luôn cờ mustChangePassword — mọi đường đổi mật khẩu
     // đều đi qua đó nên không cần xử lý riêng ở đây.
-    const updated = await authRepository.updateUserPasswordById(record.userId, passwordHash);
-    await authRepository.markPasswordResetUsed(record.id);
-    await authRepository.deleteRefreshTokensByUserId(record.userId);
+    //
+    // All three writes (password, marking the token used, revoking every refresh token)
+    // must commit or roll back together — otherwise a failure partway could leave a reset
+    // token re-usable, or a password changed with old sessions still alive. See
+    // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedUser = await authRepository.updateUserPasswordById(record.userId, passwordHash, tx);
+      await authRepository.markPasswordResetUsed(record.id, tx);
+      await authRepository.deleteRefreshTokensByUserId(record.userId, tx);
+      return updatedUser;
+    });
 
     return { user: updated };
   },

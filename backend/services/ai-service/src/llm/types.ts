@@ -66,6 +66,9 @@ export interface TrainingConstraints {
 
 export interface UserProfile {
   userId?: string;
+  /** The user's ACTIVE NutritionGoal (fitness-service) — the ONLY authoritative calorie/macro target. When present, chat answers
+   *  must state THESE numbers instead of re-deriving a second target from the profile (nutrition_calculator.ts). */
+  nutritionGoal?: { calories: number; protein: number; carbs: number; fat: number };
   age?: number;
   gender?: "MALE" | "FEMALE" | "OTHER";
   heightCm?: number;
@@ -89,6 +92,8 @@ export interface UserProfile {
     | "EXTREMELY_ACTIVE";
   experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   foodPreference?: string;
+  /** Vietnamese regional food preference from user-service profile.region. */
+  region?: "BAC" | "TRUNG" | "NAM" | string;
   training: TrainingConstraints;
   inBody?: InBodyMetrics;
   // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6.

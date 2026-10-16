@@ -1,0 +1,29 @@
+{
+    "Listeners": [
+        {
+            "ListenerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:listener/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74/b35f6a76b4f1c219",
+            "LoadBalancerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:loadbalancer/app/fitness-assistant-dev-chat-alb/fc7a09c5fc863a74",
+            "Port": 80,
+            "Protocol": "HTTP",
+            "DefaultActions": [
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                    "Order": 1,
+                    "ForwardConfig": {
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:191798898985:targetgroup/fitness-assistant-dev-chat-tg/64b0ae5063b986a0",
+                                "Weight": 1
+                            }
+                        ],
+                        "TargetGroupStickinessConfig": {
+                            "Enabled": false,
+                            "DurationSeconds": 3600
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

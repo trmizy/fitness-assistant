@@ -29,6 +29,7 @@ export function Tappable({
   disabled,
   scaleTo = pressScale.surface,
   haptic = true,
+  hitSlop,
   accessibilityLabel,
 }: {
   children: ReactNode;
@@ -38,6 +39,8 @@ export function Tappable({
   disabled?: boolean;
   scaleTo?: number;
   haptic?: boolean;
+  /** Mở rộng vùng chạm ra ngoài viền, cho những nút icon nhỏ hơn 44dp (chuẩn chạm tối thiểu). */
+  hitSlop?: number;
   accessibilityLabel?: string;
 }) {
   const scale = useSharedValue(1);
@@ -51,6 +54,7 @@ export function Tappable({
       className={className}
       style={[style, animatedStyle]}
       disabled={disabled}
+      hitSlop={hitSlop}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: !!disabled }}

@@ -1,0 +1,823 @@
+{
+ "note": "Phase 4.7R4 development-side metrics; every set below was available for tuning — NOT a generalisation verdict.",
+ "devV5": {
+  "baseline": {
+   "queries": 182,
+   "inScope": 73,
+   "topicHit_at1": 0.425,
+   "topicHit_at3": 0.438,
+   "relevantCuratedEvidence_at3": 0,
+   "syntheticTop1_evidenceQueries": 0.938,
+   "duplicateRate": 0.438,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 80,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 77,
+    "count": 77
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 73,
+    "count": 73
+   },
+   "safetySignals": {
+    "positives": 77,
+    "recall": 1,
+    "highRiskRecall": 0.985,
+    "negatives": 105,
+    "falsePositiveRate": 0.01,
+    "falsePositives": [
+     "P104"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 5,
+     "leaks": 5
+    },
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 12
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 4
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "OTHER_OOD": {
+     "n": 4,
+     "leaks": 4
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 431,
+    "p90": 599,
+    "max": 999
+   },
+   "latencyMs": {
+    "p50": 62,
+    "p90": 78
+   }
+  },
+  "v2_4": {
+   "queries": 182,
+   "inScope": 73,
+   "topicHit_at1": 0.521,
+   "topicHit_at3": 0.616,
+   "relevantCuratedEvidence_at3": 0.875,
+   "syntheticTop1_evidenceQueries": 0,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.178,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 80,
+    "success": 0.988,
+    "returnedNonTrusted": 0.013
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 77,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 73,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 77,
+    "recall": 1,
+    "highRiskRecall": 1,
+    "negatives": 105,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 5,
+     "leaks": 0
+    },
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 4,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 695,
+    "max": 732
+   },
+   "latencyMs": {
+    "p50": 57,
+    "p90": 73
+   }
+  },
+  "byDomain": {
+   "RECOVERY": {
+    "n": 31,
+    "topicHit_at3": 0.323,
+    "empty": 0.355
+   },
+   "NUTRITION": {
+    "n": 9,
+    "topicHit_at3": 0.889,
+    "empty": 0
+   },
+   "PROGRAMMING": {
+    "n": 14,
+    "topicHit_at3": 0.643,
+    "empty": 0.071
+   },
+   "BODY_COMPOSITION": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0.2
+   },
+   "SUPPLEMENTS": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "EXERCISE_CATALOG": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   }
+  }
+ },
+ "diagnosticV4": {
+  "baseline": {
+   "queries": 95,
+   "inScope": 51,
+   "topicHit_at1": 0.275,
+   "topicHit_at3": 0.314,
+   "relevantCuratedEvidence_at3": 0,
+   "syntheticTop1_evidenceQueries": 1,
+   "duplicateRate": 0.44,
+   "falseSource_ood": 1,
+   "emptyRetrieval_inScope": 0,
+   "catalogRecall_at3": 0,
+   "safeAbstention": {
+    "n": 18,
+    "success": 0,
+    "returnedNonTrusted": 1
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 18,
+    "count": 18
+   },
+   "safetySignals": {
+    "positives": 18,
+    "recall": 0.667,
+    "highRiskRecall": 0.417,
+    "negatives": 77,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 12
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 4
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 2
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 3,
+     "leaks": 3
+    },
+    "OTHER_OOD": {
+     "n": 5,
+     "leaks": 5
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 395,
+    "p90": 631,
+    "max": 684
+   },
+   "latencyMs": {
+    "p50": 178,
+    "p90": 268
+   }
+  },
+  "v2_3_oneShot": {
+   "queries": 95,
+   "inScope": 51,
+   "topicHit_at1": 0.725,
+   "topicHit_at3": 0.784,
+   "relevantCuratedEvidence_at3": 0.833,
+   "syntheticTop1_evidenceQueries": 0.028,
+   "duplicateRate": 0,
+   "falseSource_ood": 0.038,
+   "emptyRetrieval_inScope": 0.118,
+   "catalogRecall_at3": 0.6,
+   "safeAbstention": {
+    "n": 18,
+    "success": 0.889,
+    "returnedNonTrusted": 0.111
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 18,
+    "count": 2
+   },
+   "safetySignals": {
+    "positives": 18,
+    "recall": 0.667,
+    "highRiskRecall": 0.417,
+    "negatives": 77,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 1
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 3,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 173,
+    "p90": 702,
+    "max": 757
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 81
+   }
+  },
+  "v2_4": {
+   "queries": 95,
+   "inScope": 51,
+   "topicHit_at1": 0.725,
+   "topicHit_at3": 0.784,
+   "relevantCuratedEvidence_at3": 0.833,
+   "syntheticTop1_evidenceQueries": 0.028,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.118,
+   "catalogRecall_at3": 0.6,
+   "safeAbstention": {
+    "n": 18,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 18,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 18,
+    "recall": 1,
+    "highRiskRecall": 0.917,
+    "negatives": 77,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 12,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 3,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 700,
+    "max": 757
+   },
+   "latencyMs": {
+    "p50": 63,
+    "p90": 78
+   }
+  },
+  "byDomain_v2_4": {
+   "SAFETY": {
+    "n": 2,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "RECOVERY": {
+    "n": 6,
+    "topicHit_at3": 0.833,
+    "empty": 0.167
+   },
+   "PROGRAMMING": {
+    "n": 12,
+    "topicHit_at3": 0.667,
+    "empty": 0.167
+   },
+   "NUTRITION": {
+    "n": 8,
+    "topicHit_at3": 0.875,
+    "empty": 0.125
+   },
+   "SUPPLEMENTS": {
+    "n": 4,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "BODY_COMPOSITION": {
+    "n": 5,
+    "topicHit_at3": 0.8,
+    "empty": 0
+   },
+   "STRENGTH": {
+    "n": 3,
+    "topicHit_at3": 1,
+    "empty": 0
+   },
+   "HYPERTROPHY": {
+    "n": 6,
+    "topicHit_at3": 0.667,
+    "empty": 0.167
+   },
+   "EXERCISE_CATALOG": {
+    "n": 5,
+    "topicHit_at3": 0.6,
+    "empty": 0.2
+   }
+  }
+ },
+ "devV4": {
+  "v2_4": {
+   "queries": 145,
+   "inScope": 64,
+   "topicHit_at1": 0.688,
+   "topicHit_at3": 0.828,
+   "relevantCuratedEvidence_at3": 0.902,
+   "syntheticTop1_evidenceQueries": 0.024,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.047,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 51,
+    "success": 0.98,
+    "returnedNonTrusted": 0.02
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 51,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 51,
+    "recall": 1,
+    "highRiskRecall": 1,
+    "negatives": 94,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "OTHER_OOD": {
+     "n": 10,
+     "leaks": 0
+    },
+    "AMBIGUOUS_TERM": {
+     "n": 13,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 3,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 703,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 64,
+    "p90": 75
+   }
+  }
+ },
+ "diagnosticV3": {
+  "v2_4": {
+   "queries": 87,
+   "inScope": 51,
+   "topicHit_at1": 0.824,
+   "topicHit_at3": 0.902,
+   "relevantCuratedEvidence_at3": 0.872,
+   "syntheticTop1_evidenceQueries": 0,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.059,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 12,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 14,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 73,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 8,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 4,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 3,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 2,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 7,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 219,
+    "p90": 702,
+    "max": 753
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 79
+   }
+  }
+ },
+ "devV3": {
+  "v2_4": {
+   "queries": 145,
+   "inScope": 61,
+   "topicHit_at1": 0.852,
+   "topicHit_at3": 0.934,
+   "relevantCuratedEvidence_at3": 0.949,
+   "syntheticTop1_evidenceQueries": 0.026,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.049,
+   "catalogRecall_at3": 0.8,
+   "safeAbstention": {
+    "n": 27,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 30,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 115,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "AMBIGUOUS_TERM": {
+     "n": 15,
+     "leaks": 0
+    },
+    "DIACRITIC_COLLISION": {
+     "n": 11,
+     "leaks": 0
+    },
+    "ASSOCIATIVE_OVERREACH": {
+     "n": 9,
+     "leaks": 0
+    },
+    "RECOVERY_OVERREACH": {
+     "n": 8,
+     "leaks": 0
+    },
+    "OTHER_OOD": {
+     "n": 14,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 22,
+    "p90": 696,
+    "max": 771
+   },
+   "latencyMs": {
+    "p50": 62,
+    "p90": 78
+   }
+  }
+ },
+ "diagnosticV2": {
+  "v2_4": {
+   "queries": 72,
+   "inScope": 47,
+   "topicHit_at1": 0.787,
+   "topicHit_at3": 0.894,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.021,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 9,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 12,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 60,
+    "falsePositiveRate": 0,
+    "falsePositives": []
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 16,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 712,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 69,
+    "p90": 80
+   }
+  }
+ },
+ "generalizationDevV2": {
+  "v2_4": {
+   "queries": 104,
+   "inScope": 77,
+   "topicHit_at1": 0.831,
+   "topicHit_at3": 0.896,
+   "relevantCuratedEvidence_at3": 0.925,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.052,
+   "catalogRecall_at3": 1,
+   "safeAbstention": {
+    "n": 8,
+    "success": 1,
+    "returnedNonTrusted": 0
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 10,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 94,
+    "falsePositiveRate": 0.011,
+    "falsePositives": [
+     "G075"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 19,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 525,
+    "p90": 717,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 67,
+    "p90": 79
+   }
+  }
+ },
+ "originalDev111": {
+  "v2_4": {
+   "queries": 111,
+   "inScope": 106,
+   "topicHit_at1": 0.67,
+   "topicHit_at3": 0.764,
+   "relevantCuratedEvidence_at3": 0.852,
+   "syntheticTop1_evidenceQueries": 0.019,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.17,
+   "catalogRecall_at3": 0.778,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 7,
+    "count": 1
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 104,
+    "falsePositiveRate": 0.019,
+    "falsePositives": [
+     "T08",
+     "R03"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 5,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 528,
+    "p90": 711,
+    "max": 756
+   },
+   "latencyMs": {
+    "p50": 66,
+    "p90": 81
+   }
+  }
+ },
+ "diagnosticV1": {
+  "v2_4": {
+   "queries": 56,
+   "inScope": 50,
+   "topicHit_at1": 0.74,
+   "topicHit_at3": 0.82,
+   "relevantCuratedEvidence_at3": 0.941,
+   "syntheticTop1_evidenceQueries": 0.029,
+   "duplicateRate": 0,
+   "falseSource_ood": 0,
+   "emptyRetrieval_inScope": 0.1,
+   "catalogRecall_at3": null,
+   "safeAbstention": {
+    "n": 0,
+    "success": null,
+    "returnedNonTrusted": null
+   },
+   "unsafeGenericSafetyFallthrough": {
+    "n": 4,
+    "count": 0
+   },
+   "personalHighRiskGenericFallthrough": {
+    "n": 0,
+    "count": 0
+   },
+   "safetySignals": {
+    "positives": 0,
+    "recall": null,
+    "highRiskRecall": null,
+    "negatives": 52,
+    "falsePositiveRate": 0.019,
+    "falsePositives": [
+     "HR02"
+    ]
+   },
+   "falseSourceByClass": {
+    "UNLABELLED": {
+     "n": 6,
+     "leaks": 0
+    }
+   },
+   "ctxTokensEst": {
+    "p50": 683,
+    "p90": 719,
+    "max": 791
+   },
+   "latencyMs": {
+    "p50": 71,
+    "p90": 88
+   }
+  }
+ }
+}

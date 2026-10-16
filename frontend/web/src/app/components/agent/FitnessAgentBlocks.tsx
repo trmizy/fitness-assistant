@@ -3,6 +3,15 @@ import { Link } from "react-router";
 import { fitnessAgentService, type AgentChatBlock, type AgentReply } from "../../services/fitnessAgent";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 
+/** Backend action results name the destination by domain (ai-service / fitness-service contract). The web app's real routes differ
+ * for training: the "Tập luyện" page lives at /client/workout, so "/client/training" would be a 404. Only listed targets get a link. */
+const NEXT_URL_ROUTE: Record<string, string> = {
+  "/client/contracts": "/client/contracts",
+  "/client/training": "/client/workout",
+  "/client/dashboard": "/client/dashboard",
+  "/client/nutrition": "/client/nutrition",
+};
+
 const button = "min-h-11 rounded-lg border border-emerald-600 px-3 py-2 text-sm text-emerald-300 disabled:opacity-50";
 const money = (n: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
 const RISK_LABEL_VI: Record<string, string> = { LOW: "Rủi ro thấp", MEDIUM: "Rủi ro trung bình", HIGH: "Rủi ro cao" };
@@ -201,7 +210,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
     {block.type === "ACTION_RESULT" && <div role="status" className="space-y-1.5">
       <p>{block.message ?? (block.goalConfirmed ? "Đã lưu mục tiêu. Bạn có thể yêu cầu gợi ý PT hoặc chương trình tập." : "Thao tác đã hoàn tất.")}</p>
       {Array.isArray(block.steps) && <ul className="space-y-0.5 text-xs">{block.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>}
-      {block.nextUrl && ["/client/contracts", "/client/training", "/client/dashboard", "/client/nutrition"].includes(block.nextUrl) && <Link className="text-emerald-300 underline" to={block.nextUrl}>Mở chi tiết</Link>}
+      {block.nextUrl && NEXT_URL_ROUTE[block.nextUrl] && <Link className="text-emerald-300 underline" to={NEXT_URL_ROUTE[block.nextUrl]}>Mở chi tiết</Link>}
     </div>}
     {block.type === "SUBSTITUTE_RESULT" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
       <p className="text-zinc-200">{block.message}</p>
@@ -221,7 +230,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         <p className="text-xs text-amber-300">Bạn có thể nhắn "chấp nhận" hoặc "từ chối" để phản hồi đề xuất này.</p>}
     </div>}
     {block.type === "WORKFLOW_MISSING_DATA" && <div className="space-y-2 rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-3 text-sm">
-      {block.known?.length ? <ul className="space-y-0.5 text-xs text-zinc-400">{block.known.map((k, i) => <li key={i}>✓ {k}</li>)}</ul> : null}
+      {block.known?.length ? <ul className="space-y-0.5 text-xs text-zinc-400">{block.known.map((k, i) => <li key={i}>✓ {k.label}: {k.value}</li>)}</ul> : null}
       {block.missing?.length ? <ul className="space-y-0.5 text-xs text-amber-300">{block.missing.map((m, i) => <li key={i}>• {m}</li>)}</ul> : null}
     </div>}
     {block.type === "PROFILE_UPDATE_CONFIRMATION" && <div className="rounded-xl border border-amber-600/60 p-3 space-y-2">

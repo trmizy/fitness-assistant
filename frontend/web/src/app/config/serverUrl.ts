@@ -10,6 +10,34 @@
 // what it returned before (same-origin paths proxied by the Vite dev server).
 const STORAGE_KEY = "serverUrl";
 
+// Phase 3 Chat on-demand reconnect (2026-10-01): the Chat ALB's DNS name
+// changes every time it's recreated by dev-start.ps1. Baking it into
+// VITE_CHAT_WS_URL would require a full frontend rebuild+redeploy on every
+// Chat freeze/thaw cycle, so dev-start/dev-stop instead write a small
+// /runtime-config.json (no secrets) that this module fetches once at boot
+// and prefers over the build-time env var. Missing/unreachable file (local
+// dev, or before this file is ever uploaded) silently falls through to the
+// exact same behavior as before this feature existed.
+let runtimeConfig: { chatWsUrl?: string; chatEnabled?: boolean } | null = null;
+
+/** Fetches /runtime-config.json once. Never throws, never blocks longer than
+ *  1.5s — a missing or slow file must not delay app boot or break local dev. */
+export async function loadRuntimeConfig(): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch("/runtime-config.json", {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) runtimeConfig = await res.json();
+  } catch {
+    // Not present (local dev, or not uploaded yet) or timed out — fall back
+    // to build-time env vars exactly as before this feature existed.
+  }
+}
+
 function env(key: string): string {
   // @ts-ignore - ImportMeta.env is provided by Vite
   return (import.meta.env?.[key] as string | undefined)?.trim() || "";
@@ -108,6 +136,10 @@ export function isRealtimeEnabled(): boolean {
 }
 
 export function isChatWsEnabled(): boolean {
+  // Infra-availability override, not a product decision: when dev-stop has torn
+  // down the Chat ALB, runtime-config.json says so explicitly, and every
+  // connectSocket() caller must stop trying regardless of the build-time flags.
+  if (runtimeConfig?.chatEnabled === false) return false;
   const explicitChatWs = env("VITE_ENABLE_CHAT_WS");
   if (explicitChatWs) return envFlag("VITE_ENABLE_CHAT_WS", isDevBuild());
   return envFlag("VITE_ENABLE_CHAT", isDevBuild());
@@ -140,6 +172,11 @@ export function gatewaySocketUrl(): string {
 export function chatSocketTarget(): { url: string; path: string } {
   const override = getServerOverride();
   if (override) return { url: override, path: "/chat-socket.io" }; // one tunnel, via gateway
+
+  // Server-pushed current ALB DNS (see loadRuntimeConfig above) — takes priority
+  // over the build-time env var so dev-start/dev-stop never require a rebuild.
+  const runtime = runtimeConfig?.chatWsUrl;
+  if (runtime) return { url: runtime, path: "/socket.io" };
 
   const direct = env("VITE_CHAT_WS_URL");
   if (direct) return { url: direct, path: "/socket.io" }; // straight to chat-service

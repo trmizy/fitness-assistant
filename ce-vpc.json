@@ -1,0 +1,16 @@
+{
+  "And": [
+    {
+      "Dimensions": {
+        "Key": "RECORD_TYPE",
+        "Values": ["Usage"]
+      }
+    },
+    {
+      "Dimensions": {
+        "Key": "SERVICE",
+        "Values": ["Amazon Virtual Private Cloud"]
+      }
+    }
+  ]
+}

@@ -71,8 +71,17 @@ export const agentUpdatableProfileFieldsSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   heightCm: z.number().positive().max(300).optional(),
   currentWeight: z.number().positive().max(400).optional(),
+  // FIND_TRAINING_PROGRAM's experience slot (GAP-17) — same enum as profile.models.ts.
+  experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
 }).strict();
 export type AgentUpdatableProfileFields = z.infer<typeof agentUpdatableProfileFieldsSchema>;
+
+/** Marks an error as coming from the profile READ itself (getUserFitnessContext), so callers can tell a profile outage from any other tool failure. */
+export const PROFILE_READ_ORIGIN = "profile-read";
+function markProfileReadOrigin(err: unknown): never {
+  if (err && typeof err === "object") (err as { origin?: string }).origin = PROFILE_READ_ORIGIN;
+  throw err;
+}
 
 async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
@@ -98,9 +107,20 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
 
 export const fitnessAgentTools = {
   async getUserFitnessContext(identity: AgentIdentity) {
-    const profile = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
-    const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
-    return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    try {
+      const raw = await domain(identity, "user", "GET", "/profile/agent/context", undefined, contextSchema);
+      // user-service stores preferredTrainingDays as 0..6 with 0 = Chủ nhật (OnboardingWizardPage weekdayOptions), while every
+      // AgentPreferences day array is 1..7 (1 = Thứ 2 .. 7 = Chủ nhật). Only Sunday differs; passing a raw 0 through made
+      // AgentPreferencesSchema throw (HTTP 500) on any PT / program / workout request for a user who picked Chủ nhật
+      // (found by the full chat verification). Normalise at this single read boundary.
+      // user-service names it `experience`; the workflow's PROFILE_FACT slot reads/compares/writes
+      // `experienceLevel` (the real profile field), so both names are exposed (merged from feature/payment-gateways).
+      const profile = { ...raw, days: [...new Set(raw.days.map((d) => (d === 0 ? 7 : d)))].sort((a, b) => a - b), experienceLevel: raw.experience ?? null };
+      const personal = await profileExtractor.extract(identity.userId, identity.authorizationHeader);
+      return { profile, coach: buildCoachContext({ userId: identity.userId, ...personal }) };
+    } catch (err) {
+      return markProfileReadOrigin(err);
+    }
   },
   async findPTCandidates(identity: AgentIdentity, preferences: AgentPreferences) {
     const result = await domain(identity, "user", "POST", "/profile/agent/candidates", AgentPreferencesSchema.parse(preferences), ptResultSchema);
@@ -137,9 +157,15 @@ export const fitnessAgentTools = {
   // PATCH — see design doc §5/§29) so a slot-filling workflow can only ever
   // set the specific fields it's designed to ask about, never an arbitrary
   // property name an LLM extractor might produce.
-  updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
+  async updateProfileFields(identity: AgentIdentity, fields: AgentUpdatableProfileFields) {
     const body = agentUpdatableProfileFieldsSchema.parse(fields);
-    return domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    const result = await domain(identity, "user", "PUT", "/profile/me", body, z.record(z.unknown()));
+    // The authoritative profile just changed: drop the AI service's own short-lived profile snapshot so the workflow
+    // that resumes RIGHT AFTER this write (and the next chat turn) reads the fresh profile, never the pre-write one.
+    // (Found by the full chat verification: the resumed roadmap request answered "missing profile data" for values
+    // that had just been saved, because profile_extractor served its 15 s cache.)
+    profileExtractor.invalidateCache(identity.userId);
+    return result;
   },
   // Agent automation (chat "hãy tạo và gán lộ trình/plan tập/dinh dưỡng vào
   // hệ thống") — all four calls below reuse EXISTING, already-shipped
@@ -299,6 +325,39 @@ export const fitnessAgentTools = {
       z.object({ status: z.literal("insufficient_data"), missingFields: z.array(z.string()) }),
     ]));
   },
+  // Read-only active NutritionGoal <-> active NutritionProgram consistency
+  // detector. This lets AI Coach disclose when the meal plan currently in use
+  // is stale/mismatched, while still generating new drafts from the
+  // authoritative NutritionGoal target above.
+  getNutritionActiveState(identity: AgentIdentity) {
+    return domain(identity, "fitness", "GET", "/nutrition/active-state", undefined, z.object({
+      status: z.enum(["NO_ACTIVE_GOAL", "NO_ACTIVE_PROGRAM", "MATCHED", "STALE_GOAL_CHANGED", "MACRO_MISMATCH", "LOW_CONFIDENCE"]),
+      activeGoal: z.object({
+        id: z.string(),
+        calories: z.number(),
+        protein: z.number(),
+        carbs: z.number(),
+        fat: z.number(),
+        goalMode: z.string().optional(),
+      }).passthrough().nullable(),
+      activeProgram: z.object({
+        id: z.string(),
+        name: z.string(),
+        dailyCaloriesTarget: z.number().nullable(),
+        proteinTargetGrams: z.number().nullable(),
+        carbTargetGrams: z.number().nullable(),
+        fatTargetGrams: z.number().nullable(),
+        sourceGoalId: z.string().nullable().optional(),
+      }).passthrough().nullable(),
+      mismatches: z.array(z.object({
+        field: z.enum(["calories", "protein", "carbs", "fat"]),
+        planValue: z.number(),
+        goalValue: z.number(),
+        diff: z.number().optional(),
+      }).passthrough()),
+      recommendedAction: z.string(),
+    }).passthrough());
+  },
   saveNutritionPlanFromAiPlan(identity: AgentIdentity, payload: unknown) {
     return domain(identity, "fitness", "POST", "/nutrition/from-ai-plan", payload, z.record(z.unknown()));
   },
@@ -380,7 +439,11 @@ export const fitnessAgentTools = {
   // for every other tool here, so no new auth wiring is needed.
   async getExerciseSubstitute(identity: AgentIdentity, exerciseId: string, excludeExerciseIds: string[] = []): Promise<{ id: string; exerciseName: string } | null> {
     const query = new URLSearchParams();
-    if (excludeExerciseIds.length) query.set("excludeExerciseIds", excludeExerciseIds.join(","));
+    // exercise.controller.ts::getSubstitute only reads `req.query.exclude`
+    // (singular) — the plural `excludeExerciseIds` param name this used to
+    // send was silently ignored server-side, so an exclusion list never
+    // actually excluded anything.
+    if (excludeExerciseIds.length) query.set("exclude", excludeExerciseIds.join(","));
     query.set("limit", "1");
     try {
       const result = await domain(identity, "fitness", "GET",
@@ -395,6 +458,27 @@ export const fitnessAgentTools = {
       // swap this one", never fabricate a replacement.
       return null;
     }
+  },
+  // CREATE_WORKOUT_PLAN draft-time equipment gate — wraps the EXISTING
+  // `planEquipmentValidatorService.validate` fitness-service already runs
+  // at CONFIRM time (`validateAiPlanExerciseEquipment`), via the SAME
+  // internal endpoint Pipeline B's worker already calls
+  // (`/internal/exercises/validate-plan-equipment`). Not a second
+  // implementation — just an earlier call to the one that already exists,
+  // so a user can see an equipment-compatible draft before confirming,
+  // instead of only finding out at confirm time.
+  async validatePlanEquipment(identity: AgentIdentity, weeklySchedule: Array<{ day: string; exercises: Array<{ exerciseId: string; name?: string }> }>): Promise<{
+    valid: boolean;
+    violations: Array<{ exerciseId: string; exerciseName?: string; day?: string; dayIndex?: number; required?: string[]; alternatives?: string[]; available?: string[] }>;
+    skippedNoUserEquipment: boolean;
+  }> {
+    const result = await domain(identity, "fitness", "POST", "/internal/exercises/validate-plan-equipment", { weeklySchedule },
+      z.object({ success: z.boolean(), data: z.object({
+        valid: z.boolean(),
+        violations: z.array(z.object({ exerciseId: z.string(), exerciseName: z.string().optional(), day: z.string().optional(), dayIndex: z.number().optional(), required: z.array(z.string()).optional(), alternatives: z.array(z.string()).optional(), available: z.array(z.string()).optional() }).passthrough()),
+        skippedNoUserEquipment: z.boolean(),
+      }).passthrough() }).passthrough());
+    return result.data;
   },
   substituteMealItem(identity: AgentIdentity, payload: {
     currentFoodMention: string; desiredFoodMention?: string | null; mode?: "REPLACE" | "CHEAPER" | "HIGHER_PROTEIN" | "VEGETARIAN";

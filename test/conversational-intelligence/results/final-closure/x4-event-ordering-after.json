@@ -1,0 +1,25 @@
+[
+  {
+    "scenario": "history-over-five",
+    "userId": "a25f5a30-29e1-4935-a6ff-184e590d1750",
+    "sessionId": "c26f46b4-b637-4ca4-bc8d-0de272f7841d",
+    "confirmedAnswer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "http": 200,
+    "answer": "Rồi — thao tác gần nhất trong cuộc trò chuyện này đã được xác nhận và lưu. Hiện không còn gì đang chờ xác nhận.",
+    "goal": "WEIGHT_LOSS",
+    "truthful": true
+  },
+  {
+    "scenario": "action-cancelled-later",
+    "userId": "c7ca870d-c0cb-46ff-b0db-bfe95e6f3d5c",
+    "sessionId": "1d10140a-b62c-4df1-993d-caa6f179ee5c",
+    "actionId": "065ca11f-d74c-47a5-9b04-a0facb9f55a2",
+    "confirmedAnswer": "Đã cập nhật hồ sơ của bạn. Mục tiêu: giảm mỡ.",
+    "dismissStatus": 200,
+    "http": 200,
+    "answer": "Chưa — bản gần nhất đã được bỏ qua nên mình chưa lưu gì cả. Bạn nhắn lại yêu cầu nếu muốn mình soạn bản mới.",
+    "goal": "WEIGHT_LOSS",
+    "actionStatus": "CANCELLED",
+    "truthful": true
+  }
+]

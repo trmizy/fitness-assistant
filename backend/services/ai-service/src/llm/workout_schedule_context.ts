@@ -298,6 +298,23 @@ export function detectWorkoutScheduleIntent(
     };
   }
 
+  // A pure nutrition question that merely says "hôm nay" ("Hôm nay tôi nên ăn tối đa bao nhiêu calo?") is not a
+  // schedule lookup: "hom nay" must not pull it into the workout-schedule path unless it also talks about training.
+  if (
+    /\b(calo|calories|kcal|protein|macro|dinh duong|thuc don|bua an|an bao nhieu|nen an)\b/.test(q) &&
+    !/(tap|lich|workout|train|gym|buoi)/.test(q)
+  ) {
+    return {
+      enabled: false,
+      target: "current_schedule",
+      rawMessage: question,
+      normalizedMessage: q,
+      inheritedIntent,
+      parsedDate,
+      parsedDayOfWeek,
+    };
+  }
+
   const scheduleSignals =
     /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
   const hasDateOrDay =

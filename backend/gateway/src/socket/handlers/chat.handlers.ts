@@ -88,6 +88,24 @@ async function forwardMessageToChatService(
   };
 }
 
+/**
+ * Everything a conversation room hears about a new message. Shared by the socket send path below
+ * and the REST relay (chatRestRelay.ts), so a message sent over REST — the mobile app's fallback
+ * while its socket is down — reaches the recipient live exactly like a socket-sent one.
+ */
+export function broadcastChatMessage(io: Server, message: ChatMessagePayload) {
+  const room = chatRoom(message.conversationId);
+  io.to(room).emit(SERVER_EVENTS.chatMessageNew, message);
+  io.to(room).emit(SERVER_EVENTS.chatMessageNewLegacy, message);
+  io.to(room).emit(SERVER_EVENTS.chatConversationUpdatedLegacy, {
+    conversationId: message.conversationId,
+    lastMessage: {
+      content: message.content,
+      createdAt: message.createdAt,
+    },
+  });
+}
+
 export function registerChatHandlers(io: Server, socket: Socket) {
   socket.on(
     CLIENT_EVENTS.chatJoinConversation,
@@ -152,17 +170,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
         conversationId,
         content,
       );
-      const room = chatRoom(conversationId);
-
-      io.to(room).emit(SERVER_EVENTS.chatMessageNew, message);
-      io.to(room).emit(SERVER_EVENTS.chatMessageNewLegacy, message);
-      io.to(room).emit(SERVER_EVENTS.chatConversationUpdatedLegacy, {
-        conversationId,
-        lastMessage: {
-          content: message.content,
-          createdAt: message.createdAt,
-        },
-      });
+      broadcastChatMessage(io, message);
     } catch (err) {
       logger.warn(
         {

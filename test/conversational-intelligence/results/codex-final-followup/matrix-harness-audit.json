@@ -1,0 +1,59 @@
+{
+  "checked": [
+    {
+      "state": "S7",
+      "id": "U6",
+      "wrote": false,
+      "answer": "Chưa có thay đổi nào được lưu",
+      "rejected": true
+    },
+    {
+      "state": "S7",
+      "id": "U6",
+      "wrote": false,
+      "answer": "Rồi — thao tác gần nhất đã được xác nhận và lưu.",
+      "rejected": false
+    },
+    {
+      "state": "S1",
+      "id": "U1",
+      "wrote": true,
+      "answer": "Đã cập nhật hồ sơ",
+      "rejected": false
+    },
+    {
+      "state": "S1",
+      "id": "U1",
+      "wrote": false,
+      "answer": "Đã cập nhật hồ sơ",
+      "rejected": true
+    },
+    {
+      "state": "S0",
+      "id": "U1",
+      "wrote": false,
+      "answer": "Đã lưu thành công!",
+      "rejected": true
+    }
+  ],
+  "exitCodes": [
+    {
+      "field": "bad",
+      "exit": 1
+    },
+    {
+      "field": "failedExpectations",
+      "exit": 1
+    },
+    {
+      "field": "errors",
+      "exit": 1
+    },
+    {
+      "field": "setupFailed",
+      "exit": 1
+    }
+  ],
+  "knowledgeExpectation": null,
+  "emptyS0Rejected": false
+}

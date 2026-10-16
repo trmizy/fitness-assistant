@@ -343,4 +343,16 @@ export const marketplaceController = {
       next(error);
     }
   },
+
+  async adminDeleteApproved(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await marketplaceService.adminDeleteApproved(
+        req.params.id,
+        req.context.userId,
+      );
+      res.json(formatSuccessResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  },
 };

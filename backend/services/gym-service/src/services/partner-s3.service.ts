@@ -7,6 +7,7 @@ import {
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { assertPartnerS3ProductionSafe } from './partner-s3.guard';
+import { currentPublicBaseUrl } from '../middleware/request-context.middleware';
 
 /**
  * S3 cho hồ sơ đối tác tự đăng ký — GYM_PARTNER_SECURITY_MODEL.md §6.
@@ -73,6 +74,26 @@ function clients(cfg: S3Config) {
   return cached;
 }
 
+/**
+ * Client dùng để KÝ link cho trình duyệt. Mặc định ký cho PARTNER_S3_PUBLIC_ENDPOINT (một host cố định).
+ * Ở dev bật PARTNER_S3_PUBLIC_VIA_REQUEST=true thì ký cho đúng địa chỉ người gọi đang dùng
+ * (localhost:5173, IP LAN, tunnel Cloudflare…) — gateway chuyển tiếp `/<bucket>/…` sang MinIO
+ * (backend/gateway/src/routes/storage.proxy.ts). Không có ngữ cảnh request (job, test) thì dùng mặc định.
+ * Không bao giờ bật ở production: ở đó trình duyệt gọi thẳng S3.
+ */
+const perRequestSigners = new Map<string, S3Client>();
+function signingClient(cfg: S3Config): S3Client {
+  const base = process.env.PARTNER_S3_PUBLIC_VIA_REQUEST === 'true' ? currentPublicBaseUrl() : undefined;
+  if (!base) return clients(cfg).signing;
+  let c = perRequestSigners.get(base);
+  if (!c) {
+    if (perRequestSigners.size > 50) perRequestSigners.clear(); // IP LAN / tunnel đổi liên tục — đừng giữ mãi
+    c = new S3Client({ region: cfg.region, endpoint: base, forcePathStyle: true, credentials: cfg.credentials });
+    perRequestSigners.set(base, c);
+  }
+  return c;
+}
+
 function unavailable(): Error {
   return Object.assign(new Error('Tính năng tải tệp chưa được cấu hình trên môi trường này'), {
     status: 503,
@@ -89,7 +110,7 @@ export const partnerS3 = {
   async presignUpload(params: { key: string; contentType: string; maxBytes: number; expiresSec?: number }) {
     const cfg = readConfig();
     if (!cfg.privateBucket) throw unavailable();
-    const { url, fields } = await createPresignedPost(clients(cfg).signing, {
+    const { url, fields } = await createPresignedPost(signingClient(cfg), {
       Bucket: cfg.privateBucket,
       Key: params.key,
       Expires: params.expiresSec ?? 300,
@@ -107,7 +128,7 @@ export const partnerS3 = {
     const cfg = readConfig();
     if (!cfg.privateBucket) throw unavailable();
     return getSignedUrl(
-      clients(cfg).signing,
+      signingClient(cfg),
       new GetObjectCommand({
         Bucket: cfg.privateBucket,
         Key: params.key,

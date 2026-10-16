@@ -1,0 +1,15 @@
+import { execSync } from "node:child_process";
+import { registerUser, putProfile, say } from "../../../test/ai-chat-full-verification/lib.mjs";
+const s = Date.now();
+const u = await registerUser(`r1.trace.${s}@gymini-test.local`, "R1 Trace");
+await putProfile(u, { hasCompletedOnboarding: true, goal: "MUSCLE_GAIN", age: 28, heightCm: 172, currentWeight: 95, gender: "MALE", preferredTrainingDays: [1, 3, 5], sessionDurationMinutes: 60 });
+const since = new Date(Date.now() - 1000).toISOString();
+const r = await say(u, process.argv[2]);
+const trace = r.data?.traceId;
+const log = execSync(`docker logs gymcoach-ai-dev --since ${since} 2>&1`, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+const events = log.split("\n").filter((l) => l.startsWith("{")).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+const mine = events.filter((e) => e.correlationId === trace || e.requestId === trace || e.traceId === trace);
+const all = events.filter((e) => e.time >= s - 1000);
+console.log(JSON.stringify({ http: r.status, ms: r.ms, traceId: trace, answer: (r.answer ?? "").slice(0, 140) }));
+console.log("events (all, since turn start):");
+for (const e of all) console.log(" ", e.msg ?? "(no msg)", JSON.stringify({ corr: e.correlationId === trace ? "THIS" : e.correlationId ? "other" : undefined, purpose: e.purpose ?? e.callPurpose, phase: e.phase, route: e.route ?? e.llmRoute, llmCalled: e.llmCalled, tool: e.tool, latencyMs: e.latencyMs }));

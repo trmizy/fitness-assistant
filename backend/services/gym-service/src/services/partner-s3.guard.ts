@@ -25,6 +25,9 @@ export function partnerS3ProductionViolations(env: Env = process.env): string[] 
   if (env.PARTNER_S3_PUBLIC_BUCKET || env.PARTNER_S3_PUBLIC_BASE_URL) {
     problems.push('PARTNER_S3_PUBLIC_BUCKET/PARTNER_S3_PUBLIC_BASE_URL không còn dùng — mọi tệp đều riêng tư');
   }
+  if (env.PARTNER_S3_PUBLIC_VIA_REQUEST === 'true') {
+    problems.push('PARTNER_S3_PUBLIC_VIA_REQUEST chỉ dành cho dev (ký link qua gateway tới MinIO) — production gọi thẳng S3');
+  }
   if (env.PARTNER_S3_FORCE_PATH_STYLE === 'true') {
     problems.push('PARTNER_S3_FORCE_PATH_STYLE không được bật ở production');
   }

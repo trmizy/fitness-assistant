@@ -1,0 +1,2 @@
+id,text,annotator,safetyLabel,programmingLabel,domain,tags,uncertain,comment,timestamp
+EX-0001,(văn bản câu hỏi — chỉ là ví dụ định dạng),A01,NORMAL_FITNESS,NOT_PROGRAMMING,UNKNOWN,GENERAL_KNOWLEDGE,false,,2026-01-01T00:00:00Z

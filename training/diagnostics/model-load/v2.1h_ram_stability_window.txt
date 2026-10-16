@@ -1,0 +1,21 @@
+Free Physical RAM samples (KB), ~25s/20s intervals, 2026-10-11 ~05:58-06:02 UTC:
+05:58:51  2665668
+05:59:17  2594844
+05:59:43  2636780
+06:00:09  2509952
+06:00:35  3074204
+06:01:01  2083152
+06:01:38  2899216
+06:01:59  2793248
+06:02:20  2752196
+
+Mean approx 2.67 GB. Range 2.08-3.07 GB. 8/9 samples below the 3.0 GB
+empirical gate. Not a monotonic/rapid decline (noisy fluctuation around
+a roughly stable low mean), but gate not met.
+
+GPU: 3962 MiB free, 0% util, 57C. No orphan python processes. Disk free
+on C: ~69.1 GB. Top memory consumers: Memory Compression (~3.99GB),
+vmmemWSL (~894MB), VS Code (~640+457MB), msedge (~533MB), claude
+(~290+255MB), MsMpEng (~234MB) - same class of legitimate user processes
+seen throughout this whole task, none terminated or asked to be closed
+automatically.
