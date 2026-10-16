@@ -518,7 +518,7 @@ test("CREATE_WORKOUT_PLAN weekday exercise-count revision (real DB): '8 bai tap 
     assert.ok(r2, "weekday exercise-count revision must be owned by the workout draft");
     assert.equal(r2!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
     assert.equal((r2!.blocks[0] as any).actionId, actionId);
-    assert.match(r2!.answer, /8 b[aÃ ]i/i);
+    assert.match(r2!.answer, /8 b[aà]i/i);
     assert.match(r2!.answer, /Thứ 7|Thu 7/i);
     assert.match(r2!.answer, /chưa thay đổi lịch|chua thay doi lich/i);
 
