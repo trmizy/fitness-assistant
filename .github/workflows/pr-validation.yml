@@ -162,6 +162,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      # EXPERIMENT (2026-10-16): this build crashed consistently with a low-level
+      # Node/corepack file-read error deep inside `pnpm install --frozen-lockfile`
+      # (Dockerfile step, chat-service), while the identical build succeeded 100%
+      # locally. Hypothesis: the runner's 7GB RAM is exhausted resolving this
+      # repo's full 17,914-line pnpm-lock.yaml inside the Docker build sandbox.
+      # Adding swap is the standard, reversible fix for exactly this GitHub
+      # Actions OOM pattern - if this still fails identically, the hypothesis is
+      # wrong and this step should be removed again, not left as cargo-culted.
+      - name: Add swap space (large monorepo lockfile may exceed the 7GB runner RAM during Docker build)
+        run: |
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
       - run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:pr-validation .
 
   # CI helper logic. This repo's own machine ships Windows PowerShell 5.1
