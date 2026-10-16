@@ -215,10 +215,10 @@ jobs:
       - name: Fetch Pester 3.4.0
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: pester/Pester
           ref: d656dc7a5f737f9e217161f9d0c6fcfab4ab3f2e
           path: .ci-tools/Pester
-          persist-credentials: false
       - shell: powershell
         run: |
           Remove-Module -Name Pester -ErrorAction SilentlyContinue
