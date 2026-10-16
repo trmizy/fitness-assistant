@@ -70,6 +70,12 @@ jobs:
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Build + package (existing per-service script) and record manifest
+        # pnpm 8 computes modulesDir relative to the selected package. A temp
+        # directory on another Windows drive produces an invalid absolute value.
+        # runner.temp lives on the checkout drive on GitHub Windows runners.
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
         run: ./scripts/ci/Build-LambdaArtifact.ps1 -Service ${{ matrix.service }} -OutDir ci-out -Execute
       - uses: actions/upload-artifact@v4
