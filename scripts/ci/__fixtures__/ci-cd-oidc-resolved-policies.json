@@ -476,6 +476,12 @@
             "Version": "2012-10-17",
             "Statement": [
               {
+                "Sid": "ExpandLanguageExtensions",
+                "Effect": "Allow",
+                "Action": "cloudformation:CreateChangeSet",
+                "Resource": "arn:aws:cloudformation:ap-southeast-1:aws:transform/LanguageExtensions"
+              },
+              {
                 "Sid": "ManageRoutesIntegrationsStagesOfProtectedApi",
                 "Effect": "Allow",
                 "Action": [

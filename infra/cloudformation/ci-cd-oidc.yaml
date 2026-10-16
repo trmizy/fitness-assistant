@@ -372,6 +372,11 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              - Sid: ExpandLanguageExtensions
+                # Fn::ForEach in the API baseline requires this AWS-managed transform.
+                Effect: Allow
+                Action: cloudformation:CreateChangeSet
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/LanguageExtensions"
               - Sid: ManageRoutesIntegrationsStagesOfProtectedApi
                 # Phase 16B.1A fix: `apigateway:TagResource` is not a real IAM
                 # action (confirmed via a real, read-only `aws accessanalyzer

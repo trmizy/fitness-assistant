@@ -218,6 +218,14 @@ Describe "Phase 16B.1A IAM policy static audit (ci-cd-oidc.yaml)" {
             $stmt = $script:Roles.InfraApplyRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ExecuteOnApiGatewayStackOnly" }
             @($stmt.Action) -contains "cloudformation:ExecuteChangeSet" | Should Be $true
         }
+        It "CfnExecutionRole can expand only the required AWS LanguageExtensions transform" {
+            $stmt = $script:Roles.CfnExecutionRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ExpandLanguageExtensions" }
+            $stmt.Effect | Should Be "Allow"
+            @($stmt.Action).Count | Should Be 1
+            $stmt.Action | Should Be "cloudformation:CreateChangeSet"
+            @($stmt.Resource).Count | Should Be 1
+            $stmt.Resource | Should Be "arn:aws:cloudformation:ap-southeast-1:aws:transform/LanguageExtensions"
+        }
         It "CfnExecutionRole can write routes/integrations on the real protected API" {
             $stmt = $script:Roles.CfnExecutionRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ManageRoutesIntegrationsStagesOfProtectedApi" }
             @($stmt.Resource) -contains "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl/*" | Should Be $true
