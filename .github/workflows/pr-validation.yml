@@ -89,6 +89,14 @@ jobs:
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm run prisma:generate
+      # @gym-coach/shared's package.json points "main" at dist/index.js (a
+      # built artifact, gitignored) - every service imports it at runtime,
+      # so skipping this step crashes every single test with "Cannot find
+      # module '.../@gym-coach/shared/dist/index.js'". Confirmed via a real
+      # failing CI run (2026-10-16) and reproduced + fixed locally before
+      # writing this step - not guessed.
+      - name: Build @gym-coach/shared (every service imports its dist/ output at runtime)
+        run: pnpm --filter "@gym-coach/shared" build
       - name: Run unit tests (skipped when service not impacted)
         shell: pwsh
         env:

@@ -103,6 +103,11 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # @gym-coach/shared's package.json "main" points at dist/index.js (a
+      # built, gitignored artifact) - every service imports it at runtime.
+      # Confirmed via a real failing CI run + local reproduction (2026-10-16).
+      - name: Build @gym-coach/shared (every service imports its dist/ output at runtime)
+        run: pnpm --filter "@gym-coach/shared" build
       - name: Create isolated test databases
         run: node scripts/ci-create-test-databases.mjs
       - name: Generate Prisma clients
