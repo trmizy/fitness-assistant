@@ -12,7 +12,7 @@ function load(lambda) {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true,
   }}).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, process: { env: lambda ? { USER_LAMBDA_NAME: 'fixture-user' } : {} }, require(name) {
+  vm.runInNewContext(code, { exports, URL, process: { env: lambda ? { USER_LAMBDA_NAME: 'fixture-user' } : {} }, require(name) {
     if (name === 'axios') return Object.fromEntries(['get','post','put'].map(method => [method, async (...args) => {
       calls.push({ method, args }); return { status: 200, data: { ok: true } };
     }]));
@@ -48,4 +48,12 @@ test('Lambda GET forwards query parameters separately and has no request body', 
   assert.equal(h.calls[0].method, 'GET');
   assert.equal(h.calls[0].queryStringParameters.limit, '20');
   assert.equal(h.calls[0].body, undefined);
+});
+
+test('existing agent routes with embedded query strings produce valid Lambda paths', async () => {
+  const h = load(true);
+  await h.request({ service: 'user', method: 'GET', path: '/food/search?q=rice%20bowl&limit=20' });
+  assert.equal(h.calls[0].path, '/food/search');
+  assert.equal(h.calls[0].queryStringParameters.q, 'rice bowl');
+  assert.equal(h.calls[0].queryStringParameters.limit, '20');
 });

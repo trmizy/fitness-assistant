@@ -89,13 +89,15 @@ export async function requestService<T = any>(params: {
 }): Promise<ServiceResponse<T>> {
   const config = serviceConfig[params.service];
   const functionName = process.env[config.lambdaEnv];
-  const query = toQueryStringParameters(params.params);
+  const target = new URL(params.path, "http://service.local");
+  const queryParams = { ...Object.fromEntries(target.searchParams), ...params.params };
+  const query = toQueryStringParameters(queryParams);
 
   if (functionName) {
     const result = await invokeHttpLambda({
       functionName,
       method: params.method,
-      path: params.path,
+      path: target.pathname,
       headers: params.headers,
       queryStringParameters: query,
       body: params.method !== "GET" ? (params.body ?? {}) : undefined,
@@ -105,12 +107,12 @@ export async function requestService<T = any>(params: {
   }
 
   const baseUrl = process.env[config.urlEnv] || config.defaultUrl();
-  const url = `${baseUrl}${params.path}`;
+  const url = `${baseUrl}${target.pathname}`;
   const timeout = params.timeoutMs ?? 10_000;
 
   const response =
     params.method === "GET"
-      ? await axios.get<T>(url, { headers: params.headers, params: params.params, timeout })
+      ? await axios.get<T>(url, { headers: params.headers, params: queryParams, timeout })
       : params.method === "PUT"
         ? await axios.put<T>(url, params.body, { headers: params.headers, timeout })
         : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
