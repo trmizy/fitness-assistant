@@ -149,6 +149,10 @@ export interface Contract {
   description?: string;
   totalSessions: number;
   usedSessions: number;
+  /** "PAUSED_BY_ADMIN" while the trainer is temporarily restricted; otherwise equals `status`. */
+  effectiveStatus?: ContractStatus | "PAUSED_BY_ADMIN";
+  /** True while the client may end the contract with a full refund and no fee. */
+  canExitWithoutPenalty?: boolean;
   /** PT no-shows already compensated in cash — counts against remaining entitlement the same
    * as usedSessions, but is not folded into it (money-flow plan 1.5). Optional because older
    * cached API responses predate the field; treat a missing value as 0. */
@@ -269,6 +273,8 @@ export type NotificationEventType =
   | "CONTRACT_ACCEPTED"
   | "CONTRACT_REJECTED"
   | "CONTRACT_CANCELLED"
+  | "CONTRACT_PAUSED_PT_SUSPENDED"
+  | "CONTRACT_RESUMED_PT_REINSTATED"
   | "SESSION_BOOKED"
   | "SESSION_CONFIRMED"
   | "SESSION_COMPLETED"

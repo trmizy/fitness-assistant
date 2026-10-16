@@ -82,6 +82,10 @@ export function notificationMeta(eventType: string | null): { title: string; ico
     case "CONTRACT_CANCELLED":
     case "CONTRACT_CANCELLED_PT_DEACTIVATED":
       return { title: "Hợp đồng PT đã kết thúc", icon: "alert", tone: "danger" };
+    case "CONTRACT_PAUSED_PT_SUSPENDED":
+      return { title: "Hợp đồng tạm dừng", icon: "file", tone: "warning" };
+    case "CONTRACT_RESUMED_PT_REINSTATED":
+      return { title: "Hợp đồng hoạt động trở lại", icon: "file", tone: "primary" };
     case "REFUND_NEEDS_MANUAL_SETTLEMENT":
       return { title: "Hoàn tiền", icon: "money", tone: "warning" };
     case "PT_APPLICATION_SUBMITTED":

@@ -21,6 +21,8 @@ const EVENT_TYPE_LABELS_VI: Partial<Record<string, string>> = {
   WORKOUT_UNFINISHED: "buổi tập dang dở",
   TRAINING_PLAN_UPDATED: "cập nhật kế hoạch",
   PT_FEEDBACK_RECEIVED: "phản hồi từ PT",
+  CONTRACT_PAUSED_PT_SUSPENDED: "Hợp đồng tạm dừng",
+  CONTRACT_RESUMED_PT_REINSTATED: "Hợp đồng hoạt động trở lại",
 };
 import { useSocket } from "../../hooks/useSocket";
 import { useBackDismissible } from "../../hooks/useBackDismissible";

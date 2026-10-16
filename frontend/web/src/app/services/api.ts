@@ -4752,8 +4752,17 @@ export const contractService = {
   // — see docs/money-flow.md §3.3–3.6. CLIENT_CANCELLED refunds 90% of the unused value
   // (10% penalty); PT_REPEATED_NO_SHOW (Vòng 4 / Phase E2) refunds 100% — the backend
   // independently re-counts confirmed PT no-shows before allowing it, never trusting this call.
-  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW") => {
-    const { data } = await api.post(`/contracts/${id}/terminate`, { reason });
+  // `expectNoPenalty` (client cancel only): the client was shown a no-fee exit. If those terms no
+  // longer apply the server answers 409 PT_RESTRICTION_LIFTED instead of silently charging a fee.
+  terminateContract: async (
+    id: string,
+    reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW",
+    options?: { expectNoPenalty?: boolean },
+  ) => {
+    const { data } = await api.post(`/contracts/${id}/terminate`, {
+      reason,
+      ...(options?.expectNoPenalty ? { expectNoPenalty: true } : {}),
+    });
     return data;
   },
   // Read-only preview of what a CLIENT_CANCELLED termination would pay out right now —

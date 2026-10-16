@@ -4934,6 +4934,34 @@ export const ptServicePackageService = {
   },
 };
 
+export type TerminateContractReason = "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW";
+
+export type TerminateContractOptions = {
+  /** Client cancel only: the client was shown a no-fee exit; a changed rule answers 409 instead of charging. */
+  expectNoPenalty?: boolean;
+};
+
+export type TerminateContractResult = {
+  contractId?: string;
+  reason?: string;
+  /** True when the server ended the contract under the no-fee (trainer restricted) terms. */
+  exitWithoutPenalty?: boolean;
+  alreadyTerminated?: boolean;
+  settlement?: { refund?: string | number | null } | null;
+};
+
+/** `GET /contracts/:id/money-breakdown` — the server-computed preview; figures arrive as strings. */
+export type ContractMoneyBreakdownResponse = {
+  refundIfCancelledNow?: string | number | null;
+  /** Strictly `true` only while the trainer is restricted and the client may leave with no fee. */
+  canExitWithoutPenalty?: boolean;
+  exitReasonIfCancelledNow?: string | null;
+  /** Sessions the trainer reported done that still await the client's confirmation or a review. */
+  unresolvedSessions?: number;
+  unresolvedAmountHeld?: string | number | null;
+  [key: string]: unknown;
+};
+
 export const contractService = {
   // New contract request flow
   requestContract: async (requestData: {
@@ -4964,13 +4992,22 @@ export const contractService = {
   // — see docs/money-flow.md §3.3–3.6. CLIENT_CANCELLED refunds 90% of the unused value
   // (10% penalty); PT_REPEATED_NO_SHOW (Vòng 4 / Phase E2) refunds 100% — the backend
   // independently re-counts confirmed PT no-shows before allowing it, never trusting this call.
-  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW") => {
-    const { data } = await api.post(`/contracts/${id}/terminate`, { reason });
+  // `expectNoPenalty` (client cancel only): the client was shown a no-fee exit. If those terms no
+  // longer apply the server answers 409 PT_RESTRICTION_LIFTED instead of silently charging a fee.
+  terminateContract: async (
+    id: string,
+    reason: TerminateContractReason,
+    options?: TerminateContractOptions,
+  ): Promise<TerminateContractResult> => {
+    const { data } = await api.post(`/contracts/${id}/terminate`, {
+      reason,
+      ...(options?.expectNoPenalty ? { expectNoPenalty: true } : {}),
+    });
     return data;
   },
   // Read-only preview of what a CLIENT_CANCELLED termination would pay out right now —
   // shown before the client confirms so they see the actual refund, not a guess.
-  getMoneyBreakdown: async (id: string) => {
+  getMoneyBreakdown: async (id: string): Promise<ContractMoneyBreakdownResponse> => {
     const { data } = await api.get(`/contracts/${id}/money-breakdown`);
     return data;
   },

@@ -108,6 +108,13 @@ const SESSION_MODE_LABEL: Record<string, string> = {
   HYBRID: "Hybrid",
 };
 
+/** Contract-terminate 409 meaning "the no-fee exit you were shown no longer applies". */
+function isPtRestrictionLifted(err: any): boolean {
+  if (err?.response?.status !== 409) return false;
+  const d = err?.response?.data;
+  return [d?.code, d?.errorCode, d?.error, d?.error?.code].includes("PT_RESTRICTION_LIFTED");
+}
+
 export function ContractPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -116,6 +123,12 @@ export function ContractPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   useBackDismissible(!!showCancelDialog, () => setShowCancelDialog(false));
+  // Set when the server says the no-fee exit the client was shown no longer applies (409). The
+  // dialog then shows the ordinary terms and needs a fresh, explicit confirmation.
+  const [termsChanged, setTermsChanged] = useState(false);
+  useEffect(() => {
+    if (!showCancelDialog) setTermsChanged(false);
+  }, [showCancelDialog]);
   const [copiedId, setCopiedId] = useState(false);
   // The contract awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<Contract | null>(null);
@@ -157,18 +170,42 @@ export function ContractPage() {
   // everyone per money-flow.md §3.3: client gets 90% of the unused value back, the rest is
   // the cancellation penalty.
   const terminateMutation = useMutation({
-    mutationFn: (id: string) => contractService.terminateContract(id, "CLIENT_CANCELLED"),
+    mutationFn: ({ id, expectNoPenalty }: { id: string; expectNoPenalty: boolean }) =>
+      contractService.terminateContract(id, "CLIENT_CANCELLED", { expectNoPenalty }),
     onSuccess: (result: any) => {
       const refund = Number(result?.settlement?.refund ?? 0);
+      const noFee = result?.exitWithoutPenalty === true;
       toast.success(
         refund > 0
-          ? `Đã hủy hợp đồng — hoàn ${formatVND(refund)} vào ví của bạn`
-          : "Đã hủy hợp đồng",
+          ? noFee
+            ? `Đã kết thúc hợp đồng — hoàn ${formatVND(refund)} vào ví của bạn, không mất phí`
+            : `Đã hủy hợp đồng — hoàn ${formatVND(refund)} vào ví của bạn`
+          : noFee
+            ? "Đã kết thúc hợp đồng"
+            : "Đã hủy hợp đồng",
       );
       setShowCancelDialog(false);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
-    onError: (err: any) => {
+    onError: (err: any, vars) => {
+      if (isPtRestrictionLifted(err)) {
+        // Not a failure: the trainer is operating again, so the no-fee terms the client saw are
+        // gone. Keep the dialog open on the new terms; nothing was cancelled.
+        const body = err?.response?.data;
+        const preview = body?.data?.preview ?? body?.preview ?? body?.data ?? null;
+        const key = ["contract-money-breakdown", vars.id];
+        if (preview && typeof preview === "object" && preview.refundIfCancelledNow !== undefined) {
+          queryClient.setQueryData(key, (old: any) => ({
+            ...(old ?? {}),
+            ...preview,
+            canExitWithoutPenalty: false,
+          }));
+        } else {
+          queryClient.invalidateQueries({ queryKey: key });
+        }
+        setTermsChanged(true);
+        return;
+      }
       toast.error(err?.response?.data?.error || "Failed to cancel");
     },
   });
@@ -212,11 +249,29 @@ export function ContractPage() {
 
   const selected = contracts.find((c: Contract) => c.id === selectedId);
 
-  const { data: breakdown } = useQuery({
+  // staleTime 0: every time the dialog opens the figures are re-read from the server, and the
+  // dialog hides whatever is cached until that fetch lands (see `breakdownReady`).
+  const {
+    data: breakdown,
+    isFetching: breakdownFetching,
+    isError: breakdownError,
+  } = useQuery({
     queryKey: ["contract-money-breakdown", selectedId],
     queryFn: () => contractService.getMoneyBreakdown(selectedId!),
     enabled: showCancelDialog && !!selectedId && selected?.status === "ACTIVE",
+    staleTime: 0,
   });
+  // After a 409 the dialog may only show terms that really are the ordinary ones.
+  const termsStillNoFee = termsChanged && breakdown?.canExitWithoutPenalty === true;
+  const breakdownReady = !!breakdown && !breakdownFetching && !termsStillNoFee;
+  // The no-fee exit is offered only while the server says so, and never again once a 409 told us
+  // it is gone for this dialog.
+  const noFeeExit = breakdownReady && breakdown.canExitWithoutPenalty === true && !termsChanged;
+  const unresolvedSessions = Number(breakdown?.unresolvedSessions ?? 0) || 0;
+  const unresolvedAmount =
+    breakdown?.unresolvedAmountHeld != null && Number.isFinite(Number(breakdown.unresolvedAmountHeld))
+      ? Number(breakdown.unresolvedAmountHeld)
+      : 0;
 
   // Vòng 4 / Phase E2 — the client's own right to terminate after a 3rd confirmed PT no-show.
   // Never automatic: this only ever shows a banner with a choice, never terminates on its own.
@@ -390,6 +445,20 @@ export function ContractPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* The trainer is temporarily restricted: one neutral line, nothing else changes. */}
+                {selected.effectiveStatus === "PAUSED_BY_ADMIN" && (
+                  <div
+                    data-testid="contract-paused-notice"
+                    className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-3 flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-200">
+                      Hợp đồng đang tạm dừng trong lúc huấn luyện viên tạm ngưng hoạt động. Buổi
+                      tập và thời hạn của bạn được giữ nguyên.
+                    </p>
+                  </div>
+                )}
 
                 {/* Vòng 4 / Phase E2 — a RIGHT the client exercises, never an automatic
                     termination: shown as an explicit two-button choice every time this
@@ -665,7 +734,7 @@ export function ContractPage() {
       {/* Cancel Dialog */}
       {showCancelDialog && selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">
                 {selected.status === "PENDING_REVIEW"
@@ -676,33 +745,78 @@ export function ContractPage() {
             <div className="p-5 space-y-4">
               {selected.status === "ACTIVE" ? (
                 <>
-                  <p className="text-sm text-zinc-400">
-                    Hợp đồng đã thanh toán và đang hoạt động. Hủy sẽ áp dụng phí hủy 10% trên
-                    phần chưa dùng — bạn nhận lại phần còn lại vào ví.
-                  </p>
-                  {breakdown ? (
-                    <div className="bg-zinc-800/50 rounded-lg p-3 space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Giá hợp đồng</span>
-                        <span>{formatVND(Number(breakdown.price))}</span>
+                  {!breakdownReady ? (
+                    (breakdownError || termsStillNoFee) && !breakdownFetching ? (
+                      <p className="text-sm text-zinc-400">
+                        Không tải được số tiền hoàn. Vui lòng đóng hộp thoại và thử lại.
+                      </p>
+                    ) : (
+                      <div className="flex justify-center py-3">
+                        <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Đã dùng</span>
-                        <span>{breakdown.usedSessions}/{breakdown.totalSessions} buổi</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Giá trị chưa dùng</span>
-                        <span>{formatVND(Number(breakdown.remaining))}</span>
-                      </div>
-                      <div className="flex justify-between text-green-400 font-bold pt-1 border-t border-zinc-700/50">
-                        <span>Hoàn về ví (90%)</span>
-                        <span>{formatVND(Number(breakdown.refundIfCancelledNow))}</span>
-                      </div>
-                    </div>
+                    )
                   ) : (
-                    <div className="flex justify-center py-3">
-                      <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />
-                    </div>
+                    <>
+                      {termsChanged && (
+                        <div
+                          data-testid="cancel-terms-changed"
+                          className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2"
+                        >
+                          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-amber-200">
+                            Huấn luyện viên đã hoạt động trở lại nên điều kiện kết thúc không mất
+                            phí trước đó không còn áp dụng. Vui lòng xác nhận lại nếu bạn vẫn muốn
+                            hủy.
+                          </p>
+                        </div>
+                      )}
+                      {noFeeExit ? (
+                        <p data-testid="cancel-no-fee-intro" className="text-sm text-zinc-400">
+                          Huấn luyện viên của bạn đang tạm ngưng hoạt động. Nếu kết thúc hợp đồng
+                          bây giờ, bạn được hoàn toàn bộ giá trị các buổi chưa tập vào ví và không
+                          mất phí.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-zinc-400">
+                          Hợp đồng đã thanh toán và đang hoạt động. Hủy sẽ áp dụng phí hủy 10% trên
+                          phần chưa dùng — bạn nhận lại phần còn lại vào ví.
+                        </p>
+                      )}
+                      <div className="bg-zinc-800/50 rounded-lg p-3 space-y-1 text-xs">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-zinc-500">Giá hợp đồng</span>
+                          <span>{formatVND(Number(breakdown.price))}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-zinc-500">Đã dùng</span>
+                          <span>{breakdown.usedSessions}/{breakdown.totalSessions} buổi</span>
+                        </div>
+                        {!noFeeExit && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-zinc-500">Giá trị chưa dùng</span>
+                            <span>{formatVND(Number(breakdown.remaining))}</span>
+                          </div>
+                        )}
+                        {noFeeExit && unresolvedSessions > 0 && unresolvedAmount > 0 && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-zinc-500">Đang chờ xác nhận hoặc xem xét</span>
+                            <span>{formatVND(unresolvedAmount)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-3 text-green-400 font-bold pt-1 border-t border-zinc-700/50">
+                          <span>{noFeeExit ? "Hoàn về ví (không mất phí)" : "Hoàn về ví (90%)"}</span>
+                          <span>{formatVND(Number(breakdown.refundIfCancelledNow))}</span>
+                        </div>
+                      </div>
+                      {noFeeExit && unresolvedSessions > 0 && (
+                        <p data-testid="cancel-unresolved-note" className="text-xs text-zinc-400">
+                          Có {unresolvedSessions} buổi huấn luyện viên đã báo là đã dạy nhưng đang
+                          chờ bạn xác nhận hoặc chờ xem xét. Giá trị các buổi này chưa nằm trong số
+                          tiền hoàn ở trên; chúng sẽ được xử lý sau khi bạn xác nhận hoặc buổi đó
+                          được xem xét xong.
+                        </p>
+                      )}
+                    </>
                   )}
                 </>
               ) : (
@@ -739,14 +853,16 @@ export function ContractPage() {
               </button>
               {selected.status === "ACTIVE" ? (
                 <button
-                  onClick={() => terminateMutation.mutate(selected.id)}
-                  disabled={terminateMutation.isPending}
+                  onClick={() =>
+                    terminateMutation.mutate({ id: selected.id, expectNoPenalty: noFeeExit })
+                  }
+                  disabled={terminateMutation.isPending || !breakdownReady}
                   className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   {terminateMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : null}
-                  Xác nhận hủy
+                  {termsChanged ? "Vẫn hủy hợp đồng" : noFeeExit ? "Xác nhận kết thúc" : "Xác nhận hủy"}
                 </button>
               ) : (
                 <button

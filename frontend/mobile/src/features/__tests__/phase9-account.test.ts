@@ -116,6 +116,9 @@ describe("notifications", () => {
   it("titles and time are Vietnamese", () => {
     assert.equal(notificationMeta("SESSION_RESCHEDULE_REQUESTED").title, "Đề xuất dời lịch");
     assert.equal(notificationMeta("SOMETHING_NEW").icon, "bell");
+    assert.equal(notificationMeta("CONTRACT_PAUSED_PT_SUSPENDED").title, "Hợp đồng tạm dừng");
+    assert.notEqual(notificationMeta("CONTRACT_PAUSED_PT_SUSPENDED").tone, "danger");
+    assert.equal(notificationMeta("CONTRACT_RESUMED_PT_REINSTATED").title, "Hợp đồng hoạt động trở lại");
     const now = Date.parse("2026-09-22T12:00:00Z");
     assert.equal(timeAgo("2026-09-22T10:00:00Z", now), "2 giờ trước");
   });
