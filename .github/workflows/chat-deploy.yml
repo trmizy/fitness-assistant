@@ -1,0 +1,123 @@
+# Phase 16B.3 Gate 3 - activated from ci/drafts/github-actions/chat-deploy.yml.
+#
+# Chat ECS deploy that RESPECTS the on-demand lifecycle: Chat may be intentionally OFF
+# (desiredCount 0). A code deploy registers + pins a new task definition revision and
+# NEVER passes --desired-count, so it cannot power Chat on or off. Turning Chat on is a
+# separate, explicit input (force_on) or the owner's dev-start.ps1 -Chat.
+#
+# Manual dispatch only (no `on: push`), `dry_run: true` by default, environment
+# "dev" gate (required reviewer, no admin bypass, aws-deploy-only).
+name: DEV Chat Deploy (ECS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_on:
+        description: "Explicitly set desiredCount=1 if Chat is currently OFF (default: leave power state alone)"
+        type: boolean
+        default: false
+      dry_run:
+        type: boolean
+        default: true
+
+concurrency:
+  group: gymini-dev-deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+  CLUSTER: fitness-assistant-dev-cluster
+  SERVICE: fitness-assistant-dev-chat-service
+  FAMILY: fitness-assistant-dev-chat
+  CONTAINER: chat-service
+  ECR_REPO: fitness-assistant-dev-chat
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (tsc + prisma generate happen inside the Dockerfile)
+        run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:${{ github.sha }} .
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ !inputs.dry_run }}
+        with:
+          role-to-assume: arn:aws:iam::191798898985:role/GyminiDevAppDeployRole
+          aws-region: ap-southeast-1
+          role-session-name: gh-chat-${{ github.run_id }}
+      - if: ${{ !inputs.dry_run }}
+        run: pwsh -NoProfile -File scripts/ci/Test-DeploymentSafety.ps1 -Identity -Mode Mutate -Context CI
+
+      - name: Push image tagged with the git SHA
+        if: ${{ !inputs.dry_run }}
+        id: img
+        run: |
+          reg=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$reg"
+          docker tag chat-service:${{ github.sha }} "$reg/$ECR_REPO:${{ github.sha }}"
+          docker push "$reg/$ECR_REPO:${{ github.sha }}"
+          digest=$(aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag=${{ github.sha }} --query "imageDetails[0].imageDigest" --output text)
+          echo "image=$reg/$ECR_REPO@$digest" >> "$GITHUB_OUTPUT"      # deploy by digest, not tag
+
+      - name: Register new task definition revision (image swap only; nothing printed)
+        if: ${{ !inputs.dry_run }}
+        id: td
+        env: { IMAGE: "${{ steps.img.outputs.image }}" }
+        run: |
+          prev=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query "services[0].taskDefinition" --output text)
+          echo "prev=$prev" >> "$GITHUB_OUTPUT"                       # rollback reference
+          aws ecs describe-task-definition --task-definition "$prev" --query taskDefinition --output json \
+            | jq --arg img "$IMAGE" --arg c "$CONTAINER" \
+                'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+                 | (.containerDefinitions[] | select(.name==$c) | .image) = $img' > td.json   # file only, never echoed
+          new=$(aws ecs register-task-definition --cli-input-json file://td.json --query "taskDefinition.taskDefinitionArn" --output text)
+          rm -f td.json
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+
+      - name: Update service WITHOUT touching the power state
+        if: ${{ !inputs.dry_run }}
+        env: { PREV: "${{ steps.td.outputs.prev }}", NEW: "${{ steps.td.outputs.new }}", FORCE_ON: "${{ inputs.force_on }}" }
+        shell: pwsh
+        run: |
+          Import-Module ./scripts/ci/CiHelpers.psm1 -Force
+          $desired = [int](aws ecs describe-services --cluster $env:CLUSTER --services $env:SERVICE --query "services[0].desiredCount" --output text)
+          $m = if ($env:FORCE_ON -eq 'true') { Get-ChatDeployMode -DesiredCount $desired -ForceOn } else { Get-ChatDeployMode -DesiredCount $desired }
+          "mode=$($m.Mode) desiredCount(before)=$desired"
+          $a = @('ecs','update-service','--cluster',$env:CLUSTER,'--service',$env:SERVICE,'--task-definition',$env:NEW)
+          if ($m.PassDesiredCount) { $a += @('--desired-count',"$($m.TargetDesiredCount)") }
+          $a += @('--query','service.deploymentStatus','--output','text')
+          aws @a
+          if ($LASTEXITCODE -ne 0) {
+            if ($m.Mode -eq 'REGISTER_AND_PIN_ONLY') {
+              "::warning::CHAT_SERVICE_UPDATE_DEFERRED - Chat is OFF and the service could not be updated (likely dangling target group). New revision $($env:NEW) is registered; dev-start must pin it. PREV=$($env:PREV)"
+              exit 0
+            }
+            exit 1
+          }
+          if ($m.WaitStable) { aws ecs wait services-stable --cluster $env:CLUSTER --services $env:SERVICE; if ($LASTEXITCODE -ne 0) { exit 1 } }
+          $after = [int](aws ecs describe-services --cluster $env:CLUSTER --services $env:SERVICE --query "services[0].desiredCount" --output text)
+          if (-not $m.PassDesiredCount -and $after -ne $desired) { Write-Error "POWER_STATE_CHANGED $desired -> $after"; exit 1 }
+
+      - name: Health (only if running)
+        if: ${{ !inputs.dry_run }}
+        run: |
+          running=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query "services[0].runningCount" --output text)
+          if [ "$running" -gt 0 ]; then
+            tg=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --query "services[0].loadBalancers[0].targetGroupArn" --output text)
+            aws elbv2 describe-target-health --target-group-arn "$tg" --query "TargetHealthDescriptions[].TargetHealth.State" --output text | grep -q healthy \
+              || { echo "::error::SMOKE_FAIL chat target not healthy"; exit 1; }
+          else echo "Chat is OFF - health check skipped (NOT_RUN)"; fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## DEV Chat deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "commit ${{ github.sha }} | image ${{ steps.img.outputs.image }} | new ${{ steps.td.outputs.new }} | rollback-to ${{ steps.td.outputs.prev }} | result ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
