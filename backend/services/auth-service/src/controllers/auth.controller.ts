@@ -499,11 +499,16 @@ export const authController = {
           : req.path.endsWith("/disable")
             ? false
             : true;
+      // The reason is optional (the admin screens do not send one yet); anything but a
+      // non-empty string is dropped, and it is capped so it cannot bloat the audit row.
+      const rawReason = req.body?.reason;
+      const reason =
+        typeof rawReason === "string" && rawReason.trim() ? rawReason.trim().slice(0, 500) : undefined;
       const updated = await authService.setUserActive(
         req.params.userId,
         isActive,
         verified.id,
-        req.body?.reason,
+        reason,
       );
       res.json({ user: updated });
     } catch (error: any) {

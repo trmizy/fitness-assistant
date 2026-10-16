@@ -200,6 +200,7 @@ exports.Prisma.PtDeactivationCallScalarFieldEnum = {
   status: 'status',
   attempts: 'attempts',
   lastError: 'lastError',
+  seq: 'seq',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -244,7 +245,8 @@ exports.PtDeactivationAction = exports.$Enums.PtDeactivationAction = {
 exports.PtDeactivationCallStatus = exports.$Enums.PtDeactivationCallStatus = {
   PENDING: 'PENDING',
   SETTLED: 'SETTLED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  SUPERSEDED: 'SUPERSEDED'
 };
 
 exports.Prisma.ModelName = {

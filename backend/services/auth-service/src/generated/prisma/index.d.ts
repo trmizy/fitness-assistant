@@ -85,7 +85,8 @@ export type PtDeactivationAction = (typeof PtDeactivationAction)[keyof typeof Pt
 export const PtDeactivationCallStatus: {
   PENDING: 'PENDING',
   SETTLED: 'SETTLED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  SUPERSEDED: 'SUPERSEDED'
 };
 
 export type PtDeactivationCallStatus = (typeof PtDeactivationCallStatus)[keyof typeof PtDeactivationCallStatus]
@@ -7337,10 +7338,12 @@ export namespace Prisma {
 
   export type PtDeactivationCallAvgAggregateOutputType = {
     attempts: number | null
+    seq: number | null
   }
 
   export type PtDeactivationCallSumAggregateOutputType = {
     attempts: number | null
+    seq: bigint | null
   }
 
   export type PtDeactivationCallMinAggregateOutputType = {
@@ -7352,6 +7355,7 @@ export namespace Prisma {
     status: $Enums.PtDeactivationCallStatus | null
     attempts: number | null
     lastError: string | null
+    seq: bigint | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7365,6 +7369,7 @@ export namespace Prisma {
     status: $Enums.PtDeactivationCallStatus | null
     attempts: number | null
     lastError: string | null
+    seq: bigint | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7378,6 +7383,7 @@ export namespace Prisma {
     status: number
     attempts: number
     lastError: number
+    seq: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7386,10 +7392,12 @@ export namespace Prisma {
 
   export type PtDeactivationCallAvgAggregateInputType = {
     attempts?: true
+    seq?: true
   }
 
   export type PtDeactivationCallSumAggregateInputType = {
     attempts?: true
+    seq?: true
   }
 
   export type PtDeactivationCallMinAggregateInputType = {
@@ -7401,6 +7409,7 @@ export namespace Prisma {
     status?: true
     attempts?: true
     lastError?: true
+    seq?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7414,6 +7423,7 @@ export namespace Prisma {
     status?: true
     attempts?: true
     lastError?: true
+    seq?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7427,6 +7437,7 @@ export namespace Prisma {
     status?: true
     attempts?: true
     lastError?: true
+    seq?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7527,6 +7538,7 @@ export namespace Prisma {
     status: $Enums.PtDeactivationCallStatus
     attempts: number
     lastError: string | null
+    seq: bigint
     createdAt: Date
     updatedAt: Date
     _count: PtDeactivationCallCountAggregateOutputType | null
@@ -7559,6 +7571,7 @@ export namespace Prisma {
     status?: boolean
     attempts?: boolean
     lastError?: boolean
+    seq?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["ptDeactivationCall"]>
@@ -7572,6 +7585,7 @@ export namespace Prisma {
     status?: boolean
     attempts?: boolean
     lastError?: boolean
+    seq?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["ptDeactivationCall"]>
@@ -7585,6 +7599,7 @@ export namespace Prisma {
     status?: boolean
     attempts?: boolean
     lastError?: boolean
+    seq?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -7602,6 +7617,7 @@ export namespace Prisma {
       status: $Enums.PtDeactivationCallStatus
       attempts: number
       lastError: string | null
+      seq: bigint
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["ptDeactivationCall"]>
@@ -8005,6 +8021,7 @@ export namespace Prisma {
     readonly status: FieldRef<"PtDeactivationCall", 'PtDeactivationCallStatus'>
     readonly attempts: FieldRef<"PtDeactivationCall", 'Int'>
     readonly lastError: FieldRef<"PtDeactivationCall", 'String'>
+    readonly seq: FieldRef<"PtDeactivationCall", 'BigInt'>
     readonly createdAt: FieldRef<"PtDeactivationCall", 'DateTime'>
     readonly updatedAt: FieldRef<"PtDeactivationCall", 'DateTime'>
   }
@@ -8405,6 +8422,7 @@ export namespace Prisma {
     status: 'status',
     attempts: 'attempts',
     lastError: 'lastError',
+    seq: 'seq',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -8553,6 +8571,20 @@ export namespace Prisma {
    * Reference to a field of type 'PtDeactivationCallStatus[]'
    */
   export type ListEnumPtDeactivationCallStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtDeactivationCallStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -9022,6 +9054,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusFilter<"PtDeactivationCall"> | $Enums.PtDeactivationCallStatus
     attempts?: IntFilter<"PtDeactivationCall"> | number
     lastError?: StringNullableFilter<"PtDeactivationCall"> | string | null
+    seq?: BigIntFilter<"PtDeactivationCall"> | bigint | number
     createdAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
     updatedAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
   }
@@ -9035,12 +9068,14 @@ export namespace Prisma {
     status?: SortOrder
     attempts?: SortOrder
     lastError?: SortOrderInput | SortOrder
+    seq?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type PtDeactivationCallWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    seq?: bigint | number
     AND?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
     OR?: PtDeactivationCallWhereInput[]
     NOT?: PtDeactivationCallWhereInput | PtDeactivationCallWhereInput[]
@@ -9053,7 +9088,7 @@ export namespace Prisma {
     lastError?: StringNullableFilter<"PtDeactivationCall"> | string | null
     createdAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
     updatedAt?: DateTimeFilter<"PtDeactivationCall"> | Date | string
-  }, "id">
+  }, "id" | "seq">
 
   export type PtDeactivationCallOrderByWithAggregationInput = {
     id?: SortOrder
@@ -9064,6 +9099,7 @@ export namespace Prisma {
     status?: SortOrder
     attempts?: SortOrder
     lastError?: SortOrderInput | SortOrder
+    seq?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: PtDeactivationCallCountOrderByAggregateInput
@@ -9085,6 +9121,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusWithAggregatesFilter<"PtDeactivationCall"> | $Enums.PtDeactivationCallStatus
     attempts?: IntWithAggregatesFilter<"PtDeactivationCall"> | number
     lastError?: StringNullableWithAggregatesFilter<"PtDeactivationCall"> | string | null
+    seq?: BigIntWithAggregatesFilter<"PtDeactivationCall"> | bigint | number
     createdAt?: DateTimeWithAggregatesFilter<"PtDeactivationCall"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PtDeactivationCall"> | Date | string
   }
@@ -9590,6 +9627,7 @@ export namespace Prisma {
     status?: $Enums.PtDeactivationCallStatus
     attempts?: number
     lastError?: string | null
+    seq?: bigint | number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -9603,6 +9641,7 @@ export namespace Prisma {
     status?: $Enums.PtDeactivationCallStatus
     attempts?: number
     lastError?: string | null
+    seq?: bigint | number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -9616,6 +9655,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
     attempts?: IntFieldUpdateOperationsInput | number
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    seq?: BigIntFieldUpdateOperationsInput | bigint | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9629,6 +9669,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
     attempts?: IntFieldUpdateOperationsInput | number
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    seq?: BigIntFieldUpdateOperationsInput | bigint | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9642,6 +9683,7 @@ export namespace Prisma {
     status?: $Enums.PtDeactivationCallStatus
     attempts?: number
     lastError?: string | null
+    seq?: bigint | number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -9655,6 +9697,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
     attempts?: IntFieldUpdateOperationsInput | number
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    seq?: BigIntFieldUpdateOperationsInput | bigint | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9668,6 +9711,7 @@ export namespace Prisma {
     status?: EnumPtDeactivationCallStatusFieldUpdateOperationsInput | $Enums.PtDeactivationCallStatus
     attempts?: IntFieldUpdateOperationsInput | number
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    seq?: BigIntFieldUpdateOperationsInput | bigint | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -10159,6 +10203,17 @@ export namespace Prisma {
     not?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
   }
 
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
   export type PtDeactivationCallCountOrderByAggregateInput = {
     id?: SortOrder
     ptUserId?: SortOrder
@@ -10168,12 +10223,14 @@ export namespace Prisma {
     status?: SortOrder
     attempts?: SortOrder
     lastError?: SortOrder
+    seq?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type PtDeactivationCallAvgOrderByAggregateInput = {
     attempts?: SortOrder
+    seq?: SortOrder
   }
 
   export type PtDeactivationCallMaxOrderByAggregateInput = {
@@ -10185,6 +10242,7 @@ export namespace Prisma {
     status?: SortOrder
     attempts?: SortOrder
     lastError?: SortOrder
+    seq?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -10198,12 +10256,14 @@ export namespace Prisma {
     status?: SortOrder
     attempts?: SortOrder
     lastError?: SortOrder
+    seq?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type PtDeactivationCallSumOrderByAggregateInput = {
     attempts?: SortOrder
+    seq?: SortOrder
   }
 
   export type EnumPtDeactivationActionWithAggregatesFilter<$PrismaModel = never> = {
@@ -10224,6 +10284,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
     _max?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type RefreshTokenCreateNestedManyWithoutUserInput = {
@@ -10432,6 +10508,14 @@ export namespace Prisma {
 
   export type EnumPtDeactivationCallStatusFieldUpdateOperationsInput = {
     set?: $Enums.PtDeactivationCallStatus
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -10661,6 +10745,17 @@ export namespace Prisma {
     not?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel> | $Enums.PtDeactivationCallStatus
   }
 
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
   export type NestedEnumPtDeactivationActionWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.PtDeactivationAction | EnumPtDeactivationActionFieldRefInput<$PrismaModel>
     in?: $Enums.PtDeactivationAction[] | ListEnumPtDeactivationActionFieldRefInput<$PrismaModel>
@@ -10679,6 +10774,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
     _max?: NestedEnumPtDeactivationCallStatusFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type RefreshTokenCreateWithoutUserInput = {

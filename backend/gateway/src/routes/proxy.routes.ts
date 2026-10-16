@@ -610,13 +610,19 @@ for (const action of ["disable", "enable"] as const) {
     `/admin/users/:userId/${action}`,
     authMiddleware,
     requireRoles("ADMIN"),
+    // The gateway does not parse bodies globally (it streams them to the proxied services), so
+    // this route parses its own — a few KB at most, just the optional `reason`.
+    json({ limit: "4kb" }),
     async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         const { userId } = req.params;
+        // Only `reason` is passed on (never the whole body: auth-service reads `isActive` from it).
+        // The acting admin is taken from the forwarded Authorization header by auth-service.
+        const reason = typeof req.body?.reason === "string" ? req.body.reason : undefined;
         const response = await axios.patch(
           `${AUTH_SERVICE_URL}/auth/users/${userId}/${action}`,
-          {},
+          reason !== undefined ? { reason } : {},
           {
             headers: authHeader ? { Authorization: authHeader } : undefined,
             timeout: 5000,
@@ -1341,6 +1347,19 @@ router.use(
     target: USER_SERVICE_URL,
     changeOrigin: true,
     onError: serviceUnavailable("User service (admin)"),
+  }),
+);
+
+// Admin — temporary PT suspension: suspend / lift / history / list / justify (User Service). The
+// gateway gates by role; user-service re-checks ADMIN and takes the acting admin from the verified token.
+router.use(
+  "/admin/pts",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (admin PT restrictions)"),
   }),
 );
 
