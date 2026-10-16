@@ -146,6 +146,10 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-gym"
                   - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-payment"
                   - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:fitness-assistant-dev-ai"
+              - Sid: ReadProtectedApiForHealthSmoke
+                Effect: Allow
+                Action: apigateway:GET
+                Resource: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis/${ProtectedApiId}"
               - Sid: ArtifactPrefixOnly
                 Effect: Allow
                 Action: [s3:GetObject, s3:PutObject]
