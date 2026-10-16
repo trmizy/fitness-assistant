@@ -46,6 +46,7 @@ const VNPAY_TMN = "E2ETEST";
 const VNPAY_HASH_SECRET = `e2e-vnpay-hash-${crypto.randomBytes(8).toString("hex")}`;
 const DEAD = "http://127.0.0.1:9"; // discard port: nothing listens, connections are refused at once
 const PAYMENT_DIR = path.resolve(__dirname, "../../../payment-service");
+const GYM_DIR = path.resolve(__dirname, "../../../gym-service");
 
 export const DAY = 24 * 3600 * 1000;
 export const HOUR = 3600 * 1000;
@@ -82,15 +83,77 @@ export interface Wallet {
 }
 const ZERO_WALLET: Wallet = { a: 0, p: 0, l: 0 };
 
-export async function startHarness() {
+export interface HarnessOptions {
+  /**
+   * Phase 3 / P3.7: also spawn a REAL gym-service (`node --import tsx src/server.ts`, its real Express app and real
+   * Prisma queries) on `databaseUrl` (must be a `*_test` database) and point user-service's GYM_SERVICE_URL at it.
+   * Without it GYM_SERVICE_URL stays at the dead port, exactly as before.
+   */
+  gym?: { databaseUrl: string };
+  /** Override the payment test database (default: PAYMENT_DB_URL). Must still be a `*_test` database. */
+  paymentDatabaseUrl?: string;
+}
+
+export async function startHarness(opts: HarnessOptions = {}) {
+  const paymentDbUrl = opts.paymentDatabaseUrl ?? PAYMENT_DB_URL;
+  if (opts.gym && !isTestDatabaseUrl(opts.gym.databaseUrl)) throw new Error("gym database must be a *_test database");
+  if (!isTestDatabaseUrl(paymentDbUrl)) throw new Error("payment database must be a *_test database");
   // ── configuration, BEFORE any user-service module is loaded ──
   const payPort = await freePort();
   const payUrl = `http://127.0.0.1:${payPort}`;
+  let gymUrl = DEAD;
+  let gymChild: ChildProcess | null = null;
+  const gymLog: string[] = [];
+  if (opts.gym) {
+    const gymPort = await freePort();
+    gymUrl = `http://127.0.0.1:${gymPort}`;
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      NODE_ENV: "test",
+      PORT: String(gymPort),
+      DATABASE_URL: opts.gym.databaseUrl,
+      INTERNAL_SERVICE_SECRET: SECRET,
+      INTERNAL_API_SECRET: SECRET,
+      // no background sweep may run during a test (they would call payment-service); no outbound dependency is reachable
+      MEMBERSHIP_PAYOUT_SWEEP_INTERVAL_MS: "2147483647",
+      REFERRAL_SETTLEMENT_SWEEP_INTERVAL_MS: "2147483647",
+      PAYMENT_SERVICE_URL: DEAD,
+      USER_SERVICE_URL: DEAD,
+      AUTH_SERVICE_URL: DEAD,
+      AI_SERVICE_URL: DEAD,
+      CHAT_SERVICE_URL: DEAD,
+      USER_LAMBDA_NAME: "",
+      PAYMENT_LAMBDA_NAME: "",
+      AUTH_LAMBDA_NAME: "",
+    };
+    gymChild = spawn(process.execPath, ["--import", "tsx", "src/server.ts"], { cwd: GYM_DIR, env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    const keep = (b: Buffer) => {
+      gymLog.push(b.toString());
+      if (gymLog.length > 400) gymLog.shift();
+    };
+    gymChild.stdout!.on("data", keep);
+    gymChild.stderr!.on("data", keep);
+    const t0 = Date.now();
+    for (;;) {
+      if (gymChild.exitCode !== null) throw new Error(`gym-service exited early (${gymChild.exitCode}):
+${gymLog.slice(-30).join("")}`);
+      try {
+        if ((await fetch(`${gymUrl}/health`)).ok) break;
+      } catch {
+        /* not up yet */
+      }
+      if (Date.now() - t0 > 60_000) throw new Error(`gym-service not healthy after 60s:
+${gymLog.slice(-30).join("")}`);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  const onGymExit = () => killTree(gymChild);
+  process.on("exit", onGymExit);
   process.env.PAYMENT_SERVICE_URL = payUrl;
   process.env.INTERNAL_SERVICE_SECRET = SECRET;
   process.env.INTERNAL_API_SECRET = SECRET;
   process.env.AUTH_SERVICE_URL = DEAD; // never reach a developer's auth-service on :3001
-  process.env.GYM_SERVICE_URL = DEAD;
+  process.env.GYM_SERVICE_URL = gymUrl;
   process.env.CHAT_SERVICE_URL = DEAD;
   process.env.FITNESS_DISABLE_REDIS = "true";
   delete process.env.AUTH_LAMBDA_NAME;
@@ -156,7 +219,7 @@ export async function startHarness() {
       ...process.env,
       NODE_ENV: "test",
       PORT: String(payPort),
-      DATABASE_URL: PAYMENT_DB_URL,
+      DATABASE_URL: paymentDbUrl,
       INTERNAL_SERVICE_SECRET: SECRET,
       INTERNAL_API_SECRET: SECRET,
       USER_SERVICE_URL: userUrl,
@@ -196,7 +259,7 @@ export async function startHarness() {
   await startPayment();
 
   // ── raw SQL view of the payment ledger (an independent reader of the isolated payment test DB) ──
-  const payDb = new PrismaClient({ datasourceUrl: PAYMENT_DB_URL });
+  const payDb = new PrismaClient({ datasourceUrl: paymentDbUrl });
   const num = (v: unknown) => Number(v ?? 0);
 
   async function resetPayment() {
@@ -296,9 +359,42 @@ export async function startHarness() {
   }
 
   /** TEST FIXTURE: the gateway tells payment-service, through its real IPN route, that the payer paid. */
-  async function gatewayIpn(txnId: string, amountVnd: number) {
-    const res = await fetch(`${payUrl}/payments/webhook/vnpay?${signedVnpayQuery(txnId, amountVnd)}`);
+  async function gatewayIpn(txnId: string, amountVnd: number, ok = true) {
+    const res = await fetch(`${payUrl}/payments/webhook/vnpay?${signedVnpayQuery(txnId, amountVnd, ok)}`);
     return (await res.json()) as { RspCode: string; Message: string };
+  }
+
+  /** Phase 3 / P3.7: one payment transaction exactly as payment-service stored it (independent raw read of its test DB). */
+  async function payTxn(txnId: string) {
+    const rows: any[] = await payDb.$queryRawUnsafe(
+      `SELECT id, amount::text AS amount, status::text AS status, activation_status::text AS activation_status, purpose::text AS purpose,
+              gym_id, pt_id, payer_id, pt_contract_id, related_entity_id, related_entity_type::text AS related_entity_type, metadata
+         FROM payment_transactions WHERE id = $1`,
+      txnId,
+    );
+    return rows[0]
+      ? {
+          id: rows[0].id as string,
+          amount: num(rows[0].amount),
+          status: rows[0].status as string,
+          activationStatus: rows[0].activation_status as string,
+          purpose: rows[0].purpose as string,
+          gymId: rows[0].gym_id as string | null,
+          ptId: rows[0].pt_id as string | null,
+          payerId: rows[0].payer_id as string,
+          relatedEntityId: rows[0].related_entity_id as string | null,
+          relatedEntityType: rows[0].related_entity_type as string | null,
+          metadata: rows[0].metadata as any,
+        }
+      : null;
+  }
+  /** Every payment transaction (any status) payment-service holds for one related entity (a contract id). */
+  async function payTxnsFor(relatedEntityId: string) {
+    const rows: any[] = await payDb.$queryRawUnsafe(
+      "SELECT id, amount::text AS amount, status::text AS status FROM payment_transactions WHERE related_entity_id = $1 ORDER BY created_at",
+      relatedEntityId,
+    );
+    return rows.map((r) => ({ id: r.id as string, amount: num(r.amount), status: r.status as string }));
   }
 
   // ── user-service over HTTP (real app) ──
@@ -409,6 +505,13 @@ ${log.slice(-15).join("")}`);
   async function close() {
     await stopPayment();
     process.off("exit", onExit);
+    if (gymChild && gymChild.exitCode === null) {
+      const g = gymChild;
+      const exited = new Promise<void>((r) => g.once("exit", () => r()));
+      killTree(g);
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 10_000))]);
+    }
+    process.off("exit", onGymExit);
     restorePublish();
     restoreAuth();
     (userServer as any).closeAllConnections?.();
@@ -421,6 +524,9 @@ ${log.slice(-15).join("")}`);
     m,
     payUrl,
     userUrl,
+    /** URL of the real gym-service child (only when started with { gym }); otherwise the dead port. */
+    gymUrl,
+    gymLog: () => gymLog.join(""),
     secret: SECRET,
     startPayment,
     stopPayment,
@@ -434,6 +540,8 @@ ${log.slice(-15).join("")}`);
     invariant,
     snapshot,
     gatewayIpn,
+    payTxn,
+    payTxnsFor,
     tokenFor,
     call,
     makePt,
