@@ -179,7 +179,12 @@ jobs:
       # wrong and this step should be removed again, not left as cargo-culted.
       - name: Add swap space (large monorepo lockfile may exceed the 7GB runner RAM during Docker build)
         run: |
-          sudo fallocate -l 4G /swapfile
+          # `fallocate` failed outright on this exact step (confirmed via a
+          # real failing CI run, 2026-10-16: the whole job failed in 7s,
+          # before ever reaching the Docker build) - a known incompatibility
+          # between fallocate and the overlay/aufs-backed root filesystem
+          # some GitHub-hosted runner images use. `dd` works everywhere.
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
