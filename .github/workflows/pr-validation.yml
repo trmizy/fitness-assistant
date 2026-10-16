@@ -156,8 +156,16 @@ jobs:
         with: { persist-credentials: false }
       - run: docker build -f backend/services/chat-service/Dockerfile -t chat-service:pr-validation .
 
-  # CI helper logic (Windows PowerShell 5.1 ships Pester 3.x, which the repo's
-  # *.Tests.ps1 files are written for; ubuntu's Pester 5 would reject `Should Be`).
+  # CI helper logic. This repo's own machine ships Windows PowerShell 5.1
+  # with Pester 3.4.0, and every *.Tests.ps1 file is written for that
+  # version's `Should Be`/`Should Not Match` operator syntax. GitHub's
+  # windows-latest hosted runner now ALSO pre-installs a newer Pester (5.x)
+  # alongside the built-in one, and its legacy-compatibility shim for the
+  # old `-Path ... -PassThru -Quiet` call style does not reliably run 3.x-style
+  # assertions - confirmed via a real failing CI run (2026-10-16): all 191
+  # tests reported "Passed=0 Failed=191" despite being correct, verified-passing
+  # tests locally. Explicitly pin 3.4.0 so the exact same Pester version runs
+  # in CI as on every contributor's own machine.
   # Phase 16B.2: added TemplateSemanticGuard.Tests.ps1 (16A.3), IamPolicyGuard.Tests.ps1
   # (16B.1A) and WorkflowSecurityGuard.Tests.ps1 (16B.2 itself) - all pure/offline, no
   # AWS calls. TemplateSemanticGuard/IamPolicyGuard shell out to a Node helper that
@@ -172,8 +180,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Pin Pester to 3.4.0 (matches this repo's *.Tests.ps1 syntax)
+        shell: powershell
+        run: |
+          Install-Module -Name Pester -RequiredVersion 3.4.0 -Force -SkipPublisherCheck -Scope CurrentUser -AllowClobber
+          Get-Module -Name Pester -ListAvailable | Select-Object Name, Version
       - shell: powershell
         run: |
+          Remove-Module -Name Pester -ErrorAction SilentlyContinue
+          Import-Module -Name Pester -RequiredVersion 3.4.0 -Force
           $r = Invoke-Pester scripts/ci/CiHelpers.Tests.ps1, scripts/ci/TemplateSemanticGuard.Tests.ps1, scripts/ci/IamPolicyGuard.Tests.ps1, scripts/ci/WorkflowSecurityGuard.Tests.ps1, scripts/aws/api-gateway/lib/ApiRouteParity.Tests.ps1, scripts/aws/lib/DevLifecycle.Tests.ps1 -PassThru -Quiet
           "Passed=$($r.PassedCount) Failed=$($r.FailedCount)"
           if ($r.FailedCount -gt 0) { exit 1 }

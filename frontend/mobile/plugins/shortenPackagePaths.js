@@ -218,6 +218,16 @@ function shortenPackagePath(projectRoot, pkgName, shortDir) {
 }
 
 function shortenAllPackagePaths(projectRoot) {
+  if (process.platform !== "win32") {
+    // This workaround exists only for Windows' 260-char MAX_PATH / CMake's
+    // 250-char CMAKE_OBJECT_PATH_MAX (see the file header). macOS/Linux have
+    // no such limit, and `robocopy` doesn't exist there at all - running it
+    // on a GitHub Actions ubuntu-latest runner crashed `pnpm install`
+    // outright (confirmed via a real failing CI run, 2026-10-16: the first
+    // CI job in this repo's history to run a full repo-root `pnpm install`,
+    // which triggers this workspace's postinstall hook for the first time).
+    return;
+  }
   for (const [pkgName, shortDir] of Object.entries(SHORTENED_PACKAGES)) {
     shortenPackagePath(projectRoot, pkgName, shortDir);
   }
