@@ -101,6 +101,9 @@ jobs:
       - name: Run unit tests (skipped when service not impacted)
         shell: pwsh
         env:
+          NODE_ENV: test
+          LLM_PROVIDER: mock
+          FITNESS_DISABLE_REDIS: "true"
           SERVICE: ${{ matrix.service }}
           IMPACTED: ${{ needs.impact.outputs.lambda }}
           VALIDATE_ALL: ${{ needs.impact.outputs.validate_all }}

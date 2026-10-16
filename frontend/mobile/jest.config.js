@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const { SHORTENED_PACKAGES } = require("./plugins/shortenPackagePaths");
 
 /**
@@ -14,11 +15,17 @@ const { SHORTENED_PACKAGES } = require("./plugins/shortenPackagePaths");
  * See MOBILE_PLATFORM_ADAPTERS.md §16.
  */
 const relocatedModuleMap = Object.fromEntries(
-  Object.entries(process.platform === "win32" ? SHORTENED_PACKAGES : {}).flatMap(([pkgName, shortDir]) => [
-    // Deep imports first: a bare-name pattern would otherwise swallow them.
-    [`^${pkgName.replace("/", "\\/")}\\/(.*)$`, path.join(shortDir, "$1")],
+  Object.entries(SHORTENED_PACKAGES).flatMap(([pkgName, windowsDir]) => {
+    // Keep one module instance on every platform; Windows shortcuts are optional.
+    const shortDir = process.platform === "win32" && fs.existsSync(windowsDir)
+      ? windowsDir
+      : path.resolve(__dirname, "node_modules", pkgName);
+    return [
+      // Deep imports first: a bare-name pattern would otherwise swallow them.
+      [`^${pkgName.replace("/", "\\/")}\\/(.*)$`, path.join(shortDir, "$1")],
     [`^${pkgName.replace("/", "\\/")}$`, shortDir],
-  ]),
+    ];
+  }),
 );
 
 /**

@@ -60,8 +60,15 @@ const pending = {
   canPtAct: true,
 };
 
+const queryClients = new Set<QueryClient>();
+afterEach(() => {
+  for (const client of queryClients) client.clear();
+  queryClients.clear();
+});
+
 async function renderCard() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: Infinity } } });
+  queryClients.add(client);
   const view = await render(
     <QueryClientProvider client={client}>
       <ClientNutritionCoachCard clientUserId="client-1" />

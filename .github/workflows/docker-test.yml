@@ -50,6 +50,10 @@ jobs:
       # for this - single source of truth, already covered by
       # CiHelpers.Tests.ps1, already proven working on ubuntu-latest.
       - name: Unit tests
+        env:
+          NODE_ENV: test
+          FITNESS_DISABLE_REDIS: "true"
+          LLM_PROVIDER: mock
         shell: pwsh
         run: |
           pnpm run --recursive --filter "!mobile" test *> test.log
