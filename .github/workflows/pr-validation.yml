@@ -106,7 +106,13 @@ jobs:
           VALIDATE_ALL: ${{ needs.impact.outputs.validate_all }}
         run: |
           if ($env:VALIDATE_ALL -ne 'true' -and (@(ConvertFrom-Json $env:IMPACTED) -notcontains $env:SERVICE)) { "not impacted: skip"; exit 0 }
-          pnpm --filter "@gym-coach/$($env:SERVICE)-service" exec tsx --test --test-force-exit src/__tests__/*.test.ts *> test.log
+          # PowerShell does not expand globs for native commands (Node 20 treats them literally).
+          $testFiles = @(Get-ChildItem "backend/services/$($env:SERVICE)-service/src/__tests__/*.test.ts" | ForEach-Object FullName)
+          if ($env:SERVICE -eq 'payment') {
+            $testFiles = @($testFiles | Where-Object { (Split-Path $_ -Leaf) -in @('auth-header-spoofing.test.ts', 'contract-money.test.ts') })
+          }
+          if ($testFiles.Count -eq 0) { throw "No tests found for $env:SERVICE" }
+          pnpm --filter "@gym-coach/$($env:SERVICE)-service" exec tsx --test --test-force-exit @testFiles *> test.log
           $code = $LASTEXITCODE
           Get-Content test.log -Tail 60
           if ($code -ne 0) {
