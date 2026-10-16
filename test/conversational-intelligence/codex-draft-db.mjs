@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { registerUser, putProfile, say, q } from '../ai-chat-full-verification/lib.mjs';
 const label = process.argv[2] ?? 'on';

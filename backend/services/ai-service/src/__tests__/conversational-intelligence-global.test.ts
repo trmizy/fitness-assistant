@@ -278,8 +278,8 @@ test("READ nutrition-program answers inspect the saved menu instead of generatin
     assert.ok(r, "answered");
     assert.match(r!.answer, /Cutting Plan/);
     assert.match(r!.answer, /2\.200 kcal|2200 kcal/);
-    assert.match(r!.answer, /Yến mạch|Yáº¿n máº¡ch/);
-    assert.doesNotMatch(r!.answer, /Mình đang tính thực đơn|Gợi Ý Bữa Ăn|Gá»£i Ã Bá»¯a Ä‚n/);
+    assert.match(r!.answer, /Yến mạch/);
+    assert.doesNotMatch(r!.answer, /Mình đang tính thực đơn|Gợi Ý Bữa Ăn/);
     assert.equal((await workflowRows(userId)).length, 0, "read creates no nutrition workflow");
   } finally { await cleanup(userId, s.id); }
 });

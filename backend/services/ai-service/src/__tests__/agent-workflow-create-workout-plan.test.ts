@@ -519,8 +519,8 @@ test("CREATE_WORKOUT_PLAN weekday exercise-count revision (real DB): '8 bai tap 
     assert.equal(r2!.blocks[0].type, "WORKOUT_PLAN_PREVIEW");
     assert.equal((r2!.blocks[0] as any).actionId, actionId);
     assert.match(r2!.answer, /8 b[aÃ ]i/i);
-    assert.match(r2!.answer, /Thá»© 7|Thu 7|thá»© 7|thu 7/i);
-    assert.match(r2!.answer, /chÆ°a thay Ä‘á»•i lá»‹ch|chua thay doi lich/i);
+    assert.match(r2!.answer, /Thứ 7|Thu 7/i);
+    assert.match(r2!.answer, /chưa thay đổi lịch|chua thay doi lich/i);
 
     const after = await prisma.fitnessAgentAction.findUnique({ where: { id: actionId } });
     assert.deepEqual((after!.payload as any).weeklySchedule, beforePayload.weeklySchedule, "over-capacity weekday revision must leave the draft unchanged");
