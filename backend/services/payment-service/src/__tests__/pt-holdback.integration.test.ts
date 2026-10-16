@@ -26,9 +26,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
 const databaseUrl = process.env.DATABASE_URL || '';
-const canUseIntegrationDb = /_test/i.test(databaseUrl);
+const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
   skip: canUseIntegrationDb ? false : 'Requires DATABASE_URL pointing at a *_test database.',
 };

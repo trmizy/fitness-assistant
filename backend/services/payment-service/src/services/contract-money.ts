@@ -26,7 +26,15 @@ export type TerminationReason =
   // Vòng 4 / Phase E2 — client-initiated, after a 3rd confirmed PT no-show on this contract
   // (user-service enforces the count before ever sending this reason here). Same
   // 100%-of-remaining formula as PT_BANNED/MUTUAL below — the PT is at fault either way.
-  | 'PT_REPEATED_NO_SHOW';
+  | 'PT_REPEATED_NO_SHOW'
+  // The client leaves because the PT is administratively suspended and cannot deliver. Not the
+  // client's choice to walk away (so no cancellation fee) and not proof of PT fault (so no
+  // compensation out of the PT's held-back earnings, no penalty, no receivable): it is settled
+  // exactly as MUTUAL is — 100% of the unused value back to the client, parties keep what the
+  // delivered sessions earned. A separate reason from MUTUAL only so the ledger can tell the two
+  // apart (the refund row's description embeds the reason) and so it can never be mistaken for
+  // a PT-fault ending (PT_FAULT_REASONS deliberately does not list it).
+  | 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION';
 
 /** Share of a contract each party is entitled to. Frozen onto the contract when it is signed. */
 export interface RateTable {
@@ -52,6 +60,17 @@ export interface ContractMoneyInput {
    * compensatedSessions has to change to keep compiling.
    */
   compensatedSessions?: number;
+  /**
+   * Sessions that are neither "used" nor "unused" at the moment the contract ends: the PT
+   * reported them delivered and the client has not confirmed yet, or they are under dispute.
+   * Their value (n × one session's value — see unresolvedHeldValue) is outside every figure
+   * termination computes: it is not refunded to the client, not part of any party's final
+   * entitlement, and not topped up — it stays in the three parties' pending for this contract
+   * until each session is resolved one way or the other (contract-ledger.service
+   * #resolveUnresolvedSession). Optional, defaulting to 0, so every caller that predates it
+   * settles exactly as before.
+   */
+  unresolvedSessions?: number;
   rates: RateTable;
   /**
    * The PT holdback rate THIS contract carries (`h`): the share of the price whose first
@@ -132,6 +151,15 @@ function validate(input: ContractMoneyInput): void {
       `usedSessions (${input.usedSessions}) + compensatedSessions (${compensatedSessions}) = ${consumed} cannot exceed totalSessions (${input.totalSessions})`,
     );
   }
+  const unresolvedSessions = input.unresolvedSessions ?? 0;
+  if (!Number.isInteger(unresolvedSessions) || unresolvedSessions < 0) {
+    throw new Error(`unresolvedSessions must be a non-negative integer, got ${unresolvedSessions}`);
+  }
+  if (consumed + unresolvedSessions > input.totalSessions) {
+    throw new Error(
+      `unresolvedSessions (${unresolvedSessions}) cannot exceed totalSessions (${input.totalSessions}) − usedSessions (${input.usedSessions}) − compensatedSessions (${compensatedSessions}) = ${input.totalSessions - consumed}`,
+    );
+  }
   assertHoldbackRateValid(input.ptHoldbackRate);
   assertRatesValid(input.rates);
 }
@@ -153,7 +181,10 @@ export function unitValue(price: Prisma.Decimal, totalSessions: number): Prisma.
  */
 export function remainingValue(input: ContractMoneyInput): Prisma.Decimal {
   validate(input);
-  const consumed = input.usedSessions + (input.compensatedSessions ?? 0);
+  // An unresolved session is not "never delivered" — it may have been taught — so its value is
+  // not part of what can be refunded. It leaves `remaining` exactly like a used one does, and
+  // is held apart (unresolvedHeldValue) until it is resolved.
+  const consumed = input.usedSessions + (input.compensatedSessions ?? 0) + (input.unresolvedSessions ?? 0);
   const unused = input.totalSessions - consumed;
   return input.price.mul(unused).div(input.totalSessions);
 }
@@ -342,7 +373,10 @@ export interface TerminationOutcome {
   remaining: Prisma.Decimal;
   /** Paid back to the client's wallet, rounded in their favour. */
   refund: Prisma.Decimal;
-  /** P − compensationValue − refund: what stays in the system to be shared out. */
+  /**
+   * P − compensationValue − refund − (value held for unresolved sessions): what is shared out
+   * between the parties NOW. With no unresolved sessions this is exactly P − compensation − refund.
+   */
   withheld: Prisma.Decimal;
   /**
    * What a PT-fault ending (PT_CANCELLED, PT_BANNED, PT_REPEATED_NO_SHOW) owes the CLIENT on
@@ -357,8 +391,19 @@ export interface TerminationOutcome {
    * untouched.
    */
   ptFaultCompensationTarget: Prisma.Decimal;
-  /** Final entitlement per party = rate × withheld, exact to the đồng. */
+  /**
+   * Final entitlement per party for everything that is settled at termination = rate × (P −
+   * compensation − refund), exact to the đồng, MINUS the share of the unresolved sessions held
+   * back (`unresolvedHeld`). Those come to the party only if the session is later resolved as
+   * delivered, so the final total a party can reach is this plus its unresolved share.
+   */
   entitlement: { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal };
+  /**
+   * The value of the unresolved sessions that stays in the parties' pending for this contract:
+   * per party and in total, whole đồng. All zero when unresolvedSessions is 0. Conservation:
+   * refund + Σ entitlement + unresolvedHeld.total = P − compensationValue, always.
+   */
+  unresolvedHeld: { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal; total: Prisma.Decimal };
 }
 
 /**
@@ -385,10 +430,13 @@ export function computeTermination(
       break;
     case 'PT_BANNED':
     case 'MUTUAL':
+    case 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION':
     case 'PT_REPEATED_NO_SHOW':
     case 'PT_CANCELLED':
       // The client is made whole. That the PT must also compensate them is a separate matter —
       // see holdbackCompensationTarget below, which pays out of the PT's held-back earnings only.
+      // CLIENT_EXIT_DUE_TO_PT_RESTRICTION shares this arm with MUTUAL on purpose (same refund,
+      // same arithmetic) but is not in PT_FAULT_REASONS, so that compensation is zero for it.
       rawRefund = remaining;
       break;
     case 'EXPIRED':
@@ -416,10 +464,26 @@ export function computeTermination(
   // using pending money that compensation already took — a silent shortfall, not a thrown
   // error, because settleParty clamps to whatever pending actually holds.
   const compensationValue = input.price.mul(input.compensatedSessions ?? 0).div(input.totalSessions);
-  const withheld = input.price.minus(compensationValue).minus(refund);
-  const entitlement = splitThreeWays(withheld, input.rates);
+  // The split is taken on EVERYTHING that is not refunded, exactly as if the unresolved sessions
+  // had been delivered — so a contract whose unresolved sessions all turn out delivered ends with
+  // the very figures it would have had if they had been confirmed before the exit. The held
+  // value is then carved out of each party's share (never more than the share itself, which
+  // only matters in a sub-đồng rounding corner) and stays in pending instead of being topped up.
+  const withheldAll = input.price.minus(compensationValue).minus(refund);
+  const fullEntitlement = splitThreeWays(withheldAll, input.rates);
+  const idealHeld = unresolvedHeldValue(input.price, input.totalSessions, input.rates, input.unresolvedSessions ?? 0);
+  const heldPt = Prisma.Decimal.min(idealHeld.pt, fullEntitlement.pt);
+  const heldGym = Prisma.Decimal.min(idealHeld.gym, fullEntitlement.gym);
+  const heldPlatform = Prisma.Decimal.min(idealHeld.platform, fullEntitlement.platform);
+  const unresolvedHeld = { pt: heldPt, gym: heldGym, platform: heldPlatform, total: heldPt.plus(heldGym).plus(heldPlatform) };
+  const entitlement = {
+    pt: fullEntitlement.pt.minus(heldPt),
+    gym: fullEntitlement.gym.minus(heldGym),
+    platform: fullEntitlement.platform.minus(heldPlatform),
+  };
+  const withheld = withheldAll.minus(unresolvedHeld.total);
 
-  const total = refund.plus(entitlement.pt).plus(entitlement.gym).plus(entitlement.platform);
+  const total = refund.plus(entitlement.pt).plus(entitlement.gym).plus(entitlement.platform).plus(unresolvedHeld.total);
   const expectedTotal = input.price.minus(compensationValue);
   if (!total.equals(expectedTotal)) {
     throw new Error(`termination does not reconcile: ${total.toString()} != ${expectedTotal.toString()} (price ${input.price.toString()} minus compensation ${compensationValue.toString()} already paid out)`);
@@ -427,7 +491,28 @@ export function computeTermination(
 
   const ptFaultCompensationTarget = holdbackCompensationTarget(input, reason, remaining);
 
-  return { reason, remaining, refund, withheld, ptFaultCompensationTarget, entitlement };
+  return { reason, remaining, refund, withheld, ptFaultCompensationTarget, entitlement, unresolvedHeld };
+}
+
+/**
+ * What `n` unresolved sessions hold back: n × one session's value, in the SAME unit and the SAME
+ * three-way split releaseSession moves for a single session (computeSessionRelease), so that
+ * resolving a session as delivered later moves exactly the amount that is held for it.
+ * Whole đồng by construction: the unit is rounded down, PT and gym round down within it and the
+ * platform takes the remainder. The sub-đồng left over from P / N is NOT held — it stays in the
+ * exit settlement (the refund is rounded up on the exact value, the parties share the rest).
+ */
+export function unresolvedHeldValue(
+  price: Prisma.Decimal,
+  totalSessions: number,
+  rates: RateTable,
+  n: number,
+): { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal; total: Prisma.Decimal; unit: Prisma.Decimal } {
+  const one = computeSessionRelease(price, totalSessions, rates);
+  const pt = one.pt.mul(n);
+  const gym = one.gym.mul(n);
+  const platform = one.platform.mul(n);
+  return { pt, gym, platform, total: pt.plus(gym).plus(platform), unit: one.unit };
 }
 
 // ── Per-session release ──────────────────────────────────────────────────────
@@ -503,11 +588,22 @@ export interface MoneyBreakdown {
   rates: { platformRate: string; ptRate: string; gymRate: string };
   released: { pt: string; gym: string; platform: string };
   stillPending: { pt: string; gym: string; platform: string };
-  /** What the client would get back if they cancelled right now. */
+  /**
+   * What the client would get back if the contract ended right now for `reasonUsed` — computed by
+   * computeTermination, the same function and the same inputs terminateContract uses, so the
+   * preview can never disagree with the money that really moves. (The name is historical: it
+   * was the client-cancellation figure before the reason became selectable.)
+   */
   refundIfCancelledNow: string;
+  /** The termination reason the figure above was computed for. */
+  reasonUsed: TerminationReason;
+  /** Present only when unresolvedSessions > 0: how many sessions are neither used nor unused. */
+  unresolvedSessions?: number;
+  /** Present only when unresolvedSessions > 0: the value that stays held until they are resolved. */
+  unresolvedAmountHeld?: string;
 }
 
-export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
+export function buildMoneyBreakdown(input: ContractMoneyInput, reason: TerminationReason = 'CLIENT_CANCELLED'): MoneyBreakdown {
   validate(input);
   const unit = unitValue(input.price, input.totalSessions);
   const remaining = remainingValue(input);
@@ -528,7 +624,8 @@ export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
     input.rates,
   );
   const whole = splitThreeWays(input.price, input.rates);
-  const cancelNow = computeTermination(input, 'CLIENT_CANCELLED');
+  const cancelNow = computeTermination(input, reason);
+  const unresolved = input.unresolvedSessions ?? 0;
 
   return {
     price: input.price.toFixed(2),
@@ -553,5 +650,9 @@ export function buildMoneyBreakdown(input: ContractMoneyInput): MoneyBreakdown {
       platform: whole.platform.minus(released.platform).minus(compensationSplit.platform).toFixed(2),
     },
     refundIfCancelledNow: cancelNow.refund.toFixed(2),
+    reasonUsed: reason,
+    ...(unresolved > 0
+      ? { unresolvedSessions: unresolved, unresolvedAmountHeld: cancelNow.unresolvedHeld.total.toFixed(2) }
+      : {}),
   };
 }

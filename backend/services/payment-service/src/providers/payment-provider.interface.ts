@@ -22,10 +22,30 @@ export interface NormalizedWebhookEvent {
   status: 'PAID' | 'FAILED';
   /** Parsed raw payload — persisted to WebhookEvent.payload for reconciliation. */
   raw?: Record<string, unknown>;
+  /**
+   * What the gateway SAYS it collected, converted to whole VND as a decimal-digit string
+   * (VNPay: vnp_Amount / 100, exact integer arithmetic; ZaloPay/PayOS/MoMo report plain VND, so the digits are taken
+   * as they are - see parseGatewayAmountVnd). null = the callback carried no usable amount (absent, non-numeric,
+   * fractional, negative) - a PAID event with a null amount must never settle. EVERY provider fills this; the
+   * settlement path (handleEvent) compares it with the transaction's own price (see gateway-amount.ts).
+   */
+  paidAmountVnd?: string | null;
 }
 
 export interface WebhookVerifyResult {
   valid: boolean;
+  /**
+   * valid === true, but the callback is a progress notice with nothing to book or to fail yet (MoMo resultCode 9000:
+   * authorised, not captured). The route acknowledges it and does nothing else.
+   */
+  pending?: boolean;
+  /**
+   * Why a callback was refused when valid is false, for providers that distinguish. Lets the
+   * route answer with the gateway's own response code (VNPay IPN: 97 bad signature, 01 unknown
+   * order/merchant, 04 invalid amount; ZaloPay: -1 with a message) instead of calling every refusal a signature
+   * problem. MERCHANT_MISMATCH = correctly signed (or, for VNPay, signed) but addressed to another merchant/app id.
+   */
+  reason?: 'BAD_SIGNATURE' | 'MISSING_REFERENCE' | 'MERCHANT_MISMATCH' | 'CURRENCY_MISMATCH';
   payload?: MoMoIpnPayload;
   normalized?: NormalizedWebhookEvent;
 }
@@ -52,6 +72,19 @@ export interface RefundResult {
 }
 
 export type ProviderTxnStatus = 'PAID' | 'FAILED' | 'PENDING';
+
+/**
+ * A status poll that also reports what the gateway says it collected. pollAndSettle prefers this
+ * over queryTransactionStatus when a provider implements it, because a bare 'PAID' carries no
+ * amount and an amount-less PAID must not be allowed to settle money.
+ */
+export interface GatewayQueryResult {
+  status: ProviderTxnStatus;
+  /** Whole VND the gateway says it collected; null/undefined = not reported or unusable. */
+  paidAmountVnd?: string | null;
+  /** The gateway's own payload, kept for the audit trail. */
+  raw?: Record<string, unknown>;
+}
 
 export interface PaymentProvider {
   createPaymentIntent(params: {
@@ -89,4 +122,13 @@ export interface PaymentProvider {
     createdAt: Date;
     metadata?: unknown;
   }): Promise<ProviderTxnStatus>;
+
+  /** Same poll, but returning the gateway-reported amount too. See GatewayQueryResult. */
+  queryGatewayResult?(txn: {
+    id: string;
+    providerTransactionId: string | null;
+    amount: number;
+    createdAt: Date;
+    metadata?: unknown;
+  }): Promise<GatewayQueryResult>;
 }

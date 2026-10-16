@@ -119,6 +119,23 @@ export async function ownPending(ops: LedgerOps, walletId: string, transactionId
 // The descriptions are matched by suffix, so the label a caller chooses can never collide.
 export const HOLDBACK_RETAINED_SUFFIX = ' — PT holdback retained';
 export const HOLDBACK_RELEASED_SUFFIX = ' — PT holdback released (no activity)';
+/**
+ * Written (as a zero-amount row, like the release marker) by a termination that leaves
+ * unresolved sessions behind while a holdback was in force. That termination has already paid
+ * the whole pot out (to the PT, or part of it to the client as compensation), but the contract's
+ * pending is NOT empty afterwards — it still holds the unresolved sessions' value — so the pot
+ * derived from the retained rows (ptHeld) would otherwise still read as "held" and a later
+ * idle-holdback release would sweep up money that belongs to the unresolved sessions.
+ * holdbackWasReleased treats this marker exactly like the release marker.
+ */
+export const HOLDBACK_SETTLED_SUFFIX = ' — contract ended, PT holdback settled';
+/**
+ * Zero-amount rows in the platform's pending bucket that make "this contract was ended with
+ * unresolved sessions" and "this many have been resolved since" facts of the ledger, readable
+ * by resolveUnresolvedSession without any schema change. See that function.
+ */
+export const UNRESOLVED_HELD_MARKER = ' — unresolved sessions held: ';
+export const UNRESOLVED_RESOLVED_MARKER = ' — unresolved session resolved: ';
 
 /**
  * What is held back for the PT on this contract right now: the ledger-derived pot, never more
@@ -160,7 +177,10 @@ async function holdbackWasReleased(ops: LedgerOps, ptWalletId: string, transacti
       transactionId,
       bucket: 'PENDING',
       entryType: 'DEBIT',
-      description: { endsWith: HOLDBACK_RELEASED_SUFFIX },
+      OR: [
+        { description: { endsWith: HOLDBACK_RELEASED_SUFFIX } },
+        { description: { endsWith: HOLDBACK_SETTLED_SUFFIX } },
+      ],
     },
     select: { id: true },
   });
@@ -838,6 +858,18 @@ export interface TerminationLedgerResult {
     /** The rest of the pot, paid to the PT inside `topUp.pt`: held − compensation. */
     returnedToPt: string;
   };
+  /**
+   * Present only when the termination left unresolved sessions behind (unresolvedSessions > 0).
+   * Left off entirely otherwise, so every other result — and its stored replay copy — is exactly
+   * what it was before this field existed.
+   */
+  unresolved?: {
+    sessions: number;
+    /** What really stays in the three parties' pending for this contract, in whole đồng. */
+    amountHeld: string;
+    /** The same amount per party: what each one receives if a session is resolved as delivered. */
+    byParty: { pt: string; gym: string; platform: string };
+  };
 }
 
 /** Wording of the client-facing ledger row, per PT-fault reason. Always contains
@@ -881,6 +913,22 @@ const PT_FAULT_WORDING: Partial<Record<TerminationReason, string>> = {
  * It runs inside the same wallet-locked transaction and under the same idempotency key as
  * everything else, so it lands with the refund or not at all, and a replay can never post it
  * twice.
+ *
+ * Unresolved sessions (`unresolvedSessions` = n). The client leaves while n sessions are neither
+ * certainly delivered nor certainly not: the PT reported them and the client has not confirmed,
+ * or they are disputed. Refunding them would pay the PT nothing for a session that may have been
+ * taught; releasing them would pay for one that may not have been. So their value — n × one
+ * session's value, the unit and split releaseSession uses — is taken out of BOTH sides:
+ *
+ *   refund      = the usual refund on the sessions certainly not delivered (P × (N − u − c − n)/N,
+ *                 rounded up; × 90% for CLIENT_CANCELLED)
+ *   entitlement = rate × (P − compensation − refund) − that party's share of the held value
+ *   held        = n × unit, left in each party's own pending for this contract, untouched
+ *
+ * and refund + Σ entitlement + held = P − compensation, to the đồng. The PT-fault compensation
+ * and the holdback top-up are computed on that reduced entitlement, so the unresolved PT share
+ * can neither be paid as holdback nor taken as compensation. resolveUnresolvedSession later
+ * moves each session's held value to the parties (DELIVERED) or back to the client (NOT_DELIVERED).
  */
 export async function terminateContract(params: {
   transactionId: string;
@@ -891,6 +939,14 @@ export async function terminateContract(params: {
    * Must reach computeTermination or the value of an already-compensated session is handed
    * back to the client a second time on cancellation. Defaults to 0. */
   compensatedSessions?: number;
+  /**
+   * Sessions the PT reported delivered that the client has not confirmed yet, or that are under
+   * dispute: neither used nor unused. Their value is excluded from the refund and from every
+   * party's top-up and stays in the three parties' pending for this contract, untouched by the
+   * drain, until resolveUnresolvedSession settles each one. Integer, 0..(N − used − compensated);
+   * anything else throws before money moves. 0 or absent: every posting is what it always was.
+   */
+  unresolvedSessions?: number;
   rates: RateTable;
   reason: TerminationReason;
   /** Already moved to each party's available bucket, session by session. */
@@ -909,12 +965,13 @@ export async function terminateContract(params: {
    */
   ptHoldbackRate?: Prisma.Decimal;
 }): Promise<TerminationLedgerResult> {
-  const { transactionId, price, totalSessions, usedSessions, compensatedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey, ptHoldbackRate } = params;
+  const { transactionId, price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, reason, alreadyReleased, parties, label, idempotencyKey, ptHoldbackRate } = params;
 
   const outcome = computeTermination(
-    { price, totalSessions, usedSessions, compensatedSessions, rates, ptHoldbackRate },
+    { price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, ptHoldbackRate },
     reason,
   );
+  const unresolvedCount = unresolvedSessions ?? 0;
   const holdbackPot = holdbackTarget(price, ptHoldbackRate);
   const wallets = await resolveWallets(parties);
   assertGymConsistency(wallets, outcome.entitlement.gym);
@@ -959,11 +1016,15 @@ export async function terminateContract(params: {
       key: 'pt' | 'gym' | 'platform',
       debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
       reserve: Prisma.Decimal = ZERO,
+      keepBack: Prisma.Decimal = ZERO,
     ) => {
       if (!walletId) return;
       const gap = entitlement.minus(released).minus(reserve);
       if (gap.greaterThan(0)) {
-        const pendingHeld = (await ownPending(ops, walletId, transactionId)).minus(reserve);
+        // `keepBack` is the party's share of the unresolved sessions. It sits in this same
+        // pending pool but is not what the party is owed now, so a top-up that finds the pool
+        // short (a pre-existing shortfall) must never be paid out of it — it reports the gap.
+        const pendingHeld = (await ownPending(ops, walletId, transactionId)).minus(reserve).minus(keepBack);
         const available = pendingHeld.greaterThan(0) ? pendingHeld : ZERO;
         const moving = available.lessThan(gap) ? available : gap;
         if (moving.greaterThan(0)) {
@@ -1000,10 +1061,11 @@ export async function terminateContract(params: {
     await settleParty(wallets.ptId, outcome.entitlement.pt, alreadyReleased.pt, 'pt', {
       partnerType: 'PT',
       partnerId: parties.ptUserId,
-    }, compensation);
+    }, compensation, outcome.unresolvedHeld.pt);
     await settleParty(wallets.gymId, outcome.entitlement.gym, alreadyReleased.gym, 'gym',
-      parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined);
-    await settleParty(wallets.revenueId, outcome.entitlement.platform, alreadyReleased.platform, 'platform');
+      parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined, ZERO, outcome.unresolvedHeld.gym);
+    await settleParty(wallets.revenueId, outcome.entitlement.platform, alreadyReleased.platform, 'platform',
+      undefined, ZERO, outcome.unresolvedHeld.platform);
 
     // Drain whatever THIS CONTRACT has left in the three pending buckets — that residue is
     // exactly the client's refund (plus any forfeited share, plus the PT-fault compensation
@@ -1011,10 +1073,20 @@ export async function terminateContract(params: {
     // those buckets is a pool that also holds every other contract's, membership's and
     // referral's unearned money, and draining the pool would refund this client out of
     // strangers' money and then book the surplus to REVENUE.
+    //
+    // The unresolved sessions' value is the exception: it stays. Each party's share of it is left
+    // in that party's own pending for this contract (never more than the contract's pending
+    // there actually holds, so a bucket cannot go negative and a shortfall is reported, not
+    // invented). `kept` is what really stayed.
     let drained = ZERO;
-    for (const id of [wallets.ptId, wallets.gymId, wallets.revenueId]) {
+    const kept = { pt: ZERO, gym: ZERO, platform: ZERO };
+    for (const [id, key] of [[wallets.ptId, 'pt'], [wallets.gymId, 'gym'], [wallets.revenueId, 'platform']] as const) {
       if (!id) continue;
-      const left = await ownPending(ops, id, transactionId);
+      const own = await ownPending(ops, id, transactionId);
+      const wanted = outcome.unresolvedHeld[key];
+      const keep = own.lessThan(wanted) ? own : wanted;
+      kept[key] = keep;
+      const left = own.minus(keep);
       if (left.greaterThan(0)) {
         await ops.debit(id, left, `${label} — pending released on termination`, 'PENDING');
         drained = drained.plus(left);
@@ -1060,6 +1132,17 @@ export async function terminateContract(params: {
       });
     }
 
+    // Facts for the later operations, written only when sessions were left unresolved (zero
+    // amounts: no balance moves). The count lets resolveUnresolvedSession refuse a session
+    // beyond the ones this termination left open, and the settled marker stops the idle-holdback
+    // release from reading the pot (still derivable from the retained rows) while the contract's
+    // pending is non-empty only because of the unresolved sessions.
+    const keptTotal = kept.pt.plus(kept.gym).plus(kept.platform);
+    if (unresolvedCount > 0) {
+      await ops.credit(wallets.revenueId, ZERO, `${label}${UNRESOLVED_HELD_MARKER}${unresolvedCount}`, 'PENDING');
+      if (holding) await ops.debit(wallets.ptId, ZERO, `${label}${HOLDBACK_SETTLED_SUFFIX}`, 'PENDING');
+    }
+
     return {
       reason,
       refund: outcome.refund.toFixed(2),
@@ -1081,6 +1164,15 @@ export async function terminateContract(params: {
               held: held.toFixed(2),
               compensation: compensation.toFixed(2),
               returnedToPt: held.minus(compensation).toFixed(2),
+            },
+          }
+        : {}),
+      ...(unresolvedCount > 0
+        ? {
+            unresolved: {
+              sessions: unresolvedCount,
+              amountHeld: keptTotal.toFixed(2),
+              byParty: { pt: kept.pt.toFixed(2), gym: kept.gym.toFixed(2), platform: kept.platform.toFixed(2) },
             },
           }
         : {}),
@@ -1142,6 +1234,172 @@ export async function releasePtHoldback(params: {
       }
       logger.info(`[ContractLedger] ${label}: PT holdback of ${pot.toFixed(2)} released for inactivity`);
       return { released: pot.toFixed(2) };
+    }),
+  );
+}
+
+export interface ResolveUnresolvedResult {
+  outcome: 'DELIVERED' | 'NOT_DELIVERED';
+  /** One session's value, the unit releaseSession uses. */
+  unit: string;
+  /**
+   * What ACTUALLY moved. DELIVERED: each party's share PENDING → AVAILABLE (client 0).
+   * NOT_DELIVERED: each party's share out of its pending (pt/gym/platform) and, in `client`, the
+   * sum credited to the client's wallet.
+   */
+  moved: { pt: string; gym: string; platform: string; client: string };
+  /**
+   * What the contract's own pending could not fund of the session's value (unit − Σ moved), so a
+   * short ledger is visible rather than papered over. "0.00" on a healthy ledger.
+   */
+  shortfall: string;
+}
+
+/** Refused before any money moves; the route maps it to 409. */
+export class UnresolvedSessionError extends Error {
+  constructor(public readonly code: 'NO_UNRESOLVED_HELD' | 'ALL_UNRESOLVED_RESOLVED', message: string) {
+    super(message);
+  }
+}
+
+/**
+ * One session that was left unresolved when its contract ended (terminateContract's
+ * `unresolvedSessions`) has been decided. The value held for it is one session's value —
+ * `unit = floor(P / N)` split three ways exactly as releaseSession splits it — sitting in the
+ * parties' pending for this contract.
+ *
+ *   DELIVERED      The session was taught: each party's share goes PENDING → AVAILABLE, the same
+ *                  rows releaseSession writes, including the recovery of any debt the PT or gym
+ *                  owes the platform out of what was just earned. NO PT holdback is applied, and
+ *                  `ptHoldbackRate` (accepted so the caller can send the same body as for
+ *                  release-session) is only validated: the contract is over, and the termination
+ *                  that left this session open already paid the held-back pot out (as it does for
+ *                  every non-PT-fault ending) and recorded that. Holding the PT's share again
+ *                  would strand it in a contract that has no further session to release it, and
+ *                  would pay the PT less than the same session confirmed before the exit did.
+ *   NOT_DELIVERED  The session was not taught: the three shares are taken out of the parties'
+ *                  pending and credited to the client in ONE separate ledger row whose
+ *                  description says "refund" (withdrawal.repository#sumRefundSourcedCredits
+ *                  matches the word, so the client can withdraw it). Escrow does not move — the
+ *                  cash never left; the claim passed from the parties to the client.
+ *
+ * Guarantees.
+ *  · Own money only: every amount is clamped to `ownPending` — the rows carrying THIS contract's
+ *    transaction id — so a neighbouring contract's, membership's or referral's pending is out of
+ *    reach, and no bucket can go negative. What the contract cannot fund is reported in
+ *    `shortfall`, never invented, never fronted.
+ *  · Exactly once per session, one way only: the business key `UNRESOLVED_SESSION:<sessionId>`
+ *    goes through withIdempotentLedgerOp, so a retry — or the same session resolved the other
+ *    way — gets the first result back and posts nothing.
+ *  · Only for a contract that really was ended with unresolved sessions, and only as many as it
+ *    was ended with: terminateContract leaves two zero-amount marker rows in the platform's
+ *    pending bucket (the count held, and one per resolution). Without them this call is refused
+ *    (409 upstream) — otherwise it could eat the pending of an ACTIVE contract's undelivered
+ *    sessions, or of a second session nobody left open.
+ *  · Rounding. Everything here is whole đồng and equals what releaseSession would have moved for
+ *    the session. The sub-đồng left over from P / N is not part of the held value; it went to the
+ *    parties with the exit settlement, so after all sessions are resolved a client's total can be
+ *    at most one đồng per NOT_DELIVERED session below what classifying the session as unused from
+ *    the start would have refunded — never more, never invented from another party.
+ */
+export async function resolveUnresolvedSession(params: {
+  transactionId: string;
+  price: Prisma.Decimal;
+  totalSessions: number;
+  rates: RateTable;
+  parties: ContractParties;
+  label: string;
+  /** Business key `UNRESOLVED_SESSION:<sessionId>`. */
+  idempotencyKey: string;
+  outcome: 'DELIVERED' | 'NOT_DELIVERED';
+  /** Validated only — see DELIVERED above. */
+  ptHoldbackRate?: Prisma.Decimal;
+}): Promise<ResolveUnresolvedResult> {
+  const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey, outcome, ptHoldbackRate } = params;
+  if (outcome !== 'DELIVERED' && outcome !== 'NOT_DELIVERED') throw new Error(`unknown outcome ${String(outcome)}`);
+  assertHoldbackRateValid(ptHoldbackRate);
+  const wallets = await resolveWallets(parties);
+  const rel = computeSessionRelease(price, totalSessions, rates);
+  assertGymConsistency(wallets, rel.gym);
+
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const markerWhere = { walletId: wallets.revenueId, transactionId, bucket: 'PENDING' as const };
+      const heldMarker = await ops.tx.walletLedgerEntry.findFirst({
+        where: { ...markerWhere, description: { contains: UNRESOLVED_HELD_MARKER } },
+        select: { description: true },
+      });
+      const openedWith = heldMarker?.description ? Number(heldMarker.description.split(UNRESOLVED_HELD_MARKER).pop()) : 0;
+      if (!heldMarker || !Number.isInteger(openedWith) || openedWith <= 0) {
+        throw new UnresolvedSessionError('NO_UNRESOLVED_HELD', `contract transaction ${transactionId} was not ended with unresolved sessions`);
+      }
+      const alreadyResolved = await ops.tx.walletLedgerEntry.count({
+        where: { ...markerWhere, description: { contains: UNRESOLVED_RESOLVED_MARKER } },
+      });
+      if (alreadyResolved >= openedWith) {
+        throw new UnresolvedSessionError('ALL_UNRESOLVED_RESOLVED', `all ${openedWith} unresolved session(s) of contract transaction ${transactionId} are already resolved`);
+      }
+
+      const moved = { pt: ZERO, gym: ZERO, platform: ZERO };
+      const parts: Array<{
+        key: 'pt' | 'gym' | 'platform';
+        walletId: string | null;
+        amount: Prisma.Decimal;
+        debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string };
+      }> = [
+        { key: 'pt', walletId: wallets.ptId, amount: rel.pt, debtor: { partnerType: 'PT', partnerId: parties.ptUserId } },
+        { key: 'gym', walletId: wallets.gymId, amount: rel.gym, debtor: parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined },
+        { key: 'platform', walletId: wallets.revenueId, amount: rel.platform },
+      ];
+
+      for (const part of parts) {
+        if (!part.walletId || part.amount.lessThanOrEqualTo(0)) continue;
+        const own = await ownPending(ops, part.walletId, transactionId);
+        const moving = own.lessThan(part.amount) ? own : part.amount;
+        if (moving.lessThanOrEqualTo(0)) {
+          logger.warn(`[ContractLedger] ${part.key} pending empty for ${label} — nothing to move for the unresolved session`);
+          continue;
+        }
+        if (outcome === 'DELIVERED') {
+          await ops.debit(part.walletId, moving, `${label} — unresolved session delivered (release to available)`, 'PENDING');
+          await ops.credit(part.walletId, moving, `${label} — session earned`, 'AVAILABLE');
+          // Same as every release: a partner who owes the platform works the debt off out of
+          // what they just earned, before it is withdrawable.
+          if (part.debtor) {
+            await recoverReceivables({
+              ops,
+              walletId: part.walletId,
+              revenueWalletId: wallets.revenueId,
+              ...part.debtor,
+              justCredited: moving,
+              label,
+            });
+          }
+        } else {
+          await ops.debit(part.walletId, moving, `${label} — unresolved session not delivered (pending returned)`, 'PENDING');
+        }
+        moved[part.key] = moving;
+      }
+
+      const movedTotal = moved.pt.plus(moved.gym).plus(moved.platform);
+      let toClient = ZERO;
+      if (outcome === 'NOT_DELIVERED' && movedTotal.greaterThan(0)) {
+        toClient = movedTotal;
+        await ops.credit(wallets.clientId, toClient, `${label} — refund (unresolved session not delivered)`);
+      }
+      await ops.credit(wallets.revenueId, ZERO, `${label}${UNRESOLVED_RESOLVED_MARKER}${outcome}`, 'PENDING');
+
+      return {
+        outcome,
+        unit: rel.unit.toFixed(2),
+        moved: {
+          pt: moved.pt.toFixed(2),
+          gym: moved.gym.toFixed(2),
+          platform: moved.platform.toFixed(2),
+          client: toClient.toFixed(2),
+        },
+        shortfall: rel.unit.minus(movedTotal).toFixed(2),
+      };
     }),
   );
 }

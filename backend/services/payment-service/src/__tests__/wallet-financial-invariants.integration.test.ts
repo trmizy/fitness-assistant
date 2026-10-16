@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
 const databaseUrl = process.env.DATABASE_URL || '';
-const skip = /_test/i.test(databaseUrl) ? false : 'Requires DATABASE_URL pointing at a *_test database.';
+const skip = isTestDatabaseUrl(databaseUrl) ? false : 'Requires DATABASE_URL pointing at a *_test database.';
 
 test('FINANCIAL: concurrent duplicate transfer and refund each mutate balances/ledger exactly once', { skip }, async () => {
   const { prisma } = await import('../repositories/prisma');

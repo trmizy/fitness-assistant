@@ -1,6 +1,17 @@
 import { Prisma } from '../generated/prisma';
 import { prisma } from './prisma';
 
+/**
+ * Two transactions of one provider carry the same providerTransactionId. The gateway's reference is the only key a
+ * callback brings back, so which of them it pays for cannot be told - nothing may be settled on a guess.
+ */
+export class AmbiguousProviderReferenceError extends Error {
+  constructor(public readonly provider: unknown, public readonly providerTransactionId: string) {
+    super(`more than one transaction has provider reference ${providerTransactionId} - refusing to guess which one a callback is for`);
+    this.name = 'AmbiguousProviderReferenceError';
+  }
+}
+
 export const transactionRepository = {
   async create(data: Prisma.PaymentTransactionCreateInput) {
     return prisma.paymentTransaction.create({ data });
@@ -23,7 +34,11 @@ export const transactionRepository = {
    * provider (e.g. VNPAY) if the attacker knows/guesses its providerTransactionId.
    */
   async findByProviderTransactionId(providerTransactionId: string, provider: Prisma.PaymentTransactionWhereInput['provider']) {
-    return prisma.paymentTransaction.findFirst({ where: { providerTransactionId, provider } });
+    // The column has no unique index (a migration on live payment data is not worth it for a key every provider here
+    // builds from a uuid or a random suffix), so uniqueness is enforced on read: two rows is an error, never "the first".
+    const rows = await prisma.paymentTransaction.findMany({ where: { providerTransactionId, provider }, take: 2 });
+    if (rows.length > 1) throw new AmbiguousProviderReferenceError(provider, providerTransactionId);
+    return rows[0] ?? null;
   },
 
   async updateById(id: string, data: Prisma.PaymentTransactionUpdateInput) {
@@ -141,6 +156,25 @@ export const transactionRepository = {
     return prisma.paymentTransaction.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
+    });
+  },
+
+  /**
+   * Transactions a payment gateway reported a different amount for than their price
+   * (metadata.gatewayDiscrepancy, written by gateway-amount.ts#recordGatewayDiscrepancy). These were NOT
+   * settled — they wait here for a human to refund or reconcile the cash at the gateway.
+   */
+  async findWithGatewayDiscrepancy(limit: number) {
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT id FROM payment_transactions
+      WHERE metadata->'gatewayDiscrepancy' IS NOT NULL
+      ORDER BY updated_at DESC
+      LIMIT ${limit}
+    `);
+    if (rows.length === 0) return [];
+    return prisma.paymentTransaction.findMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+      orderBy: { updatedAt: 'desc' },
     });
   },
 

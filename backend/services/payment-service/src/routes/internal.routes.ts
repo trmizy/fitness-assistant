@@ -6,8 +6,16 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
-import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
-import { compensateLateArrival, compensateNoShow, releasePtHoldback, releaseSession, terminateContract } from '../services/contract-ledger.service';
+import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
+import {
+  compensateLateArrival,
+  compensateNoShow,
+  releasePtHoldback,
+  releaseSession,
+  resolveUnresolvedSession,
+  terminateContract,
+  UnresolvedSessionError,
+} from '../services/contract-ledger.service';
 import {
   settleMembershipReferral,
   clawbackMembershipReferral,
@@ -533,16 +541,51 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
   }
 });
 
-const terminateSchema = releaseSchema.extend({
-  usedSessions: z.number().int().min(0),
-  // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
-  // left, but defensive) does not 400.
-  compensatedSessions: z.number().int().min(0).optional(),
-  reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'PT_REPEATED_NO_SHOW']),
-  alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
-  // See ptHoldbackRateSchema above: the contract's own snapshot, or absent for none.
-  ptHoldbackRate: ptHoldbackRateSchema,
-});
+// Every reason computeTermination knows. One list for the terminate endpoint and the preview, so
+// the two can never accept different reasons.
+const terminationReasonSchema = z.enum([
+  'CLIENT_CANCELLED',
+  'PT_BANNED',
+  'PT_CANCELLED',
+  'MUTUAL',
+  'EXPIRED',
+  'COMPLETED',
+  'PT_REPEATED_NO_SHOW',
+  'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+]) satisfies z.ZodType<TerminationReason>;
+
+// Sessions that are neither used nor unused when the contract ends (reported delivered but not
+// yet confirmed, or disputed). 0 / absent = none. Bounded by what is actually left to hold:
+// refusing here, with a 400, means a wrong count never reaches the ledger.
+const unresolvedSessionsSchema = z.number().int().min(0).optional();
+function refineUnresolvedBound(
+  d: { totalSessions: number; usedSessions: number; compensatedSessions?: number; unresolvedSessions?: number },
+  ctx: z.RefinementCtx,
+): void {
+  const n = d.unresolvedSessions ?? 0;
+  const room = d.totalSessions - d.usedSessions - (d.compensatedSessions ?? 0);
+  if (n > room) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['unresolvedSessions'],
+      message: `unresolvedSessions (${n}) cannot exceed totalSessions − usedSessions − compensatedSessions (${room})`,
+    });
+  }
+}
+
+const terminateSchema = releaseSchema
+  .extend({
+    usedSessions: z.number().int().min(0),
+    // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
+    // left, but defensive) does not 400.
+    compensatedSessions: z.number().int().min(0).optional(),
+    unresolvedSessions: unresolvedSessionsSchema,
+    reason: terminationReasonSchema,
+    alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
+    // See ptHoldbackRateSchema above: the contract's own snapshot, or absent for none.
+    ptHoldbackRate: ptHoldbackRateSchema,
+  })
+  .superRefine(refineUnresolvedBound);
 
 // POST /internal/contracts/terminate — settle everyone to their final entitlement and refund
 // the client per the reason's formula.
@@ -559,6 +602,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       totalSessions: d.totalSessions,
       usedSessions: d.usedSessions,
       compensatedSessions: d.compensatedSessions,
+      unresolvedSessions: d.unresolvedSessions,
       rates: toRates(d.rates),
       reason: d.reason,
       alreadyReleased: {
@@ -575,6 +619,45 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ error: 'termination failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+const resolveUnresolvedSchema = releaseSchema.extend({
+  // UNRESOLVED_SESSION:<sessionId> (the base schema's idempotencyKey): the same session can only
+  // ever be decided once; a retry — or the other outcome — replays the first result.
+  outcome: z.enum(['DELIVERED', 'NOT_DELIVERED']),
+  ptHoldbackRate: ptHoldbackRateSchema,
+});
+
+// POST /internal/contracts/resolve-unresolved-session — a session left unresolved when its
+// contract ended has been decided: DELIVERED moves its value to the parties' available balances
+// (as release-session would have), NOT_DELIVERED refunds it to the client. Only the contract's own
+// pending is ever touched; whatever it cannot fund comes back as `shortfall`.
+router.post('/contracts/resolve-unresolved-session', async (req: Request, res: Response) => {
+  const parsed = resolveUnresolvedSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await resolveUnresolvedSession({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      outcome: d.outcome,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof UnresolvedSessionError) {
+      return res.status(409).json({ success: false, error: { code: err.code, message: err.message } });
+    }
+    logger.error({ error: 'resolve-unresolved-session failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'RESOLVE_UNRESOLVED_FAILED', message: (err as Error).message } });
   }
 });
 
@@ -619,6 +702,11 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     // Cụm A1 — without this, the preview shown before a cancel/refund never reflects sessions
     // already paid out as no-show compensation, disagreeing with what termination actually pays.
     compensatedSessions: z.number().int().min(0).optional(),
+    // The preview answers "what would the refund be if the contract ended now for THIS reason",
+    // using the very function terminateContract uses. Absent = CLIENT_CANCELLED, the only figure
+    // it used to give, so a caller that sends neither field sees no change.
+    reason: terminationReasonSchema.optional(),
+    unresolvedSessions: unresolvedSessionsSchema,
     rates: rateSchema,
   });
   const parsed = schema.safeParse(req.body);
@@ -633,8 +721,9 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
         totalSessions: parsed.data.totalSessions,
         usedSessions: parsed.data.usedSessions,
         compensatedSessions: parsed.data.compensatedSessions,
+        unresolvedSessions: parsed.data.unresolvedSessions,
         rates: toRates(parsed.data.rates),
-      }),
+      }, parsed.data.reason ?? 'CLIENT_CANCELLED'),
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: (err as Error).message } });

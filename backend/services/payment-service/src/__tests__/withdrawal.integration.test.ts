@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { guardedTest as test } from './support/test-db-guard'; // D57-6-5: runs only on a database whose name ends with _test
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { Prisma } from '../generated/prisma';

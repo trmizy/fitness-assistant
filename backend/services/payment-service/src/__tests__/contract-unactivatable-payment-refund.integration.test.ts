@@ -24,9 +24,10 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { randomUUID } from 'crypto';
 import type { AddressInfo } from 'node:net';
+import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
 const databaseUrl = process.env.DATABASE_URL || '';
-const canUseIntegrationDb = /_test/i.test(databaseUrl);
+const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
   skip: canUseIntegrationDb ? false : 'Requires DATABASE_URL pointing at a *_test database.',
 };
@@ -149,7 +150,11 @@ async function checkout(
   return { contractId: o.id, txnId: txn.id, providerTxnId, price, parties };
 }
 
-/** The gateway confirms payment: the same entry point a real webhook / poll uses. */
+/**
+ * The gateway confirms payment: the same entry point a real webhook / poll uses. A VNPay PAID event
+ * must carry the amount the gateway collected (handleEvent refuses it otherwise); this fixture reports
+ * the exact price, i.e. a correct payment — the amount-mismatch matrix lives in vnpay-amount-verification.
+ */
 async function gatewayConfirms(m: Mods, c: Checkout, eventId = `evt_${randomUUID()}`) {
   await m.webhook.handleEvent({
     provider: 'VNPAY',
@@ -157,6 +162,7 @@ async function gatewayConfirms(m: Mods, c: Checkout, eventId = `evt_${randomUUID
     providerTransactionId: c.providerTxnId,
     payload: {},
     status: 'PAID',
+    paidAmountVnd: String(c.price),
   });
 }
 

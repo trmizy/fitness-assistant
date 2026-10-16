@@ -32,6 +32,15 @@ router.get('/', async (_req: Request, res: Response) => {
   res.json({ success: true, data: transactions });
 });
 
+// GET /admin/payments/gateway-discrepancies — gateway callbacks whose amount did not match the transaction's
+// price. Nothing was settled for these (no escrow credit, no activation); each needs a manual decision (refund the
+// payer at the gateway, or reconcile). metadata.gatewayDiscrepancy holds expected vs reported amount, the source
+// (IPN / RETURN / POLL), VNPay's transaction number and an occurrence count.
+router.get('/gateway-discrepancies', async (_req: Request, res: Response) => {
+  const transactions = await transactionRepository.findWithGatewayDiscrepancy(200);
+  res.json({ success: true, data: transactions });
+});
+
 // GET /admin/payments/commissions — real commission list (was a hardcoded
 // empty array).
 /**
