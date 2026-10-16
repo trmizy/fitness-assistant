@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FileTextIcon as FileText, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningCircleIcon as AlertCircle, CalendarIcon as Calendar, UserIcon as User, CircleNotchIcon as Loader2, CaretRightIcon as ChevronRight, XIcon as X, CopyIcon as Copy, CheckIcon as Check, ChatTextIcon as MessageSquare, HashIcon as Hash } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { contractService } from "../../services/api";
+import { contractService, gymService } from "../../services/api";
 import { openPaymentGateway } from "../../services/paymentGateway";
 import { toast } from "sonner";
 import type {
@@ -13,6 +13,7 @@ import type {
 import { formatVND } from "../../utils/currency";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { normalizeCheckoutContext } from "../../utils/contractGymOptions";
 
 const statusConfig: Record<
   ContractStatus,
@@ -90,6 +91,53 @@ function formatDateTime(d?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/**
+ * P3.6 - what the client is about to pay for, read from GET /contracts/:id/checkout-context before the
+ * existing "Pay Now" action: the amount the server will charge, the payment deadline and anything its
+ * re-check flagged. Display only - nothing is computed here, and if the read fails the block simply
+ * does not show (the pay button and the server's own checks are unaffected).
+ */
+function CheckoutSummary({ contractId }: { contractId: string }) {
+  const { data } = useQuery({
+    queryKey: ["contract-checkout-context", contractId],
+    queryFn: () => contractService.getCheckoutContext(contractId),
+    staleTime: 0,
+    retry: 1,
+  });
+  const summary = data ? normalizeCheckoutContext(data) : null;
+  const { data: gym } = useQuery<any>({
+    queryKey: ["gym", summary?.gymId],
+    queryFn: () => gymService.getGym(summary!.gymId!),
+    enabled: !!summary?.gymId,
+  });
+  if (!summary) return null;
+  const rows: [string, string][] = [["Gói", summary.packageName]];
+  if (summary.amount != null) rows.push(["Số tiền thanh toán", formatVND(summary.amount)]);
+  if (summary.gymId && gym?.name) rows.push(["Phòng gym", String(gym.name)]);
+  if (summary.paymentDueLabel) rows.push(["Hạn thanh toán", summary.paymentDueLabel]);
+  return (
+    <div className="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-4 space-y-2">
+      <h4 className="text-sm font-semibold text-zinc-400">Trước khi thanh toán</h4>
+      <dl className="space-y-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-start justify-between gap-3 text-xs">
+            <dt className="text-zinc-500 shrink-0">{label}</dt>
+            <dd className="text-zinc-200 font-medium text-right break-words min-w-0">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {summary.warnings.map((w) => (
+        <p
+          key={w}
+          className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 leading-snug"
+        >
+          {w}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 function partyName(p?: ContractPartyProfile | null, fallback?: string) {
@@ -680,6 +728,8 @@ export function ContractPage() {
                   </li>
                 </ul>
               </div>
+
+              {selected.status === "PENDING_PAYMENT" && <CheckoutSummary contractId={selected.id} />}
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">

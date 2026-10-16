@@ -68,6 +68,7 @@ import {
   type ContractRow,
   type TerminationChoice,
 } from "../../../src/features/services/contracts";
+import { normalizeCheckoutContext } from "../../../src/features/services/contractGymOptions";
 import {
   EMPTY_PT_FILTERS,
   SESSION_MODES,
@@ -1114,6 +1115,8 @@ function ContractCard({
 
       {isPausedByAdmin(contract) ? <Notice tone="warning" text={PAUSED_BY_ADMIN_NOTICE} /> : null}
 
+      {contract.status === "PENDING_PAYMENT" ? <CheckoutSummary contractId={contract.id} /> : null}
+
       {contract.status === "PENDING_PAYMENT" ? (
         <Text className="font-body text-xs text-muted-foreground">
           Hợp đồng chỉ bắt đầu sau khi cổng thanh toán xác nhận giao dịch.
@@ -1155,6 +1158,50 @@ function ContractCard({
         ) : null}
       </View>
     </Card>
+  );
+}
+
+/**
+ * P3.6 — what the client is about to pay for, read from `GET /contracts/:id/checkout-context`: the
+ * amount the server will charge, the payment deadline and anything its re-check flagged. Display
+ * only — nothing is computed here, and a failed read just hides the block (the pay button and the
+ * server's own checks are unaffected).
+ */
+function CheckoutSummary({ contractId }: { contractId: string }) {
+  const query = useQuery({
+    queryKey: ["contract-checkout-context", contractId],
+    queryFn: () => contractService.getCheckoutContext(contractId),
+    staleTime: 0,
+    retry: 1,
+  });
+  const summary = useMemo(() => normalizeCheckoutContext(query.data), [query.data]);
+  const gymQuery = useQuery({
+    queryKey: ["gym", summary?.gymId],
+    queryFn: () => gymService.getGym(summary!.gymId!),
+    enabled: !!summary?.gymId,
+  });
+  if (!summary) return null;
+  const gymName = summary.gymId ? ((gymQuery.data as any)?.name ?? null) : null;
+  const rows: [string, string][] = [];
+  rows.push(["Gói", summary.packageName]);
+  if (summary.amount != null) rows.push(["Số tiền thanh toán", formatVND(summary.amount)]);
+  if (gymName) rows.push(["Phòng gym", String(gymName)]);
+  if (summary.paymentDueLabel) rows.push(["Hạn thanh toán", summary.paymentDueLabel]);
+  return (
+    <View className="gap-2 rounded-xl border border-border bg-panel p-3">
+      <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">
+        Trước khi thanh toán
+      </Text>
+      {rows.map(([label, value]) => (
+        <View key={label} className="flex-row items-start justify-between gap-3">
+          <Text className="font-body text-xs text-muted-foreground">{label}</Text>
+          <Text className="flex-1 text-right font-body-medium text-xs text-foreground">{value}</Text>
+        </View>
+      ))}
+      {summary.warnings.map((warning) => (
+        <Notice key={warning} tone="warning" text={warning} />
+      ))}
+    </View>
   );
 }
 

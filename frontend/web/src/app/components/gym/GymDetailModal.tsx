@@ -38,7 +38,19 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
  * Toàn bộ logic mua gói/cảnh báo nhiều phòng gym/thanh toán giữ nguyên xi từ
  * GymDetailPage.tsx cũ (route /client/gyms/:id giờ chỉ còn redirect — xem routes.tsx).
  */
-export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () => void }) {
+export function GymDetailModal({
+  gymId,
+  onClose,
+  initialReferralCode,
+  initialTab,
+}: {
+  gymId: string;
+  onClose: () => void;
+  /** P3.6: mã giới thiệu của PT, chỉ TỰ ĐIỀN vào ô (không tự mua) khi mở từ luồng đăng ký PT. */
+  initialReferralCode?: string;
+  /** Mở thẳng tab này (vd. "pricing" để mua gói hội viên). */
+  initialTab?: "detail" | "pricing" | "reviews";
+}) {
   const navigate = useNavigate();
   useBackDismissible(true, onClose);
 
@@ -50,13 +62,13 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  const [tab, setTab] = useState<"detail" | "pricing" | "reviews">("detail");
-  useEffect(() => setTab("detail"), [gymId]);
+  const [tab, setTab] = useState<"detail" | "pricing" | "reviews">(initialTab ?? "detail");
+  useEffect(() => setTab(initialTab ?? "detail"), [gymId, initialTab]);
 
   const [buyTarget, setBuyTarget] = useState<GymMembershipPlan | null>(null);
   const [warningTarget, setWarningTarget] = useState<GymMembershipPlan | null>(null);
   useBackDismissible(!!warningTarget, () => setWarningTarget(null));
-  const [referralCode, setReferralCode] = useState("");
+  const [referralCode, setReferralCode] = useState(() => (initialReferralCode ?? "").trim().toUpperCase());
 
   const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
     queryKey: ["gym", gymId],

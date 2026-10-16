@@ -25,12 +25,18 @@ import {
   contractService,
   locationService,
   ptServicePackageService,
-  collaborationService,
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { Stars } from "../../components/gym/Stars";
+import { GymDetailModal } from "../../components/gym/GymDetailModal";
+import {
+  normalizeGymOptions,
+  pickableGym,
+  readEligibilityRefusal,
+  type EligibilityReason,
+} from "../../utils/contractGymOptions";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const isValidPrice = (p: unknown): p is number =>
@@ -157,6 +163,13 @@ export function PTDiscoveryPage() {
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
+  // P3.6: the server's own 422 on the membership rule (wins over what was shown before sending),
+  // and the branch whose membership plans are open on top of the request dialog.
+  const [eligibilityRefusal, setEligibilityRefusal] = useState<{
+    reason: EligibilityReason;
+    message: string;
+  } | null>(null);
+  const [membershipGymId, setMembershipGymId] = useState<string | null>(null);
   const [lowAvailabilityData, setLowAvailabilityData] = useState<{
     availableSlots: number;
     packageSessions: number;
@@ -237,10 +250,20 @@ export function PTDiscoveryPage() {
       setRequestMessage("");
       setSelectedPackage(null);
       setSelectedGymId("");
+      setEligibilityRefusal(null);
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      const refused = readEligibilityRefusal(err);
+      if (refused) {
+        // The server is the authority: show its verdict and re-read the branch list so the
+        // per-branch status matches it.
+        setEligibilityRefusal(refused);
+        setLowAvailabilityData(null);
+        refetchGymOptions();
+        return;
+      }
       if (
         err?.response?.status === 409 &&
         err?.response?.data?.code === "LOW_AVAILABILITY"
@@ -259,15 +282,18 @@ export function PTDiscoveryPage() {
   const handleRequestCoaching = (pkg: any) => {
     setSelectedPackage(pkg);
     setLowAvailabilityData(null);
+    setEligibilityRefusal(null);
+    setSelectedGymId("");
     setShowRequestModal(true);
   };
 
   const submitRequest = (acknowledgedLowAvailability = false) => {
     if (!selectedPT || !selectedPackage) return;
     
-    // Only an offline package can run at a gym; an online one never carries a gym share.
+    // Only an offline package can run at a gym; an online one never carries a gym share. A branch
+    // the server flagged as not eligible is never sent (and a stale pick is dropped).
     const gymId =
-      selectedPackage.sessionMode === "OFFLINE" && selectedGymId ? selectedGymId : undefined;
+      selectedPackage.sessionMode === "OFFLINE" && pickedGym ? pickedGym.gymId : undefined;
 
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
@@ -279,15 +305,23 @@ export function PTDiscoveryPage() {
   };
 
   /**
-   * Gyms this trainer has an ACCEPTED partnership with. Only these may be picked: the split
-   * has to come from terms both sides agreed to, and the server refuses a gymId with no
-   * accepted collaboration rather than quietly falling back to the independent rate.
+   * P3.6 - branches for this trainer + package, with the client's own membership facts per branch
+   * (and the server's per-branch eligibility once it sends one). Facts only: nothing is computed
+   * here. Keyed by trainer + package; the whole cache is cleared on account switch (AppContext).
    */
-  const { data: partnerGyms = [] } = useQuery<any[]>({
-    queryKey: ["pt-partner-gyms", selectedId],
-    queryFn: () => collaborationService.listGymsForPt(selectedId!),
-    enabled: !!selectedId && showRequestModal,
+  const {
+    data: gymOptionsRaw,
+    isLoading: gymOptionsLoading,
+    isError: gymOptionsError,
+    refetch: refetchGymOptions,
+  } = useQuery<any>({
+    queryKey: ["contract-gym-options", selectedId, selectedPackage?.id ?? null],
+    queryFn: () => contractService.getGymOptions(selectedId!, selectedPackage.id),
+    enabled: !!selectedId && showRequestModal && !!selectedPackage,
+    staleTime: 0,
   });
+  const gymOptionsView = gymOptionsRaw ? normalizeGymOptions(gymOptionsRaw) : null;
+  const pickedGym = pickableGym(gymOptionsView, selectedGymId || null);
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ["pt-packages", selectedId],
@@ -1229,7 +1263,7 @@ export function PTDiscoveryPage() {
           (it applies a `transform`, which per spec creates a new containing block for any
           `position: fixed` descendant) instead of the real viewport — same class of bug as
           the PT-detail panel fix, just left unfixed here originally. */}
-      {showRequestModal && selectedPT && createPortal(
+      {showRequestModal && selectedPT && !membershipGymId && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
@@ -1334,40 +1368,126 @@ export function PTDiscoveryPage() {
                 </div>
               )}
 
+              {gymOptionsView?.requestBlockedCopy && (
+                <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500">
+                  <p className="text-xs leading-snug">{gymOptionsView.requestBlockedCopy}</p>
+                </div>
+              )}
+
               {selectedPackage?.sessionMode === "OFFLINE" && (
                 <div>
-                  <label
-                    htmlFor="contract-gym"
+                  <div
+                    id="contract-gym-label"
                     className="text-xs font-semibold text-zinc-400 mb-1.5 block"
                   >
                     Tập tại phòng gym nào?
-                  </label>
-                  <select
-                    id="contract-gym"
-                    value={selectedGymId}
-                    onChange={(e) => setSelectedGymId(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  >
-                    <option value="">Không qua phòng gym</option>
-                    {partnerGyms.map((g: any) => (
-                      <option key={g.gym.id} value={g.gym.id}>
-                        {g.gym.name}
-                        {g.gym.city ? ` — ${g.gym.city}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-zinc-600 mt-1.5 leading-snug">
-                    {selectedGymId
-                      ? (() => {
-                          const g = partnerGyms.find((x: any) => x.gym.id === selectedGymId);
-                          return g
-                            ? `Chia doanh thu: PT ${Math.round(Number(g.ptRate) * 100)}% · phòng gym ${Math.round(Number(g.gymRate) * 100)}% · nền tảng ${Math.round(Number(g.platformRate) * 100)}%.`
-                            : "";
-                        })()
-                      : partnerGyms.length > 0
-                        ? "Chọn phòng gym nếu bạn tập tại đó — phòng gym sẽ được chia một phần doanh thu."
-                        : "Huấn luyện viên này chưa hợp tác với phòng gym nào."}
-                  </p>
+                  </div>
+                  {gymOptionsLoading ? (
+                    <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                  ) : gymOptionsError ? (
+                    <div className="flex items-center gap-3">
+                      <p className="text-[11px] text-zinc-500 leading-snug">
+                        Chưa tải được danh sách phòng gym. Bạn có thể thử lại.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => refetchGymOptions()}
+                        className="shrink-0 px-3 py-1.5 border border-zinc-700/60 text-zinc-300 text-xs font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                      >
+                        Tải lại
+                      </button>
+                    </div>
+                  ) : gymOptionsView && gymOptionsView.gyms.length > 0 ? (
+                    <div role="radiogroup" aria-labelledby="contract-gym-label" className="space-y-2">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!pickedGym}
+                        onClick={() => {
+                          setSelectedGymId("");
+                          setEligibilityRefusal(null);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
+                          !pickedGym
+                            ? "border-green-500/50 bg-green-500/10 text-zinc-100"
+                            : "border-zinc-700/60 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-800"
+                        }`}
+                      >
+                        Không qua phòng gym
+                      </button>
+                      {gymOptionsView.gyms.map((g) => {
+                        const active = g.gymId === pickedGym?.gymId;
+                        return (
+                          <div
+                            key={g.gymId}
+                            className={`rounded-lg border px-3 py-2.5 ${
+                              active
+                                ? "border-green-500/50 bg-green-500/10"
+                                : "border-zinc-700/60 bg-zinc-800/50"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              disabled={!g.selectable}
+                              onClick={() => {
+                                setEligibilityRefusal(null);
+                                setSelectedGymId(g.gymId);
+                              }}
+                              className="w-full text-left disabled:cursor-not-allowed"
+                            >
+                              <span className="block text-sm font-semibold text-zinc-200 break-words">
+                                {g.name}
+                                {g.city ? ` — ${g.city}` : ""}
+                              </span>
+                              <span className="block text-[11px] text-zinc-500 mt-0.5">
+                                {g.membershipLabel}
+                              </span>
+                            </button>
+                            {g.blockedCopy && (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-[11px] text-amber-500 leading-snug">{g.blockedCopy}</p>
+                                {g.offersMembershipPurchase && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMembershipGymId(g.gymId)}
+                                    className="px-3 py-1.5 border border-green-500/40 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/10 transition-colors"
+                                  >
+                                    Mua gói hội viên
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-zinc-600 leading-snug">
+                      {gymOptionsView?.gymsReasonCopy ??
+                        "Huấn luyện viên hiện chưa có phòng gym nào để bạn chọn."}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {selectedPackage?.sessionMode !== "OFFLINE" && gymOptionsView?.gymsReasonCopy && (
+                <p className="text-[11px] text-zinc-600 leading-snug">{gymOptionsView.gymsReasonCopy}</p>
+              )}
+
+              {eligibilityRefusal && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 space-y-2">
+                  <p className="text-xs leading-snug">{eligibilityRefusal.message}</p>
+                  {eligibilityRefusal.reason === "MEMBERSHIP_REQUIRED" && pickedGym && (
+                    <button
+                      type="button"
+                      onClick={() => setMembershipGymId(pickedGym.gymId)}
+                      className="px-3 py-1.5 border border-green-500/40 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/10 transition-colors"
+                    >
+                      Mua gói hội viên
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1394,7 +1514,7 @@ export function PTDiscoveryPage() {
               {!lowAvailabilityData && (
                 <button
                   onClick={() => submitRequest()}
-                  disabled={requestMutation.isPending}
+                  disabled={requestMutation.isPending || !!gymOptionsView?.requestBlockedCode}
                   className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                 >
                   {requestMutation.isPending ? (
@@ -1407,6 +1527,22 @@ export function PTDiscoveryPage() {
           </div>
         </div>,
         document.body,
+      )}
+
+      {/* P3.6 - buy a gym membership from inside the request flow. The trainer's referral code is
+          only PRE-FILLED in the (optional) referral field; the client still presses buy. */}
+      {membershipGymId && (
+        <GymDetailModal
+          gymId={membershipGymId}
+          initialTab="pricing"
+          initialReferralCode={gymOptionsView?.ptReferralCode ?? undefined}
+          onClose={() => {
+            setMembershipGymId(null);
+            // Back from buying a plan: re-read memberships instead of trusting the earlier answer.
+            queryClient.invalidateQueries({ queryKey: ["contract-gym-options"] });
+            queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
+          }}
+        />
       )}
     </div>
   );

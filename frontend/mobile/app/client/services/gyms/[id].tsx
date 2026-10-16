@@ -76,11 +76,15 @@ import {
 export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, referral: referralParam } = useLocalSearchParams<{ id: string; referral?: string }>();
   const gymId = String(id ?? "");
 
   const [planId, setPlanId] = useState<string | null>(null);
-  const [referral, setReferral] = useState("");
+  // P3.6: arriving from a trainer's contract request carries the trainer's referral code. It only
+  // PRE-FILLS the optional field — the client still reviews it and presses buy themselves.
+  const [referral, setReferral] = useState(() =>
+    String(Array.isArray(referralParam) ? (referralParam[0] ?? "") : (referralParam ?? "")).trim().toUpperCase(),
+  );
   const [warningOpen, setWarningOpen] = useState(false);
 
   const gymQuery = useQuery({

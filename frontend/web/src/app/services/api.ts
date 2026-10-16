@@ -4734,6 +4734,17 @@ export const contractService = {
     const { data } = await api.post("/contracts/request", requestData);
     return data;
   },
+  // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
+  // client's own membership facts per branch (and, once the backend sends it, `eligibility`).
+  getGymOptions: async (ptUserId: string, packageId: string) => {
+    const { data } = await api.get("/contracts/gym-options", { params: { ptUserId, packageId } });
+    return data;
+  },
+  // Phase 3 / P3.6 — read-only summary of a PENDING_PAYMENT contract (amount, deadline, re-check).
+  getCheckoutContext: async (id: string) => {
+    const { data } = await api.get(`/contracts/${id}/checkout-context`);
+    return data;
+  },
   acceptContract: async (id: string) => {
     const { data } = await api.patch(`/contracts/${id}/accept`);
     return data;
