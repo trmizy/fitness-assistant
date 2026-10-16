@@ -80,7 +80,7 @@ function toQueryStringParameters(
 
 export async function requestService<T = any>(params: {
   service: ServiceKey;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT";
   path: string;
   params?: Record<string, unknown>;
   body?: unknown;
@@ -98,7 +98,7 @@ export async function requestService<T = any>(params: {
       path: params.path,
       headers: params.headers,
       queryStringParameters: query,
-      body: params.method === "POST" ? (params.body ?? {}) : undefined,
+      body: params.method !== "GET" ? (params.body ?? {}) : undefined,
     });
     throwForLambdaHttpError(result);
     return { status: result.statusCode, data: result.body as T };
@@ -111,7 +111,9 @@ export async function requestService<T = any>(params: {
   const response =
     params.method === "GET"
       ? await axios.get<T>(url, { headers: params.headers, params: params.params, timeout })
-      : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
+      : params.method === "PUT"
+        ? await axios.put<T>(url, params.body, { headers: params.headers, timeout })
+        : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
 
   return { status: response.status, data: response.data };
 }

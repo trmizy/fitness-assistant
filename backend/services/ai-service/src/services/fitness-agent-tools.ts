@@ -1,4 +1,4 @@
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { z } from "zod";
 import { logger, AgentPreferencesSchema, type AgentPreferences, type PTCandidate, type TrainingProgramCandidate } from "@gym-coach/shared";
 import { profileExtractor } from "../llm/profile_extractor";
@@ -85,9 +85,8 @@ function markProfileReadOrigin(err: unknown): never {
 
 async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
   const started = Date.now();
-  const baseURL = service === "user" ? process.env.USER_SERVICE_URL ?? "http://localhost:3004" : process.env.FITNESS_SERVICE_URL ?? "http://localhost:3002";
   try {
-    const response = await axios.request({ baseURL, url: route, method, data: body, timeout: timeoutMs,
+    const response = await requestService({ service, path: route, method, body, timeoutMs,
       // x-internal-token (in addition to x-gateway-secret) — some domain
       // routes are guarded by internalAuthMiddleware specifically, which
       // checks this exact header name (not x-gateway-secret's own
