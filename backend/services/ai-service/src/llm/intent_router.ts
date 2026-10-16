@@ -174,14 +174,8 @@ function inferIntent(question: string): RoutedIntentType {
     return "nutrient_timing_request";
   }
 
-  // Explicit exercise-detail requests take precedence over generic "what is" questions.
-  if (
-    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(
-      q,
-    )
-  ) {
-    return "specific_exercise_request";
-  }
+  const isSpecificExerciseRequest =
+    /(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(q);
 
   // Impersonal nutrition KNOWLEDGE questions ("Macro là gì?", "Protein có vai trò gì?", "Whey có bắt buộc không?",
   // "Protein bao nhiêu là đủ?") are not requests for a personalized meal plan. Without this the bare nutrient
@@ -191,7 +185,7 @@ function inferIntent(question: string): RoutedIntentType {
   const isKnowledgeQuestion =
     /(l[aà] g[iì]|vai tr[oò]|c[oó] (b[aắ]t bu[oộ]c|c[aầ]n thi[eế]t|t[oố]t|h[aạ]i|t[aá]c d[uụ]ng|hi[eệ]u qu[aả])|bao nhi[eê]u l[aà] (đ[uủ]|an to[aà]n|t[oố]t)|t[aạ]i sao|v[iì] sao|kh[aá]c (g[iì]|nhau)|what is|why)/i.test(q) &&
     !/(c[uủ]a t[oô]i|t[oô]i c[aầ]n|cho t[oô]i|m[iì]nh c[aầ]n|c[uủ]a m[iì]nh|t[aạ]o |l[eê]n |x[aâ]y d[uự]ng|thi[eế]t k[eế]|g[oợ]i [yý]|[dđ][eề] xu[aấ]t|meal plan|th[uự]c [dđ][oơ]n)/i.test(q);
-  if (isKnowledgeQuestion) {
+  if (isKnowledgeQuestion && !isSpecificExerciseRequest) {
     return "general_fitness_knowledge";
   }
 
@@ -260,7 +254,9 @@ function inferIntent(question: string): RoutedIntentType {
     return "muscle_group_routine_request";
   }
 
-
+  if (isSpecificExerciseRequest) {
+    return "specific_exercise_request";
+  }
 
   if (
     /(l[iị]ch t[aậ]p|ch[uươ][oơ]ng tr[iì]nh t[aậ]p|split|plan t[aậ]p|workout plan)/i.test(
