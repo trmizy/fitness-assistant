@@ -29,7 +29,7 @@ jobs:
     # or any branch other than this exact activation branch.
     if: >
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'ci/phase-16b2-pr-validation'
+      github.event.pull_request.head.ref == 'ci/phase-16b2-pr-validation-v2'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

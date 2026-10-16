@@ -106,7 +106,7 @@ Describe "Phase 16B.2 temporary OIDC smoke workflow (removed before merge)" {
 
     It "while present, enforces the exact activation branch condition" {
         if (-not $script:TemporaryExists) { return }
-        $script:Temporary | Should Match "head\.ref\s*==\s*'ci/phase-16b2-pr-validation'"
+        $script:Temporary | Should Match "head\.ref\s*==\s*'ci/phase-16b2-pr-validation-v2'"
     }
 
     It "while present, never echoes the OIDC JWT or raw AWS credential values" {

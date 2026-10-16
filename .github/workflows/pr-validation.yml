@@ -50,9 +50,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      # pnpm/action-setup MUST run before actions/setup-node's `cache: pnpm` -
+      # setup-node shells out to `pnpm` itself to resolve the cache key, so if
+      # pnpm isn't on PATH yet that step fails with "Unable to locate
+      # executable file: pnpm" (confirmed via a real failing run, 2026-10-16).
+      # `corepack enable` alone is not a reliable fix: it depends on exactly
+      # which Node the runner's default (pre-setup-node) PATH resolves to.
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 } # matches package.json's "packageManager"
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
-      - run: corepack enable
       - name: Install (lockfile must be up to date)
         run: pnpm install --frozen-lockfile
       - name: Repo hygiene lint
@@ -76,9 +83,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
-      - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm run prisma:generate
       - name: Run unit tests (skipped when service not impacted)
@@ -109,10 +117,29 @@ jobs:
         with: { persist-credentials: false }
       # NEW TOOLING (Phase 16A draft decision, adopted in 16B.2): cfn-lint,
       # AWS's own official static CFN linter. Offline, no AWS credentials.
+      #
+      # cfn-lint's exit code is a bitmask (0=clean, 2=errors, 4=warnings,
+      # 8=parse/processing failure - combinable, e.g. 6=errors+warnings).
+      # Confirmed via a real run (2026-10-16): this repo's templates exit 4
+      # (warnings only, no errors) - a naive `run: cfn-lint ...` fails the
+      # whole job on warnings alone, which is too strict for a PR check.
+      # Block only on real errors or a crash (bits 2/8); surface warnings
+      # (bit 4) without failing.
       - name: cfn-lint
         run: |
           pip install cfn-lint
+          set +e
           cfn-lint infra/cloudformation/ci-cd-oidc.yaml infra/cloudformation/api-gateway-additions.yaml infra/cloudformation/api-gateway-baseline.yaml
+          code=$?
+          set -e
+          echo "cfn-lint exit code: $code"
+          if [ $((code & 2)) -ne 0 ] || [ $((code & 8)) -ne 0 ]; then
+            echo "::error::cfn-lint found blocking errors or a processing failure (exit $code)"
+            exit 1
+          fi
+          if [ $((code & 4)) -ne 0 ]; then
+            echo "::warning::cfn-lint found warnings only (exit $code) - not blocking, see the step output above"
+          fi
       - name: Source-route manifest is valid JSON
         run: node -e "JSON.parse(require('fs').readFileSync('docs/deployment/generated/api-source-routes.json','utf8'))"
       # GAP (documented in the report): a static manifest-vs-template route parity
@@ -140,9 +167,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+        with: { version: 8.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
-      - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - shell: powershell
         run: |
