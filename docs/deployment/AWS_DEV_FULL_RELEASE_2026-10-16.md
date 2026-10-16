@@ -10,7 +10,11 @@ Owner requested deploying the full application before functional testing.
   producing six unexpired artifacts at 519468283afc7c0acf8114a2f3e85f31ca4da0f1.
 - Full Lambda deploy 38926814823 selects auth,user,fitness,gym,payment,ai,
   dry_run=false, build_run_id=38926227988. Covers 12 API/jobs/worker functions.
-  At this checkpoint it awaits GitHub environment dev review, not yet deployed.
+  REAL HTTP/API: completed successfully after environment dev approval.
+  Deploy services, Smoke and Scheduler state must be unchanged all succeeded.
+  Independent AWS get-function reads confirmed all 12 selected functions were
+  Active / Successful, modified between 15:48:57Z and 15:51:42Z. Public /health
+  returned HTTP 200 after deployment.
   https://github.com/trmizy/fitness-assistant/actions/runs/38926814823
 - Frontend built successfully from an isolated archive of 3cd7314d (same app
   source as 51946828), with the current API endpoint and Chat disabled. Uploaded
@@ -30,4 +34,5 @@ Owner requested deploying the full application before functional testing.
 No database migrations, secrets changes or business-flow tests were performed
 for this release. API Gateway PLAN previously showed no semantic/resource
 changes, so no infrastructure APPLY was needed. This checkpoint does not claim
-full application verification or successful completion of the pending Lambda run.
+full application functional verification. Lambda rollout is complete; business
+flows and Chat runtime remain unverified by this release check.
