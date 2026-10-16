@@ -11,6 +11,7 @@ import { contractRepository } from "../repositories/contract.repository";
 import { assertPtMayActOnContract } from "../services/pt-restriction.service";
 import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
 import { errorCodeBody } from "../utils/error-code.util";
+import { MEMBERSHIP_REQUIRED, MEMBERSHIP_DOES_NOT_COVER_CONTRACT } from "../services/contract-gym-membership.service";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 import {
@@ -45,6 +46,14 @@ export const contractController = {
               packageSessions: error.packageSessions,
               nearestAvailableSlot: error.nearestAvailableSlot,
             }
+          : {}),
+        // Phase 3 / P3.3: the membership refusals carry the facts the UI needs (gymId/brandId to link to
+        // buying a plan; membershipEndDate/contractEndDate to explain the gap), both under `details`
+        // and flat, so a client may read either.
+        ...(error.status === 422 &&
+        (error.code === MEMBERSHIP_REQUIRED || error.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT) &&
+        error.details
+          ? { details: error.details, ...error.details }
           : {}),
       });
     }

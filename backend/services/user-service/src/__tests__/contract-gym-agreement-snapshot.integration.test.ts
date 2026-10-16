@@ -31,6 +31,7 @@ function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknow
   };
 }
 
+const MEMBERSHIP_ID = "mem-snapshot-test";
 const RATES = { platformRate: "0.1000", ptRate: "0.7000", gymRate: "0.2000" };
 
 async function requestWith(opts: { gymId?: string; collab?: unknown; sessionMode?: SessionMode; onGymCall?: () => void }) {
@@ -46,6 +47,12 @@ async function requestWith(opts: { gymId?: string; collab?: unknown; sessionMode
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true })),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),
     patch(notificationService, "create", async () => ({})),
+    // P3.3: a gym contract needs an active membership at the brand. This suite is about the agreement
+    // snapshot, so the client simply holds one (gym-service stub at the client boundary).
+    patch(gymClient, "getClientMembershipAtGym", async () => {
+      const m = { membershipId: MEMBERSHIP_ID, planName: "Thang", purchaseGymId: "gym-any", startDate: null, endDate: new Date(Date.now() + 365 * 86400000).toISOString() };
+      return { hasActiveMembership: true, brandId: "brand-any", membership: m, memberships: [m] };
+    }),
     patch(gymClient, "getActiveCollaboration", async () => {
       opts.onGymCall?.();
       if (opts.collab === "UNAVAILABLE") throw new GymServiceUnavailableError(new Error("ECONNREFUSED"));
@@ -82,7 +89,7 @@ dbTest("gym contract: brand, agreement id and scope are snapshotted on the row b
   assert.equal(row.gymBrandId, "brand-1");
   assert.equal(row.gymAgreementId, "agr-brand-1");
   assert.equal(row.gymAgreementScope, "BRAND");
-  assert.equal(row.gymMembershipId, null, "membership is P3.3 - must stay null");
+  assert.equal(row.gymMembershipId, MEMBERSHIP_ID, "P3.3: the membership that allowed the request is snapshotted");
   // the existing rate snapshot is untouched
   assert.ok(row.platformRate.equals("0.1") && row.ptRate.equals("0.7") && row.gymRate.equals("0.2"));
   assert.equal(row.status, "PENDING_REVIEW");
@@ -104,7 +111,7 @@ dbTest("gym-service that does not send brandId/agreementScope (not yet upgraded)
   assert.equal(row.gymBrandId, null);
   assert.equal(row.gymAgreementScope, null);
   assert.equal(row.gymAgreementId, "agr-3");
-  assert.equal(row.gymMembershipId, null);
+  assert.equal(row.gymMembershipId, MEMBERSHIP_ID);
   assert.ok(row.gymRate.equals("0.2"));
 });
 

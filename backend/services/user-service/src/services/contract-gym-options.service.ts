@@ -5,16 +5,22 @@ import { ptServicePackageRepository } from "../repositories/pt_service_package.r
 import { trainingLocationRepository } from "../repositories/training_location.repository";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { assertPtAcceptsNewBusiness, PtRestrictionError } from "./pt-restriction.service";
+import {
+  evaluateMembershipForContract,
+  toGymContractEligibility,
+  type GymContractEligibility,
+} from "./contract-gym-membership.service";
 
 /**
  * Phase 3 / P3.4 - `GET /contracts/gym-options?ptUserId=&packageId=` : which branches the caller
  * (the client, taken from the verified identity) could pick when asking this trainer for this
- * package, plus FACTS about each. READ-ONLY and DECIDES NOTHING:
+ * package, plus FACTS about each. READ-ONLY:
  *
- *   - It enforces no business rule that is still open (docs/PHASE_3_PLAN.md section 8): not
- *     "membership required, and when" (8.1), not membership length vs contract (8.2), not "an
- *     OFFLINE package must have a gym" (8.4). A branch without a membership is still listed, with
- *     `membership.hasActiveMembership: false`; an empty list does not say the client may not
+ *   - Membership (D67, P3.3): each branch carries `eligibility` = the verdict of the SAME function
+ *     `requestContract` uses (contract-gym-membership.service.ts) - the UI never computes it. A branch
+ *     the client cannot request through is still listed, with the reason, so the UI can invite them to
+ *     buy / extend a plan. It still enforces nothing else that is open (docs/PHASE_3_PLAN.md section 8):
+ *     not "an OFFLINE package must have a gym" (8.4). An empty list does not say the client may not
  *     book without a gym.
  *   - It re-implements none of the branch rules. The candidate list is gym-service's own
  *     `listAcceptedGymsForPt`, and every candidate is then confirmed through
@@ -57,6 +63,8 @@ export interface GymOption {
     /** The membership was bought at THIS branch (plan ordering rule), not just at another branch of the brand. */
     purchasedHere: boolean;
   };
+  /** Backend verdict: may this client send a request for this package through this branch (P3.3). */
+  eligibility: GymContractEligibility;
 }
 
 export interface GymOptionsResult {
@@ -139,6 +147,7 @@ export const contractGymOptionsService = {
     }
 
     try {
+      const now = new Date();
       const candidates = await gymClient.listAcceptedGymsForPt(ptUserId);
       const trainingGymIds = new Set(
         (await trainingLocationRepository.findByPtUserId(ptUserId))
@@ -154,6 +163,15 @@ export const contractGymOptionsService = {
         const lookup = await gymClient.getClientMembershipAtGym(clientUserId, gymId);
         if (!lookup) return null; // gym-service no longer knows the branch
         const m = lookup.hasActiveMembership ? lookup.membership : null;
+        const eligibility = toGymContractEligibility(
+          evaluateMembershipForContract({
+            lookup,
+            gymId,
+            brandId: collab.brandId,
+            validityDays: pkg.validityDays,
+            now,
+          }),
+        );
         return {
           gymId,
           name: c.gym.name,
@@ -167,6 +185,7 @@ export const contractGymOptionsService = {
             endDate: m?.endDate ?? null,
             purchasedHere: !!m && m.purchaseGymId === gymId,
           },
+          eligibility,
         };
       });
 

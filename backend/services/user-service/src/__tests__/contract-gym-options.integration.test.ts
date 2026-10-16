@@ -169,6 +169,7 @@ dbTest("PT with 1 gym, client WITH an active membership: facts annotated, no rev
       {
         gymId: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a", isPtTrainingLocation: false,
         membership: { hasActiveMembership: true, membershipId: "mem-1", planName: "Thang", endDate: "2026-12-01T00:00:00.000Z", purchasedHere: true },
+        eligibility: { canRequest: true, reason: null }, // P3.3
       },
     ]);
     // The membership lookup is about THIS client (identity argument), at this branch.
@@ -192,6 +193,8 @@ dbTest("PT with 1 gym, client WITHOUT membership: branch still listed (nothing e
     assert.deepEqual(r.gyms[0].membership, {
       hasActiveMembership: false, membershipId: null, planName: null, endDate: null, purchasedHere: false,
     });
+    // P3.3: still listed, but the backend says it cannot be requested yet (and why)
+    assert.deepEqual(r.gyms[0].eligibility, { canRequest: false, reason: "MEMBERSHIP_REQUIRED" });
     assert.equal(r.pt.referralCode, "PT-REF-2"); // so the UI can carry it into a membership purchase
     assert.equal(r.requestBlockedReason, null);
   } finally {
@@ -259,10 +262,19 @@ dbTest("every excluded branch yields an empty list with NO_GYM_AGREEMENT (not a 
 });
 
 dbTest("CONSISTENCY: everything offered, requestContract accepts; everything excluded, requestContract refuses (same fixture)", { skip }, async () => {
-  const w = newWorld({ gyms: [A1, { ...A2, collab: null }, B1] });
+  // P3.3: a gym contract also needs a membership at the brand, so the client holds one at A1's and B1's brand
+  // (the fixture's gym-service answer); A2 is excluded by its agreement, not by membership.
+  const w = newWorld({
+    gyms: [
+      { ...A1, membership: ownMembership },
+      { ...A2, collab: null },
+      { ...B1, membership: { id: "mem-b", planName: "Thang B", purchaseGymId: "gym-b1", endDate: "2026-12-01T00:00:00.000Z" } },
+    ],
+  });
   const restore = install(w);
   try {
     const r = await contractGymOptionsService.getGymOptions(w.clientUserId, opts(w));
+    assert.ok(r.gyms.every((g) => g.eligibility.canRequest), "offered gyms are requestable for this client");
     const offered = new Set(r.gyms.map((g) => g.gymId));
     assert.deepEqual([...offered].sort(), ["gym-a1", "gym-b1"]);
     for (const g of w.gyms) {

@@ -32,16 +32,24 @@ export interface AcceptedGymForPt {
 }
 
 /** The part of gym-service `GET /internal/clients/:clientId/active-memberships?gymId=` user-service reads. */
+export interface ClientMembershipSummary {
+  membershipId: string;
+  planName: string;
+  purchaseGymId: string;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 export interface ClientMembershipLookup {
   hasActiveMembership: boolean;
   brandId: string | null;
-  membership: {
-    membershipId: string;
-    planName: string;
-    purchaseGymId: string;
-    startDate: string | null;
-    endDate: string | null;
-  } | null;
+  /** The newest active membership of the brand. */
+  membership: ClientMembershipSummary | null;
+  /**
+   * Phase 3 / P3.3 - every active membership of the brand, newest first (one per branch at most).
+   * Optional: an older gym-service answers only `membership`.
+   */
+  memberships?: ClientMembershipSummary[];
 }
 
 /** Only values gym-service is known to use; anything else is dropped rather than stored as an unreadable string. */

@@ -25,6 +25,7 @@ import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
 import { recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
+import { assertClientMayRequestGymContract } from "./contract-gym-membership.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
 import {
   activeRestrictedContractIds,
@@ -506,8 +507,19 @@ export const contractService = {
         gymBrandId: collab.brandId ?? null,
         gymAgreementId: collab.collaborationId ?? null,
         gymAgreementScope: collab.agreementScope ?? null,
-        gymMembershipId: null, // P3.3 (Membership check) fills this; not decided/enforced yet
+        gymMembershipId: null, // set just below, once the membership check passes
       };
+      // Phase 3 / P3.3 (D18, D67): the client must hold an active membership at this gym's brand that
+      // lasts at least as long as the contract would. Nothing has been written yet - a refusal here
+      // (422 MEMBERSHIP_REQUIRED / MEMBERSHIP_DOES_NOT_COVER_CONTRACT, 503 if gym-service is down)
+      // leaves no contract row. Contracts without a gym (online / independent) never reach this.
+      const membership = await assertClientMayRequestGymContract({
+        clientUserId,
+        gymId: data.gymId,
+        brandId: collab.brandId,
+        validityDays: pkg.validityDays,
+      });
+      gymSnapshot.gymMembershipId = membership.membershipId;
       source = ContractSource.GYM;
     } else {
       rates = { platformRate: "0.10", ptRate: "0.90", gymRate: "0" };
