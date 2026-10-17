@@ -1610,6 +1610,14 @@ router.use(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// Phase 2 (D16/D17/D70): a PT scans the branch QR to record their own on-site presence. Distinct
+// path from /me/gym-checkins (Q-C) and PT-only here; gym-service re-checks the PT role itself.
+router.use(
+  '/me/pt-gym-checkins',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 
 // GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (private, never public — distinct
 // from the review route above). Multipart upload proxies through unmodified — gym-service's

@@ -5710,6 +5710,16 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/checkins`);
     return data?.data ?? data;
   },
+  // PT (Phase 2): scanned the branch's QR — records that the trainer is on site. Attendance only.
+  ptCheckInByScan: async (token: string) => {
+    const { data } = await api.post(`/me/pt-gym-checkins`, { token });
+    return data?.data ?? data;
+  },
+  // Owner/manager: trainers who checked in at one branch (never member check-ins, never clients).
+  listPtCheckins: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
+    return data?.data ?? data;
+  },
   listMyCheckins: async () => {
     const { data } = await api.get(`/me/gym-checkins`);
     return data?.data ?? data;

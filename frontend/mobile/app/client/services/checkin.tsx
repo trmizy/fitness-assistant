@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
-import { ActivityIndicator, Linking, Text, View } from "react-native";
-import { router, useIsFocused } from "expo-router";
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
+import { Text, View } from "react-native";
+import { router } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CameraOff, CheckCircle2, ChevronLeft, ScanLine } from "lucide-react-native";
+import { CheckCircle2, ChevronLeft } from "lucide-react-native";
 
 import { Button, Card, Tappable } from "../../../src/components/ui";
+import { QrScannerView } from "../../../src/components/QrScannerView";
 import { gymService } from "../../../src/services/api";
 import {
   checkinErrorMessage,
@@ -15,7 +15,7 @@ import {
   visitsLabel,
   type CheckinResult,
 } from "../../../src/features/services/checkin";
-import { darkColors, designTokens } from "../../../src/theme/colors";
+import { designTokens } from "../../../src/theme/colors";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
 /**
@@ -31,8 +31,6 @@ export default function CheckinScanScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const queryClient = useQueryClient();
-  const focused = useIsFocused();
-  const [permission, requestPermission] = useCameraPermissions();
   const [errorText, setErrorText] = useState<string | null>(null);
   const [result, setResult] = useState<CheckinResult | null>(null);
   // The scanner reports the same code many times a second — one request per scan, not per frame.
@@ -52,7 +50,7 @@ export default function CheckinScanScreen() {
     },
   });
 
-  const onScanned = ({ data }: BarcodeScanningResult) => {
+  const onScanned = (data: string) => {
     if (busy.current || result || !isCheckinToken(data)) return;
     busy.current = true;
     setErrorText(null);
@@ -109,54 +107,14 @@ export default function CheckinScanScreen() {
             Xong
           </Button>
         </View>
-      ) : !permission ? (
-        <View className="items-center py-16">
-          <ActivityIndicator color={accent.primary} />
-        </View>
-      ) : !permission.granted ? (
-        <View className="items-center gap-3 px-8 py-12">
-          <CameraOff size={40} color={designTokens.mutedForeground} />
-          <Text className="text-center font-body text-sm text-muted-foreground">
-            Gymini cần quyền camera để quét mã QR tại quầy lễ tân.
-          </Text>
-          {permission.canAskAgain ? (
-            <Button className="self-center" onPress={() => void requestPermission()}>Cho phép camera</Button>
-          ) : (
-            <Button className="self-center" variant="secondary" onPress={() => void Linking.openSettings()}>
-              Mở cài đặt để cấp quyền
-            </Button>
-          )}
-        </View>
       ) : (
-        <View className="gap-3 px-5">
-          <View className="aspect-square overflow-hidden rounded-3xl bg-black">
-            {focused ? (
-              <CameraView
-                style={{ flex: 1 }}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                onBarcodeScanned={onScanned}
-              />
-            ) : null}
-            <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
-              <View className="h-56 w-56 rounded-2xl border-2" style={{ borderColor: accent.primary }} />
-            </View>
-            {checkIn.isPending ? (
-              <View className="absolute inset-0 items-center justify-center bg-black/60">
-                <ActivityIndicator size="large" color={accent.primary} />
-              </View>
-            ) : null}
-          </View>
-          <View className="flex-row items-center justify-center gap-2">
-            <ScanLine size={14} color={designTokens.mutedForeground} />
-            <Text className="font-body text-xs text-muted-foreground">Đưa camera vào mã QR đặt tại quầy lễ tân.</Text>
-          </View>
-          {errorText ? (
-            <Text className="text-center font-body text-sm" style={{ color: darkColors.destructive }}>
-              {errorText}
-            </Text>
-          ) : null}
-        </View>
+        <QrScannerView
+          onScanned={onScanned}
+          pending={checkIn.isPending}
+          errorText={errorText}
+          permissionText="Gymini cần quyền camera để quét mã QR tại quầy lễ tân."
+          hint="Đưa camera vào mã QR đặt tại quầy lễ tân."
+        />
       )}
     </View>
   );

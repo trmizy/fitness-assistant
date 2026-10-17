@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { UsersIcon as Users, CalendarIcon as Calendar, WalletIcon, TrendUpIcon as TrendingUp, WarningCircleIcon as AlertCircle, ClockIcon as Clock, BrainIcon as Brain, CalendarXIcon as CalendarX2, CalendarCheckIcon as CalendarCheck2 } from "@phosphor-icons/react";
+import { BarbellIcon as Barbell, UsersIcon as Users, CalendarIcon as Calendar, WalletIcon, TrendUpIcon as TrendingUp, WarningCircleIcon as AlertCircle, ClockIcon as Clock, BrainIcon as Brain, CalendarXIcon as CalendarX2, CalendarCheckIcon as CalendarCheck2 } from "@phosphor-icons/react";
 import {
   BarChart,
   Bar,
@@ -25,6 +25,7 @@ import {
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { formatVND } from "../../utils/currency";
 import { KpiCard } from "../../components/ui/KpiCard";
+import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import {
   SkeletonRow,
   SkeletonChart,
@@ -159,6 +160,7 @@ export function PTDashboard() {
 
   const { startSessionPreview } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
+  const [checkinOpen, setCheckinOpen] = useState(false);
 
   const handleJoinSession = async (s: Session) => {
     if (joiningSessionId) return;
@@ -292,7 +294,13 @@ export function PTDashboard() {
           <h1 className="text-zinc-100">Xin chào, {user?.firstName || "Coach"}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">{today}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setCheckinOpen(true)}
+            className="flex items-center gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-2.5 text-sm font-bold text-zinc-200 transition-[transform,border-color] active:scale-[0.98] hover:border-zinc-600"
+          >
+            <Barbell className="h-4 w-4" /> Check-in phòng gym
+          </button>
           <button
             onClick={() => navigate("/pt/wallet")}
             className="flex items-center gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-2.5 text-sm font-bold text-zinc-200 transition-[transform,border-color] active:scale-[0.98] hover:border-zinc-600"
@@ -514,6 +522,7 @@ export function PTDashboard() {
           )}
         </div>
       </div>
+      {checkinOpen && <CheckinScanModal mode="pt" onClose={() => setCheckinOpen(false)} />}
     </div>
   );
 }

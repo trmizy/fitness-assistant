@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
+  Dumbbell,
   FileSignature,
   Package,
   Sparkles,
@@ -270,6 +271,12 @@ export default function PtDashboardScreen() {
                 hint={pendingPlans > 0 ? `${pendingPlans} chờ duyệt` : "Không có giáo án chờ"}
                 badge={pendingPlans}
                 onPress={() => router.push("/pt/plan-review")}
+              />
+              <ActionTile
+                icon={Dumbbell}
+                label="Check-in"
+                hint="Quét QR gym"
+                onPress={() => router.push("/pt/gym-checkin" as never)}
               />
             </View>
           </StaggerItem>
