@@ -1322,3 +1322,35 @@ model GymMembershipReferral {
   @@index([gymId])
   @@map("gym_membership_referrals")
 }
+
+/// Phase 2 (PT QR check-in, D16/D17/D70) - a PT's entry to a branch on one local day.
+///
+/// One row per (branch, PT, local day): re-scans, concurrent scans and network retries all land on
+/// the SAME row (INSERT ... ON CONFLICT ... DO UPDATE), with `scan_count` counting the scans.
+/// Deliberately NOT `GymCheckIn`: that table is the member-visit ledger (membership_id required,
+/// counted by the owner dashboards); a PT entry must never be mistaken for a member visit and must
+/// never touch gym_membership_contracts. Reading this table never changes a session, a contract or
+/// any money - it is attendance, not Session Completion and not Settlement.
+///
+/// `local_date` is the calendar day in Asia/Ho_Chi_Minh of the instant the SERVER received the
+/// scan (utils/local-day.ts). `qualifying_session_ids` / `contract_ids` are the basis user-service
+/// reported at scan time (union across the day's scans); a session id stored here for one day is
+/// not accepted as basis for a different day once it has been moved (Q-B).
+model GymPtCheckIn {
+  id                   String   @id @default(uuid())
+  gymId                String   @map("gym_id")
+  brandId              String?  @map("brand_id")
+  ptUserId             String   @map("pt_user_id")
+  localDate            DateTime @map("local_date") @db.Date
+  firstScanAt          DateTime @map("first_scan_at")
+  lastScanAt           DateTime @map("last_scan_at")
+  scanCount            Int      @default(1) @map("scan_count")
+  qualifyingSessionIds String[] @map("qualifying_session_ids")
+  contractIds          String[] @map("contract_ids")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@unique([gymId, ptUserId, localDate], map: "gym_pt_check_ins_gym_pt_date_key")
+  @@index([gymId, localDate], map: "gym_pt_check_ins_gym_date_idx")
+  @@index([ptUserId, localDate], map: "gym_pt_check_ins_pt_date_idx")
+  @@map("gym_pt_check_ins")
+}

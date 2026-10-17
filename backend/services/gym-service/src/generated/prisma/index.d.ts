@@ -228,6 +228,23 @@ export type GymPtAgreementConflict = $Result.DefaultSelection<Prisma.$GymPtAgree
  * money on every cancellation.
  */
 export type GymMembershipReferral = $Result.DefaultSelection<Prisma.$GymMembershipReferralPayload>
+/**
+ * Model GymPtCheckIn
+ * Phase 2 (PT QR check-in, D16/D17/D70) - a PT's entry to a branch on one local day.
+ * 
+ * One row per (branch, PT, local day): re-scans, concurrent scans and network retries all land on
+ * the SAME row (INSERT ... ON CONFLICT ... DO UPDATE), with `scan_count` counting the scans.
+ * Deliberately NOT `GymCheckIn`: that table is the member-visit ledger (membership_id required,
+ * counted by the owner dashboards); a PT entry must never be mistaken for a member visit and must
+ * never touch gym_membership_contracts. Reading this table never changes a session, a contract or
+ * any money - it is attendance, not Session Completion and not Settlement.
+ * 
+ * `local_date` is the calendar day in Asia/Ho_Chi_Minh of the instant the SERVER received the
+ * scan (utils/local-day.ts). `qualifying_session_ids` / `contract_ids` are the basis user-service
+ * reported at scan time (union across the day's scans); a session id stored here for one day is
+ * not accepted as basis for a different day once it has been moved (Q-B).
+ */
+export type GymPtCheckIn = $Result.DefaultSelection<Prisma.$GymPtCheckInPayload>
 
 /**
  * Enums
@@ -1163,6 +1180,16 @@ export class PrismaClient<
     * ```
     */
   get gymMembershipReferral(): Prisma.GymMembershipReferralDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymPtCheckIn`: Exposes CRUD operations for the **GymPtCheckIn** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymPtCheckIns
+    * const gymPtCheckIns = await prisma.gymPtCheckIn.findMany()
+    * ```
+    */
+  get gymPtCheckIn(): Prisma.GymPtCheckInDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1630,7 +1657,8 @@ export namespace Prisma {
     GymPtCollaboration: 'GymPtCollaboration',
     GymBrandPtAgreement: 'GymBrandPtAgreement',
     GymPtAgreementConflict: 'GymPtAgreementConflict',
-    GymMembershipReferral: 'GymMembershipReferral'
+    GymMembershipReferral: 'GymMembershipReferral',
+    GymPtCheckIn: 'GymPtCheckIn'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1646,7 +1674,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3537,6 +3565,76 @@ export namespace Prisma {
           count: {
             args: Prisma.GymMembershipReferralCountArgs<ExtArgs>
             result: $Utils.Optional<GymMembershipReferralCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymPtCheckIn: {
+        payload: Prisma.$GymPtCheckInPayload<ExtArgs>
+        fields: Prisma.GymPtCheckInFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymPtCheckInFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymPtCheckInFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          findFirst: {
+            args: Prisma.GymPtCheckInFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymPtCheckInFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          findMany: {
+            args: Prisma.GymPtCheckInFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>[]
+          }
+          create: {
+            args: Prisma.GymPtCheckInCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          createMany: {
+            args: Prisma.GymPtCheckInCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymPtCheckInCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>[]
+          }
+          delete: {
+            args: Prisma.GymPtCheckInDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          update: {
+            args: Prisma.GymPtCheckInUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymPtCheckInDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymPtCheckInUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymPtCheckInUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCheckInPayload>
+          }
+          aggregate: {
+            args: Prisma.GymPtCheckInAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymPtCheckIn>
+          }
+          groupBy: {
+            args: Prisma.GymPtCheckInGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymPtCheckInGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymPtCheckInCountArgs<ExtArgs>
+            result: $Utils.Optional<GymPtCheckInCountAggregateOutputType> | number
           }
         }
       }
@@ -33392,6 +33490,982 @@ export namespace Prisma {
 
 
   /**
+   * Model GymPtCheckIn
+   */
+
+  export type AggregateGymPtCheckIn = {
+    _count: GymPtCheckInCountAggregateOutputType | null
+    _avg: GymPtCheckInAvgAggregateOutputType | null
+    _sum: GymPtCheckInSumAggregateOutputType | null
+    _min: GymPtCheckInMinAggregateOutputType | null
+    _max: GymPtCheckInMaxAggregateOutputType | null
+  }
+
+  export type GymPtCheckInAvgAggregateOutputType = {
+    scanCount: number | null
+  }
+
+  export type GymPtCheckInSumAggregateOutputType = {
+    scanCount: number | null
+  }
+
+  export type GymPtCheckInMinAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    brandId: string | null
+    ptUserId: string | null
+    localDate: Date | null
+    firstScanAt: Date | null
+    lastScanAt: Date | null
+    scanCount: number | null
+    createdAt: Date | null
+  }
+
+  export type GymPtCheckInMaxAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    brandId: string | null
+    ptUserId: string | null
+    localDate: Date | null
+    firstScanAt: Date | null
+    lastScanAt: Date | null
+    scanCount: number | null
+    createdAt: Date | null
+  }
+
+  export type GymPtCheckInCountAggregateOutputType = {
+    id: number
+    gymId: number
+    brandId: number
+    ptUserId: number
+    localDate: number
+    firstScanAt: number
+    lastScanAt: number
+    scanCount: number
+    qualifyingSessionIds: number
+    contractIds: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymPtCheckInAvgAggregateInputType = {
+    scanCount?: true
+  }
+
+  export type GymPtCheckInSumAggregateInputType = {
+    scanCount?: true
+  }
+
+  export type GymPtCheckInMinAggregateInputType = {
+    id?: true
+    gymId?: true
+    brandId?: true
+    ptUserId?: true
+    localDate?: true
+    firstScanAt?: true
+    lastScanAt?: true
+    scanCount?: true
+    createdAt?: true
+  }
+
+  export type GymPtCheckInMaxAggregateInputType = {
+    id?: true
+    gymId?: true
+    brandId?: true
+    ptUserId?: true
+    localDate?: true
+    firstScanAt?: true
+    lastScanAt?: true
+    scanCount?: true
+    createdAt?: true
+  }
+
+  export type GymPtCheckInCountAggregateInputType = {
+    id?: true
+    gymId?: true
+    brandId?: true
+    ptUserId?: true
+    localDate?: true
+    firstScanAt?: true
+    lastScanAt?: true
+    scanCount?: true
+    qualifyingSessionIds?: true
+    contractIds?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymPtCheckInAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtCheckIn to aggregate.
+     */
+    where?: GymPtCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCheckIns to fetch.
+     */
+    orderBy?: GymPtCheckInOrderByWithRelationInput | GymPtCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymPtCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymPtCheckIns
+    **/
+    _count?: true | GymPtCheckInCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymPtCheckInAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymPtCheckInSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymPtCheckInMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymPtCheckInMaxAggregateInputType
+  }
+
+  export type GetGymPtCheckInAggregateType<T extends GymPtCheckInAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymPtCheckIn]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymPtCheckIn[P]>
+      : GetScalarType<T[P], AggregateGymPtCheckIn[P]>
+  }
+
+
+
+
+  export type GymPtCheckInGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtCheckInWhereInput
+    orderBy?: GymPtCheckInOrderByWithAggregationInput | GymPtCheckInOrderByWithAggregationInput[]
+    by: GymPtCheckInScalarFieldEnum[] | GymPtCheckInScalarFieldEnum
+    having?: GymPtCheckInScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymPtCheckInCountAggregateInputType | true
+    _avg?: GymPtCheckInAvgAggregateInputType
+    _sum?: GymPtCheckInSumAggregateInputType
+    _min?: GymPtCheckInMinAggregateInputType
+    _max?: GymPtCheckInMaxAggregateInputType
+  }
+
+  export type GymPtCheckInGroupByOutputType = {
+    id: string
+    gymId: string
+    brandId: string | null
+    ptUserId: string
+    localDate: Date
+    firstScanAt: Date
+    lastScanAt: Date
+    scanCount: number
+    qualifyingSessionIds: string[]
+    contractIds: string[]
+    createdAt: Date
+    _count: GymPtCheckInCountAggregateOutputType | null
+    _avg: GymPtCheckInAvgAggregateOutputType | null
+    _sum: GymPtCheckInSumAggregateOutputType | null
+    _min: GymPtCheckInMinAggregateOutputType | null
+    _max: GymPtCheckInMaxAggregateOutputType | null
+  }
+
+  type GetGymPtCheckInGroupByPayload<T extends GymPtCheckInGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymPtCheckInGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymPtCheckInGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymPtCheckInGroupByOutputType[P]>
+            : GetScalarType<T[P], GymPtCheckInGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymPtCheckInSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    localDate?: boolean
+    firstScanAt?: boolean
+    lastScanAt?: boolean
+    scanCount?: boolean
+    qualifyingSessionIds?: boolean
+    contractIds?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymPtCheckIn"]>
+
+  export type GymPtCheckInSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    localDate?: boolean
+    firstScanAt?: boolean
+    lastScanAt?: boolean
+    scanCount?: boolean
+    qualifyingSessionIds?: boolean
+    contractIds?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymPtCheckIn"]>
+
+  export type GymPtCheckInSelectScalar = {
+    id?: boolean
+    gymId?: boolean
+    brandId?: boolean
+    ptUserId?: boolean
+    localDate?: boolean
+    firstScanAt?: boolean
+    lastScanAt?: boolean
+    scanCount?: boolean
+    qualifyingSessionIds?: boolean
+    contractIds?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $GymPtCheckInPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymPtCheckIn"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      gymId: string
+      brandId: string | null
+      ptUserId: string
+      localDate: Date
+      firstScanAt: Date
+      lastScanAt: Date
+      scanCount: number
+      qualifyingSessionIds: string[]
+      contractIds: string[]
+      createdAt: Date
+    }, ExtArgs["result"]["gymPtCheckIn"]>
+    composites: {}
+  }
+
+  type GymPtCheckInGetPayload<S extends boolean | null | undefined | GymPtCheckInDefaultArgs> = $Result.GetResult<Prisma.$GymPtCheckInPayload, S>
+
+  type GymPtCheckInCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymPtCheckInFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymPtCheckInCountAggregateInputType | true
+    }
+
+  export interface GymPtCheckInDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymPtCheckIn'], meta: { name: 'GymPtCheckIn' } }
+    /**
+     * Find zero or one GymPtCheckIn that matches the filter.
+     * @param {GymPtCheckInFindUniqueArgs} args - Arguments to find a GymPtCheckIn
+     * @example
+     * // Get one GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymPtCheckInFindUniqueArgs>(args: SelectSubset<T, GymPtCheckInFindUniqueArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymPtCheckIn that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymPtCheckInFindUniqueOrThrowArgs} args - Arguments to find a GymPtCheckIn
+     * @example
+     * // Get one GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymPtCheckInFindUniqueOrThrowArgs>(args: SelectSubset<T, GymPtCheckInFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymPtCheckIn that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInFindFirstArgs} args - Arguments to find a GymPtCheckIn
+     * @example
+     * // Get one GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymPtCheckInFindFirstArgs>(args?: SelectSubset<T, GymPtCheckInFindFirstArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymPtCheckIn that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInFindFirstOrThrowArgs} args - Arguments to find a GymPtCheckIn
+     * @example
+     * // Get one GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymPtCheckInFindFirstOrThrowArgs>(args?: SelectSubset<T, GymPtCheckInFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymPtCheckIns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymPtCheckIns
+     * const gymPtCheckIns = await prisma.gymPtCheckIn.findMany()
+     * 
+     * // Get first 10 GymPtCheckIns
+     * const gymPtCheckIns = await prisma.gymPtCheckIn.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymPtCheckInWithIdOnly = await prisma.gymPtCheckIn.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymPtCheckInFindManyArgs>(args?: SelectSubset<T, GymPtCheckInFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymPtCheckIn.
+     * @param {GymPtCheckInCreateArgs} args - Arguments to create a GymPtCheckIn.
+     * @example
+     * // Create one GymPtCheckIn
+     * const GymPtCheckIn = await prisma.gymPtCheckIn.create({
+     *   data: {
+     *     // ... data to create a GymPtCheckIn
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymPtCheckInCreateArgs>(args: SelectSubset<T, GymPtCheckInCreateArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymPtCheckIns.
+     * @param {GymPtCheckInCreateManyArgs} args - Arguments to create many GymPtCheckIns.
+     * @example
+     * // Create many GymPtCheckIns
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymPtCheckInCreateManyArgs>(args?: SelectSubset<T, GymPtCheckInCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymPtCheckIns and returns the data saved in the database.
+     * @param {GymPtCheckInCreateManyAndReturnArgs} args - Arguments to create many GymPtCheckIns.
+     * @example
+     * // Create many GymPtCheckIns
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymPtCheckIns and only return the `id`
+     * const gymPtCheckInWithIdOnly = await prisma.gymPtCheckIn.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymPtCheckInCreateManyAndReturnArgs>(args?: SelectSubset<T, GymPtCheckInCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymPtCheckIn.
+     * @param {GymPtCheckInDeleteArgs} args - Arguments to delete one GymPtCheckIn.
+     * @example
+     * // Delete one GymPtCheckIn
+     * const GymPtCheckIn = await prisma.gymPtCheckIn.delete({
+     *   where: {
+     *     // ... filter to delete one GymPtCheckIn
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymPtCheckInDeleteArgs>(args: SelectSubset<T, GymPtCheckInDeleteArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymPtCheckIn.
+     * @param {GymPtCheckInUpdateArgs} args - Arguments to update one GymPtCheckIn.
+     * @example
+     * // Update one GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymPtCheckInUpdateArgs>(args: SelectSubset<T, GymPtCheckInUpdateArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymPtCheckIns.
+     * @param {GymPtCheckInDeleteManyArgs} args - Arguments to filter GymPtCheckIns to delete.
+     * @example
+     * // Delete a few GymPtCheckIns
+     * const { count } = await prisma.gymPtCheckIn.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymPtCheckInDeleteManyArgs>(args?: SelectSubset<T, GymPtCheckInDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymPtCheckIns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymPtCheckIns
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymPtCheckInUpdateManyArgs>(args: SelectSubset<T, GymPtCheckInUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymPtCheckIn.
+     * @param {GymPtCheckInUpsertArgs} args - Arguments to update or create a GymPtCheckIn.
+     * @example
+     * // Update or create a GymPtCheckIn
+     * const gymPtCheckIn = await prisma.gymPtCheckIn.upsert({
+     *   create: {
+     *     // ... data to create a GymPtCheckIn
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymPtCheckIn we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymPtCheckInUpsertArgs>(args: SelectSubset<T, GymPtCheckInUpsertArgs<ExtArgs>>): Prisma__GymPtCheckInClient<$Result.GetResult<Prisma.$GymPtCheckInPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymPtCheckIns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInCountArgs} args - Arguments to filter GymPtCheckIns to count.
+     * @example
+     * // Count the number of GymPtCheckIns
+     * const count = await prisma.gymPtCheckIn.count({
+     *   where: {
+     *     // ... the filter for the GymPtCheckIns we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymPtCheckInCountArgs>(
+      args?: Subset<T, GymPtCheckInCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymPtCheckInCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymPtCheckIn.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymPtCheckInAggregateArgs>(args: Subset<T, GymPtCheckInAggregateArgs>): Prisma.PrismaPromise<GetGymPtCheckInAggregateType<T>>
+
+    /**
+     * Group by GymPtCheckIn.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCheckInGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymPtCheckInGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymPtCheckInGroupByArgs['orderBy'] }
+        : { orderBy?: GymPtCheckInGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymPtCheckInGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymPtCheckInGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymPtCheckIn model
+   */
+  readonly fields: GymPtCheckInFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymPtCheckIn.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymPtCheckInClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymPtCheckIn model
+   */ 
+  interface GymPtCheckInFieldRefs {
+    readonly id: FieldRef<"GymPtCheckIn", 'String'>
+    readonly gymId: FieldRef<"GymPtCheckIn", 'String'>
+    readonly brandId: FieldRef<"GymPtCheckIn", 'String'>
+    readonly ptUserId: FieldRef<"GymPtCheckIn", 'String'>
+    readonly localDate: FieldRef<"GymPtCheckIn", 'DateTime'>
+    readonly firstScanAt: FieldRef<"GymPtCheckIn", 'DateTime'>
+    readonly lastScanAt: FieldRef<"GymPtCheckIn", 'DateTime'>
+    readonly scanCount: FieldRef<"GymPtCheckIn", 'Int'>
+    readonly qualifyingSessionIds: FieldRef<"GymPtCheckIn", 'String[]'>
+    readonly contractIds: FieldRef<"GymPtCheckIn", 'String[]'>
+    readonly createdAt: FieldRef<"GymPtCheckIn", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymPtCheckIn findUnique
+   */
+  export type GymPtCheckInFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter, which GymPtCheckIn to fetch.
+     */
+    where: GymPtCheckInWhereUniqueInput
+  }
+
+  /**
+   * GymPtCheckIn findUniqueOrThrow
+   */
+  export type GymPtCheckInFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter, which GymPtCheckIn to fetch.
+     */
+    where: GymPtCheckInWhereUniqueInput
+  }
+
+  /**
+   * GymPtCheckIn findFirst
+   */
+  export type GymPtCheckInFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter, which GymPtCheckIn to fetch.
+     */
+    where?: GymPtCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCheckIns to fetch.
+     */
+    orderBy?: GymPtCheckInOrderByWithRelationInput | GymPtCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtCheckIns.
+     */
+    cursor?: GymPtCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtCheckIns.
+     */
+    distinct?: GymPtCheckInScalarFieldEnum | GymPtCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCheckIn findFirstOrThrow
+   */
+  export type GymPtCheckInFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter, which GymPtCheckIn to fetch.
+     */
+    where?: GymPtCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCheckIns to fetch.
+     */
+    orderBy?: GymPtCheckInOrderByWithRelationInput | GymPtCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtCheckIns.
+     */
+    cursor?: GymPtCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCheckIns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtCheckIns.
+     */
+    distinct?: GymPtCheckInScalarFieldEnum | GymPtCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCheckIn findMany
+   */
+  export type GymPtCheckInFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter, which GymPtCheckIns to fetch.
+     */
+    where?: GymPtCheckInWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCheckIns to fetch.
+     */
+    orderBy?: GymPtCheckInOrderByWithRelationInput | GymPtCheckInOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymPtCheckIns.
+     */
+    cursor?: GymPtCheckInWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCheckIns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCheckIns.
+     */
+    skip?: number
+    distinct?: GymPtCheckInScalarFieldEnum | GymPtCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCheckIn create
+   */
+  export type GymPtCheckInCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * The data needed to create a GymPtCheckIn.
+     */
+    data: XOR<GymPtCheckInCreateInput, GymPtCheckInUncheckedCreateInput>
+  }
+
+  /**
+   * GymPtCheckIn createMany
+   */
+  export type GymPtCheckInCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymPtCheckIns.
+     */
+    data: GymPtCheckInCreateManyInput | GymPtCheckInCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPtCheckIn createManyAndReturn
+   */
+  export type GymPtCheckInCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymPtCheckIns.
+     */
+    data: GymPtCheckInCreateManyInput | GymPtCheckInCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPtCheckIn update
+   */
+  export type GymPtCheckInUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * The data needed to update a GymPtCheckIn.
+     */
+    data: XOR<GymPtCheckInUpdateInput, GymPtCheckInUncheckedUpdateInput>
+    /**
+     * Choose, which GymPtCheckIn to update.
+     */
+    where: GymPtCheckInWhereUniqueInput
+  }
+
+  /**
+   * GymPtCheckIn updateMany
+   */
+  export type GymPtCheckInUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymPtCheckIns.
+     */
+    data: XOR<GymPtCheckInUpdateManyMutationInput, GymPtCheckInUncheckedUpdateManyInput>
+    /**
+     * Filter which GymPtCheckIns to update
+     */
+    where?: GymPtCheckInWhereInput
+  }
+
+  /**
+   * GymPtCheckIn upsert
+   */
+  export type GymPtCheckInUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * The filter to search for the GymPtCheckIn to update in case it exists.
+     */
+    where: GymPtCheckInWhereUniqueInput
+    /**
+     * In case the GymPtCheckIn found by the `where` argument doesn't exist, create a new GymPtCheckIn with this data.
+     */
+    create: XOR<GymPtCheckInCreateInput, GymPtCheckInUncheckedCreateInput>
+    /**
+     * In case the GymPtCheckIn was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymPtCheckInUpdateInput, GymPtCheckInUncheckedUpdateInput>
+  }
+
+  /**
+   * GymPtCheckIn delete
+   */
+  export type GymPtCheckInDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+    /**
+     * Filter which GymPtCheckIn to delete.
+     */
+    where: GymPtCheckInWhereUniqueInput
+  }
+
+  /**
+   * GymPtCheckIn deleteMany
+   */
+  export type GymPtCheckInDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtCheckIns to delete
+     */
+    where?: GymPtCheckInWhereInput
+  }
+
+  /**
+   * GymPtCheckIn without action
+   */
+  export type GymPtCheckInDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCheckIn
+     */
+    select?: GymPtCheckInSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -33912,6 +34986,23 @@ export namespace Prisma {
   };
 
   export type GymMembershipReferralScalarFieldEnum = (typeof GymMembershipReferralScalarFieldEnum)[keyof typeof GymMembershipReferralScalarFieldEnum]
+
+
+  export const GymPtCheckInScalarFieldEnum: {
+    id: 'id',
+    gymId: 'gymId',
+    brandId: 'brandId',
+    ptUserId: 'ptUserId',
+    localDate: 'localDate',
+    firstScanAt: 'firstScanAt',
+    lastScanAt: 'lastScanAt',
+    scanCount: 'scanCount',
+    qualifyingSessionIds: 'qualifyingSessionIds',
+    contractIds: 'contractIds',
+    createdAt: 'createdAt'
+  };
+
+  export type GymPtCheckInScalarFieldEnum = (typeof GymPtCheckInScalarFieldEnum)[keyof typeof GymPtCheckInScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -37214,6 +38305,91 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipReferral"> | Date | string
   }
 
+  export type GymPtCheckInWhereInput = {
+    AND?: GymPtCheckInWhereInput | GymPtCheckInWhereInput[]
+    OR?: GymPtCheckInWhereInput[]
+    NOT?: GymPtCheckInWhereInput | GymPtCheckInWhereInput[]
+    id?: StringFilter<"GymPtCheckIn"> | string
+    gymId?: StringFilter<"GymPtCheckIn"> | string
+    brandId?: StringNullableFilter<"GymPtCheckIn"> | string | null
+    ptUserId?: StringFilter<"GymPtCheckIn"> | string
+    localDate?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    firstScanAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    lastScanAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    scanCount?: IntFilter<"GymPtCheckIn"> | number
+    qualifyingSessionIds?: StringNullableListFilter<"GymPtCheckIn">
+    contractIds?: StringNullableListFilter<"GymPtCheckIn">
+    createdAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+  }
+
+  export type GymPtCheckInOrderByWithRelationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    brandId?: SortOrderInput | SortOrder
+    ptUserId?: SortOrder
+    localDate?: SortOrder
+    firstScanAt?: SortOrder
+    lastScanAt?: SortOrder
+    scanCount?: SortOrder
+    qualifyingSessionIds?: SortOrder
+    contractIds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPtCheckInWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    gymId_ptUserId_localDate?: GymPtCheckInGymIdPtUserIdLocalDateCompoundUniqueInput
+    AND?: GymPtCheckInWhereInput | GymPtCheckInWhereInput[]
+    OR?: GymPtCheckInWhereInput[]
+    NOT?: GymPtCheckInWhereInput | GymPtCheckInWhereInput[]
+    gymId?: StringFilter<"GymPtCheckIn"> | string
+    brandId?: StringNullableFilter<"GymPtCheckIn"> | string | null
+    ptUserId?: StringFilter<"GymPtCheckIn"> | string
+    localDate?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    firstScanAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    lastScanAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+    scanCount?: IntFilter<"GymPtCheckIn"> | number
+    qualifyingSessionIds?: StringNullableListFilter<"GymPtCheckIn">
+    contractIds?: StringNullableListFilter<"GymPtCheckIn">
+    createdAt?: DateTimeFilter<"GymPtCheckIn"> | Date | string
+  }, "id" | "gymId_ptUserId_localDate">
+
+  export type GymPtCheckInOrderByWithAggregationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    brandId?: SortOrderInput | SortOrder
+    ptUserId?: SortOrder
+    localDate?: SortOrder
+    firstScanAt?: SortOrder
+    lastScanAt?: SortOrder
+    scanCount?: SortOrder
+    qualifyingSessionIds?: SortOrder
+    contractIds?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymPtCheckInCountOrderByAggregateInput
+    _avg?: GymPtCheckInAvgOrderByAggregateInput
+    _max?: GymPtCheckInMaxOrderByAggregateInput
+    _min?: GymPtCheckInMinOrderByAggregateInput
+    _sum?: GymPtCheckInSumOrderByAggregateInput
+  }
+
+  export type GymPtCheckInScalarWhereWithAggregatesInput = {
+    AND?: GymPtCheckInScalarWhereWithAggregatesInput | GymPtCheckInScalarWhereWithAggregatesInput[]
+    OR?: GymPtCheckInScalarWhereWithAggregatesInput[]
+    NOT?: GymPtCheckInScalarWhereWithAggregatesInput | GymPtCheckInScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymPtCheckIn"> | string
+    gymId?: StringWithAggregatesFilter<"GymPtCheckIn"> | string
+    brandId?: StringNullableWithAggregatesFilter<"GymPtCheckIn"> | string | null
+    ptUserId?: StringWithAggregatesFilter<"GymPtCheckIn"> | string
+    localDate?: DateTimeWithAggregatesFilter<"GymPtCheckIn"> | Date | string
+    firstScanAt?: DateTimeWithAggregatesFilter<"GymPtCheckIn"> | Date | string
+    lastScanAt?: DateTimeWithAggregatesFilter<"GymPtCheckIn"> | Date | string
+    scanCount?: IntWithAggregatesFilter<"GymPtCheckIn"> | number
+    qualifyingSessionIds?: StringNullableListFilter<"GymPtCheckIn">
+    contractIds?: StringNullableListFilter<"GymPtCheckIn">
+    createdAt?: DateTimeWithAggregatesFilter<"GymPtCheckIn"> | Date | string
+  }
+
   export type GymPhotoCreateInput = {
     id?: string
     fileName: string
@@ -40291,6 +41467,104 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymPtCheckInCreateInput = {
+    id?: string
+    gymId: string
+    brandId?: string | null
+    ptUserId: string
+    localDate: Date | string
+    firstScanAt: Date | string
+    lastScanAt: Date | string
+    scanCount?: number
+    qualifyingSessionIds?: GymPtCheckInCreatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInCreatecontractIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type GymPtCheckInUncheckedCreateInput = {
+    id?: string
+    gymId: string
+    brandId?: string | null
+    ptUserId: string
+    localDate: Date | string
+    firstScanAt: Date | string
+    lastScanAt: Date | string
+    scanCount?: number
+    qualifyingSessionIds?: GymPtCheckInCreatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInCreatecontractIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type GymPtCheckInUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    localDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scanCount?: IntFieldUpdateOperationsInput | number
+    qualifyingSessionIds?: GymPtCheckInUpdatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInUpdatecontractIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCheckInUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    localDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scanCount?: IntFieldUpdateOperationsInput | number
+    qualifyingSessionIds?: GymPtCheckInUpdatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInUpdatecontractIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCheckInCreateManyInput = {
+    id?: string
+    gymId: string
+    brandId?: string | null
+    ptUserId: string
+    localDate: Date | string
+    firstScanAt: Date | string
+    lastScanAt: Date | string
+    scanCount?: number
+    qualifyingSessionIds?: GymPtCheckInCreatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInCreatecontractIdsInput | string[]
+    createdAt?: Date | string
+  }
+
+  export type GymPtCheckInUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    localDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scanCount?: IntFieldUpdateOperationsInput | number
+    qualifyingSessionIds?: GymPtCheckInUpdatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInUpdatecontractIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCheckInUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    localDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastScanAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scanCount?: IntFieldUpdateOperationsInput | number
+    qualifyingSessionIds?: GymPtCheckInUpdatequalifyingSessionIdsInput | string[]
+    contractIds?: GymPtCheckInUpdatecontractIdsInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -42975,6 +44249,58 @@ export namespace Prisma {
     clawedBack?: SortOrder
   }
 
+  export type GymPtCheckInGymIdPtUserIdLocalDateCompoundUniqueInput = {
+    gymId: string
+    ptUserId: string
+    localDate: Date | string
+  }
+
+  export type GymPtCheckInCountOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    localDate?: SortOrder
+    firstScanAt?: SortOrder
+    lastScanAt?: SortOrder
+    scanCount?: SortOrder
+    qualifyingSessionIds?: SortOrder
+    contractIds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPtCheckInAvgOrderByAggregateInput = {
+    scanCount?: SortOrder
+  }
+
+  export type GymPtCheckInMaxOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    localDate?: SortOrder
+    firstScanAt?: SortOrder
+    lastScanAt?: SortOrder
+    scanCount?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPtCheckInMinOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    brandId?: SortOrder
+    ptUserId?: SortOrder
+    localDate?: SortOrder
+    firstScanAt?: SortOrder
+    lastScanAt?: SortOrder
+    scanCount?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymPtCheckInSumOrderByAggregateInput = {
+    scanCount?: SortOrder
+  }
+
   export type GymCreateNestedOneWithoutPhotosInput = {
     create?: XOR<GymCreateWithoutPhotosInput, GymUncheckedCreateWithoutPhotosInput>
     connectOrCreate?: GymCreateOrConnectWithoutPhotosInput
@@ -44730,6 +46056,24 @@ export namespace Prisma {
     upsert?: GymMembershipContractUpsertWithoutReferralInput
     connect?: GymMembershipContractWhereUniqueInput
     update?: XOR<XOR<GymMembershipContractUpdateToOneWithWhereWithoutReferralInput, GymMembershipContractUpdateWithoutReferralInput>, GymMembershipContractUncheckedUpdateWithoutReferralInput>
+  }
+
+  export type GymPtCheckInCreatequalifyingSessionIdsInput = {
+    set: string[]
+  }
+
+  export type GymPtCheckInCreatecontractIdsInput = {
+    set: string[]
+  }
+
+  export type GymPtCheckInUpdatequalifyingSessionIdsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type GymPtCheckInUpdatecontractIdsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -53618,6 +54962,10 @@ export namespace Prisma {
      * @deprecated Use GymMembershipReferralDefaultArgs instead
      */
     export type GymMembershipReferralArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymMembershipReferralDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymPtCheckInDefaultArgs instead
+     */
+    export type GymPtCheckInArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPtCheckInDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

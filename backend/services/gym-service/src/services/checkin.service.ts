@@ -5,6 +5,7 @@ import { gymService } from './gym.service';
 import { signGymCheckinToken, verifyGymCheckinToken } from '../utils/checkinToken';
 import { authServiceClient } from '../clients/auth-service.client';
 import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
+import { assertGymOpenForCheckin } from './checkin-gym-guard';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -97,7 +98,7 @@ export const checkinService = {
       if (rows.length === 0) throw err('NO_MEMBERSHIP', 403);
       const m = rows[0];
 
-      if (m.gym_status !== 'APPROVED' || m.gym_operational_status !== 'OPEN') throw err('GYM_NOT_ACTIVE', 409);
+      assertGymOpenForCheckin(m.gym_status, m.gym_operational_status);
 
       // Lazy-expire a membership past its end date, then require ACTIVE.
       let status = m.status;

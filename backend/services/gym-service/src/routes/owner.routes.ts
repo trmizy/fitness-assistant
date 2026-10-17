@@ -155,6 +155,8 @@ router.get('/gyms/:gymId/memberships', requireGymScope(), asyncHandler(membershi
 // Phase 4 — the gym displays this QR at the desk; members scan it to check themselves in.
 router.get('/gyms/:gymId/checkin-qr', requireGymScope(), asyncHandler(checkinController.getGymQr));
 router.get('/gyms/:gymId/checkins', requireGymScope(), asyncHandler(checkinController.listForGym));
+// Phase 2 / P2.2 — PT entries at this branch (separate from member visits; never shows clients).
+router.get('/gyms/:gymId/pt-checkins', requireGymScope(), asyncHandler(checkinController.listPtForGym));
 
 // Mời PT về đầu quân cho chi nhánh là việc "người" → chỉ chủ sở hữu, cùng nhóm với đàm
 // phán cộng tác PT bên dưới.

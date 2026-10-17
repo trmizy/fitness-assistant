@@ -43,6 +43,16 @@ router.get('/me/gym-memberships/:id', ...gate, asyncHandler(membershipController
 router.post('/me/gym-checkins', ...gate, asyncHandler(checkinController.checkInByScan));
 router.get('/me/gym-checkins', ...gate, asyncHandler(checkinController.listForClient));
 
+// Phase 2 / P2.2 — a PT scans the branch's QR to enter (D16/D17). A separate route from the member
+// one on purpose (Q-C): PT role ONLY, never touches memberships/visits, no money.
+router.post(
+  '/me/pt-gym-checkins',
+  extractUser,
+  requireAuth,
+  requireRoles('PT'),
+  asyncHandler(checkinController.ptCheckInByScan),
+);
+
 // Phase 4 — gym review (only members who paid can write; one review per client per gym).
 router.post('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.submit));
 router.delete('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.remove));
