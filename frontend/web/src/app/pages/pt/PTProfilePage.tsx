@@ -10,13 +10,11 @@ import {
   ptServicePackageService,
   availabilityService,
   profileService,
-  gymService,
   contractService,
   type PTServicePackage,
 } from "../../services/api";
 import { ptApplicationService } from "../../services/ptApplicationService";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
-import type { Gym } from "../../types";
 
 type TrainingLoc = {
   id: string;
@@ -238,13 +236,6 @@ export function PTProfilePage() {
   // Mirrors the application's own lifecycle rather than asserting "approved" unconditionally.
   const applicationStatus = myApplication?.status ?? (myProfile?.profile?.isPT ? "APPROVED" : null);
 
-  // For starting a NEW collaboration proposal — CollaborationPanel needs a gymId to propose
-  // against, but always shows/responds to existing ones regardless of this selection.
-  const [proposeGymId, setProposeGymId] = useState("");
-  const { data: allGyms = [] } = useQuery<Gym[]>({
-    queryKey: ["all-gyms-for-collab"],
-    queryFn: gymService.listGyms,
-  });
   const copyReferralCode = async () => {
     if (!referralCode) return;
     try {
@@ -867,23 +858,7 @@ export function PTProfilePage() {
       {/* PT ↔ Gym collaboration — component existed, fully built, but was never mounted on
           any page: a PT had no way to reach it at all. */}
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-        <label className="text-xs font-semibold text-zinc-500 mb-1.5 block">
-          Chọn phòng gym để gửi đề xuất mới (không cần chọn nếu chỉ xem/phản hồi đề xuất đã có)
-        </label>
-        <select
-          value={proposeGymId}
-          onChange={(e) => setProposeGymId(e.target.value)}
-          className="w-full sm:w-72 px-3 py-2 mb-4 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-        >
-          <option value="">-- Không chọn --</option>
-          {allGyms.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-              {g.city ? ` — ${g.city}` : ""}
-            </option>
-          ))}
-        </select>
-        <CollaborationPanel as="PT" gymId={proposeGymId || undefined} />
+        <CollaborationPanel as="PT" />
       </div>
 
       {/* Training Locations */}

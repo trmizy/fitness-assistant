@@ -609,7 +609,7 @@ export function OperationsSection({ uid, gym }: { uid: string; gym: any }) {
                     {impactQuery.data.activeMembers} hội viên đang có gói hiệu lực
                     {impactQuery.data.unusedValueTotal > 0 ? ` — giá trị chưa dùng ước tính ${formatVND(impactQuery.data.unusedValueTotal)}` : ""}
                   </Text>
-                  <Text className="font-body text-xs text-foreground">{impactQuery.data.activeCollaborations} cộng tác PT đang hoạt động tại chi nhánh này</Text>
+                  <Text className="font-body text-xs text-foreground">{impactQuery.data.activeCollaborations} thỏa thuận hợp tác PT đang áp dụng cho chi nhánh này</Text>
                   <Text className="font-body text-xs text-foreground">Số dư ví hiện tại: {formatVND(Number(impactQuery.data.walletBalance ?? 0))}</Text>
                 </View>
               ) : (

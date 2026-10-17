@@ -12,6 +12,7 @@
  */
 import type { PartnerAccessState } from "../../services/api";
 import { canRespondAs, collabStatusFor, type CollabRow } from "../collaboration/collaboration";
+import { awaitingMyReplyCount, partneredPtCount } from "../collaboration/brandPartnership";
 export { withdrawableCeiling } from "../wallet/wallet";
 
 // ── Access state: who may see the operational workspace ────────────────────────────────────
@@ -310,14 +311,18 @@ export function countByStatus(rows: { status?: string | null }[], status: string
   return rows.filter((r) => r?.status === status).length;
 }
 
-/** PTs actually working at THIS branch — a collaboration is per gym, not per brand. */
-export function acceptedCollabCount(collabs: { gymId?: string | null; status?: string | null }[], gymId: string) {
-  return collabs.filter((c) => c?.gymId === gymId && c?.status === "ACCEPTED").length;
+/**
+ * PTs actually working at THIS branch. An ACCEPTED brand agreement covers EVERY branch of the brand (its
+ * `gymId` is only a representative branch), so counting by `gymId` undercounted every other branch; legacy
+ * per-branch rows still count at their own branch. Distinct trainers, winding-down agreements excluded.
+ */
+export function acceptedCollabCount(collabs: unknown, gym: { id?: string | null; brandId?: string | null } | null | undefined) {
+  return partneredPtCount(collabs, gym);
 }
 
-/** Offers waiting on the owner's answer — the turn-taking is the same enum Phase 11 mapped. */
-export function pendingCollabCount(collabs: { status?: string | null }[]) {
-  return collabs.filter((c) => c?.status === "PENDING" || c?.status === "COUNTERED").length;
+/** Offers waiting on the OWNER's answer - not the owner's own proposals, which wait on the trainer. */
+export function pendingCollabCount(collabs: unknown) {
+  return awaitingMyReplyCount(collabs, "GYM");
 }
 
 /** Members are anonymous to the owner beyond their id — never invent a name. */

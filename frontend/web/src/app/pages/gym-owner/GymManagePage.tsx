@@ -9,7 +9,6 @@ import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse, 
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
-import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
 import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
@@ -44,6 +43,12 @@ export function GymManagePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Same cache entry the sidebar reads (no extra request); the nav entry for collaborations is owner-only.
+  const { data: partnerStatus } = useQuery({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const isManagerAccount = partnerStatus?.role === "MANAGER";
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -428,7 +433,7 @@ export function GymManagePage() {
                             <> — tổng giá trị chưa dùng ước tính <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.unusedValueTotal)}</span></>
                           )}
                         </li>
-                        <li><span className="text-zinc-200 font-semibold">{closureImpact.activeCollaborations}</span> cộng tác PT đang hoạt động tại chi nhánh này</li>
+                        <li><span className="text-zinc-200 font-semibold">{closureImpact.activeCollaborations}</span> thỏa thuận hợp tác PT đang áp dụng cho chi nhánh này</li>
                         <li>Số dư ví hiện tại: <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.walletBalance)}</span></li>
                       </ul>
                     ) : (
@@ -596,14 +601,24 @@ export function GymManagePage() {
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />
 
-      {/* PT collaboration for THIS branch specifically — proposing/inviting only makes sense
-          in a specific gym's context, which is why this stays here even though there is now
-          also a brand-wide aggregate view (see GymCollaborationsPage.tsx, reachable from the
-          "Quản lý cộng tác" nav entry) for just glancing at every branch's offers at once
-          without hunting through each gym's own page. */}
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
-        <CollaborationPanel as="GYM" gymId={id!} />
-      </div>
+      {/* PT partnerships are agreed with the BRAND and apply to every open branch (D5/D72), so there
+          is nothing branch-specific to manage here: the one place is "Quản lý cộng tác". Only the
+          owner may read the terms (D14), so a branch manager gets no link. */}
+      {!isManagerAccount && (
+        <div data-testid="gym-collab-brand-note" className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-2">
+          <h3 className="text-zinc-100 font-bold text-sm">Hợp tác huấn luyện viên</h3>
+          <p className="text-xs text-zinc-500 leading-snug">
+            Hợp tác với huấn luyện viên được ký ở cấp thương hiệu và áp dụng một bộ điều khoản cho mọi chi nhánh, nên không quản lý riêng từng chi nhánh.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/gym-owner/collaborations")}
+            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-3 py-1.5 rounded-lg text-xs font-semibold"
+          >
+            Mở Quản lý cộng tác
+          </button>
+        </div>
+      )}
 
       {/* Plans moved to their own top-level page — a plan is sold by the BRAND now (see
           GymPlansPage.tsx), not this one branch, so there is nothing gym-specific left to

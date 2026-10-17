@@ -125,7 +125,7 @@ export default function GymOwnerDashboardScreen() {
   const recent = recentMemberships(memberships);
   const avgRating = Number((reviewsQuery.data as any)?.averageRating ?? 0);
   const ratingCount = Number((reviewsQuery.data as any)?.count ?? 0);
-  const partneredPts = acceptedCollabCount(collabs, activeId);
+  const partneredPts = acceptedCollabCount(collabs, active);
   const pendingCollabs = pendingCollabCount(collabs);
 
   const refreshing =

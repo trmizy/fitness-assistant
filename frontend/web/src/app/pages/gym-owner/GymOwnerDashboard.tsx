@@ -17,6 +17,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
 import { gymService, collaborationService } from "../../services/api";
+import { partneredPtCount as partneredPtCountFor } from "../../utils/brandPartnership";
 import { formatVND } from "../../utils/currency";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { EntityCard } from "../../components/ui/EntityCard";
@@ -33,7 +34,7 @@ import type {
   GymMembershipContractStatus,
 } from "../../types";
 
-type Collaboration = { id: string; gymId: string; ptUserId: string; status: string };
+type Collaboration = Record<string, unknown>;
 
 const STAGGER_DELAYS = ["", "delay-75", "delay-150", "delay-200"] as const;
 
@@ -249,9 +250,9 @@ export function GymOwnerDashboard() {
   const todaysCheckinsCount = checkins.filter((c) => isSameDay(new Date(c.createdAt), new Date())).length;
   const averageRating = reviews?.averageRating ?? 0;
   const activePlansCount = plans.filter((p) => p.status === "ACTIVE").length;
-  const partneredPtCount = collaborations.filter(
-    (c) => c.gymId === activeGymId && c.status === "ACCEPTED",
-  ).length;
+  // A brand agreement covers every branch of the brand; `gymId` on it is only the representative branch.
+  const activeGym = gyms.find((g) => g.id === activeGymId);
+  const partneredPtCount = partneredPtCountFor(collaborations, { id: activeGymId, brandId: activeGym?.brandId ?? null });
 
   const kpis = [
     {
