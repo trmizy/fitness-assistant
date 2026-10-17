@@ -209,3 +209,5 @@ Quyết định: D70 (mô hình X, Q14–Q-E), D71 (cách làm, phân loại �
 **Backlog (⚪):** QR chi nhánh chụp dùng từ xa (365 ngày) — security weakness của mô hình X; camera giải mã trên emulator/thiết bị thật chưa kiểm; màn 503 chưa chụp; thẻ hợp tác chủ gym hiện mã PT nội bộ (có từ trước); đối tác bị khóa nhưng chi nhánh mở vẫn cho vào (giống đường hội viên, đổi là quy tắc mới).
 
 **Production vẫn là production gate:** Financial Hardening + Security Hardening + xoay credential.
+
+**Cập nhật 17/10 (D72) — camera mobile:** lần thử có giới hạn đã **xác minh camera giải mã QR thật trên Android emulator** (camera ảo virtual-scene, áp phích QR thật của chi nhánh đặt trước camera trong bản sao tài nguyên emulator; không chèn mã, không sửa mã nguồn). Màn PT tự hiện thẻ thành công; quét lại tăng `scan_count` 1→2, `first_scan_at` giữ nguyên. Nhãn: REAL EMULATOR UI + REAL HTTP/API. Chưa kiểm: camera điện thoại thật (góc nghiêng, khoảng cách, thiếu sáng). Bằng chứng: `_warroom/evidence/p2_mobile_camera/RESULTS.md`.
