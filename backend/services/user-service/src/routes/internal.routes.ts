@@ -10,6 +10,7 @@ import { notificationService } from "../services/notification.service";
 import { pushService } from "../services/push.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { PtRestrictionError, getActiveRestriction, ptRestrictionService } from "../services/pt-restriction.service";
+import { parsePtGymSessionsQuery, ptGymSessionsService } from "../services/pt-gym-sessions.service";
 
 const router = Router();
 
@@ -104,6 +105,28 @@ router.get("/pt/:ptUserId/restriction", async (req, res) => {
       return;
     }
     logger.error(error, "PT restriction read failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PT QR check-in (Phase 2 / P2.1, D16 / D17 / D38 / D59 / D70) - READ-ONLY. gym-service asks, per scan, which of this PT's
+ * face-to-face sessions at `gymId` touch the window [from, to) (the UTC instants of the local day, computed by gym-service):
+ *   { ptUserId, gymId, ptActive, ptBlockedReason: null | PT_NOT_FOUND | NOT_A_PT | PT_ACCOUNT_RESTRICTED | PT_BANNED,
+ *     sessions: [{ sessionId, contractId, status, scheduledStartAt, scheduledEndAt }] }
+ * 400 INVALID_QUERY: gymId missing, from/to not ISO-8601 instants with a zone, from >= to, or a window over 48 h. No client
+ * identity is returned and nothing is written - see pt-gym-sessions.service.ts for the exact rules.
+ */
+router.get("/pt/:ptUserId/gym-sessions", async (req, res) => {
+  const q = parsePtGymSessionsQuery(req.query);
+  if (!q.ok) {
+    res.status(400).json({ error: q.error, code: "INVALID_QUERY" });
+    return;
+  }
+  try {
+    res.json(await ptGymSessionsService.list(req.params.ptUserId, q.gymId, q.from, q.to));
+  } catch (error: any) {
+    logger.error(error, "PT gym-sessions read failed");
     res.status(500).json({ error: error.message });
   }
 });

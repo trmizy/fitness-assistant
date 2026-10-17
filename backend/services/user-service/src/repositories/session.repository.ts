@@ -350,6 +350,33 @@ export const sessionRepository = {
       select: { ptUserId: true, scheduledStartAt: true, scheduledEndAt: true },
     }),
 
+  /**
+   * PT QR check-in (Phase 2 / P2.1) - READ-ONLY. The PT's face-to-face sessions at ONE gym whose interval overlaps
+   * [from, to): `scheduledStartAt < to AND scheduledEndAt > from` (a session crossing midnight overlaps both days).
+   * `scheduledStartAt < to` is the indexed bound. Only the columns the check-in needs are selected: no client identity,
+   * no notes, no money columns. The contract's id / status / ptUserId come back for the restriction + ending filters.
+   */
+  findOfflineForPtAtGymOverlapping: (ptUserId: string, gymId: string, statuses: SessionStatus[], from: Date, to: Date) =>
+    prisma.session.findMany({
+      where: {
+        ptUserId,
+        sessionMode: "OFFLINE",
+        status: { in: statuses },
+        scheduledStartAt: { lt: to },
+        scheduledEndAt: { gt: from },
+        contract: { gymId, ptUserId },
+      },
+      select: {
+        id: true,
+        contractId: true,
+        status: true,
+        scheduledStartAt: true,
+        scheduledEndAt: true,
+        contract: { select: { id: true, status: true, ptUserId: true } },
+      },
+      orderBy: [{ scheduledStartAt: "asc" }, { id: "asc" }],
+    }),
+
   // ── Reschedule Request ──────────────────────────────────────────
 
   createRescheduleRequest: (data: any) =>

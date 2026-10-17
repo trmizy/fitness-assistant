@@ -177,6 +177,19 @@ export const sessionSettlementRepository = {
   },
 
   /**
+   * Batch form of {@link hasUnconfirmedTermination} for read endpoints: one query, the SAME predicate. Returns the subset of
+   * `contractIds` whose ending is recorded but not confirmed (D59). Read-only.
+   */
+  findContractIdsWithUnconfirmedTermination: async (contractIds: string[], db: Db = prisma): Promise<Set<string>> => {
+    if (contractIds.length === 0) return new Set();
+    const rows = await db.sessionSettlement.findMany({
+      where: { contractId: { in: contractIds }, kind: SessionSettlementKind.CONTRACT_TERMINATION, status: { not: SessionSettlementStatus.SETTLED } },
+      select: { contractId: true },
+    });
+    return new Set(rows.map((r) => r.contractId));
+  },
+
+  /**
    * One page of rows the sweep may retry, least recently touched first (D57-5-1: ordered by when a row was last tried,
    * not by when it was born, and paged by `offset` so a pile of unprocessable rows at the front cannot hide the
    * processable ones behind them):
