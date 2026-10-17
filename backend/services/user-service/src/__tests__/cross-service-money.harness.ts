@@ -89,7 +89,15 @@ export interface HarnessOptions {
    * Prisma queries) on `databaseUrl` (must be a `*_test` database) and point user-service's GYM_SERVICE_URL at it.
    * Without it GYM_SERVICE_URL stays at the dead port, exactly as before.
    */
-  gym?: { databaseUrl: string };
+  gym?: {
+    databaseUrl: string;
+    /**
+     * Phase 2 / P2.4: let the gym-service child talk to the REAL user-service of this process (USER_SERVICE_URL -> the
+     * user app, which then listens on a port reserved up front) and verify bearer tokens against a small auth-service
+     * FIXTURE server that answers from the same token table as `tokenFor`. Off by default: both stay the dead port.
+     */
+    bridge?: boolean;
+  };
   /** Override the payment test database (default: PAYMENT_DB_URL). Must still be a `*_test` database. */
   paymentDatabaseUrl?: string;
 }
@@ -104,6 +112,30 @@ export async function startHarness(opts: HarnessOptions = {}) {
   let gymUrl = DEAD;
   let gymChild: ChildProcess | null = null;
   const gymLog: string[] = [];
+  // token -> identity table (the auth-service fixture of every sibling suite)
+  const identities = new Map<string, { id: string; email: string; role: string }>();
+  let userPort = 0; // 0 = ephemeral (the default); reserved up front only when the gym child must reach us
+  let authFixture: http.Server | null = null;
+  let authFixtureUrl = DEAD;
+  if (opts.gym?.bridge) {
+    userPort = await freePort();
+    authFixture = http.createServer((req, res) => {
+      const send = (status: number, body: unknown) => {
+        res.writeHead(status, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+      };
+      const url = req.url ?? "";
+      if (req.method === "POST" && url === "/auth/verify") {
+        const user = identities.get(String(req.headers.authorization ?? "").replace(/^Bearer /, ""));
+        return user ? send(200, { user }) : send(401, { error: "Invalid or expired token" });
+      }
+      const m = /^\/auth\/internal\/users\/([^/?]+)/.exec(url);
+      if (req.method === "GET" && m) return send(200, { user: { id: decodeURIComponent(m[1]), firstName: "Test", lastName: "Coach" } });
+      return send(404, { error: "not found" });
+    });
+    await new Promise<void>((r) => authFixture!.listen(0, "127.0.0.1", () => r()));
+    authFixtureUrl = `http://127.0.0.1:${(authFixture.address() as net.AddressInfo).port}`;
+  }
   if (opts.gym) {
     const gymPort = await freePort();
     gymUrl = `http://127.0.0.1:${gymPort}`;
@@ -118,8 +150,8 @@ export async function startHarness(opts: HarnessOptions = {}) {
       MEMBERSHIP_PAYOUT_SWEEP_INTERVAL_MS: "2147483647",
       REFERRAL_SETTLEMENT_SWEEP_INTERVAL_MS: "2147483647",
       PAYMENT_SERVICE_URL: DEAD,
-      USER_SERVICE_URL: DEAD,
-      AUTH_SERVICE_URL: DEAD,
+      USER_SERVICE_URL: opts.gym.bridge ? `http://127.0.0.1:${userPort}` : DEAD,
+      AUTH_SERVICE_URL: authFixtureUrl,
       AI_SERVICE_URL: DEAD,
       CHAT_SERVICE_URL: DEAD,
       USER_LAMBDA_NAME: "",
@@ -178,7 +210,6 @@ ${gymLog.slice(-30).join("")}`);
   if (typeof probe !== "function") throw new Error("paymentClient.getTransaction missing");
 
   // ── user-service app in this process, behind a token table (auth-service fixture) ──
-  const identities = new Map<string, { id: string; email: string; role: string }>();
   const restoreAuth = m.base.patch(m.authServiceClient, "verifyToken", async (header: string) => {
     const user = identities.get(String(header).replace(/^Bearer /, ""));
     if (!user) throw Object.assign(new Error("bad token"), { response: { status: 401, data: { error: "Invalid or expired token" } } });
@@ -187,9 +218,20 @@ ${gymLog.slice(-30).join("")}`);
   // the realtime push goes to chat-service, which is not running; rows are still stored for real
   const restorePublish = m.base.patch(m.notificationService, "publish", () => undefined);
   const { default: userApp } = await import("../app");
-  const userServer: http.Server = userApp.listen(0, "127.0.0.1");
+  let userServer: http.Server = userApp.listen(userPort, "127.0.0.1");
   await new Promise((r) => userServer.once("listening", r));
   const userUrl = `http://127.0.0.1:${(userServer.address() as net.AddressInfo).port}`;
+  /** Phase 2 / P2.4: really stop / restart the user-service HTTP listener (same port) - peers then get connection refused. */
+  async function stopUser() {
+    if (!userServer.listening) return;
+    (userServer as any).closeAllConnections?.();
+    await new Promise((r) => userServer.close(r));
+  }
+  async function startUser() {
+    if (userServer.listening) return;
+    userServer = userApp.listen(Number(new URL(userUrl).port), "127.0.0.1");
+    await new Promise((r) => userServer.once("listening", r));
+  }
 
   // ── payment-service child process ──
   let child: ChildProcess | null = null;
@@ -514,8 +556,8 @@ ${log.slice(-15).join("")}`);
     process.off("exit", onGymExit);
     restorePublish();
     restoreAuth();
-    (userServer as any).closeAllConnections?.();
-    await new Promise((r) => userServer.close(r));
+    await stopUser();
+    if (authFixture) await new Promise((r) => authFixture!.close(r));
     await payDb.$disconnect();
     await prisma.$disconnect();
   }
@@ -528,6 +570,10 @@ ${log.slice(-15).join("")}`);
     gymUrl,
     gymLog: () => gymLog.join(""),
     secret: SECRET,
+    stopUser,
+    startUser,
+    /** Independent raw reader of the isolated payment test DB (Phase 2 / P2.4 hashes ledger tables with it). */
+    payDb,
     startPayment,
     stopPayment,
     paymentLog: () => log.join(""),
