@@ -129,10 +129,12 @@ dbTest("independent contract (no gym): all four snapshot columns are null and gy
 });
 
 dbTest("no agreement / gym-service down: request is still rejected exactly as before, nothing is written", async () => {
-  const before = await prisma.contract.count();
+  // Scoped to this test's own gymId: other suites insert contracts into the same *_test database in parallel,
+  // so a whole-table count would flake on rows that are not this test's doing.
+  const before = await prisma.contract.count({ where: { gymId: "gym-x" } });
   await assert.rejects(() => request({ gymId: "gym-x", collab: null }), (e: any) => e.status === 400);
   await assert.rejects(() => request({ gymId: "gym-x", collab: "UNAVAILABLE" }), (e: any) => e.status === 503);
-  assert.equal(await prisma.contract.count(), before);
+  assert.equal(await prisma.contract.count({ where: { gymId: "gym-x" } }), before);
 });
 
 dbTest("a contract row that predates the columns reads back with all four null (existing contracts unchanged)", async () => {
