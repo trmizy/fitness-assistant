@@ -917,3 +917,16 @@ Hiện tại: **không có gì.**
 7. Lệch lược đồ của user-service: không kiểm lại.
 8. Các kho kiểm thử ngoài monorepo có dữ liệu mẫu hay ca kiểm thử nào phụ thuộc collaboration cấp chi nhánh hay không.
 9. Trạng thái cuối cùng của các thay đổi mà hai tác tử khác đang thực hiện trong gym-service và payment-service: tôi chỉ đọc phần khác biệt lúc 16:54–16:55; họ có thể còn sửa tiếp.
+
+---
+
+## Checkpoint 17/10/2026 — giao diện hợp tác PT–Gym cấp thương hiệu (phần còn lại của Phase 1)
+
+Quyết định: D5–D10, D14, D72. Bằng chứng: `_warroom/evidence/brand_ui/RESULTS.md`, sổ làm việc `_warroom/sessions/S_brand_ui.md`.
+
+- **Web + mobile:** đề nghị / thương thảo / chấp nhận / chấm dứt / trạng thái đều trên thỏa thuận **thương hiệu**; một dòng tỷ lệ; danh sách chi nhánh được bao phủ (không tỷ lệ riêng); chấm dứt hiển thị đúng báo trước do máy chủ đặt (mặc định 14 ngày, D9) và ngày hiệu lực; tái hợp tác; PT với hai thương hiệu độc lập; tên PT thay mã nội bộ; chủ gym mời PT bằng tìm tên.
+- **Dữ liệu cũ theo chi nhánh:** thẻ "Điều khoản cũ theo chi nhánh — cần ký thỏa thuận chung cho thương hiệu", mỗi chi nhánh giữ tỷ lệ của mình, ca mâu thuẫn D7 không tự chọn tỷ lệ; ký thỏa thuận chung thì dòng cũ được thay thế, tỷ lệ cũ không bị ghi đè.
+- **Phòng gym chưa có thương hiệu:** vẫn đề nghị được theo chi nhánh (đường cũ của backend), ghi rõ chỉ áp cho chi nhánh đó và chấm dứt có hiệu lực ngay.
+- **Backend:** chỉ thêm `coveredBranches` vào thỏa thuận thương hiệu trả về (bổ sung, không đổi quy tắc).
+- **Kiểm thử:** gym-service collaboration 116/116 (và 63/63 trên DB p36); user-service hợp đồng đã ký giữ tỷ lệ chụp 2/2; web 41/41; mobile 797 đơn vị; REAL BROWSER 360/375/390/412 (luồng 1–10 + phòng gym chưa có thương hiệu); REAL EMULATOR màn PT và chủ gym. Chưa kiểm: điện thoại thật, quét mọi độ rộng trên mobile.
+- **Câu hỏi mở (⚪):** chấm dứt thỏa thuận cũ theo chi nhánh hiện có hiệu lực ngay (có áp báo trước không?); có cho rút lại yêu cầu chấm dứt đang báo trước không; tên thương hiệu đang chờ duyệt có thể hiện cho PT.
