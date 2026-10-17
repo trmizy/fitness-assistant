@@ -337,10 +337,25 @@ async function supersedeLegacyRows(tx: Prisma.TransactionClient, brandId: string
 }
 
 type BrandAgreementRow = GymBrandPtAgreement;
+/** One branch a brand agreement covers, as shown to both parties. */
+export interface CoveredBranch {
+  id: string;
+  name: string;
+  city: string | null;
+  /** 'OPEN' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED' — a closed branch is still listed but takes no new contract. */
+  operationalStatus: string;
+}
 interface BrandContext {
   brand: { id: string; name: string };
   /** The "representative branch" shown to clients that only know branch-level rows — rule in brandContexts(). */
   gym: { id: string; name: string; city: string | null };
+  /**
+   * Every APPROVED branch of the brand (oldest first). A brand agreement applies to all of them —
+   * including branches opened after it was signed — so this is a list, not a rate per branch: there
+   * is exactly one set of terms. Branches still in review / rejected / suspended are not listed
+   * (they are not publicly visible and cannot take a contract).
+   */
+  coveredBranches: CoveredBranch[];
 }
 
 /**
@@ -359,7 +374,7 @@ async function brandContexts(brandIds: string[]): Promise<Map<string, BrandConte
       id: true,
       name: true,
       branches: {
-        select: { id: true, name: true, city: true, status: true },
+        select: { id: true, name: true, city: true, status: true, operationalStatus: true },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       },
     },
@@ -369,6 +384,9 @@ async function brandContexts(brandIds: string[]): Promise<Map<string, BrandConte
     out.set(b.id, {
       brand: { id: b.id, name: b.name },
       gym: rep ? { id: rep.id, name: rep.name, city: rep.city } : { id: '', name: b.name, city: null },
+      coveredBranches: b.branches
+        .filter((g) => g.status === 'APPROVED')
+        .map((g) => ({ id: g.id, name: g.name, city: g.city, operationalStatus: g.operationalStatus })),
     });
   }
   return out;
@@ -376,8 +394,8 @@ async function brandContexts(brandIds: string[]): Promise<Map<string, BrandConte
 
 /** A brand agreement in the shape every existing client already reads, plus additive fields. */
 function presentBrandAgreement(row: BrandAgreementRow, ctx: BrandContext | undefined) {
-  const c = ctx ?? { brand: { id: row.brandId, name: '' }, gym: { id: '', name: '', city: null } };
-  return { ...row, gymId: c.gym.id, gym: c.gym, scope: 'BRAND' as const, brand: c.brand };
+  const c = ctx ?? { brand: { id: row.brandId, name: '' }, gym: { id: '', name: '', city: null }, coveredBranches: [] };
+  return { ...row, gymId: c.gym.id, gym: c.gym, scope: 'BRAND' as const, brand: c.brand, coveredBranches: c.coveredBranches };
 }
 
 async function presentBrandAgreements(rows: BrandAgreementRow[]) {
