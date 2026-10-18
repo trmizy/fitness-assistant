@@ -69,6 +69,7 @@
     "@aws-sdk/client-lambda": "^3.850.0",
     "@aws-sdk/client-secrets-manager": "^3.850.0",
     "@aws-sdk/client-sqs": "^3.1127.0",
+    "@aws-sdk/client-sts": "^3.1127.0",
     "@aws-sdk/credential-provider-node": "^3.972.83",
     "@aws-sdk/lib-dynamodb": "^3.1132.0",
     "@gym-coach/shared": "workspace:*",
