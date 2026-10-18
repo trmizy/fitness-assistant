@@ -706,6 +706,16 @@ exports.Prisma.ClientCompatEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PtTermsAcceptanceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  version: 'version',
+  source: 'source',
+  acceptedAt: 'acceptedAt',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1031,7 +1041,8 @@ exports.Prisma.ModelName = {
   PtListingRevision: 'PtListingRevision',
   PtPhysiquePhoto: 'PtPhysiquePhoto',
   PtMediaUploadIntent: 'PtMediaUploadIntent',
-  ClientCompatEvent: 'ClientCompatEvent'
+  ClientCompatEvent: 'ClientCompatEvent',
+  PtTermsAcceptance: 'PtTermsAcceptance'
 };
 
 /**

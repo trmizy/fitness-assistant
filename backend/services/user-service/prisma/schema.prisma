@@ -1574,3 +1574,21 @@ model ClientCompatEvent {
   @@index([outcome, createdAt])
   @@map("client_compat_events")
 }
+
+/// D25 - a trainer's confirmation of one version of the platform's PT terms (the text lives in
+/// src/services/pt-terms.ts; `version` is its identifier). Append-only: a row is never updated or deleted, and
+/// "has accepted the current terms" means a row exists for (userId, CURRENT version). `source` is APPLICATION (the
+/// applicant ticked the box when submitting) or RECONFIRM (an existing PT confirmed from the banner). No FK on
+/// purpose - same cross-service-id pattern as AuditLog.actorUserId.
+model PtTermsAcceptance {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  version    String
+  source     String
+  acceptedAt DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+
+  @@unique([userId, version])
+  @@map("pt_terms_acceptances")
+}

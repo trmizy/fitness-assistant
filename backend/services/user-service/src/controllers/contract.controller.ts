@@ -78,6 +78,7 @@ export const contractController = {
       res.status(error.status || 500).json({
         error: error.message || "Failed to accept contract",
         ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+        ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
       });
     }
   },
@@ -207,6 +208,7 @@ export const contractController = {
       res.status(error.status || 500).json({
         error: error.message || "Failed to update status",
         ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+        ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
       });
     }
   },

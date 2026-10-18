@@ -23,10 +23,10 @@ enum Goal {
 }
 
 enum ActivityLevel {
-  SEDENTARY       // 1.2
-  LIGHTLY_ACTIVE  // 1.375
+  SEDENTARY // 1.2
+  LIGHTLY_ACTIVE // 1.375
   MODERATELY_ACTIVE // 1.55
-  VERY_ACTIVE     // 1.725
+  VERY_ACTIVE // 1.725
   EXTREMELY_ACTIVE // 1.9
 }
 
@@ -43,31 +43,31 @@ enum ExperienceLevel {
 // autonomy" principle already used everywhere else in this system (BEGINNER frequency
 // warnings, unsafe_weight_loss_request, etc.).
 enum SafetyScreeningStatus {
-  UNKNOWN              // never screened (pre-existing user from before this shipped, or skipped onboarding)
-  CLEARED               // screened, zero "Yes" answers
-  FOLLOW_UP_SUGGESTED   // screened, at least one "Yes" — AI must suggest consulting a doctor, never block
+  UNKNOWN // never screened (pre-existing user from before this shipped, or skipped onboarding)
+  CLEARED // screened, zero "Yes" answers
+  FOLLOW_UP_SUGGESTED // screened, at least one "Yes" — AI must suggest consulting a doctor, never block
 }
 
 model UserProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique // References auth-service User.id
-  
+  id     String @id @default(uuid())
+  userId String @unique // References auth-service User.id
+
   // Basic info (cached from auth-service or direct)
   firstName String?
   lastName  String?
   email     String?
-  
+
   // PT Status
   // Currently a simple boolean flag. Future expansion:
   // - role: CLIENT | PT | ADMIN (enum)
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
-  isPT      Boolean  @default(false)
+  isPT               Boolean   @default(false)
   // Set when an admin disables the account (auth-service drives it via /internal). Kept
   // separate from `isPT` so the trainer identity, application and reviews survive a
   // suspension and can be restored by simply re-enabling the account. While true the PT
   // is hidden from discovery and cannot take new bookings.
-  ptSuspended Boolean @default(false) @map("pt_suspended")
+  ptSuspended        Boolean   @default(false) @map("pt_suspended")
   // Listing management (PT): version of the PUBLIC listing. 0 = never published (not an approved PT yet),
   // 1 = the approved application itself is listing v1, +1 every time a listing revision is applied.
   // Written only by the revision-apply transaction (and the admin-direct edit) - never by a profile PUT.
@@ -78,22 +78,22 @@ model UserProfile {
   // this PT. A command carrying a LOWER number than this is stale and is ignored, so a lock that was
   // retried or delayed past a later unlock (or lock) can never undo it — ordering is decided by this
   // durable number, not by arrival order. Null = no command received yet.
-  ptLockSeq   BigInt? @map("pt_lock_seq")
+  ptLockSeq          BigInt?   @map("pt_lock_seq")
   // Short human-typeable code a client enters when buying a gym membership to credit this
   // PT with the referral commission (money-flow plan §2.1). Assigned once, at PT approval —
   // never regenerated, so a code a PT has already shared never goes stale.
-  referralCode String? @unique @map("referral_code")
+  referralCode       String?   @unique @map("referral_code")
 
   // Demographics
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
-  age         Int?      // derived from dateOfBirth; kept for AI-service compatibility
+  age         Int? // derived from dateOfBirth; kept for AI-service compatibility
   gender      Gender?
   heightCm    Float?
-  
+
   // Goals & Preferences
-  goal              Goal?
-  activityLevel     ActivityLevel?
-  experienceLevel   ExperienceLevel?
+  goal            Goal?
+  activityLevel   ActivityLevel?
+  experienceLevel ExperienceLevel?
   // Distinguishes a competing/professional athlete from an ADVANCED
   // recreational lifter — deliberately NOT a 5th experienceLevel enum value,
   // since ACSM's progression-model guidance (the evidence backing this
@@ -101,7 +101,7 @@ model UserProfile {
   // is stricter data-sufficiency gating and no simplified fallback advice,
   // not a different training-load formula. See
   // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0.
-  competesInSport   Boolean @default(false) @map("competes_in_sport")
+  competesInSport Boolean          @default(false) @map("competes_in_sport")
 
   // Onboarding/Safety redesign — docs/ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md §3.6. Set by
   // OnboardingWizardPage's Safety Screening step. `safetyScreeningFlags` stores the KEYS of
@@ -109,11 +109,11 @@ model UserProfile {
   // the question wording never makes old stored data misleading), e.g.
   // ["heart_condition", "chest_pain"]. Read by profile_extractor.ts -> coach_context_builder.ts
   // the same path `injuries` already goes through.
-  safetyScreeningStatus  SafetyScreeningStatus @default(UNKNOWN) @map("safety_screening_status")
-  safetyScreeningFlags   String[]              @default([])       @map("safety_screening_flags")
+  safetyScreeningStatus SafetyScreeningStatus @default(UNKNOWN) @map("safety_screening_status")
+  safetyScreeningFlags  String[]              @default([]) @map("safety_screening_flags")
 
   // Training preferences
-  preferredTrainingDays Int[]  // [1, 3, 5] = Mon, Wed, Fri
+  preferredTrainingDays Int[] // [1, 3, 5] = Mon, Wed, Fri
   availableEquipment    String[] // ["barbell", "dumbbells", "machines"]
   injuries              String[] // ["lower back", "left knee"]
   // Free-text template name (e.g. "Full Body", "Upper/Lower", "Push/Pull/Legs",
@@ -121,7 +121,7 @@ model UserProfile {
   // (data/catalog/plans/gym_workout_plans.csv) is bigger and looser than a
   // fixed set, and this is advisory/UI-only (never read by the Decision
   // Engine, which reasons about actual logged sessions, not a stated intent).
-  preferredSplit        String? @map("preferred_split")
+  preferredSplit        String?  @map("preferred_split")
 
   // Onboarding wizard (frontend/web/src/app/pages/client/OnboardingWizardPage.tsx)
   // completion flag. Distinct from "has any profile fields set at all" —
@@ -188,28 +188,28 @@ model UserProfile {
   // ── PT Acceptance status ────────────────────────────────────────────────
   // PT tự bật/tắt nhận khách mới. Khi false: ẩn nút mua gói, xếp cuối danh sách.
   // Không ảnh hưởng hợp đồng đang chạy.
-  isAcceptingClients  Boolean  @default(true) @map("is_accepting_clients")
-  notAcceptingReason  String?  @map("not_accepting_reason")
+  isAcceptingClients Boolean @default(true) @map("is_accepting_clients")
+  notAcceptingReason String? @map("not_accepting_reason")
 
   // ── Normalized search columns (dùng cho tìm kiếm không dấu) ──────────
   // Cập nhật song song mỗi khi ghi firstName/lastName/mainSpecialties ở PTApplication.
   // Có tiền lệ trong repo: FoodAlias.aliasNormalized.
-  firstNameNormalized        String?  @map("first_name_normalized")
-  lastNameNormalized         String?  @map("last_name_normalized")
-  searchCity                 String?  @map("search_city")
-  searchDistrict             String?  @map("search_district")
-  searchWard                 String?  @map("search_ward")
-  gymId                      String?  @map("gym_id")
-  specialties                String[] @map("specialties")
+  firstNameNormalized String?  @map("first_name_normalized")
+  lastNameNormalized  String?  @map("last_name_normalized")
+  searchCity          String?  @map("search_city")
+  searchDistrict      String?  @map("search_district")
+  searchWard          String?  @map("search_ward")
+  gymId               String?  @map("gym_id")
+  specialties         String[] @map("specialties")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  dataOrigin         String @default("REAL") @map("data_origin")
-  goalIntent         Json? @map("goal_intent")
-  ptBudgetVnd        Int? @map("pt_budget_vnd")
-  journeys           ClientJourney[]
-  agentDrafts        AgentContractDraft[]
+  dataOrigin  String               @default("REAL") @map("data_origin")
+  goalIntent  Json?                @map("goal_intent")
+  ptBudgetVnd Int?                 @map("pt_budget_vnd")
+  journeys    ClientJourney[]
+  agentDrafts AgentContractDraft[]
 
   ptApplication      PTApplication?
   trainingLocations  PTTrainingLocation[]
@@ -242,120 +242,120 @@ enum MediaGroupType {
 }
 
 model PTApplication {
-  id                   String               @id @default(uuid())
-  userProfileId        String               @unique @map("user_profile_id")
-  status               PTApplicationStatus  @default(DRAFT)
-  
+  id            String              @id @default(uuid())
+  userProfileId String              @unique @map("user_profile_id")
+  status        PTApplicationStatus @default(DRAFT)
+
   // Basic personal / verification info
-  phoneNumber          String?              @map("phone_number")
-  nationalIdNumber     String?              @map("national_id_number")
-  currentAddress       String?              @map("current_address")
-  
+  phoneNumber      String? @map("phone_number")
+  nationalIdNumber String? @map("national_id_number")
+  currentAddress   String? @map("current_address")
+
   // Identity verification images (shortcut fields for the 3 required documents)
-  idCardFrontUrl       String?              @map("id_card_front_url")
-  idCardBackUrl        String?              @map("id_card_back_url")
-  portraitPhotoUrl     String?              @map("portrait_photo_url")
-  
+  idCardFrontUrl   String? @map("id_card_front_url")
+  idCardBackUrl    String? @map("id_card_back_url")
+  portraitPhotoUrl String? @map("portrait_photo_url")
+
   // Professional background
-  yearsOfExperience       String?              @map("years_of_experience")
-  educationBackground     String?              @map("education_background")
-  previousWorkExperience  String?              @map("previous_work_experience")
-  professionalBio         String?              @map("professional_bio")
-  mainSpecialties         String[]             @map("main_specialties")
-  targetClientGroups      String[]             @map("target_client_groups")
-  primaryTrainingGoals    String[]             @map("primary_training_goals")
-  trainingMethodsApproach String?              @map("training_methods_approach")
-  
+  yearsOfExperience       String?  @map("years_of_experience")
+  educationBackground     String?  @map("education_background")
+  previousWorkExperience  String?  @map("previous_work_experience")
+  professionalBio         String?  @map("professional_bio")
+  mainSpecialties         String[] @map("main_specialties")
+  targetClientGroups      String[] @map("target_client_groups")
+  primaryTrainingGoals    String[] @map("primary_training_goals")
+  trainingMethodsApproach String?  @map("training_methods_approach")
+
   // Portfolio / professional links
-  portfolioUrl         String?              @map("portfolio_url")
-  linkedinUrl          String?              @map("linkedin_url")
-  websiteUrl           String?              @map("website_url")
-  socialLinks          Json?                @map("social_links") // For Instagram, YouTube, etc.
-  
+  portfolioUrl String? @map("portfolio_url")
+  linkedinUrl  String? @map("linkedin_url")
+  websiteUrl   String? @map("website_url")
+  socialLinks  Json?   @map("social_links") // For Instagram, YouTube, etc.
+
   // Service / work setup
-  availabilityNotes       String?              @map("availability_notes")
-  availableTimeSlots      Json?                @map("available_time_slots")
-  serviceMode             ServiceMode?         @map("service_mode")
-  operatingAreas          String[]             @map("operating_areas")
-  desiredSessionPrice     Float?               @map("desired_session_price")
-  availableDays           String[]             @map("available_days")
-  availableFrom           String?              @map("available_from")
-  availableUntil          String?              @map("available_until")
-  gymAffiliation          String?              @map("gym_affiliation")
-  monthlyProgramPrice     Float?               @map("monthly_program_price")
-  packagePrice            Float?               @map("package_price")
-  sessionsPerPackage      Int                  @default(10) @map("sessions_per_package")
-  sessionDurationMinutes  Int                  @default(60) @map("session_duration_minutes")
-  availabilityBlocks      Json?                @map("availability_blocks")
-  additionalPricingNotes  String?              @map("additional_pricing_notes")
-  onlinePricePerSession   Float?               @map("online_price_per_session")
-  offlinePricePerSession  Float?               @map("offline_price_per_session")
-  onlinePackagePrice      Float?               @map("online_package_price")
-  offlinePackagePrice     Float?               @map("offline_package_price")
-  otherReferences         String?              @map("other_references")
+  availabilityNotes      String?      @map("availability_notes")
+  availableTimeSlots     Json?        @map("available_time_slots")
+  serviceMode            ServiceMode? @map("service_mode")
+  operatingAreas         String[]     @map("operating_areas")
+  desiredSessionPrice    Float?       @map("desired_session_price")
+  availableDays          String[]     @map("available_days")
+  availableFrom          String?      @map("available_from")
+  availableUntil         String?      @map("available_until")
+  gymAffiliation         String?      @map("gym_affiliation")
+  monthlyProgramPrice    Float?       @map("monthly_program_price")
+  packagePrice           Float?       @map("package_price")
+  sessionsPerPackage     Int          @default(10) @map("sessions_per_package")
+  sessionDurationMinutes Int          @default(60) @map("session_duration_minutes")
+  availabilityBlocks     Json?        @map("availability_blocks")
+  additionalPricingNotes String?      @map("additional_pricing_notes")
+  onlinePricePerSession  Float?       @map("online_price_per_session")
+  offlinePricePerSession Float?       @map("offline_price_per_session")
+  onlinePackagePrice     Float?       @map("online_package_price")
+  offlinePackagePrice    Float?       @map("offline_package_price")
+  otherReferences        String?      @map("other_references")
 
   // Residence info (Admin only — not public to Client)
-  residenceProvinceCode        Int?     @map("residence_province_code")
-  residenceWardCode            Int?     @map("residence_ward_code")
-  residenceAddressLine         String?  @map("residence_address_line")
-  residenceLegacyDistrictName  String?  @map("residence_legacy_district_name")
+  residenceProvinceCode       Int?    @map("residence_province_code")
+  residenceWardCode           Int?    @map("residence_ward_code")
+  residenceAddressLine        String? @map("residence_address_line")
+  residenceLegacyDistrictName String? @map("residence_legacy_district_name")
 
   // Training locations submitted with application (JSON); promoted to PTTrainingLocation on approve
-  applicationTrainingLocations Json?    @map("application_training_locations")
+  applicationTrainingLocations Json? @map("application_training_locations")
 
   // Admin interaction
-  adminNote            String?              @map("admin_note")
-  rejectionReason      String?              @map("rejection_reason")
+  adminNote        String? @map("admin_note")
+  rejectionReason  String? @map("rejection_reason")
   // Money-flow plan 5.5: which admin took the review action (approve/reject/request-info).
   // reviewedAt/approvedAt recorded WHEN, never WHO — a plain userId, not a relation, because
   // the admin's User row lives in auth-service, not here (same cross-service-id pattern as
   // WithdrawalRequest.reviewedBy in payment-service).
-  reviewedByUserId     String?              @map("reviewed_by_user_id")
+  reviewedByUserId String? @map("reviewed_by_user_id")
 
   // Timestamps
-  submittedAt          DateTime?            @map("submitted_at")
-  reviewedAt           DateTime?            @map("reviewed_at")
-  approvedAt           DateTime?            @map("approved_at")
-  createdAt            DateTime             @default(now()) @map("created_at")
-  updatedAt            DateTime             @updatedAt @map("updated_at")
+  submittedAt DateTime? @map("submitted_at")
+  reviewedAt  DateTime? @map("reviewed_at")
+  approvedAt  DateTime? @map("approved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  languages            String[] @default([])
-  certificates         PTApplicationCertificate[]
-  media                PTApplicationMedia[]
+  languages    String[]                   @default([])
+  certificates PTApplicationCertificate[]
+  media        PTApplicationMedia[]
 
-  userProfile          UserProfile          @relation(fields: [userProfileId], references: [id])
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id])
 
   @@map("pt_applications")
 }
 
 model PTApplicationCertificate {
-  id                   String        @id @default(uuid())
-  applicationId        String        @map("application_id")
-  verificationStatus   String @default("UNVERIFIED") @map("verification_status")
-  certificationNumber  String? @map("certification_number")
-  certificateName      String        @map("certificate_name")
-  issuingOrganization  String        @map("issuing_organization")
-  isCurrentlyValid     Boolean       @map("is_currently_valid")
-  certificationStatus  String?       @map("certification_status") // Valid, Expired, Lifetime
-  issueDate            DateTime?     @map("issue_date")
-  expirationDate       DateTime?     @map("expiration_date")
-  certificateFileUrl   String?       @map("certificate_file_url")
-  createdAt            DateTime      @default(now()) @map("created_at")
-  
-  application          PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(uuid())
+  applicationId       String    @map("application_id")
+  verificationStatus  String    @default("UNVERIFIED") @map("verification_status")
+  certificationNumber String?   @map("certification_number")
+  certificateName     String    @map("certificate_name")
+  issuingOrganization String    @map("issuing_organization")
+  isCurrentlyValid    Boolean   @map("is_currently_valid")
+  certificationStatus String?   @map("certification_status") // Valid, Expired, Lifetime
+  issueDate           DateTime? @map("issue_date")
+  expirationDate      DateTime? @map("expiration_date")
+  certificateFileUrl  String?   @map("certificate_file_url")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  application PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("pt_application_certificates")
 }
 
 model PTApplicationMedia {
-  id                   String        @id @default(uuid())
-  applicationId        String        @map("application_id")
-  groupType            MediaGroupType @map("group_type")
-  fileUrl              String        @map("file_url")
-  label                String?       @map("label")
-  createdAt            DateTime      @default(now()) @map("created_at")
-  
-  application          PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  groupType     MediaGroupType @map("group_type")
+  fileUrl       String         @map("file_url")
+  label         String?        @map("label")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  application PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("pt_application_media")
 }
@@ -363,27 +363,27 @@ model PTApplicationMedia {
 // ─── Contract + Booking Enums ─────────────────────────────────────
 
 enum ContractStatus {
-  PENDING_REVIEW    // Client requested, awaiting PT decision
+  PENDING_REVIEW // Client requested, awaiting PT decision
   PENDING_SIGNATURE // PT accepted, waiting for both parties to e-sign
-  PENDING_PAYMENT   // Signed (or no e-sign required), awaiting wallet payment
-  ACTIVE            // Signed and paid — contract in effect
-  COMPLETED         // All sessions used
-  EXPIRED           // Past end date
-  CANCELLED         // Terminated early by either party
-  REJECTED          // PT declined the request
+  PENDING_PAYMENT // Signed (or no e-sign required), awaiting wallet payment
+  ACTIVE // Signed and paid — contract in effect
+  COMPLETED // All sessions used
+  EXPIRED // Past end date
+  CANCELLED // Terminated early by either party
+  REJECTED // PT declined the request
 }
 
 enum ContractSource {
-  INDEPENDENT  // PT hired directly, no gym involved
-  GYM          // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
-  MARKETPLACE  // Created from a Marketplace Personalized PT Service purchase (ai-service
-               // PersonalizedServiceOrder) — payment already happened via wallet-transfer
-               // before this Contract exists, so it's created directly ACTIVE (no
-               // PENDING_REVIEW/PENDING_SIGNATURE/PENDING_PAYMENT negotiation stages).
-               // Exists purely so the PT-client authorization surface already built on
-               // Contract.status===ACTIVE (coach.service.ts, computeChatEligibility,
-               // isActivePtClientRelationship) works unchanged for marketplace-originated
-               // relationships too — no second authorization source of truth.
+  INDEPENDENT // PT hired directly, no gym involved
+  GYM // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
+  MARKETPLACE // Created from a Marketplace Personalized PT Service purchase (ai-service
+  // PersonalizedServiceOrder) — payment already happened via wallet-transfer
+  // before this Contract exists, so it's created directly ACTIVE (no
+  // PENDING_REVIEW/PENDING_SIGNATURE/PENDING_PAYMENT negotiation stages).
+  // Exists purely so the PT-client authorization surface already built on
+  // Contract.status===ACTIVE (coach.service.ts, computeChatEligibility,
+  // isActivePtClientRelationship) works unchanged for marketplace-originated
+  // relationships too — no second authorization source of truth.
 }
 
 /// Why a contract stopped. Each value selects one refund formula — see computeTermination.
@@ -391,18 +391,18 @@ enum ContractSource {
 /// whose trainer was banned or who cancelled on them does not.
 enum TerminationReason {
   CLIENT_CANCELLED // client walked away — forfeits (1 − CLIENT_CANCEL_REFUND_RATE) of the unused value
-  PT_BANNED        // trainer suspended by an admin — client refunded in full, no fee
-  PT_CANCELLED     // trainer pulled out — client refunded in full, the same slice fined to the PT side
-  MUTUAL           // both sides agreed — full refund of the unused value, nobody penalised
-  EXPIRED          // ran past its end date with sessions unused — nothing refunded
-  COMPLETED        // quota fully used — nothing to refund
+  PT_BANNED // trainer suspended by an admin — client refunded in full, no fee
+  PT_CANCELLED // trainer pulled out — client refunded in full, the same slice fined to the PT side
+  MUTUAL // both sides agreed — full refund of the unused value, nobody penalised
+  EXPIRED // ran past its end date with sessions unused — nothing refunded
+  COMPLETED // quota fully used — nothing to refund
   PT_REPEATED_NO_SHOW // Vòng 4 / E2 — client's own right after a 3rd confirmed PT no-show, full refund
   CLIENT_EXIT_DUE_TO_PT_RESTRICTION // client left because the PT is suspended/banned — full refund of the unused value, no fee, nobody at fault; substituted by the server, never sent by a client
 }
 
 enum PackageType {
   PER_SESSION // Pay per session
-  PACKAGE     // Fixed number of sessions bundle
+  PACKAGE // Fixed number of sessions bundle
 }
 
 enum SessionStatus {
@@ -413,7 +413,7 @@ enum SessionStatus {
   // and charge the client for it, with no way to object. The client now confirms, disputes,
   // or lets it auto-confirm after SESSION_AUTO_CONFIRM_DAYS.
   PENDING_CLIENT_CONFIRMATION
-  DISPUTED  // Client objected; quota stays untouched until an admin rules on it
+  DISPUTED // Client objected; quota stays untouched until an admin rules on it
   // Money-flow plan 4.3: the client reported the PT never showed up — mirrors
   // PENDING_CLIENT_CONFIRMATION's shape but in the opposite direction (PT owed a response,
   // not the client). The PT either agrees (settled exactly like a PT self-admitted NO_SHOW)
@@ -421,7 +421,7 @@ enum SessionStatus {
   PT_NO_SHOW_REPORTED
   COMPLETED // Session delivered and settled — the only state that consumes quota
   CANCELLED // Either party cancelled
-  NO_SHOW   // Client or PT did not attend
+  NO_SHOW // Client or PT did not attend
 }
 
 /// Vòng 4 / Phase E4 — audit/admin-screen classification only, does not change how a dispute
@@ -578,22 +578,22 @@ enum RescheduleRequestedBy {
 // ─── Contract ─────────────────────────────────────────────────────
 
 model Contract {
-  agentActionId String? @unique @map("agent_action_id")
-  dataOrigin String @default("REAL") @map("data_origin")
-  journeys ClientJourney[]
-  id                 String         @id @default(uuid())
-  ptUserId           String         @map("pt_user_id")
-  clientUserId       String         @map("client_user_id")
-  status             ContractStatus @default(PENDING_REVIEW)
+  agentActionId String?         @unique @map("agent_action_id")
+  dataOrigin    String          @default("REAL") @map("data_origin")
+  journeys      ClientJourney[]
+  id            String          @id @default(uuid())
+  ptUserId      String          @map("pt_user_id")
+  clientUserId  String          @map("client_user_id")
+  status        ContractStatus  @default(PENDING_REVIEW)
 
   // Package details
-  packageType        PackageType    @default(PACKAGE) @map("package_type")
-  packageName        String         @map("package_name")
+  packageType         PackageType  @default(PACKAGE) @map("package_type")
+  packageName         String       @map("package_name")
   // ONLINE or OFFLINE — never HYBRID for a specific contract
-  sessionMode        SessionMode?   @map("session_mode")
-  description        String?
-  packageQuantity    Int            @default(1) @map("package_quantity")
-  extraSessions      Int            @default(0) @map("extra_sessions")
+  sessionMode         SessionMode? @map("session_mode")
+  description         String?
+  packageQuantity     Int          @default(1) @map("package_quantity")
+  extraSessions       Int          @default(0) @map("extra_sessions")
   // purchasedSessions in the money-flow plan (§1.5) — the name stays `totalSessions` to avoid
   // a rename across every caller, but the MEANING changed: this is now IMMUTABLE once signed,
   // same as `price`. It used to be decremented on every PT no-show, which made
@@ -601,57 +601,57 @@ model Contract {
   // one. See docs/money-flow.md §1.5 for the "Quyết định phát sinh" this deviation is logged
   // under, and `getRemainingEntitlements` in contract.service.ts for the one place that reads
   // this alongside usedSessions/compensatedSessions — nowhere else should re-derive it.
-  totalSessions      Int            @map("total_sessions")
-  usedSessions       Int            @default(0) @map("used_sessions")
+  totalSessions       Int          @map("total_sessions")
+  usedSessions        Int          @default(0) @map("used_sessions")
   // Entitlement consumed by a PT no-show the client was compensated for in cash — counted
   // separately from usedSessions (which is "the client actually trained") so the two events
   // stay individually auditable while still summing to one "consumed" figure (money-flow §1.5).
-  compensatedSessions Int           @default(0) @map("compensated_sessions")
+  compensatedSessions Int          @default(0) @map("compensated_sessions")
   // Money is Decimal(14,2), never a float: these figures are split three ways and the split
   // has to reconcile to the đồng. Binary floating point cannot promise that.
-  price              Decimal?       @db.Decimal(14, 2)
-  pricePerSession    Decimal?       @db.Decimal(14, 2) @map("price_per_session")
+  price               Decimal?     @db.Decimal(14, 2)
+  pricePerSession     Decimal?     @map("price_per_session") @db.Decimal(14, 2)
 
   // Timeline
-  startDate          DateTime?      @map("start_date")
-  endDate            DateTime?      @map("end_date")
-  completedAt        DateTime?      @map("completed_at")
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  completedAt  DateTime? @map("completed_at")
   // Money-flow plan 3.6: snapshot of the package's validityDays at signing time (null = no
   // expiry) — used ONLY to compute endDate the moment the contract activates. Before this,
   // validityDays existed on PTServicePackage but nothing ever read it: a "12 sessions in 90
   // days" package became a contract with no end date at all.
-  validityDays       Int?           @map("validity_days")
+  validityDays Int?      @map("validity_days")
 
   // Request & negotiation
-  clientMessage      String?        @map("client_message")
-  rejectionReason    String?        @map("rejection_reason")
-  cancelledBy        String?        @map("cancelled_by")
-  cancellationReason String?        @map("cancellation_reason")
+  clientMessage      String? @map("client_message")
+  rejectionReason    String? @map("rejection_reason")
+  cancelledBy        String? @map("cancelled_by")
+  cancellationReason String? @map("cancellation_reason")
 
   // Terms
-  terms              String?
-  notes              String?
+  terms String?
+  notes String?
 
   // E-Signature fields
   // eSignStatus values: 'SENT' | 'PARTIALLY_SIGNED' | 'SIGNED' | 'DECLINED' | 'EXPIRED' | 'ERROR'
-  eSignProvider      String?        @map("esign_provider")
-  eSignRequestId     String?        @map("esign_request_id")
-  eSignStatus        String?        @map("esign_status")
-  eSignTestMode      Boolean        @default(true) @map("esign_test_mode")
-  eSignSentAt        DateTime?      @map("esign_sent_at")
-  clientSignedAt     DateTime?      @map("client_signed_at")
-  ptSignedAt         DateTime?      @map("pt_signed_at")
-  fullySignedAt      DateTime?      @map("fully_signed_at")
-  contractPdfPath    String?        @map("contract_pdf_path")
-  signedPdfUrl       String?        @map("signed_pdf_url")
-  eSignError         String?        @map("esign_error")
-  clientSignerEmail  String?        @map("client_signer_email")
-  ptSignerEmail      String?        @map("pt_signer_email")
+  eSignProvider     String?   @map("esign_provider")
+  eSignRequestId    String?   @map("esign_request_id")
+  eSignStatus       String?   @map("esign_status")
+  eSignTestMode     Boolean   @default(true) @map("esign_test_mode")
+  eSignSentAt       DateTime? @map("esign_sent_at")
+  clientSignedAt    DateTime? @map("client_signed_at")
+  ptSignedAt        DateTime? @map("pt_signed_at")
+  fullySignedAt     DateTime? @map("fully_signed_at")
+  contractPdfPath   String?   @map("contract_pdf_path")
+  signedPdfUrl      String?   @map("signed_pdf_url")
+  eSignError        String?   @map("esign_error")
+  clientSignerEmail String?   @map("client_signer_email")
+  ptSignerEmail     String?   @map("pt_signer_email")
 
   // Payment gate (Phase 4) — schema-ready for PT-via-gym; enforcement is a follow-up phase.
-  gymId              String?        @map("gym_id")
-  source             ContractSource @default(INDEPENDENT)
-  paymentTransactionId String?      @map("payment_transaction_id")
+  gymId                String?        @map("gym_id")
+  source               ContractSource @default(INDEPENDENT)
+  paymentTransactionId String?        @map("payment_transaction_id")
   // Hạn thanh toán: đặt = lúc hợp đồng VÀO PENDING_PAYMENT + CONTRACT_PAYMENT_DEADLINE_HOURS (12h).
   // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
   // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
@@ -664,10 +664,10 @@ model Contract {
   // PT_REPEATED_NO_SHOW) pays the client compensation out of the held amount ONLY. 0 = no
   // holdback — every contract that exists today, and every new one until resolvePtHoldbackRate
   // (pt-holdback-rate.ts) starts returning 0.10. Existing rows get 0 from the column default.
-  ptHoldbackRate       Decimal        @default("0") @db.Decimal(6, 4) @map("pt_holdback_rate")
+  ptHoldbackRate     Decimal   @default("0") @map("pt_holdback_rate") @db.Decimal(6, 4)
   // Set (once) when the idle-release sweep handed the held amount to the PT. From then on the
   // contract carries NO holdback: release-session/terminate calls send an effective rate of 0.
-  holdbackReleasedAt   DateTime?      @map("holdback_released_at")
+  holdbackReleasedAt DateTime? @map("holdback_released_at")
 
   // ── Revenue split, frozen at signing ──────────────────────────────────────
   // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,
@@ -676,9 +676,9 @@ model Contract {
   // keep the terms their parties agreed to. The three must sum to exactly 1 and
   // platformRate may not fall below MIN_PLATFORM_RATE; both are enforced in
   // contract-money.ts before a contract is written.
-  platformRate       Decimal        @default("0.10") @db.Decimal(6, 4) @map("platform_rate")
-  ptRate             Decimal        @default("0.90") @db.Decimal(6, 4) @map("pt_rate")
-  gymRate            Decimal        @default("0")    @db.Decimal(6, 4) @map("gym_rate")
+  platformRate Decimal @default("0.10") @map("platform_rate") @db.Decimal(6, 4)
+  ptRate       Decimal @default("0.90") @map("pt_rate") @db.Decimal(6, 4)
+  gymRate      Decimal @default("0") @map("gym_rate") @db.Decimal(6, 4)
 
   // ── Which PT↔gym agreement the rates above came from (Phase 3, slice P3.2) ──
   // Snapshots like the rates: written once by requestContract from what gym-service answered at
@@ -687,55 +687,55 @@ model Contract {
   // They are cross-service references: no foreign key (the rows live in gym-service's database).
   // Nothing reads them yet — the Membership check (P3.3) and the agreement re-check are later slices.
   /// Brand of `gymId` at request time (gym-service GymBrand.id). Null when gym-service did not say.
-  gymBrandId         String?        @map("gym_brand_id")
+  gymBrandId        String? @map("gym_brand_id")
   /// The agreement that produced the rates (gym-service GymBrandPtAgreement.id, or the legacy per-branch row id).
-  gymAgreementId     String?        @map("gym_agreement_id")
+  gymAgreementId    String? @map("gym_agreement_id")
   /// 'BRAND' | 'BRANCH' — which kind of agreement `gymAgreementId` names. Vocabulary is owned by gym-service.
-  gymAgreementScope  String?        @map("gym_agreement_scope")
+  gymAgreementScope String? @map("gym_agreement_scope")
   /// The Client's gym membership relied on for this contract. Reserved for P3.3; stays null until that slice ships.
-  gymMembershipId    String?        @map("gym_membership_id")
+  gymMembershipId   String? @map("gym_membership_id")
 
   // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
-  terminationReason  TerminationReason? @map("termination_reason")
-  terminatedAt       DateTime?          @map("terminated_at")
+  terminationReason       TerminationReason? @map("termination_reason")
+  terminatedAt            DateTime?          @map("terminated_at")
   /// PT-suspension slice 4 (bổ sung 11/10, B): set — durably, BEFORE the money call — at the moment the
   /// server ACCEPTS a client's request to leave a restricted PT's contract without a fee. From then on that
   /// request keeps the no-fee terms even if the restriction is lifted before it finishes (a retry after a
   /// failed money call completes as CLIENT_EXIT_DUE_TO_PT_RESTRICTION, never silently as a 10% cancellation).
   /// Honoured for a bounded time only (CLIENT_EXIT_ACCEPTANCE_TTL_MS), so an abandoned attempt cannot
   /// grant a free exit months later. Null on every contract nobody tried to leave.
-  clientExitAcceptedAt DateTime? @map("client_exit_accepted_at")
+  clientExitAcceptedAt    DateTime?          @map("client_exit_accepted_at")
   /// The restriction episode in force when the exit was accepted (null if the accepted request is replayed
   /// after the episode ended, or the episode id is the synthetic legacy-flag one).
-  clientExitRestrictionId String? @map("client_exit_restriction_id")
+  clientExitRestrictionId String?            @map("client_exit_restriction_id")
   /// Money already moved out of the pending buckets for this contract, per party. Lets
   /// termination top each party up to their final entitlement instead of double-paying the
   /// part already released session by session.
-  releasedToPt       Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_pt")
-  releasedToGym      Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_gym")
-  releasedToPlatform Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_platform")
+  releasedToPt            Decimal            @default(0) @map("released_to_pt") @db.Decimal(14, 2)
+  releasedToGym           Decimal            @default(0) @map("released_to_gym") @db.Decimal(14, 2)
+  releasedToPlatform      Decimal            @default(0) @map("released_to_platform") @db.Decimal(14, 2)
 
   // ── PT Service Package snapshot (Phase 1) ────────────────────────────────
   // Snapshot at signing time — same principle as revenue split above.
   // packageId is for audit trail only; price/totalSessions/sessionMode are the truth.
-  packageId              String?  @map("package_id")
-  packageSourceName      String?  @map("package_source_name")        // ảnh chụp tên gói
-  sessionDurationMinutes Int?     @map("session_duration_minutes")   // ảnh chụp thời lượng buổi
+  packageId              String? @map("package_id")
+  packageSourceName      String? @map("package_source_name") // ảnh chụp tên gói
+  sessionDurationMinutes Int?    @map("session_duration_minutes") // ảnh chụp thời lượng buổi
 
   // ── Slot availability warning (Phase 1) ─────────────────────────────────
   // Evidence that the client was warned about low availability before purchasing.
   // Used for dispute resolution if the client later complains they cannot book sessions.
-  lowAvailabilityWarned  Boolean  @default(false) @map("low_availability_warned")
-  slotsAtPurchase        Int?     @map("slots_at_purchase")
+  lowAvailabilityWarned Boolean @default(false) @map("low_availability_warned")
+  slotsAtPurchase       Int?    @map("slots_at_purchase")
 
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  sessions           Session[]
-  reviews            SessionReview[]
-  clientReviews      ClientReview[]
+  sessions       Session[]
+  reviews        SessionReview[]
+  clientReviews  ClientReview[]
   /// Contract-scoped restriction episodes (PtRestriction.scope = CONTRACT) placed on this contract.
-  ptRestrictions     PtRestriction[]
+  ptRestrictions PtRestriction[]
 
   @@index([ptUserId])
   @@index([clientUserId])
@@ -746,34 +746,34 @@ model Contract {
 // ─── Session (Booking) ────────────────────────────────────────────
 
 model Session {
-  id                 String        @id @default(uuid())
-  contractId         String        @map("contract_id")
-  clientUserId       String        @map("client_user_id")
-  ptUserId           String        @map("pt_user_id")
-  status             SessionStatus @default(REQUESTED)
-  sessionMode        SessionMode   @default(OFFLINE) @map("session_mode")
+  id           String        @id @default(uuid())
+  contractId   String        @map("contract_id")
+  clientUserId String        @map("client_user_id")
+  ptUserId     String        @map("pt_user_id")
+  status       SessionStatus @default(REQUESTED)
+  sessionMode  SessionMode   @default(OFFLINE) @map("session_mode")
 
   // Scheduling — authoritative datetime range
-  scheduledStartAt   DateTime      @map("scheduled_start_at")
-  scheduledEndAt     DateTime      @map("scheduled_end_at")
+  scheduledStartAt DateTime @map("scheduled_start_at")
+  scheduledEndAt   DateTime @map("scheduled_end_at")
 
   location           String?
   notes              String?
-  ptNotes            String?       @map("pt_notes")
-  cancelledBy        String?       @map("cancelled_by")
-  cancellationReason String?       @map("cancellation_reason")
+  ptNotes            String?   @map("pt_notes")
+  cancelledBy        String?   @map("cancelled_by")
+  cancellationReason String?   @map("cancellation_reason")
   // The single source of truth for "this session has already consumed one of the
   // contract's sessions". Every quota deduction flips it inside a guarded update, so a
   // double confirm / retry can never charge the client twice.
-  sessionDeducted    Boolean       @default(false) @map("session_deducted")
-  completedAt        DateTime?     @map("completed_at")
+  sessionDeducted    Boolean   @default(false) @map("session_deducted")
+  completedAt        DateTime? @map("completed_at")
   /// Vòng 4 / Phase E2 — true only when this session's NO_SHOW was actually the PT's fault
   /// (self-admitted via markNoShow, agreed via respondToNoShowReport, or admin-confirmed via
   /// resolveDispute's PT_NO_SHOW_CONFIRMED) — never set for a client no-show or a late-cancel
   /// tagged NO_SHOW. Counts toward the client's right to terminate the contract for repeated
   /// PT no-shows (3+) — see contract.controller.ts's terminate() and TerminationReason
   /// PT_REPEATED_NO_SHOW.
-  ptAtFault          Boolean       @default(false) @map("pt_at_fault")
+  ptAtFault          Boolean   @default(false) @map("pt_at_fault")
 
   /// Open-room online sessions ("meeting room", not a 1:1 ring call) — first time each side
   /// actually entered the room. Immutable once set: leaving and rejoining inside the open
@@ -781,27 +781,27 @@ model Session {
   /// check and for "did this person ever show up at all". Null forever if that person never
   /// joined. Only meaningful for sessionMode ONLINE; OFFLINE sessions have no room and keep
   /// the manual markNoShow/reportPtNoShow buttons instead.
-  roomPtJoinedAt     DateTime?     @map("room_pt_joined_at")
-  roomClientJoinedAt DateTime?     @map("room_client_joined_at")
+  roomPtJoinedAt     DateTime? @map("room_pt_joined_at")
+  roomClientJoinedAt DateTime? @map("room_client_joined_at")
 
   // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
-  clientConfirmDeadline DateTime? @map("client_confirm_deadline")
-  autoConfirmed         Boolean   @default(false) @map("auto_confirmed")
-  disputeReason         String?   @map("dispute_reason")
-  disputedAt            DateTime? @map("disputed_at")
+  clientConfirmDeadline DateTime?           @map("client_confirm_deadline")
+  autoConfirmed         Boolean             @default(false) @map("auto_confirmed")
+  disputeReason         String?             @map("dispute_reason")
+  disputedAt            DateTime?           @map("disputed_at")
   /// Vòng 4 / Phase E4 — audit/admin-screen only, see SessionDisputeType's own doc comment.
   disputeType           SessionDisputeType? @map("dispute_type")
-  resolvedBy            String?   @map("resolved_by")
-  resolutionNote        String?   @map("resolution_note")
-  resolvedAt            DateTime? @map("resolved_at")
+  resolvedBy            String?             @map("resolved_by")
+  resolutionNote        String?             @map("resolution_note")
+  resolvedAt            DateTime?           @map("resolved_at")
 
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  contract              Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  review                SessionReview?
-  clientReview          ClientReview?
-  rescheduleRequests    SessionRescheduleRequest[]
+  contract           Contract                   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  review             SessionReview?
+  clientReview       ClientReview?
+  rescheduleRequests SessionRescheduleRequest[]
 
   @@index([contractId])
   @@index([clientUserId])
@@ -819,12 +819,12 @@ model SessionReview {
   sessionId    String   @unique @map("session_id")
   contractId   String   @map("contract_id")
   clientUserId String   @map("client_user_id")
-  rating       Int      // 1–5
+  rating       Int // 1–5
   comment      String?
   createdAt    DateTime @default(now()) @map("created_at")
 
-  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  session  Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@index([contractId])
   @@map("session_reviews")
@@ -837,16 +837,16 @@ model SessionReview {
 // contractService.getByPT's clientRating field) — the counterpart to how a client can already
 // see a PT's rating before requesting a contract in the first place.
 model ClientReview {
-  id           String   @id @default(uuid())
-  sessionId    String   @unique @map("session_id")
-  contractId   String   @map("contract_id")
-  ptUserId     String   @map("pt_user_id")
-  rating       Int      // 1–5
-  comment      String?
-  createdAt    DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  sessionId  String   @unique @map("session_id")
+  contractId String   @map("contract_id")
+  ptUserId   String   @map("pt_user_id")
+  rating     Int // 1–5
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  session  Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@index([contractId])
   @@map("client_reviews")
@@ -855,16 +855,16 @@ model ClientReview {
 // ─── Notification ─────────────────────────────────────────────────
 
 model Notification {
-  id         String                  @id @default(uuid())
-  userId     String                  @map("user_id")
+  id         String                 @id @default(uuid())
+  userId     String                 @map("user_id")
   text       String
-  eventType  NotificationEventType   @map("event_type")
-  entityType NotificationEntityType  @map("entity_type")
-  entityId   String                  @map("entity_id")
+  eventType  NotificationEventType  @map("event_type")
+  entityType NotificationEntityType @map("entity_type")
+  entityId   String                 @map("entity_id")
   link       String?
-  unread     Boolean                 @default(true)
-  createdAt  DateTime                @default(now()) @map("created_at")
-  updatedAt  DateTime                @updatedAt @map("updated_at")
+  unread     Boolean                @default(true)
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
 
   @@index([userId, createdAt])
   @@index([userId, unread])
@@ -879,13 +879,13 @@ model Notification {
 // lists 6 distinct notification concepts and a user may reasonably want
 // some but not others (e.g. workout reminders but not PT feedback pings).
 model NotificationPreference {
-  userId                   String  @id @map("user_id")
-  workoutUpcomingEnabled   Boolean @default(true) @map("workout_upcoming_enabled")
-  workoutRescheduledEnabled Boolean @default(true) @map("workout_rescheduled_enabled")
-  workoutUnfinishedEnabled Boolean @default(true) @map("workout_unfinished_enabled")
-  planUpdatedEnabled       Boolean @default(true) @map("plan_updated_enabled")
-  ptFeedbackEnabled        Boolean @default(true) @map("pt_feedback_enabled")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  userId                    String   @id @map("user_id")
+  workoutUpcomingEnabled    Boolean  @default(true) @map("workout_upcoming_enabled")
+  workoutRescheduledEnabled Boolean  @default(true) @map("workout_rescheduled_enabled")
+  workoutUnfinishedEnabled  Boolean  @default(true) @map("workout_unfinished_enabled")
+  planUpdatedEnabled        Boolean  @default(true) @map("plan_updated_enabled")
+  ptFeedbackEnabled         Boolean  @default(true) @map("pt_feedback_enabled")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
 
   @@map("notification_preferences")
 }
@@ -914,7 +914,7 @@ model PTAvailability {
   ptUserId  String    @map("pt_user_id")
   dayOfWeek DayOfWeek @map("day_of_week")
   startTime String    @map("start_time") // "09:00"
-  endTime   String    @map("end_time")   // "17:00"
+  endTime   String    @map("end_time") // "17:00"
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -1025,11 +1025,11 @@ model PTServicePackage {
   ptUserId               String      @map("pt_user_id")
   name                   String
   description            String?
-  sessionCount           Int         @map("session_count")            // >= 1
-  price                  Decimal     @db.Decimal(14, 2)               // > 0
-  sessionMode            SessionMode @map("session_mode")             // ONLINE or OFFLINE (not HYBRID)
+  sessionCount           Int         @map("session_count") // >= 1
+  price                  Decimal     @db.Decimal(14, 2) // > 0
+  sessionMode            SessionMode @map("session_mode") // ONLINE or OFFLINE (not HYBRID)
   sessionDurationMinutes Int         @default(60) @map("session_duration_minutes")
-  validityDays           Int?        @map("validity_days")            // null = no expiry
+  validityDays           Int?        @map("validity_days") // null = no expiry
   isActive               Boolean     @default(true) @map("is_active")
   // Soft-delete: never hard-delete because existing contracts reference this package id.
   // archivedAt non-null means the package is no longer sold but historical data is intact.
@@ -1041,7 +1041,7 @@ model PTServicePackage {
   createdAt              DateTime    @default(now()) @map("created_at")
   updatedAt              DateTime    @updatedAt @map("updated_at")
 
-  ptProfile              UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+  ptProfile UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
 
   @@index([ptUserId, isActive])
   @@map("pt_service_packages")
@@ -1062,35 +1062,35 @@ model SessionRescheduleRequest {
   // The proposed new time window.
   proposedStartAt DateTime              @map("proposed_start_at")
   proposedEndAt   DateTime              @map("proposed_end_at")
-  reason          String                // required, max 500 chars
+  reason          String // required, max 500 chars
   status          RescheduleStatus      @default(PENDING)
   respondedAt     DateTime?             @map("responded_at")
   responseNote    String?               @map("response_note")
   createdAt       DateTime              @default(now()) @map("created_at")
 
-  session         Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, status])
   @@map("session_reschedule_requests")
 }
 
 model InBodyEntry {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  date      DateTime @default(now())
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  date     DateTime @default(now())
   // BR-07: at most one InBody entry per user per calendar day. `dateOnly` is the
   // UTC day component of `date`. The service sets this on every create/update.
-  dateOnly  DateTime @db.Date @map("date_only")
+  dateOnly DateTime @map("date_only") @db.Date
 
   // Basic metrics
-  weight     Float
-  height     Float?
-  bmi        Float?
-  bodyFat    Float    @map("body_fat")    // Mass in kg or %? Let's use mass kg
-  bodyFatPct Float?   @map("body_fat_pct") // Percentage
-  muscleMass Float    @map("muscle_mass")
-  visceralFat Float?  @map("visceral_fat") // InBody visceral fat level (unitless index, typically 1-20)
-  bmr         Int?    @map("bmr") // Basal Metabolic Rate, kcal/day — printed on the InBody scan, used for TDEE recompute in cycle analysis
+  weight      Float
+  height      Float?
+  bmi         Float?
+  bodyFat     Float  @map("body_fat") // Mass in kg or %? Let's use mass kg
+  bodyFatPct  Float? @map("body_fat_pct") // Percentage
+  muscleMass  Float  @map("muscle_mass")
+  visceralFat Float? @map("visceral_fat") // InBody visceral fat level (unitless index, typically 1-20)
+  bmr         Int?   @map("bmr") // Basal Metabolic Rate, kcal/day — printed on the InBody scan, used for TDEE recompute in cycle analysis
 
   // Segmental Lean Analysis (kg)
   rightArmMuscle Float? @map("right_arm_muscle")
@@ -1142,18 +1142,18 @@ enum AuditEntityType {
 }
 
 model AuditLog {
-  id           String          @id @default(uuid())
+  id          String          @id @default(uuid())
   /// Who performed the action. Not an FK — see the note above.
-  actorUserId  String          @map("actor_user_id")
+  actorUserId String          @map("actor_user_id")
   /// Verb in SCREAMING_SNAKE, e.g. CONTRACT_ACCEPTED, SESSION_RESCHEDULE_ACCEPTED.
-  action       String
-  entityType   AuditEntityType @map("entity_type")
-  entityId     String          @map("entity_id")
+  action      String
+  entityType  AuditEntityType @map("entity_type")
+  entityId    String          @map("entity_id")
   /// Before/after values and any context worth keeping. Shape varies by action.
-  metadata     Json?
-  ipAddress    String?         @map("ip_address")
-  userAgent    String?         @map("user_agent")
-  createdAt    DateTime        @default(now()) @map("created_at")
+  metadata    Json?
+  ipAddress   String?         @map("ip_address")
+  userAgent   String?         @map("user_agent")
+  createdAt   DateTime        @default(now()) @map("created_at")
 
   // Reading the history of one contract or session is the query this table exists for.
   @@index([entityType, entityId, createdAt])
@@ -1220,39 +1220,40 @@ model SessionSettlement {
 
 // Cross-service training/nutrition IDs are references, not cross-database FKs.
 model ClientJourney {
-  id String @id @default(uuid())
-  userId String @map("user_id")
-  ptId String? @map("pt_id")
-  contractId String? @map("contract_id")
-  programId String? @map("program_id")
-  trainingCycleId String? @map("training_cycle_id")
-  nutritionGoalId String? @map("nutrition_goal_id")
-  goal String
-  experience String
-  ageBand String? @map("age_band")
-  baselineWeight Float @map("baseline_weight")
-  baselineBodyFat Float? @map("baseline_body_fat")
-  baselineLeanMass Float? @map("baseline_lean_mass")
-  trainingDays Int @map("training_days")
-  sessionMinutes Int @map("session_minutes")
-  constraints String[] @default([])
-  durationWeeks Int @map("duration_weeks")
-  sessionsPrescribed Int @map("sessions_prescribed")
-  sessionsCompleted Int @default(0) @map("sessions_completed")
-  nutritionAdherence Float? @map("nutrition_adherence")
-  endingWeight Float? @map("ending_weight")
-  endingBodyFat Float? @map("ending_body_fat")
-  endingLeanMass Float? @map("ending_lean_mass")
-  strengthChangePercent Float? @map("strength_change_percent")
-  goalAchievement String? @map("goal_achievement")
-  verificationStatus String @default("SELF_REPORTED") @map("verification_status")
-  dataOrigin String @default("REAL") @map("data_origin")
-  status String @default("ACTIVE")
-  startedAt DateTime @default(now()) @map("started_at")
-  endedAt DateTime? @map("ended_at")
-  baselineSnapshot Json? @map("baseline_snapshot")
-  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  contract Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  id                    String      @id @default(uuid())
+  userId                String      @map("user_id")
+  ptId                  String?     @map("pt_id")
+  contractId            String?     @map("contract_id")
+  programId             String?     @map("program_id")
+  trainingCycleId       String?     @map("training_cycle_id")
+  nutritionGoalId       String?     @map("nutrition_goal_id")
+  goal                  String
+  experience            String
+  ageBand               String?     @map("age_band")
+  baselineWeight        Float       @map("baseline_weight")
+  baselineBodyFat       Float?      @map("baseline_body_fat")
+  baselineLeanMass      Float?      @map("baseline_lean_mass")
+  trainingDays          Int         @map("training_days")
+  sessionMinutes        Int         @map("session_minutes")
+  constraints           String[]    @default([])
+  durationWeeks         Int         @map("duration_weeks")
+  sessionsPrescribed    Int         @map("sessions_prescribed")
+  sessionsCompleted     Int         @default(0) @map("sessions_completed")
+  nutritionAdherence    Float?      @map("nutrition_adherence")
+  endingWeight          Float?      @map("ending_weight")
+  endingBodyFat         Float?      @map("ending_body_fat")
+  endingLeanMass        Float?      @map("ending_lean_mass")
+  strengthChangePercent Float?      @map("strength_change_percent")
+  goalAchievement       String?     @map("goal_achievement")
+  verificationStatus    String      @default("SELF_REPORTED") @map("verification_status")
+  dataOrigin            String      @default("REAL") @map("data_origin")
+  status                String      @default("ACTIVE")
+  startedAt             DateTime    @default(now()) @map("started_at")
+  endedAt               DateTime?   @map("ended_at")
+  baselineSnapshot      Json?       @map("baseline_snapshot")
+  user                  UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  contract              Contract?   @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
   // ADV-006 (docs/ai-agent-adversarial-findings.md, hardening pass #2,
   // 2026-09-14): the derivation invariant is "at most one ClientJourney
   // per completed Contract" (see client-journey-derivation.service.ts's
@@ -1273,17 +1274,19 @@ model ClientJourney {
   @@index([userId, startedAt])
   @@map("client_journeys")
 }
+
 model AgentContractDraft {
-  id String @id @default(uuid())
-  userId String @map("user_id")
-  ptId String @map("pt_id")
-  packageId String @map("package_id")
-  snapshot Json
-  status String @default("PENDING")
-  contractId String? @map("contract_id")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  ptId       String      @map("pt_id")
+  packageId  String      @map("package_id")
+  snapshot   Json
+  status     String      @default("PENDING")
+  contractId String?     @map("contract_id")
+  expiresAt  DateTime    @map("expires_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  user       UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
   @@index([userId, createdAt])
   @@map("agent_contract_drafts")
 }
@@ -1300,20 +1303,20 @@ model AgentContractDraft {
 /// identifiers, and renaming them is out of scope. Zero application code
 /// anywhere in this repo references this model (grep-verified).
 model UserPreference {
-  userId              String   @id
-  showRpeRir          Boolean  @default(true)
-  defaultRestSeconds  Int      @default(90)
-  keepScreenAwake     Boolean  @default(true)
-  restTimerSound      Boolean  @default(true)
-  restTimerVibration  Boolean  @default(true)
-  smartPrefill        Boolean  @default(true)
-  showMacros          Boolean  @default(true)
+  userId             String   @id
+  showRpeRir         Boolean  @default(true)
+  defaultRestSeconds Int      @default(90)
+  keepScreenAwake    Boolean  @default(true)
+  restTimerSound     Boolean  @default(true)
+  restTimerVibration Boolean  @default(true)
+  smartPrefill       Boolean  @default(true)
+  showMacros         Boolean  @default(true)
   // `@default(now())`, not `@updatedAt` — `@updatedAt` only sets the value
   // client-side on Prisma Client `.update()` calls and emits no DB-level
   // DEFAULT, which produced a real (if harmless) `migrate diff` delta
   // against the live column's actual `DEFAULT CURRENT_TIMESTAMP`. This
   // form matches the live DDL exactly.
-  updatedAt           DateTime @default(now())
+  updatedAt          DateTime @default(now())
 
   // The live table also carries a CHECK constraint
   // ("defaultRestSeconds" between 15 and 300, step 15), applied by the
@@ -1360,64 +1363,64 @@ enum PtRestrictionType {
 }
 
 enum PtRestrictionReasonCategory {
-  COMPLAINT_REVIEW        // a complaint about the PT is being looked at
-  CONDUCT_REVIEW          // conduct / safety concern under review
-  PAYMENT_REVIEW          // payment or fraud concern under review
-  DOCUMENT_VERIFICATION   // credentials / documents need re-verification
-  ACCOUNT_SECURITY        // suspected account takeover
+  COMPLAINT_REVIEW // a complaint about the PT is being looked at
+  CONDUCT_REVIEW // conduct / safety concern under review
+  PAYMENT_REVIEW // payment or fraud concern under review
+  DOCUMENT_VERIFICATION // credentials / documents need re-verification
+  ACCOUNT_SECURITY // suspected account takeover
   OTHER
-  UNSPECIFIED             // the lock command carried no category (auth-service lock, legacy rows)
+  UNSPECIFIED // the lock command carried no category (auth-service lock, legacy rows)
 }
 
 enum PtRestrictionEndKind {
-  LIFTED                  // an admin lifted it (or the account was unlocked)
-  CONVERTED_TO_PERMANENT  // closed at the instant a permanent ban replaced it
-  SCOPE_RAISED            // a contract episode closed because an admin raised it to an account episode
-  SCOPE_NARROWED          // an account episode closed because an admin narrowed it to specific contracts
-  CONTRACT_ENDED          // a contract episode closed because its contract ended (nothing left to extend)
+  LIFTED // an admin lifted it (or the account was unlocked)
+  CONVERTED_TO_PERMANENT // closed at the instant a permanent ban replaced it
+  SCOPE_RAISED // a contract episode closed because an admin raised it to an account episode
+  SCOPE_NARROWED // an account episode closed because an admin narrowed it to specific contracts
+  CONTRACT_ENDED // a contract episode closed because its contract ended (nothing left to extend)
 }
 
 enum PtRestrictionScope {
-  ACCOUNT   // the PT as a whole (temporary suspension) or the account lock (permanent ban)
-  CONTRACT  // one contract only; the PT keeps coaching everyone else
+  ACCOUNT // the PT as a whole (temporary suspension) or the account lock (permanent ban)
+  CONTRACT // one contract only; the PT keeps coaching everyone else
 }
 
 model PtRestriction {
-  id             String                      @id @default(uuid())
-  ptUserId       String                      @map("pt_user_id")
-  type           PtRestrictionType
-  reasonCategory PtRestrictionReasonCategory @default(UNSPECIFIED) @map("reason_category")
+  id                String                      @id @default(uuid())
+  ptUserId          String                      @map("pt_user_id")
+  type              PtRestrictionType
+  reasonCategory    PtRestrictionReasonCategory @default(UNSPECIFIED) @map("reason_category")
   /// Internal note — admins only, never shown to the PT.
-  reasonText     String?                     @map("reason_text")
+  reasonText        String?                     @map("reason_text")
   /// What the PT may be told (shown by GET /profile/me/restriction). Null = category label only.
-  publicReason   String?                     @map("public_reason")
-  imposedBy      String                      @map("imposed_by")
+  publicReason      String?                     @map("public_reason")
+  imposedBy         String                      @map("imposed_by")
   /// Auth-service command number that opened a PERMANENT_BAN (traceability only; null for a temporary suspension).
-  lockSeq        BigInt?                     @map("lock_seq")
+  lockSeq           BigInt?                     @map("lock_seq")
   /// A true instant (timestamp, UTC). Contract end dates are shifted by differences of these instants.
-  startedAt      DateTime                    @default(now()) @map("started_at")
+  startedAt         DateTime                    @default(now()) @map("started_at")
   /// Null while the episode is active.
-  endedAt        DateTime?                   @map("ended_at")
-  endKind        PtRestrictionEndKind?       @map("end_kind")
-  liftedBy       String?                     @map("lifted_by")
-  liftReason     String?                     @map("lift_reason")
+  endedAt           DateTime?                   @map("ended_at")
+  endKind           PtRestrictionEndKind?       @map("end_kind")
+  liftedBy          String?                     @map("lifted_by")
+  liftReason        String?                     @map("lift_reason")
   /// Overdue tracking: the last time an admin justified continuing (null = never; the clock then runs from startedAt).
-  lastJustifiedAt     DateTime?              @map("last_justified_at")
-  lastJustifiedBy     String?                @map("last_justified_by")
-  lastJustification   String?                @map("last_justification")
-  createdAt      DateTime                    @default(now()) @map("created_at")
-  updatedAt      DateTime                    @updatedAt @map("updated_at")
+  lastJustifiedAt   DateTime?                   @map("last_justified_at")
+  lastJustifiedBy   String?                     @map("last_justified_by")
+  lastJustification String?                     @map("last_justification")
+  createdAt         DateTime                    @default(now()) @map("created_at")
+  updatedAt         DateTime                    @updatedAt @map("updated_at")
 
   /// ACCOUNT (default; every row from before the column existed) or CONTRACT. See the comment above the enums.
-  scope          PtRestrictionScope          @default(ACCOUNT)
+  scope                   PtRestrictionScope @default(ACCOUNT)
   /// Set exactly when scope = CONTRACT (a CHECK constraint says so): the one contract this episode restricts.
-  contractId     String?                     @map("contract_id")
+  contractId              String?            @map("contract_id")
   /// The episode this one replaces when an admin changed the scope (raise: the contract episode; narrow: the
   /// account episode). Traceability only, no foreign key. The reason and instant of the change are this row's
   /// reasonText/startedAt and the closed row's liftReason/endedAt/endKind.
   supersedesRestrictionId String?            @map("supersedes_restriction_id")
 
-  contract           Contract? @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contract           Contract?                        @relation(fields: [contractId], references: [id], onDelete: Restrict)
   contractExtensions PtRestrictionContractExtension[]
 
   @@index([ptUserId, startedAt])
@@ -1429,16 +1432,16 @@ model PtRestriction {
 /// is the idempotency guard: a repeated "lift" (or a retry after a crash) cannot extend a contract
 /// twice for the same episode, and it is the audit record of "by how much, from what to what".
 model PtRestrictionContractExtension {
-  id              String        @id @default(uuid())
-  restrictionId   String        @map("restriction_id")
-  contractId      String        @map("contract_id")
+  id              String   @id @default(uuid())
+  restrictionId   String   @map("restriction_id")
+  contractId      String   @map("contract_id")
   /// Milliseconds of the contract's own running time the episode blocked (lift − max(episode start, activation)).
-  blockedMs       BigInt        @map("blocked_ms")
-  previousEndDate DateTime      @map("previous_end_date")
-  newEndDate      DateTime      @map("new_end_date")
-  appliedAt       DateTime      @default(now()) @map("applied_at")
+  blockedMs       BigInt   @map("blocked_ms")
+  previousEndDate DateTime @map("previous_end_date")
+  newEndDate      DateTime @map("new_end_date")
+  appliedAt       DateTime @default(now()) @map("applied_at")
 
-  restriction     PtRestriction @relation(fields: [restrictionId], references: [id], onDelete: Cascade)
+  restriction PtRestriction @relation(fields: [restrictionId], references: [id], onDelete: Cascade)
 
   @@unique([restrictionId, contractId], map: "pt_restriction_ext_restriction_contract_key")
   @@index([contractId])
@@ -1529,7 +1532,7 @@ model PtPhysiquePhoto {
   retiredAt   DateTime?             @map("retired_at") @db.Timestamptz(3)
   createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  ptProfile   UserProfile           @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+  ptProfile UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
 
   @@index([ptUserId, status, sortOrder])
   @@map("pt_physique_photos")
@@ -1552,7 +1555,7 @@ model PtMediaUploadIntent {
   createdAt DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  ptProfile UserProfile               @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+  ptProfile UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
 
   @@index([status, expiresAt])
   @@index([ptUserId, status])
@@ -1573,4 +1576,22 @@ model ClientCompatEvent {
   @@index([createdAt])
   @@index([outcome, createdAt])
   @@map("client_compat_events")
+}
+
+/// D25 - a trainer's confirmation of one version of the platform's PT terms (the text lives in
+/// src/services/pt-terms.ts; `version` is its identifier). Append-only: a row is never updated or deleted, and
+/// "has accepted the current terms" means a row exists for (userId, CURRENT version). `source` is APPLICATION (the
+/// applicant ticked the box when submitting) or RECONFIRM (an existing PT confirmed from the banner). No FK on
+/// purpose - same cross-service-id pattern as AuditLog.actorUserId.
+model PtTermsAcceptance {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  version    String
+  source     String
+  acceptedAt DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+
+  @@unique([userId, version])
+  @@map("pt_terms_acceptances")
 }

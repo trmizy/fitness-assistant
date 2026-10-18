@@ -25,6 +25,7 @@ async function runAccept(esign: "true" | "false") {
   const { auditService } = await import("../services/audit.service");
   const { notificationService } = await import("../services/notification.service");
   const { contractService } = await import("../services/contract.service");
+  const { ptTermsService } = await import("../services/pt-terms.service");
 
   let claim: any;
   const saved = {
@@ -35,7 +36,10 @@ async function runAccept(esign: "true" | "false") {
     send: eSignService.send,
     record: auditService.record,
     create: notificationService.create,
+    terms: ptTermsService.assertAcceptedCurrent,
   };
+  // D25 gate stubbed as "PT confirmed the current terms": this suite is about paymentDueAt (the gate has its own integration test).
+  (ptTermsService as any).assertAcceptedCurrent = async () => undefined;
   (contractRepository as any).findById = async () => ({
     id: "c1", ptUserId: "pt-1", clientUserId: "client-1", status: "PENDING_REVIEW", gymId: null,
     packageName: "P", totalSessions: 4, price: null, pricePerSession: null,
@@ -60,6 +64,7 @@ async function runAccept(esign: "true" | "false") {
     (eSignService as any).send = saved.send;
     (auditService as any).record = saved.record;
     (notificationService as any).create = saved.create;
+    (ptTermsService as any).assertAcceptedCurrent = saved.terms;
   }
   return claim;
 }

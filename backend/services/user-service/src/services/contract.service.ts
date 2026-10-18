@@ -25,6 +25,8 @@ import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
 import { recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
+import { ptTermsService } from "./pt-terms.service";
+import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
@@ -84,6 +86,18 @@ export function computePaymentDueAt(from: Date = new Date()): Date {
 /** Lỗi mang mã máy đọc được (`code`) — controller chuyển `code` ra response. */
 function codedErr(message: string, status: number, code: string) {
   return Object.assign(err(message, status), { code });
+}
+
+/**
+ * D25/D74 - THE one terms gate for taking a NEW contract: the PT of a PENDING_REVIEW request must have confirmed the CURRENT PT
+ * terms. Used by acceptContract (the PT) AND by the admin "skip e-sign" path in updateStatus: an admin may skip e-sign but can never
+ * accept the terms on the PT's behalf, so that path asks the SAME question about the contract's PT (never about the admin).
+ * A contract past PENDING_REVIEW was already accepted (under the terms of its time) and is not asked again.
+ * Refuses with 409 PT_TERMS_NOT_ACCEPTED and writes nothing.
+ */
+async function assertPtTermsForNewContract(contract: { ptUserId: string; status: ContractStatus }): Promise<void> {
+  if (contract.status !== ContractStatus.PENDING_REVIEW) return;
+  await ptTermsService.assertAcceptedCurrent(contract.ptUserId);
 }
 
 export const GYM_NOT_ACCEPTING_CONTRACTS = "GYM_NOT_ACCEPTING_CONTRACTS";
@@ -699,6 +713,11 @@ export const contractService = {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
 
+    // D25: a PT takes a NEW contract only after confirming the CURRENT PT terms. Refused here, before the claim,
+    // the PDF, any notification or any money step - nothing is written. Contracts already accepted/active are never
+    // read by this check (they are past PENDING_REVIEW), so they keep running on the terms they were accepted under.
+    await assertPtTermsForNewContract(contract);
+
     // 0. Gym-tied: the partnership may have been closed/terminated since the request was made.
     await assertGymStillAcceptsContract(contract);
 
@@ -818,7 +837,7 @@ export const contractService = {
       }
     }
 
-    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget);
+    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget, { ptTermsVersion: PT_TERMS_VERSION });
 
     // 5. Notify client
     await notificationService
@@ -1147,6 +1166,8 @@ export const contractService = {
       (contract.status === ContractStatus.PENDING_SIGNATURE ||
         contract.status === ContractStatus.PENDING_REVIEW)
     ) {
+      // D74: skipping e-sign is the admin's power; accepting the PT terms for the PT is not. Same gate as acceptContract.
+      await assertPtTermsForNewContract(contract);
       logger.warn(
         {
           event: "CONTRACT_FORCE_PENDING_PAYMENT",

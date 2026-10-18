@@ -176,6 +176,15 @@ export type PtMediaUploadIntent = $Result.DefaultSelection<Prisma.$PtMediaUpload
  * PACKAGE_VERSION_MISSING, ...). Never read by product logic; a failed insert must not fail the request.
  */
 export type ClientCompatEvent = $Result.DefaultSelection<Prisma.$ClientCompatEventPayload>
+/**
+ * Model PtTermsAcceptance
+ * D25 - a trainer's confirmation of one version of the platform's PT terms (the text lives in
+ * src/services/pt-terms.ts; `version` is its identifier). Append-only: a row is never updated or deleted, and
+ * "has accepted the current terms" means a row exists for (userId, CURRENT version). `source` is APPLICATION (the
+ * applicant ticked the box when submitting) or RECONFIRM (an existing PT confirmed from the banner). No FK on
+ * purpose - same cross-service-id pattern as AuditLog.actorUserId.
+ */
+export type PtTermsAcceptance = $Result.DefaultSelection<Prisma.$PtTermsAcceptancePayload>
 
 /**
  * Enums
@@ -1087,6 +1096,16 @@ export class PrismaClient<
     * ```
     */
   get clientCompatEvent(): Prisma.ClientCompatEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptTermsAcceptance`: Exposes CRUD operations for the **PtTermsAcceptance** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtTermsAcceptances
+    * const ptTermsAcceptances = await prisma.ptTermsAcceptance.findMany()
+    * ```
+    */
+  get ptTermsAcceptance(): Prisma.PtTermsAcceptanceDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1557,7 +1576,8 @@ export namespace Prisma {
     PtListingRevision: 'PtListingRevision',
     PtPhysiquePhoto: 'PtPhysiquePhoto',
     PtMediaUploadIntent: 'PtMediaUploadIntent',
-    ClientCompatEvent: 'ClientCompatEvent'
+    ClientCompatEvent: 'ClientCompatEvent',
+    PtTermsAcceptance: 'PtTermsAcceptance'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1573,7 +1593,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent" | "ptTermsAcceptance"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3674,6 +3694,76 @@ export namespace Prisma {
           count: {
             args: Prisma.ClientCompatEventCountArgs<ExtArgs>
             result: $Utils.Optional<ClientCompatEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtTermsAcceptance: {
+        payload: Prisma.$PtTermsAcceptancePayload<ExtArgs>
+        fields: Prisma.PtTermsAcceptanceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtTermsAcceptanceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtTermsAcceptanceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          findFirst: {
+            args: Prisma.PtTermsAcceptanceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtTermsAcceptanceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          findMany: {
+            args: Prisma.PtTermsAcceptanceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>[]
+          }
+          create: {
+            args: Prisma.PtTermsAcceptanceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          createMany: {
+            args: Prisma.PtTermsAcceptanceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtTermsAcceptanceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>[]
+          }
+          delete: {
+            args: Prisma.PtTermsAcceptanceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          update: {
+            args: Prisma.PtTermsAcceptanceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          deleteMany: {
+            args: Prisma.PtTermsAcceptanceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtTermsAcceptanceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtTermsAcceptanceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtTermsAcceptancePayload>
+          }
+          aggregate: {
+            args: Prisma.PtTermsAcceptanceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtTermsAcceptance>
+          }
+          groupBy: {
+            args: Prisma.PtTermsAcceptanceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtTermsAcceptanceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtTermsAcceptanceCountArgs<ExtArgs>
+            result: $Utils.Optional<PtTermsAcceptanceCountAggregateOutputType> | number
           }
         }
       }
@@ -37121,6 +37211,908 @@ export namespace Prisma {
 
 
   /**
+   * Model PtTermsAcceptance
+   */
+
+  export type AggregatePtTermsAcceptance = {
+    _count: PtTermsAcceptanceCountAggregateOutputType | null
+    _min: PtTermsAcceptanceMinAggregateOutputType | null
+    _max: PtTermsAcceptanceMaxAggregateOutputType | null
+  }
+
+  export type PtTermsAcceptanceMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    version: string | null
+    source: string | null
+    acceptedAt: Date | null
+    ipAddress: string | null
+    userAgent: string | null
+  }
+
+  export type PtTermsAcceptanceMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    version: string | null
+    source: string | null
+    acceptedAt: Date | null
+    ipAddress: string | null
+    userAgent: string | null
+  }
+
+  export type PtTermsAcceptanceCountAggregateOutputType = {
+    id: number
+    userId: number
+    version: number
+    source: number
+    acceptedAt: number
+    ipAddress: number
+    userAgent: number
+    _all: number
+  }
+
+
+  export type PtTermsAcceptanceMinAggregateInputType = {
+    id?: true
+    userId?: true
+    version?: true
+    source?: true
+    acceptedAt?: true
+    ipAddress?: true
+    userAgent?: true
+  }
+
+  export type PtTermsAcceptanceMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    version?: true
+    source?: true
+    acceptedAt?: true
+    ipAddress?: true
+    userAgent?: true
+  }
+
+  export type PtTermsAcceptanceCountAggregateInputType = {
+    id?: true
+    userId?: true
+    version?: true
+    source?: true
+    acceptedAt?: true
+    ipAddress?: true
+    userAgent?: true
+    _all?: true
+  }
+
+  export type PtTermsAcceptanceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtTermsAcceptance to aggregate.
+     */
+    where?: PtTermsAcceptanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtTermsAcceptances to fetch.
+     */
+    orderBy?: PtTermsAcceptanceOrderByWithRelationInput | PtTermsAcceptanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtTermsAcceptanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtTermsAcceptances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtTermsAcceptances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtTermsAcceptances
+    **/
+    _count?: true | PtTermsAcceptanceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtTermsAcceptanceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtTermsAcceptanceMaxAggregateInputType
+  }
+
+  export type GetPtTermsAcceptanceAggregateType<T extends PtTermsAcceptanceAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtTermsAcceptance]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtTermsAcceptance[P]>
+      : GetScalarType<T[P], AggregatePtTermsAcceptance[P]>
+  }
+
+
+
+
+  export type PtTermsAcceptanceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtTermsAcceptanceWhereInput
+    orderBy?: PtTermsAcceptanceOrderByWithAggregationInput | PtTermsAcceptanceOrderByWithAggregationInput[]
+    by: PtTermsAcceptanceScalarFieldEnum[] | PtTermsAcceptanceScalarFieldEnum
+    having?: PtTermsAcceptanceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtTermsAcceptanceCountAggregateInputType | true
+    _min?: PtTermsAcceptanceMinAggregateInputType
+    _max?: PtTermsAcceptanceMaxAggregateInputType
+  }
+
+  export type PtTermsAcceptanceGroupByOutputType = {
+    id: string
+    userId: string
+    version: string
+    source: string
+    acceptedAt: Date
+    ipAddress: string | null
+    userAgent: string | null
+    _count: PtTermsAcceptanceCountAggregateOutputType | null
+    _min: PtTermsAcceptanceMinAggregateOutputType | null
+    _max: PtTermsAcceptanceMaxAggregateOutputType | null
+  }
+
+  type GetPtTermsAcceptanceGroupByPayload<T extends PtTermsAcceptanceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtTermsAcceptanceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtTermsAcceptanceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtTermsAcceptanceGroupByOutputType[P]>
+            : GetScalarType<T[P], PtTermsAcceptanceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtTermsAcceptanceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    version?: boolean
+    source?: boolean
+    acceptedAt?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+  }, ExtArgs["result"]["ptTermsAcceptance"]>
+
+  export type PtTermsAcceptanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    version?: boolean
+    source?: boolean
+    acceptedAt?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+  }, ExtArgs["result"]["ptTermsAcceptance"]>
+
+  export type PtTermsAcceptanceSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    version?: boolean
+    source?: boolean
+    acceptedAt?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+  }
+
+
+  export type $PtTermsAcceptancePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtTermsAcceptance"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      version: string
+      source: string
+      acceptedAt: Date
+      ipAddress: string | null
+      userAgent: string | null
+    }, ExtArgs["result"]["ptTermsAcceptance"]>
+    composites: {}
+  }
+
+  type PtTermsAcceptanceGetPayload<S extends boolean | null | undefined | PtTermsAcceptanceDefaultArgs> = $Result.GetResult<Prisma.$PtTermsAcceptancePayload, S>
+
+  type PtTermsAcceptanceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtTermsAcceptanceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtTermsAcceptanceCountAggregateInputType | true
+    }
+
+  export interface PtTermsAcceptanceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtTermsAcceptance'], meta: { name: 'PtTermsAcceptance' } }
+    /**
+     * Find zero or one PtTermsAcceptance that matches the filter.
+     * @param {PtTermsAcceptanceFindUniqueArgs} args - Arguments to find a PtTermsAcceptance
+     * @example
+     * // Get one PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtTermsAcceptanceFindUniqueArgs>(args: SelectSubset<T, PtTermsAcceptanceFindUniqueArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtTermsAcceptance that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtTermsAcceptanceFindUniqueOrThrowArgs} args - Arguments to find a PtTermsAcceptance
+     * @example
+     * // Get one PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtTermsAcceptanceFindUniqueOrThrowArgs>(args: SelectSubset<T, PtTermsAcceptanceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtTermsAcceptance that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceFindFirstArgs} args - Arguments to find a PtTermsAcceptance
+     * @example
+     * // Get one PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtTermsAcceptanceFindFirstArgs>(args?: SelectSubset<T, PtTermsAcceptanceFindFirstArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtTermsAcceptance that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceFindFirstOrThrowArgs} args - Arguments to find a PtTermsAcceptance
+     * @example
+     * // Get one PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtTermsAcceptanceFindFirstOrThrowArgs>(args?: SelectSubset<T, PtTermsAcceptanceFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtTermsAcceptances that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtTermsAcceptances
+     * const ptTermsAcceptances = await prisma.ptTermsAcceptance.findMany()
+     * 
+     * // Get first 10 PtTermsAcceptances
+     * const ptTermsAcceptances = await prisma.ptTermsAcceptance.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptTermsAcceptanceWithIdOnly = await prisma.ptTermsAcceptance.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtTermsAcceptanceFindManyArgs>(args?: SelectSubset<T, PtTermsAcceptanceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtTermsAcceptance.
+     * @param {PtTermsAcceptanceCreateArgs} args - Arguments to create a PtTermsAcceptance.
+     * @example
+     * // Create one PtTermsAcceptance
+     * const PtTermsAcceptance = await prisma.ptTermsAcceptance.create({
+     *   data: {
+     *     // ... data to create a PtTermsAcceptance
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtTermsAcceptanceCreateArgs>(args: SelectSubset<T, PtTermsAcceptanceCreateArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtTermsAcceptances.
+     * @param {PtTermsAcceptanceCreateManyArgs} args - Arguments to create many PtTermsAcceptances.
+     * @example
+     * // Create many PtTermsAcceptances
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtTermsAcceptanceCreateManyArgs>(args?: SelectSubset<T, PtTermsAcceptanceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtTermsAcceptances and returns the data saved in the database.
+     * @param {PtTermsAcceptanceCreateManyAndReturnArgs} args - Arguments to create many PtTermsAcceptances.
+     * @example
+     * // Create many PtTermsAcceptances
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtTermsAcceptances and only return the `id`
+     * const ptTermsAcceptanceWithIdOnly = await prisma.ptTermsAcceptance.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtTermsAcceptanceCreateManyAndReturnArgs>(args?: SelectSubset<T, PtTermsAcceptanceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtTermsAcceptance.
+     * @param {PtTermsAcceptanceDeleteArgs} args - Arguments to delete one PtTermsAcceptance.
+     * @example
+     * // Delete one PtTermsAcceptance
+     * const PtTermsAcceptance = await prisma.ptTermsAcceptance.delete({
+     *   where: {
+     *     // ... filter to delete one PtTermsAcceptance
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtTermsAcceptanceDeleteArgs>(args: SelectSubset<T, PtTermsAcceptanceDeleteArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtTermsAcceptance.
+     * @param {PtTermsAcceptanceUpdateArgs} args - Arguments to update one PtTermsAcceptance.
+     * @example
+     * // Update one PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtTermsAcceptanceUpdateArgs>(args: SelectSubset<T, PtTermsAcceptanceUpdateArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtTermsAcceptances.
+     * @param {PtTermsAcceptanceDeleteManyArgs} args - Arguments to filter PtTermsAcceptances to delete.
+     * @example
+     * // Delete a few PtTermsAcceptances
+     * const { count } = await prisma.ptTermsAcceptance.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtTermsAcceptanceDeleteManyArgs>(args?: SelectSubset<T, PtTermsAcceptanceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtTermsAcceptances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtTermsAcceptances
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtTermsAcceptanceUpdateManyArgs>(args: SelectSubset<T, PtTermsAcceptanceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtTermsAcceptance.
+     * @param {PtTermsAcceptanceUpsertArgs} args - Arguments to update or create a PtTermsAcceptance.
+     * @example
+     * // Update or create a PtTermsAcceptance
+     * const ptTermsAcceptance = await prisma.ptTermsAcceptance.upsert({
+     *   create: {
+     *     // ... data to create a PtTermsAcceptance
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtTermsAcceptance we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtTermsAcceptanceUpsertArgs>(args: SelectSubset<T, PtTermsAcceptanceUpsertArgs<ExtArgs>>): Prisma__PtTermsAcceptanceClient<$Result.GetResult<Prisma.$PtTermsAcceptancePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtTermsAcceptances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceCountArgs} args - Arguments to filter PtTermsAcceptances to count.
+     * @example
+     * // Count the number of PtTermsAcceptances
+     * const count = await prisma.ptTermsAcceptance.count({
+     *   where: {
+     *     // ... the filter for the PtTermsAcceptances we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtTermsAcceptanceCountArgs>(
+      args?: Subset<T, PtTermsAcceptanceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtTermsAcceptanceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtTermsAcceptance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtTermsAcceptanceAggregateArgs>(args: Subset<T, PtTermsAcceptanceAggregateArgs>): Prisma.PrismaPromise<GetPtTermsAcceptanceAggregateType<T>>
+
+    /**
+     * Group by PtTermsAcceptance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtTermsAcceptanceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtTermsAcceptanceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtTermsAcceptanceGroupByArgs['orderBy'] }
+        : { orderBy?: PtTermsAcceptanceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtTermsAcceptanceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtTermsAcceptanceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtTermsAcceptance model
+   */
+  readonly fields: PtTermsAcceptanceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtTermsAcceptance.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtTermsAcceptanceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtTermsAcceptance model
+   */ 
+  interface PtTermsAcceptanceFieldRefs {
+    readonly id: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly userId: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly version: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly source: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly acceptedAt: FieldRef<"PtTermsAcceptance", 'DateTime'>
+    readonly ipAddress: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly userAgent: FieldRef<"PtTermsAcceptance", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtTermsAcceptance findUnique
+   */
+  export type PtTermsAcceptanceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter, which PtTermsAcceptance to fetch.
+     */
+    where: PtTermsAcceptanceWhereUniqueInput
+  }
+
+  /**
+   * PtTermsAcceptance findUniqueOrThrow
+   */
+  export type PtTermsAcceptanceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter, which PtTermsAcceptance to fetch.
+     */
+    where: PtTermsAcceptanceWhereUniqueInput
+  }
+
+  /**
+   * PtTermsAcceptance findFirst
+   */
+  export type PtTermsAcceptanceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter, which PtTermsAcceptance to fetch.
+     */
+    where?: PtTermsAcceptanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtTermsAcceptances to fetch.
+     */
+    orderBy?: PtTermsAcceptanceOrderByWithRelationInput | PtTermsAcceptanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtTermsAcceptances.
+     */
+    cursor?: PtTermsAcceptanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtTermsAcceptances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtTermsAcceptances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtTermsAcceptances.
+     */
+    distinct?: PtTermsAcceptanceScalarFieldEnum | PtTermsAcceptanceScalarFieldEnum[]
+  }
+
+  /**
+   * PtTermsAcceptance findFirstOrThrow
+   */
+  export type PtTermsAcceptanceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter, which PtTermsAcceptance to fetch.
+     */
+    where?: PtTermsAcceptanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtTermsAcceptances to fetch.
+     */
+    orderBy?: PtTermsAcceptanceOrderByWithRelationInput | PtTermsAcceptanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtTermsAcceptances.
+     */
+    cursor?: PtTermsAcceptanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtTermsAcceptances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtTermsAcceptances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtTermsAcceptances.
+     */
+    distinct?: PtTermsAcceptanceScalarFieldEnum | PtTermsAcceptanceScalarFieldEnum[]
+  }
+
+  /**
+   * PtTermsAcceptance findMany
+   */
+  export type PtTermsAcceptanceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter, which PtTermsAcceptances to fetch.
+     */
+    where?: PtTermsAcceptanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtTermsAcceptances to fetch.
+     */
+    orderBy?: PtTermsAcceptanceOrderByWithRelationInput | PtTermsAcceptanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtTermsAcceptances.
+     */
+    cursor?: PtTermsAcceptanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtTermsAcceptances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtTermsAcceptances.
+     */
+    skip?: number
+    distinct?: PtTermsAcceptanceScalarFieldEnum | PtTermsAcceptanceScalarFieldEnum[]
+  }
+
+  /**
+   * PtTermsAcceptance create
+   */
+  export type PtTermsAcceptanceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PtTermsAcceptance.
+     */
+    data: XOR<PtTermsAcceptanceCreateInput, PtTermsAcceptanceUncheckedCreateInput>
+  }
+
+  /**
+   * PtTermsAcceptance createMany
+   */
+  export type PtTermsAcceptanceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtTermsAcceptances.
+     */
+    data: PtTermsAcceptanceCreateManyInput | PtTermsAcceptanceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtTermsAcceptance createManyAndReturn
+   */
+  export type PtTermsAcceptanceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtTermsAcceptances.
+     */
+    data: PtTermsAcceptanceCreateManyInput | PtTermsAcceptanceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtTermsAcceptance update
+   */
+  export type PtTermsAcceptanceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PtTermsAcceptance.
+     */
+    data: XOR<PtTermsAcceptanceUpdateInput, PtTermsAcceptanceUncheckedUpdateInput>
+    /**
+     * Choose, which PtTermsAcceptance to update.
+     */
+    where: PtTermsAcceptanceWhereUniqueInput
+  }
+
+  /**
+   * PtTermsAcceptance updateMany
+   */
+  export type PtTermsAcceptanceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtTermsAcceptances.
+     */
+    data: XOR<PtTermsAcceptanceUpdateManyMutationInput, PtTermsAcceptanceUncheckedUpdateManyInput>
+    /**
+     * Filter which PtTermsAcceptances to update
+     */
+    where?: PtTermsAcceptanceWhereInput
+  }
+
+  /**
+   * PtTermsAcceptance upsert
+   */
+  export type PtTermsAcceptanceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PtTermsAcceptance to update in case it exists.
+     */
+    where: PtTermsAcceptanceWhereUniqueInput
+    /**
+     * In case the PtTermsAcceptance found by the `where` argument doesn't exist, create a new PtTermsAcceptance with this data.
+     */
+    create: XOR<PtTermsAcceptanceCreateInput, PtTermsAcceptanceUncheckedCreateInput>
+    /**
+     * In case the PtTermsAcceptance was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtTermsAcceptanceUpdateInput, PtTermsAcceptanceUncheckedUpdateInput>
+  }
+
+  /**
+   * PtTermsAcceptance delete
+   */
+  export type PtTermsAcceptanceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+    /**
+     * Filter which PtTermsAcceptance to delete.
+     */
+    where: PtTermsAcceptanceWhereUniqueInput
+  }
+
+  /**
+   * PtTermsAcceptance deleteMany
+   */
+  export type PtTermsAcceptanceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtTermsAcceptances to delete
+     */
+    where?: PtTermsAcceptanceWhereInput
+  }
+
+  /**
+   * PtTermsAcceptance without action
+   */
+  export type PtTermsAcceptanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtTermsAcceptance
+     */
+    select?: PtTermsAcceptanceSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -37806,6 +38798,19 @@ export namespace Prisma {
   };
 
   export type ClientCompatEventScalarFieldEnum = (typeof ClientCompatEventScalarFieldEnum)[keyof typeof ClientCompatEventScalarFieldEnum]
+
+
+  export const PtTermsAcceptanceScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    version: 'version',
+    source: 'source',
+    acceptedAt: 'acceptedAt',
+    ipAddress: 'ipAddress',
+    userAgent: 'userAgent'
+  };
+
+  export type PtTermsAcceptanceScalarFieldEnum = (typeof PtTermsAcceptanceScalarFieldEnum)[keyof typeof PtTermsAcceptanceScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -41836,6 +42841,69 @@ export namespace Prisma {
     clientHeader?: StringNullableWithAggregatesFilter<"ClientCompatEvent"> | string | null
     outcome?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
     createdAt?: DateTimeWithAggregatesFilter<"ClientCompatEvent"> | Date | string
+  }
+
+  export type PtTermsAcceptanceWhereInput = {
+    AND?: PtTermsAcceptanceWhereInput | PtTermsAcceptanceWhereInput[]
+    OR?: PtTermsAcceptanceWhereInput[]
+    NOT?: PtTermsAcceptanceWhereInput | PtTermsAcceptanceWhereInput[]
+    id?: StringFilter<"PtTermsAcceptance"> | string
+    userId?: StringFilter<"PtTermsAcceptance"> | string
+    version?: StringFilter<"PtTermsAcceptance"> | string
+    source?: StringFilter<"PtTermsAcceptance"> | string
+    acceptedAt?: DateTimeFilter<"PtTermsAcceptance"> | Date | string
+    ipAddress?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+    userAgent?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+  }
+
+  export type PtTermsAcceptanceOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    acceptedAt?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+  }
+
+  export type PtTermsAcceptanceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_version?: PtTermsAcceptanceUserIdVersionCompoundUniqueInput
+    AND?: PtTermsAcceptanceWhereInput | PtTermsAcceptanceWhereInput[]
+    OR?: PtTermsAcceptanceWhereInput[]
+    NOT?: PtTermsAcceptanceWhereInput | PtTermsAcceptanceWhereInput[]
+    userId?: StringFilter<"PtTermsAcceptance"> | string
+    version?: StringFilter<"PtTermsAcceptance"> | string
+    source?: StringFilter<"PtTermsAcceptance"> | string
+    acceptedAt?: DateTimeFilter<"PtTermsAcceptance"> | Date | string
+    ipAddress?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+    userAgent?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+  }, "id" | "userId_version">
+
+  export type PtTermsAcceptanceOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    acceptedAt?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    _count?: PtTermsAcceptanceCountOrderByAggregateInput
+    _max?: PtTermsAcceptanceMaxOrderByAggregateInput
+    _min?: PtTermsAcceptanceMinOrderByAggregateInput
+  }
+
+  export type PtTermsAcceptanceScalarWhereWithAggregatesInput = {
+    AND?: PtTermsAcceptanceScalarWhereWithAggregatesInput | PtTermsAcceptanceScalarWhereWithAggregatesInput[]
+    OR?: PtTermsAcceptanceScalarWhereWithAggregatesInput[]
+    NOT?: PtTermsAcceptanceScalarWhereWithAggregatesInput | PtTermsAcceptanceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtTermsAcceptance"> | string
+    userId?: StringWithAggregatesFilter<"PtTermsAcceptance"> | string
+    version?: StringWithAggregatesFilter<"PtTermsAcceptance"> | string
+    source?: StringWithAggregatesFilter<"PtTermsAcceptance"> | string
+    acceptedAt?: DateTimeWithAggregatesFilter<"PtTermsAcceptance"> | Date | string
+    ipAddress?: StringNullableWithAggregatesFilter<"PtTermsAcceptance"> | string | null
+    userAgent?: StringNullableWithAggregatesFilter<"PtTermsAcceptance"> | string | null
   }
 
   export type UserProfileCreateInput = {
@@ -45989,6 +47057,76 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtTermsAcceptanceCreateInput = {
+    id?: string
+    userId: string
+    version: string
+    source: string
+    acceptedAt?: Date | string
+    ipAddress?: string | null
+    userAgent?: string | null
+  }
+
+  export type PtTermsAcceptanceUncheckedCreateInput = {
+    id?: string
+    userId: string
+    version: string
+    source: string
+    acceptedAt?: Date | string
+    ipAddress?: string | null
+    userAgent?: string | null
+  }
+
+  export type PtTermsAcceptanceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    version?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtTermsAcceptanceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    version?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtTermsAcceptanceCreateManyInput = {
+    id?: string
+    userId: string
+    version: string
+    source: string
+    acceptedAt?: Date | string
+    ipAddress?: string | null
+    userAgent?: string | null
+  }
+
+  export type PtTermsAcceptanceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    version?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtTermsAcceptanceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    version?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -49194,6 +50332,41 @@ export namespace Prisma {
     clientHeader?: SortOrder
     outcome?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type PtTermsAcceptanceUserIdVersionCompoundUniqueInput = {
+    userId: string
+    version: string
+  }
+
+  export type PtTermsAcceptanceCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    acceptedAt?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+  }
+
+  export type PtTermsAcceptanceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    acceptedAt?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+  }
+
+  export type PtTermsAcceptanceMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    version?: SortOrder
+    source?: SortOrder
+    acceptedAt?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
   }
 
   export type UserProfileCreatesafetyScreeningFlagsInput = {
@@ -59230,6 +60403,10 @@ export namespace Prisma {
      * @deprecated Use ClientCompatEventDefaultArgs instead
      */
     export type ClientCompatEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ClientCompatEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtTermsAcceptanceDefaultArgs instead
+     */
+    export type PtTermsAcceptanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtTermsAcceptanceDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

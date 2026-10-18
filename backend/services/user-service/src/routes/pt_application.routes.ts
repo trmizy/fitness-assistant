@@ -59,6 +59,11 @@ router.get(
   ptApplicationController.getDocument as any,
 );
 
+// D25 - PT terms (served text + acceptance). Any signed-in user: an applicant reads/confirms before submitting,
+// an approved PT re-confirms when the version changes.
+router.get("/terms", authMiddleware, ptApplicationController.getTerms as any);
+router.post("/terms/accept", authMiddleware, ptApplicationController.acceptTerms as any);
+
 // Applicant routes
 router.get("/me", authMiddleware, ptApplicationController.getMe as any);
 router.post(

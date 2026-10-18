@@ -11,6 +11,8 @@ import { authServiceClient } from "../clients/auth-service.client";
 import { notificationService } from "./notification.service";
 import { ptApplicationReviewNotice } from "../utils/ptApplicationNotice.util";
 import { profileNameFields } from "../utils/profileName.util";
+import { ptTermsService, PT_TERMS_NOT_ACCEPTED } from "./pt-terms.service";
+import { PT_TERMS_VERSION } from "./pt-terms";
 
 const prisma = new PrismaClient();
 
@@ -212,7 +214,16 @@ export const ptApplicationService = {
     return ptApplicationRepository.upsertDraft(profile.id, data);
   },
 
-  async submit(userId: string) {
+  /**
+   * Submit the application. D25: the applicant must have confirmed the CURRENT PT terms - either already (a row for
+   * this version) or by sending `termsVersion` equal to the current version with this call (the ticked box), which is
+   * then recorded as source APPLICATION. Without either the submission is refused (409 PT_TERMS_NOT_ACCEPTED) and the
+   * application stays as it was.
+   */
+  async submit(
+    userId: string,
+    opts: { termsVersion?: string; meta?: { ipAddress?: string | null; userAgent?: string | null } } = {},
+  ) {
     const app = await ptApplicationRepository.findByUserId(userId);
     if (!app) throw new Error("No application found to submit");
     if (!["DRAFT", "NEEDS_MORE_INFO"].includes(app.status)) {
@@ -293,6 +304,18 @@ export const ptApplicationService = {
           "Dịch vụ Offline/Hybrid cần ít nhất 1 nơi luyện tập hợp lệ (chọn tỉnh và tên phòng gym hoặc địa chỉ)",
         );
       }
+    }
+
+    // D25 - last gate (every other validation has passed): record the confirmation the applicant just gave, or
+    // require one already on file. A wrong/old version is refused with the current one in the body.
+    if (!(await ptTermsService.hasAcceptedCurrent(userId))) {
+      if (opts.termsVersion === undefined) {
+        throw Object.assign(
+          new Error("Bạn cần đồng ý Điều khoản dành cho Huấn luyện viên trước khi nộp hồ sơ."),
+          { status: 409, code: PT_TERMS_NOT_ACCEPTED, termsVersion: PT_TERMS_VERSION },
+        );
+      }
+      await ptTermsService.accept(userId, opts.termsVersion, "APPLICATION", opts.meta);
     }
 
     const updated = await ptApplicationRepository.updateStatus(

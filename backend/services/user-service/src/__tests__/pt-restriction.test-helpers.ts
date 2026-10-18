@@ -32,6 +32,19 @@ export async function makePt(overrides: Record<string, unknown> = {}): Promise<s
   return userId;
 }
 
+/**
+ * TEST FIXTURE (D25): a PT who has confirmed the CURRENT PT terms, i.e. may accept a new contract. makePt() alone creates a PT
+ * who has NOT (the state every existing PT is in until they confirm); suites that drive acceptContract call this.
+ */
+export async function acceptCurrentPtTerms(ptUserId: string): Promise<void> {
+  const { PT_TERMS_VERSION } = await import("../services/pt-terms");
+  await prisma.ptTermsAcceptance.upsert({
+    where: { userId_version: { userId: ptUserId, version: PT_TERMS_VERSION } },
+    update: {},
+    create: { userId: ptUserId, version: PT_TERMS_VERSION, source: "RECONFIRM" },
+  });
+}
+
 export async function makeContract(ptUserId: string, overrides: Record<string, unknown> = {}) {
   return prisma.contract.create({
     data: {
@@ -82,6 +95,7 @@ export async function cleanup(ptUserIds: string[], contractIds: string[]) {
     .deleteMany({ where: { entityId: { in: [...contractIds, ...ptUserIds] } } })
     .catch(() => {});
   await prisma.ptRestriction.deleteMany({ where: { ptUserId: { in: ptUserIds } } }).catch(() => {});
+  await prisma.ptTermsAcceptance.deleteMany({ where: { userId: { in: ptUserIds } } }).catch(() => {});
   await prisma.contract.deleteMany({ where: { id: { in: contractIds } } }).catch(() => {});
   await prisma.pTServicePackage.deleteMany({ where: { ptUserId: { in: ptUserIds } } }).catch(() => {});
   await prisma.pTApplication.deleteMany({ where: { userProfile: { userId: { in: ptUserIds } } } }).catch(() => {});

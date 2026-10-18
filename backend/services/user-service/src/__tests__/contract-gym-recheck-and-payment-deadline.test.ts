@@ -15,6 +15,7 @@ import { contractRepository } from "../repositories/contract.repository";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { paymentClient } from "../clients/payment.client";
 import { authServiceClient } from "../clients/auth-service.client";
+import { ptTermsService } from "../services/pt-terms.service";
 import {
   contractService,
   computePaymentDueAt,
@@ -82,6 +83,8 @@ function world(opts: {
       calls.extend.push(to);
       return { count: 1 };
     }),
+    // D25 gate: this suite is about the gym gate, so the PT is stubbed as having confirmed the current PT terms (the gate itself is tested in pt-terms-acceptance.integration.test.ts).
+    patch(ptTermsService, "assertAcceptedCurrent", async () => undefined),
     // accept: stop right after the gym gate — no real auth-service / PDF in a stubbed test.
     patch(authServiceClient, "internalGet", async () => {
       throw new Error("no auth-service in this test");

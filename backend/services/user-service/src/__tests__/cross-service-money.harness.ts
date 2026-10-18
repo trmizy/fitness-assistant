@@ -467,6 +467,7 @@ ${gymLog.slice(-30).join("")}`);
 
   async function makePt() {
     const id = await m.base.makePt();
+    await m.base.acceptCurrentPtTerms(id); // TEST FIXTURE: a PT who confirmed the current terms (D25) - the e2e flows accept contracts
     created.pts.push(id);
     return id;
   }

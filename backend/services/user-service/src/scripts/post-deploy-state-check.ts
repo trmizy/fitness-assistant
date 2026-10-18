@@ -33,6 +33,7 @@
  */
 import fs from "node:fs";
 import { PrismaClient } from "../generated/prisma";
+import { PT_TERMS_VERSION, ptTermsReleaseProblem } from "../services/pt-terms";
 
 type Level = "PASS" | "WARN" | "FAIL" | "INFO" | "SKIP";
 export interface Finding {
@@ -389,6 +390,9 @@ export async function runChecks(env: NodeJS.ProcessEnv, o: Options): Promise<Fin
   const authUrl = env.AUTH_DATABASE_URL;
   if (!userUrl) throw new Error("USER_DATABASE_URL is required");
   const all: Finding[] = [];
+  // D74: draft PT terms must not be live in production (no DB needed: it judges the code that was deployed).
+  const termsProblem = ptTermsReleaseProblem(env);
+  all.push(termsProblem ? { id: "T-01", level: "FAIL", title: `PT terms: ${termsProblem}` } : { id: "T-01", level: "PASS", title: `PT terms version ${PT_TERMS_VERSION} may run in this environment` });
   all.push(...(await migrationChecks("U", userUrl, EXPECTED_USER_MIGRATIONS)));
   all.push(...(await userChecks(userUrl, o)));
   if (payUrl) {

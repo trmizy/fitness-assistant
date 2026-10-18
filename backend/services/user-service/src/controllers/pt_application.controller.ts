@@ -9,6 +9,9 @@ import {
   verifyDocumentUrl,
 } from "../utils/ptDocumentUrl.util";
 import { logger } from "@gym-coach/shared";
+import { ptTermsService } from "../services/pt-terms.service";
+import { auditMeta } from "../services/audit.service";
+import { profileRepository } from "../repositories/profile.repository";
 import { clientErrorMessage } from "../utils/db-error.util";
 import {
   createPresignedGetObject,
@@ -25,6 +28,34 @@ const SAFE_FILENAME_RE = /^[a-zA-Z0-9_.-]+$/;
 const UPLOADS_DIR = path.join(process.cwd(), "uploads", "pt-applications");
 
 export const ptApplicationController = {
+  /** D25 - the current PT terms text + this user's standing (accepted / must re-confirm). Any signed-in user. */
+  async getTerms(req: AuthRequest, res: Response) {
+    try {
+      const profile = await profileRepository.findByUserId(req.user!.id);
+      return res.json(await ptTermsService.getForUser(req.user!.id, profile?.isPT === true));
+    } catch (error: any) {
+      logger.error(error, "Get PT terms error");
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** D25 - confirm the CURRENT version (idempotent). An old/unknown version is 409 with the current one. */
+  async acceptTerms(req: AuthRequest, res: Response) {
+    try {
+      const version = typeof req.body?.version === "string" ? req.body.version : undefined;
+      const profile = await profileRepository.findByUserId(req.user!.id);
+      // An approved PT re-confirming; anyone else here is an applicant confirming ahead of submitting.
+      const source = profile?.isPT === true ? "RECONFIRM" : "APPLICATION";
+      return res.json(await ptTermsService.accept(req.user!.id, version, source, auditMeta(req)));
+    } catch (error: any) {
+      logger.error(error, "Accept PT terms error");
+      if (error?.status && typeof error.code === "string") {
+        return res.status(error.status).json({ error: error.message, code: error.code, termsVersion: error.termsVersion });
+      }
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   async getMe(req: AuthRequest, res: Response) {
     try {
       const app = await ptApplicationService.getMe(req.user!.id);
@@ -47,10 +78,14 @@ export const ptApplicationController = {
 
   async submit(req: AuthRequest, res: Response) {
     try {
-      const app = await ptApplicationService.submit(req.user!.id);
+      const termsVersion = typeof req.body?.termsVersion === "string" ? req.body.termsVersion : undefined;
+      const app = await ptApplicationService.submit(req.user!.id, { termsVersion, meta: auditMeta(req) });
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Submit PT application error");
+      if (typeof error?.code === "string" && error.code.startsWith("PT_TERMS_") && error.status) {
+        return res.status(error.status).json({ error: error.message, code: error.code, termsVersion: error.termsVersion });
+      }
       return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT) });
     }
   },
