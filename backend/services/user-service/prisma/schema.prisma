@@ -68,6 +68,12 @@ model UserProfile {
   // suspension and can be restored by simply re-enabling the account. While true the PT
   // is hidden from discovery and cannot take new bookings.
   ptSuspended Boolean @default(false) @map("pt_suspended")
+  // Listing management (PT): version of the PUBLIC listing. 0 = never published (not an approved PT yet),
+  // 1 = the approved application itself is listing v1, +1 every time a listing revision is applied.
+  // Written only by the revision-apply transaction (and the admin-direct edit) - never by a profile PUT.
+  listingVersion     Int       @default(0) @map("listing_version")
+  // When the current public listing went live. NULL = published before the listing system existed.
+  listingPublishedAt DateTime? @map("listing_published_at") @db.Timestamptz(3)
   // Sequence number (auth-service's PtDeactivationCall.seq) of the last lock/unlock command applied to
   // this PT. A command carrying a LOWER number than this is stale and is ignored, so a lock that was
   // retried or delayed past a later unlock (or lock) can never undo it — ordering is decided by this
@@ -208,6 +214,8 @@ model UserProfile {
   ptApplication      PTApplication?
   trainingLocations  PTTrainingLocation[]
   servicePackages    PTServicePackage[]
+  physiquePhotos     PtPhysiquePhoto[]
+  mediaUploadIntents PtMediaUploadIntent[]
 
   @@map("user_profiles")
 }
@@ -517,6 +525,13 @@ enum NotificationEventType {
   // opt-out preference entry (same reasoning as CONTRACT_CANCELLED_PT_DEACTIVATED).
   CONTRACT_PAUSED_PT_SUSPENDED
   CONTRACT_RESUMED_PT_REINSTATED
+  // Listing management (PT) - the admin's decision on a submitted listing revision, told to the PT.
+  // Direct replies to something the recipient initiated, so no opt-out preference entry.
+  PT_LISTING_APPROVED
+  PT_LISTING_REJECTED
+  PT_LISTING_CHANGES_REQUESTED
+  // The PT's open revision was invalidated (STALE) because an admin changed the public listing meanwhile.
+  PT_LISTING_INVALIDATED
 }
 
 enum NotificationEntityType {
@@ -543,6 +558,8 @@ enum NotificationEntityType {
   GYM_BRANCH
   // PT_APPLICATION_REVIEWED's entityId (this service's own PTApplication.id).
   PT_APPLICATION
+  // PT_LISTING_* notices - entityId = the PT's userId (the listing is one-per-PT).
+  PT_LISTING
 }
 
 enum RescheduleStatus {
@@ -1017,6 +1034,10 @@ model PTServicePackage {
   // Soft-delete: never hard-delete because existing contracts reference this package id.
   // archivedAt non-null means the package is no longer sold but historical data is intact.
   archivedAt             DateTime?   @map("archived_at")
+  // Commercial-terms version: +1 only when a commercial field (name, description, price, sessionCount,
+  // sessionMode, sessionDurationMinutes, validityDays, isActive) really changes, or the package is archived.
+  // A client buying the package sends the version it saw (expectedPackageVersion); a mismatch is 409 PACKAGE_CHANGED.
+  version                Int         @default(1)
   createdAt              DateTime    @default(now()) @map("created_at")
   updatedAt              DateTime    @updatedAt @map("updated_at")
 
@@ -1116,6 +1137,8 @@ enum AuditEntityType {
   SESSION
   SERVICE_PACKAGE
   PT_PROFILE
+  // Listing management (PT): the PT's public listing as a whole (entityId = the PT's userId).
+  PT_LISTING
 }
 
 model AuditLog {
@@ -1420,4 +1443,134 @@ model PtRestrictionContractExtension {
   @@unique([restrictionId, contractId], map: "pt_restriction_ext_restriction_contract_key")
   @@index([contractId])
   @@map("pt_restriction_contract_extensions")
+}
+
+// ─── PT listing management (migration 20261017173131_pt_listing_revisions) ───────────────────
+// The PT's public listing is edited through REVISIONS, never in place: a draft is submitted, an admin
+// approves it, and only the approval transaction writes the public columns (profile specialties/languages,
+// packages, photos) and bumps UserProfile.listingVersion.
+//
+// Constraints that live ONLY in the migration SQL (Prisma's schema DSL cannot express a WHERE-conditioned
+// unique index or a trigger; same arrangement as the pt_restrictions partial indexes above):
+//   pt_listing_revisions_one_open_per_pt   UNIQUE (pt_user_id)               WHERE status IN ('DRAFT','PENDING')
+//   pt_listing_revisions_immutable          BEFORE UPDATE OR DELETE trigger: a row whose OLD.status is closed
+//                                           (APPROVED, REJECTED, WITHDRAWN, CHANGES_REQUESTED, STALE) cannot be
+//                                           deleted, and may only have system_adjustments (and updated_at) changed
+//   pt_physique_photos_one_cover            UNIQUE (pt_user_id)               WHERE is_cover AND status = 'PUBLISHED'
+//   pt_physique_photos_unique_hash          UNIQUE (pt_user_id, content_hash) WHERE status IN ('STAGED','PUBLISHED') AND content_hash IS NOT NULL
+
+enum PtListingRevisionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  WITHDRAWN
+  STALE
+}
+
+enum PtListingRevisionSource {
+  OWNER
+  ADMIN_DIRECT
+}
+
+model PtListingRevision {
+  id                String                  @id @default(uuid())
+  /// The PT whose listing this edits. No FK on purpose: closed revisions are immutable history.
+  ptUserId          String                  @map("pt_user_id")
+  status            PtListingRevisionStatus @default(DRAFT)
+  source            PtListingRevisionSource @default(OWNER)
+  /// The revision this one was copied from / rebased from (null for a first draft).
+  parentRevisionId  String?                 @map("parent_revision_id")
+  /// UserProfile.listingVersion the draft was started from. Submitting requires it to still equal listingVersion.
+  baseVersion       Int                     @map("base_version")
+  /// Optimistic concurrency token of the DRAFT (PUT .../listing/draft must send the expected value).
+  draftVersion      Int                     @default(1) @map("draft_version")
+  /// { profile: {...}, packages: [...], photoIds: [...], coverPhotoId }
+  payload           Json
+  /// The public listing as it was just before this revision was applied (set when it is approved).
+  previousSnapshot  Json?                   @map("previous_snapshot")
+  /// Fix-ups the server made on its own (e.g. a photo dropped because its file is gone).
+  systemAdjustments Json                    @default("[]") @map("system_adjustments")
+  submittedBy       String?                 @map("submitted_by")
+  submittedAt       DateTime?               @map("submitted_at") @db.Timestamptz(3)
+  reviewedBy        String?                 @map("reviewed_by")
+  reviewedAt        DateTime?               @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote        String?                 @map("review_note")
+  ownerNote         String?                 @map("owner_note")
+  adminReason       String?                 @map("admin_reason")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([ptUserId, createdAt])
+  @@index([status, submittedAt])
+  @@map("pt_listing_revisions")
+}
+
+enum PtPhysiquePhotoStatus {
+  STAGED
+  PUBLISHED
+  RETIRED
+  DISCARDED
+}
+
+model PtPhysiquePhoto {
+  id          String                @id @default(uuid())
+  ptUserId    String                @map("pt_user_id")
+  storageKey  String                @map("storage_key")
+  status      PtPhysiquePhotoStatus @default(STAGED)
+  sortOrder   Int                   @default(0) @map("sort_order")
+  isCover     Boolean               @default(false) @map("is_cover")
+  mime        String
+  bytes       Int
+  /// sha256 of the file, computed when the upload is confirmed. NULL for rows that have none.
+  contentHash String?               @map("content_hash")
+  uploadedBy  String                @map("uploaded_by")
+  retiredAt   DateTime?             @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ptProfile   UserProfile           @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId, status, sortOrder])
+  @@map("pt_physique_photos")
+}
+
+enum PtMediaUploadIntentStatus {
+  PENDING
+  CONFIRMING
+  CONFIRMED
+  REJECTED
+}
+
+/// One presigned upload the server handed out; confirming it is what turns an object into a STAGED photo.
+model PtMediaUploadIntent {
+  id        String                    @id @default(uuid())
+  ptUserId  String                    @map("pt_user_id")
+  objectKey String                    @unique @map("object_key")
+  status    PtMediaUploadIntentStatus @default(PENDING)
+  expiresAt DateTime                  @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  ptProfile UserProfile               @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([ptUserId, status])
+  @@map("pt_media_upload_intents")
+}
+
+/// Best-effort telemetry of old-client traffic (LEGACY_ACCEPTED, REVIEW_REQUIRED_409, UPLOAD_RETIRED_410,
+/// PACKAGE_VERSION_MISSING, ...). Never read by product logic; a failed insert must not fail the request.
+model ClientCompatEvent {
+  id           String   @id @default(uuid())
+  route        String
+  actorUserId  String?  @map("actor_user_id")
+  /// X-Gymini-Client header value, null when the client sent none.
+  clientHeader String?  @map("client_header")
+  outcome      String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@map("client_compat_events")
 }

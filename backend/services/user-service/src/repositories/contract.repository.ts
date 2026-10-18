@@ -43,7 +43,7 @@ export const contractRepository = {
     gymAgreementId?: string | null;
     gymAgreementScope?: string | null;
     gymMembershipId?: string | null;
-  }) => prisma.contract.create({ data }),
+  }, db: Db = prisma) => db.contract.create({ data }),
 
   findById: (id: string, db: Db = prisma) => db.contract.findUnique({ where: { id } }),
 

@@ -130,6 +130,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   email: 'email',
   isPT: 'isPT',
   ptSuspended: 'ptSuspended',
+  listingVersion: 'listingVersion',
+  listingPublishedAt: 'listingPublishedAt',
   ptLockSeq: 'ptLockSeq',
   referralCode: 'referralCode',
   dateOfBirth: 'dateOfBirth',
@@ -480,6 +482,7 @@ exports.Prisma.PTServicePackageScalarFieldEnum = {
   validityDays: 'validityDays',
   isActive: 'isActive',
   archivedAt: 'archivedAt',
+  version: 'version',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -645,6 +648,62 @@ exports.Prisma.PtRestrictionContractExtensionScalarFieldEnum = {
   previousEndDate: 'previousEndDate',
   newEndDate: 'newEndDate',
   appliedAt: 'appliedAt'
+};
+
+exports.Prisma.PtListingRevisionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  status: 'status',
+  source: 'source',
+  parentRevisionId: 'parentRevisionId',
+  baseVersion: 'baseVersion',
+  draftVersion: 'draftVersion',
+  payload: 'payload',
+  previousSnapshot: 'previousSnapshot',
+  systemAdjustments: 'systemAdjustments',
+  submittedBy: 'submittedBy',
+  submittedAt: 'submittedAt',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote',
+  ownerNote: 'ownerNote',
+  adminReason: 'adminReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PtPhysiquePhotoScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  storageKey: 'storageKey',
+  status: 'status',
+  sortOrder: 'sortOrder',
+  isCover: 'isCover',
+  mime: 'mime',
+  bytes: 'bytes',
+  contentHash: 'contentHash',
+  uploadedBy: 'uploadedBy',
+  retiredAt: 'retiredAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PtMediaUploadIntentScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  objectKey: 'objectKey',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ClientCompatEventScalarFieldEnum = {
+  id: 'id',
+  route: 'route',
+  actorUserId: 'actorUserId',
+  clientHeader: 'clientHeader',
+  outcome: 'outcome',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -819,7 +878,11 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   REFUND_NEEDS_MANUAL_SETTLEMENT: 'REFUND_NEEDS_MANUAL_SETTLEMENT',
   PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED',
   CONTRACT_PAUSED_PT_SUSPENDED: 'CONTRACT_PAUSED_PT_SUSPENDED',
-  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED'
+  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED',
+  PT_LISTING_APPROVED: 'PT_LISTING_APPROVED',
+  PT_LISTING_REJECTED: 'PT_LISTING_REJECTED',
+  PT_LISTING_CHANGES_REQUESTED: 'PT_LISTING_CHANGES_REQUESTED',
+  PT_LISTING_INVALIDATED: 'PT_LISTING_INVALIDATED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -831,7 +894,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   TRAINING_CYCLE: 'TRAINING_CYCLE',
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH',
-  PT_APPLICATION: 'PT_APPLICATION'
+  PT_APPLICATION: 'PT_APPLICATION',
+  PT_LISTING: 'PT_LISTING'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {
@@ -861,7 +925,8 @@ exports.AuditEntityType = exports.$Enums.AuditEntityType = {
   CONTRACT: 'CONTRACT',
   SESSION: 'SESSION',
   SERVICE_PACKAGE: 'SERVICE_PACKAGE',
-  PT_PROFILE: 'PT_PROFILE'
+  PT_PROFILE: 'PT_PROFILE',
+  PT_LISTING: 'PT_LISTING'
 };
 
 exports.SessionSettlementKind = exports.$Enums.SessionSettlementKind = {
@@ -907,6 +972,35 @@ exports.PtRestrictionScope = exports.$Enums.PtRestrictionScope = {
   CONTRACT: 'CONTRACT'
 };
 
+exports.PtListingRevisionStatus = exports.$Enums.PtListingRevisionStatus = {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  WITHDRAWN: 'WITHDRAWN',
+  STALE: 'STALE'
+};
+
+exports.PtListingRevisionSource = exports.$Enums.PtListingRevisionSource = {
+  OWNER: 'OWNER',
+  ADMIN_DIRECT: 'ADMIN_DIRECT'
+};
+
+exports.PtPhysiquePhotoStatus = exports.$Enums.PtPhysiquePhotoStatus = {
+  STAGED: 'STAGED',
+  PUBLISHED: 'PUBLISHED',
+  RETIRED: 'RETIRED',
+  DISCARDED: 'DISCARDED'
+};
+
+exports.PtMediaUploadIntentStatus = exports.$Enums.PtMediaUploadIntentStatus = {
+  PENDING: 'PENDING',
+  CONFIRMING: 'CONFIRMING',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -933,7 +1027,11 @@ exports.Prisma.ModelName = {
   AgentContractDraft: 'AgentContractDraft',
   UserPreference: 'UserPreference',
   PtRestriction: 'PtRestriction',
-  PtRestrictionContractExtension: 'PtRestrictionContractExtension'
+  PtRestrictionContractExtension: 'PtRestrictionContractExtension',
+  PtListingRevision: 'PtListingRevision',
+  PtPhysiquePhoto: 'PtPhysiquePhoto',
+  PtMediaUploadIntent: 'PtMediaUploadIntent',
+  ClientCompatEvent: 'ClientCompatEvent'
 };
 
 /**

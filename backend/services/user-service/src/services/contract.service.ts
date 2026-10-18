@@ -19,13 +19,15 @@ import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
-import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
+import { ptServicePackageRepository, type LockedPackageRow } from "../repositories/pt_service_package.repository";
 import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
 import { recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
 import { assertClientMayRequestGymContract } from "./contract-gym-membership.service";
+import { toPublicPtPackageDto } from "./pt-public-dto";
+import { recordClientCompatEvent } from "./client-compat.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
 import {
   activeRestrictedContractIds,
@@ -198,6 +200,18 @@ const defaultCompleteContractDeps: CompleteContractDeps = {
     }
   },
 };
+
+/**
+ * 409 PACKAGE_CHANGED: the package the client showed is not the package the server would sell. Carries the CURRENT
+ * package (public shape, with its version) so the UI can show the new terms and let the person decide again.
+ */
+function packageChangedError(current: LockedPackageRow | NonNullable<Awaited<ReturnType<typeof ptServicePackageRepository.findById>>>) {
+  return Object.assign(new Error("Gói dịch vụ đã thay đổi. Hãy xem lại giá và nội dung mới trước khi tiếp tục."), {
+    status: 409,
+    code: "PACKAGE_CHANGED",
+    package: toPublicPtPackageDto(current),
+  });
+}
 
 /** The subset of a PTServicePackage a contract copies. */
 export interface SnapshotSource {
@@ -403,8 +417,16 @@ export const contractService = {
        * Required when availableSlotsNext28Days < package.sessionCount.
        */
       acknowledgedLowAvailability?: boolean;
+      /**
+       * The `version` of the package the client was showing when the person pressed buy. When it no longer matches
+       * the package row the contract would snapshot, the request is refused 409 PACKAGE_CHANGED with the current
+       * package. Absent (an old app) -> the request proceeds with the package as it is right now and is counted in
+       * client_compat_events (PACKAGE_VERSION_MISSING).
+       */
+      expectedPackageVersion?: number;
     },
     agent?: { actionId: string; expectedPrice: number; expectedSessions: number; expectedMinutes: number; expectedMode: string },
+    ctx?: { clientHeader?: string | null },
   ) {
     if (agent) {
       const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
@@ -428,6 +450,25 @@ export const contractService = {
     if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
     if (pkg.ptUserId !== data.ptUserId)
       throw err("Gói dịch vụ không thuộc PT này", 400);
+
+    // expectedPackageVersion: fail fast on the cheap read (a stale buyer should not wait for the slow checks below);
+    // the AUTHORITATIVE comparison is repeated inside the transaction against the locked row (step 6).
+    const expectedPackageVersion = data.expectedPackageVersion;
+    if (expectedPackageVersion !== undefined && expectedPackageVersion !== null) {
+      if (!Number.isInteger(expectedPackageVersion) || expectedPackageVersion < 1)
+        throw err("expectedPackageVersion phải là số nguyên >= 1", 400);
+      if (expectedPackageVersion !== pkg.version) throw packageChangedError(pkg);
+    } else if (!agent) {
+      // An app that predates the listing flow does not send the version: it still gets its contract (at the price
+      // the row has right now, snapshotted atomically below) - but every such request is counted, so the
+      // compatibility behaviour can be retired with evidence rather than on a guess.
+      await recordClientCompatEvent({
+        route: "POST /contracts/request",
+        actorUserId: clientUserId,
+        clientHeader: ctx?.clientHeader ?? null,
+        outcome: "PACKAGE_VERSION_MISSING",
+      });
+    }
 
     // 2. Check PT profile
     const ptProfile = await profileRepository.findByUserId(data.ptUserId);
@@ -533,38 +574,66 @@ export const contractService = {
 
     // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
     //    the client request. This is the security-critical step.
-    const snapshot = buildPackageSnapshot(pkg);
-    const contract = await contractRepository.create({
-      agentActionId: agent?.actionId,
-      ptUserId: data.ptUserId,
-      clientUserId,
-      status: ContractStatus.PENDING_REVIEW,
-      packageType: PackageType.PACKAGE,
-      // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
-      // anything out of `data`. Price and session count come from the package alone.
-      packageName: snapshot.packageName,
-      totalSessions: snapshot.totalSessions,
-      price: snapshot.price,
-      sessionMode: snapshot.sessionMode,
-      clientMessage: data.clientMessage,
-      gymId: data.gymId,
-      source,
-      platformRate: rates.platformRate,
-      ptRate: rates.ptRate,
-      gymRate: rates.gymRate,
-      ...gymSnapshot,
-      // PT holdback — a snapshot like the rates above, from the one place that decides it
-      // (today always "0": the rule is built but switched off).
-      ptHoldbackRate: await resolvePtHoldbackRate(data.ptUserId),
-      // Package audit trail + slot warning evidence
-      ...({
-        packageId: snapshot.packageId,
-        packageSourceName: snapshot.packageSourceName,
-        sessionDurationMinutes: snapshot.sessionDurationMinutes,
-        validityDays: snapshot.validityDays,
-        lowAvailabilityWarned: availableSlots < pkg.sessionCount,
-        slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
-      } as any),
+    //
+    //    ATOMIC with the package: the package row is read, checked and snapshotted inside ONE transaction that holds
+    //    `SELECT ... FOR SHARE` on it. The listing-apply transaction takes FOR UPDATE on the package rows, so the
+    //    two serialise: a contract created before the apply carries the OLD price and version, one created after it
+    //    carries the NEW ones - never new terms with an old version (or the reverse). The slow checks above
+    //    (availability, gym collaboration, membership) deliberately stay outside; only the version check and the
+    //    snapshot live in here.
+    const ptHoldbackRate = await resolvePtHoldbackRate(data.ptUserId);
+    const contract = await prisma.$transaction(async (tx) => {
+      const locked = await ptServicePackageRepository.findByIdForShare(data.packageId, tx);
+      if (!locked) throw err("Gói dịch vụ không tồn tại", 404);
+      if (!locked.isActive || locked.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
+      if (locked.ptUserId !== data.ptUserId) throw err("Gói dịch vụ không thuộc PT này", 400);
+      if (expectedPackageVersion !== undefined && expectedPackageVersion !== null && expectedPackageVersion !== locked.version) {
+        throw packageChangedError(locked);
+      }
+      if (data.gymId && locked.sessionMode === SessionMode.ONLINE) {
+        // The package may have been switched to ONLINE after the pre-check above.
+        throw err(
+          "Buổi tập trực tuyến không thể gắn với phòng gym cụ thể — chọn hình thức Offline hoặc bỏ chọn phòng gym",
+          400,
+        );
+      }
+
+      const snapshot = buildPackageSnapshot(locked);
+      return contractRepository.create(
+        {
+          agentActionId: agent?.actionId,
+          ptUserId: data.ptUserId,
+          clientUserId,
+          status: ContractStatus.PENDING_REVIEW,
+          packageType: PackageType.PACKAGE,
+          // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
+          // anything out of `data`. Price and session count come from the package alone.
+          packageName: snapshot.packageName,
+          totalSessions: snapshot.totalSessions,
+          price: snapshot.price,
+          sessionMode: snapshot.sessionMode,
+          clientMessage: data.clientMessage,
+          gymId: data.gymId,
+          source,
+          platformRate: rates.platformRate,
+          ptRate: rates.ptRate,
+          gymRate: rates.gymRate,
+          ...gymSnapshot,
+          // PT holdback — a snapshot like the rates above, from the one place that decides it
+          // (today always "0": the rule is built but switched off).
+          ptHoldbackRate,
+          // Package audit trail + slot warning evidence
+          ...({
+            packageId: snapshot.packageId,
+            packageSourceName: snapshot.packageSourceName,
+            sessionDurationMinutes: snapshot.sessionDurationMinutes,
+            validityDays: snapshot.validityDays,
+            lowAvailabilityWarned: availableSlots < locked.sessionCount,
+            slotsAtPurchase: availableSlots < locked.sessionCount ? availableSlots : undefined,
+          } as any),
+        },
+        tx,
+      );
     });
 
     // 7. Notify PT

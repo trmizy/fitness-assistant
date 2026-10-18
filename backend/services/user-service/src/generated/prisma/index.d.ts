@@ -155,6 +155,27 @@ export type PtRestriction = $Result.DefaultSelection<Prisma.$PtRestrictionPayloa
  * twice for the same episode, and it is the audit record of "by how much, from what to what".
  */
 export type PtRestrictionContractExtension = $Result.DefaultSelection<Prisma.$PtRestrictionContractExtensionPayload>
+/**
+ * Model PtListingRevision
+ * 
+ */
+export type PtListingRevision = $Result.DefaultSelection<Prisma.$PtListingRevisionPayload>
+/**
+ * Model PtPhysiquePhoto
+ * 
+ */
+export type PtPhysiquePhoto = $Result.DefaultSelection<Prisma.$PtPhysiquePhotoPayload>
+/**
+ * Model PtMediaUploadIntent
+ * One presigned upload the server handed out; confirming it is what turns an object into a STAGED photo.
+ */
+export type PtMediaUploadIntent = $Result.DefaultSelection<Prisma.$PtMediaUploadIntentPayload>
+/**
+ * Model ClientCompatEvent
+ * Best-effort telemetry of old-client traffic (LEGACY_ACCEPTED, REVIEW_REQUIRED_409, UPLOAD_RETIRED_410,
+ * PACKAGE_VERSION_MISSING, ...). Never read by product logic; a failed insert must not fail the request.
+ */
+export type ClientCompatEvent = $Result.DefaultSelection<Prisma.$ClientCompatEventPayload>
 
 /**
  * Enums
@@ -348,7 +369,11 @@ export const NotificationEventType: {
   REFUND_NEEDS_MANUAL_SETTLEMENT: 'REFUND_NEEDS_MANUAL_SETTLEMENT',
   PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED',
   CONTRACT_PAUSED_PT_SUSPENDED: 'CONTRACT_PAUSED_PT_SUSPENDED',
-  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED'
+  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED',
+  PT_LISTING_APPROVED: 'PT_LISTING_APPROVED',
+  PT_LISTING_REJECTED: 'PT_LISTING_REJECTED',
+  PT_LISTING_CHANGES_REQUESTED: 'PT_LISTING_CHANGES_REQUESTED',
+  PT_LISTING_INVALIDATED: 'PT_LISTING_INVALIDATED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -363,7 +388,8 @@ export const NotificationEntityType: {
   TRAINING_CYCLE: 'TRAINING_CYCLE',
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH',
-  PT_APPLICATION: 'PT_APPLICATION'
+  PT_APPLICATION: 'PT_APPLICATION',
+  PT_LISTING: 'PT_LISTING'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
@@ -405,7 +431,8 @@ export const AuditEntityType: {
   CONTRACT: 'CONTRACT',
   SESSION: 'SESSION',
   SERVICE_PACKAGE: 'SERVICE_PACKAGE',
-  PT_PROFILE: 'PT_PROFILE'
+  PT_PROFILE: 'PT_PROFILE',
+  PT_LISTING: 'PT_LISTING'
 };
 
 export type AuditEntityType = (typeof AuditEntityType)[keyof typeof AuditEntityType]
@@ -470,6 +497,47 @@ export const PtRestrictionScope: {
 };
 
 export type PtRestrictionScope = (typeof PtRestrictionScope)[keyof typeof PtRestrictionScope]
+
+
+export const PtListingRevisionStatus: {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  WITHDRAWN: 'WITHDRAWN',
+  STALE: 'STALE'
+};
+
+export type PtListingRevisionStatus = (typeof PtListingRevisionStatus)[keyof typeof PtListingRevisionStatus]
+
+
+export const PtListingRevisionSource: {
+  OWNER: 'OWNER',
+  ADMIN_DIRECT: 'ADMIN_DIRECT'
+};
+
+export type PtListingRevisionSource = (typeof PtListingRevisionSource)[keyof typeof PtListingRevisionSource]
+
+
+export const PtPhysiquePhotoStatus: {
+  STAGED: 'STAGED',
+  PUBLISHED: 'PUBLISHED',
+  RETIRED: 'RETIRED',
+  DISCARDED: 'DISCARDED'
+};
+
+export type PtPhysiquePhotoStatus = (typeof PtPhysiquePhotoStatus)[keyof typeof PtPhysiquePhotoStatus]
+
+
+export const PtMediaUploadIntentStatus: {
+  PENDING: 'PENDING',
+  CONFIRMING: 'CONFIRMING',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED'
+};
+
+export type PtMediaUploadIntentStatus = (typeof PtMediaUploadIntentStatus)[keyof typeof PtMediaUploadIntentStatus]
 
 }
 
@@ -580,6 +648,22 @@ export const PtRestrictionEndKind: typeof $Enums.PtRestrictionEndKind
 export type PtRestrictionScope = $Enums.PtRestrictionScope
 
 export const PtRestrictionScope: typeof $Enums.PtRestrictionScope
+
+export type PtListingRevisionStatus = $Enums.PtListingRevisionStatus
+
+export const PtListingRevisionStatus: typeof $Enums.PtListingRevisionStatus
+
+export type PtListingRevisionSource = $Enums.PtListingRevisionSource
+
+export const PtListingRevisionSource: typeof $Enums.PtListingRevisionSource
+
+export type PtPhysiquePhotoStatus = $Enums.PtPhysiquePhotoStatus
+
+export const PtPhysiquePhotoStatus: typeof $Enums.PtPhysiquePhotoStatus
+
+export type PtMediaUploadIntentStatus = $Enums.PtMediaUploadIntentStatus
+
+export const PtMediaUploadIntentStatus: typeof $Enums.PtMediaUploadIntentStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -963,6 +1047,46 @@ export class PrismaClient<
     * ```
     */
   get ptRestrictionContractExtension(): Prisma.PtRestrictionContractExtensionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptListingRevision`: Exposes CRUD operations for the **PtListingRevision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtListingRevisions
+    * const ptListingRevisions = await prisma.ptListingRevision.findMany()
+    * ```
+    */
+  get ptListingRevision(): Prisma.PtListingRevisionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptPhysiquePhoto`: Exposes CRUD operations for the **PtPhysiquePhoto** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtPhysiquePhotos
+    * const ptPhysiquePhotos = await prisma.ptPhysiquePhoto.findMany()
+    * ```
+    */
+  get ptPhysiquePhoto(): Prisma.PtPhysiquePhotoDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptMediaUploadIntent`: Exposes CRUD operations for the **PtMediaUploadIntent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtMediaUploadIntents
+    * const ptMediaUploadIntents = await prisma.ptMediaUploadIntent.findMany()
+    * ```
+    */
+  get ptMediaUploadIntent(): Prisma.PtMediaUploadIntentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.clientCompatEvent`: Exposes CRUD operations for the **ClientCompatEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ClientCompatEvents
+    * const clientCompatEvents = await prisma.clientCompatEvent.findMany()
+    * ```
+    */
+  get clientCompatEvent(): Prisma.ClientCompatEventDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1429,7 +1553,11 @@ export namespace Prisma {
     AgentContractDraft: 'AgentContractDraft',
     UserPreference: 'UserPreference',
     PtRestriction: 'PtRestriction',
-    PtRestrictionContractExtension: 'PtRestrictionContractExtension'
+    PtRestrictionContractExtension: 'PtRestrictionContractExtension',
+    PtListingRevision: 'PtListingRevision',
+    PtPhysiquePhoto: 'PtPhysiquePhoto',
+    PtMediaUploadIntent: 'PtMediaUploadIntent',
+    ClientCompatEvent: 'ClientCompatEvent'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1445,7 +1573,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "clientReview" | "notification" | "notificationPreference" | "pushDevice" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "pTServicePackage" | "sessionRescheduleRequest" | "inBodyEntry" | "auditLog" | "sessionSettlement" | "clientJourney" | "agentContractDraft" | "userPreference" | "ptRestriction" | "ptRestrictionContractExtension" | "ptListingRevision" | "ptPhysiquePhoto" | "ptMediaUploadIntent" | "clientCompatEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3269,6 +3397,286 @@ export namespace Prisma {
           }
         }
       }
+      PtListingRevision: {
+        payload: Prisma.$PtListingRevisionPayload<ExtArgs>
+        fields: Prisma.PtListingRevisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtListingRevisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtListingRevisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          findFirst: {
+            args: Prisma.PtListingRevisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtListingRevisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          findMany: {
+            args: Prisma.PtListingRevisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>[]
+          }
+          create: {
+            args: Prisma.PtListingRevisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          createMany: {
+            args: Prisma.PtListingRevisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtListingRevisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>[]
+          }
+          delete: {
+            args: Prisma.PtListingRevisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          update: {
+            args: Prisma.PtListingRevisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtListingRevisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtListingRevisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtListingRevisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtListingRevisionPayload>
+          }
+          aggregate: {
+            args: Prisma.PtListingRevisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtListingRevision>
+          }
+          groupBy: {
+            args: Prisma.PtListingRevisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtListingRevisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtListingRevisionCountArgs<ExtArgs>
+            result: $Utils.Optional<PtListingRevisionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtPhysiquePhoto: {
+        payload: Prisma.$PtPhysiquePhotoPayload<ExtArgs>
+        fields: Prisma.PtPhysiquePhotoFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtPhysiquePhotoFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtPhysiquePhotoFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          findFirst: {
+            args: Prisma.PtPhysiquePhotoFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtPhysiquePhotoFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          findMany: {
+            args: Prisma.PtPhysiquePhotoFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>[]
+          }
+          create: {
+            args: Prisma.PtPhysiquePhotoCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          createMany: {
+            args: Prisma.PtPhysiquePhotoCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtPhysiquePhotoCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>[]
+          }
+          delete: {
+            args: Prisma.PtPhysiquePhotoDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          update: {
+            args: Prisma.PtPhysiquePhotoUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtPhysiquePhotoDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtPhysiquePhotoUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtPhysiquePhotoUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtPhysiquePhotoPayload>
+          }
+          aggregate: {
+            args: Prisma.PtPhysiquePhotoAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtPhysiquePhoto>
+          }
+          groupBy: {
+            args: Prisma.PtPhysiquePhotoGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtPhysiquePhotoGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtPhysiquePhotoCountArgs<ExtArgs>
+            result: $Utils.Optional<PtPhysiquePhotoCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtMediaUploadIntent: {
+        payload: Prisma.$PtMediaUploadIntentPayload<ExtArgs>
+        fields: Prisma.PtMediaUploadIntentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtMediaUploadIntentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtMediaUploadIntentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          findFirst: {
+            args: Prisma.PtMediaUploadIntentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtMediaUploadIntentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          findMany: {
+            args: Prisma.PtMediaUploadIntentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>[]
+          }
+          create: {
+            args: Prisma.PtMediaUploadIntentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          createMany: {
+            args: Prisma.PtMediaUploadIntentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtMediaUploadIntentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>[]
+          }
+          delete: {
+            args: Prisma.PtMediaUploadIntentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          update: {
+            args: Prisma.PtMediaUploadIntentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtMediaUploadIntentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtMediaUploadIntentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtMediaUploadIntentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtMediaUploadIntentPayload>
+          }
+          aggregate: {
+            args: Prisma.PtMediaUploadIntentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtMediaUploadIntent>
+          }
+          groupBy: {
+            args: Prisma.PtMediaUploadIntentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtMediaUploadIntentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtMediaUploadIntentCountArgs<ExtArgs>
+            result: $Utils.Optional<PtMediaUploadIntentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ClientCompatEvent: {
+        payload: Prisma.$ClientCompatEventPayload<ExtArgs>
+        fields: Prisma.ClientCompatEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ClientCompatEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ClientCompatEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          findFirst: {
+            args: Prisma.ClientCompatEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ClientCompatEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          findMany: {
+            args: Prisma.ClientCompatEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>[]
+          }
+          create: {
+            args: Prisma.ClientCompatEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          createMany: {
+            args: Prisma.ClientCompatEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ClientCompatEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>[]
+          }
+          delete: {
+            args: Prisma.ClientCompatEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          update: {
+            args: Prisma.ClientCompatEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.ClientCompatEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ClientCompatEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ClientCompatEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          aggregate: {
+            args: Prisma.ClientCompatEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateClientCompatEvent>
+          }
+          groupBy: {
+            args: Prisma.ClientCompatEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ClientCompatEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ClientCompatEventCountArgs<ExtArgs>
+            result: $Utils.Optional<ClientCompatEventCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3434,6 +3842,8 @@ export namespace Prisma {
     agentDrafts: number
     trainingLocations: number
     servicePackages: number
+    physiquePhotos: number
+    mediaUploadIntents: number
   }
 
   export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3441,6 +3851,8 @@ export namespace Prisma {
     agentDrafts?: boolean | UserProfileCountOutputTypeCountAgentDraftsArgs
     trainingLocations?: boolean | UserProfileCountOutputTypeCountTrainingLocationsArgs
     servicePackages?: boolean | UserProfileCountOutputTypeCountServicePackagesArgs
+    physiquePhotos?: boolean | UserProfileCountOutputTypeCountPhysiquePhotosArgs
+    mediaUploadIntents?: boolean | UserProfileCountOutputTypeCountMediaUploadIntentsArgs
   }
 
   // Custom InputTypes
@@ -3480,6 +3892,20 @@ export namespace Prisma {
    */
   export type UserProfileCountOutputTypeCountServicePackagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PTServicePackageWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountPhysiquePhotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtPhysiquePhotoWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountMediaUploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtMediaUploadIntentWhereInput
   }
 
 
@@ -3740,6 +4166,7 @@ export namespace Prisma {
   }
 
   export type UserProfileAvgAggregateOutputType = {
+    listingVersion: number | null
     ptLockSeq: number | null
     age: number | null
     heightCm: number | null
@@ -3752,6 +4179,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumAggregateOutputType = {
+    listingVersion: number | null
     ptLockSeq: bigint | null
     age: number | null
     heightCm: number | null
@@ -3771,6 +4199,8 @@ export namespace Prisma {
     email: string | null
     isPT: boolean | null
     ptSuspended: boolean | null
+    listingVersion: number | null
+    listingPublishedAt: Date | null
     ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
@@ -3817,6 +4247,8 @@ export namespace Prisma {
     email: string | null
     isPT: boolean | null
     ptSuspended: boolean | null
+    listingVersion: number | null
+    listingPublishedAt: Date | null
     ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
@@ -3863,6 +4295,8 @@ export namespace Prisma {
     email: number
     isPT: number
     ptSuspended: number
+    listingVersion: number
+    listingPublishedAt: number
     ptLockSeq: number
     referralCode: number
     dateOfBirth: number
@@ -3910,6 +4344,7 @@ export namespace Prisma {
 
 
   export type UserProfileAvgAggregateInputType = {
+    listingVersion?: true
     ptLockSeq?: true
     age?: true
     heightCm?: true
@@ -3922,6 +4357,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumAggregateInputType = {
+    listingVersion?: true
     ptLockSeq?: true
     age?: true
     heightCm?: true
@@ -3941,6 +4377,8 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    listingVersion?: true
+    listingPublishedAt?: true
     ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
@@ -3987,6 +4425,8 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    listingVersion?: true
+    listingPublishedAt?: true
     ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
@@ -4033,6 +4473,8 @@ export namespace Prisma {
     email?: true
     isPT?: true
     ptSuspended?: true
+    listingVersion?: true
+    listingPublishedAt?: true
     ptLockSeq?: true
     referralCode?: true
     dateOfBirth?: true
@@ -4172,6 +4614,8 @@ export namespace Prisma {
     email: string | null
     isPT: boolean
     ptSuspended: boolean
+    listingVersion: number
+    listingPublishedAt: Date | null
     ptLockSeq: bigint | null
     referralCode: string | null
     dateOfBirth: Date | null
@@ -4243,6 +4687,8 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
     ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
@@ -4290,6 +4736,8 @@ export namespace Prisma {
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
+    physiquePhotos?: boolean | UserProfile$physiquePhotosArgs<ExtArgs>
+    mediaUploadIntents?: boolean | UserProfile$mediaUploadIntentsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["userProfile"]>
 
@@ -4301,6 +4749,8 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
     ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
@@ -4353,6 +4803,8 @@ export namespace Prisma {
     email?: boolean
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
     ptLockSeq?: boolean
     referralCode?: boolean
     dateOfBirth?: boolean
@@ -4403,6 +4855,8 @@ export namespace Prisma {
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
     trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
     servicePackages?: boolean | UserProfile$servicePackagesArgs<ExtArgs>
+    physiquePhotos?: boolean | UserProfile$physiquePhotosArgs<ExtArgs>
+    mediaUploadIntents?: boolean | UserProfile$mediaUploadIntentsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -4415,6 +4869,8 @@ export namespace Prisma {
       ptApplication: Prisma.$PTApplicationPayload<ExtArgs> | null
       trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
       servicePackages: Prisma.$PTServicePackagePayload<ExtArgs>[]
+      physiquePhotos: Prisma.$PtPhysiquePhotoPayload<ExtArgs>[]
+      mediaUploadIntents: Prisma.$PtMediaUploadIntentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4424,6 +4880,8 @@ export namespace Prisma {
       email: string | null
       isPT: boolean
       ptSuspended: boolean
+      listingVersion: number
+      listingPublishedAt: Date | null
       ptLockSeq: bigint | null
       referralCode: string | null
       dateOfBirth: Date | null
@@ -4835,6 +5293,8 @@ export namespace Prisma {
     ptApplication<T extends UserProfile$ptApplicationArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$ptApplicationArgs<ExtArgs>>): Prisma__PTApplicationClient<$Result.GetResult<Prisma.$PTApplicationPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     trainingLocations<T extends UserProfile$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
     servicePackages<T extends UserProfile$servicePackagesArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$servicePackagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTServicePackagePayload<ExtArgs>, T, "findMany"> | Null>
+    physiquePhotos<T extends UserProfile$physiquePhotosArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$physiquePhotosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findMany"> | Null>
+    mediaUploadIntents<T extends UserProfile$mediaUploadIntentsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$mediaUploadIntentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4871,6 +5331,8 @@ export namespace Prisma {
     readonly email: FieldRef<"UserProfile", 'String'>
     readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly ptSuspended: FieldRef<"UserProfile", 'Boolean'>
+    readonly listingVersion: FieldRef<"UserProfile", 'Int'>
+    readonly listingPublishedAt: FieldRef<"UserProfile", 'DateTime'>
     readonly ptLockSeq: FieldRef<"UserProfile", 'BigInt'>
     readonly referralCode: FieldRef<"UserProfile", 'String'>
     readonly dateOfBirth: FieldRef<"UserProfile", 'DateTime'>
@@ -5319,6 +5781,46 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PTServicePackageScalarFieldEnum | PTServicePackageScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.physiquePhotos
+   */
+  export type UserProfile$physiquePhotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    where?: PtPhysiquePhotoWhereInput
+    orderBy?: PtPhysiquePhotoOrderByWithRelationInput | PtPhysiquePhotoOrderByWithRelationInput[]
+    cursor?: PtPhysiquePhotoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtPhysiquePhotoScalarFieldEnum | PtPhysiquePhotoScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.mediaUploadIntents
+   */
+  export type UserProfile$mediaUploadIntentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    where?: PtMediaUploadIntentWhereInput
+    orderBy?: PtMediaUploadIntentOrderByWithRelationInput | PtMediaUploadIntentOrderByWithRelationInput[]
+    cursor?: PtMediaUploadIntentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtMediaUploadIntentScalarFieldEnum | PtMediaUploadIntentScalarFieldEnum[]
   }
 
   /**
@@ -21855,6 +22357,7 @@ export namespace Prisma {
     price: Decimal | null
     sessionDurationMinutes: number | null
     validityDays: number | null
+    version: number | null
   }
 
   export type PTServicePackageSumAggregateOutputType = {
@@ -21862,6 +22365,7 @@ export namespace Prisma {
     price: Decimal | null
     sessionDurationMinutes: number | null
     validityDays: number | null
+    version: number | null
   }
 
   export type PTServicePackageMinAggregateOutputType = {
@@ -21876,6 +22380,7 @@ export namespace Prisma {
     validityDays: number | null
     isActive: boolean | null
     archivedAt: Date | null
+    version: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -21892,6 +22397,7 @@ export namespace Prisma {
     validityDays: number | null
     isActive: boolean | null
     archivedAt: Date | null
+    version: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -21908,6 +22414,7 @@ export namespace Prisma {
     validityDays: number
     isActive: number
     archivedAt: number
+    version: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -21919,6 +22426,7 @@ export namespace Prisma {
     price?: true
     sessionDurationMinutes?: true
     validityDays?: true
+    version?: true
   }
 
   export type PTServicePackageSumAggregateInputType = {
@@ -21926,6 +22434,7 @@ export namespace Prisma {
     price?: true
     sessionDurationMinutes?: true
     validityDays?: true
+    version?: true
   }
 
   export type PTServicePackageMinAggregateInputType = {
@@ -21940,6 +22449,7 @@ export namespace Prisma {
     validityDays?: true
     isActive?: true
     archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -21956,6 +22466,7 @@ export namespace Prisma {
     validityDays?: true
     isActive?: true
     archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -21972,6 +22483,7 @@ export namespace Prisma {
     validityDays?: true
     isActive?: true
     archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -22075,6 +22587,7 @@ export namespace Prisma {
     validityDays: number | null
     isActive: boolean
     archivedAt: Date | null
+    version: number
     createdAt: Date
     updatedAt: Date
     _count: PTServicePackageCountAggregateOutputType | null
@@ -22110,6 +22623,7 @@ export namespace Prisma {
     validityDays?: boolean
     isActive?: boolean
     archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
@@ -22127,6 +22641,7 @@ export namespace Prisma {
     validityDays?: boolean
     isActive?: boolean
     archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
@@ -22144,6 +22659,7 @@ export namespace Prisma {
     validityDays?: boolean
     isActive?: boolean
     archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -22172,6 +22688,7 @@ export namespace Prisma {
       validityDays: number | null
       isActive: boolean
       archivedAt: Date | null
+      version: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["pTServicePackage"]>
@@ -22579,6 +23096,7 @@ export namespace Prisma {
     readonly validityDays: FieldRef<"PTServicePackage", 'Int'>
     readonly isActive: FieldRef<"PTServicePackage", 'Boolean'>
     readonly archivedAt: FieldRef<"PTServicePackage", 'DateTime'>
+    readonly version: FieldRef<"PTServicePackage", 'Int'>
     readonly createdAt: FieldRef<"PTServicePackage", 'DateTime'>
     readonly updatedAt: FieldRef<"PTServicePackage", 'DateTime'>
   }
@@ -32602,6 +33120,4007 @@ export namespace Prisma {
 
 
   /**
+   * Model PtListingRevision
+   */
+
+  export type AggregatePtListingRevision = {
+    _count: PtListingRevisionCountAggregateOutputType | null
+    _avg: PtListingRevisionAvgAggregateOutputType | null
+    _sum: PtListingRevisionSumAggregateOutputType | null
+    _min: PtListingRevisionMinAggregateOutputType | null
+    _max: PtListingRevisionMaxAggregateOutputType | null
+  }
+
+  export type PtListingRevisionAvgAggregateOutputType = {
+    baseVersion: number | null
+    draftVersion: number | null
+  }
+
+  export type PtListingRevisionSumAggregateOutputType = {
+    baseVersion: number | null
+    draftVersion: number | null
+  }
+
+  export type PtListingRevisionMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    status: $Enums.PtListingRevisionStatus | null
+    source: $Enums.PtListingRevisionSource | null
+    parentRevisionId: string | null
+    baseVersion: number | null
+    draftVersion: number | null
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtListingRevisionMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    status: $Enums.PtListingRevisionStatus | null
+    source: $Enums.PtListingRevisionSource | null
+    parentRevisionId: string | null
+    baseVersion: number | null
+    draftVersion: number | null
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtListingRevisionCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    status: number
+    source: number
+    parentRevisionId: number
+    baseVersion: number
+    draftVersion: number
+    payload: number
+    previousSnapshot: number
+    systemAdjustments: number
+    submittedBy: number
+    submittedAt: number
+    reviewedBy: number
+    reviewedAt: number
+    reviewNote: number
+    ownerNote: number
+    adminReason: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PtListingRevisionAvgAggregateInputType = {
+    baseVersion?: true
+    draftVersion?: true
+  }
+
+  export type PtListingRevisionSumAggregateInputType = {
+    baseVersion?: true
+    draftVersion?: true
+  }
+
+  export type PtListingRevisionMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtListingRevisionMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtListingRevisionCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    payload?: true
+    previousSnapshot?: true
+    systemAdjustments?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PtListingRevisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtListingRevision to aggregate.
+     */
+    where?: PtListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtListingRevisions to fetch.
+     */
+    orderBy?: PtListingRevisionOrderByWithRelationInput | PtListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtListingRevisions
+    **/
+    _count?: true | PtListingRevisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtListingRevisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtListingRevisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtListingRevisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtListingRevisionMaxAggregateInputType
+  }
+
+  export type GetPtListingRevisionAggregateType<T extends PtListingRevisionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtListingRevision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtListingRevision[P]>
+      : GetScalarType<T[P], AggregatePtListingRevision[P]>
+  }
+
+
+
+
+  export type PtListingRevisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtListingRevisionWhereInput
+    orderBy?: PtListingRevisionOrderByWithAggregationInput | PtListingRevisionOrderByWithAggregationInput[]
+    by: PtListingRevisionScalarFieldEnum[] | PtListingRevisionScalarFieldEnum
+    having?: PtListingRevisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtListingRevisionCountAggregateInputType | true
+    _avg?: PtListingRevisionAvgAggregateInputType
+    _sum?: PtListingRevisionSumAggregateInputType
+    _min?: PtListingRevisionMinAggregateInputType
+    _max?: PtListingRevisionMaxAggregateInputType
+  }
+
+  export type PtListingRevisionGroupByOutputType = {
+    id: string
+    ptUserId: string
+    status: $Enums.PtListingRevisionStatus
+    source: $Enums.PtListingRevisionSource
+    parentRevisionId: string | null
+    baseVersion: number
+    draftVersion: number
+    payload: JsonValue
+    previousSnapshot: JsonValue | null
+    systemAdjustments: JsonValue
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PtListingRevisionCountAggregateOutputType | null
+    _avg: PtListingRevisionAvgAggregateOutputType | null
+    _sum: PtListingRevisionSumAggregateOutputType | null
+    _min: PtListingRevisionMinAggregateOutputType | null
+    _max: PtListingRevisionMaxAggregateOutputType | null
+  }
+
+  type GetPtListingRevisionGroupByPayload<T extends PtListingRevisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtListingRevisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtListingRevisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtListingRevisionGroupByOutputType[P]>
+            : GetScalarType<T[P], PtListingRevisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtListingRevisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ptListingRevision"]>
+
+  export type PtListingRevisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ptListingRevision"]>
+
+  export type PtListingRevisionSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $PtListingRevisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtListingRevision"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * The PT whose listing this edits. No FK on purpose: closed revisions are immutable history.
+       */
+      ptUserId: string
+      status: $Enums.PtListingRevisionStatus
+      source: $Enums.PtListingRevisionSource
+      /**
+       * The revision this one was copied from / rebased from (null for a first draft).
+       */
+      parentRevisionId: string | null
+      /**
+       * UserProfile.listingVersion the draft was started from. Submitting requires it to still equal listingVersion.
+       */
+      baseVersion: number
+      /**
+       * Optimistic concurrency token of the DRAFT (PUT .../listing/draft must send the expected value).
+       */
+      draftVersion: number
+      /**
+       * { profile: {...}, packages: [...], photoIds: [...], coverPhotoId }
+       */
+      payload: Prisma.JsonValue
+      /**
+       * The public listing as it was just before this revision was applied (set when it is approved).
+       */
+      previousSnapshot: Prisma.JsonValue | null
+      /**
+       * Fix-ups the server made on its own (e.g. a photo dropped because its file is gone).
+       */
+      systemAdjustments: Prisma.JsonValue
+      submittedBy: string | null
+      submittedAt: Date | null
+      reviewedBy: string | null
+      reviewedAt: Date | null
+      reviewNote: string | null
+      ownerNote: string | null
+      adminReason: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["ptListingRevision"]>
+    composites: {}
+  }
+
+  type PtListingRevisionGetPayload<S extends boolean | null | undefined | PtListingRevisionDefaultArgs> = $Result.GetResult<Prisma.$PtListingRevisionPayload, S>
+
+  type PtListingRevisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtListingRevisionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtListingRevisionCountAggregateInputType | true
+    }
+
+  export interface PtListingRevisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtListingRevision'], meta: { name: 'PtListingRevision' } }
+    /**
+     * Find zero or one PtListingRevision that matches the filter.
+     * @param {PtListingRevisionFindUniqueArgs} args - Arguments to find a PtListingRevision
+     * @example
+     * // Get one PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtListingRevisionFindUniqueArgs>(args: SelectSubset<T, PtListingRevisionFindUniqueArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtListingRevision that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtListingRevisionFindUniqueOrThrowArgs} args - Arguments to find a PtListingRevision
+     * @example
+     * // Get one PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtListingRevisionFindUniqueOrThrowArgs>(args: SelectSubset<T, PtListingRevisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtListingRevision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionFindFirstArgs} args - Arguments to find a PtListingRevision
+     * @example
+     * // Get one PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtListingRevisionFindFirstArgs>(args?: SelectSubset<T, PtListingRevisionFindFirstArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtListingRevision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionFindFirstOrThrowArgs} args - Arguments to find a PtListingRevision
+     * @example
+     * // Get one PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtListingRevisionFindFirstOrThrowArgs>(args?: SelectSubset<T, PtListingRevisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtListingRevisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtListingRevisions
+     * const ptListingRevisions = await prisma.ptListingRevision.findMany()
+     * 
+     * // Get first 10 PtListingRevisions
+     * const ptListingRevisions = await prisma.ptListingRevision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptListingRevisionWithIdOnly = await prisma.ptListingRevision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtListingRevisionFindManyArgs>(args?: SelectSubset<T, PtListingRevisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtListingRevision.
+     * @param {PtListingRevisionCreateArgs} args - Arguments to create a PtListingRevision.
+     * @example
+     * // Create one PtListingRevision
+     * const PtListingRevision = await prisma.ptListingRevision.create({
+     *   data: {
+     *     // ... data to create a PtListingRevision
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtListingRevisionCreateArgs>(args: SelectSubset<T, PtListingRevisionCreateArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtListingRevisions.
+     * @param {PtListingRevisionCreateManyArgs} args - Arguments to create many PtListingRevisions.
+     * @example
+     * // Create many PtListingRevisions
+     * const ptListingRevision = await prisma.ptListingRevision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtListingRevisionCreateManyArgs>(args?: SelectSubset<T, PtListingRevisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtListingRevisions and returns the data saved in the database.
+     * @param {PtListingRevisionCreateManyAndReturnArgs} args - Arguments to create many PtListingRevisions.
+     * @example
+     * // Create many PtListingRevisions
+     * const ptListingRevision = await prisma.ptListingRevision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtListingRevisions and only return the `id`
+     * const ptListingRevisionWithIdOnly = await prisma.ptListingRevision.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtListingRevisionCreateManyAndReturnArgs>(args?: SelectSubset<T, PtListingRevisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtListingRevision.
+     * @param {PtListingRevisionDeleteArgs} args - Arguments to delete one PtListingRevision.
+     * @example
+     * // Delete one PtListingRevision
+     * const PtListingRevision = await prisma.ptListingRevision.delete({
+     *   where: {
+     *     // ... filter to delete one PtListingRevision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtListingRevisionDeleteArgs>(args: SelectSubset<T, PtListingRevisionDeleteArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtListingRevision.
+     * @param {PtListingRevisionUpdateArgs} args - Arguments to update one PtListingRevision.
+     * @example
+     * // Update one PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtListingRevisionUpdateArgs>(args: SelectSubset<T, PtListingRevisionUpdateArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtListingRevisions.
+     * @param {PtListingRevisionDeleteManyArgs} args - Arguments to filter PtListingRevisions to delete.
+     * @example
+     * // Delete a few PtListingRevisions
+     * const { count } = await prisma.ptListingRevision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtListingRevisionDeleteManyArgs>(args?: SelectSubset<T, PtListingRevisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtListingRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtListingRevisions
+     * const ptListingRevision = await prisma.ptListingRevision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtListingRevisionUpdateManyArgs>(args: SelectSubset<T, PtListingRevisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtListingRevision.
+     * @param {PtListingRevisionUpsertArgs} args - Arguments to update or create a PtListingRevision.
+     * @example
+     * // Update or create a PtListingRevision
+     * const ptListingRevision = await prisma.ptListingRevision.upsert({
+     *   create: {
+     *     // ... data to create a PtListingRevision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtListingRevision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtListingRevisionUpsertArgs>(args: SelectSubset<T, PtListingRevisionUpsertArgs<ExtArgs>>): Prisma__PtListingRevisionClient<$Result.GetResult<Prisma.$PtListingRevisionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtListingRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionCountArgs} args - Arguments to filter PtListingRevisions to count.
+     * @example
+     * // Count the number of PtListingRevisions
+     * const count = await prisma.ptListingRevision.count({
+     *   where: {
+     *     // ... the filter for the PtListingRevisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtListingRevisionCountArgs>(
+      args?: Subset<T, PtListingRevisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtListingRevisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtListingRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtListingRevisionAggregateArgs>(args: Subset<T, PtListingRevisionAggregateArgs>): Prisma.PrismaPromise<GetPtListingRevisionAggregateType<T>>
+
+    /**
+     * Group by PtListingRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtListingRevisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtListingRevisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtListingRevisionGroupByArgs['orderBy'] }
+        : { orderBy?: PtListingRevisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtListingRevisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtListingRevisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtListingRevision model
+   */
+  readonly fields: PtListingRevisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtListingRevision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtListingRevisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtListingRevision model
+   */ 
+  interface PtListingRevisionFieldRefs {
+    readonly id: FieldRef<"PtListingRevision", 'String'>
+    readonly ptUserId: FieldRef<"PtListingRevision", 'String'>
+    readonly status: FieldRef<"PtListingRevision", 'PtListingRevisionStatus'>
+    readonly source: FieldRef<"PtListingRevision", 'PtListingRevisionSource'>
+    readonly parentRevisionId: FieldRef<"PtListingRevision", 'String'>
+    readonly baseVersion: FieldRef<"PtListingRevision", 'Int'>
+    readonly draftVersion: FieldRef<"PtListingRevision", 'Int'>
+    readonly payload: FieldRef<"PtListingRevision", 'Json'>
+    readonly previousSnapshot: FieldRef<"PtListingRevision", 'Json'>
+    readonly systemAdjustments: FieldRef<"PtListingRevision", 'Json'>
+    readonly submittedBy: FieldRef<"PtListingRevision", 'String'>
+    readonly submittedAt: FieldRef<"PtListingRevision", 'DateTime'>
+    readonly reviewedBy: FieldRef<"PtListingRevision", 'String'>
+    readonly reviewedAt: FieldRef<"PtListingRevision", 'DateTime'>
+    readonly reviewNote: FieldRef<"PtListingRevision", 'String'>
+    readonly ownerNote: FieldRef<"PtListingRevision", 'String'>
+    readonly adminReason: FieldRef<"PtListingRevision", 'String'>
+    readonly createdAt: FieldRef<"PtListingRevision", 'DateTime'>
+    readonly updatedAt: FieldRef<"PtListingRevision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtListingRevision findUnique
+   */
+  export type PtListingRevisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which PtListingRevision to fetch.
+     */
+    where: PtListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * PtListingRevision findUniqueOrThrow
+   */
+  export type PtListingRevisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which PtListingRevision to fetch.
+     */
+    where: PtListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * PtListingRevision findFirst
+   */
+  export type PtListingRevisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which PtListingRevision to fetch.
+     */
+    where?: PtListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtListingRevisions to fetch.
+     */
+    orderBy?: PtListingRevisionOrderByWithRelationInput | PtListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtListingRevisions.
+     */
+    cursor?: PtListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtListingRevisions.
+     */
+    distinct?: PtListingRevisionScalarFieldEnum | PtListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * PtListingRevision findFirstOrThrow
+   */
+  export type PtListingRevisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which PtListingRevision to fetch.
+     */
+    where?: PtListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtListingRevisions to fetch.
+     */
+    orderBy?: PtListingRevisionOrderByWithRelationInput | PtListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtListingRevisions.
+     */
+    cursor?: PtListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtListingRevisions.
+     */
+    distinct?: PtListingRevisionScalarFieldEnum | PtListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * PtListingRevision findMany
+   */
+  export type PtListingRevisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which PtListingRevisions to fetch.
+     */
+    where?: PtListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtListingRevisions to fetch.
+     */
+    orderBy?: PtListingRevisionOrderByWithRelationInput | PtListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtListingRevisions.
+     */
+    cursor?: PtListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtListingRevisions.
+     */
+    skip?: number
+    distinct?: PtListingRevisionScalarFieldEnum | PtListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * PtListingRevision create
+   */
+  export type PtListingRevisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PtListingRevision.
+     */
+    data: XOR<PtListingRevisionCreateInput, PtListingRevisionUncheckedCreateInput>
+  }
+
+  /**
+   * PtListingRevision createMany
+   */
+  export type PtListingRevisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtListingRevisions.
+     */
+    data: PtListingRevisionCreateManyInput | PtListingRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtListingRevision createManyAndReturn
+   */
+  export type PtListingRevisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtListingRevisions.
+     */
+    data: PtListingRevisionCreateManyInput | PtListingRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtListingRevision update
+   */
+  export type PtListingRevisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PtListingRevision.
+     */
+    data: XOR<PtListingRevisionUpdateInput, PtListingRevisionUncheckedUpdateInput>
+    /**
+     * Choose, which PtListingRevision to update.
+     */
+    where: PtListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * PtListingRevision updateMany
+   */
+  export type PtListingRevisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtListingRevisions.
+     */
+    data: XOR<PtListingRevisionUpdateManyMutationInput, PtListingRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which PtListingRevisions to update
+     */
+    where?: PtListingRevisionWhereInput
+  }
+
+  /**
+   * PtListingRevision upsert
+   */
+  export type PtListingRevisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PtListingRevision to update in case it exists.
+     */
+    where: PtListingRevisionWhereUniqueInput
+    /**
+     * In case the PtListingRevision found by the `where` argument doesn't exist, create a new PtListingRevision with this data.
+     */
+    create: XOR<PtListingRevisionCreateInput, PtListingRevisionUncheckedCreateInput>
+    /**
+     * In case the PtListingRevision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtListingRevisionUpdateInput, PtListingRevisionUncheckedUpdateInput>
+  }
+
+  /**
+   * PtListingRevision delete
+   */
+  export type PtListingRevisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+    /**
+     * Filter which PtListingRevision to delete.
+     */
+    where: PtListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * PtListingRevision deleteMany
+   */
+  export type PtListingRevisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtListingRevisions to delete
+     */
+    where?: PtListingRevisionWhereInput
+  }
+
+  /**
+   * PtListingRevision without action
+   */
+  export type PtListingRevisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtListingRevision
+     */
+    select?: PtListingRevisionSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtPhysiquePhoto
+   */
+
+  export type AggregatePtPhysiquePhoto = {
+    _count: PtPhysiquePhotoCountAggregateOutputType | null
+    _avg: PtPhysiquePhotoAvgAggregateOutputType | null
+    _sum: PtPhysiquePhotoSumAggregateOutputType | null
+    _min: PtPhysiquePhotoMinAggregateOutputType | null
+    _max: PtPhysiquePhotoMaxAggregateOutputType | null
+  }
+
+  export type PtPhysiquePhotoAvgAggregateOutputType = {
+    sortOrder: number | null
+    bytes: number | null
+  }
+
+  export type PtPhysiquePhotoSumAggregateOutputType = {
+    sortOrder: number | null
+    bytes: number | null
+  }
+
+  export type PtPhysiquePhotoMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    storageKey: string | null
+    status: $Enums.PtPhysiquePhotoStatus | null
+    sortOrder: number | null
+    isCover: boolean | null
+    mime: string | null
+    bytes: number | null
+    contentHash: string | null
+    uploadedBy: string | null
+    retiredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PtPhysiquePhotoMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    storageKey: string | null
+    status: $Enums.PtPhysiquePhotoStatus | null
+    sortOrder: number | null
+    isCover: boolean | null
+    mime: string | null
+    bytes: number | null
+    contentHash: string | null
+    uploadedBy: string | null
+    retiredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PtPhysiquePhotoCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    storageKey: number
+    status: number
+    sortOrder: number
+    isCover: number
+    mime: number
+    bytes: number
+    contentHash: number
+    uploadedBy: number
+    retiredAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PtPhysiquePhotoAvgAggregateInputType = {
+    sortOrder?: true
+    bytes?: true
+  }
+
+  export type PtPhysiquePhotoSumAggregateInputType = {
+    sortOrder?: true
+    bytes?: true
+  }
+
+  export type PtPhysiquePhotoMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    storageKey?: true
+    status?: true
+    sortOrder?: true
+    isCover?: true
+    mime?: true
+    bytes?: true
+    contentHash?: true
+    uploadedBy?: true
+    retiredAt?: true
+    createdAt?: true
+  }
+
+  export type PtPhysiquePhotoMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    storageKey?: true
+    status?: true
+    sortOrder?: true
+    isCover?: true
+    mime?: true
+    bytes?: true
+    contentHash?: true
+    uploadedBy?: true
+    retiredAt?: true
+    createdAt?: true
+  }
+
+  export type PtPhysiquePhotoCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    storageKey?: true
+    status?: true
+    sortOrder?: true
+    isCover?: true
+    mime?: true
+    bytes?: true
+    contentHash?: true
+    uploadedBy?: true
+    retiredAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PtPhysiquePhotoAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtPhysiquePhoto to aggregate.
+     */
+    where?: PtPhysiquePhotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtPhysiquePhotos to fetch.
+     */
+    orderBy?: PtPhysiquePhotoOrderByWithRelationInput | PtPhysiquePhotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtPhysiquePhotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtPhysiquePhotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtPhysiquePhotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtPhysiquePhotos
+    **/
+    _count?: true | PtPhysiquePhotoCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtPhysiquePhotoAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtPhysiquePhotoSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtPhysiquePhotoMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtPhysiquePhotoMaxAggregateInputType
+  }
+
+  export type GetPtPhysiquePhotoAggregateType<T extends PtPhysiquePhotoAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtPhysiquePhoto]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtPhysiquePhoto[P]>
+      : GetScalarType<T[P], AggregatePtPhysiquePhoto[P]>
+  }
+
+
+
+
+  export type PtPhysiquePhotoGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtPhysiquePhotoWhereInput
+    orderBy?: PtPhysiquePhotoOrderByWithAggregationInput | PtPhysiquePhotoOrderByWithAggregationInput[]
+    by: PtPhysiquePhotoScalarFieldEnum[] | PtPhysiquePhotoScalarFieldEnum
+    having?: PtPhysiquePhotoScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtPhysiquePhotoCountAggregateInputType | true
+    _avg?: PtPhysiquePhotoAvgAggregateInputType
+    _sum?: PtPhysiquePhotoSumAggregateInputType
+    _min?: PtPhysiquePhotoMinAggregateInputType
+    _max?: PtPhysiquePhotoMaxAggregateInputType
+  }
+
+  export type PtPhysiquePhotoGroupByOutputType = {
+    id: string
+    ptUserId: string
+    storageKey: string
+    status: $Enums.PtPhysiquePhotoStatus
+    sortOrder: number
+    isCover: boolean
+    mime: string
+    bytes: number
+    contentHash: string | null
+    uploadedBy: string
+    retiredAt: Date | null
+    createdAt: Date
+    _count: PtPhysiquePhotoCountAggregateOutputType | null
+    _avg: PtPhysiquePhotoAvgAggregateOutputType | null
+    _sum: PtPhysiquePhotoSumAggregateOutputType | null
+    _min: PtPhysiquePhotoMinAggregateOutputType | null
+    _max: PtPhysiquePhotoMaxAggregateOutputType | null
+  }
+
+  type GetPtPhysiquePhotoGroupByPayload<T extends PtPhysiquePhotoGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtPhysiquePhotoGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtPhysiquePhotoGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtPhysiquePhotoGroupByOutputType[P]>
+            : GetScalarType<T[P], PtPhysiquePhotoGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtPhysiquePhotoSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    storageKey?: boolean
+    status?: boolean
+    sortOrder?: boolean
+    isCover?: boolean
+    mime?: boolean
+    bytes?: boolean
+    contentHash?: boolean
+    uploadedBy?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptPhysiquePhoto"]>
+
+  export type PtPhysiquePhotoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    storageKey?: boolean
+    status?: boolean
+    sortOrder?: boolean
+    isCover?: boolean
+    mime?: boolean
+    bytes?: boolean
+    contentHash?: boolean
+    uploadedBy?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptPhysiquePhoto"]>
+
+  export type PtPhysiquePhotoSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    storageKey?: boolean
+    status?: boolean
+    sortOrder?: boolean
+    isCover?: boolean
+    mime?: boolean
+    bytes?: boolean
+    contentHash?: boolean
+    uploadedBy?: boolean
+    retiredAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type PtPhysiquePhotoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type PtPhysiquePhotoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $PtPhysiquePhotoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtPhysiquePhoto"
+    objects: {
+      ptProfile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      storageKey: string
+      status: $Enums.PtPhysiquePhotoStatus
+      sortOrder: number
+      isCover: boolean
+      mime: string
+      bytes: number
+      /**
+       * sha256 of the file, computed when the upload is confirmed. NULL for rows that have none.
+       */
+      contentHash: string | null
+      uploadedBy: string
+      retiredAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["ptPhysiquePhoto"]>
+    composites: {}
+  }
+
+  type PtPhysiquePhotoGetPayload<S extends boolean | null | undefined | PtPhysiquePhotoDefaultArgs> = $Result.GetResult<Prisma.$PtPhysiquePhotoPayload, S>
+
+  type PtPhysiquePhotoCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtPhysiquePhotoFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtPhysiquePhotoCountAggregateInputType | true
+    }
+
+  export interface PtPhysiquePhotoDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtPhysiquePhoto'], meta: { name: 'PtPhysiquePhoto' } }
+    /**
+     * Find zero or one PtPhysiquePhoto that matches the filter.
+     * @param {PtPhysiquePhotoFindUniqueArgs} args - Arguments to find a PtPhysiquePhoto
+     * @example
+     * // Get one PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtPhysiquePhotoFindUniqueArgs>(args: SelectSubset<T, PtPhysiquePhotoFindUniqueArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtPhysiquePhoto that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtPhysiquePhotoFindUniqueOrThrowArgs} args - Arguments to find a PtPhysiquePhoto
+     * @example
+     * // Get one PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtPhysiquePhotoFindUniqueOrThrowArgs>(args: SelectSubset<T, PtPhysiquePhotoFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtPhysiquePhoto that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoFindFirstArgs} args - Arguments to find a PtPhysiquePhoto
+     * @example
+     * // Get one PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtPhysiquePhotoFindFirstArgs>(args?: SelectSubset<T, PtPhysiquePhotoFindFirstArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtPhysiquePhoto that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoFindFirstOrThrowArgs} args - Arguments to find a PtPhysiquePhoto
+     * @example
+     * // Get one PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtPhysiquePhotoFindFirstOrThrowArgs>(args?: SelectSubset<T, PtPhysiquePhotoFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtPhysiquePhotos that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtPhysiquePhotos
+     * const ptPhysiquePhotos = await prisma.ptPhysiquePhoto.findMany()
+     * 
+     * // Get first 10 PtPhysiquePhotos
+     * const ptPhysiquePhotos = await prisma.ptPhysiquePhoto.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptPhysiquePhotoWithIdOnly = await prisma.ptPhysiquePhoto.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtPhysiquePhotoFindManyArgs>(args?: SelectSubset<T, PtPhysiquePhotoFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtPhysiquePhoto.
+     * @param {PtPhysiquePhotoCreateArgs} args - Arguments to create a PtPhysiquePhoto.
+     * @example
+     * // Create one PtPhysiquePhoto
+     * const PtPhysiquePhoto = await prisma.ptPhysiquePhoto.create({
+     *   data: {
+     *     // ... data to create a PtPhysiquePhoto
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtPhysiquePhotoCreateArgs>(args: SelectSubset<T, PtPhysiquePhotoCreateArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtPhysiquePhotos.
+     * @param {PtPhysiquePhotoCreateManyArgs} args - Arguments to create many PtPhysiquePhotos.
+     * @example
+     * // Create many PtPhysiquePhotos
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtPhysiquePhotoCreateManyArgs>(args?: SelectSubset<T, PtPhysiquePhotoCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtPhysiquePhotos and returns the data saved in the database.
+     * @param {PtPhysiquePhotoCreateManyAndReturnArgs} args - Arguments to create many PtPhysiquePhotos.
+     * @example
+     * // Create many PtPhysiquePhotos
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtPhysiquePhotos and only return the `id`
+     * const ptPhysiquePhotoWithIdOnly = await prisma.ptPhysiquePhoto.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtPhysiquePhotoCreateManyAndReturnArgs>(args?: SelectSubset<T, PtPhysiquePhotoCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtPhysiquePhoto.
+     * @param {PtPhysiquePhotoDeleteArgs} args - Arguments to delete one PtPhysiquePhoto.
+     * @example
+     * // Delete one PtPhysiquePhoto
+     * const PtPhysiquePhoto = await prisma.ptPhysiquePhoto.delete({
+     *   where: {
+     *     // ... filter to delete one PtPhysiquePhoto
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtPhysiquePhotoDeleteArgs>(args: SelectSubset<T, PtPhysiquePhotoDeleteArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtPhysiquePhoto.
+     * @param {PtPhysiquePhotoUpdateArgs} args - Arguments to update one PtPhysiquePhoto.
+     * @example
+     * // Update one PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtPhysiquePhotoUpdateArgs>(args: SelectSubset<T, PtPhysiquePhotoUpdateArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtPhysiquePhotos.
+     * @param {PtPhysiquePhotoDeleteManyArgs} args - Arguments to filter PtPhysiquePhotos to delete.
+     * @example
+     * // Delete a few PtPhysiquePhotos
+     * const { count } = await prisma.ptPhysiquePhoto.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtPhysiquePhotoDeleteManyArgs>(args?: SelectSubset<T, PtPhysiquePhotoDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtPhysiquePhotos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtPhysiquePhotos
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtPhysiquePhotoUpdateManyArgs>(args: SelectSubset<T, PtPhysiquePhotoUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtPhysiquePhoto.
+     * @param {PtPhysiquePhotoUpsertArgs} args - Arguments to update or create a PtPhysiquePhoto.
+     * @example
+     * // Update or create a PtPhysiquePhoto
+     * const ptPhysiquePhoto = await prisma.ptPhysiquePhoto.upsert({
+     *   create: {
+     *     // ... data to create a PtPhysiquePhoto
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtPhysiquePhoto we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtPhysiquePhotoUpsertArgs>(args: SelectSubset<T, PtPhysiquePhotoUpsertArgs<ExtArgs>>): Prisma__PtPhysiquePhotoClient<$Result.GetResult<Prisma.$PtPhysiquePhotoPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtPhysiquePhotos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoCountArgs} args - Arguments to filter PtPhysiquePhotos to count.
+     * @example
+     * // Count the number of PtPhysiquePhotos
+     * const count = await prisma.ptPhysiquePhoto.count({
+     *   where: {
+     *     // ... the filter for the PtPhysiquePhotos we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtPhysiquePhotoCountArgs>(
+      args?: Subset<T, PtPhysiquePhotoCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtPhysiquePhotoCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtPhysiquePhoto.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtPhysiquePhotoAggregateArgs>(args: Subset<T, PtPhysiquePhotoAggregateArgs>): Prisma.PrismaPromise<GetPtPhysiquePhotoAggregateType<T>>
+
+    /**
+     * Group by PtPhysiquePhoto.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtPhysiquePhotoGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtPhysiquePhotoGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtPhysiquePhotoGroupByArgs['orderBy'] }
+        : { orderBy?: PtPhysiquePhotoGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtPhysiquePhotoGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtPhysiquePhotoGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtPhysiquePhoto model
+   */
+  readonly fields: PtPhysiquePhotoFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtPhysiquePhoto.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtPhysiquePhotoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    ptProfile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtPhysiquePhoto model
+   */ 
+  interface PtPhysiquePhotoFieldRefs {
+    readonly id: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly ptUserId: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly storageKey: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly status: FieldRef<"PtPhysiquePhoto", 'PtPhysiquePhotoStatus'>
+    readonly sortOrder: FieldRef<"PtPhysiquePhoto", 'Int'>
+    readonly isCover: FieldRef<"PtPhysiquePhoto", 'Boolean'>
+    readonly mime: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly bytes: FieldRef<"PtPhysiquePhoto", 'Int'>
+    readonly contentHash: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly uploadedBy: FieldRef<"PtPhysiquePhoto", 'String'>
+    readonly retiredAt: FieldRef<"PtPhysiquePhoto", 'DateTime'>
+    readonly createdAt: FieldRef<"PtPhysiquePhoto", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtPhysiquePhoto findUnique
+   */
+  export type PtPhysiquePhotoFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter, which PtPhysiquePhoto to fetch.
+     */
+    where: PtPhysiquePhotoWhereUniqueInput
+  }
+
+  /**
+   * PtPhysiquePhoto findUniqueOrThrow
+   */
+  export type PtPhysiquePhotoFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter, which PtPhysiquePhoto to fetch.
+     */
+    where: PtPhysiquePhotoWhereUniqueInput
+  }
+
+  /**
+   * PtPhysiquePhoto findFirst
+   */
+  export type PtPhysiquePhotoFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter, which PtPhysiquePhoto to fetch.
+     */
+    where?: PtPhysiquePhotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtPhysiquePhotos to fetch.
+     */
+    orderBy?: PtPhysiquePhotoOrderByWithRelationInput | PtPhysiquePhotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtPhysiquePhotos.
+     */
+    cursor?: PtPhysiquePhotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtPhysiquePhotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtPhysiquePhotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtPhysiquePhotos.
+     */
+    distinct?: PtPhysiquePhotoScalarFieldEnum | PtPhysiquePhotoScalarFieldEnum[]
+  }
+
+  /**
+   * PtPhysiquePhoto findFirstOrThrow
+   */
+  export type PtPhysiquePhotoFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter, which PtPhysiquePhoto to fetch.
+     */
+    where?: PtPhysiquePhotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtPhysiquePhotos to fetch.
+     */
+    orderBy?: PtPhysiquePhotoOrderByWithRelationInput | PtPhysiquePhotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtPhysiquePhotos.
+     */
+    cursor?: PtPhysiquePhotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtPhysiquePhotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtPhysiquePhotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtPhysiquePhotos.
+     */
+    distinct?: PtPhysiquePhotoScalarFieldEnum | PtPhysiquePhotoScalarFieldEnum[]
+  }
+
+  /**
+   * PtPhysiquePhoto findMany
+   */
+  export type PtPhysiquePhotoFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter, which PtPhysiquePhotos to fetch.
+     */
+    where?: PtPhysiquePhotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtPhysiquePhotos to fetch.
+     */
+    orderBy?: PtPhysiquePhotoOrderByWithRelationInput | PtPhysiquePhotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtPhysiquePhotos.
+     */
+    cursor?: PtPhysiquePhotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtPhysiquePhotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtPhysiquePhotos.
+     */
+    skip?: number
+    distinct?: PtPhysiquePhotoScalarFieldEnum | PtPhysiquePhotoScalarFieldEnum[]
+  }
+
+  /**
+   * PtPhysiquePhoto create
+   */
+  export type PtPhysiquePhotoCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtPhysiquePhoto.
+     */
+    data: XOR<PtPhysiquePhotoCreateInput, PtPhysiquePhotoUncheckedCreateInput>
+  }
+
+  /**
+   * PtPhysiquePhoto createMany
+   */
+  export type PtPhysiquePhotoCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtPhysiquePhotos.
+     */
+    data: PtPhysiquePhotoCreateManyInput | PtPhysiquePhotoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtPhysiquePhoto createManyAndReturn
+   */
+  export type PtPhysiquePhotoCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtPhysiquePhotos.
+     */
+    data: PtPhysiquePhotoCreateManyInput | PtPhysiquePhotoCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtPhysiquePhoto update
+   */
+  export type PtPhysiquePhotoUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtPhysiquePhoto.
+     */
+    data: XOR<PtPhysiquePhotoUpdateInput, PtPhysiquePhotoUncheckedUpdateInput>
+    /**
+     * Choose, which PtPhysiquePhoto to update.
+     */
+    where: PtPhysiquePhotoWhereUniqueInput
+  }
+
+  /**
+   * PtPhysiquePhoto updateMany
+   */
+  export type PtPhysiquePhotoUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtPhysiquePhotos.
+     */
+    data: XOR<PtPhysiquePhotoUpdateManyMutationInput, PtPhysiquePhotoUncheckedUpdateManyInput>
+    /**
+     * Filter which PtPhysiquePhotos to update
+     */
+    where?: PtPhysiquePhotoWhereInput
+  }
+
+  /**
+   * PtPhysiquePhoto upsert
+   */
+  export type PtPhysiquePhotoUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtPhysiquePhoto to update in case it exists.
+     */
+    where: PtPhysiquePhotoWhereUniqueInput
+    /**
+     * In case the PtPhysiquePhoto found by the `where` argument doesn't exist, create a new PtPhysiquePhoto with this data.
+     */
+    create: XOR<PtPhysiquePhotoCreateInput, PtPhysiquePhotoUncheckedCreateInput>
+    /**
+     * In case the PtPhysiquePhoto was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtPhysiquePhotoUpdateInput, PtPhysiquePhotoUncheckedUpdateInput>
+  }
+
+  /**
+   * PtPhysiquePhoto delete
+   */
+  export type PtPhysiquePhotoDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+    /**
+     * Filter which PtPhysiquePhoto to delete.
+     */
+    where: PtPhysiquePhotoWhereUniqueInput
+  }
+
+  /**
+   * PtPhysiquePhoto deleteMany
+   */
+  export type PtPhysiquePhotoDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtPhysiquePhotos to delete
+     */
+    where?: PtPhysiquePhotoWhereInput
+  }
+
+  /**
+   * PtPhysiquePhoto without action
+   */
+  export type PtPhysiquePhotoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtPhysiquePhoto
+     */
+    select?: PtPhysiquePhotoSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtPhysiquePhotoInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtMediaUploadIntent
+   */
+
+  export type AggregatePtMediaUploadIntent = {
+    _count: PtMediaUploadIntentCountAggregateOutputType | null
+    _min: PtMediaUploadIntentMinAggregateOutputType | null
+    _max: PtMediaUploadIntentMaxAggregateOutputType | null
+  }
+
+  export type PtMediaUploadIntentMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    objectKey: string | null
+    status: $Enums.PtMediaUploadIntentStatus | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtMediaUploadIntentMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    objectKey: string | null
+    status: $Enums.PtMediaUploadIntentStatus | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PtMediaUploadIntentCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    objectKey: number
+    status: number
+    expiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PtMediaUploadIntentMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    objectKey?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtMediaUploadIntentMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    objectKey?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PtMediaUploadIntentCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    objectKey?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PtMediaUploadIntentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtMediaUploadIntent to aggregate.
+     */
+    where?: PtMediaUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtMediaUploadIntents to fetch.
+     */
+    orderBy?: PtMediaUploadIntentOrderByWithRelationInput | PtMediaUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtMediaUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtMediaUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtMediaUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtMediaUploadIntents
+    **/
+    _count?: true | PtMediaUploadIntentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtMediaUploadIntentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtMediaUploadIntentMaxAggregateInputType
+  }
+
+  export type GetPtMediaUploadIntentAggregateType<T extends PtMediaUploadIntentAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtMediaUploadIntent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtMediaUploadIntent[P]>
+      : GetScalarType<T[P], AggregatePtMediaUploadIntent[P]>
+  }
+
+
+
+
+  export type PtMediaUploadIntentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtMediaUploadIntentWhereInput
+    orderBy?: PtMediaUploadIntentOrderByWithAggregationInput | PtMediaUploadIntentOrderByWithAggregationInput[]
+    by: PtMediaUploadIntentScalarFieldEnum[] | PtMediaUploadIntentScalarFieldEnum
+    having?: PtMediaUploadIntentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtMediaUploadIntentCountAggregateInputType | true
+    _min?: PtMediaUploadIntentMinAggregateInputType
+    _max?: PtMediaUploadIntentMaxAggregateInputType
+  }
+
+  export type PtMediaUploadIntentGroupByOutputType = {
+    id: string
+    ptUserId: string
+    objectKey: string
+    status: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: PtMediaUploadIntentCountAggregateOutputType | null
+    _min: PtMediaUploadIntentMinAggregateOutputType | null
+    _max: PtMediaUploadIntentMaxAggregateOutputType | null
+  }
+
+  type GetPtMediaUploadIntentGroupByPayload<T extends PtMediaUploadIntentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtMediaUploadIntentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtMediaUploadIntentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtMediaUploadIntentGroupByOutputType[P]>
+            : GetScalarType<T[P], PtMediaUploadIntentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtMediaUploadIntentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    objectKey?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptMediaUploadIntent"]>
+
+  export type PtMediaUploadIntentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    objectKey?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptMediaUploadIntent"]>
+
+  export type PtMediaUploadIntentSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    objectKey?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PtMediaUploadIntentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type PtMediaUploadIntentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $PtMediaUploadIntentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtMediaUploadIntent"
+    objects: {
+      ptProfile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      objectKey: string
+      status: $Enums.PtMediaUploadIntentStatus
+      expiresAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["ptMediaUploadIntent"]>
+    composites: {}
+  }
+
+  type PtMediaUploadIntentGetPayload<S extends boolean | null | undefined | PtMediaUploadIntentDefaultArgs> = $Result.GetResult<Prisma.$PtMediaUploadIntentPayload, S>
+
+  type PtMediaUploadIntentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtMediaUploadIntentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtMediaUploadIntentCountAggregateInputType | true
+    }
+
+  export interface PtMediaUploadIntentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtMediaUploadIntent'], meta: { name: 'PtMediaUploadIntent' } }
+    /**
+     * Find zero or one PtMediaUploadIntent that matches the filter.
+     * @param {PtMediaUploadIntentFindUniqueArgs} args - Arguments to find a PtMediaUploadIntent
+     * @example
+     * // Get one PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtMediaUploadIntentFindUniqueArgs>(args: SelectSubset<T, PtMediaUploadIntentFindUniqueArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtMediaUploadIntent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtMediaUploadIntentFindUniqueOrThrowArgs} args - Arguments to find a PtMediaUploadIntent
+     * @example
+     * // Get one PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtMediaUploadIntentFindUniqueOrThrowArgs>(args: SelectSubset<T, PtMediaUploadIntentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtMediaUploadIntent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentFindFirstArgs} args - Arguments to find a PtMediaUploadIntent
+     * @example
+     * // Get one PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtMediaUploadIntentFindFirstArgs>(args?: SelectSubset<T, PtMediaUploadIntentFindFirstArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtMediaUploadIntent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentFindFirstOrThrowArgs} args - Arguments to find a PtMediaUploadIntent
+     * @example
+     * // Get one PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtMediaUploadIntentFindFirstOrThrowArgs>(args?: SelectSubset<T, PtMediaUploadIntentFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtMediaUploadIntents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtMediaUploadIntents
+     * const ptMediaUploadIntents = await prisma.ptMediaUploadIntent.findMany()
+     * 
+     * // Get first 10 PtMediaUploadIntents
+     * const ptMediaUploadIntents = await prisma.ptMediaUploadIntent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptMediaUploadIntentWithIdOnly = await prisma.ptMediaUploadIntent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtMediaUploadIntentFindManyArgs>(args?: SelectSubset<T, PtMediaUploadIntentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtMediaUploadIntent.
+     * @param {PtMediaUploadIntentCreateArgs} args - Arguments to create a PtMediaUploadIntent.
+     * @example
+     * // Create one PtMediaUploadIntent
+     * const PtMediaUploadIntent = await prisma.ptMediaUploadIntent.create({
+     *   data: {
+     *     // ... data to create a PtMediaUploadIntent
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtMediaUploadIntentCreateArgs>(args: SelectSubset<T, PtMediaUploadIntentCreateArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtMediaUploadIntents.
+     * @param {PtMediaUploadIntentCreateManyArgs} args - Arguments to create many PtMediaUploadIntents.
+     * @example
+     * // Create many PtMediaUploadIntents
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtMediaUploadIntentCreateManyArgs>(args?: SelectSubset<T, PtMediaUploadIntentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtMediaUploadIntents and returns the data saved in the database.
+     * @param {PtMediaUploadIntentCreateManyAndReturnArgs} args - Arguments to create many PtMediaUploadIntents.
+     * @example
+     * // Create many PtMediaUploadIntents
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtMediaUploadIntents and only return the `id`
+     * const ptMediaUploadIntentWithIdOnly = await prisma.ptMediaUploadIntent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtMediaUploadIntentCreateManyAndReturnArgs>(args?: SelectSubset<T, PtMediaUploadIntentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtMediaUploadIntent.
+     * @param {PtMediaUploadIntentDeleteArgs} args - Arguments to delete one PtMediaUploadIntent.
+     * @example
+     * // Delete one PtMediaUploadIntent
+     * const PtMediaUploadIntent = await prisma.ptMediaUploadIntent.delete({
+     *   where: {
+     *     // ... filter to delete one PtMediaUploadIntent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtMediaUploadIntentDeleteArgs>(args: SelectSubset<T, PtMediaUploadIntentDeleteArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtMediaUploadIntent.
+     * @param {PtMediaUploadIntentUpdateArgs} args - Arguments to update one PtMediaUploadIntent.
+     * @example
+     * // Update one PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtMediaUploadIntentUpdateArgs>(args: SelectSubset<T, PtMediaUploadIntentUpdateArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtMediaUploadIntents.
+     * @param {PtMediaUploadIntentDeleteManyArgs} args - Arguments to filter PtMediaUploadIntents to delete.
+     * @example
+     * // Delete a few PtMediaUploadIntents
+     * const { count } = await prisma.ptMediaUploadIntent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtMediaUploadIntentDeleteManyArgs>(args?: SelectSubset<T, PtMediaUploadIntentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtMediaUploadIntents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtMediaUploadIntents
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtMediaUploadIntentUpdateManyArgs>(args: SelectSubset<T, PtMediaUploadIntentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtMediaUploadIntent.
+     * @param {PtMediaUploadIntentUpsertArgs} args - Arguments to update or create a PtMediaUploadIntent.
+     * @example
+     * // Update or create a PtMediaUploadIntent
+     * const ptMediaUploadIntent = await prisma.ptMediaUploadIntent.upsert({
+     *   create: {
+     *     // ... data to create a PtMediaUploadIntent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtMediaUploadIntent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtMediaUploadIntentUpsertArgs>(args: SelectSubset<T, PtMediaUploadIntentUpsertArgs<ExtArgs>>): Prisma__PtMediaUploadIntentClient<$Result.GetResult<Prisma.$PtMediaUploadIntentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtMediaUploadIntents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentCountArgs} args - Arguments to filter PtMediaUploadIntents to count.
+     * @example
+     * // Count the number of PtMediaUploadIntents
+     * const count = await prisma.ptMediaUploadIntent.count({
+     *   where: {
+     *     // ... the filter for the PtMediaUploadIntents we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtMediaUploadIntentCountArgs>(
+      args?: Subset<T, PtMediaUploadIntentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtMediaUploadIntentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtMediaUploadIntent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtMediaUploadIntentAggregateArgs>(args: Subset<T, PtMediaUploadIntentAggregateArgs>): Prisma.PrismaPromise<GetPtMediaUploadIntentAggregateType<T>>
+
+    /**
+     * Group by PtMediaUploadIntent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtMediaUploadIntentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtMediaUploadIntentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtMediaUploadIntentGroupByArgs['orderBy'] }
+        : { orderBy?: PtMediaUploadIntentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtMediaUploadIntentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtMediaUploadIntentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtMediaUploadIntent model
+   */
+  readonly fields: PtMediaUploadIntentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtMediaUploadIntent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtMediaUploadIntentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    ptProfile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtMediaUploadIntent model
+   */ 
+  interface PtMediaUploadIntentFieldRefs {
+    readonly id: FieldRef<"PtMediaUploadIntent", 'String'>
+    readonly ptUserId: FieldRef<"PtMediaUploadIntent", 'String'>
+    readonly objectKey: FieldRef<"PtMediaUploadIntent", 'String'>
+    readonly status: FieldRef<"PtMediaUploadIntent", 'PtMediaUploadIntentStatus'>
+    readonly expiresAt: FieldRef<"PtMediaUploadIntent", 'DateTime'>
+    readonly createdAt: FieldRef<"PtMediaUploadIntent", 'DateTime'>
+    readonly updatedAt: FieldRef<"PtMediaUploadIntent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtMediaUploadIntent findUnique
+   */
+  export type PtMediaUploadIntentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PtMediaUploadIntent to fetch.
+     */
+    where: PtMediaUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PtMediaUploadIntent findUniqueOrThrow
+   */
+  export type PtMediaUploadIntentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PtMediaUploadIntent to fetch.
+     */
+    where: PtMediaUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PtMediaUploadIntent findFirst
+   */
+  export type PtMediaUploadIntentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PtMediaUploadIntent to fetch.
+     */
+    where?: PtMediaUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtMediaUploadIntents to fetch.
+     */
+    orderBy?: PtMediaUploadIntentOrderByWithRelationInput | PtMediaUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtMediaUploadIntents.
+     */
+    cursor?: PtMediaUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtMediaUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtMediaUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtMediaUploadIntents.
+     */
+    distinct?: PtMediaUploadIntentScalarFieldEnum | PtMediaUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PtMediaUploadIntent findFirstOrThrow
+   */
+  export type PtMediaUploadIntentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PtMediaUploadIntent to fetch.
+     */
+    where?: PtMediaUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtMediaUploadIntents to fetch.
+     */
+    orderBy?: PtMediaUploadIntentOrderByWithRelationInput | PtMediaUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtMediaUploadIntents.
+     */
+    cursor?: PtMediaUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtMediaUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtMediaUploadIntents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtMediaUploadIntents.
+     */
+    distinct?: PtMediaUploadIntentScalarFieldEnum | PtMediaUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PtMediaUploadIntent findMany
+   */
+  export type PtMediaUploadIntentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter, which PtMediaUploadIntents to fetch.
+     */
+    where?: PtMediaUploadIntentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtMediaUploadIntents to fetch.
+     */
+    orderBy?: PtMediaUploadIntentOrderByWithRelationInput | PtMediaUploadIntentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtMediaUploadIntents.
+     */
+    cursor?: PtMediaUploadIntentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtMediaUploadIntents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtMediaUploadIntents.
+     */
+    skip?: number
+    distinct?: PtMediaUploadIntentScalarFieldEnum | PtMediaUploadIntentScalarFieldEnum[]
+  }
+
+  /**
+   * PtMediaUploadIntent create
+   */
+  export type PtMediaUploadIntentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtMediaUploadIntent.
+     */
+    data: XOR<PtMediaUploadIntentCreateInput, PtMediaUploadIntentUncheckedCreateInput>
+  }
+
+  /**
+   * PtMediaUploadIntent createMany
+   */
+  export type PtMediaUploadIntentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtMediaUploadIntents.
+     */
+    data: PtMediaUploadIntentCreateManyInput | PtMediaUploadIntentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtMediaUploadIntent createManyAndReturn
+   */
+  export type PtMediaUploadIntentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtMediaUploadIntents.
+     */
+    data: PtMediaUploadIntentCreateManyInput | PtMediaUploadIntentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtMediaUploadIntent update
+   */
+  export type PtMediaUploadIntentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtMediaUploadIntent.
+     */
+    data: XOR<PtMediaUploadIntentUpdateInput, PtMediaUploadIntentUncheckedUpdateInput>
+    /**
+     * Choose, which PtMediaUploadIntent to update.
+     */
+    where: PtMediaUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PtMediaUploadIntent updateMany
+   */
+  export type PtMediaUploadIntentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtMediaUploadIntents.
+     */
+    data: XOR<PtMediaUploadIntentUpdateManyMutationInput, PtMediaUploadIntentUncheckedUpdateManyInput>
+    /**
+     * Filter which PtMediaUploadIntents to update
+     */
+    where?: PtMediaUploadIntentWhereInput
+  }
+
+  /**
+   * PtMediaUploadIntent upsert
+   */
+  export type PtMediaUploadIntentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtMediaUploadIntent to update in case it exists.
+     */
+    where: PtMediaUploadIntentWhereUniqueInput
+    /**
+     * In case the PtMediaUploadIntent found by the `where` argument doesn't exist, create a new PtMediaUploadIntent with this data.
+     */
+    create: XOR<PtMediaUploadIntentCreateInput, PtMediaUploadIntentUncheckedCreateInput>
+    /**
+     * In case the PtMediaUploadIntent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtMediaUploadIntentUpdateInput, PtMediaUploadIntentUncheckedUpdateInput>
+  }
+
+  /**
+   * PtMediaUploadIntent delete
+   */
+  export type PtMediaUploadIntentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+    /**
+     * Filter which PtMediaUploadIntent to delete.
+     */
+    where: PtMediaUploadIntentWhereUniqueInput
+  }
+
+  /**
+   * PtMediaUploadIntent deleteMany
+   */
+  export type PtMediaUploadIntentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtMediaUploadIntents to delete
+     */
+    where?: PtMediaUploadIntentWhereInput
+  }
+
+  /**
+   * PtMediaUploadIntent without action
+   */
+  export type PtMediaUploadIntentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtMediaUploadIntent
+     */
+    select?: PtMediaUploadIntentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtMediaUploadIntentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ClientCompatEvent
+   */
+
+  export type AggregateClientCompatEvent = {
+    _count: ClientCompatEventCountAggregateOutputType | null
+    _min: ClientCompatEventMinAggregateOutputType | null
+    _max: ClientCompatEventMaxAggregateOutputType | null
+  }
+
+  export type ClientCompatEventMinAggregateOutputType = {
+    id: string | null
+    route: string | null
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientCompatEventMaxAggregateOutputType = {
+    id: string | null
+    route: string | null
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientCompatEventCountAggregateOutputType = {
+    id: number
+    route: number
+    actorUserId: number
+    clientHeader: number
+    outcome: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ClientCompatEventMinAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+  }
+
+  export type ClientCompatEventMaxAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+  }
+
+  export type ClientCompatEventCountAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ClientCompatEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientCompatEvent to aggregate.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ClientCompatEvents
+    **/
+    _count?: true | ClientCompatEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ClientCompatEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ClientCompatEventMaxAggregateInputType
+  }
+
+  export type GetClientCompatEventAggregateType<T extends ClientCompatEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateClientCompatEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateClientCompatEvent[P]>
+      : GetScalarType<T[P], AggregateClientCompatEvent[P]>
+  }
+
+
+
+
+  export type ClientCompatEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientCompatEventWhereInput
+    orderBy?: ClientCompatEventOrderByWithAggregationInput | ClientCompatEventOrderByWithAggregationInput[]
+    by: ClientCompatEventScalarFieldEnum[] | ClientCompatEventScalarFieldEnum
+    having?: ClientCompatEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ClientCompatEventCountAggregateInputType | true
+    _min?: ClientCompatEventMinAggregateInputType
+    _max?: ClientCompatEventMaxAggregateInputType
+  }
+
+  export type ClientCompatEventGroupByOutputType = {
+    id: string
+    route: string
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string
+    createdAt: Date
+    _count: ClientCompatEventCountAggregateOutputType | null
+    _min: ClientCompatEventMinAggregateOutputType | null
+    _max: ClientCompatEventMaxAggregateOutputType | null
+  }
+
+  type GetClientCompatEventGroupByPayload<T extends ClientCompatEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ClientCompatEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ClientCompatEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ClientCompatEventGroupByOutputType[P]>
+            : GetScalarType<T[P], ClientCompatEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ClientCompatEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["clientCompatEvent"]>
+
+  export type ClientCompatEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["clientCompatEvent"]>
+
+  export type ClientCompatEventSelectScalar = {
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $ClientCompatEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ClientCompatEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      route: string
+      actorUserId: string | null
+      /**
+       * X-Gymini-Client header value, null when the client sent none.
+       */
+      clientHeader: string | null
+      outcome: string
+      createdAt: Date
+    }, ExtArgs["result"]["clientCompatEvent"]>
+    composites: {}
+  }
+
+  type ClientCompatEventGetPayload<S extends boolean | null | undefined | ClientCompatEventDefaultArgs> = $Result.GetResult<Prisma.$ClientCompatEventPayload, S>
+
+  type ClientCompatEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ClientCompatEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ClientCompatEventCountAggregateInputType | true
+    }
+
+  export interface ClientCompatEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ClientCompatEvent'], meta: { name: 'ClientCompatEvent' } }
+    /**
+     * Find zero or one ClientCompatEvent that matches the filter.
+     * @param {ClientCompatEventFindUniqueArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ClientCompatEventFindUniqueArgs>(args: SelectSubset<T, ClientCompatEventFindUniqueArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ClientCompatEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ClientCompatEventFindUniqueOrThrowArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ClientCompatEventFindUniqueOrThrowArgs>(args: SelectSubset<T, ClientCompatEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ClientCompatEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindFirstArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ClientCompatEventFindFirstArgs>(args?: SelectSubset<T, ClientCompatEventFindFirstArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ClientCompatEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindFirstOrThrowArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ClientCompatEventFindFirstOrThrowArgs>(args?: SelectSubset<T, ClientCompatEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ClientCompatEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ClientCompatEvents
+     * const clientCompatEvents = await prisma.clientCompatEvent.findMany()
+     * 
+     * // Get first 10 ClientCompatEvents
+     * const clientCompatEvents = await prisma.clientCompatEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const clientCompatEventWithIdOnly = await prisma.clientCompatEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ClientCompatEventFindManyArgs>(args?: SelectSubset<T, ClientCompatEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ClientCompatEvent.
+     * @param {ClientCompatEventCreateArgs} args - Arguments to create a ClientCompatEvent.
+     * @example
+     * // Create one ClientCompatEvent
+     * const ClientCompatEvent = await prisma.clientCompatEvent.create({
+     *   data: {
+     *     // ... data to create a ClientCompatEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends ClientCompatEventCreateArgs>(args: SelectSubset<T, ClientCompatEventCreateArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ClientCompatEvents.
+     * @param {ClientCompatEventCreateManyArgs} args - Arguments to create many ClientCompatEvents.
+     * @example
+     * // Create many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ClientCompatEventCreateManyArgs>(args?: SelectSubset<T, ClientCompatEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ClientCompatEvents and returns the data saved in the database.
+     * @param {ClientCompatEventCreateManyAndReturnArgs} args - Arguments to create many ClientCompatEvents.
+     * @example
+     * // Create many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ClientCompatEvents and only return the `id`
+     * const clientCompatEventWithIdOnly = await prisma.clientCompatEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ClientCompatEventCreateManyAndReturnArgs>(args?: SelectSubset<T, ClientCompatEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ClientCompatEvent.
+     * @param {ClientCompatEventDeleteArgs} args - Arguments to delete one ClientCompatEvent.
+     * @example
+     * // Delete one ClientCompatEvent
+     * const ClientCompatEvent = await prisma.clientCompatEvent.delete({
+     *   where: {
+     *     // ... filter to delete one ClientCompatEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ClientCompatEventDeleteArgs>(args: SelectSubset<T, ClientCompatEventDeleteArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ClientCompatEvent.
+     * @param {ClientCompatEventUpdateArgs} args - Arguments to update one ClientCompatEvent.
+     * @example
+     * // Update one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ClientCompatEventUpdateArgs>(args: SelectSubset<T, ClientCompatEventUpdateArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ClientCompatEvents.
+     * @param {ClientCompatEventDeleteManyArgs} args - Arguments to filter ClientCompatEvents to delete.
+     * @example
+     * // Delete a few ClientCompatEvents
+     * const { count } = await prisma.clientCompatEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ClientCompatEventDeleteManyArgs>(args?: SelectSubset<T, ClientCompatEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ClientCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ClientCompatEventUpdateManyArgs>(args: SelectSubset<T, ClientCompatEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ClientCompatEvent.
+     * @param {ClientCompatEventUpsertArgs} args - Arguments to update or create a ClientCompatEvent.
+     * @example
+     * // Update or create a ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.upsert({
+     *   create: {
+     *     // ... data to create a ClientCompatEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ClientCompatEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ClientCompatEventUpsertArgs>(args: SelectSubset<T, ClientCompatEventUpsertArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ClientCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventCountArgs} args - Arguments to filter ClientCompatEvents to count.
+     * @example
+     * // Count the number of ClientCompatEvents
+     * const count = await prisma.clientCompatEvent.count({
+     *   where: {
+     *     // ... the filter for the ClientCompatEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends ClientCompatEventCountArgs>(
+      args?: Subset<T, ClientCompatEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ClientCompatEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ClientCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ClientCompatEventAggregateArgs>(args: Subset<T, ClientCompatEventAggregateArgs>): Prisma.PrismaPromise<GetClientCompatEventAggregateType<T>>
+
+    /**
+     * Group by ClientCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ClientCompatEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ClientCompatEventGroupByArgs['orderBy'] }
+        : { orderBy?: ClientCompatEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ClientCompatEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetClientCompatEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ClientCompatEvent model
+   */
+  readonly fields: ClientCompatEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ClientCompatEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ClientCompatEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ClientCompatEvent model
+   */ 
+  interface ClientCompatEventFieldRefs {
+    readonly id: FieldRef<"ClientCompatEvent", 'String'>
+    readonly route: FieldRef<"ClientCompatEvent", 'String'>
+    readonly actorUserId: FieldRef<"ClientCompatEvent", 'String'>
+    readonly clientHeader: FieldRef<"ClientCompatEvent", 'String'>
+    readonly outcome: FieldRef<"ClientCompatEvent", 'String'>
+    readonly createdAt: FieldRef<"ClientCompatEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ClientCompatEvent findUnique
+   */
+  export type ClientCompatEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent findUniqueOrThrow
+   */
+  export type ClientCompatEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent findFirst
+   */
+  export type ClientCompatEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientCompatEvents.
+     */
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent findFirstOrThrow
+   */
+  export type ClientCompatEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientCompatEvents.
+     */
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent findMany
+   */
+  export type ClientCompatEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvents to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent create
+   */
+  export type ClientCompatEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a ClientCompatEvent.
+     */
+    data: XOR<ClientCompatEventCreateInput, ClientCompatEventUncheckedCreateInput>
+  }
+
+  /**
+   * ClientCompatEvent createMany
+   */
+  export type ClientCompatEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ClientCompatEvents.
+     */
+    data: ClientCompatEventCreateManyInput | ClientCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientCompatEvent createManyAndReturn
+   */
+  export type ClientCompatEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ClientCompatEvents.
+     */
+    data: ClientCompatEventCreateManyInput | ClientCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientCompatEvent update
+   */
+  export type ClientCompatEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a ClientCompatEvent.
+     */
+    data: XOR<ClientCompatEventUpdateInput, ClientCompatEventUncheckedUpdateInput>
+    /**
+     * Choose, which ClientCompatEvent to update.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent updateMany
+   */
+  export type ClientCompatEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ClientCompatEvents.
+     */
+    data: XOR<ClientCompatEventUpdateManyMutationInput, ClientCompatEventUncheckedUpdateManyInput>
+    /**
+     * Filter which ClientCompatEvents to update
+     */
+    where?: ClientCompatEventWhereInput
+  }
+
+  /**
+   * ClientCompatEvent upsert
+   */
+  export type ClientCompatEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the ClientCompatEvent to update in case it exists.
+     */
+    where: ClientCompatEventWhereUniqueInput
+    /**
+     * In case the ClientCompatEvent found by the `where` argument doesn't exist, create a new ClientCompatEvent with this data.
+     */
+    create: XOR<ClientCompatEventCreateInput, ClientCompatEventUncheckedCreateInput>
+    /**
+     * In case the ClientCompatEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ClientCompatEventUpdateInput, ClientCompatEventUncheckedUpdateInput>
+  }
+
+  /**
+   * ClientCompatEvent delete
+   */
+  export type ClientCompatEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter which ClientCompatEvent to delete.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent deleteMany
+   */
+  export type ClientCompatEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientCompatEvents to delete
+     */
+    where?: ClientCompatEventWhereInput
+  }
+
+  /**
+   * ClientCompatEvent without action
+   */
+  export type ClientCompatEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -32623,6 +37142,8 @@ export namespace Prisma {
     email: 'email',
     isPT: 'isPT',
     ptSuspended: 'ptSuspended',
+    listingVersion: 'listingVersion',
+    listingPublishedAt: 'listingPublishedAt',
     ptLockSeq: 'ptLockSeq',
     referralCode: 'referralCode',
     dateOfBirth: 'dateOfBirth',
@@ -33021,6 +37542,7 @@ export namespace Prisma {
     validityDays: 'validityDays',
     isActive: 'isActive',
     archivedAt: 'archivedAt',
+    version: 'version',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -33218,6 +37740,74 @@ export namespace Prisma {
   export type PtRestrictionContractExtensionScalarFieldEnum = (typeof PtRestrictionContractExtensionScalarFieldEnum)[keyof typeof PtRestrictionContractExtensionScalarFieldEnum]
 
 
+  export const PtListingRevisionScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    status: 'status',
+    source: 'source',
+    parentRevisionId: 'parentRevisionId',
+    baseVersion: 'baseVersion',
+    draftVersion: 'draftVersion',
+    payload: 'payload',
+    previousSnapshot: 'previousSnapshot',
+    systemAdjustments: 'systemAdjustments',
+    submittedBy: 'submittedBy',
+    submittedAt: 'submittedAt',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt',
+    reviewNote: 'reviewNote',
+    ownerNote: 'ownerNote',
+    adminReason: 'adminReason',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PtListingRevisionScalarFieldEnum = (typeof PtListingRevisionScalarFieldEnum)[keyof typeof PtListingRevisionScalarFieldEnum]
+
+
+  export const PtPhysiquePhotoScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    storageKey: 'storageKey',
+    status: 'status',
+    sortOrder: 'sortOrder',
+    isCover: 'isCover',
+    mime: 'mime',
+    bytes: 'bytes',
+    contentHash: 'contentHash',
+    uploadedBy: 'uploadedBy',
+    retiredAt: 'retiredAt',
+    createdAt: 'createdAt'
+  };
+
+  export type PtPhysiquePhotoScalarFieldEnum = (typeof PtPhysiquePhotoScalarFieldEnum)[keyof typeof PtPhysiquePhotoScalarFieldEnum]
+
+
+  export const PtMediaUploadIntentScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    objectKey: 'objectKey',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PtMediaUploadIntentScalarFieldEnum = (typeof PtMediaUploadIntentScalarFieldEnum)[keyof typeof PtMediaUploadIntentScalarFieldEnum]
+
+
+  export const ClientCompatEventScalarFieldEnum: {
+    id: 'id',
+    route: 'route',
+    actorUserId: 'actorUserId',
+    clientHeader: 'clientHeader',
+    outcome: 'outcome',
+    createdAt: 'createdAt'
+  };
+
+  export type ClientCompatEventScalarFieldEnum = (typeof ClientCompatEventScalarFieldEnum)[keyof typeof ClientCompatEventScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -33293,16 +37883,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'BigInt'
+   * Reference to a field of type 'Int'
    */
-  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
     
 
 
   /**
-   * Reference to a field of type 'BigInt[]'
+   * Reference to a field of type 'Int[]'
    */
-  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -33321,16 +37911,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Int'
+   * Reference to a field of type 'BigInt'
    */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
     
 
 
   /**
-   * Reference to a field of type 'Int[]'
+   * Reference to a field of type 'BigInt[]'
    */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -33745,6 +38335,62 @@ export namespace Prisma {
    */
   export type ListEnumPtRestrictionScopeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtRestrictionScope[]'>
     
+
+
+  /**
+   * Reference to a field of type 'PtListingRevisionStatus'
+   */
+  export type EnumPtListingRevisionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtListingRevisionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtListingRevisionStatus[]'
+   */
+  export type ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtListingRevisionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtListingRevisionSource'
+   */
+  export type EnumPtListingRevisionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtListingRevisionSource'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtListingRevisionSource[]'
+   */
+  export type ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtListingRevisionSource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtPhysiquePhotoStatus'
+   */
+  export type EnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtPhysiquePhotoStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtPhysiquePhotoStatus[]'
+   */
+  export type ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtPhysiquePhotoStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtMediaUploadIntentStatus'
+   */
+  export type EnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtMediaUploadIntentStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtMediaUploadIntentStatus[]'
+   */
+  export type ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtMediaUploadIntentStatus[]'>
+    
   /**
    * Deep Input Types
    */
@@ -33761,6 +38407,8 @@ export namespace Prisma {
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
     ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    listingVersion?: IntFilter<"UserProfile"> | number
+    listingPublishedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     ptLockSeq?: BigIntNullableFilter<"UserProfile"> | bigint | number | null
     referralCode?: StringNullableFilter<"UserProfile"> | string | null
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
@@ -33808,6 +38456,8 @@ export namespace Prisma {
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
     servicePackages?: PTServicePackageListRelationFilter
+    physiquePhotos?: PtPhysiquePhotoListRelationFilter
+    mediaUploadIntents?: PtMediaUploadIntentListRelationFilter
   }
 
   export type UserProfileOrderByWithRelationInput = {
@@ -33818,6 +38468,8 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrderInput | SortOrder
     ptLockSeq?: SortOrderInput | SortOrder
     referralCode?: SortOrderInput | SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
@@ -33865,6 +38517,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationOrderByWithRelationInput
     trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
     servicePackages?: PTServicePackageOrderByRelationAggregateInput
+    physiquePhotos?: PtPhysiquePhotoOrderByRelationAggregateInput
+    mediaUploadIntents?: PtMediaUploadIntentOrderByRelationAggregateInput
   }
 
   export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -33879,6 +38533,8 @@ export namespace Prisma {
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
     ptSuspended?: BoolFilter<"UserProfile"> | boolean
+    listingVersion?: IntFilter<"UserProfile"> | number
+    listingPublishedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     ptLockSeq?: BigIntNullableFilter<"UserProfile"> | bigint | number | null
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
@@ -33925,6 +38581,8 @@ export namespace Prisma {
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
     trainingLocations?: PTTrainingLocationListRelationFilter
     servicePackages?: PTServicePackageListRelationFilter
+    physiquePhotos?: PtPhysiquePhotoListRelationFilter
+    mediaUploadIntents?: PtMediaUploadIntentListRelationFilter
   }, "id" | "userId" | "referralCode">
 
   export type UserProfileOrderByWithAggregationInput = {
@@ -33935,6 +38593,8 @@ export namespace Prisma {
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrderInput | SortOrder
     ptLockSeq?: SortOrderInput | SortOrder
     referralCode?: SortOrderInput | SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
@@ -33995,6 +38655,8 @@ export namespace Prisma {
     email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     ptSuspended?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    listingVersion?: IntWithAggregatesFilter<"UserProfile"> | number
+    listingPublishedAt?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     ptLockSeq?: BigIntNullableWithAggregatesFilter<"UserProfile"> | bigint | number | null
     referralCode?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     dateOfBirth?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
@@ -35793,6 +40455,7 @@ export namespace Prisma {
     validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
     isActive?: BoolFilter<"PTServicePackage"> | boolean
     archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    version?: IntFilter<"PTServicePackage"> | number
     createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
     updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
     ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
@@ -35810,6 +40473,7 @@ export namespace Prisma {
     validityDays?: SortOrderInput | SortOrder
     isActive?: SortOrder
     archivedAt?: SortOrderInput | SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     ptProfile?: UserProfileOrderByWithRelationInput
@@ -35830,6 +40494,7 @@ export namespace Prisma {
     validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
     isActive?: BoolFilter<"PTServicePackage"> | boolean
     archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    version?: IntFilter<"PTServicePackage"> | number
     createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
     updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
     ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
@@ -35847,6 +40512,7 @@ export namespace Prisma {
     validityDays?: SortOrderInput | SortOrder
     isActive?: SortOrder
     archivedAt?: SortOrderInput | SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: PTServicePackageCountOrderByAggregateInput
@@ -35871,6 +40537,7 @@ export namespace Prisma {
     validityDays?: IntNullableWithAggregatesFilter<"PTServicePackage"> | number | null
     isActive?: BoolWithAggregatesFilter<"PTServicePackage"> | boolean
     archivedAt?: DateTimeNullableWithAggregatesFilter<"PTServicePackage"> | Date | string | null
+    version?: IntWithAggregatesFilter<"PTServicePackage"> | number
     createdAt?: DateTimeWithAggregatesFilter<"PTServicePackage"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"PTServicePackage"> | Date | string
   }
@@ -36833,6 +41500,344 @@ export namespace Prisma {
     appliedAt?: DateTimeWithAggregatesFilter<"PtRestrictionContractExtension"> | Date | string
   }
 
+  export type PtListingRevisionWhereInput = {
+    AND?: PtListingRevisionWhereInput | PtListingRevisionWhereInput[]
+    OR?: PtListingRevisionWhereInput[]
+    NOT?: PtListingRevisionWhereInput | PtListingRevisionWhereInput[]
+    id?: StringFilter<"PtListingRevision"> | string
+    ptUserId?: StringFilter<"PtListingRevision"> | string
+    status?: EnumPtListingRevisionStatusFilter<"PtListingRevision"> | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFilter<"PtListingRevision"> | $Enums.PtListingRevisionSource
+    parentRevisionId?: StringNullableFilter<"PtListingRevision"> | string | null
+    baseVersion?: IntFilter<"PtListingRevision"> | number
+    draftVersion?: IntFilter<"PtListingRevision"> | number
+    payload?: JsonFilter<"PtListingRevision">
+    previousSnapshot?: JsonNullableFilter<"PtListingRevision">
+    systemAdjustments?: JsonFilter<"PtListingRevision">
+    submittedBy?: StringNullableFilter<"PtListingRevision"> | string | null
+    submittedAt?: DateTimeNullableFilter<"PtListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableFilter<"PtListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"PtListingRevision"> | Date | string | null
+    reviewNote?: StringNullableFilter<"PtListingRevision"> | string | null
+    ownerNote?: StringNullableFilter<"PtListingRevision"> | string | null
+    adminReason?: StringNullableFilter<"PtListingRevision"> | string | null
+    createdAt?: DateTimeFilter<"PtListingRevision"> | Date | string
+    updatedAt?: DateTimeFilter<"PtListingRevision"> | Date | string
+  }
+
+  export type PtListingRevisionOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrderInput | SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrderInput | SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    ownerNote?: SortOrderInput | SortOrder
+    adminReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtListingRevisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PtListingRevisionWhereInput | PtListingRevisionWhereInput[]
+    OR?: PtListingRevisionWhereInput[]
+    NOT?: PtListingRevisionWhereInput | PtListingRevisionWhereInput[]
+    ptUserId?: StringFilter<"PtListingRevision"> | string
+    status?: EnumPtListingRevisionStatusFilter<"PtListingRevision"> | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFilter<"PtListingRevision"> | $Enums.PtListingRevisionSource
+    parentRevisionId?: StringNullableFilter<"PtListingRevision"> | string | null
+    baseVersion?: IntFilter<"PtListingRevision"> | number
+    draftVersion?: IntFilter<"PtListingRevision"> | number
+    payload?: JsonFilter<"PtListingRevision">
+    previousSnapshot?: JsonNullableFilter<"PtListingRevision">
+    systemAdjustments?: JsonFilter<"PtListingRevision">
+    submittedBy?: StringNullableFilter<"PtListingRevision"> | string | null
+    submittedAt?: DateTimeNullableFilter<"PtListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableFilter<"PtListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"PtListingRevision"> | Date | string | null
+    reviewNote?: StringNullableFilter<"PtListingRevision"> | string | null
+    ownerNote?: StringNullableFilter<"PtListingRevision"> | string | null
+    adminReason?: StringNullableFilter<"PtListingRevision"> | string | null
+    createdAt?: DateTimeFilter<"PtListingRevision"> | Date | string
+    updatedAt?: DateTimeFilter<"PtListingRevision"> | Date | string
+  }, "id">
+
+  export type PtListingRevisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrderInput | SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrderInput | SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    ownerNote?: SortOrderInput | SortOrder
+    adminReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PtListingRevisionCountOrderByAggregateInput
+    _avg?: PtListingRevisionAvgOrderByAggregateInput
+    _max?: PtListingRevisionMaxOrderByAggregateInput
+    _min?: PtListingRevisionMinOrderByAggregateInput
+    _sum?: PtListingRevisionSumOrderByAggregateInput
+  }
+
+  export type PtListingRevisionScalarWhereWithAggregatesInput = {
+    AND?: PtListingRevisionScalarWhereWithAggregatesInput | PtListingRevisionScalarWhereWithAggregatesInput[]
+    OR?: PtListingRevisionScalarWhereWithAggregatesInput[]
+    NOT?: PtListingRevisionScalarWhereWithAggregatesInput | PtListingRevisionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtListingRevision"> | string
+    ptUserId?: StringWithAggregatesFilter<"PtListingRevision"> | string
+    status?: EnumPtListingRevisionStatusWithAggregatesFilter<"PtListingRevision"> | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceWithAggregatesFilter<"PtListingRevision"> | $Enums.PtListingRevisionSource
+    parentRevisionId?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    baseVersion?: IntWithAggregatesFilter<"PtListingRevision"> | number
+    draftVersion?: IntWithAggregatesFilter<"PtListingRevision"> | number
+    payload?: JsonWithAggregatesFilter<"PtListingRevision">
+    previousSnapshot?: JsonNullableWithAggregatesFilter<"PtListingRevision">
+    systemAdjustments?: JsonWithAggregatesFilter<"PtListingRevision">
+    submittedBy?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    submittedAt?: DateTimeNullableWithAggregatesFilter<"PtListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"PtListingRevision"> | Date | string | null
+    reviewNote?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    ownerNote?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    adminReason?: StringNullableWithAggregatesFilter<"PtListingRevision"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PtListingRevision"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PtListingRevision"> | Date | string
+  }
+
+  export type PtPhysiquePhotoWhereInput = {
+    AND?: PtPhysiquePhotoWhereInput | PtPhysiquePhotoWhereInput[]
+    OR?: PtPhysiquePhotoWhereInput[]
+    NOT?: PtPhysiquePhotoWhereInput | PtPhysiquePhotoWhereInput[]
+    id?: StringFilter<"PtPhysiquePhoto"> | string
+    ptUserId?: StringFilter<"PtPhysiquePhoto"> | string
+    storageKey?: StringFilter<"PtPhysiquePhoto"> | string
+    status?: EnumPtPhysiquePhotoStatusFilter<"PtPhysiquePhoto"> | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFilter<"PtPhysiquePhoto"> | number
+    isCover?: BoolFilter<"PtPhysiquePhoto"> | boolean
+    mime?: StringFilter<"PtPhysiquePhoto"> | string
+    bytes?: IntFilter<"PtPhysiquePhoto"> | number
+    contentHash?: StringNullableFilter<"PtPhysiquePhoto"> | string | null
+    uploadedBy?: StringFilter<"PtPhysiquePhoto"> | string
+    retiredAt?: DateTimeNullableFilter<"PtPhysiquePhoto"> | Date | string | null
+    createdAt?: DateTimeFilter<"PtPhysiquePhoto"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type PtPhysiquePhotoOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    storageKey?: SortOrder
+    status?: SortOrder
+    sortOrder?: SortOrder
+    isCover?: SortOrder
+    mime?: SortOrder
+    bytes?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    ptProfile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type PtPhysiquePhotoWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PtPhysiquePhotoWhereInput | PtPhysiquePhotoWhereInput[]
+    OR?: PtPhysiquePhotoWhereInput[]
+    NOT?: PtPhysiquePhotoWhereInput | PtPhysiquePhotoWhereInput[]
+    ptUserId?: StringFilter<"PtPhysiquePhoto"> | string
+    storageKey?: StringFilter<"PtPhysiquePhoto"> | string
+    status?: EnumPtPhysiquePhotoStatusFilter<"PtPhysiquePhoto"> | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFilter<"PtPhysiquePhoto"> | number
+    isCover?: BoolFilter<"PtPhysiquePhoto"> | boolean
+    mime?: StringFilter<"PtPhysiquePhoto"> | string
+    bytes?: IntFilter<"PtPhysiquePhoto"> | number
+    contentHash?: StringNullableFilter<"PtPhysiquePhoto"> | string | null
+    uploadedBy?: StringFilter<"PtPhysiquePhoto"> | string
+    retiredAt?: DateTimeNullableFilter<"PtPhysiquePhoto"> | Date | string | null
+    createdAt?: DateTimeFilter<"PtPhysiquePhoto"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type PtPhysiquePhotoOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    storageKey?: SortOrder
+    status?: SortOrder
+    sortOrder?: SortOrder
+    isCover?: SortOrder
+    mime?: SortOrder
+    bytes?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PtPhysiquePhotoCountOrderByAggregateInput
+    _avg?: PtPhysiquePhotoAvgOrderByAggregateInput
+    _max?: PtPhysiquePhotoMaxOrderByAggregateInput
+    _min?: PtPhysiquePhotoMinOrderByAggregateInput
+    _sum?: PtPhysiquePhotoSumOrderByAggregateInput
+  }
+
+  export type PtPhysiquePhotoScalarWhereWithAggregatesInput = {
+    AND?: PtPhysiquePhotoScalarWhereWithAggregatesInput | PtPhysiquePhotoScalarWhereWithAggregatesInput[]
+    OR?: PtPhysiquePhotoScalarWhereWithAggregatesInput[]
+    NOT?: PtPhysiquePhotoScalarWhereWithAggregatesInput | PtPhysiquePhotoScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtPhysiquePhoto"> | string
+    ptUserId?: StringWithAggregatesFilter<"PtPhysiquePhoto"> | string
+    storageKey?: StringWithAggregatesFilter<"PtPhysiquePhoto"> | string
+    status?: EnumPtPhysiquePhotoStatusWithAggregatesFilter<"PtPhysiquePhoto"> | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntWithAggregatesFilter<"PtPhysiquePhoto"> | number
+    isCover?: BoolWithAggregatesFilter<"PtPhysiquePhoto"> | boolean
+    mime?: StringWithAggregatesFilter<"PtPhysiquePhoto"> | string
+    bytes?: IntWithAggregatesFilter<"PtPhysiquePhoto"> | number
+    contentHash?: StringNullableWithAggregatesFilter<"PtPhysiquePhoto"> | string | null
+    uploadedBy?: StringWithAggregatesFilter<"PtPhysiquePhoto"> | string
+    retiredAt?: DateTimeNullableWithAggregatesFilter<"PtPhysiquePhoto"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PtPhysiquePhoto"> | Date | string
+  }
+
+  export type PtMediaUploadIntentWhereInput = {
+    AND?: PtMediaUploadIntentWhereInput | PtMediaUploadIntentWhereInput[]
+    OR?: PtMediaUploadIntentWhereInput[]
+    NOT?: PtMediaUploadIntentWhereInput | PtMediaUploadIntentWhereInput[]
+    id?: StringFilter<"PtMediaUploadIntent"> | string
+    ptUserId?: StringFilter<"PtMediaUploadIntent"> | string
+    objectKey?: StringFilter<"PtMediaUploadIntent"> | string
+    status?: EnumPtMediaUploadIntentStatusFilter<"PtMediaUploadIntent"> | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    createdAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    updatedAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type PtMediaUploadIntentOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    objectKey?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    ptProfile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type PtMediaUploadIntentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    objectKey?: string
+    AND?: PtMediaUploadIntentWhereInput | PtMediaUploadIntentWhereInput[]
+    OR?: PtMediaUploadIntentWhereInput[]
+    NOT?: PtMediaUploadIntentWhereInput | PtMediaUploadIntentWhereInput[]
+    ptUserId?: StringFilter<"PtMediaUploadIntent"> | string
+    status?: EnumPtMediaUploadIntentStatusFilter<"PtMediaUploadIntent"> | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    createdAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    updatedAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id" | "objectKey">
+
+  export type PtMediaUploadIntentOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    objectKey?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PtMediaUploadIntentCountOrderByAggregateInput
+    _max?: PtMediaUploadIntentMaxOrderByAggregateInput
+    _min?: PtMediaUploadIntentMinOrderByAggregateInput
+  }
+
+  export type PtMediaUploadIntentScalarWhereWithAggregatesInput = {
+    AND?: PtMediaUploadIntentScalarWhereWithAggregatesInput | PtMediaUploadIntentScalarWhereWithAggregatesInput[]
+    OR?: PtMediaUploadIntentScalarWhereWithAggregatesInput[]
+    NOT?: PtMediaUploadIntentScalarWhereWithAggregatesInput | PtMediaUploadIntentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtMediaUploadIntent"> | string
+    ptUserId?: StringWithAggregatesFilter<"PtMediaUploadIntent"> | string
+    objectKey?: StringWithAggregatesFilter<"PtMediaUploadIntent"> | string
+    status?: EnumPtMediaUploadIntentStatusWithAggregatesFilter<"PtMediaUploadIntent"> | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeWithAggregatesFilter<"PtMediaUploadIntent"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"PtMediaUploadIntent"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PtMediaUploadIntent"> | Date | string
+  }
+
+  export type ClientCompatEventWhereInput = {
+    AND?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    OR?: ClientCompatEventWhereInput[]
+    NOT?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    id?: StringFilter<"ClientCompatEvent"> | string
+    route?: StringFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeFilter<"ClientCompatEvent"> | Date | string
+  }
+
+  export type ClientCompatEventOrderByWithRelationInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    OR?: ClientCompatEventWhereInput[]
+    NOT?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    route?: StringFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeFilter<"ClientCompatEvent"> | Date | string
+  }, "id">
+
+  export type ClientCompatEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+    _count?: ClientCompatEventCountOrderByAggregateInput
+    _max?: ClientCompatEventMaxOrderByAggregateInput
+    _min?: ClientCompatEventMinOrderByAggregateInput
+  }
+
+  export type ClientCompatEventScalarWhereWithAggregatesInput = {
+    AND?: ClientCompatEventScalarWhereWithAggregatesInput | ClientCompatEventScalarWhereWithAggregatesInput[]
+    OR?: ClientCompatEventScalarWhereWithAggregatesInput[]
+    NOT?: ClientCompatEventScalarWhereWithAggregatesInput | ClientCompatEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    route?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableWithAggregatesFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"ClientCompatEvent"> | Date | string
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
@@ -36841,6 +41846,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -36888,6 +41895,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateInput = {
@@ -36898,6 +41907,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -36945,6 +41956,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUpdateInput = {
@@ -36955,6 +41968,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37002,6 +42017,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateInput = {
@@ -37012,6 +42029,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37059,6 +42078,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateManyInput = {
@@ -37069,6 +42090,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -37121,6 +42144,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37173,6 +42198,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39326,6 +44353,7 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     ptProfile: UserProfileCreateNestedOneWithoutServicePackagesInput
@@ -39343,6 +44371,7 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -39358,6 +44387,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptProfile?: UserProfileUpdateOneRequiredWithoutServicePackagesNestedInput
@@ -39375,6 +44405,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -39391,6 +44422,7 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -39406,6 +44438,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -39422,6 +44455,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -40565,6 +45599,396 @@ export namespace Prisma {
     appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PtListingRevisionCreateInput = {
+    id?: string
+    ptUserId: string
+    status?: $Enums.PtListingRevisionStatus
+    source?: $Enums.PtListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtListingRevisionUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    status?: $Enums.PtListingRevisionStatus
+    source?: $Enums.PtListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtListingRevisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtListingRevisionStatusFieldUpdateOperationsInput | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFieldUpdateOperationsInput | $Enums.PtListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtListingRevisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtListingRevisionStatusFieldUpdateOperationsInput | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFieldUpdateOperationsInput | $Enums.PtListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtListingRevisionCreateManyInput = {
+    id?: string
+    ptUserId: string
+    status?: $Enums.PtListingRevisionStatus
+    source?: $Enums.PtListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtListingRevisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtListingRevisionStatusFieldUpdateOperationsInput | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFieldUpdateOperationsInput | $Enums.PtListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtListingRevisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtListingRevisionStatusFieldUpdateOperationsInput | $Enums.PtListingRevisionStatus
+    source?: EnumPtListingRevisionSourceFieldUpdateOperationsInput | $Enums.PtListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoCreateInput = {
+    id?: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+    ptProfile: UserProfileCreateNestedOneWithoutPhysiquePhotosInput
+  }
+
+  export type PtPhysiquePhotoUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PtPhysiquePhotoUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptProfile?: UserProfileUpdateOneRequiredWithoutPhysiquePhotosNestedInput
+  }
+
+  export type PtPhysiquePhotoUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoCreateManyInput = {
+    id?: string
+    ptUserId: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PtPhysiquePhotoUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentCreateInput = {
+    id?: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptProfile: UserProfileCreateNestedOneWithoutMediaUploadIntentsInput
+  }
+
+  export type PtMediaUploadIntentUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtMediaUploadIntentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptProfile?: UserProfileUpdateOneRequiredWithoutMediaUploadIntentsNestedInput
+  }
+
+  export type PtMediaUploadIntentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentCreateManyInput = {
+    id?: string
+    ptUserId: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtMediaUploadIntentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventCreateInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUncheckedCreateInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventCreateManyInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -40600,15 +46024,15 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
-  export type BigIntNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -40620,6 +46044,17 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type BigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -40695,17 +46130,6 @@ export namespace Prisma {
     isEmpty?: boolean
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -40768,6 +46192,18 @@ export namespace Prisma {
     none?: PTServicePackageWhereInput
   }
 
+  export type PtPhysiquePhotoListRelationFilter = {
+    every?: PtPhysiquePhotoWhereInput
+    some?: PtPhysiquePhotoWhereInput
+    none?: PtPhysiquePhotoWhereInput
+  }
+
+  export type PtMediaUploadIntentListRelationFilter = {
+    every?: PtMediaUploadIntentWhereInput
+    some?: PtMediaUploadIntentWhereInput
+    none?: PtMediaUploadIntentWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -40789,6 +46225,14 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type PtPhysiquePhotoOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtMediaUploadIntentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -40797,6 +46241,8 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
     ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
@@ -40842,6 +46288,7 @@ export namespace Prisma {
   }
 
   export type UserProfileAvgOrderByAggregateInput = {
+    listingVersion?: SortOrder
     ptLockSeq?: SortOrder
     age?: SortOrder
     heightCm?: SortOrder
@@ -40861,6 +46308,8 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
     ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
@@ -40907,6 +46356,8 @@ export namespace Prisma {
     email?: SortOrder
     isPT?: SortOrder
     ptSuspended?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
     ptLockSeq?: SortOrder
     referralCode?: SortOrder
     dateOfBirth?: SortOrder
@@ -40946,6 +46397,7 @@ export namespace Prisma {
   }
 
   export type UserProfileSumOrderByAggregateInput = {
+    listingVersion?: SortOrder
     ptLockSeq?: SortOrder
     age?: SortOrder
     heightCm?: SortOrder
@@ -41001,20 +46453,20 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
-  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedBigIntNullableFilter<$PrismaModel>
-    _min?: NestedBigIntNullableFilter<$PrismaModel>
-    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -41029,6 +46481,22 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -41111,22 +46579,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
     _max?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -42568,6 +48020,7 @@ export namespace Prisma {
     validityDays?: SortOrder
     isActive?: SortOrder
     archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -42577,6 +48030,7 @@ export namespace Prisma {
     price?: SortOrder
     sessionDurationMinutes?: SortOrder
     validityDays?: SortOrder
+    version?: SortOrder
   }
 
   export type PTServicePackageMaxOrderByAggregateInput = {
@@ -42591,6 +48045,7 @@ export namespace Prisma {
     validityDays?: SortOrder
     isActive?: SortOrder
     archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -42607,6 +48062,7 @@ export namespace Prisma {
     validityDays?: SortOrder
     isActive?: SortOrder
     archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -42616,6 +48072,7 @@ export namespace Prisma {
     price?: SortOrder
     sessionDurationMinutes?: SortOrder
     validityDays?: SortOrder
+    version?: SortOrder
   }
 
   export type EnumRescheduleRequestedByFilter<$PrismaModel = never> = {
@@ -43489,6 +48946,256 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
+  export type EnumPtListingRevisionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionStatus | EnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel> | $Enums.PtListingRevisionStatus
+  }
+
+  export type EnumPtListingRevisionSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionSource | EnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel> | $Enums.PtListingRevisionSource
+  }
+
+  export type PtListingRevisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtListingRevisionAvgOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+  }
+
+  export type PtListingRevisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtListingRevisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtListingRevisionSumOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+  }
+
+  export type EnumPtListingRevisionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionStatus | EnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtListingRevisionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPtListingRevisionSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionSource | EnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionSourceWithAggregatesFilter<$PrismaModel> | $Enums.PtListingRevisionSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel>
+    _max?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel>
+  }
+
+  export type EnumPtPhysiquePhotoStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtPhysiquePhotoStatus | EnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel> | $Enums.PtPhysiquePhotoStatus
+  }
+
+  export type PtPhysiquePhotoCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    storageKey?: SortOrder
+    status?: SortOrder
+    sortOrder?: SortOrder
+    isCover?: SortOrder
+    mime?: SortOrder
+    bytes?: SortOrder
+    contentHash?: SortOrder
+    uploadedBy?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtPhysiquePhotoAvgOrderByAggregateInput = {
+    sortOrder?: SortOrder
+    bytes?: SortOrder
+  }
+
+  export type PtPhysiquePhotoMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    storageKey?: SortOrder
+    status?: SortOrder
+    sortOrder?: SortOrder
+    isCover?: SortOrder
+    mime?: SortOrder
+    bytes?: SortOrder
+    contentHash?: SortOrder
+    uploadedBy?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtPhysiquePhotoMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    storageKey?: SortOrder
+    status?: SortOrder
+    sortOrder?: SortOrder
+    isCover?: SortOrder
+    mime?: SortOrder
+    bytes?: SortOrder
+    contentHash?: SortOrder
+    uploadedBy?: SortOrder
+    retiredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtPhysiquePhotoSumOrderByAggregateInput = {
+    sortOrder?: SortOrder
+    bytes?: SortOrder
+  }
+
+  export type EnumPtPhysiquePhotoStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtPhysiquePhotoStatus | EnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtPhysiquePhotoStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtPhysiquePhotoStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPtMediaUploadIntentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtMediaUploadIntentStatus | EnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel> | $Enums.PtMediaUploadIntentStatus
+  }
+
+  export type PtMediaUploadIntentCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    objectKey?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtMediaUploadIntentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    objectKey?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PtMediaUploadIntentMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    objectKey?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumPtMediaUploadIntentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtMediaUploadIntentStatus | EnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtMediaUploadIntentStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtMediaUploadIntentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel>
+  }
+
+  export type ClientCompatEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type UserProfileCreatesafetyScreeningFlagsInput = {
     set: string[]
   }
@@ -43543,6 +49250,20 @@ export namespace Prisma {
     connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
   }
 
+  export type PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput> | PtPhysiquePhotoCreateWithoutPtProfileInput[] | PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput | PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtPhysiquePhotoCreateManyPtProfileInputEnvelope
+    connect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+  }
+
+  export type PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput> | PtMediaUploadIntentCreateWithoutPtProfileInput[] | PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput | PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtMediaUploadIntentCreateManyPtProfileInputEnvelope
+    connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+  }
+
   export type ClientJourneyUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
@@ -43577,6 +49298,20 @@ export namespace Prisma {
     connect?: PTServicePackageWhereUniqueInput | PTServicePackageWhereUniqueInput[]
   }
 
+  export type PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput> | PtPhysiquePhotoCreateWithoutPtProfileInput[] | PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput | PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtPhysiquePhotoCreateManyPtProfileInputEnvelope
+    connect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+  }
+
+  export type PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput> | PtMediaUploadIntentCreateWithoutPtProfileInput[] | PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput | PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PtMediaUploadIntentCreateManyPtProfileInputEnvelope
+    connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -43589,16 +49324,24 @@ export namespace Prisma {
     set?: boolean
   }
 
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type NullableBigIntFieldUpdateOperationsInput = {
     set?: bigint | number | null
     increment?: bigint | number
     decrement?: bigint | number
     multiply?: bigint | number
     divide?: bigint | number
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -43655,14 +49398,6 @@ export namespace Prisma {
   export type UserProfileUpdateinjuriesInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type UserProfileUpdatespecialtiesInput = {
@@ -43740,6 +49475,34 @@ export namespace Prisma {
     deleteMany?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
   }
 
+  export type PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput> | PtPhysiquePhotoCreateWithoutPtProfileInput[] | PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput | PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtPhysiquePhotoUpsertWithWhereUniqueWithoutPtProfileInput | PtPhysiquePhotoUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtPhysiquePhotoCreateManyPtProfileInputEnvelope
+    set?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    disconnect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    delete?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    connect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    update?: PtPhysiquePhotoUpdateWithWhereUniqueWithoutPtProfileInput | PtPhysiquePhotoUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtPhysiquePhotoUpdateManyWithWhereWithoutPtProfileInput | PtPhysiquePhotoUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtPhysiquePhotoScalarWhereInput | PtPhysiquePhotoScalarWhereInput[]
+  }
+
+  export type PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput> | PtMediaUploadIntentCreateWithoutPtProfileInput[] | PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput | PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtMediaUploadIntentUpsertWithWhereUniqueWithoutPtProfileInput | PtMediaUploadIntentUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtMediaUploadIntentCreateManyPtProfileInputEnvelope
+    set?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    disconnect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    delete?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    update?: PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput | PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput | PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
+  }
+
   export type ClientJourneyUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<ClientJourneyCreateWithoutUserInput, ClientJourneyUncheckedCreateWithoutUserInput> | ClientJourneyCreateWithoutUserInput[] | ClientJourneyUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ClientJourneyCreateOrConnectWithoutUserInput | ClientJourneyCreateOrConnectWithoutUserInput[]
@@ -43804,6 +49567,34 @@ export namespace Prisma {
     update?: PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput | PTServicePackageUpdateWithWhereUniqueWithoutPtProfileInput[]
     updateMany?: PTServicePackageUpdateManyWithWhereWithoutPtProfileInput | PTServicePackageUpdateManyWithWhereWithoutPtProfileInput[]
     deleteMany?: PTServicePackageScalarWhereInput | PTServicePackageScalarWhereInput[]
+  }
+
+  export type PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput> | PtPhysiquePhotoCreateWithoutPtProfileInput[] | PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput | PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtPhysiquePhotoUpsertWithWhereUniqueWithoutPtProfileInput | PtPhysiquePhotoUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtPhysiquePhotoCreateManyPtProfileInputEnvelope
+    set?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    disconnect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    delete?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    connect?: PtPhysiquePhotoWhereUniqueInput | PtPhysiquePhotoWhereUniqueInput[]
+    update?: PtPhysiquePhotoUpdateWithWhereUniqueWithoutPtProfileInput | PtPhysiquePhotoUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtPhysiquePhotoUpdateManyWithWhereWithoutPtProfileInput | PtPhysiquePhotoUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtPhysiquePhotoScalarWhereInput | PtPhysiquePhotoScalarWhereInput[]
+  }
+
+  export type PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput> | PtMediaUploadIntentCreateWithoutPtProfileInput[] | PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput | PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PtMediaUploadIntentUpsertWithWhereUniqueWithoutPtProfileInput | PtMediaUploadIntentUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PtMediaUploadIntentCreateManyPtProfileInputEnvelope
+    set?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    disconnect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    delete?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    connect?: PtMediaUploadIntentWhereUniqueInput | PtMediaUploadIntentWhereUniqueInput[]
+    update?: PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput | PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput | PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
   }
 
   export type PTApplicationCreatemainSpecialtiesInput = {
@@ -44833,6 +50624,50 @@ export namespace Prisma {
     update?: XOR<XOR<PtRestrictionUpdateToOneWithWhereWithoutContractExtensionsInput, PtRestrictionUpdateWithoutContractExtensionsInput>, PtRestrictionUncheckedUpdateWithoutContractExtensionsInput>
   }
 
+  export type EnumPtListingRevisionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtListingRevisionStatus
+  }
+
+  export type EnumPtListingRevisionSourceFieldUpdateOperationsInput = {
+    set?: $Enums.PtListingRevisionSource
+  }
+
+  export type UserProfileCreateNestedOneWithoutPhysiquePhotosInput = {
+    create?: XOR<UserProfileCreateWithoutPhysiquePhotosInput, UserProfileUncheckedCreateWithoutPhysiquePhotosInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutPhysiquePhotosInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtPhysiquePhotoStatus
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutPhysiquePhotosNestedInput = {
+    create?: XOR<UserProfileCreateWithoutPhysiquePhotosInput, UserProfileUncheckedCreateWithoutPhysiquePhotosInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutPhysiquePhotosInput
+    upsert?: UserProfileUpsertWithoutPhysiquePhotosInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutPhysiquePhotosInput, UserProfileUpdateWithoutPhysiquePhotosInput>, UserProfileUncheckedUpdateWithoutPhysiquePhotosInput>
+  }
+
+  export type UserProfileCreateNestedOneWithoutMediaUploadIntentsInput = {
+    create?: XOR<UserProfileCreateWithoutMediaUploadIntentsInput, UserProfileUncheckedCreateWithoutMediaUploadIntentsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutMediaUploadIntentsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtMediaUploadIntentStatus
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutMediaUploadIntentsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutMediaUploadIntentsInput, UserProfileUncheckedCreateWithoutMediaUploadIntentsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutMediaUploadIntentsInput
+    upsert?: UserProfileUpsertWithoutMediaUploadIntentsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutMediaUploadIntentsInput, UserProfileUpdateWithoutMediaUploadIntentsInput>, UserProfileUncheckedUpdateWithoutMediaUploadIntentsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -44866,15 +50701,15 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
-  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
@@ -44886,6 +50721,17 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -44945,17 +50791,6 @@ export namespace Prisma {
     not?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel> | $Enums.SafetyScreeningStatus
   }
 
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -45009,20 +50844,31 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
-  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedBigIntNullableFilter<$PrismaModel>
-    _min?: NestedBigIntNullableFilter<$PrismaModel>
-    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -45037,6 +50883,22 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -45119,33 +50981,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
     _max?: NestedEnumSafetyScreeningStatusFilter<$PrismaModel>
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -45694,6 +51529,74 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
+  export type NestedEnumPtListingRevisionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionStatus | EnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel> | $Enums.PtListingRevisionStatus
+  }
+
+  export type NestedEnumPtListingRevisionSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionSource | EnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel> | $Enums.PtListingRevisionSource
+  }
+
+  export type NestedEnumPtListingRevisionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionStatus | EnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionStatus[] | ListEnumPtListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtListingRevisionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtListingRevisionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtListingRevisionSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtListingRevisionSource | EnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtListingRevisionSource[] | ListEnumPtListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtListingRevisionSourceWithAggregatesFilter<$PrismaModel> | $Enums.PtListingRevisionSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel>
+    _max?: NestedEnumPtListingRevisionSourceFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtPhysiquePhotoStatus | EnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel> | $Enums.PtPhysiquePhotoStatus
+  }
+
+  export type NestedEnumPtPhysiquePhotoStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtPhysiquePhotoStatus | EnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtPhysiquePhotoStatus[] | ListEnumPtPhysiquePhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtPhysiquePhotoStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtPhysiquePhotoStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtPhysiquePhotoStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtMediaUploadIntentStatus | EnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel> | $Enums.PtMediaUploadIntentStatus
+  }
+
+  export type NestedEnumPtMediaUploadIntentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtMediaUploadIntentStatus | EnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtMediaUploadIntentStatus[] | ListEnumPtMediaUploadIntentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtMediaUploadIntentStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtMediaUploadIntentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtMediaUploadIntentStatusFilter<$PrismaModel>
+  }
+
   export type ClientJourneyCreateWithoutUserInput = {
     id?: string
     ptId?: string | null
@@ -45978,6 +51881,7 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -45993,6 +51897,7 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -46004,6 +51909,72 @@ export namespace Prisma {
 
   export type PTServicePackageCreateManyPtProfileInputEnvelope = {
     data: PTServicePackageCreateManyPtProfileInput | PTServicePackageCreateManyPtProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PtPhysiquePhotoCreateWithoutPtProfileInput = {
+    id?: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput = {
+    id?: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PtPhysiquePhotoCreateOrConnectWithoutPtProfileInput = {
+    where: PtPhysiquePhotoWhereUniqueInput
+    create: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtPhysiquePhotoCreateManyPtProfileInputEnvelope = {
+    data: PtPhysiquePhotoCreateManyPtProfileInput | PtPhysiquePhotoCreateManyPtProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PtMediaUploadIntentCreateWithoutPtProfileInput = {
+    id?: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput = {
+    id?: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtMediaUploadIntentCreateOrConnectWithoutPtProfileInput = {
+    where: PtMediaUploadIntentWhereUniqueInput
+    create: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtMediaUploadIntentCreateManyPtProfileInputEnvelope = {
+    data: PtMediaUploadIntentCreateManyPtProfileInput | PtMediaUploadIntentCreateManyPtProfileInput[]
     skipDuplicates?: boolean
   }
 
@@ -46287,8 +52258,72 @@ export namespace Prisma {
     validityDays?: IntNullableFilter<"PTServicePackage"> | number | null
     isActive?: BoolFilter<"PTServicePackage"> | boolean
     archivedAt?: DateTimeNullableFilter<"PTServicePackage"> | Date | string | null
+    version?: IntFilter<"PTServicePackage"> | number
     createdAt?: DateTimeFilter<"PTServicePackage"> | Date | string
     updatedAt?: DateTimeFilter<"PTServicePackage"> | Date | string
+  }
+
+  export type PtPhysiquePhotoUpsertWithWhereUniqueWithoutPtProfileInput = {
+    where: PtPhysiquePhotoWhereUniqueInput
+    update: XOR<PtPhysiquePhotoUpdateWithoutPtProfileInput, PtPhysiquePhotoUncheckedUpdateWithoutPtProfileInput>
+    create: XOR<PtPhysiquePhotoCreateWithoutPtProfileInput, PtPhysiquePhotoUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtPhysiquePhotoUpdateWithWhereUniqueWithoutPtProfileInput = {
+    where: PtPhysiquePhotoWhereUniqueInput
+    data: XOR<PtPhysiquePhotoUpdateWithoutPtProfileInput, PtPhysiquePhotoUncheckedUpdateWithoutPtProfileInput>
+  }
+
+  export type PtPhysiquePhotoUpdateManyWithWhereWithoutPtProfileInput = {
+    where: PtPhysiquePhotoScalarWhereInput
+    data: XOR<PtPhysiquePhotoUpdateManyMutationInput, PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileInput>
+  }
+
+  export type PtPhysiquePhotoScalarWhereInput = {
+    AND?: PtPhysiquePhotoScalarWhereInput | PtPhysiquePhotoScalarWhereInput[]
+    OR?: PtPhysiquePhotoScalarWhereInput[]
+    NOT?: PtPhysiquePhotoScalarWhereInput | PtPhysiquePhotoScalarWhereInput[]
+    id?: StringFilter<"PtPhysiquePhoto"> | string
+    ptUserId?: StringFilter<"PtPhysiquePhoto"> | string
+    storageKey?: StringFilter<"PtPhysiquePhoto"> | string
+    status?: EnumPtPhysiquePhotoStatusFilter<"PtPhysiquePhoto"> | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFilter<"PtPhysiquePhoto"> | number
+    isCover?: BoolFilter<"PtPhysiquePhoto"> | boolean
+    mime?: StringFilter<"PtPhysiquePhoto"> | string
+    bytes?: IntFilter<"PtPhysiquePhoto"> | number
+    contentHash?: StringNullableFilter<"PtPhysiquePhoto"> | string | null
+    uploadedBy?: StringFilter<"PtPhysiquePhoto"> | string
+    retiredAt?: DateTimeNullableFilter<"PtPhysiquePhoto"> | Date | string | null
+    createdAt?: DateTimeFilter<"PtPhysiquePhoto"> | Date | string
+  }
+
+  export type PtMediaUploadIntentUpsertWithWhereUniqueWithoutPtProfileInput = {
+    where: PtMediaUploadIntentWhereUniqueInput
+    update: XOR<PtMediaUploadIntentUpdateWithoutPtProfileInput, PtMediaUploadIntentUncheckedUpdateWithoutPtProfileInput>
+    create: XOR<PtMediaUploadIntentCreateWithoutPtProfileInput, PtMediaUploadIntentUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PtMediaUploadIntentUpdateWithWhereUniqueWithoutPtProfileInput = {
+    where: PtMediaUploadIntentWhereUniqueInput
+    data: XOR<PtMediaUploadIntentUpdateWithoutPtProfileInput, PtMediaUploadIntentUncheckedUpdateWithoutPtProfileInput>
+  }
+
+  export type PtMediaUploadIntentUpdateManyWithWhereWithoutPtProfileInput = {
+    where: PtMediaUploadIntentScalarWhereInput
+    data: XOR<PtMediaUploadIntentUpdateManyMutationInput, PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileInput>
+  }
+
+  export type PtMediaUploadIntentScalarWhereInput = {
+    AND?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
+    OR?: PtMediaUploadIntentScalarWhereInput[]
+    NOT?: PtMediaUploadIntentScalarWhereInput | PtMediaUploadIntentScalarWhereInput[]
+    id?: StringFilter<"PtMediaUploadIntent"> | string
+    ptUserId?: StringFilter<"PtMediaUploadIntent"> | string
+    objectKey?: StringFilter<"PtMediaUploadIntent"> | string
+    status?: EnumPtMediaUploadIntentStatusFilter<"PtMediaUploadIntent"> | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    createdAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
+    updatedAt?: DateTimeFilter<"PtMediaUploadIntent"> | Date | string
   }
 
   export type PTApplicationCertificateCreateWithoutApplicationInput = {
@@ -46363,6 +52398,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -46409,6 +52446,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutPtApplicationInput = {
@@ -46419,6 +52458,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -46465,6 +52506,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutPtApplicationInput = {
@@ -46553,6 +52596,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -46599,6 +52644,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutPtApplicationInput = {
@@ -46609,6 +52656,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -46655,6 +52704,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type PTApplicationCreateWithoutCertificatesInput = {
@@ -49313,6 +55364,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -49359,6 +55412,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutTrainingLocationsInput = {
@@ -49369,6 +55424,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -49415,6 +55472,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutTrainingLocationsInput = {
@@ -49511,6 +55570,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -49557,6 +55618,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutTrainingLocationsInput = {
@@ -49567,6 +55630,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -49613,6 +55678,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateWithoutServicePackagesInput = {
@@ -49623,6 +55690,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -49669,6 +55738,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutServicePackagesInput = {
@@ -49679,6 +55750,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -49725,6 +55798,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutServicePackagesInput = {
@@ -49751,6 +55826,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -49797,6 +55874,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutServicePackagesInput = {
@@ -49807,6 +55886,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -49853,6 +55934,8 @@ export namespace Prisma {
     agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type SessionCreateWithoutRescheduleRequestsInput = {
@@ -50011,6 +56094,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -50057,6 +56142,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutJourneysInput = {
@@ -50067,6 +56154,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -50113,6 +56202,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutJourneysInput = {
@@ -50292,6 +56383,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50338,6 +56431,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutJourneysInput = {
@@ -50348,6 +56443,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50394,6 +56491,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type ContractUpsertWithoutJourneysInput = {
@@ -50563,6 +56662,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -50609,6 +56710,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutAgentDraftsInput = {
@@ -50619,6 +56722,8 @@ export namespace Prisma {
     email?: string | null
     isPT?: boolean
     ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
     ptLockSeq?: bigint | number | null
     referralCode?: string | null
     dateOfBirth?: Date | string | null
@@ -50665,6 +56770,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
     trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
     servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutAgentDraftsInput = {
@@ -50691,6 +56798,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50737,6 +56846,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutAgentDraftsInput = {
@@ -50747,6 +56858,8 @@ export namespace Prisma {
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
     ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     referralCode?: NullableStringFieldUpdateOperationsInput | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50793,6 +56906,8 @@ export namespace Prisma {
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
     trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
     servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type ContractCreateWithoutPtRestrictionsInput = {
@@ -51276,6 +57391,518 @@ export namespace Prisma {
     supersedesRestrictionId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type UserProfileCreateWithoutPhysiquePhotosInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutPhysiquePhotosInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutPhysiquePhotosInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutPhysiquePhotosInput, UserProfileUncheckedCreateWithoutPhysiquePhotosInput>
+  }
+
+  export type UserProfileUpsertWithoutPhysiquePhotosInput = {
+    update: XOR<UserProfileUpdateWithoutPhysiquePhotosInput, UserProfileUncheckedUpdateWithoutPhysiquePhotosInput>
+    create: XOR<UserProfileCreateWithoutPhysiquePhotosInput, UserProfileUncheckedCreateWithoutPhysiquePhotosInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutPhysiquePhotosInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutPhysiquePhotosInput, UserProfileUncheckedUpdateWithoutPhysiquePhotosInput>
+  }
+
+  export type UserProfileUpdateWithoutPhysiquePhotosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutPhysiquePhotosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    mediaUploadIntents?: PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileCreateWithoutMediaUploadIntentsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutMediaUploadIntentsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    ptSuspended?: boolean
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    ptLockSeq?: bigint | number | null
+    referralCode?: string | null
+    dateOfBirth?: Date | string | null
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
+    safetyScreeningStatus?: $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileCreatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
+    currentWeight?: number | null
+    targetWeight?: number | null
+    startingWeight?: number | null
+    startingWeightSource?: string | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    nutritionBudgetLevel?: string | null
+    region?: string | null
+    unitSystem?: string
+    energyUnit?: string
+    sessionDurationMinutes?: number
+    isAcceptingClients?: boolean
+    notAcceptingReason?: string | null
+    firstNameNormalized?: string | null
+    lastNameNormalized?: string | null
+    searchCity?: string | null
+    searchDistrict?: string | null
+    searchWard?: string | null
+    gymId?: string | null
+    specialties?: UserProfileCreatespecialtiesInput | string[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    dataOrigin?: string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: number | null
+    journeys?: ClientJourneyUncheckedCreateNestedManyWithoutUserInput
+    agentDrafts?: AgentContractDraftUncheckedCreateNestedManyWithoutUserInput
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
+    servicePackages?: PTServicePackageUncheckedCreateNestedManyWithoutPtProfileInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedCreateNestedManyWithoutPtProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutMediaUploadIntentsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutMediaUploadIntentsInput, UserProfileUncheckedCreateWithoutMediaUploadIntentsInput>
+  }
+
+  export type UserProfileUpsertWithoutMediaUploadIntentsInput = {
+    update: XOR<UserProfileUpdateWithoutMediaUploadIntentsInput, UserProfileUncheckedUpdateWithoutMediaUploadIntentsInput>
+    create: XOR<UserProfileCreateWithoutMediaUploadIntentsInput, UserProfileUncheckedCreateWithoutMediaUploadIntentsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutMediaUploadIntentsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutMediaUploadIntentsInput, UserProfileUncheckedUpdateWithoutMediaUploadIntentsInput>
+  }
+
+  export type UserProfileUpdateWithoutMediaUploadIntentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUpdateManyWithoutPtProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutMediaUploadIntentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptLockSeq?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    referralCode?: NullableStringFieldUpdateOperationsInput | string | null
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
+    safetyScreeningStatus?: EnumSafetyScreeningStatusFieldUpdateOperationsInput | $Enums.SafetyScreeningStatus
+    safetyScreeningFlags?: UserProfileUpdatesafetyScreeningFlagsInput | string[]
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    startingWeightSource?: NullableStringFieldUpdateOperationsInput | string | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    nutritionBudgetLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    unitSystem?: StringFieldUpdateOperationsInput | string
+    energyUnit?: StringFieldUpdateOperationsInput | string
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    isAcceptingClients?: BoolFieldUpdateOperationsInput | boolean
+    notAcceptingReason?: NullableStringFieldUpdateOperationsInput | string | null
+    firstNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    lastNameNormalized?: NullableStringFieldUpdateOperationsInput | string | null
+    searchCity?: NullableStringFieldUpdateOperationsInput | string | null
+    searchDistrict?: NullableStringFieldUpdateOperationsInput | string | null
+    searchWard?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    specialties?: UserProfileUpdatespecialtiesInput | string[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dataOrigin?: StringFieldUpdateOperationsInput | string
+    goalIntent?: NullableJsonNullValueInput | InputJsonValue
+    ptBudgetVnd?: NullableIntFieldUpdateOperationsInput | number | null
+    journeys?: ClientJourneyUncheckedUpdateManyWithoutUserNestedInput
+    agentDrafts?: AgentContractDraftUncheckedUpdateManyWithoutUserNestedInput
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
+    servicePackages?: PTServicePackageUncheckedUpdateManyWithoutPtProfileNestedInput
+    physiquePhotos?: PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileNestedInput
+  }
+
   export type ClientJourneyCreateManyUserInput = {
     id?: string
     ptId?: string | null
@@ -51347,6 +57974,30 @@ export namespace Prisma {
     validityDays?: number | null
     isActive?: boolean
     archivedAt?: Date | string | null
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PtPhysiquePhotoCreateManyPtProfileInput = {
+    id?: string
+    storageKey: string
+    status?: $Enums.PtPhysiquePhotoStatus
+    sortOrder?: number
+    isCover?: boolean
+    mime: string
+    bytes: number
+    contentHash?: string | null
+    uploadedBy: string
+    retiredAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type PtMediaUploadIntentCreateManyPtProfileInput = {
+    id?: string
+    objectKey: string
+    status?: $Enums.PtMediaUploadIntentStatus
+    expiresAt: Date | string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -51542,6 +58193,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -51557,6 +58209,7 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -51572,6 +58225,76 @@ export namespace Prisma {
     validityDays?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoUncheckedUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtPhysiquePhotoUncheckedUpdateManyWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtPhysiquePhotoStatusFieldUpdateOperationsInput | $Enums.PtPhysiquePhotoStatus
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    isCover?: BoolFieldUpdateOperationsInput | boolean
+    mime?: StringFieldUpdateOperationsInput | string
+    bytes?: IntFieldUpdateOperationsInput | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedBy?: StringFieldUpdateOperationsInput | string
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentUncheckedUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtMediaUploadIntentUncheckedUpdateManyWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    objectKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumPtMediaUploadIntentStatusFieldUpdateOperationsInput | $Enums.PtMediaUploadIntentStatus
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -52491,6 +59214,22 @@ export namespace Prisma {
      * @deprecated Use PtRestrictionContractExtensionDefaultArgs instead
      */
     export type PtRestrictionContractExtensionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtRestrictionContractExtensionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtListingRevisionDefaultArgs instead
+     */
+    export type PtListingRevisionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtListingRevisionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtPhysiquePhotoDefaultArgs instead
+     */
+    export type PtPhysiquePhotoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtPhysiquePhotoDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtMediaUploadIntentDefaultArgs instead
+     */
+    export type PtMediaUploadIntentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtMediaUploadIntentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ClientCompatEventDefaultArgs instead
+     */
+    export type ClientCompatEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ClientCompatEventDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

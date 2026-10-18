@@ -162,3 +162,17 @@ export async function flagMatchesRecord(ptUserId: string): Promise<boolean> {
   ]);
   return (profile?.ptSuspended ?? false) === active > 0;
 }
+
+/**
+ * Gives a PT created by makePt() the APPROVED application the public rule needs (plan §12.7: a trainer is shown to
+ * clients only with isPT + an APPROVED application + not suspended + no account-wide restriction). Only the suites
+ * that read the public list / detail / package endpoints need it; cleanup() already deletes the row.
+ */
+export async function approvePtApplication(ptUserId: string): Promise<void> {
+  const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: ptUserId }, select: { id: true } });
+  await prisma.pTApplication.upsert({
+    where: { userProfileId: profile.id },
+    update: { status: "APPROVED", approvedAt: new Date() },
+    create: { userProfileId: profile.id, status: "APPROVED", approvedAt: new Date() },
+  });
+}

@@ -44,6 +44,11 @@ async function requestWith(opts: { gymId?: string; collab?: unknown; sessionMode
       sessionMode: opts.sessionMode ?? SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null,
       isActive: true, archivedAt: null,
     })),
+    // Listing Management: requestContract re-reads the package FOR SHARE inside its transaction.
+    patch(ptServicePackageRepository, "findByIdForShare", async (id: string) => {
+      const row = (await ptServicePackageRepository.findById(id)) as any;
+      return row ? { version: 1, ...row } : null;
+    }),
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true })),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),
     patch(notificationService, "create", async () => ({})),

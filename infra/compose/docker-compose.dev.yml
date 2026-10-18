@@ -280,6 +280,16 @@ services:
       # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
       # integration itself is untouched. Flip to "true" (or remove) to re-require e-sign.
       REQUIRE_CONTRACT_ESIGN: "false"
+      # Listing Management — ảnh hình thể PT (tối đa 5) lên MinIO dev, bucket RIÊNG TƯ, đọc bằng presigned GET.
+      # Cố ý dùng PT_MEDIA_S3_* thay vì USER_UPLOAD_BUCKET/AWS_*: bật USER_UPLOAD_BUCKET sẽ đổi luôn đường
+      # lưu ảnh đại diện / hồ sơ PT / hợp đồng sang S3 — ngoài phạm vi việc này.
+      PT_MEDIA_S3_ENDPOINT: http://minio:9000
+      PT_MEDIA_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      PT_MEDIA_S3_REGION: us-east-1
+      PT_MEDIA_S3_FORCE_PATH_STYLE: "true"
+      PT_MEDIA_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}
+      PT_MEDIA_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-gymini_minio_secret}
+      PT_MEDIA_S3_BUCKET: gymini-user-media
     env_file:
       - ../../.env
     volumes:
@@ -981,6 +991,8 @@ services:
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-gymini_minio} ${MINIO_ROOT_PASSWORD:-gymini_minio_secret} &&
       mc mb --ignore-existing local/gymini-partner-private &&
       mc anonymous set none local/gymini-partner-private &&
+      mc mb --ignore-existing local/gymini-user-media &&
+      mc anonymous set none local/gymini-user-media &&
       echo 'minio bucket ready'"
 
 volumes:

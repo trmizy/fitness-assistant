@@ -9,6 +9,7 @@ import { startRescheduleExpiryJob } from "./services/reschedule-expiry.service";
 import { startSessionSettlementSweepJob } from "./services/session-settlement-sweep.service";
 import { startContractExpirySweepJob } from "./services/contract-expiry-sweep.service";
 import { startRoomCloseResolutionJob } from "./services/room-close-resolution.service";
+import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
 import { installGracefulShutdown } from "./lifecycle";
 
 const PORT = process.env.PORT || 3004;
@@ -33,6 +34,9 @@ const server = app.listen(PORT, () => {
   // so an ONLINE session's outcome no longer depends on either side clicking a manual
   // complete/no-show button — see room-close-resolution.service.ts.
   stopJobs.push(startRoomCloseResolutionJob());
+  // Listing management: dead photo-upload intents, orphaned STAGED physique photos, long-retired photos
+  // — see pt-listing-sweep.service.ts.
+  stopJobs.push(startPtListingSweepJob());
 });
 
 // SIGTERM / SIGINT: stop the ticks, stop accepting, let the requests and sweeps that are running FINISH (bounded by

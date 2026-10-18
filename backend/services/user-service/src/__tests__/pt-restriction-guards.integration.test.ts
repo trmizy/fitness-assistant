@@ -148,8 +148,9 @@ test("restricted mode: every PT-facing mutating coaching action is refused serve
       ["POST", `/sessions/${sOnline.id}/join`],
       ["PUT", "/availability/me", { slots: [] }],
       ["POST", "/availability/me/exceptions", { date: "2099-02-01", reason: "x" }],
-      ["POST", "/me/service-packages", { name: "Gói mới", sessionCount: 5, price: 500000, sessionMode: "OFFLINE" }],
-      ["PATCH", `/me/service-packages/${pkg.id}`, { price: 600000 }],
+      // Package writes (POST/PATCH /me/service-packages) are no longer here: since the listing-management change
+      // every package write route answers 409 LISTING_REVIEW_REQUIRED for everyone (pt-listing-foundation
+      // integration test); the restricted-mode guard still sits in the internal package service.
     ];
     for (const [method, path, body] of ptCalls) {
       r = await call(method, path, ptTok, body ?? {});
@@ -374,7 +375,8 @@ test("internal reads: the marketplace gate (ai-service) stops offering a restric
     // packages are not offered to new clients while it lasts
     const pkg = await prisma.pTServicePackage.create({ data: { ptUserId: pt, name: "G", sessionCount: 5, price: 1000, sessionMode: "OFFLINE" } });
     const clientTok = tokenFor(randomUUID(), "CUSTOMER");
-    assert.deepEqual((await call("GET", `/profile/pts/${pt}/service-packages`, clientTok)).body.packages, []);
+    // (a restricted trainer is not publicly visible, so the read answers 404 - same rule as the list and the detail)
+    assert.equal((await call("GET", `/profile/pts/${pt}/service-packages`, clientTok)).status, 404);
 
     await ptRestrictionService.lift({ ptUserId: pt, adminId: "a", reason: "ok" });
     r = await call("GET", `/internal/pt-marketplace-eligibility/${pt}`, null, undefined, SERVICE_SECRET);

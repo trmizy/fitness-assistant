@@ -13,6 +13,7 @@ import {
   attachPtRatings,
 } from "../repositories/ptReview.repository";
 import { enrichForDiscovery } from "../services/pt-discovery.service";
+import { computeFromPricesByMode, toPublicPtDto, type PublishedPtSource } from "../services/pt-public-dto";
 import { auditService, auditMeta } from "../services/audit.service";
 import { profileNameFields } from "../utils/profileName.util";
 import { AuditEntityType } from "../generated/prisma";
@@ -21,6 +22,8 @@ import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   createProfilePhotoUploadUrl,
   isOwnProfilePhotoKey,
+  isS3Ref,
+  keyFromS3Ref,
   profilePhotoUrlForKey,
 } from "../services/s3-upload.service";
 
@@ -38,6 +41,26 @@ export const profileController = {
   async upsertProfile(req: AuthRequest, res: Response): Promise<void> {
     try {
       const body = profileSchema.parse(req.body);
+      // photoUrl is a storage reference, not free text: without this check anyone could point their profile at
+      // ANOTHER user's photo (s3://profile-photos/<someone else>/...) and have the server sign it for them.
+      // Accepted: an s3 ref under the caller's own prefix, the value already stored (an unchanged re-save, which
+      // also covers a legacy non-s3 value), or "" to clear it.
+      if (body.photoUrl !== undefined && body.photoUrl !== "") {
+        const current = (await profileRepository.findByUserId(req.user!.id))?.photoUrl ?? null;
+        let own = false;
+        try {
+          own = isS3Ref(body.photoUrl) && isOwnProfilePhotoKey(req.user!.id, keyFromS3Ref(body.photoUrl));
+        } catch {
+          own = false; // an unsafe key (".." etc.) is simply not ours
+        }
+        if (!own && body.photoUrl !== current) {
+          res.status(400).json({
+            error: "photoUrl không hợp lệ. Hãy tải ảnh lên bằng chức năng tải ảnh đại diện.",
+            code: "PHOTO_URL_NOT_OWNED",
+          });
+          return;
+        }
+      }
       const result = await profileService.upsertProfile(req.user!.id, body);
       res.json(result);
     } catch (error: any) {
@@ -201,9 +224,13 @@ export const profileController = {
       // session_reviews, not a column), so for that one mode we page in memory: fetch the
       // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
       // sorting afterwards would only order each page against itself.
+      // Price order is the same story: the per-session price is DERIVED from the packages for sale (it is not a
+      // column), so price sorts are done in memory too.
       const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
+      const sortByPrice = sortBy === "priceAsc" || sortBy === "priceDesc";
+      const sortInMemory = sortByRating || sortByPrice;
 
-      let profiles = await profileRepository.findPTs({
+      const profiles = await profileRepository.findPTs({
         q: q?.trim() || undefined,
         minPrice,
         maxPrice,
@@ -214,9 +241,9 @@ export const profileController = {
         searchDistrict,
         gymId,
         specialties,
-        sortBy: sortByRating ? undefined : sortBy,
-        page: sortByRating ? undefined : page,
-        limit: sortByRating ? 1000 : limit,
+        sortBy: sortInMemory ? undefined : sortBy,
+        page: sortInMemory ? undefined : page,
+        limit: sortInMemory ? 1000 : limit,
       });
 
       // B10b. Ưu tiên gymId: Nếu có gymId, đưa các PT có cùng gymId lên đầu danh sách
@@ -230,8 +257,10 @@ export const profileController = {
       // Trainers approved before names were copied at approval time still have empty name
       // columns, so `q` cannot find them. Whatever auth-service fills in below is written back
       // (only into still-empty columns) — the list heals itself the first time it is loaded.
+      // Only the nameless rows go to auth-service (the helper would otherwise also fetch every row's email, which
+      // the public DTO never emits). Whatever it adds beyond names is dropped by toPublicPtDto's allowlist.
       const nameless = (profiles as any[]).filter((p) => !p.firstName && !p.lastName).map((p) => p.userId);
-      await enrichProfilesWithAuthNames(profiles as any[]);
+      await enrichProfilesWithAuthNames((profiles as any[]).filter((p) => nameless.includes(p.userId)));
       if (nameless.length > 0) {
         const healed = (profiles as any[]).filter((p) => nameless.includes(p.userId));
         void Promise.all(
@@ -245,15 +274,35 @@ export const profileController = {
       // One grouped query for the whole list, never one per PT.
       let rated = await attachPtRatings(profiles as any[]);
 
-      if (sortByRating) {
-        const dir = sortBy === "ratingAsc" ? 1 : -1;
-        // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
-        rated.sort((a, b) => {
-          if (a.avgRating === null && b.avgRating === null) return 0;
-          if (a.avgRating === null) return 1;
-          if (b.avgRating === null) return -1;
-          return (a.avgRating - b.avgRating) * dir;
-        });
+      if (sortInMemory) {
+        if (sortByRating) {
+          const dir = sortBy === "ratingAsc" ? 1 : -1;
+          // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
+          rated.sort((a, b) => {
+            if (a.avgRating === null && b.avgRating === null) return 0;
+            if (a.avgRating === null) return 1;
+            if (b.avgRating === null) return -1;
+            return (a.avgRating - b.avgRating) * dir;
+          });
+        } else {
+          const dir = sortBy === "priceAsc" ? 1 : -1;
+          // With a mode filter the price that matters is that mode's; otherwise the cheapest of all. A trainer
+          // with nothing for sale has no price and sinks to the bottom either way.
+          const priceOf = (row: any): number | null => {
+            const byMode = computeFromPricesByMode(row.servicePackages ?? []);
+            const picked =
+              sessionMode === "ONLINE" ? byMode.online : sessionMode === "OFFLINE" ? byMode.offline : byMode.overall;
+            return picked.fromPricePerSession;
+          };
+          rated.sort((a, b) => {
+            const pa = priceOf(a);
+            const pb = priceOf(b);
+            if (pa === null && pb === null) return 0;
+            if (pa === null) return 1;
+            if (pb === null) return -1;
+            return (pa - pb) * dir;
+          });
+        }
         const take = limit ?? 50;
         const skip = page ? (page - 1) * take : 0;
         rated = rated.slice(skip, skip + take);
@@ -265,8 +314,19 @@ export const profileController = {
       // The viewer comes from the verified token, never from a query parameter — otherwise
       // anyone could ask "rank this list as if I were that user" and read their gym membership.
       const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
+      // Everything below this line is the public allowlist: rows came from the public finder (visibility rule
+      // applied), and only the fields toPublicPtDto names are emitted.
       const signed = await Promise.all(
-        (enriched as any[]).map((profile) => withSignedProfilePhoto(profile)),
+        (enriched as any[]).map((row) =>
+          withSignedProfilePhoto(
+            toPublicPtDto(row as PublishedPtSource, {
+              avgRating: row.avgRating,
+              ratingCount: row.ratingCount,
+              availableSlotsNext28Days: row.availableSlotsNext28Days,
+              matchReason: row.matchReason,
+            }),
+          ),
+        ),
       );
 
       res.json({ pts: signed });
@@ -280,13 +340,17 @@ export const profileController = {
   async getPTDetail(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
-      const profile = await profileRepository.findByUserId(userId);
-      if (!profile || !(profile as any).isPT) {
+      // Same visibility rule as the list (ptPublicWhere): a suspended / restricted / not-approved trainer is a
+      // 404 here too, so an id typed into the URL cannot get past the filter the list applies.
+      const source = await profileRepository.findPublicPtByUserId(userId);
+      if (!source) {
         res.status(404).json({ error: "PT not found" });
         return;
       }
 
-      await enrichProfilesWithAuthNames([profile] as any[]);
+      // A profile row is created lazily and may still lack the name (auth-service has it).
+      const named: any = source;
+      if (!named.firstName && !named.lastName) await enrichProfilesWithAuthNames([named]);
       const [rating, recentReviews, ratingDistribution] = await Promise.all([
         ptReviewRepository.aggregateForPt(userId),
         ptReviewRepository.recentCommentsForPt(userId, 5),
@@ -294,8 +358,7 @@ export const profileController = {
       ]);
 
       res.json({
-        ...((await withSignedProfilePhoto(profile as any)) as any),
-        ...rating,
+        ...((await withSignedProfilePhoto(toPublicPtDto(source, rating))) as any),
         recentReviews,
         ratingDistribution,
       });

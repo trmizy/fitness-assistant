@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { roleMiddleware } from "../middleware/role.middleware";
 import { bookingController } from "../controllers/booking.controller";
 import { ptRestrictionController } from "../controllers/pt-restriction.controller";
+import adminPtListingRoutes from "./admin-pt-listing.routes";
 
 const router = Router();
 
@@ -26,5 +27,9 @@ router.get("/pts/:ptUserId/restrictions", ptRestrictionController.history as any
 router.post("/pts/:ptUserId/contracts/:contractId/restrict", ptRestrictionController.restrictContract as any);
 router.post("/pts/:ptUserId/contracts/:contractId/lift-restriction", ptRestrictionController.liftContract as any);
 router.post("/pts/:ptUserId/restrictions/change-scope", ptRestrictionController.changeScope as any);
+
+// ── Listing management: review queue, decisions, direct edits and photo retire for trainers ──────────────────
+// (the gym side mounts its own /listings/gyms in gym-service).
+router.use("/listings/pts", adminPtListingRoutes);
 
 export default router;

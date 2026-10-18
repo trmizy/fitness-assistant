@@ -21,6 +21,7 @@
     "@aws-sdk/client-lambda": "^3.1118.0",
     "@aws-sdk/client-s3": "^3.1118.0",
     "@aws-sdk/client-secrets-manager": "^3.1118.0",
+    "@aws-sdk/s3-presigned-post": "^3.1118.0",
     "@aws-sdk/s3-request-presigner": "^3.1118.0",
     "@dropbox/sign": "^1.11.0",
     "@gym-coach/shared": "workspace:*",
@@ -35,6 +36,7 @@
     "pino": "^8.17.2",
     "pino-http": "^9.0.0",
     "serverless-http": "^4.0.0",
+    "sharp": "^0.35.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -84,6 +84,12 @@ function install(w: World): () => void {
           }
         : null,
     ),
+    // requestContract now re-reads the package INSIDE its transaction (SELECT ... FOR SHARE, plan §12.13 item 4):
+    // serve the same fixture row for that read (no such row exists in the database).
+    patch(ptServicePackageRepository, "findByIdForShare", async (id: string) => {
+      const row = (await ptServicePackageRepository.findById(id)) as any;
+      return row ? { version: 1, ...row } : null;
+    }),
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true, referralCode: null })),
     patch(trainingLocationRepository, "findByPtUserId", async () => []),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),

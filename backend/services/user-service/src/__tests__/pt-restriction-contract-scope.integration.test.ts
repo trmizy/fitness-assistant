@@ -33,7 +33,7 @@ import {
   getEffectiveContractStatus,
   ptRestrictionService,
 } from "../services/pt-restriction.service";
-import { DAY, HOUR, addSession, cleanup, flagMatchesRecord, makeContract, makePt, patch, skip, stubs } from "./pt-restriction.test-helpers";
+import { DAY, HOUR, addSession, approvePtApplication, cleanup, flagMatchesRecord, makeContract, makePt, patch, skip, stubs } from "./pt-restriction.test-helpers";
 import {
   ACCOUNT_CODE,
   ADMIN,
@@ -93,6 +93,8 @@ test("(1-4, 16) four contracts, only An-Bình restricted: Chi/Dũng/Em book, con
   const pkg = await prisma.pTServicePackage.create({
     data: { ptUserId: pt, name: "Gói mới", sessionCount: 10, price: 1_000_000, sessionMode: "OFFLINE" },
   });
+  // The public package list needs the PT to be publicly visible (isPT + APPROVED application, plan §12.7).
+  await approvePtApplication(pt);
   const s = stubs();
   try {
     // fixtures: every contract has an upcoming REQUESTED and CONFIRMED session

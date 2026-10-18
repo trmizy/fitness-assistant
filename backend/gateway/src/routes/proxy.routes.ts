@@ -1363,6 +1363,39 @@ router.use(
   }),
 );
 
+// Admin — PT listing management (User Service): review queue, approve / reject / request-changes, direct edit,
+// physique-photo retire, history. The gateway gates by role; user-service re-checks ADMIN and takes the acting admin
+// from the verified token. Only the /pts sub-prefix is declared here: /admin/listings/gyms belongs to gym-service.
+router.use(
+  "/admin/listings/pts",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (admin PT listings)"),
+  }),
+);
+
+// Public — PT physique photos (User Service). No auth, GET/HEAD only: the service answers 404 unless the photo is
+// PUBLISHED and its trainer is publicly visible, otherwise a 302 to a short presigned URL. Anything but a read
+// never reaches the service.
+router.use(
+  "/media/pt-physique",
+  (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.setHeader("Allow", "GET, HEAD");
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+    return next();
+  },
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (media)"),
+  }),
+);
+
 // Protected — Notifications (User Service)
 router.use(
   "/notifications",

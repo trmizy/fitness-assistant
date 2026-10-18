@@ -16,7 +16,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../repositories/profile.repository";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
 import { openEpisode, ptRestrictionService, syncPtSuspendedFlag } from "../services/pt-restriction.service";
-import { cleanup, makeContract, makePt, skip, stubs } from "./pt-restriction.test-helpers";
+import { approvePtApplication, cleanup, makeContract, makePt, skip, stubs } from "./pt-restriction.test-helpers";
 import { ADMIN, SERVICE_SECRET, makeAn, startApp, tokenFor, type App } from "./pt-contract-scope.test-helpers";
 
 let app: App;
@@ -329,6 +329,8 @@ test("database: one ACTIVE account episode per PT and one ACTIVE contract episod
 
 test("(2-3 evidence) a PT with only a contract restriction stays discoverable; an account suspension hides them (control)", { skip }, async () => {
   const { pt, contracts: c, ids } = await makeAn();
+  // Discovery shows only publicly visible trainers: isPT + an APPROVED application + not suspended (plan §12.7).
+  await approvePtApplication(pt);
   const marker = `ScopeAn${randomUUID().slice(0, 8)}`;
   await prisma.userProfile.update({ where: { userId: pt }, data: { firstName: marker, firstNameNormalized: marker.toLowerCase() } });
   const viewer = tokenFor(randomUUID(), "CUSTOMER");

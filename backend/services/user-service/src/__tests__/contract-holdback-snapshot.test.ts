@@ -13,7 +13,7 @@ import { resolvePtHoldbackRate } from "../services/pt-holdback-rate";
 import { contractService } from "../services/contract.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
-import { profileRepository } from "../repositories/profile.repository";
+import { prisma, profileRepository } from "../repositories/profile.repository";
 import { availabilityService } from "../services/availability.service";
 import { notificationService } from "../services/notification.service";
 import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
@@ -40,11 +40,17 @@ test("resolvePtHoldbackRate always returns '0' for now, whoever the PT is", asyn
 
 test("requestContract snapshots ptHoldbackRate from resolvePtHoldbackRate: '0' on the row it creates, rates untouched", async () => {
   const created: Record<string, unknown>[] = [];
+  const packageRow = {
+    id: "pkg-1", ptUserId: "pt-1", name: "Gói 10 buổi", sessionCount: 10, price: new Prisma.Decimal("5000000"),
+    sessionMode: SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null, isActive: true, archivedAt: null,
+    version: 1,
+  };
   const restores = [
-    patch(ptServicePackageRepository, "findById", async () => ({
-      id: "pkg-1", ptUserId: "pt-1", name: "Gói 10 buổi", sessionCount: 10, price: new Prisma.Decimal("5000000"),
-      sessionMode: SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null, isActive: true, archivedAt: null,
-    })),
+    patch(ptServicePackageRepository, "findById", async () => packageRow),
+    // requestContract reads + snapshots the package inside a transaction (SELECT ... FOR SHARE): no DB in this unit
+    // test, so the transaction runs its callback against a placeholder client and the locked read serves the same row.
+    patch(prisma, "$transaction", async (fn: (tx: unknown) => unknown) => fn({})),
+    patch(ptServicePackageRepository, "findByIdForShare", async () => packageRow),
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true })),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),
     patch(contractRepository, "findActiveByPair", async () => null),

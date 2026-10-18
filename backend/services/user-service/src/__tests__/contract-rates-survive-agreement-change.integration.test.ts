@@ -36,6 +36,11 @@ async function request(ptUserId: string, clientUserId: string, packageId: string
       id: packageId, ptUserId, name: "Goi 10 buoi", sessionCount: 10, price: new Prisma.Decimal("5000000"),
       sessionMode: SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null, isActive: true, archivedAt: null,
     })),
+    // Listing Management: requestContract re-reads the package FOR SHARE inside its transaction.
+    patch(ptServicePackageRepository, "findByIdForShare", async (id: string) => {
+      const row = (await ptServicePackageRepository.findById(id)) as any;
+      return row ? { version: 1, ...row } : null;
+    }),
     patch(profileRepository, "findByUserId", async () => ({ isPT: true, ptSuspended: false, isAcceptingClients: true })),
     patch(availabilityService, "countAvailableSlotsForPT", async () => 100),
     patch(notificationService, "create", async () => ({})),

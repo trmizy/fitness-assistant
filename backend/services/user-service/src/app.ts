@@ -18,6 +18,7 @@ import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
+import mediaRoutes from "./routes/media.routes";
 
 import agenticFitnessRoutes from "./routes/agentic-fitness.routes";
 
@@ -110,6 +111,9 @@ app.use("/availability", availabilityRoutes);
 
 // Admin-only operations owned by this service (disputed sessions, …)
 app.use("/admin", adminRoutes);
+
+// Public media: PT physique photos (302 to a short presigned GET, only for PUBLISHED photos of a visible trainer).
+app.use("/media", mediaRoutes);
 
 // Public location data (provinces/wards) — no auth required
 app.use("/locations", locationRoutes);

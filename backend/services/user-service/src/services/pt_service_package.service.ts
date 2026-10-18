@@ -1,8 +1,8 @@
 import { AuditEntityType, Prisma, SessionMode } from "../generated/prisma";
-import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
-import { profileRepository } from "../repositories/profile.repository";
+import { ptServicePackageRepository, type PackageUpdateData } from "../repositories/pt_service_package.repository";
 import { auditService } from "./audit.service";
-import { assertPtMayAct, isPtRestricted } from "./pt-restriction.service";
+import { assertPtMayAct } from "./pt-restriction.service";
+import { isPtPubliclyVisible, toPublicPtPackageDto } from "./pt-public-dto";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -25,6 +25,62 @@ const AUDITED_PACKAGE_FIELDS = [
   "isActive",
 ] as const;
 
+/**
+ * The UPDATE for a package edit: an EXPLICIT allowlist, field by field. This used to be `{ ...data }`: whatever keys
+ * the caller sent (ptUserId, archivedAt, version, id, ...) went straight into the UPDATE. Nothing outside this list
+ * can be written.
+ *
+ * The version moves only when a commercial field really changes (plan §12.5), so an edit that changes nothing does
+ * not invalidate a buyer's expectedPackageVersion for no reason. Compared after normalisation (trim, Decimal).
+ */
+export function buildPackageUpdate(
+  pkg: {
+    name: string;
+    description: string | null;
+    sessionCount: number;
+    price: Prisma.Decimal;
+    sessionMode: SessionMode;
+    sessionDurationMinutes: number;
+    validityDays: number | null;
+    isActive: boolean;
+  },
+  data: {
+    name?: string;
+    description?: string | null;
+    sessionCount?: number;
+    price?: number;
+    sessionMode?: SessionMode;
+    sessionDurationMinutes?: number;
+    validityDays?: number | null;
+    isActive?: boolean;
+  },
+): PackageUpdateData {
+  const updateData: PackageUpdateData = {};
+  if (data.name !== undefined) updateData.name = data.name.trim();
+  if (data.description !== undefined) updateData.description = data.description?.trim() || null;
+  if (data.sessionCount !== undefined) updateData.sessionCount = data.sessionCount;
+  if (data.price !== undefined) updateData.price = new Prisma.Decimal(data.price);
+  if (data.sessionMode !== undefined) updateData.sessionMode = data.sessionMode;
+  if (data.sessionDurationMinutes !== undefined) updateData.sessionDurationMinutes = data.sessionDurationMinutes;
+  if (data.validityDays !== undefined) updateData.validityDays = data.validityDays;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+  const priceChanged = updateData.price !== undefined && !updateData.price.equals(pkg.price);
+  const otherChanged = (
+    [
+      [updateData.name, pkg.name],
+      [updateData.description, pkg.description],
+      [updateData.sessionCount, pkg.sessionCount],
+      [updateData.sessionMode, pkg.sessionMode],
+      [updateData.sessionDurationMinutes, pkg.sessionDurationMinutes],
+      [updateData.validityDays, pkg.validityDays],
+      [updateData.isActive, pkg.isActive],
+    ] as Array<[unknown, unknown]>
+  ).some(([next, current]) => next !== undefined && next !== current);
+  if (priceChanged || otherChanged) updateData.version = { increment: 1 };
+  return updateData;
+}
+
 export const ptServicePackageService = {
   /**
    * All packages for a PT's own management view (includes archived).
@@ -36,19 +92,22 @@ export const ptServicePackageService = {
   },
 
   /**
-   * Active, non-archived packages visible to clients.
-   * Only shown when the PT has isPT = true (verified here).
+   * Active, non-archived packages visible to clients, each with its `version`.
+   * Same visibility rule as the PT list and detail (ptPublicWhere): a trainer who is suspended, restricted
+   * account-wide or not approved is a 404 here, not an empty list - the id cannot be probed past the list's filter.
    */
   async getActivePackagesForPT(ptUserId: string) {
-    const profile = await profileRepository.findByUserId(ptUserId);
-    if (!profile || !(profile as any).isPT) {
+    if (!(await isPtPubliclyVisible(ptUserId))) {
       throw err("PT not found", 404);
     }
-    // A restricted PT offers nothing to NEW clients: their packages are not listed while it lasts.
-    if (await isPtRestricted(ptUserId)) return { packages: [] };
     const packages = await ptServicePackageRepository.findActiveByPT(ptUserId);
-    return { packages };
+    return { packages: packages.map(toPublicPtPackageDto) };
   },
+
+  // ── INTERNAL WRITES ────────────────────────────────────────────────────────────────────────
+  // createPackage / updatePackage / archivePackage are no longer reachable from any route: all six PT package
+  // routes answer 409 LISTING_REVIEW_REQUIRED (pt_service_package.controller.ts). A package changes only through
+  // an approved listing revision, whose apply-transaction is the one caller of these three.
 
   async createPackage(
     ptUserId: string,
@@ -141,10 +200,15 @@ export const ptServicePackageService = {
     if (data.sessionMode === SessionMode.HYBRID)
       throw err("Gói dịch vụ không hỗ trợ chế độ HYBRID", 400);
 
-    const updateData: any = { ...data };
-    if (data.name) updateData.name = data.name.trim();
-    if (data.description !== undefined) updateData.description = data.description?.trim() || null;
-    if (data.price !== undefined) updateData.price = new Prisma.Decimal(data.price);
+    if (
+      data.sessionDurationMinutes !== undefined &&
+      (!Number.isInteger(data.sessionDurationMinutes) || data.sessionDurationMinutes < 15 || data.sessionDurationMinutes > 240)
+    )
+      throw err("sessionDurationMinutes phải từ 15 đến 240 phút", 400);
+    if (data.validityDays != null && (!Number.isInteger(data.validityDays) || data.validityDays < 1))
+      throw err("validityDays phải là số nguyên >= 1", 400);
+
+    const updateData = buildPackageUpdate(pkg, data);
 
     const updated = await ptServicePackageRepository.update(packageId, updateData);
 
@@ -197,5 +261,55 @@ export const ptServicePackageService = {
       // UI should display a warning if hasActiveContracts = true:
       // "Gói đã được lưu trữ. Có hợp đồng đang tham chiếu gói này — hợp đồng đó không bị ảnh hưởng."
     };
+  },
+
+  // ── TRANSACTIONAL WRITES (the listing-apply transaction) ───────────────────────────────────
+  // Same rules as the three methods above, on the caller's transaction client: the apply transaction holds
+  // FOR UPDATE locks on the PT's package rows and writes them on its own connection. No assertPtMayAct (an admin
+  // is approving, not the PT acting) and no per-package audit row (the listing audit row carries the field diff,
+  // written in the same transaction). Callers pass already-validated, schema-checked values.
+
+  async createPackageTx(
+    tx: Prisma.TransactionClient,
+    ptUserId: string,
+    data: {
+      name: string;
+      description?: string | null;
+      sessionCount: number;
+      price: number;
+      sessionMode: SessionMode;
+      sessionDurationMinutes: number;
+      validityDays?: number | null;
+      isActive?: boolean;
+    },
+  ) {
+    if (data.sessionMode === SessionMode.HYBRID) throw err("Gói dịch vụ không hỗ trợ chế độ HYBRID", 400);
+    return ptServicePackageRepository.createTx(tx, {
+      ptUserId,
+      name: data.name.trim(),
+      description: data.description?.trim() || null,
+      sessionCount: data.sessionCount,
+      price: new Prisma.Decimal(data.price),
+      sessionMode: data.sessionMode,
+      sessionDurationMinutes: data.sessionDurationMinutes,
+      validityDays: data.validityDays ?? null,
+      isActive: data.isActive ?? true,
+    });
+  },
+
+  /** Returns the updated row, or null when nothing commercial changed and nothing was written. */
+  async updatePackageTx(
+    tx: Prisma.TransactionClient,
+    pkg: Parameters<typeof buildPackageUpdate>[0] & { id: string },
+    data: Parameters<typeof buildPackageUpdate>[1],
+  ) {
+    if (data.sessionMode === SessionMode.HYBRID) throw err("Gói dịch vụ không hỗ trợ chế độ HYBRID", 400);
+    const updateData = buildPackageUpdate(pkg, data);
+    if (updateData.version === undefined) return null; // nothing commercial moved: no write, no version bump
+    return ptServicePackageRepository.updateTx(tx, pkg.id, updateData);
+  },
+
+  async archivePackageTx(tx: Prisma.TransactionClient, packageId: string) {
+    return ptServicePackageRepository.archiveTx(tx, packageId);
   },
 };

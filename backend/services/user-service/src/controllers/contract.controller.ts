@@ -11,6 +11,7 @@ import { contractRepository } from "../repositories/contract.repository";
 import { assertPtMayActOnContract } from "../services/pt-restriction.service";
 import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
 import { errorCodeBody } from "../utils/error-code.util";
+import { clientHeaderOf } from "../services/client-compat.service";
 import { MEMBERSHIP_REQUIRED, MEMBERSHIP_DOES_NOT_COVER_CONTRACT } from "../services/contract-gym-membership.service";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
@@ -28,6 +29,8 @@ export const contractController = {
       const contract = await contractService.requestContract(
         clientUserId,
         req.body,
+        undefined,
+        { clientHeader: clientHeaderOf(req) },
       );
       res.status(201).json(contract);
     } catch (error: any) {
@@ -39,6 +42,8 @@ export const contractController = {
       res.status(error.status || 500).json({
         ...errorCodeBody(error),
         error: error.message || "Failed to request contract",
+        // 409 PACKAGE_CHANGED carries the package as it is NOW (with its version), so the UI can show the new terms.
+        ...(error.code === "PACKAGE_CHANGED" && error.package ? { package: error.package } : {}),
         ...(error.code === "LOW_AVAILABILITY"
           ? {
               code: error.code,
