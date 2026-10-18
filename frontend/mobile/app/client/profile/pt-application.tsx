@@ -10,6 +10,7 @@ import { useApp } from "../../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { PTApplicationWizard } from "../../../src/features/ptApplication/PTApplicationWizard";
 import { PTApplicationStatus } from "../../../src/features/ptApplication/PTApplicationStatus";
+import { isPtTermsRefusal, isPtTermsVersionStale } from "../../../src/features/ptTerms/ptTermsModel";
 import {
   applicationView,
   draftPayload,
@@ -57,13 +58,17 @@ export default function PTApplicationScreen() {
     onSuccess: (data) => queryClient.setQueryData(key, data),
   });
   const submitMutation = useMutation({
-    mutationFn: () => ptApplicationService.submit(),
+    mutationFn: (termsVersion?: string) => ptApplicationService.submit(termsVersion),
     onSuccess: (data) => {
       queryClient.setQueryData(key, data);
       setEditing(false);
       toast.show("Đã nộp đơn ứng tuyển!", "success");
     },
-    onError: (e) => toast.show(submitErrorMessage(e), "danger"),
+    onError: (e) => {
+      // D25: the text changed between ticking and submitting - reload it; the wizard asks again.
+      if (isPtTermsVersionStale(e) || isPtTermsRefusal(e)) void queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+      toast.show(submitErrorMessage(e), "danger");
+    },
   });
 
   const save = async () => {
@@ -76,13 +81,13 @@ export default function PTApplicationScreen() {
     }
   };
 
-  const submit = async () => {
+  const submit = async (termsVersion?: string) => {
     const bad = firstInvalidStep(form, locations);
     if (bad >= 0) {
       toast.show("Còn mục bắt buộc chưa đủ — kiểm tra phần báo đỏ ở trên.", "danger");
       return;
     }
-    if (await save()) submitMutation.mutate();
+    if (await save()) submitMutation.mutate(termsVersion);
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/client/profile"));
@@ -111,7 +116,7 @@ export default function PTApplicationScreen() {
           saving={saveMutation.isPending}
           submitting={submitMutation.isPending}
           save={save}
-          submit={() => void submit()}
+          submit={(termsVersion) => void submit(termsVersion)}
         />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>

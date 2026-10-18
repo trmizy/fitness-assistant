@@ -31,6 +31,8 @@ import {
 } from "../../src/components/ui";
 import { contractService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
+import { PtTermsBanner } from "../../src/features/ptTerms/PtTerms";
+import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../src/features/ptTerms/ptTermsModel";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { formatVND } from "../../src/utils/currency";
 import { shortDate } from "../../src/features/wallet/wallet";
@@ -96,6 +98,9 @@ export default function PtContractsScreen() {
   const fail = (e: any, fallback: string) =>
     toast.show(e?.response?.data?.error?.message || e?.response?.data?.error || fallback, "danger");
 
+  // D25: a PT who has not confirmed the current PT terms is refused on accept - say so in plain words and open the terms.
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsNotice, setTermsNotice] = useState<string | null>(null);
   const accept = useMutation({
     mutationFn: (id: string) => contractService.acceptContract(id),
     onSuccess: () => {
@@ -104,7 +109,16 @@ export default function PtContractsScreen() {
       setTab("waiting");
       refresh();
     },
-    onError: (e) => fail(e, "Không nhận được hợp đồng"),
+    onError: (e) => {
+      if (isPtTermsRefusal(e)) {
+        toast.show(PT_TERMS_REFUSAL_MESSAGE, "danger");
+        void queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+        setTermsNotice(PT_TERMS_REFUSAL_MESSAGE);
+        setTermsOpen(true);
+        return;
+      }
+      fail(e, "Không nhận được hợp đồng");
+    },
   });
 
   const reject = useMutation({
@@ -166,6 +180,15 @@ export default function PtContractsScreen() {
           />
         }
       >
+        <PtTermsBanner
+          className="mb-4"
+          open={termsOpen}
+          notice={termsNotice}
+          onOpenChange={(v) => {
+            setTermsOpen(v);
+            if (!v) setTermsNotice(null);
+          }}
+        />
         <Segmented
           options={CONTRACT_TABS.map((t) => `${t.label} · ${counts[t.key]}`)}
           value={`${CONTRACT_TABS.find((t) => t.key === tab)!.label} · ${counts[tab]}`}

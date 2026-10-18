@@ -35,6 +35,7 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { money } from "../../src/features/wallet/wallet";
+import { PtTermsBanner } from "../../src/features/ptTerms/PtTerms";
 import {
   DAY_LABELS,
   clientName,
@@ -155,6 +156,8 @@ export default function PtDashboardScreen() {
             <Text className="font-body-semibold text-xs text-foreground">Cá nhân</Text>
           </Tappable>
         </View>
+
+        <PtTermsBanner className="mx-5 mt-5" />
 
         <Stagger className="gap-5 px-5 pt-5">
           {/* Money hero */}

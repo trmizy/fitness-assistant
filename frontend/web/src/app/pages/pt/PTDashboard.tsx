@@ -26,6 +26,7 @@ import { getJoinSessionState } from "../../utils/sessionUtils";
 import { formatVND } from "../../utils/currency";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
+import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import {
   SkeletonRow,
   SkeletonChart,
@@ -315,6 +316,8 @@ export function PTDashboard() {
           </button>
         </div>
       </div>
+
+      <PtTermsBanner />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

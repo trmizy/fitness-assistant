@@ -31,6 +31,7 @@ import { darkColors, designTokens } from "../../theme/colors";
 import { formatVND } from "../../utils/currency";
 import { Chip, FieldLabel, OptionCard, TextArea } from "../plans/PlanWidgets";
 import { pickApplicationFile } from "./pickFile";
+import { PtTermsSheet, usePtTerms } from "../ptTerms/PtTerms";
 import {
   DAYS,
   DURATIONS,
@@ -65,7 +66,8 @@ type Props = {
   submitting: boolean;
   /** Save the draft; resolves true on success. */
   save: () => Promise<boolean>;
-  submit: () => void;
+  /** `termsVersion`: the version of the PT terms whose box was ticked (D25); the server records it with the submission. */
+  submit: (termsVersion?: string) => void;
   initialStep?: number;
 };
 
@@ -81,6 +83,10 @@ export function PTApplicationWizard(p: Props) {
   const toast = useToast();
   const [step, setStep] = useState(p.initialStep ?? 0);
   const [consent, setConsent] = useState<Record<string, boolean>>({});
+  // D25: the terms text comes from the server; the version read when the box was ticked is what gets submitted.
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsVersion, setTermsVersion] = useState<string | null>(null);
+  const { data: ptTerms } = usePtTerms();
   const last = step === STEPS.length - 1;
   const s = STEPS[step];
   const Icon = STEP_ICONS[step];
@@ -133,13 +139,41 @@ export function PTApplicationWizard(p: Props) {
               ? CONSENTS.map((c) => (
                   <Pressable
                     key={c.key}
-                    onPress={() => setConsent((x) => ({ ...x, [c.key]: !x[c.key] }))}
+                    testID={`pt-consent-${c.key}`}
+                    onPress={() => {
+                      if (c.key === "termsAgreed") {
+                        if (consent.termsAgreed) {
+                          setTermsVersion(null);
+                        } else if (!ptTerms) {
+                          setTermsOpen(true); // not loaded yet: open the text instead of ticking blind
+                          return;
+                        } else {
+                          setTermsVersion(ptTerms.version);
+                        }
+                      }
+                      setConsent((x) => ({ ...x, [c.key]: !x[c.key] }));
+                    }}
                     className="flex-row items-start gap-3 rounded-xl border border-border bg-panel p-3.5"
                   >
                     <View className={`mt-0.5 h-5 w-5 items-center justify-center rounded-md border-2 ${consent[c.key] ? "border-primary bg-primary" : "border-border"}`}>
                       {consent[c.key] ? <Check size={13} strokeWidth={3} color={designTokens.onPrimary} /> : null}
                     </View>
-                    <Text className="flex-1 font-body text-xs leading-5 text-muted-foreground">{c.label}</Text>
+                    {c.key === "termsAgreed" ? (
+                      <Text className="flex-1 font-body text-xs leading-5 text-muted-foreground">
+                        Tôi đồng ý với{" "}
+                        <Text
+                          testID="pt-terms-link"
+                          accessibilityRole="link"
+                          onPress={() => setTermsOpen(true)}
+                          className="font-body-semibold text-primary underline"
+                        >
+                          điều khoản dành cho Huấn luyện viên
+                        </Text>{" "}
+                        của Gymini.
+                      </Text>
+                    ) : (
+                      <Text className="flex-1 font-body text-xs leading-5 text-muted-foreground">{c.label}</Text>
+                    )}
                   </Pressable>
                 ))
               : null}
@@ -161,12 +195,22 @@ export function PTApplicationWizard(p: Props) {
             className="flex-1"
             icon={last ? Send : ArrowRight}
             disabled={p.saving || p.submitting || (last && !allConsented)}
-            onPress={() => (last ? p.submit() : void next())}
+            onPress={() => (last ? p.submit(termsVersion ?? undefined) : void next())}
           >
             {p.submitting ? "Đang nộp…" : p.saving ? "Đang lưu…" : last ? "Nộp đơn" : "Tiếp tục"}
           </Button>
         </View>
       </View>
+      <PtTermsSheet
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        confirmLabel="Tôi đã đọc và đồng ý"
+        onConfirm={(version) => {
+          setTermsVersion(version);
+          setConsent((x) => ({ ...x, termsAgreed: true }));
+          setTermsOpen(false);
+        }}
+      />
     </View>
   );
 }

@@ -12,6 +12,8 @@ import { formatVND } from "../../utils/currency";
 import { locationService } from "../../services/api";
 import { SPECIALTIES } from "../../constants/specialties";
 import { apiBaseUrl } from "../../config/serverUrl";
+import { PtTermsModal, usePtTerms } from "../../components/pt-terms/PtTerms";
+import { isPtTermsRefusal, isPtTermsVersionStale } from "../../utils/ptTerms";
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
@@ -367,6 +369,10 @@ export function PTApplicationPage() {
     falseInfoWarning: false,
     termsAgreed: false,
   });
+  // D25: the terms modal (text from the server). The version read when the box was ticked is what gets submitted.
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsVersionTicked, setTermsVersionTicked] = useState<string | null>(null);
+  const { data: ptTerms } = usePtTerms();
 
   const [formData, setFormData] = useState<Partial<PTApplication>>({
     mainSpecialties: [],
@@ -550,12 +556,20 @@ export function PTApplicationPage() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: () => ptApplicationService.submit(),
+    mutationFn: (termsVersion?: string) => ptApplicationService.submit(termsVersion),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pt-application-me"] });
       alert("Nộp hồ sơ thành công!");
     },
     onError: (err: any) => {
+      // D25: the text changed between ticking and submitting - drop the tick, reload the text, ask again.
+      if (isPtTermsVersionStale(err) || isPtTermsRefusal(err)) {
+        setConsent((prev) => ({ ...prev, termsAgreed: false }));
+        setTermsVersionTicked(null);
+        queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+        alert("Điều khoản vừa được cập nhật hoặc chưa được xác nhận. Vui lòng đọc lại điều khoản và đồng ý trước khi nộp hồ sơ.");
+        return;
+      }
       alert(
         err.response?.data?.error ||
           "Nộp thất bại. Vui lòng kiểm tra các trường bắt buộc.",
@@ -648,7 +662,8 @@ export function PTApplicationPage() {
         ...formData,
         applicationTrainingLocations: getValidTrainingLocations(),
       },
-      { onSuccess: () => submitMutation.mutate() },
+      // D25: the version whose text the applicant opened and ticked - the server records it with the submission.
+      { onSuccess: () => submitMutation.mutate(termsVersionTicked ?? undefined) },
     );
   };
 
@@ -855,7 +870,7 @@ export function PTApplicationPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
+    <div className="w-full p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -2447,7 +2462,7 @@ export function PTApplicationPage() {
                     },
                     {
                       key: "termsAgreed" as const,
-                      text: "Tôi đồng ý với Điều khoản dịch vụ và Quy tắc ứng xử của Huấn luyện viên Gymnini.",
+                      text: "Tôi đồng ý với điều khoản dành cho Huấn luyện viên của Gymini.",
                     },
                   ].map((item) => (
                     <label
@@ -2457,15 +2472,45 @@ export function PTApplicationPage() {
                       <input
                         type="checkbox"
                         checked={consent[item.key]}
-                        onChange={(e) =>
+                        data-testid={`pt-consent-${item.key}`}
+                        onChange={(e) => {
+                          if (item.key === "termsAgreed") {
+                            // D25: ticking the terms box records the version of the text that is current right now; if the
+                            // text has not loaded yet, open it instead of ticking blind.
+                            if (e.target.checked && !ptTerms) {
+                              setTermsOpen(true);
+                              return;
+                            }
+                            setTermsVersionTicked(e.target.checked ? ptTerms!.version : null);
+                          }
                           setConsent((prev) => ({
                             ...prev,
                             [item.key]: e.target.checked,
-                          }))
-                        }
+                          }));
+                        }}
                         className="mt-0.5 w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-green-500/30"
                       />
-                      <span className="text-sm text-zinc-400">{item.text}</span>
+                      <span className="text-sm text-zinc-400">
+                        {item.key === "termsAgreed" ? (
+                          <>
+                            Tôi đồng ý với{" "}
+                            <button
+                              type="button"
+                              data-testid="pt-terms-link"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setTermsOpen(true);
+                              }}
+                              className="font-bold text-green-400 underline decoration-green-400/50 underline-offset-2 hover:text-green-300"
+                            >
+                              điều khoản dành cho Huấn luyện viên
+                            </button>{" "}
+                            của Gymini.
+                          </>
+                        ) : (
+                          item.text
+                        )}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -2479,6 +2524,17 @@ export function PTApplicationPage() {
             </div>
           )}
         </div>
+
+        <PtTermsModal
+          open={termsOpen}
+          onClose={() => setTermsOpen(false)}
+          onConfirm={(version) => {
+            setTermsVersionTicked(version);
+            setConsent((prev) => ({ ...prev, termsAgreed: true }));
+            setTermsOpen(false);
+          }}
+          confirmLabel="Tôi đã đọc và đồng ý"
+        />
 
         {/* FOOTER ACTIONS */}
         <div className="p-4 border-t border-zinc-800/80 flex items-center justify-between">

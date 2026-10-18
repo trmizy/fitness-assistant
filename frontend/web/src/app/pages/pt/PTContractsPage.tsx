@@ -12,6 +12,8 @@ import type {
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
+import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -178,14 +180,23 @@ export function PTContractsPage() {
     queryFn: () => contractService.getByPT(tab || undefined),
   });
 
+  // D25: a PT who has not confirmed the current PT terms is refused on accept - say so in plain words and open the terms.
+  const [termsOpen, setTermsOpen] = useState(false);
   const acceptMutation = useMutation({
     mutationFn: (id: string) => contractService.acceptContract(id),
     onSuccess: () => {
       toast.success("Contract accepted!");
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to accept"),
+    onError: (err: any) => {
+      if (isPtTermsRefusal(err)) {
+        toast.error(PT_TERMS_REFUSAL_MESSAGE);
+        queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+        setTermsOpen(true);
+        return;
+      }
+      toast.error(err?.response?.data?.error || "Failed to accept");
+    },
   });
 
   const rejectMutation = useMutation({
@@ -336,7 +347,7 @@ export function PTContractsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+    <div className="w-full p-4 md:p-6 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
@@ -346,6 +357,8 @@ export function PTContractsPage() {
           Manage client coaching requests and agreements
         </p>
       </div>
+
+      <PtTermsBanner open={termsOpen} onOpenChange={setTermsOpen} />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
