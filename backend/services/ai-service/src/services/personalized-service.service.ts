@@ -37,6 +37,21 @@ import { createMarketplaceContract } from "../clients/user.client";
 import { paymentClient, PaymentClientError } from "../clients/payment.client";
 import { commitPersonalizedPlan } from "../clients/fitness.client";
 
+/**
+ * activateAfterPayment's definite "no" (FH-5 / R2): the order was cancelled while the buyer was at the gateway, so this
+ * payment can never activate it. The internal route answers 409 { error: { code: "NOT_ACTIVATABLE" } }; payment-service
+ * treats exactly that as "refund the client" (reconciliation.service.ts activateOrRefund). Not an ApiError on purpose:
+ * it must never leak through the public error handler as a generic failure. Keep the code in step with payment-service.
+ */
+export const NOT_ACTIVATABLE = "NOT_ACTIVATABLE";
+export class PersonalizedOrderNotActivatableError extends Error {
+  readonly code = NOT_ACTIVATABLE;
+  constructor(readonly currentStatus: string) {
+    super(`Order cannot be activated by this payment (status ${currentStatus})`);
+    this.name = "PersonalizedOrderNotActivatableError";
+  }
+}
+
 /** Indirection point for tests — same rationale as marketplaceDeps
  * (marketplace.service.ts). Payment methods included here too (unlike
  * marketplace.service.ts, which calls paymentClient directly and has no
@@ -339,11 +354,27 @@ export const personalizedServiceService = {
 
     // §XIII — never a generic plan handed over immediately: purchase only unlocks Intake,
     // nothing about the actual coaching content yet.
-    await prisma.personalizedServiceOrder.updateMany({
+    const flipped = await prisma.personalizedServiceOrder.updateMany({
       where: { id: orderId, status: "PENDING_PAYMENT" },
       data: { status: "INTAKE_PENDING" },
     });
-    return prisma.personalizedServiceOrder.findUnique({ where: { id: orderId } });
+    const current = await prisma.personalizedServiceOrder.findUnique({ where: { id: orderId } });
+    if (!current) {
+      // Unknown, not a "no": payment-service retries (and never refunds on this).
+      throw new ApiError("PERSONALIZED_SERVICE_ORDER_NOT_FOUND", "Order not found", 404);
+    }
+    if (flipped.count === 1) return current;
+
+    // FH-5 / R2: nothing was flipped. payment-service has ALREADY put the price in escrow before calling us, so
+    // answering "ok" for an order this payment did not activate leaves the client's money stuck. A CANCELLED order
+    // the buyer cancelled while still PENDING_PAYMENT (cumulativeRefundedAmount === 0: cancelOrder only records a
+    // refund for an order that had been paid) is the definite "no" -> 409 NOT_ACTIVATABLE -> payment-service refunds
+    // the client in full. Anything else (already past PENDING_PAYMENT = replay of this activation, or an order a
+    // paid cancel/refund already returned the money for) stays the idempotent success it always was.
+    if (current.status === "CANCELLED" && current.cumulativeRefundedAmount <= 0) {
+      throw new PersonalizedOrderNotActivatableError(current.status);
+    }
+    return current;
   },
 
   async listMyOrders(buyerId: string) {
@@ -679,7 +710,27 @@ export const personalizedServiceService = {
    * yet, so nothing is owed to the seller or the platform.
    */
   async cancelOrder(orderId: string, buyerId: string, reason?: string) {
-    const order = await this.assertBuyerOwnsOrder(orderId, buyerId);
+    let order = await this.assertBuyerOwnsOrder(orderId, buyerId);
+
+    // FH-5 / R2 race: an unpaid order is cancelled with a CONDITIONAL write (where status is still PENDING_PAYMENT),
+    // never read-then-overwrite. activateAfterPayment flips PENDING_PAYMENT -> INTAKE_PENDING with the same guard, so
+    // exactly one of the two wins: if activation won, payment-service has already escrowed the money and the order is
+    // now a PAID order - cancelling it must go through the paid-cancel refund below, never be written to CANCELLED
+    // with no refund. If the cancel won, activateAfterPayment answers 409 NOT_ACTIVATABLE and payment-service refunds.
+    if (order.status === "PENDING_PAYMENT") {
+      const cancelled = await prisma.personalizedServiceOrder.updateMany({
+        where: { id: orderId, status: "PENDING_PAYMENT" },
+        data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason },
+      });
+      if (cancelled.count === 1) {
+        return prisma.personalizedServiceOrder.findUniqueOrThrow({ where: { id: orderId } });
+      }
+      // Lost the race: re-read and handle the state it is in now (paid -> refund path; anything else -> 409 below).
+      order = await this.assertBuyerOwnsOrder(orderId, buyerId);
+      if (order.status === "PENDING_PAYMENT") {
+        throw new ApiError("PERSONALIZED_SERVICE_ORDER_INVALID_STATE", "The order changed while cancelling - please reload and try again", 409);
+      }
+    }
     // Full self-serve cancellation only before the PT has actually started
     // working — matches §XXXII's PURCHASED/INTAKE_PENDING/INTAKE_SUBMITTED
     // "PT chưa bắt đầu" rule (INTAKE_SUBMITTED is included: the PT hasn't
@@ -694,7 +745,7 @@ export const personalizedServiceService = {
       );
     }
 
-    if (order.status !== "PENDING_PAYMENT" && order.paymentTransactionId) {
+    if (order.paymentTransactionId) {
       await personalizedServiceDeps.refundOrder({
         transactionId: order.paymentTransactionId,
         refundAmount: order.priceAtPurchase,
@@ -711,7 +762,7 @@ export const personalizedServiceService = {
         status: "CANCELLED",
         cancelledAt: new Date(),
         cancelReason: reason,
-        cumulativeRefundedAmount: order.status === "PENDING_PAYMENT" ? order.cumulativeRefundedAmount : order.priceAtPurchase,
+        cumulativeRefundedAmount: order.priceAtPurchase,
       },
     });
   },
