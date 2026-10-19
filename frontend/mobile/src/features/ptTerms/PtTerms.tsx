@@ -7,13 +7,16 @@ import { BottomSheet, Button, Card, useToast } from "../../components/ui";
 import { ptApplicationService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { designTokens } from "../../theme/colors";
+import { useRefetchOnReturn } from "../../hooks/useRefetchOnReturn";
 import { isPtTermsVersionStale, ptTermsBannerState } from "./ptTermsModel";
+
+const ptTermsKey = (userId: string | undefined) => ["pt-terms", userId ?? "guest"] as const;
 
 /** The current PT terms + this user's standing, from the single server source. Identity-scoped key (also cleared on account switch). */
 export function usePtTerms(enabled = true) {
   const { user } = useApp();
   return useQuery({
-    queryKey: ["pt-terms", user?.id ?? "guest"],
+    queryKey: ptTermsKey(user?.id),
     queryFn: () => ptApplicationService.getTerms(),
     enabled: enabled && !!user?.id,
     staleTime: 60_000,
@@ -130,7 +133,11 @@ export function PtTermsBanner({
   className = "",
   notice,
 }: { open?: boolean; onOpenChange?: (open: boolean) => void; className?: string; notice?: string | null } = {}) {
+  const { user } = useApp();
   const { data: terms } = usePtTerms();
+  // The terms version can change on the server while this screen stays mounted: re-read on focus / app foreground
+  // so the banner switches to the "updated" wording without waiting for a refused accept or a re-login.
+  useRefetchOnReturn(ptTermsKey(user?.id), !!user?.id);
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen ?? localOpen;
   const setOpen = (v: boolean) => (onOpenChange ? onOpenChange(v) : setLocalOpen(v));
