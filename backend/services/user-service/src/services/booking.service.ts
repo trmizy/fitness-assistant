@@ -27,6 +27,7 @@ import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService, getRemainingEntitlements } from "./contract.service";
 import { auditService } from "./audit.service";
+import { ptFaultClientMessage, ptFaultPtMessage, readPtFaultMoney } from "./pt-fault-session-wording";
 import {
   withContractLock,
   withRunningContract,
@@ -754,6 +755,7 @@ export const bookingService = {
         // Vòng 4 / Phase E2 — counts toward the client's right to terminate after 3.
         ptAtFault: true,
       };
+      let moneyAnswer: unknown;
       const { updated, endedAtClaim } = await claimRuling(
         SessionStatus.NO_SHOW,
         noShowFields,
@@ -770,18 +772,23 @@ export const bookingService = {
           } else {
             // Same settlement markNoShow's PT-self-admit branch uses — cash compensation, charged
             // to the three parties in proportion, the client's quota never touched.
-            await compensateNoShowMoney(session.contractId, sessionId);
+            moneyAnswer = await compensateNoShowMoney(session.contractId, sessionId);
           }
         },
       );
       // After the lock: completing the contract takes the same lock.
       if (!endedAtClaim) await contractService.checkAndCompleteContract(session.contractId);
 
+      // DQ-2(a): the notices go out only after the money step has answered, and the amount is only stated when it is known.
+      const adminLead = "Quản trị viên xác nhận huấn luyện viên vắng mặt.";
       for (const userId of [session.clientUserId, session.ptUserId]) {
         await notificationService
           .create({
             userId,
-            text: "Quản trị viên xác nhận huấn luyện viên vắng mặt — khách được hoàn tiền một buổi, buổi tập không bị trừ",
+            text:
+              userId === session.clientUserId
+                ? ptFaultClientMessage(adminLead, readPtFaultMoney(moneyAnswer))
+                : ptFaultPtMessage(adminLead),
             eventType: "SESSION_DISPUTE_RESOLVED",
             entityType: "SESSION",
             entityId: sessionId,
@@ -965,7 +972,9 @@ export const bookingService = {
       return decided;
     });
     if (outcome.ptPayout) await releaseSessionMoney(session.contractId, sessionId);
-    if (outcome.clientCompensation) await compensateNoShowMoney(session.contractId, sessionId);
+    const cancelMoneyAnswer: unknown = outcome.clientCompensation
+      ? await compensateNoShowMoney(session.contractId, sessionId)
+      : undefined;
     closeRoomOf(session, "session_cancelled");
     // After the lock: completing the contract takes the same lock.
     if (outcome.clientQuotaEffect === "DEDUCT" || outcome.ptPayout || outcome.clientCompensation) {
@@ -977,7 +986,11 @@ export const bookingService = {
     await notificationService
       .create({
         userId: otherUserId,
-        text: isClient ? "Client cancelled a session" : "Trainer cancelled the session",
+        text: isClient
+          ? "Client cancelled a session"
+          : outcome.clientCompensation
+            ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập sát giờ.", readPtFaultMoney(cancelMoneyAnswer))
+            : "Trainer cancelled the session",
         eventType: "SESSION_CANCELLED",
         entityType: "SESSION",
         entityId: sessionId,
@@ -1065,7 +1078,9 @@ export const bookingService = {
         // The compensation's INTENT commits with the status (Phase 0 / D58); the payment-service call is made after the lock.
         if (outcome.clientCompensation) await recordNoShowIntent(tx, session.contractId, sessionId);
       });
-      if (outcome.clientCompensation) await compensateNoShowMoney(session.contractId, sessionId);
+      const moneyAnswer: unknown = outcome.clientCompensation
+        ? await compensateNoShowMoney(session.contractId, sessionId)
+        : undefined;
       const updated = await sessionRepository.findById(sessionId);
       closeRoomOf(session, "pt_no_show");
       if (outcome.clientCompensation) await contractService.checkAndCompleteContract(session.contractId);
@@ -1073,7 +1088,7 @@ export const bookingService = {
       await notificationService
         .create({
           userId: session.clientUserId,
-          text: "Huấn luyện viên vắng mặt. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
+          text: ptFaultClientMessage("Huấn luyện viên vắng mặt.", readPtFaultMoney(moneyAnswer)),
           eventType: "SESSION_NO_SHOW_PT",
           entityType: "SESSION",
           entityId: sessionId,

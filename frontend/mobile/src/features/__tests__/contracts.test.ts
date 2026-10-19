@@ -17,6 +17,7 @@ import {
   normalizeContracts,
   normalizeMoneyBreakdown,
   sessionProgress,
+  sessionsConsumed,
   sessionsLeft,
   type ContractRow,
 } from "../services/contracts";
@@ -39,7 +40,7 @@ const RAW_CONTRACT = {
   ptProfile: { firstName: "E2E", lastName: "Trainer", email: "pt@example.com" },
 };
 
-// Verbatim from GET /contracts/:id/money-breakdown.
+// Shape of GET /contracts/:id/money-breakdown for a CLIENT (the server drops rates / released / stillPending / actuallyReleased).
 const RAW_BREAKDOWN = {
   price: "9000000.00",
   totalSessions: 30,
@@ -47,13 +48,14 @@ const RAW_BREAKDOWN = {
   compensatedSessions: 0,
   unit: "300000.00",
   remaining: "9000000.00",
-  rates: { platformRate: "0.1", ptRate: "0.9", gymRate: "0" },
-  released: { pt: "0.00", gym: "0.00", platform: "0.00" },
-  stillPending: { pt: "8100000.00", gym: "0.00", platform: "900000.00" },
   refundIfCancelledNow: "8100000.00",
+  reasonUsed: "CLIENT_CANCELLED",
   contractId: "6db9017a-5b41-40a0-a60d-5d0ad2de20ce",
   paid: true,
-  actuallyReleased: { pt: "0.00", gym: "0.00", platform: "0.00" },
+  paidTotal: "9000000.00",
+  refundedSessionsValue: "0.00",
+  canExitWithoutPenalty: false,
+  exitReasonIfCancelledNow: "CLIENT_CANCELLED",
 };
 
 describe("normalizeContract", () => {
@@ -150,6 +152,21 @@ describe("session counts", () => {
     assert.equal(sessionProgress(contract), 0.4);
   });
 
+  it("DQ-2(a): a refunded PT no-show is consumed - 4-session contract, 1 refunded, 3 left", () => {
+    const contract = normalizeContract({ ...RAW_CONTRACT, totalSessions: 4, usedSessions: 0, compensatedSessions: 1 });
+    assert.equal(sessionsLeft(contract), 3);
+    assert.equal(sessionsConsumed(contract), 1);
+    assert.equal(sessionProgress(contract), 0.25);
+    const mixed = normalizeContract({ ...RAW_CONTRACT, totalSessions: 4, usedSessions: 2, compensatedSessions: 1 });
+    assert.equal(sessionsLeft(mixed), 1);
+  });
+
+  it("an older response without compensatedSessions counts as 0", () => {
+    const contract = normalizeContract({ ...RAW_CONTRACT, totalSessions: 4, usedSessions: 1 });
+    assert.equal(contract.compensatedSessions, 0);
+    assert.equal(sessionsLeft(contract), 3);
+  });
+
   it("never goes negative or past full, and never divides by zero", () => {
     assert.equal(sessionsLeft(normalizeContract({ ...RAW_CONTRACT, totalSessions: 2, usedSessions: 5 })), 0);
     assert.equal(sessionProgress(normalizeContract({ ...RAW_CONTRACT, totalSessions: 2, usedSessions: 5 })), 1);
@@ -165,11 +182,21 @@ describe("normalizeMoneyBreakdown", () => {
     assert.equal(money.paid, true);
   });
 
-  it("quotes what the ledger MOVED, keeping it apart from what is still pending", () => {
-    const money = normalizeMoneyBreakdown(RAW_BREAKDOWN)!;
-    assert.equal(money.releasedToPt, 0);
-    assert.equal(money.pendingToPt, 8100000);
-    assert.equal(money.pendingToPlatform, 900000);
+  it("reads the client aggregates: what was paid, what was refunded for missed sessions, what is left", () => {
+    const money = normalizeMoneyBreakdown({ ...RAW_BREAKDOWN, compensatedSessions: 1, refundedSessionsValue: "300000.00" })!;
+    assert.equal(money.paidTotal, 9000000);
+    assert.equal(money.refundedSessionsValue, 300000);
+    assert.equal(money.remaining, 9000000);
+  });
+
+  it("exposes no per-party (trainer / gym / platform) figure at all, even if an older server still sends them", () => {
+    const money = normalizeMoneyBreakdown({
+      ...RAW_BREAKDOWN,
+      rates: { ptRate: "0.9" },
+      stillPending: { pt: "8100000.00" },
+      actuallyReleased: { pt: "1.00" },
+    })! as Record<string, unknown>;
+    assert.deepEqual(Object.keys(money).filter((k) => /pt|gym|platform|rate/i.test(k)), []);
   });
 
   it("returns null rather than a screen full of zeros when there is nothing to show", () => {

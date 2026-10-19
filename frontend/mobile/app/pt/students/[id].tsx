@@ -112,7 +112,8 @@ export default function PtStudentDetailScreen() {
 
   const name = clientName(contract);
   const st = ptContractStatus(contract.status);
-  const used = Number(contract.usedSessions ?? 0);
+  // A session the PT missed and the client was refunded for is closed and counted (DQ-2(a)): used = delivered + refunded-closed.
+  const used = Number(contract.usedSessions ?? 0) + Number(contract.compensatedSessions ?? 0);
   const total = Number(contract.totalSessions ?? 0);
   const remaining = Math.max(0, total - used);
   const isActive = contract.status === "ACTIVE";

@@ -21,6 +21,14 @@ import {
   keyFromS3Ref,
 } from "../services/s3-upload.service";
 
+import { redactBreakdownForViewer, redactContractSplit, redactSettlementForViewer, type ContractViewer } from "../services/contract-dto";
+
+/** Who is asking, as the gateway authenticated them: decides whether a contract row comes back with its money split. */
+const viewerOf = (req: any): ContractViewer => ({
+  userId: req.headers["x-user-id"] as string | undefined,
+  role: req.headers["x-user-role"] as string | undefined,
+});
+
 export const contractController = {
   // Client requests a contract with a PT
   async requestContract(req: any, res: Response) {
@@ -32,7 +40,7 @@ export const contractController = {
         undefined,
         { clientHeader: clientHeaderOf(req) },
       );
-      res.status(201).json(contract);
+      res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Request contract error");
       // LOW_AVAILABILITY carries the fields the client UI's warning dialog needs
@@ -112,7 +120,7 @@ export const contractController = {
         userId,
         reason,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Cancel contract error");
       res
@@ -160,7 +168,7 @@ export const contractController = {
         clientUserId,
         status as string,
       );
-      res.json(contracts);
+      res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get client contracts error");
       res.status(500).json({ error: "Failed to fetch contracts" });
@@ -183,7 +191,7 @@ export const contractController = {
         res.status(403).json({ error: "Not authorized" });
         return;
       }
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get contract error");
       res.status(500).json({ error: "Failed to fetch contract" });
@@ -202,7 +210,7 @@ export const contractController = {
         status,
         userRole,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Update contract status error");
       res.status(error.status || 500).json({
@@ -603,7 +611,7 @@ export const contractController = {
         res.status(400).json({ error: 'Contract has no price or sessions to break down' });
         return;
       }
-      res.json(data);
+      res.json(redactBreakdownForViewer(data, viewerOf(req), contract.ptUserId));
     } catch (error: any) {
       logger.error(error, 'Money breakdown error');
       res.status(error.status || 500).json({ error: error.message || 'Failed to load breakdown' });
@@ -712,7 +720,7 @@ export const contractController = {
           exitWithoutPenalty: exit.reason === 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
           alreadyTerminated: exit.mode === 'ALREADY_EXITED' || exit.mode === 'ALREADY_ENDED',
           unresolvedSessions: exit.unresolvedSessions,
-          settlement: result,
+          settlement: redactSettlementForViewer(result, viewerOf(req), contract.ptUserId),
         });
         return;
       }
@@ -741,11 +749,17 @@ export const contractController = {
         reason: recordedReason,
         ...(recordedReason !== reason ? { requestedReason: reason } : {}),
         ...(alreadyEnding ? { alreadyTerminated: true } : {}),
-        settlement: result,
+        settlement: redactSettlementForViewer(result, viewerOf(req), contract.ptUserId),
       });
     } catch (error: any) {
       logger.error(error, 'Contract terminate error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract', ...errorCodeBody(error), ...(error.status && error.extra ? error.extra : {}) });
+      // 409 PT_RESTRICTION_LIFTED carries the terms that hold now (a full money breakdown): a client gets the client aggregates only.
+      let extra = error.status && error.extra ? error.extra : {};
+      if (extra.currentTerms) {
+        const owner = await contractRepository.findById(req.params.id).catch(() => null);
+        extra = { ...extra, currentTerms: owner ? redactBreakdownForViewer(extra.currentTerms, viewerOf(req), owner.ptUserId) : null };
+      }
+      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract', ...errorCodeBody(error), ...extra });
     }
   },
 

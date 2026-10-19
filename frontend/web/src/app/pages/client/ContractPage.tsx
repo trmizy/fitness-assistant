@@ -349,7 +349,6 @@ export function ContractPage() {
           ? `Đã chấm dứt hợp đồng — hoàn ${formatVND(refund)} (100% giá trị chưa dùng) vào ví của bạn`
           : "Đã chấm dứt hợp đồng",
       );
-      setShowTerminateForNoShowDialog(false);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
@@ -453,7 +452,7 @@ export function ContractPage() {
                       {formatDate(c.startDate)} – {formatDate(c.endDate)}
                     </span>
                     <span className="text-xs font-bold text-green-400">
-                      {c.usedSessions}/{c.totalSessions} sessions
+                      {c.usedSessions + (c.compensatedSessions ?? 0)}/{c.totalSessions} sessions
                     </span>
                   </div>
                 </button>
@@ -659,7 +658,7 @@ export function ContractPage() {
                     <div className="text-xs text-zinc-500 mb-1">Sessions</div>
                     <div className="flex items-end gap-1">
                       <span className="text-lg font-bold text-zinc-100">
-                        {selected.usedSessions}
+                        {selected.usedSessions + (selected.compensatedSessions ?? 0)}
                       </span>
                       <span className="text-sm text-zinc-500 mb-0.5">
                         / {selected.totalSessions}
@@ -669,7 +668,7 @@ export function ContractPage() {
                       <div
                         className="h-full bg-green-500 rounded-full transition-all"
                         style={{
-                          width: `${Math.min(100, (selected.usedSessions / selected.totalSessions) * 100)}%`,
+                          width: `${Math.min(100, ((selected.usedSessions + (selected.compensatedSessions ?? 0)) / selected.totalSessions) * 100)}%`,
                         }}
                       />
                     </div>
@@ -839,7 +838,7 @@ export function ContractPage() {
                         </div>
                         <div className="flex justify-between gap-3">
                           <span className="text-zinc-500">Đã dùng</span>
-                          <span>{breakdown.usedSessions}/{breakdown.totalSessions} buổi</span>
+                          <span>{Number(breakdown.usedSessions) + Number(breakdown.compensatedSessions ?? 0)}/{breakdown.totalSessions} buổi</span>
                         </div>
                         {!noFeeExit && (
                           <div className="flex justify-between gap-3">

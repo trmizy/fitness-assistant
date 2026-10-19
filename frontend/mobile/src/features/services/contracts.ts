@@ -24,6 +24,8 @@ export type ContractRow = {
   price: number;
   totalSessions: number;
   usedSessions: number;
+  /** Sessions the PT did not deliver and the client was refunded for: closed "not delivered - refunded", still consumed (DQ-2(a)). */
+  compensatedSessions: number;
   source: string | null;
   gymId: string | null;
   startDate: string | null;
@@ -56,6 +58,7 @@ export function normalizeContract(raw: any): ContractRow {
     price: Number(raw?.price) || 0,
     totalSessions: Number(raw?.totalSessions) || 0,
     usedSessions: Number(raw?.usedSessions) || 0,
+    compensatedSessions: Math.max(0, Number(raw?.compensatedSessions) || 0),
     source: raw?.source ?? null,
     gymId: raw?.gymId ?? null,
     startDate: raw?.startDate ?? null,
@@ -114,13 +117,22 @@ export function isOpen(contract: ContractRow): boolean {
   return OPEN_STATUSES.includes(contract.status);
 }
 
+/**
+ * Sessions the package has consumed: the ones trained plus the ones the PT missed and the client was refunded for.
+ * A refunded session is closed and counted, with no replacement (DQ-2(a)) - same arithmetic as web BookingPage and the
+ * server's getRemainingEntitlements.
+ */
+export function sessionsConsumed(contract: Pick<ContractRow, "usedSessions" | "compensatedSessions">): number {
+  return contract.usedSessions + (contract.compensatedSessions ?? 0);
+}
+
 export function sessionsLeft(contract: ContractRow): number {
-  return Math.max(0, contract.totalSessions - contract.usedSessions);
+  return Math.max(0, contract.totalSessions - sessionsConsumed(contract));
 }
 
 export function sessionProgress(contract: ContractRow): number {
   if (contract.totalSessions <= 0) return 0;
-  return Math.min(1, Math.max(0, contract.usedSessions / contract.totalSessions));
+  return Math.min(1, Math.max(0, sessionsConsumed(contract) / contract.totalSessions));
 }
 
 /** Which of the two endpoints ends this contract — they are not interchangeable. */
@@ -166,13 +178,10 @@ export type MoneyBreakdown = {
   /** Value of one session, and of the sessions not yet used. */
   unit: number | null;
   remaining: number | null;
-  /** What the ledger has ACTUALLY moved, as opposed to what the formula says it should have. */
-  releasedToPt: number | null;
-  releasedToGym: number | null;
-  releasedToPlatform: number | null;
-  pendingToPt: number | null;
-  pendingToGym: number | null;
-  pendingToPlatform: number | null;
+  /** What the client has paid for this contract (0 while unpaid). The server sends no per-party split to a client. */
+  paidTotal: number | null;
+  /** Value of the missed sessions the client was refunded for (closed as "not delivered - refunded", still counted). */
+  refundedSessionsValue: number | null;
   paid: boolean;
   /** True only while the server says the client may end the contract with no fee (trainer restricted). */
   canExitWithoutPenalty: boolean;
@@ -191,10 +200,9 @@ const money = (value: any): number | null => {
 };
 
 /**
- * `GET /contracts/:id/money-breakdown`. Every figure arrives as a STRING ("8100000.00"), and the
- * response deliberately carries two different truths side by side: `released` (what the formula
- * says) and `actuallyReleased` (what the ledger moved). The screen quotes the second, because that
- * is the one the client can check against their wallet.
+ * `GET /contracts/:id/money-breakdown`. Every figure arrives as a STRING ("8100000.00"). For a client the server returns
+ * aggregates about their own money only (paid, refunded, remaining, refund-if-cancelled) - never how the price is divided
+ * between trainer, gym and platform - so this reads nothing of the sort.
  */
 export function normalizeMoneyBreakdown(raw: any): MoneyBreakdown | null {
   if (!raw) return null;
@@ -202,12 +210,8 @@ export function normalizeMoneyBreakdown(raw: any): MoneyBreakdown | null {
     refundIfCancelledNow: money(raw?.refundIfCancelledNow),
     unit: money(raw?.unit),
     remaining: money(raw?.remaining),
-    releasedToPt: money(raw?.actuallyReleased?.pt),
-    releasedToGym: money(raw?.actuallyReleased?.gym),
-    releasedToPlatform: money(raw?.actuallyReleased?.platform),
-    pendingToPt: money(raw?.stillPending?.pt),
-    pendingToGym: money(raw?.stillPending?.gym),
-    pendingToPlatform: money(raw?.stillPending?.platform),
+    paidTotal: money(raw?.paidTotal),
+    refundedSessionsValue: money(raw?.refundedSessionsValue),
     paid: Boolean(raw?.paid),
     // Strict `=== true`: a missing or malformed flag must never open the no-fee path.
     canExitWithoutPenalty: raw?.canExitWithoutPenalty === true,

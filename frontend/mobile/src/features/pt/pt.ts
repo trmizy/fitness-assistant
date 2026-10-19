@@ -98,7 +98,11 @@ export type PtContract = ClientRef & {
   packageName?: string | null;
   totalSessions?: number | null;
   usedSessions?: number | null;
+  /** Sessions the PT missed and the client was refunded for: counted as consumed, nothing left to deliver (DQ-2(a)). */
+  compensatedSessions?: number | null;
   price?: number | null;
+  /** The PT's frozen share of `price` (Decimal string, e.g. "0.5500"). The server sends it only to the contract's own PT. */
+  ptRate?: string | number | null;
   startDate?: string | null;
   endDate?: string | null;
   createdAt?: string | null;
@@ -133,7 +137,8 @@ export function studentsFromContracts(contracts: unknown): StudentRow[] {
     .filter((c) => c?.id)
     .map((c) => {
       const total = Number(c.totalSessions ?? 0);
-      const used = Number(c.usedSessions ?? 0);
+      // Used = delivered + missed-by-PT-and-refunded (closed and counted, no replacement).
+      const used = Number(c.usedSessions ?? 0) + Number(c.compensatedSessions ?? 0);
       return {
         contractId: c.id,
         clientUserId: c.clientUserId,

@@ -64,6 +64,7 @@ import {
   normalizeContracts,
   normalizeMoneyBreakdown,
   sessionProgress,
+  sessionsConsumed,
   terminateSuccessMessage,
   type ContractRow,
   type TerminationChoice,
@@ -1093,7 +1094,7 @@ function ContractCard({
       <Text className="font-body text-sm text-foreground">
         {formatVND(contract.price)}
         <Text className="font-body text-xs text-muted-foreground">
-          {` · ${contract.usedSessions}/${contract.totalSessions} buổi`}
+          {` · ${sessionsConsumed(contract)}/${contract.totalSessions} buổi`}
         </Text>
       </Text>
 

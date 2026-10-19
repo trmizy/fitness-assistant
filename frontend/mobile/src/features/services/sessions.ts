@@ -159,7 +159,8 @@ export const SESSION_STATUS: Record<string, { label: string; tone: SessionTone; 
   },
   COMPLETED: { label: "Hoàn thành", tone: "neutral" },
   CANCELLED: { label: "Đã huỷ", tone: "neutral" },
-  NO_SHOW: { label: "Vắng mặt", tone: "danger" },
+  // NO_SHOW is always the trainer's fault (the client's own absence goes through confirmation and ends COMPLETED): refunded, closed, still counted.
+  NO_SHOW: { label: "Không diễn ra — đã hoàn tiền", tone: "danger" },
 };
 
 export function sessionStatus(status: string) {

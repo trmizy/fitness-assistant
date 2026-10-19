@@ -2,6 +2,7 @@ import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { clientErrorMessage } from "../utils/db-error.util";
 import { errorCodeBody } from "../utils/error-code.util";
+import { redactContractSplit } from "../services/contract-dto";
 import { bookingService } from "../services/booking.service";
 
 export const bookingController = {
@@ -63,7 +64,8 @@ export const bookingController = {
     try {
       const userId = req.headers["x-user-id"] as string;
       const sessions = await bookingService.getMyUpcoming(userId);
-      res.json(sessions);
+      // Sessions embed their contract row: the client must not receive the PT's revenue split with it.
+      res.json(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined }));
     } catch (error: any) {
       logger.error(error, "Get upcoming sessions error");
       res.status(500).json({ error: "Failed to fetch upcoming sessions" });
@@ -197,7 +199,7 @@ export const bookingController = {
   async listPendingConfirmation(req: any, res: Response) {
     try {
       const clientUserId = req.headers["x-user-id"] as string;
-      res.json(await bookingService.listPendingConfirmation(clientUserId));
+      res.json(redactContractSplit(await bookingService.listPendingConfirmation(clientUserId), { userId: clientUserId, role: req.headers["x-user-role"] as string | undefined }));
     } catch (error: any) {
       logger.error(error, "List pending-confirmation sessions error");
       res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });

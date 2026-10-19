@@ -11,6 +11,8 @@ type Contract = {
   packageName: string;
   totalSessions: number;
   usedSessions: number;
+  /** Missed-by-PT sessions refunded to the client: closed and counted as used. */
+  compensatedSessions?: number;
   price?: number;
   startDate?: string;
   endDate?: string;
@@ -173,7 +175,7 @@ export function PTClientList() {
                 filtered.map((c) => {
                   const progress =
                     c.totalSessions > 0
-                      ? Math.round((c.usedSessions / c.totalSessions) * 100)
+                      ? Math.round(((c.usedSessions + (c.compensatedSessions ?? 0)) / c.totalSessions) * 100)
                       : 0;
                   const statusLabel = contractStatusLabel(c.status);
                   const isActive = c.status === "ACTIVE";
@@ -225,7 +227,7 @@ export function PTClientList() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-400">
-                        {c.usedSessions}/{c.totalSessions}
+                        {c.usedSessions + (c.compensatedSessions ?? 0)}/{c.totalSessions}
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-400 max-w-[140px] truncate">
                         {c.packageName}
@@ -291,7 +293,7 @@ export function PTClientList() {
             filtered.map((c) => {
               const progress =
                 c.totalSessions > 0
-                  ? Math.round((c.usedSessions / c.totalSessions) * 100)
+                  ? Math.round(((c.usedSessions + (c.compensatedSessions ?? 0)) / c.totalSessions) * 100)
                   : 0;
               const statusLabel = contractStatusLabel(c.status);
               const isActive = c.status === "ACTIVE";
@@ -336,7 +338,7 @@ export function PTClientList() {
                     <div>
                       <div className="text-zinc-600">Sessions</div>
                       <div className="text-zinc-300 font-semibold">
-                        {c.usedSessions}/{c.totalSessions}
+                        {c.usedSessions + (c.compensatedSessions ?? 0)}/{c.totalSessions}
                       </div>
                     </div>
                     <div>

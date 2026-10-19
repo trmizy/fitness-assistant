@@ -9,6 +9,7 @@ import {
   recordNoShowIntent,
 } from "./contract-payout.service";
 import { contractService } from "./contract.service";
+import { ptFaultClientMessage, ptFaultPtMessage, ptLateArrivalClientMessage, readPtFaultMoney } from "./pt-fault-session-wording";
 import { endOpenRoomCall } from "./open-room-call.service";
 import { withRunningContract, CONTRACT_ENDED, CONTRACT_ENDING } from "./contract-lock";
 import { trackJob } from "../lifecycle";
@@ -100,8 +101,9 @@ export interface RoomCloseDeps {
     tx?: Prisma.TransactionClient,
   ) => Promise<boolean>;
   /** Runs AFTER the decision committed (no lock): the payment-service call, idempotent on the intent's key. */
-  compensateNoShowMoney: (contractId: string, sessionId: string) => Promise<void>;
-  compensateLateArrivalMoney: (contractId: string, sessionId: string) => Promise<void>;
+  /** Resolves with whatever the money step answered (the tracked outcome / payment-service result); only read for the notice wording. */
+  compensateNoShowMoney: (contractId: string, sessionId: string) => Promise<unknown>;
+  compensateLateArrivalMoney: (contractId: string, sessionId: string) => Promise<unknown>;
   /** Records the compensation's INTENT inside the decision's transaction. Absent (unit tests): nothing is recorded there. */
   recordIntent?: (tx: Prisma.TransactionClient, kind: "NO_SHOW" | "LATE_ARRIVAL", contractId: string, sessionId: string) => Promise<void>;
   checkAndCompleteContract: (contractId: string) => Promise<unknown>;
@@ -215,14 +217,14 @@ export async function runRoomCloseResolution(
             if (tx && deps.recordIntent) await deps.recordIntent(tx, "NO_SHOW", session.contractId, session.id);
             after.push(async () => {
               // The payment-service call: after the decision committed, outside the lock (idempotent on the intent's key).
-              await deps.compensateNoShowMoney(session.contractId, session.id);
+              const moneyAnswer = await deps.compensateNoShowMoney(session.contractId, session.id);
               await deps.checkAndCompleteContract(session.contractId);
               endOpenRoomCall(session.id, "pt_no_show");
               // System-determined, not self-admitted - unlike markNoShow's PT-self-admit branch, the PT here doesn't
               // already know this happened, so (like resolveDispute's PT_NO_SHOW_CONFIRMED branch) both sides are told.
               await deps.notify({
                 userId: session.clientUserId,
-                text: "Huấn luyện viên không vào phòng học. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
+                text: ptFaultClientMessage("Huấn luyện viên không vào phòng học.", readPtFaultMoney(moneyAnswer)),
                 eventType: "SESSION_NO_SHOW_PT",
                 entityType: "SESSION",
                 entityId: session.id,
@@ -230,7 +232,7 @@ export async function runRoomCloseResolution(
               });
               await deps.notify({
                 userId: session.ptUserId,
-                text: "Bạn không vào phòng học trước khi hết giờ — buổi tập được ghi nhận vắng mặt, khách được bồi thường.",
+                text: ptFaultPtMessage("Bạn không vào phòng học trước khi hết giờ — buổi tập được ghi nhận là bạn vắng mặt."),
                 eventType: "SESSION_NO_SHOW_PT",
                 entityType: "SESSION",
                 entityId: session.id,
@@ -286,12 +288,12 @@ export async function runRoomCloseResolution(
           if (!won) return false;
           if (ptLate && tx && deps.recordIntent) await deps.recordIntent(tx, "LATE_ARRIVAL", session.contractId, session.id);
           after.push(async () => {
-            if (ptLate) await deps.compensateLateArrivalMoney(session.contractId, session.id);
+            const lateMoneyAnswer = ptLate ? await deps.compensateLateArrivalMoney(session.contractId, session.id) : undefined;
             endOpenRoomCall(session.id, ptLate ? "session_completed_pt_late" : "session_completed");
             await deps.notify({
               userId: session.clientUserId,
               text: ptLate
-                ? `Huấn luyện viên vào muộn — bạn được bồi thường một phần vào ví, buổi tập không bị trừ. Vui lòng xác nhận buổi tập trước ${deadline.toLocaleDateString("vi-VN")} nếu có vấn đề, hãy khiếu nại.`
+                ? ptLateArrivalClientMessage(readPtFaultMoney(lateMoneyAnswer), deadline.toLocaleDateString("vi-VN"))
                 : `Buổi tập đã kết thúc. Vui lòng xác nhận trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn hệ thống sẽ tự xác nhận.`,
               eventType: "SESSION_PENDING_CONFIRMATION",
               entityType: "SESSION",

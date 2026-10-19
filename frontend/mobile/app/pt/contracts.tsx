@@ -36,6 +36,7 @@ import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../src/features/p
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { formatVND } from "../../src/utils/currency";
 import { shortDate } from "../../src/features/wallet/wallet";
+import { ptContractShare } from "../../src/features/pt/ptContractShare";
 import { StarInput, StarRow } from "../../src/features/plans/PlanWidgets";
 import {
   CONTRACT_TABS,
@@ -221,7 +222,7 @@ export default function PtContractsScreen() {
             {visible.map((c) => {
               const st = ptContractStatus(c.status);
               const name = clientName(c);
-              const used = Number(c.usedSessions ?? 0);
+              const used = Number(c.usedSessions ?? 0) + Number(c.compensatedSessions ?? 0); // delivered + refunded-closed
               const total = Number(c.totalSessions ?? 0);
               const isOpen = expanded === c.id;
               return (
@@ -239,6 +240,10 @@ export default function PtContractsScreen() {
                         </Text>
                         {c.price != null ? (
                           <Text className="font-display text-sm text-primary">{formatVND(Number(c.price))}</Text>
+                        ) : null}
+                        {/* The PT's own cut from this contract's frozen split, visible before they accept. */}
+                        {ptContractShare(c) ? (
+                          <Text className="font-body-semibold text-xs text-foreground">{ptContractShare(c)!.text}</Text>
                         ) : null}
                       </View>
                       <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>

@@ -109,8 +109,10 @@ const SESSION_STATUS_CONFIG: Record<
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
+  // The only way a session ends NO_SHOW is the PT's fault (no-show, late cancel, blocked day, never entered the room, or an
+  // admin ruling): the client was refunded the session's value, the session is closed and still counts (DQ-2(a)).
   NO_SHOW: {
-    label: "Khách vắng mặt",
+    label: "Không diễn ra — đã hoàn tiền",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },

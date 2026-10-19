@@ -19,7 +19,7 @@
  * running production service cannot be taken down by it.
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-1";
+export const PT_TERMS_VERSION = "2026-10-pt-draft-2";
 export const PT_TERMS_IS_DRAFT = true;
 
 /** A version id that marks a draft text. */
@@ -113,13 +113,13 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     title: "5. Khi bạn hủy hoặc vắng mặt",
     body: [
       "Bạn hủy buổi hoặc chặn ngày trước giờ hẹn từ 24 giờ trở lên: buổi được dời sang lịch khác, không ai bị tính phí.",
-      "Bạn hủy hoặc chặn ngày trong vòng 24 giờ trước giờ hẹn, hoặc không có mặt ở buổi đã hẹn: khách được hoàn giá trị của buổi đó vào ví và buổi không bị trừ khỏi gói của khách; bạn không nhận tiền của buổi đó.",
-      "Quy tắc về việc khoản hoàn này được bù từ nguồn tiền nào phía bạn hiện đang được hoàn thiện. Khi được chốt, quy tắc sẽ được công bố bằng một phiên bản điều khoản mới và bạn sẽ phải xác nhận lại trước khi nhận hợp đồng mới.",
+      "Bạn hủy hoặc chặn ngày trong vòng 24 giờ trước giờ hẹn, hoặc không có mặt ở buổi đã hẹn: khách được hoàn giá trị của buổi đó (giá hợp đồng chia cho tổng số buổi) vào ví. Buổi đó được đóng với trạng thái «không diễn ra — đã hoàn tiền» và vẫn được tính là một buổi đã dùng của gói; hệ thống không tạo buổi bù. Bạn không nhận tiền của buổi đó.",
+      "Khoản hoàn được lấy từ chính tiền của hợp đồng đó. Nếu tiền của hợp đồng không đủ, phần còn thiếu được ghi nhận là một khoản đang được đối soát giữa các bên; khoản này không tự động trở thành khoản nợ của bạn.",
       "Nếu bạn vắng mặt 3 buổi trên cùng một hợp đồng, khách có quyền chấm dứt hợp đồng và được hoàn đầy đủ phần chưa dùng.",
       "Nếu bạn chấm dứt hợp đồng giữa chừng, khách được hoàn đầy đủ 100% phần chưa dùng.",
     ],
     source:
-      "session-outcome.ts rows 3-5; PT_REPEATED_NO_SHOW_THRESHOLD=3 (contract.service.ts); D19; payment-service compensateNoShow. The funding of the compensation (pending / pooled available / platform front) is NOT settled (N7, D48) so the text deliberately says only that the rule is being finalised",
+      "session-outcome.ts rows 3-5; PT_REPEATED_NO_SHOW_THRESHOLD=3 (contract.service.ts); D19; payment-service compensateNoShow. DQ-2(a): refund of price/totalSessions to the wallet, session closed as not-delivered-refunded and counted (compensatedSessions), no replacement session, PT not paid. DQ-1: funded from the contract's own funds; an unfunded remainder is a reconciling obligation (paid/owed/unpaid), not PT debt",
   },
   {
     id: "neutral-exit",

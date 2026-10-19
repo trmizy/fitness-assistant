@@ -124,6 +124,13 @@ describe("roster", () => {
     assert.equal(studentsFromContracts(null).length, 0);
   });
 
+  it("DQ-2(a): sessions the PT missed and the client was refunded for count as used", () => {
+    const [r] = studentsFromContracts([{ id: "c", clientUserId: "u", status: "ACTIVE", totalSessions: 4, usedSessions: 1, compensatedSessions: 1 }]);
+    assert.equal(r.used, 2);
+    assert.equal(r.total, 4);
+    assert.equal(r.progress, 0.5);
+  });
+
   it("a contract with no package size does not divide by zero", () => {
     const [r] = studentsFromContracts([{ id: "c", clientUserId: "u", status: "ACTIVE" }]);
     assert.equal(r.progress, 0);

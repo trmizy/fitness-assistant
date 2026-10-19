@@ -158,6 +158,8 @@ export interface Contract {
    * cached API responses predate the field; treat a missing value as 0. */
   compensatedSessions?: number;
   price?: number;
+  /** The PT's frozen share of `price` (Decimal string, e.g. "0.5500"). Sent only to the contract's own PT and admins. */
+  ptRate?: string | number | null;
   pricePerSession?: number;
   startDate?: string;
   endDate?: string;

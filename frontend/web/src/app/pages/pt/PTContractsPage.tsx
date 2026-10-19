@@ -14,6 +14,7 @@ import { Stars } from "../../components/gym/Stars";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
+import { ptContractShare } from "../../utils/ptContractShare";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -463,7 +464,7 @@ export function PTContractsPage() {
             const isExpanded = expanded === c.id;
             const sessionPct =
               c.totalSessions > 0
-                ? Math.round((c.usedSessions / c.totalSessions) * 100)
+                ? Math.round(((c.usedSessions + (c.compensatedSessions ?? 0)) / c.totalSessions) * 100)
                 : 0;
 
             return (
@@ -492,7 +493,7 @@ export function PTContractsPage() {
                           {cfg.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-zinc-500">
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" /> {partyName(c)}
                         </span>
@@ -506,13 +507,19 @@ export function PTContractsPage() {
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <Dumbbell className="w-3 h-3" /> {c.usedSessions}/
+                          <Dumbbell className="w-3 h-3" /> {c.usedSessions + (c.compensatedSessions ?? 0)}/
                           {c.totalSessions}
                         </span>
                         {c.price != null && (
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />{" "}
                             {formatPrice(c.price)}
+                          </span>
+                        )}
+                        {/* The PT's own cut, from this contract's frozen split - shown before they accept. */}
+                        {c.status === "PENDING_REVIEW" && ptContractShare(c) && (
+                          <span className="font-semibold text-green-400">
+                            {ptContractShare(c)!.text}
                           </span>
                         )}
                       </div>
@@ -627,13 +634,18 @@ export function PTContractsPage() {
                         <div className="text-sm text-zinc-300 font-bold">
                           {formatPrice(c.price)}
                         </div>
+                        {ptContractShare(c) && (
+                          <div className="text-xs text-green-400 font-semibold mt-0.5">
+                            {ptContractShare(c)!.text}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Session progress */}
                     <div>
                       <div className="text-xs text-zinc-600 mb-2">
-                        Sessions: {c.usedSessions} / {c.totalSessions}
+                        Sessions: {c.usedSessions + (c.compensatedSessions ?? 0)} / {c.totalSessions}
                       </div>
                       <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
                         <div

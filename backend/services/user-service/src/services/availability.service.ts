@@ -5,6 +5,7 @@ import { profileRepository, prisma } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { compensateNoShowMoney, recordNoShowIntent } from "./contract-payout.service";
 import { resolveSessionOutcome } from "./session-outcome";
+import { ptFaultClientMessage, readPtFaultMoney } from "./pt-fault-session-wording";
 import { assertPtMayAct } from "./pt-restriction.service";
 import { withRunningContract, CONTRACT_ENDED, CONTRACT_ENDING } from "./contract-lock";
 
@@ -472,7 +473,9 @@ export const availabilityService = {
           throw e;
         }
         if (!won) continue;
-        if (outcome.clientCompensation) await compensateNoShowMoney(session.contractId, session.id);
+        const moneyAnswer: unknown = outcome.clientCompensation
+          ? await compensateNoShowMoney(session.contractId, session.id)
+          : undefined;
         if (outcome.clientCompensation) {
           // Money-flow plan 1.2/3.1: if this compensation was the contract's LAST remaining entitlement, the contract
           // must be checked for natural completion here too (after the lock: completing takes it). Lazy import to avoid
@@ -484,7 +487,11 @@ export const availabilityService = {
           .create({
             userId: session.clientUserId,
             text: outcome.clientCompensation
-              ? `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ và bạn được hoàn tiền một buổi vào ví.`
+              ? ptFaultClientMessage(
+                  `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}, sát giờ hẹn.`,
+                  readPtFaultMoney(moneyAnswer),
+                )
+              // ≥24h before the start: a plain reschedule - nothing was consumed, no money moved (session-outcome row 3).
               : `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ — vui lòng đặt lại lịch mới.`,
             eventType: outcome.clientCompensation ? "SESSION_NO_SHOW_PT" : "SESSION_CANCELLED",
             entityType: "SESSION",

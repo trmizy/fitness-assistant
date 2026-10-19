@@ -190,7 +190,8 @@ export function PTClientDetail() {
     enabled: !!contract?.id,
   });
 
-  const sessionsUsed = contract?.usedSessions ?? 0;
+  // Used = delivered + missed-by-PT-and-refunded (closed and counted, no replacement): remaining = total - used.
+  const sessionsUsed = (contract?.usedSessions ?? 0) + (contract?.compensatedSessions ?? 0);
   const sessionsTotal = contract?.totalSessions ?? 0;
   const progressPct =
     sessionsTotal > 0

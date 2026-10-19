@@ -10,6 +10,7 @@ import {
   isDraftTermsVersionId,
   ptTermsReleaseProblem,
   publicPtTerms,
+  PT_TERMS_SECTIONS,
 } from "../services/pt-terms";
 import { checkPtTermsRelease } from "../scripts/check-pt-terms-release";
 
@@ -47,4 +48,24 @@ test("the pre-deploy script check: FAILS (ok=false -> exit 1) in production whil
 test("a confirmation of the draft id does not match any other id (draft rows cannot validate an official version)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-v1");
   assert.equal(isDraftTermsVersionId("2026-10-pt-v1"), false);
+});
+
+test("Điều 5 states DQ-2(a)/DQ-1 and the text was re-versioned (draft-1 text was changed, so its id must not be reused)", () => {
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-2");
+  assert.equal(PT_TERMS_IS_DRAFT, true);
+  const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
+  assert.ok(clause, "clause 5 exists");
+  assert.match(clause.title, /^5\./);
+  const text = clause.body.join(" ");
+  assert.match(text, /«không diễn ra — đã hoàn tiền»/);
+  assert.match(text, /vẫn được tính là một buổi đã dùng/);
+  assert.match(text, /không tạo buổi bù/);
+  assert.match(text, /không nhận tiền của buổi đó/);
+  assert.match(text, /chính tiền của hợp đồng đó/);
+  assert.match(text, /đối soát/);
+  assert.match(text, /không tự động trở thành khoản nợ của bạn/);
+  assert.doesNotMatch(text, /không bị trừ/);
+  assert.equal(PT_TERMS_SECTIONS.length, 9);
+  assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."]);
 });
