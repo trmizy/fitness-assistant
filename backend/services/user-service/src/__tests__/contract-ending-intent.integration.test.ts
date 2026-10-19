@@ -248,8 +248,9 @@ test("5. payment-service answering with ANOTHER reason than the recorded one is 
       (e: any) => e.status === 409 && e.code === "CONTRACT_ENDING_CONFLICT",
     );
     const row = await intentRow(c.id);
-    assert.equal(row.status, "FAILED");
+    assert.equal(row.status, "CONFLICT", "FH-3a: a real status, not only a text prefix");
     assert.match(row.lastError ?? "", /^CONFLICT: .*MUTUAL.*CLIENT_CANCELLED/);
+    assert.equal(row.conflictNote, row.lastError, "the conflict note is kept in its own column too");
     const after = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
     assert.deepEqual([after.status, after.terminationReason], ["ACTIVE", null], "not written over");
     const seen = calls;

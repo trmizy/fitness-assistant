@@ -250,7 +250,7 @@ test("D64-A: a PAID contract that cannot be priced is NEEDS_RECONCILIATION (visi
     await runSettlementSweep();
     assert.equal(s.payments.length, 0);
     const after = await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } });
-    assert.equal(after.status, "FAILED");
+    assert.equal(after.status, "NEEDS_HUMAN");
     assert.match(after.lastError ?? "", /^NEEDS_RECONCILIATION: UNPAYABLE_TERMS: contract .* has a payment transaction but no price.*previous error: z$/);
     assert.ok((await sessionSettlementRepository.findNeedingAttention(1000)).some((r) => r.id === row.id), "still visible to a human");
     await assert.rejects(
@@ -350,7 +350,7 @@ test("D64-C: early warning BEFORE the cap, then at the cap the step is parked NE
     assert.equal(alert[0].level, "error");
     assert.match(alert[0].text, /parked NEEDS_RECONCILIATION after 5 failed attempts \(cap 5\)/);
     const row = await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: live.row.id } });
-    assert.equal(row.status, "FAILED");
+    assert.equal(row.status, "NEEDS_HUMAN");
     assert.match(row.lastError ?? "", /^NEEDS_RECONCILIATION: 5 failed attempts \(cap 5\)/);
     assert.ok((await sessionSettlementRepository.findNeedingAttention(1000)).some((r) => r.id === live.row.id));
   } finally {
@@ -372,7 +372,7 @@ test("D64-C: the attention list is ordered CONFLICT first, then the larger amoun
   const big = await makeContract(pt, { price: 20_000_000, totalSessions: 10 }); // 2.000.000 per session
   const mk = (contractId: string, lastError: string, attempts: number, i: number) =>
     prisma.sessionSettlement.create({
-      data: { kind: "SESSION_RELEASE", idempotencyKey: `SESSION_RELEASE:att-${i}-${randomUUID()}`, contractId, sessionId: randomUUID(), status: "FAILED", attempts, lastError },
+      data: { kind: "SESSION_RELEASE", idempotencyKey: `SESSION_RELEASE:att-${i}-${randomUUID()}`, contractId, sessionId: randomUUID(), status: lastError.startsWith("NEEDS_RECONCILIATION:") ? "NEEDS_HUMAN" : lastError.startsWith("CONFLICT:") ? "CONFLICT" : "FAILED", attempts, lastError },
     });
   const smallOld = await mk(small.id, "NEEDS_RECONCILIATION: small, oldest", 12, 1);
   const bigRec = await mk(big.id, "NEEDS_RECONCILIATION: big", 12, 2);

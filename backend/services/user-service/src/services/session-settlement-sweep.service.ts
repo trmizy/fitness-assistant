@@ -3,7 +3,7 @@ import { SessionSettlementKind } from "../generated/prisma";
 import {
   ENDED_UNSETTLED_PREFIX,
   NEEDS_RECONCILIATION_PREFIX,
-  isParkedError,
+  isParkedRow,
   sessionSettlementRepository,
 } from "../repositories/session-settlement.repository";
 import { contractRepository } from "../repositories/contract.repository";
@@ -102,7 +102,7 @@ async function collectDueRows(now: number, deadlineAt?: number): Promise<SweepRo
     if (deadlineAt && Date.now() >= deadlineAt) break;
     const rows = (await sessionSettlementRepository.findRetryable(PAGE_SIZE, stale, page * PAGE_SIZE)) as SweepRow[];
     for (const row of rows) {
-      if (isParkedError(row.lastError)) continue;
+      if (isParkedRow(row)) continue;
       const waited = row.updatedAt ? now - row.updatedAt.getTime() : Number.POSITIVE_INFINITY;
       if (waited < settlementBackoffMs(row.attempts ?? 0)) continue;
       due.push(row);
@@ -198,7 +198,7 @@ async function dispatchTermination(row: SweepRow): Promise<Verdict> {
 async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
   const decision = await withContractLock(row.contractId, async (tx) => {
     const fresh = await sessionSettlementRepository.findById(row.id, tx);
-    if (!fresh || fresh.status === "SETTLED" || isParkedError(fresh.lastError)) return { kind: "SKIP" as const };
+    if (!fresh || fresh.status === "SETTLED" || isParkedRow(fresh)) return { kind: "SKIP" as const };
 
     const contract = await contractRepository.findById(row.contractId, tx);
     // D64-A: orphan / unpriceable / waiting is decided from the contract's facts, under the lock, before anything else.
@@ -255,7 +255,7 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
 
   // Attempt cap: a step that keeps failing is parked for a human instead of being retried for ever.
   const after = await sessionSettlementRepository.findById(row.id);
-  if (after && after.status === "FAILED" && !isParkedError(after.lastError)) {
+  if (after && after.status === "FAILED" && !isParkedRow(after)) {
     const level = settlementAttemptLevel(after.attempts);
     if (level === "CAP") {
       await sessionSettlementRepository.park(

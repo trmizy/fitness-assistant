@@ -1,7 +1,7 @@
 import { logger } from "@gym-coach/shared";
 import { Prisma, SessionSettlementKind } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
-import { isParkedError, sessionSettlementRepository } from "../repositories/session-settlement.repository";
+import { isParkedRow, sessionSettlementRepository } from "../repositories/session-settlement.repository";
 
 /**
  * Money-flow redesign plan 1.6 - "trạng thái buổi tập và trạng thái tiền phải tách nhau".
@@ -101,7 +101,7 @@ const defaultSettlementDeps: SettlementDeps = {
     const row = await sessionSettlementRepository.claim(id, { staleBefore: new Date(Date.now() - staleProcessingMs()), takeover });
     if (row) return { claimed: true };
     const cur = await sessionSettlementRepository.findById(id);
-    return { claimed: false, status: cur?.status, parked: isParkedError(cur?.lastError) };
+    return { claimed: false, status: cur?.status, parked: !!cur && isParkedRow(cur) };
   },
   settleWith: (id, apply) =>
     prisma.$transaction(async (tx) => {

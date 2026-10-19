@@ -462,7 +462,10 @@ export const SessionSettlementStatus: {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',
   SETTLED: 'SETTLED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  UNCONFIRMED: 'UNCONFIRMED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN',
+  CONFLICT: 'CONFLICT'
 };
 
 export type SessionSettlementStatus = (typeof SessionSettlementStatus)[keyof typeof SessionSettlementStatus]
@@ -26734,6 +26737,9 @@ export namespace Prisma {
     createdAt: Date | null
     updatedAt: Date | null
     settledAt: Date | null
+    appliedAt: Date | null
+    conflictNote: string | null
+    nextAttemptAt: Date | null
   }
 
   export type SessionSettlementMaxAggregateOutputType = {
@@ -26749,6 +26755,9 @@ export namespace Prisma {
     createdAt: Date | null
     updatedAt: Date | null
     settledAt: Date | null
+    appliedAt: Date | null
+    conflictNote: string | null
+    nextAttemptAt: Date | null
   }
 
   export type SessionSettlementCountAggregateOutputType = {
@@ -26764,6 +26773,11 @@ export namespace Prisma {
     createdAt: number
     updatedAt: number
     settledAt: number
+    requestSnapshot: number
+    result: number
+    appliedAt: number
+    conflictNote: number
+    nextAttemptAt: number
     _all: number
   }
 
@@ -26789,6 +26803,9 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     settledAt?: true
+    appliedAt?: true
+    conflictNote?: true
+    nextAttemptAt?: true
   }
 
   export type SessionSettlementMaxAggregateInputType = {
@@ -26804,6 +26821,9 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     settledAt?: true
+    appliedAt?: true
+    conflictNote?: true
+    nextAttemptAt?: true
   }
 
   export type SessionSettlementCountAggregateInputType = {
@@ -26819,6 +26839,11 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     settledAt?: true
+    requestSnapshot?: true
+    result?: true
+    appliedAt?: true
+    conflictNote?: true
+    nextAttemptAt?: true
     _all?: true
   }
 
@@ -26921,6 +26946,11 @@ export namespace Prisma {
     createdAt: Date
     updatedAt: Date
     settledAt: Date | null
+    requestSnapshot: JsonValue | null
+    result: JsonValue | null
+    appliedAt: Date | null
+    conflictNote: string | null
+    nextAttemptAt: Date | null
     _count: SessionSettlementCountAggregateOutputType | null
     _avg: SessionSettlementAvgAggregateOutputType | null
     _sum: SessionSettlementSumAggregateOutputType | null
@@ -26955,6 +26985,11 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     settledAt?: boolean
+    requestSnapshot?: boolean
+    result?: boolean
+    appliedAt?: boolean
+    conflictNote?: boolean
+    nextAttemptAt?: boolean
   }, ExtArgs["result"]["sessionSettlement"]>
 
   export type SessionSettlementSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -26970,6 +27005,11 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     settledAt?: boolean
+    requestSnapshot?: boolean
+    result?: boolean
+    appliedAt?: boolean
+    conflictNote?: boolean
+    nextAttemptAt?: boolean
   }, ExtArgs["result"]["sessionSettlement"]>
 
   export type SessionSettlementSelectScalar = {
@@ -26985,6 +27025,11 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     settledAt?: boolean
+    requestSnapshot?: boolean
+    result?: boolean
+    appliedAt?: boolean
+    conflictNote?: boolean
+    nextAttemptAt?: boolean
   }
 
 
@@ -27016,6 +27061,26 @@ export namespace Prisma {
       createdAt: Date
       updatedAt: Date
       settledAt: Date | null
+      /**
+       * FH-3a: the immutable request recorded together with the intent (kind, key, session, contract, reason + the contract's money facts).
+       */
+      requestSnapshot: Prisma.JsonValue | null
+      /**
+       * FH-3a (reserved): payment-service's stored answer.
+       */
+      result: Prisma.JsonValue | null
+      /**
+       * FH-3a (reserved): when the sub-ledger bookkeeping of the answer was applied.
+       */
+      appliedAt: Date | null
+      /**
+       * FH-3a: why a CONFLICT row is a conflict (the text also stays in lastError).
+       */
+      conflictNote: string | null
+      /**
+       * FH-3a (reserved): persisted back-off.
+       */
+      nextAttemptAt: Date | null
     }, ExtArgs["result"]["sessionSettlement"]>
     composites: {}
   }
@@ -27421,6 +27486,11 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"SessionSettlement", 'DateTime'>
     readonly updatedAt: FieldRef<"SessionSettlement", 'DateTime'>
     readonly settledAt: FieldRef<"SessionSettlement", 'DateTime'>
+    readonly requestSnapshot: FieldRef<"SessionSettlement", 'Json'>
+    readonly result: FieldRef<"SessionSettlement", 'Json'>
+    readonly appliedAt: FieldRef<"SessionSettlement", 'DateTime'>
+    readonly conflictNote: FieldRef<"SessionSettlement", 'String'>
+    readonly nextAttemptAt: FieldRef<"SessionSettlement", 'DateTime'>
   }
     
 
@@ -38619,7 +38689,12 @@ export namespace Prisma {
     lastError: 'lastError',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
-    settledAt: 'settledAt'
+    settledAt: 'settledAt',
+    requestSnapshot: 'requestSnapshot',
+    result: 'result',
+    appliedAt: 'appliedAt',
+    conflictNote: 'conflictNote',
+    nextAttemptAt: 'nextAttemptAt'
   };
 
   export type SessionSettlementScalarFieldEnum = (typeof SessionSettlementScalarFieldEnum)[keyof typeof SessionSettlementScalarFieldEnum]
@@ -41885,6 +41960,11 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"SessionSettlement"> | Date | string
     updatedAt?: DateTimeFilter<"SessionSettlement"> | Date | string
     settledAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+    requestSnapshot?: JsonNullableFilter<"SessionSettlement">
+    result?: JsonNullableFilter<"SessionSettlement">
+    appliedAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+    conflictNote?: StringNullableFilter<"SessionSettlement"> | string | null
+    nextAttemptAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
   }
 
   export type SessionSettlementOrderByWithRelationInput = {
@@ -41900,6 +41980,11 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     settledAt?: SortOrderInput | SortOrder
+    requestSnapshot?: SortOrderInput | SortOrder
+    result?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    conflictNote?: SortOrderInput | SortOrder
+    nextAttemptAt?: SortOrderInput | SortOrder
   }
 
   export type SessionSettlementWhereUniqueInput = Prisma.AtLeast<{
@@ -41918,6 +42003,11 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"SessionSettlement"> | Date | string
     updatedAt?: DateTimeFilter<"SessionSettlement"> | Date | string
     settledAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+    requestSnapshot?: JsonNullableFilter<"SessionSettlement">
+    result?: JsonNullableFilter<"SessionSettlement">
+    appliedAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
+    conflictNote?: StringNullableFilter<"SessionSettlement"> | string | null
+    nextAttemptAt?: DateTimeNullableFilter<"SessionSettlement"> | Date | string | null
   }, "id" | "idempotencyKey">
 
   export type SessionSettlementOrderByWithAggregationInput = {
@@ -41933,6 +42023,11 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     settledAt?: SortOrderInput | SortOrder
+    requestSnapshot?: SortOrderInput | SortOrder
+    result?: SortOrderInput | SortOrder
+    appliedAt?: SortOrderInput | SortOrder
+    conflictNote?: SortOrderInput | SortOrder
+    nextAttemptAt?: SortOrderInput | SortOrder
     _count?: SessionSettlementCountOrderByAggregateInput
     _avg?: SessionSettlementAvgOrderByAggregateInput
     _max?: SessionSettlementMaxOrderByAggregateInput
@@ -41956,6 +42051,11 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"SessionSettlement"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"SessionSettlement"> | Date | string
     settledAt?: DateTimeNullableWithAggregatesFilter<"SessionSettlement"> | Date | string | null
+    requestSnapshot?: JsonNullableWithAggregatesFilter<"SessionSettlement">
+    result?: JsonNullableWithAggregatesFilter<"SessionSettlement">
+    appliedAt?: DateTimeNullableWithAggregatesFilter<"SessionSettlement"> | Date | string | null
+    conflictNote?: StringNullableWithAggregatesFilter<"SessionSettlement"> | string | null
+    nextAttemptAt?: DateTimeNullableWithAggregatesFilter<"SessionSettlement"> | Date | string | null
   }
 
   export type ClientJourneyWhereInput = {
@@ -45932,6 +46032,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
   }
 
   export type SessionSettlementUncheckedCreateInput = {
@@ -45947,6 +46052,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
   }
 
   export type SessionSettlementUpdateInput = {
@@ -45962,6 +46072,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SessionSettlementUncheckedUpdateInput = {
@@ -45977,6 +46092,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SessionSettlementCreateManyInput = {
@@ -45992,6 +46112,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     settledAt?: Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: Date | string | null
+    conflictNote?: string | null
+    nextAttemptAt?: Date | string | null
   }
 
   export type SessionSettlementUpdateManyMutationInput = {
@@ -46007,6 +46132,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SessionSettlementUncheckedUpdateManyInput = {
@@ -46022,6 +46152,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    requestSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    appliedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    conflictNote?: NullableStringFieldUpdateOperationsInput | string | null
+    nextAttemptAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ClientJourneyCreateInput = {
@@ -49531,6 +49666,11 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     settledAt?: SortOrder
+    requestSnapshot?: SortOrder
+    result?: SortOrder
+    appliedAt?: SortOrder
+    conflictNote?: SortOrder
+    nextAttemptAt?: SortOrder
   }
 
   export type SessionSettlementAvgOrderByAggregateInput = {
@@ -49550,6 +49690,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     settledAt?: SortOrder
+    appliedAt?: SortOrder
+    conflictNote?: SortOrder
+    nextAttemptAt?: SortOrder
   }
 
   export type SessionSettlementMinOrderByAggregateInput = {
@@ -49565,6 +49708,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     settledAt?: SortOrder
+    appliedAt?: SortOrder
+    conflictNote?: SortOrder
+    nextAttemptAt?: SortOrder
   }
 
   export type SessionSettlementSumOrderByAggregateInput = {

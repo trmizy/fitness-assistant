@@ -150,7 +150,7 @@ test("the sweep never pays a row whose session the system does not consider deli
     await runSettlementSweep();
     assert.equal(s.payments.filter((p) => p.method === "releaseSession").length, 0, "the PT is not paid for a session that is not delivered");
     const after = await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } });
-    assert.equal(after.status, "FAILED");
+    assert.equal(after.status, "NEEDS_HUMAN");
     assert.match(after.lastError ?? "", /^NEEDS_RECONCILIATION:.*not delivered/);
     assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: waiting.id } })).status, "PENDING_CLIENT_CONFIRMATION", "the session is untouched");
     // parked rows are not picked up again

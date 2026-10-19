@@ -3,6 +3,14 @@ import { prisma } from "./profile.repository";
 
 type Db = typeof prisma | Prisma.TransactionClient;
 
+/**
+ * FH-3a - the parked states are REAL statuses now (NEEDS_HUMAN, CONFLICT), no longer a text prefix of last_error that every query
+ * had to `startsWith`. The prefix is STILL WRITTEN to last_error (operators / scripts / logs read it, and it carries the message),
+ * but no code decides anything from it, with ONE exception that is deliberate: ENDED_UNSETTLED, the terminal orphan label, is kept
+ * exactly as it was (status FAILED + prefix) - an orphan is "nothing owed", not a state of the money step, and
+ * scripts/orphan-settlement-rows.ts writes it with raw SQL.
+ */
+
 /** lastError prefix of a compensation row that must not be retried: its contract ended before it settled. */
 export const ENDED_UNSETTLED_PREFIX = "ENDED_UNSETTLED:";
 /**
@@ -14,7 +22,23 @@ export const NEEDS_RECONCILIATION_PREFIX = "NEEDS_RECONCILIATION:";
 /** payment-service answered, but not with what the recorded intent asked for (another reason / other held count). */
 export const CONFLICT_PREFIX = "CONFLICT:";
 
-export const PARKED_PREFIXES = [ENDED_UNSETTLED_PREFIX, NEEDS_RECONCILIATION_PREFIX, CONFLICT_PREFIX];
+/**
+ * Statuses a row is never claimed / retried in by code: parked for a person (NEEDS_HUMAN), payment-service disagreed (CONFLICT),
+ * and UNCONFIRMED (reserved for D65-B: the ledger outcome is not known, only the admin path decides). They still count as
+ * "not SETTLED", so they keep an ending refused exactly as the old FAILED + prefix rows did.
+ */
+export const PARKED_STATUSES: SessionSettlementStatus[] = [
+  SessionSettlementStatus.NEEDS_HUMAN,
+  SessionSettlementStatus.CONFLICT,
+  SessionSettlementStatus.UNCONFIRMED,
+];
+
+/** The status a park() with this prefix puts the row in. ENDED_UNSETTLED (terminal orphan label) stays FAILED + prefix. */
+export function parkedStatusFor(prefix: string): SessionSettlementStatus {
+  if (prefix === NEEDS_RECONCILIATION_PREFIX) return SessionSettlementStatus.NEEDS_HUMAN;
+  if (prefix === CONFLICT_PREFIX) return SessionSettlementStatus.CONFLICT;
+  return SessionSettlementStatus.FAILED;
+}
 
 /** D64-A - terminal ORPHAN markers (the contract is gone / was never paid: nothing is owed). Written by the sweep and by scripts/orphan-settlement-rows.ts. */
 export const ORPHAN_MARKER_PREFIXES = [`${ENDED_UNSETTLED_PREFIX}CONTRACT_MISSING`, `${ENDED_UNSETTLED_PREFIX}NO_PAYMENT`];
@@ -22,14 +46,44 @@ export const ORPHAN_MARKER_PREFIXES = [`${ENDED_UNSETTLED_PREFIX}CONTRACT_MISSIN
 /** How many parked / exhausted rows the attention report reads before it ranks them. */
 const ATTENTION_CANDIDATES = 1000;
 
-export function isParkedError(lastError: string | null | undefined): boolean {
-  return !!lastError && PARKED_PREFIXES.some((p) => lastError.startsWith(p));
+/** True when the row must not be claimed / retried: a parked status, or the terminal ENDED_UNSETTLED orphan label. */
+export function isParkedRow(row: { status?: string | null; lastError?: string | null }): boolean {
+  if (row.status && (PARKED_STATUSES as string[]).includes(row.status)) return true;
+  return !!row.lastError && row.lastError.startsWith(ENDED_UNSETTLED_PREFIX);
 }
 
-/** Rows whose lastError is NOT a parked marker (a null lastError counts as not parked). */
+/** Rows that are NOT parked: not in a parked status and not carrying the ENDED_UNSETTLED label (a null lastError counts as not parked). */
 const NOT_PARKED: Prisma.SessionSettlementWhereInput = {
-  OR: [{ lastError: null }, { AND: PARKED_PREFIXES.map((p) => ({ NOT: { lastError: { startsWith: p } } })) }],
+  status: { notIn: PARKED_STATUSES },
+  OR: [{ lastError: null }, { NOT: { lastError: { startsWith: ENDED_UNSETTLED_PREFIX } } }],
 };
+
+/** Common fields of an intent row (what upsertPending takes). */
+export interface SettlementIntentInput {
+  kind: SessionSettlementKind;
+  idempotencyKey: string;
+  sessionId: string | null;
+  contractId: string;
+  reason: string | null;
+}
+
+/**
+ * FH-3a - the immutable request recorded together with the intent: what the money step was decided for, in the system's own
+ * terms (never a number a caller supplies). `facts` is whatever the caller knows at the moment it decides (the contract's money
+ * state). Only written on CREATE - a retry or a replay never rewrites it.
+ */
+function buildRequestSnapshot(input: SettlementIntentInput, facts?: Prisma.InputJsonObject): Prisma.InputJsonObject {
+  return {
+    v: 1,
+    kind: input.kind,
+    idempotencyKey: input.idempotencyKey,
+    sessionId: input.sessionId,
+    contractId: input.contractId,
+    reason: input.reason,
+    recordedAt: new Date().toISOString(),
+    ...(facts ? { facts } : {}),
+  };
+}
 
 /** The session-level money steps an ending must see finished before it snapshots the contract (everything but the ending itself). */
 export const SESSION_MONEY_KINDS: SessionSettlementKind[] = [
@@ -50,20 +104,19 @@ export const sessionSettlementRepository = {
    * the SAME transaction as the session claim and the counters, so "decided" and "intent recorded" are one fact.
    */
   upsertPending: (
-    input: {
-      kind: SessionSettlementKind;
-      idempotencyKey: string;
-      sessionId: string | null;
-      contractId: string;
-      reason: string | null;
+    input: SettlementIntentInput & {
+      /** FH-3a: the money facts known at decision time, stored inside `request_snapshot` (create only). */
+      snapshotFacts?: Prisma.InputJsonObject;
     },
     db: Db = prisma,
-  ) =>
-    db.sessionSettlement.upsert({
-      where: { idempotencyKey: input.idempotencyKey },
-      create: { ...input, status: SessionSettlementStatus.PENDING },
+  ) => {
+    const { snapshotFacts, ...row } = input;
+    return db.sessionSettlement.upsert({
+      where: { idempotencyKey: row.idempotencyKey },
+      create: { ...row, status: SessionSettlementStatus.PENDING, requestSnapshot: buildRequestSnapshot(row, snapshotFacts) },
       update: {}, // no-op write - just fetch the existing row
-    }),
+    });
+  },
 
   findById: (id: string, db: Db = prisma) => db.sessionSettlement.findUnique({ where: { id } }),
 
@@ -82,7 +135,8 @@ export const sessionSettlementRepository = {
    * `takeover` additionally lets a LIVE caller (the request that needs the answer, or an ending that must see the money
    * step done) run a row another runner is processing right now: payment-service is idempotent on the row's key and the
    * result is applied once by {@link settleOnce}, so a duplicate call is harmless - it is only refused for a sweep.
-   * A SETTLED row and a PARKED row are never claimed. Returns the claimed row, or null.
+   * A SETTLED row and a PARKED row (NEEDS_HUMAN / CONFLICT / UNCONFIRMED status, or the ENDED_UNSETTLED label) are never claimed.
+   * Returns the claimed row, or null.
    */
   claim: async (id: string, opts: { staleBefore: Date; takeover?: boolean }, db: Db = prisma) => {
     const statusCondition: Prisma.SessionSettlementWhereInput = opts.takeover
@@ -121,19 +175,26 @@ export const sessionSettlementRepository = {
       data: { status: SessionSettlementStatus.SETTLED, settledAt: new Date(), lastError: null },
     }),
 
-  /** A failure never overwrites a row somebody else already settled. */
+  /** A failure never overwrites a row somebody else already settled, nor one that was handed to a person (NEEDS_HUMAN / CONFLICT). */
   markFailed: (id: string, error: string) =>
     prisma.sessionSettlement.updateMany({
-      where: { id, status: { not: SessionSettlementStatus.SETTLED } },
+      where: { id, status: { notIn: [SessionSettlementStatus.SETTLED, SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT] } },
       data: { status: SessionSettlementStatus.FAILED, lastError: error.slice(0, 2000) },
     }),
 
-  /** Park a row (never delete it): FAILED + a marker prefix the retry queries exclude. Never touches a SETTLED row. */
-  park: (id: string, prefix: string, message: string, db: Db = prisma) =>
-    db.sessionSettlement.updateMany({
+  /**
+   * Park a row (never delete it): NEEDS_HUMAN for NEEDS_RECONCILIATION, CONFLICT for CONFLICT (its note in conflict_note too),
+   * FAILED + the ENDED_UNSETTLED label for an orphan - and the prefix text is written to last_error in every case. The retry
+   * queries exclude the row by status (or the orphan label). Never touches a SETTLED row.
+   */
+  park: (id: string, prefix: string, message: string, db: Db = prisma) => {
+    const lastError = `${prefix} ${message}`.slice(0, 2000);
+    const status = parkedStatusFor(prefix);
+    return db.sessionSettlement.updateMany({
       where: { id, status: { not: SessionSettlementStatus.SETTLED } },
-      data: { status: SessionSettlementStatus.FAILED, lastError: `${prefix} ${message}`.slice(0, 2000) },
-    }),
+      data: { status, lastError, ...(status === SessionSettlementStatus.CONFLICT ? { conflictNote: lastError } : {}) },
+    });
+  },
 
   /** The unsettled compensation rows of one contract (what the ending must settle first), oldest first. */
   findUnsettledCompensations: (contractId: string, db: Pick<typeof prisma, "sessionSettlement"> = prisma) =>
@@ -167,6 +228,49 @@ export const sessionSettlementRepository = {
   findTerminationRow: (contractId: string, db: Db = prisma) =>
     db.sessionSettlement.findUnique({ where: { idempotencyKey: `CONTRACT_TERMINATE:${contractId}` } }),
 
+  /**
+   * FH-3b (DQ-8) - the detection query for the future admin / reconciliation report (no route yet): every PAID contract that
+   * has ENDED (COMPLETED / EXPIRED / CANCELLED) and whose CONTRACT_TERMINATION row is missing or not SETTLED. A contract status
+   * of COMPLETED is NOT proof that the money moved - only a SETTLED termination row (written in the transaction that applies
+   * payment-service's confirmed answer) is. `hasIntent` = false is the old crash window (status written, intent never
+   * recorded); true = the sweep is still carrying it (look at `settlementStatus` / `attempts`). `minAgeMs` leaves out the
+   * endings that were written a moment ago and are simply in flight. Read-only; oldest first.
+   */
+  findEndedPaidWithoutSettledTermination: async (opts: { minAgeMs?: number; limit?: number } = {}, db: Db = prisma) => {
+    const rows = await db.$queryRaw<
+      Array<{
+        contract_id: string;
+        contract_status: string;
+        termination_reason: string | null;
+        ended_at: Date;
+        settlement_id: string | null;
+        settlement_status: string | null;
+        attempts: number | null;
+        last_error: string | null;
+      }>
+    >`
+      SELECT c.id AS contract_id, c.status::text AS contract_status, c.termination_reason::text AS termination_reason,
+             c.updated_at AS ended_at, s.id AS settlement_id, s.status::text AS settlement_status, s.attempts, s.last_error
+        FROM contracts c
+        LEFT JOIN session_settlements s ON s.idempotency_key = 'CONTRACT_TERMINATE:' || c.id
+       WHERE c.status IN ('COMPLETED', 'EXPIRED', 'CANCELLED')
+         AND c.payment_transaction_id IS NOT NULL AND c.price IS NOT NULL AND c.total_sessions > 0
+         AND (s.id IS NULL OR s.status <> 'SETTLED')
+         AND c.updated_at <= now() - (${Math.max(0, Math.floor(opts.minAgeMs ?? 0))} * interval '1 millisecond')
+       ORDER BY c.updated_at ASC, c.id ASC
+       LIMIT ${Math.max(1, Math.floor(opts.limit ?? 200))}`;
+    return rows.map((r) => ({
+      contractId: r.contract_id,
+      contractStatus: r.contract_status,
+      terminationReason: r.termination_reason,
+      endedAt: r.ended_at,
+      hasIntent: r.settlement_id !== null,
+      settlementStatus: r.settlement_status,
+      attempts: r.attempts,
+      lastError: r.last_error,
+    }));
+  },
+
   /** True while a contract's ending was accepted (recorded) but payment-service has not confirmed it yet. */
   hasUnconfirmedTermination: async (contractId: string, db: Db = prisma): Promise<boolean> => {
     const row = await db.sessionSettlement.findFirst({
@@ -196,7 +300,7 @@ export const sessionSettlementRepository = {
    *   - PENDING  - a process crashed between creating the row and claiming it.
    *   - FAILED   - the underlying payment-service call threw.
    *   - PROCESSING, but stuck past `staleAfterMs` - the process that claimed it crashed mid-call.
-   * Parked rows (ENDED_UNSETTLED / NEEDS_RECONCILIATION / CONFLICT) are excluded IN the query.
+   * Parked rows (NEEDS_HUMAN / CONFLICT / UNCONFIRMED status, the ENDED_UNSETTLED label) are excluded IN the query.
    */
   findRetryable: (limit: number, staleAfterMs: number, offset = 0) =>
     prisma.sessionSettlement.findMany({
@@ -229,11 +333,7 @@ export const sessionSettlementRepository = {
       where: {
         status: { not: SessionSettlementStatus.SETTLED },
         AND: [{ OR: [{ lastError: null }, { AND: ORPHAN_MARKER_PREFIXES.map((p) => ({ NOT: { lastError: { startsWith: p } } })) }] }],
-        OR: [
-          { lastError: { startsWith: NEEDS_RECONCILIATION_PREFIX } },
-          { lastError: { startsWith: CONFLICT_PREFIX } },
-          { attempts: { gte: minAttempts } },
-        ],
+        OR: [{ status: { in: [SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT] } }, { attempts: { gte: minAttempts } }],
       },
       orderBy: { updatedAt: "asc" },
       take: Math.max(limit, ATTENTION_CANDIDATES),
@@ -249,7 +349,7 @@ export const sessionSettlementRepository = {
       const price = c?.price != null ? Number(c.price) : 0;
       const amountAtStake =
         row.kind === SessionSettlementKind.CONTRACT_TERMINATION ? price : c && c.totalSessions > 0 ? Math.round(price / c.totalSessions) : 0;
-      return { ...row, amountAtStake, isConflict: !!row.lastError?.startsWith(CONFLICT_PREFIX) };
+      return { ...row, amountAtStake, isConflict: row.status === SessionSettlementStatus.CONFLICT };
     });
     ranked.sort(
       (a, b) =>

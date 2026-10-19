@@ -555,7 +555,12 @@ exports.Prisma.SessionSettlementScalarFieldEnum = {
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  settledAt: 'settledAt'
+  settledAt: 'settledAt',
+  requestSnapshot: 'requestSnapshot',
+  result: 'result',
+  appliedAt: 'appliedAt',
+  conflictNote: 'conflictNote',
+  nextAttemptAt: 'nextAttemptAt'
 };
 
 exports.Prisma.ClientJourneyScalarFieldEnum = {
@@ -951,7 +956,10 @@ exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',
   SETTLED: 'SETTLED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  UNCONFIRMED: 'UNCONFIRMED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN',
+  CONFLICT: 'CONFLICT'
 };
 
 exports.PtRestrictionType = exports.$Enums.PtRestrictionType = {

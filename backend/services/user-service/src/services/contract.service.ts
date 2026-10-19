@@ -23,7 +23,7 @@ import { ptServicePackageRepository, type LockedPackageRow } from "../repositori
 import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
-import { recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
+import { completeContractRecordingEnding, recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
 import { ptTermsService } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
@@ -198,13 +198,16 @@ const defaultCompleteContractDeps: CompleteContractDeps = {
   findById: (id) => contractRepository.findById(id),
   // F4: guarded - only an ACTIVE contract is completed. A contract that was ended another way between the read and this write
   // (client cancel, expiry, ban) is NOT rewritten to COMPLETED (null = lost the race; checkAndCompleteContract then stops).
-  updateStatus: (id, status, extra) => contractRepository.updateStatusIfCurrent(id, ContractStatus.ACTIVE, status, extra),
+  // FH-3b (DQ-8): the CONTRACT_TERMINATION intent is written in the SAME transaction as the status flip, so a crash right after
+  // "COMPLETED" can no longer leave a completed contract the settlement sweep does not know about. (`status` is always COMPLETED here.)
+  updateStatus: (id, _status, extra) => completeContractRecordingEnding(id, extra),
   deriveClientJourney: (id) => deriveForCompletedContract(id),
   // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
   // committed the contract to COMPLETED — there is no going back to retry a failed settlement
-  // through any status-gated endpoint, so the sweep is the only path left for it. The ending records its own
-  // CONTRACT_TERMINATION intent row (contract-payout.service.ts) and settles it on payment-service's confirmation; a failure
-  // BEFORE the row could be recorded (e.g. the database blinked) is recorded here so the sweep still finds the ending.
+  // through any status-gated endpoint, so the sweep is the only path left for it. The CONTRACT_TERMINATION intent row was
+  // written together with that status (FH-3b); the ending here carries it through and settles it on payment-service's
+  // confirmation. recordTerminationAttemptFailed stays as a belt-and-braces upsert for a contract with no row (it is a no-op
+  // for a row that exists) so the sweep still finds the ending if the ending itself died before it could look at the row.
   settleMoney: async (id, reason) => {
     try {
       return await terminateContractMoney(id, reason);
@@ -973,7 +976,8 @@ export const contractService = {
    * contract stayed in the pending buckets forever.
    *
    * Best-effort on the money side: the session lifecycle has already moved on (`status`
-   * flips to COMPLETED first), so a payment-service outage here must not leave the contract
+   * flips to COMPLETED first, in the same transaction that records the durable CONTRACT_TERMINATION
+   * intent - FH-3b), so a payment-service outage here must not leave the contract
    * stuck ACTIVE — it is retried safely later, since `terminateContractMoney` carries the
    * `CONTRACT_TERMINATE:<id>` idempotency key (plan 1.1) and the reconciliation sweep (plan
    * 1.6) picks up anything a first attempt missed.

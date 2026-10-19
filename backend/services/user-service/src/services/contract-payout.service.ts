@@ -3,7 +3,7 @@ import { Prisma, ContractStatus, SessionSettlementKind, SessionStatus } from "..
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
-import { settleTracked, settlementAttemptLevel, staleProcessingMs } from "./session-settlement.service";
+import { settleTracked, settlementAttemptLevel, staleProcessingMs, type SettleOutcome } from "./session-settlement.service";
 import { callOffOpenSessions, holdUnansweredNoShowReports, sessionCallOffReasonFor } from "./contract-session-closure";
 import { SYSTEM_ACTOR } from "./audit.service";
 import {
@@ -16,7 +16,7 @@ import {
 import {
   CONFLICT_PREFIX,
   NEEDS_RECONCILIATION_PREFIX,
-  isParkedError,
+  isParkedRow,
   sessionSettlementRepository,
 } from "../repositories/session-settlement.repository";
 import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
@@ -201,6 +201,28 @@ type ResolveAnswer = { nothingHeld: true } | { nothingHeld?: false; moved?: { pt
 // ── intents: written by the DECISION, in its own transaction ────────────────────────────────────────────────────────
 
 /**
+ * FH-3a - the contract's money state at the moment an intent is recorded, stored in the row's `request_snapshot` (create only):
+ * a fixed, readable record of what the step was decided against, independent of whatever the contract looks like later.
+ * Decimals are strings (JSON has no decimal); never read back to compute money - the live contract stays the source.
+ */
+function contractMoneyFacts(c: ContractRow): Prisma.InputJsonObject {
+  // Best-effort record: it must never be the reason a money step cannot be recorded, so every read is null-tolerant.
+  const str = (v: { toString(): string } | null | undefined) => v?.toString() ?? null;
+  return {
+    contractStatus: c.status ?? null,
+    paymentTransactionId: c.paymentTransactionId ?? null,
+    price: str(c.price),
+    totalSessions: c.totalSessions ?? null,
+    usedSessions: c.usedSessions ?? null,
+    compensatedSessions: c.compensatedSessions ?? null,
+    releasedToPt: str(c.releasedToPt),
+    releasedToGym: str(c.releasedToGym),
+    releasedToPlatform: str(c.releasedToPlatform),
+    rates: { platformRate: str(c.platformRate), ptRate: str(c.ptRate), gymRate: str(c.gymRate) },
+  };
+}
+
+/**
  * Records the money intent of a session decision INSIDE the decision's contract-locked transaction `tx` (the same one
  * that carries the session's status CAS and the contract counters): the decision and the obligation commit together.
  * A contract that has no money behind it (never paid) records nothing. Idempotent per key.
@@ -213,7 +235,14 @@ async function recordIntent(
   const contract = payableOrNull(await contractRepository.findById(contractId, tx));
   if (!contract) return;
   await sessionSettlementRepository.upsertPending(
-    { kind: spec.kind, idempotencyKey: spec.idempotencyKey, sessionId: spec.sessionId, contractId, reason: spec.reason ?? null },
+    {
+      kind: spec.kind,
+      idempotencyKey: spec.idempotencyKey,
+      sessionId: spec.sessionId,
+      contractId,
+      reason: spec.reason ?? null,
+      snapshotFacts: contractMoneyFacts(contract),
+    },
     tx,
   );
 }
@@ -269,7 +298,7 @@ export async function resolveUnresolvedSessionMoney(
   sessionId: string,
   outcome: UnresolvedOutcome,
   mode: SettleMode = {},
-): Promise<void> {
+): Promise<SettleOutcome<ResolveAnswer> | undefined> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
 
@@ -291,7 +320,7 @@ export async function resolveUnresolvedSessionMoney(
     });
     return;
   }
-  await settleTracked<ResolveAnswer>(
+  return settleTracked<ResolveAnswer>(
     { kind: SessionSettlementKind.UNRESOLVED_SESSION_RESOLUTION, idempotencyKey, contractId, sessionId, reason: outcome },
     async () => {
       try {
@@ -441,12 +470,12 @@ export async function releaseSessionMoney(contractId: string, sessionId: string,
  * Since Phase 0 the counter `compensatedSessions` is added in the same transaction as the row's flip to SETTLED, so a
  * failure between "the ledger paid" and "the row was marked" can no longer count the session twice.
  */
-export async function compensateNoShowMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<void> {
+export async function compensateNoShowMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<SettleOutcome<any> | undefined> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
 
   const idempotencyKey = `PT_NO_SHOW:${sessionId}`;
-  await settleTracked(
+  return settleTracked(
     { kind: SessionSettlementKind.PT_NO_SHOW_COMPENSATION, idempotencyKey, contractId, sessionId },
     () =>
       paymentClient.noShow({
@@ -487,12 +516,12 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
  * payment-service's compensateLateArrival is its own function: that one is relied on exactly
  * as-is by its existing callers.
  */
-export async function compensateLateArrivalMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<void> {
+export async function compensateLateArrivalMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<SettleOutcome<any> | undefined> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
 
   const idempotencyKey = `PT_LATE_ARRIVAL:${sessionId}`;
-  await settleTracked(
+  return settleTracked(
     { kind: SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION, idempotencyKey, contractId, sessionId },
     () =>
       paymentClient.lateArrival({
@@ -742,7 +771,7 @@ export async function settleUnsettledSessionMoneyFirst(contractId: string): Prom
     const rows = await sessionSettlementRepository.findUnsettledSessionMoney(contractId);
     if (rows.length === 0) return;
     for (const row of rows.slice(0, SETTLEMENT_DRAIN_LIMIT)) {
-      if (isParkedError(row.lastError)) continue; // needs a human; it will keep the ending refused below
+      if (isParkedRow(row)) continue; // needs a human; it will keep the ending refused below
       let cur = row;
       if (isLiveRow(cur)) {
         // Another runner is on it right now (or the request that just recorded it is about to start it) - wait for it
@@ -845,6 +874,7 @@ export async function beginContractTermination(
           sessionId: null,
           contractId,
           reason: recorded,
+          snapshotFacts: contractMoneyFacts(raw),
         },
         tx,
       );
@@ -883,7 +913,48 @@ export async function recordTerminationAttemptFailed(contractId: string, reason:
     contractId,
     reason,
   });
-  if (row.status !== "SETTLED" && !isParkedError(row.lastError)) await sessionSettlementRepository.markFailed(row.id, message);
+  if (row.status !== "SETTLED" && !isParkedRow(row)) await sessionSettlementRepository.markFailed(row.id, message);
+}
+
+/**
+ * FH-3b (DQ-8) - NATURAL COMPLETION, atomically: the contract goes ACTIVE -> COMPLETED and its CONTRACT_TERMINATION intent
+ * (reason COMPLETED, key `CONTRACT_TERMINATE:<id>`, the same row beginContractTermination records for every other ending) is
+ * written in ONE transaction. Before, the status was written first and the intent afterwards (contract.service.ts), so a crash
+ * between the two left a COMPLETED contract with no intent: the settlement sweep never saw it, and the PT / gym were never
+ * paid out of the contract's pending money.
+ *
+ * The status flip is the same guarded UPDATE as before (only an ACTIVE contract; null = it ended another way meanwhile and that
+ * ending owns the contract and its money). A contract with no money behind it (never paid / unpriced) records no intent, exactly
+ * as every other ending. COMPLETED does NOT mean the money moved: that is the row turning SETTLED, in the transaction that applies
+ * payment-service's confirmed answer (completeContractTermination) - see findEndedPaidWithoutSettledTermination.
+ *
+ * Takes no contract lock on purpose: the guarded UPDATE is the compare-and-set, the intent upsert is idempotent on its unique key,
+ * and callers (checkAndCompleteContract) may run next to code that holds the PT lock (lock order: PT first, contract second).
+ */
+export async function completeContractRecordingEnding(contractId: string, extra: { completedAt: Date }): Promise<ContractRow | null> {
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.contract.updateMany({
+      where: { id: contractId, status: ContractStatus.ACTIVE },
+      data: { status: ContractStatus.COMPLETED, ...extra },
+    });
+    if (count === 0) return null;
+    const contract = await contractRepository.findById(contractId, tx);
+    if (!contract) return null;
+    if (payableOrNull(contract)) {
+      await sessionSettlementRepository.upsertPending(
+        {
+          kind: SessionSettlementKind.CONTRACT_TERMINATION,
+          idempotencyKey: `CONTRACT_TERMINATE:${contractId}`,
+          sessionId: null,
+          contractId,
+          reason: "COMPLETED",
+          snapshotFacts: contractMoneyFacts(contract),
+        },
+        tx,
+      );
+    }
+    return contract;
+  });
 }
 
 /** The settlement sweep found the ending's row held by another runner. Not an error. */
@@ -958,7 +1029,7 @@ export async function completeContractTermination(
     });
     if (!claimed) {
       const cur = await sessionSettlementRepository.findById(intent.rowId);
-      if (cur && isParkedError(cur.lastError)) {
+      if (cur && isParkedRow(cur)) {
         throw codedError(`Việc kết thúc hợp đồng cần được kiểm tra thủ công: ${cur.lastError}`, 409, CONTRACT_ENDING_CONFLICT);
       }
       // Held by another runner right now: the sweep leaves it alone; a live caller was allowed to take over (not reached).

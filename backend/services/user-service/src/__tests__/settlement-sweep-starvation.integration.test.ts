@@ -173,7 +173,7 @@ test("attempt cap + back-off: a step that keeps failing is parked (NEEDS_RECONCI
     for (let i = 0; i < 6; i++) await runSettlementSweep();
     assert.equal(calls, 3, "retried exactly up to the cap, then never again");
     const row = await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } });
-    assert.equal(row.status, "FAILED");
+    assert.equal(row.status, "NEEDS_HUMAN");
     assert.equal(row.attempts, 3);
     assert.match(row.lastError ?? "", /^NEEDS_RECONCILIATION: 3 failed attempts \(cap 3\); last error: payment-service 503/);
 

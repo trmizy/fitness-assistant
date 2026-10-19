@@ -1191,30 +1191,47 @@ enum SessionSettlementStatus {
   PROCESSING
   SETTLED
   FAILED
+  /// FH-3a. Reserved for D65-B (ledger outcome not known yet; needs the admin path). Nothing writes it yet.
+  UNCONFIRMED
+  /// FH-3a. Parked for a person (was FAILED + last_error 'NEEDS_RECONCILIATION: ...'). Never retried by code.
+  NEEDS_HUMAN
+  /// FH-3a. payment-service answered something else than what was recorded (was FAILED + 'CONFLICT: ...'). Never retried by code.
+  CONFLICT
 }
 
 model SessionSettlement {
-  id             String                  @id @default(uuid())
-  kind           SessionSettlementKind
+  id              String                  @id @default(uuid())
+  kind            SessionSettlementKind
   /// Same string this operation passes as `idempotencyKey` to payment-service (plan 1.1) —
   /// e.g. "PT_NO_SHOW:<sessionId>". Unique so upsertPending finds the one row for a retry
   /// instead of creating a duplicate.
-  idempotencyKey String                  @unique @map("idempotency_key")
+  idempotencyKey  String                  @unique @map("idempotency_key")
   /// Null only for CONTRACT_TERMINATION, which settles the whole contract, not one session.
-  sessionId      String?                 @map("session_id")
-  contractId     String                  @map("contract_id")
+  sessionId       String?                 @map("session_id")
+  contractId      String                  @map("contract_id")
   /// Termination reason, only meaningful for CONTRACT_TERMINATION — needed to reconstruct the
   /// call when the sweep retries a row it did not originate.
-  reason         String?
-  status         SessionSettlementStatus @default(PENDING)
-  attempts       Int                     @default(0)
-  lastError      String?                 @map("last_error")
-  createdAt      DateTime                @default(now()) @map("created_at")
-  updatedAt      DateTime                @updatedAt @map("updated_at")
-  settledAt      DateTime?               @map("settled_at")
+  reason          String?
+  status          SessionSettlementStatus @default(PENDING)
+  attempts        Int                     @default(0)
+  lastError       String?                 @map("last_error")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  settledAt       DateTime?               @map("settled_at")
+  /// FH-3a: the immutable request recorded together with the intent (kind, key, session, contract, reason + the contract's money facts).
+  requestSnapshot Json?                   @map("request_snapshot")
+  /// FH-3a (reserved): payment-service's stored answer.
+  result          Json?
+  /// FH-3a (reserved): when the sub-ledger bookkeeping of the answer was applied.
+  appliedAt       DateTime?               @map("applied_at") @db.Timestamptz(3)
+  /// FH-3a: why a CONFLICT row is a conflict (the text also stays in lastError).
+  conflictNote    String?                 @map("conflict_note")
+  /// FH-3a (reserved): persisted back-off.
+  nextAttemptAt   DateTime?               @map("next_attempt_at") @db.Timestamptz(3)
 
   // The sweep's own query: "everything not yet SETTLED".
   @@index([status])
+  @@index([status, nextAttemptAt])
   @@map("session_settlements")
 }
 

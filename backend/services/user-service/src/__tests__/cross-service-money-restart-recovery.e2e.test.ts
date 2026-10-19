@@ -74,6 +74,10 @@ class Proxy {
   private waiters: Array<(h: Held) => void> = [];
   held: Held[] = [];
   forwarded: string[] = [];
+  /** FH-3b: requests matching this rule are NOT forwarded at all (the caller is killed while payment-service has seen nothing). */
+  blockRule: ((p: string, n: number) => boolean) | null = null;
+  blocked: string[] = [];
+  private blockWaiters: Array<() => void> = [];
   constructor(private target: string) {
     this.server = http.createServer((req, res) => {
       const chunks: Buffer[] = [];
@@ -83,6 +87,11 @@ class Proxy {
         const n = (this.counts.get(p) ?? 0) + 1;
         this.counts.set(p, n);
         this.forwarded.push(`${req.method} ${p}`);
+        if (this.blockRule && this.blockRule(p, n)) {
+          this.blocked.push(p);
+          this.blockWaiters.splice(0).forEach((w) => w());
+          return; // never forwarded, never answered
+        }
         const u = new URL(this.target);
         const up = http.request({ host: u.hostname, port: u.port, path: p, method: req.method, headers: req.headers }, (ur) => {
           const out: Buffer[] = [];
@@ -122,8 +131,22 @@ class Proxy {
   get url() {
     return `http://127.0.0.1:${this.port}`;
   }
+  /** Resolves once a request held back by {@link blockRule} has arrived. */
+  nextBlocked(timeoutMs = 30_000): Promise<void> {
+    if (this.blocked.length) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("proxy: no blocked request within timeout")), timeoutMs);
+      this.blockWaiters.push(() => {
+        clearTimeout(t);
+        resolve();
+      });
+    });
+  }
   reset() {
     this.rule = null;
+    this.blockRule = null;
+    this.blocked = [];
+    this.blockWaiters = [];
     this.counts.clear();
     this.held = [];
     this.forwarded = [];
@@ -595,5 +618,194 @@ test("R5. post-deploy-state-check flags the R1 crash window (X-01), a PT_NO_SHOW
     assert.notEqual(getA("X-01").level, "FAIL", "the window is closed after the retry");
     assert.equal(getA("U-07a").level, "PASS");
     await H.m.prisma.contract.deleteMany({ where: { id: ended.id } }).catch(() => {});
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+// FH-3b (DQ-8) - NATURAL COMPLETION: the contract status and the CONTRACT_TERMINATION intent are ONE transaction.
+// Before: status COMPLETED was written first, the intent afterwards - a process death in between left a COMPLETED contract with no
+// intent, which no sweep ever settled (PT / gym never paid out of the contract's pending money).
+// Fixture for R6-R8: a 10-session contract with a 10% PT holdback (a FIXTURE row value, holdback is OFF in production), 9 sessions
+// delivered through the harness; the 10th is delivered through a REAL user-service process that is then SIGKILLed. The holdback is
+// what makes the ending's money visible: it is returned to the PT only by the COMPLETED termination.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+async function nearlyDone() {
+  const pt = await H.makePt();
+  const c = await H.paidContract(pt);
+  await H.m.prisma.contract.update({ where: { id: c.id }, data: { ptHoldbackRate: "0.10" } });
+  await H.deliver(c, 9);
+  const last = await H.m.base.addSession(c, "CONFIRMED", new Date(Date.now() - 40 * DAY));
+  return { pt, c, last, ptTok: tokenOf(pt, "PT"), clientTok: tokenOf(c.clientUserId, "CUSTOMER") };
+}
+const terminationRow = (contractId: string) => H.m.prisma.sessionSettlement.findUnique({ where: { idempotencyKey: `CONTRACT_TERMINATE:${contractId}` } });
+async function waitFor<T>(what: string, read: () => Promise<T>, ok: (v: T) => boolean, timeoutMs = 40_000): Promise<T> {
+  const t0 = Date.now();
+  for (;;) {
+    const v = await read();
+    if (ok(v)) return v;
+    if (Date.now() - t0 > timeoutMs) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, 300));
+  }
+}
+
+test("R6. [FH-3b] natural completion; user-service is SIGKILLed right after the COMPLETED commit, BEFORE payment-service saw the ending: the intent was committed WITH the status, so after the restart the sweep settles the PT's held-back money alone, exactly once", { skip }, async () => {
+  await scenario(async () => {
+    const { pt, c, last, ptTok, clientTok } = await nearlyDone();
+    const { sessionSettlementRepository } = await import("../repositories/session-settlement.repository");
+    const u1 = await userProc();
+    proxy.blockRule = (p) => p.endsWith("/internal/contracts/terminate");
+    const done = await u1.call("PATCH", `/sessions/${last.id}/complete`, ptTok, { ptNotes: "ok" });
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    const inflight = u1.call("POST", `/sessions/${last.id}/confirm`, clientTok).catch((e) => ({ status: -1, body: String(e) }));
+    await proxy.nextBlocked();
+    await u1.kill(); // <- the crash: COMPLETED is committed, the ending request never reached payment-service
+    await inflight;
+
+    const crashed = await contractRow(c.id);
+    const intent = await terminationRow(c.id);
+    show("R6 after crash", { contractStatus: crashed.status, terminationReason: crashed.terminationReason, intent: intent && { status: intent.status, reason: intent.reason, hasSnapshot: !!intent.requestSnapshot } });
+    assert.equal(crashed.status, "COMPLETED");
+    assert.equal(crashed.usedSessions, 10);
+    assert.ok(intent, "THE FIX: the intent exists - the old code could be killed with COMPLETED and no row");
+    assert.deepEqual([intent.kind, intent.reason], ["CONTRACT_TERMINATION", "COMPLETED"]);
+    assert.notEqual(intent.status, "SETTLED", "COMPLETED is not 'money settled'");
+    assert.ok(intent.requestSnapshot, "the request snapshot was written with the intent");
+    // what the ending still owes the PT: the 10% holdback of the 10 delivered sessions, in PENDING until the COMPLETED termination
+    const heldBack = await H.net(c.txnId, "PT", "PENDING");
+    assert.ok(heldBack > 0, `the PT's holdback is still pending after the crash (${heldBack}) - payment-service never saw the ending`);
+    const ptBefore = await H.wallet("PT", pt);
+    const gap = (await sessionSettlementRepository.findEndedPaidWithoutSettledTermination()).find((g) => g.contractId === c.id);
+    assert.ok(gap && gap.hasIntent && gap.contractStatus === "COMPLETED", "the report query shows an ended + paid contract whose money is not confirmed");
+
+    // restart: the sweep finds the recorded ending and completes it (the dead process's PROCESSING claim turns stale)
+    proxy.reset();
+    await userProc({ SESSION_SETTLEMENT_SWEEP_INTERVAL_MS: "700", SESSION_SETTLEMENT_STALE_PROCESSING_MS: "1500" });
+    await waitFor("the sweep to settle the ending", () => terminationRow(c.id), (r) => r?.status === "SETTLED");
+    const healed = await contractRow(c.id);
+    assert.deepEqual([healed.status, healed.terminationReason], ["COMPLETED", "COMPLETED"]);
+    assert.ok(healed.terminatedAt);
+    const ptAfter = await H.wallet("PT", pt);
+    show("R6 after restart", { ptAvailableBefore: ptBefore.a, ptAvailableAfter: ptAfter.a, heldBack, ptPendingAfter: await H.net(c.txnId, "PT", "PENDING") });
+    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0, "the holdback left PENDING");
+    assert.equal(ptAfter.a, ptBefore.a + heldBack, "the PT received the held-back amount - once");
+    await H.invariant("after the sweep");
+
+    // exactly once: more sweep ticks and a repeated completion move nothing
+    const snap = await H.snapshot();
+    await new Promise((r) => setTimeout(r, 2500));
+    assert.equal(await H.m.contractService.checkAndCompleteContract(c.id), null, "an ended contract is not completed again");
+    assert.deepEqual(await H.snapshot(), snap, "no second payout");
+    assert.equal((await terminationRow(c.id))!.status, "SETTLED");
+    assert.equal(
+      (await sessionSettlementRepository.findEndedPaidWithoutSettledTermination()).some((g) => g.contractId === c.id),
+      false,
+      "no longer in the report once the termination row is SETTLED",
+    );
+  });
+});
+
+test("R7. [FH-3b] natural completion; user-service is SIGKILLed AFTER payment-service committed the ending in its ledger and BEFORE user-service wrote SETTLED: the sweep replays the stored answer - the PT is paid exactly once", { skip }, async () => {
+  await scenario(async () => {
+    const { pt, c, last, ptTok, clientTok } = await nearlyDone();
+    const u1 = await userProc();
+    proxy.rule = (p) => p.endsWith("/internal/contracts/terminate");
+    assert.equal((await u1.call("PATCH", `/sessions/${last.id}/complete`, ptTok, { ptNotes: "ok" })).status, 200);
+    const inflight = u1.call("POST", `/sessions/${last.id}/confirm`, clientTok).catch((e) => ({ status: -1, body: String(e) }));
+    const held = await proxy.nextHeld();
+    assert.equal(held.status, 200, "payment-service answered: its ledger transaction is committed");
+    await u1.kill();
+    held.release();
+    await inflight;
+
+    const crashed = await contractRow(c.id);
+    const intent = await terminationRow(c.id);
+    assert.equal(crashed.status, "COMPLETED");
+    assert.ok(intent && intent.status !== "SETTLED" && intent.reason === "COMPLETED");
+    const ptMid = await H.wallet("PT", pt);
+    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0, "the ledger already returned the holdback (the ending is committed there)");
+    const snap = await H.snapshot();
+
+    proxy.reset();
+    await userProc({ SESSION_SETTLEMENT_SWEEP_INTERVAL_MS: "700", SESSION_SETTLEMENT_STALE_PROCESSING_MS: "1500" });
+    await waitFor("the sweep to settle the ending", () => terminationRow(c.id), (r) => r?.status === "SETTLED");
+    const healed = await contractRow(c.id);
+    assert.deepEqual([healed.status, healed.terminationReason], ["COMPLETED", "COMPLETED"]);
+    assert.deepEqual(await H.snapshot(), snap, "the sweep moved no money: the ledger answered from its stored result");
+    assert.deepEqual(await H.wallet("PT", pt), ptMid);
+    await H.invariant("after the replay");
+  });
+});
+
+test("R8. [FH-3b] natural completion; user-service is SIGKILLed INSIDE the status+intent transaction (blocked on the intent row by a lock held from this test): nothing was committed - the contract is still ACTIVE, no COMPLETED-without-intent state exists, and the retry completes and settles it once", { skip }, async () => {
+  await scenario(async () => {
+    const { pt, c, last, ptTok, clientTok } = await nearlyDone();
+    const u1 = await userProc();
+    assert.equal((await u1.call("PATCH", `/sessions/${last.id}/complete`, ptTok, { ptNotes: "ok" })).status, 200);
+
+    // A second connection holds an UNCOMMITTED row with the intent's unique key: the child's status+intent transaction writes the
+    // contract status, then waits on that key inside the transaction.
+    const { PrismaClient } = await import("../generated/prisma");
+    const blocker = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL, log: [] });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let inserted!: () => void;
+    const insertedP = new Promise<void>((r) => (inserted = r));
+    const blockerTx = blocker
+      .$transaction(
+        async (tx) => {
+          await tx.sessionSettlement.create({
+            data: { kind: "CONTRACT_TERMINATION", idempotencyKey: `CONTRACT_TERMINATE:${c.id}`, contractId: c.id, reason: "COMPLETED" },
+          });
+          inserted();
+          await gate;
+          throw new Error("roll back on purpose");
+        },
+        { timeout: 120_000 },
+      )
+      .catch((e: Error) => e);
+    try {
+      await insertedP;
+      const inflight = u1.call("POST", `/sessions/${last.id}/confirm`, clientTok).catch((e) => ({ status: -1, body: String(e) }));
+      // wait (fast: a Prisma transaction gives up after 5 s) until a backend is blocked on a lock, then kill the process
+      await waitFor(
+        "a transaction blocked on the intent row",
+        () => H.m.prisma.$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+        (r) => r[0].n >= 1,
+        4_000,
+      );
+      await u1.kill(); // <- the crash INSIDE the transaction
+      release();
+      assert.match(String(await blockerTx), /roll back on purpose/);
+      await inflight;
+    } finally {
+      release();
+      await blocker.$disconnect().catch(() => {});
+    }
+    // the dead process's backend finishes its wait, finds no client and rolls back
+    await waitFor(
+      "no open transaction left",
+      () => H.m.prisma.$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND state = 'idle in transaction'`,
+      (r) => r[0].n === 0,
+      15_000,
+    );
+
+    const crashed = await contractRow(c.id);
+    show("R8 after the in-transaction kill", { contractStatus: crashed.status, completedAt: crashed.completedAt, usedSessions: crashed.usedSessions, intent: !!(await terminationRow(c.id)) });
+    assert.equal(crashed.status, "ACTIVE", "the status write died with the transaction");
+    assert.equal(crashed.completedAt, null);
+    assert.equal(crashed.usedSessions, 10, "the session itself was counted before (separate, earlier commit)");
+    assert.equal(await terminationRow(c.id), null, "no intent and no COMPLETED: there is no half state to fall through the sweep");
+    const heldBack = await H.net(c.txnId, "PT", "PENDING");
+    assert.ok(heldBack > 0, "the holdback is still pending: nothing was settled");
+    const ptBefore = await H.wallet("PT", pt);
+
+    // the retry (the next session action / completion check) completes and settles it
+    await H.m.contractService.checkAndCompleteContract(c.id);
+    const done = await contractRow(c.id);
+    assert.deepEqual([done.status, done.terminationReason], ["COMPLETED", "COMPLETED"]);
+    assert.equal((await terminationRow(c.id))!.status, "SETTLED");
+    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0);
+    assert.equal((await H.wallet("PT", pt)).a, ptBefore.a + heldBack, "the PT is paid the holdback once");
+    await H.invariant("after the retry");
   });
 });

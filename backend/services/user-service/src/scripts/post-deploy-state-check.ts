@@ -191,7 +191,7 @@ async function userChecks(url: string, o: Options): Promise<Finding[]> {
     // rows whose contract no longer exists are "orphans": reported by U-07c (they can never be settled), not counted as stuck here
     const stuck = await q(`SELECT s.id FROM session_settlements s JOIN contracts c ON c.id=s.contract_id
                             WHERE (s.status='PROCESSING' AND s.updated_at < now() - ($1 || ' minutes')::interval)
-                               OR (s.status='FAILED' AND s.updated_at < now() - ($1 || ' minutes')::interval AND coalesce(s.last_error,'') NOT LIKE 'ENDED_UNSETTLED:%')`, String(o.staleMinutes));
+                               OR (s.status IN ('FAILED','NEEDS_HUMAN','CONFLICT') AND s.updated_at < now() - ($1 || ' minutes')::interval AND coalesce(s.last_error,'') NOT LIKE 'ENDED_UNSETTLED:%')`, String(o.staleMinutes));
     const endedUnsettled = await q(`SELECT id FROM session_settlements WHERE last_error LIKE 'ENDED_UNSETTLED:%'`);
     out.push(
       stuck.length === 0
@@ -202,7 +202,7 @@ async function userChecks(url: string, o: Options): Promise<Finding[]> {
     // poison rows: retryable rows whose contract no longer exists or is not payable => the sweep's oldest-first batch of 50 keeps re-selecting them
     const poison = await q(`
       SELECT s.id FROM session_settlements s LEFT JOIN contracts c ON c.id=s.contract_id
-       WHERE s.status IN ('PENDING','FAILED') AND coalesce(s.last_error,'') NOT LIKE 'ENDED_UNSETTLED:%'
+       WHERE s.status IN ('PENDING','FAILED','NEEDS_HUMAN','CONFLICT') AND coalesce(s.last_error,'') NOT LIKE 'ENDED_UNSETTLED:%'
          AND (c.id IS NULL OR c.payment_transaction_id IS NULL OR c.price IS NULL OR c.total_sessions IS NULL OR c.total_sessions <= 0)`);
     out.push(
       poison.length === 0

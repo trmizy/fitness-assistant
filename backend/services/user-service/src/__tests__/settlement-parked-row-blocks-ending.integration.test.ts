@@ -30,7 +30,7 @@ async function parkedContract() {
       idempotencyKey: `SESSION_RELEASE:${s4.id}`,
       contractId: contract.id,
       sessionId: s4.id,
-      status: "FAILED",
+      status: "NEEDS_HUMAN",
       attempts: 12,
       lastError: "NEEDS_RECONCILIATION: 12 failed attempts (cap 12); last error: payment-service 503",
     },
@@ -54,7 +54,7 @@ test("[KNOWN-GAP D64-B] ONE parked 450.000 release blocks the WHOLE ending of th
     assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: contract.id } })).status, "ACTIVE");
     assert.equal(await prisma.sessionSettlement.count({ where: { contractId: contract.id, kind: "CONTRACT_TERMINATION" } }), 0, "not even an ending intent is recorded (so the client sees no 'ending' state either)");
     const parked = await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } });
-    assert.equal(parked.status, "FAILED", "the row is still there and still parked - it never unblocks by itself");
+    assert.equal(parked.status, "NEEDS_HUMAN", "the row is still there and still parked - it never unblocks by itself");
   } finally {
     s.restore();
     await cleanup([pt], [contract.id]);
@@ -68,7 +68,7 @@ test("the block is scoped to the ENDING: the other session's money step on the s
     await releaseSessionMoney(contract.id, s3.id);
     assert.deepEqual(s.payments.map((p) => p.method), ["releaseSession"], "session 3's release was sent although session 4's row is parked");
     assert.equal((await prisma.sessionSettlement.findUniqueOrThrow({ where: { idempotencyKey: `SESSION_RELEASE:${s3.id}` } })).status, "SETTLED");
-    assert.equal((await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } })).status, "FAILED", "and the parked row was not touched");
+    assert.equal((await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } })).status, "NEEDS_HUMAN", "and the parked row was not touched");
   } finally {
     s.restore();
     await cleanup([pt], [contract.id]);
@@ -92,7 +92,7 @@ test("[KNOWN-GAP D64-B/key poisoning] a row parked because its session was NOT y
     await prisma.session.update({ where: { id: waiting.id }, data: { status: "COMPLETED", sessionDeducted: true } });
     await releaseSessionMoney(contract.id, waiting.id);
     assert.equal(s.payments.length, 0, "the legitimate release is NOT sent: the key is held by the parked row (a human must unpark it)");
-    assert.equal((await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } })).status, "FAILED");
+    assert.equal((await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } })).status, "NEEDS_HUMAN");
   } finally {
     s.restore();
     await cleanup([pt], [contract.id]);

@@ -10,7 +10,7 @@
  *   - upsertPending finds-or-creates by idempotency key (PENDING, attempts 0), never resets an existing row;
  *   - claim is the compare-and-set (PENDING / FAILED / stale PROCESSING; `takeover` also a live PROCESSING; never SETTLED, never parked);
  *   - settleOnce flips to SETTLED and returns true for the FIRST caller only (apply-once);
- *   - markFailed / park never touch a SETTLED row;
+ *   - markFailed / park never touch a SETTLED row (markFailed also leaves a NEEDS_HUMAN / CONFLICT row alone; park sets the real status like the repository);
  *   - the listing queries answer from the rows held here (nothing else exists in an "empty database").
  * `prisma.$transaction(fn)` runs `fn` with a handle whose raw lock statements are no-ops (single-threaded test), so the
  * apply-callback's repository calls (stubbed here, or by the test) need no real transaction. Rows are exposed (`rows`) so a test can assert on them or pre-seed one.
@@ -19,7 +19,7 @@
 import { randomUUID } from "node:crypto";
 import { after } from "node:test";
 import { prisma } from "../repositories/profile.repository";
-import { ENDED_UNSETTLED_PREFIX, PARKED_PREFIXES, SESSION_MONEY_KINDS, sessionSettlementRepository } from "../repositories/session-settlement.repository";
+import { ENDED_UNSETTLED_PREFIX, SESSION_MONEY_KINDS, isParkedRow, parkedStatusFor, sessionSettlementRepository } from "../repositories/session-settlement.repository";
 
 export interface FakeSettlementRow {
   id: string;
@@ -28,7 +28,7 @@ export interface FakeSettlementRow {
   sessionId: string | null;
   contractId: string;
   reason: string | null;
-  status: "PENDING" | "PROCESSING" | "SETTLED" | "FAILED";
+  status: "PENDING" | "PROCESSING" | "SETTLED" | "FAILED" | "UNCONFIRMED" | "NEEDS_HUMAN" | "CONFLICT";
   attempts: number;
   lastError: string | null;
   createdAt: Date;
@@ -41,8 +41,6 @@ export interface SessionSettlementMemoryStub {
   byKey: (idempotencyKey: string) => FakeSettlementRow | undefined;
   restore: () => void;
 }
-
-const isParked = (e: string | null | undefined) => !!e && PARKED_PREFIXES.some((p) => e.startsWith(p));
 
 export function stubSessionSettlements(): SessionSettlementMemoryStub {
   const rows = new Map<string, FakeSettlementRow>(); // by id
@@ -88,7 +86,7 @@ export function stubSessionSettlements(): SessionSettlementMemoryStub {
   });
   replace("claim", async (id: string, opts: { staleBefore: Date; takeover?: boolean }) => {
     const r = rows.get(id);
-    if (!r || r.status === "SETTLED" || isParked(r.lastError)) return null;
+    if (!r || r.status === "SETTLED" || isParkedRow(r)) return null;
     const claimable = opts.takeover
       ? true
       : r.status === "PENDING" || r.status === "FAILED" || (r.status === "PROCESSING" && r.updatedAt < opts.staleBefore);
@@ -104,14 +102,14 @@ export function stubSessionSettlements(): SessionSettlementMemoryStub {
   replace("markSettled", async (id: string) => touch(rows.get(id)!, { status: "SETTLED", settledAt: new Date(), lastError: null }));
   replace("markFailed", async (id: string, error: string) => {
     const r = rows.get(id);
-    if (!r || r.status === "SETTLED") return { count: 0 };
+    if (!r || r.status === "SETTLED" || r.status === "NEEDS_HUMAN" || r.status === "CONFLICT") return { count: 0 };
     touch(r, { status: "FAILED", lastError: error.slice(0, 2000) });
     return { count: 1 };
   });
   replace("park", async (id: string, prefix: string, message: string) => {
     const r = rows.get(id);
     if (!r || r.status === "SETTLED") return { count: 0 };
-    touch(r, { status: "FAILED", lastError: `${prefix} ${message}`.slice(0, 2000) });
+    touch(r, { status: parkedStatusFor(prefix) as FakeSettlementRow["status"], lastError: `${prefix} ${message}`.slice(0, 2000) });
     return { count: 1 };
   });
   const unsettled = (contractId: string, kinds: string[]) =>
