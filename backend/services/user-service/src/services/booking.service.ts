@@ -1218,7 +1218,9 @@ export const bookingService = {
         SessionStatus.DISPUTED,
         {
           ptNotes: note?.trim() || "PT phản đối báo cáo vắng mặt của khách",
-          disputedAt: new Date(),
+          // FH-4: keep the client's report time (set by reportPtNoShow) as the dispute's first mark, so the admin SLA
+          // age counts from when the client first raised it, not from the PT's denial.
+          ...(session.disputedAt ? {} : { disputedAt: new Date() }),
           // Vòng 4 / Phase E4 — unambiguous here: the client's own claim was "PT no-showed"
           // (reportPtNoShow), and this is the PT contesting exactly that claim.
           disputeType: SessionDisputeType.PT_NO_SHOW_CLAIM,

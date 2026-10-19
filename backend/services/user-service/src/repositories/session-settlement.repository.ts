@@ -271,6 +271,22 @@ export const sessionSettlementRepository = {
     }));
   },
 
+  /**
+   * FH-4 (read-only report): CONTRACT_TERMINATION rows recorded at least `minAgeMs` ago that are still not SETTLED - the ending
+   * was accepted but payment-service's answer was never applied. Terminal ORPHAN rows (nothing owed) are left out. Oldest first.
+   */
+  findUnconfirmedTerminations: (opts: { minAgeMs?: number; limit?: number } = {}, db: Db = prisma) =>
+    db.sessionSettlement.findMany({
+      where: {
+        kind: SessionSettlementKind.CONTRACT_TERMINATION,
+        status: { not: SessionSettlementStatus.SETTLED },
+        createdAt: { lte: new Date(Date.now() - Math.max(0, Math.floor(opts.minAgeMs ?? 0))) },
+        AND: [{ OR: [{ lastError: null }, { AND: ORPHAN_MARKER_PREFIXES.map((p) => ({ NOT: { lastError: { startsWith: p } } })) }] }],
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: Math.max(1, Math.floor(opts.limit ?? 200)),
+    }),
+
   /** True while a contract's ending was accepted (recorded) but payment-service has not confirmed it yet. */
   hasUnconfirmedTermination: async (contractId: string, db: Db = prisma): Promise<boolean> => {
     const row = await db.sessionSettlement.findFirst({
@@ -328,12 +344,19 @@ export const sessionSettlementRepository = {
    * Terminal ORPHAN rows (ENDED_UNSETTLED:CONTRACT_MISSING / :NO_PAYMENT - nothing owed) are not "attention", whatever their
    * attempt count. Candidates are read oldest-first (bounded), then ranked in memory.
    */
-  findNeedingAttention: async (minAttempts: number, limit = 200) => {
+  findNeedingAttention: async (minAttempts: number, limit = 200, opts: { stuckProcessingBefore?: Date } = {}) => {
     const candidates = await prisma.sessionSettlement.findMany({
       where: {
         status: { not: SessionSettlementStatus.SETTLED },
         AND: [{ OR: [{ lastError: null }, { AND: ORPHAN_MARKER_PREFIXES.map((p) => ({ NOT: { lastError: { startsWith: p } } })) }] }],
-        OR: [{ status: { in: [SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT] } }, { attempts: { gte: minAttempts } }],
+        OR: [
+          { status: { in: [SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT] } },
+          { attempts: { gte: minAttempts } },
+          // FH-4: a row a runner claimed and never finished (only the admin report passes this; the retry paths do not).
+          ...(opts.stuckProcessingBefore
+            ? [{ status: SessionSettlementStatus.PROCESSING, updatedAt: { lt: opts.stuckProcessingBefore } } as Prisma.SessionSettlementWhereInput]
+            : []),
+        ],
       },
       orderBy: { updatedAt: "asc" },
       take: Math.max(limit, ATTENTION_CANDIDATES),

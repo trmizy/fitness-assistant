@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { roleMiddleware } from "../middleware/role.middleware";
 import { bookingController } from "../controllers/booking.controller";
 import { ptRestrictionController } from "../controllers/pt-restriction.controller";
+import { adminReconciliationController } from "../controllers/admin-reconciliation.controller";
 import adminPtListingRoutes from "./admin-pt-listing.routes";
 
 const router = Router();
@@ -13,6 +14,8 @@ router.use(authMiddleware, roleMiddleware(["ADMIN"]));
 
 // ── Disputed sessions (VĐ2) ──────────────────────────────────────────
 router.get("/sessions/disputed", bookingController.listDisputed as any);
+// FH-4: read-only money reconciliation report (settlement rows needing a person, unconfirmed endings, disputes by SLA age).
+router.get("/sessions/reconciliation", roleMiddleware(["ADMIN"]), adminReconciliationController.get as any);
 router.post("/sessions/:id/resolve", bookingController.resolveDispute as any);
 
 // ── Temporary PT suspension (contracts are NOT touched; see pt-restriction.service.ts) ──────────
