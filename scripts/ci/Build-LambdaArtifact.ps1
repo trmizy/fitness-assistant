@@ -38,6 +38,14 @@ Write-Host "Artifact    : $zipSrc"
 Write-Host "Handler chk : $($handlers -join ', ')"
 if (-not $Execute) { Write-Host "DRY RUN - pass -Execute to build. No AWS access either way."; return }
 
+# AI's package command only archives existing dist/generated files; unlike the
+# other services' build:lambda-zip commands it does not compile a clean checkout.
+if ($Service -eq "ai") {
+    & pnpm --filter $svc.pnpmFilter run db:generate
+    if ($LASTEXITCODE -ne 0) { throw "BUILD_FAIL: AI Prisma generation exited $LASTEXITCODE" }
+    & pnpm --filter "$($svc.pnpmFilter)..." --recursive run build
+    if ($LASTEXITCODE -ne 0) { throw "BUILD_FAIL: AI and dependency compilation exited $LASTEXITCODE" }
+}
 & pnpm --filter $svc.pnpmFilter run $script
 if ($LASTEXITCODE -ne 0) { throw "BUILD_FAIL: $script exited $LASTEXITCODE" }
 if (-not (Test-Path $zipSrc)) { throw "BUILD_FAIL: expected artifact not found: $zipSrc" }

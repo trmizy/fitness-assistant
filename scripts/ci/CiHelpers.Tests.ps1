@@ -285,6 +285,18 @@ Describe "Test-AwsIdentityGate (8-11)" {
         $r = Test-AwsIdentityGate -Mode Mutate -Context CI -Identity @{ Account = "191798898985"; Arn = "arn:aws:sts::191798898985:assumed-role/GyminiDevAppDeployRole/gh-123" }
         $r.Allowed | Should Be $true
     }
+    It "CI accepts the separate infrastructure PLAN and APPLY sessions" {
+        foreach ($role in @('GyminiDevInfraPlanRole', 'GyminiDevInfraApplyRole')) {
+            $r = Test-AwsIdentityGate -Mode Mutate -Context CI -Identity @{ Account = "191798898985"; Arn = "arn:aws:sts::191798898985:assumed-role/$role/gh-123" }
+            $r.Allowed | Should Be $true
+        }
+    }
+    It "CI rejects the retired infrastructure role and the CloudFormation service role" {
+        foreach ($role in @('GyminiDevInfraDeployRole', 'GyminiDevCfnExecutionRole')) {
+            $r = Test-AwsIdentityGate -Mode Mutate -Context CI -Identity @{ Account = "191798898985"; Arn = "arn:aws:sts::191798898985:assumed-role/$role/gh-123" }
+            $r.Class | Should Be "BLOCK_ROLE_NOT_ALLOWED"
+        }
+    }
     It "CI rejects an unrelated assumed role" {
         $r = Test-AwsIdentityGate -Mode Read -Context CI -Identity @{ Account = "191798898985"; Arn = "arn:aws:sts::191798898985:assumed-role/SomeOtherRole/x" }
         $r.Class | Should Be "BLOCK_ROLE_NOT_ALLOWED"

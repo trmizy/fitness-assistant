@@ -460,16 +460,16 @@ describe("C. meal_plan deterministic formatter — no workout table headings", (
 
     const breakfast = rec.mealPlan!.meals[0];
     const breakfastText = breakfast.foods.join(" ");
-    assert.match(breakfastText, /Yến mạch|Yáº¿n máº¡ch|Cơm|CÆ¡m|Khoai|Bánh mì|BÃ¡nh mÃ¬/);
+    assert.match(breakfastText, /Yến mạch|Cơm|Khoai|Bánh mì/);
     assert.doesNotMatch(
       breakfast.foods.join(", "),
-      /Thịt bò nạc.*Kiwi|Thá»‹t bÃ² náº¡c.*Kiwi/,
+      /Thịt bò nạc.*Kiwi/,
       "breakfast must not be the sparse protein+fruit-only sample",
     );
 
     const answer = responseFormatter.format(rec, "vi");
     assert.match(answer, /2200 kcal/);
-    assert.match(answer, /chưa lưu vào trang Dinh dưỡng|chÆ°a lÆ°u vÃ o trang Dinh dÆ°á»¡ng/);
+    assert.match(answer, /chưa lưu vào trang Dinh dưỡng/);
   });
 
   // Real bug found via E2E persona testing (24-ai-nutrition-persona-b-c.spec.ts,

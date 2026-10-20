@@ -183,20 +183,20 @@ function buildDeterministicBodyCompFallback(
   );
   if (language.responseLanguage === "vi") {
     return [
-      "Tôi chưa dùng được LLM chi tiết lúc này, nên trả phân tích deterministic từ dữ liệu hiện có:",
+      "AI hiện chưa thể tạo phần diễn giải chi tiết. Dưới đây là phân tích theo các quy tắc từ dữ liệu hiện có:",
       "",
       analysis,
       "",
-      "Nếu kết quả chưa đủ cá nhân hóa, hãy kiểm tra Ollama rồi thử lại để nhận phần diễn giải đầy đủ hơn.",
+      "Bạn có thể thử lại sau để nhận phần diễn giải chi tiết hơn.",
     ].join("\n");
   }
 
   return [
-    "The LLM is not ready right now, so here is the deterministic body-composition analysis from available data:",
+    "AI cannot generate a detailed explanation right now. Here is a rule-based body-composition analysis from the available data:",
     "",
     analysis,
     "",
-    "If this is not detailed enough, check Ollama readiness and retry for the full narrative analysis.",
+    "Please try again later for a more detailed explanation.",
   ].join("\n");
 }
 

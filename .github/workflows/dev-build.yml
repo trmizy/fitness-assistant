@@ -1,0 +1,91 @@
+# Phase 16B.3 Gate 1 - activated from ci/drafts/github-actions/dev-build.yml.
+#
+# Build once, hash, store. NO AWS access of any kind (no id-token, no
+# credentials, no AWS CLI calls) - this workflow only builds/packages Lambda
+# zips and uploads them as GitHub Actions artifacts for dev-deploy.yml to
+# consume later (manual, separate activation). Lowest-risk workflow in the
+# CD sequence, promoted first for that reason.
+#
+# Auto-triggers on every push to aws-deploy from here on (see `on: push`
+# below) - a real, accepted behavior change, not a one-off manual run.
+name: DEV Build
+
+on:
+  push:
+    branches: [aws-deploy]          # the branch the owner deploys from; master is the repo default
+    paths-ignore: ["docs/**", "**/*.md", "ci/**", "infra/**"]
+  workflow_dispatch:
+    inputs:
+      services:
+        description: "Comma list (auth,user,fitness,gym,payment,ai) or 'auto' = from diff"
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda: ${{ steps.i.outputs.lambda }}
+      blocked: ${{ steps.i.outputs.blocked }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: i
+        shell: pwsh
+        env:
+          BEFORE: ${{ github.event.before }}
+          SERVICES: ${{ inputs.services }}
+        run: |
+          if ($env:SERVICES -and $env:SERVICES -ne 'auto') {
+            $l = @($env:SERVICES.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -in 'auth','user','fitness','gym','payment','ai' })
+            $blocked = 'false'
+          } else {
+            $base = if ($env:BEFORE -and $env:BEFORE -notmatch '^0+$') { $env:BEFORE } else { 'HEAD~1' }
+            $r = ./scripts/ci/Get-ChangedServices.ps1 -Base $base -Head HEAD | ConvertFrom-Json
+            $l = @($r.LambdaServices); $blocked = $r.DeployBlocked.ToString().ToLower()
+          }
+          "lambda=$(ConvertTo-Json -InputObject @($l) -Compress)" >> $env:GITHUB_OUTPUT
+          "blocked=$blocked" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: impact
+    if: needs.impact.outputs.lambda != '[]'
+    # windows-latest: the packaging scripts were developed and proven on Windows
+    # (pnpm-store flattening, MAX_PATH workaround). Linux reproducibility is an
+    # open 16B item - do not switch runners before that trial.
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.impact.outputs.lambda) }}
+    steps:
+      - uses: actions/checkout@v4
+      # setup-node resolves the pnpm cache during setup, so pnpm must exist first.
+      - uses: pnpm/action-setup@v4
+        with: { run_install: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Build + package (existing per-service script) and record manifest
+        # pnpm 8 computes modulesDir relative to the selected package. A temp
+        # directory on another Windows drive produces an invalid absolute value.
+        # runner.temp lives on the checkout drive on GitHub Windows runners.
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        shell: pwsh
+        run: ./scripts/ci/Build-LambdaArtifact.ps1 -Service ${{ matrix.service }} -OutDir ci-out -Execute
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-${{ matrix.service }}-${{ github.sha }}
+          path: ci-out/*
+          retention-days: 30
+          if-no-files-found: error
+      - name: Summary (hash only)
+        shell: pwsh
+        run: |
+          $m = Get-ChildItem ci-out -Filter *.manifest.json | Get-Content -Raw | ConvertFrom-Json
+          "| ${{ matrix.service }} | ``$($m.gitSha.Substring(0,10))`` | ``$($m.sha256)`` | $($m.sizeBytes) bytes |" >> $env:GITHUB_STEP_SUMMARY

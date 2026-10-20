@@ -5,13 +5,14 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { readJsonl, appendJsonl } from "../lib/evidence.mjs";
 import { percentile, summarizeLatency, scoreTurn, aggregate, pairedAnalysis } from "../lib/metrics.mjs";
 import { parseOllamaGin, parseJsonLines, observeTurn, parseGoDuration } from "../lib/observe.mjs";
 import { digest, assertTestOnly, diffSnapshots } from "../lib/db-snapshot.mjs";
 import { runCase, loadState, readDataset, ContaminationStop, errorCaseRecord } from "../run-frozen-150.mjs";
 
-const SCRATCH = "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\c--D-Backup-project-personal-fitness-assistant\\9fa5886a-5307-4cff-ba1f-ce748b349f76\\scratchpad\\harness-tests";
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "gymini-harness-tests-"));
 const FAMILY = new Map([["START_WORKFLOW", "WORKFLOW"], ["CONFIRM", "CONFIRMATION_BOUNDARY"], ["UNKNOWN", "UNKNOWN"], ["KNOWLEDGE_QA", "KNOWLEDGE"], ["CANCEL", "WORKFLOW"]]);
 const DATASET = readDataset();
 const spec = (id) => DATASET.find((c) => c.case_id === id);

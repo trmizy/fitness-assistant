@@ -177,19 +177,12 @@ export async function deriveForCompletedContract(contractId: string): Promise<
       profile.goal, baselineEntry.weight, ending?.weight ?? null, baselineEntry.bodyFatPct ?? null, ending?.bodyFatPct ?? null,
     );
 
-    // ADV-006 hardening (docs/ai-agent-adversarial-findings.md): upsert
-    // keyed on the now-DB-enforced-unique `contractId`
-    // (@@unique([contractId]), migration
-    // 20260914120000_client_journey_contract_id_unique) rather than a
-    // plain create — the earlier findFirst-then-create above is a fast
-    // path for the common case, but only this upsert is actually
-    // race-safe: two concurrent derivations for the same contract now
-    // resolve to exactly one INSERT and one no-op UPDATE at the database
-    // level, never two rows, regardless of timing.
-    await prisma.clientJourney.upsert({
-      where: { contractId: contract.id },
-      update: {},
-      create: {
+    // Prisma may emulate an upsert with an empty update as read-then-insert.
+    // A native INSERT ... ON CONFLICT DO NOTHING keeps concurrent derivations
+    // idempotent using the existing contractId unique constraint.
+    const inserted = await prisma.clientJourney.createMany({
+      skipDuplicates: true,
+      data: {
         userId: contract.clientUserId,
         ptId: contract.ptUserId,
         contractId: contract.id,
@@ -218,7 +211,7 @@ export async function deriveForCompletedContract(contractId: string): Promise<
         baselineSnapshot: { baselineInBodyEntryId: baselineEntry.id, endingInBodyEntryId: ending?.id ?? null },
       },
     });
-    return { status: "created" };
+    return { status: inserted.count === 1 ? "created" : "already_exists" };
   } catch (err) {
     // Analytics derivation must never surface as a caller-visible failure
     // — see module doc comment.

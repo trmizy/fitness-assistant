@@ -205,6 +205,14 @@ Describe "Phase 16B.1A IAM policy static audit (ci-cd-oidc.yaml)" {
             @($stmt.Action) -contains "lambda:UpdateFunctionCode" | Should Be $true
             @($stmt.Resource) -contains "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-auth" | Should Be $true
         }
+        It "AppDeployRole can discover only the protected API for HTTP health smoke" {
+            $stmt = $script:Roles.AppDeployRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ReadProtectedApiForHealthSmoke" }
+            $stmt.Effect | Should Be "Allow"
+            @($stmt.Action).Count | Should Be 1
+            $stmt.Action | Should Be "apigateway:GET"
+            @($stmt.Resource).Count | Should Be 1
+            $stmt.Resource | Should Be "arn:aws:apigateway:ap-southeast-1::/apis/id1iz7upbl"
+        }
         It "AppDeployRole can update the real chat ECS service" {
             $stmt = $script:Roles.AppDeployRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "EcsChatServiceOnly" }
             @($stmt.Action) -contains "ecs:UpdateService" | Should Be $true
@@ -217,6 +225,14 @@ Describe "Phase 16B.1A IAM policy static audit (ci-cd-oidc.yaml)" {
         It "InfraApplyRole can execute a change set scoped to the real API Gateway stack" {
             $stmt = $script:Roles.InfraApplyRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ExecuteOnApiGatewayStackOnly" }
             @($stmt.Action) -contains "cloudformation:ExecuteChangeSet" | Should Be $true
+        }
+        It "CfnExecutionRole can expand only the required AWS LanguageExtensions transform" {
+            $stmt = $script:Roles.CfnExecutionRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ExpandLanguageExtensions" }
+            $stmt.Effect | Should Be "Allow"
+            @($stmt.Action).Count | Should Be 1
+            $stmt.Action | Should Be "cloudformation:CreateChangeSet"
+            @($stmt.Resource).Count | Should Be 1
+            $stmt.Resource | Should Be "arn:aws:cloudformation:ap-southeast-1:aws:transform/LanguageExtensions"
         }
         It "CfnExecutionRole can write routes/integrations on the real protected API" {
             $stmt = $script:Roles.CfnExecutionRole.permissionPolicies[0].document.Statement | Where-Object { $_.Sid -eq "ManageRoutesIntegrationsStagesOfProtectedApi" }

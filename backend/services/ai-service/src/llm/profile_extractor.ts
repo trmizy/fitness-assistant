@@ -1,18 +1,7 @@
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { logger } from "@gym-coach/shared";
 import type { InBodyMetrics, TrainingConstraints, UserProfile } from "./types";
 import { checkMacroCalorieConsistency } from "./nutrition_engine";
-
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://user-service:3004"
-    : "http://localhost:3004");
-const FITNESS_SERVICE_URL =
-  process.env.FITNESS_SERVICE_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "http://fitness-service:3002"
-    : "http://localhost:3002");
 
 type ProfileResponse = {
   profile?: {
@@ -365,44 +354,51 @@ async function fetchAndCache(
       nutritionProgramRes,
       nutritionGoalRes,
     ] = await Promise.allSettled([
-      axios.get<ProfileResponse>(`${USER_SERVICE_URL}/profile/me`, {
+      requestService<ProfileResponse>({
+        service: "user", method: "GET", path: "/profile/me",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
       // Get ALL InBody records (sorted desc by date) so we can show history too
-      axios.get<InBodyEntry[]>(`${USER_SERVICE_URL}/inbody`, {
+      requestService<InBodyEntry[]>({
+        service: "user", method: "GET", path: "/inbody",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
-      axios.get<WorkoutEntry[]>(`${FITNESS_SERVICE_URL}/workouts?limit=20`, {
+      requestService<WorkoutEntry[]>({
+        service: "fitness", method: "GET", path: "/workouts", params: { limit: 20 },
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
-      axios.get<NutritionEntry[]>(`${FITNESS_SERVICE_URL}/nutrition`, {
+      requestService<NutritionEntry[]>({
+        service: "fitness", method: "GET", path: "/nutrition",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
       // AI Nutrition Cycle Engine (Gymini) — Phase 2 canonical per-day
       // consumed totals (see PersonalizationContext.dailyConsumptionHistory's
       // doc comment for why this exists alongside the raw-log call above).
-      axios.get<{ data: DailyConsumptionEntry[] }>(
-        `${FITNESS_SERVICE_URL}/nutrition/daily-history?days=7`,
-        { headers: authHeaders(authorizationHeader), timeout: 3000 },
-      ),
+      requestService<{ data: DailyConsumptionEntry[] }>({
+        service: "fitness", method: "GET", path: "/nutrition/daily-history",
+        params: { days: 7 }, headers: authHeaders(authorizationHeader), timeoutMs: 3000,
+      }),
       // Current active workout program (name, days, goal, schedule)
-      axios.get(`${FITNESS_SERVICE_URL}/workouts/programs/current`, {
+      requestService({
+        service: "fitness", method: "GET", path: "/workouts/programs/current",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
       // Current active nutrition program (calorie/macro targets)
-      axios.get(`${FITNESS_SERVICE_URL}/nutrition/plans/current`, {
+      requestService({
+        service: "fitness", method: "GET", path: "/nutrition/plans/current",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
       // The ACTIVE NutritionGoal: authoritative daily calories/macros (NutritionGoal owns them; nothing else may re-derive them).
-      axios.get(`${FITNESS_SERVICE_URL}/nutrition/goals`, {
+      requestService({
+        service: "fitness", method: "GET", path: "/nutrition/goals",
         headers: authHeaders(authorizationHeader),
-        timeout: 3000,
+        timeoutMs: 3000,
       }),
     ]);
     const rawGoal =

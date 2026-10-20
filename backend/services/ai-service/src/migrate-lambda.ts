@@ -59,6 +59,8 @@ type MigrationResult = {
 export interface MigrateLambdaEvent {
   /** Optional confirmation; when present it must equal AI_DATABASE_NAME. */
   database?: string;
+  /** Read-only inventory before an owner-authorized migration deployment. */
+  operation?: "status" | "deploy" | "resolve-workflow-baseline";
 }
 
 function assertAiDatabase(database: string): void {
@@ -72,7 +74,9 @@ function assertRequiredString(
   field: keyof DatabaseSecret,
 ): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`DATABASE_SECRET_ID secret is missing required field: ${field}`);
+    throw new Error(
+      `DATABASE_SECRET_ID secret is missing required field: ${field}`,
+    );
   }
   return value;
 }
@@ -152,7 +156,9 @@ function quotePostgresIdentifier(identifier: string): string {
   return `"${identifier.replace(/"/g, '""')}"`;
 }
 
-async function ensureAiDatabaseExists(secret: DatabaseSecret): Promise<boolean> {
+async function ensureAiDatabaseExists(
+  secret: DatabaseSecret,
+): Promise<boolean> {
   assertAiDatabase(secret.database);
 
   const maintenanceClient = new Client({
@@ -191,14 +197,29 @@ function truncateOutput(output: string): string {
 
 async function runPrismaMigrateDeploy(
   databaseUrl: string,
+  resolveWorkflowBaseline = false,
 ): Promise<{ exitCode: number; output: string }> {
-  const prismaCli = resolve(process.cwd(), "node_modules", "prisma", "build", "index.js");
+  const prismaCli = resolve(
+    process.cwd(),
+    "node_modules",
+    "prisma",
+    "build",
+    "index.js",
+  );
   const schemaPath = resolve(process.cwd(), "prisma", "schema.prisma");
 
   return await new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(
       process.execPath,
-      [prismaCli, "migrate", "deploy", "--schema", schemaPath],
+      [
+        prismaCli,
+        "migrate",
+        ...(resolveWorkflowBaseline
+          ? ["resolve", "--applied", "20260915120000_agent_workflow_session"]
+          : ["deploy"]),
+        "--schema",
+        schemaPath,
+      ],
       {
         cwd: process.cwd(),
         env: {
@@ -226,7 +247,24 @@ async function runPrismaMigrateDeploy(
 
 export async function handler(
   event: MigrateLambdaEvent = {},
-): Promise<MigrationResult> {
+): Promise<
+  | MigrationResult
+  | {
+      status: "inspection";
+      database: string;
+      migrations: unknown[];
+      actionColumns: unknown[];
+      workflowColumns: unknown[];
+      workflowIndexes: unknown[];
+      duplicateActiveGroups: number;
+    }
+> {
+  if (
+    event.operation !== undefined &&
+    !["status", "deploy", "resolve-workflow-baseline"].includes(event.operation)
+  ) {
+    throw new Error("Unsupported migration operation");
+  }
   // An explicit `database` in the event (or AI_DATABASE_NAME) is optional, but
   // if either is supplied it must agree with the secret — a mismatch means the
   // caller and the configuration disagree about what is being migrated, which
@@ -239,9 +277,60 @@ export async function handler(
   const secret = await loadDatabaseSecret();
   assertAiDatabase(secret.database);
 
-  const databaseCreated = await ensureAiDatabaseExists(secret);
+  if (event.operation === "status") {
+    const client = new Client({
+      user: secret.username,
+      password: secret.password,
+      host: secret.host,
+      port: Number(secret.port),
+      database: AI_DATABASE_NAME,
+      ssl: { rejectUnauthorized: false },
+    });
+    await client.connect();
+    try {
+      await client.query("BEGIN READ ONLY");
+      const migrations = await client.query(
+        'SELECT migration_name, checksum, finished_at IS NOT NULL AS applied, rolled_back_at IS NOT NULL AS rolled_back FROM "_prisma_migrations" ORDER BY migration_name',
+      );
+      const columns = await client.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fitness_agent_actions' ORDER BY ordinal_position",
+      );
+      const workflowColumns = await client.query(
+        "SELECT column_name, data_type, is_nullable, column_default, datetime_precision FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'agent_workflow_sessions' ORDER BY ordinal_position",
+      );
+      const workflowIndexes = await client.query(
+        "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'agent_workflow_sessions'",
+      );
+      const duplicates = await client.query(
+        "SELECT count(*)::int AS count FROM (SELECT user_id, session_id FROM agent_workflow_sessions WHERE status NOT IN ('COMPLETED', 'CANCELLED', 'EXPIRED') GROUP BY user_id, session_id HAVING count(*) > 1) d",
+      );
+      await client.query("COMMIT");
+      return {
+        status: "inspection",
+        database: AI_DATABASE_NAME,
+        migrations: migrations.rows,
+        actionColumns: columns.rows,
+        workflowColumns: workflowColumns.rows,
+        workflowIndexes: workflowIndexes.rows,
+        duplicateActiveGroups: duplicates.rows[0].count,
+      };
+    } finally {
+      await client.end();
+    }
+  }
+
+  // Resolve is an explicit maintenance operation, never creates a database.
+  // Use only after comparing the existing table's columns/defaults/indexes to
+  // the named migration via the read-only status operation.
+  const databaseCreated =
+    event.operation === "resolve-workflow-baseline"
+      ? false
+      : await ensureAiDatabaseExists(secret);
   const databaseUrl = buildDatabaseUrl(secret);
-  const migration = await runPrismaMigrateDeploy(databaseUrl);
+  const migration = await runPrismaMigrateDeploy(
+    databaseUrl,
+    event.operation === "resolve-workflow-baseline",
+  );
 
   if (migration.exitCode !== 0) {
     throw new Error(

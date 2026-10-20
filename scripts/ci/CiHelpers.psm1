@@ -111,7 +111,7 @@ function Test-AwsIdentityGate {
         [string]$ExpectedAccount = '191798898985',
         [ValidateSet('Read', 'Mutate')] [string]$Mode = 'Read',
         [ValidateSet('CI', 'Local')] [string]$Context = 'CI',
-        [string[]]$AllowedCiRoleNames = @('GyminiDevCiReadRole', 'GyminiDevAppDeployRole', 'GyminiDevInfraDeployRole')
+        [string[]]$AllowedCiRoleNames = @('GyminiDevCiReadRole', 'GyminiDevAppDeployRole', 'GyminiDevInfraPlanRole', 'GyminiDevInfraApplyRole')
     )
     $acct = Get-Prop $Identity 'Account'
     $arn  = Get-Prop $Identity 'Arn'

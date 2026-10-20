@@ -80,7 +80,7 @@ function toQueryStringParameters(
 
 export async function requestService<T = any>(params: {
   service: ServiceKey;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT";
   path: string;
   params?: Record<string, unknown>;
   body?: unknown;
@@ -89,29 +89,33 @@ export async function requestService<T = any>(params: {
 }): Promise<ServiceResponse<T>> {
   const config = serviceConfig[params.service];
   const functionName = process.env[config.lambdaEnv];
-  const query = toQueryStringParameters(params.params);
+  const target = new URL(params.path, "http://service.local");
+  const queryParams = { ...Object.fromEntries(target.searchParams), ...params.params };
+  const query = toQueryStringParameters(queryParams);
 
   if (functionName) {
     const result = await invokeHttpLambda({
       functionName,
       method: params.method,
-      path: params.path,
+      path: target.pathname,
       headers: params.headers,
       queryStringParameters: query,
-      body: params.method === "POST" ? (params.body ?? {}) : undefined,
+      body: params.method !== "GET" ? (params.body ?? {}) : undefined,
     });
     throwForLambdaHttpError(result);
     return { status: result.statusCode, data: result.body as T };
   }
 
   const baseUrl = process.env[config.urlEnv] || config.defaultUrl();
-  const url = `${baseUrl}${params.path}`;
+  const url = `${baseUrl}${target.pathname}`;
   const timeout = params.timeoutMs ?? 10_000;
 
   const response =
     params.method === "GET"
-      ? await axios.get<T>(url, { headers: params.headers, params: params.params, timeout })
-      : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
+      ? await axios.get<T>(url, { headers: params.headers, params: queryParams, timeout })
+      : params.method === "PUT"
+        ? await axios.put<T>(url, params.body, { headers: params.headers, timeout })
+        : await axios.post<T>(url, params.body, { headers: params.headers, timeout });
 
   return { status: response.status, data: response.data };
 }
