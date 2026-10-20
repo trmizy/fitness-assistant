@@ -21,6 +21,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
+// FH-0: automatic PartnerReceivable recovery is paused by default; this suite exercises the recovery mechanics themselves.
+process.env.RECEIVABLE_RECOVERY_ENABLED = 'true';
 const databaseUrl = process.env.DATABASE_URL || '';
 const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
@@ -633,9 +635,12 @@ test('older debts are recovered before newer ones', skipOpts, async () => {
   await m.reconcile.assertInvariant('R3 complete');
 });
 
-test('a shortfall the platform fronts comes back out of the PT later earnings', skipOpts, async () => {
+test('LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): a shortfall the platform fronts comes back out of the PT later earnings', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
+  const previousStrict = process.env.LEDGER_STRICT_OWN_FUNDS;
+  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
+  try {
 
   // A healthy contract first, purely to give REVENUE the funds to front with. Without it
   // coverShortfall refuses outright, which is its own separately-tested behaviour.
@@ -693,4 +698,62 @@ test('a shortfall the platform fronts comes back out of the PT later earnings', 
 
   const report = await m.reconcile.assertInvariant('R4 complete');
   assert.equal(report.negativeWallets.length, 0, 'no wallet went negative');
+  } finally {
+    if (previousStrict === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
+    else process.env.LEDGER_STRICT_OWN_FUNDS = previousStrict;
+  }
+});
+
+test('FH-1: a shortfall is an unpaid obligation to the client — no platform fronting, no PT debt, and the PT keeps what the next contract earns', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+
+  const f = await seedContract(m, { price: 300_000, totalSessions: 3, rates: rateTable(m, '0.10', '0.90', '0') });
+  await m.ledger.settleContractPayment({
+    transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'R4s',
+  });
+  // Four no-shows against a three-session contract: the fourth finds none of THIS contract's pending left.
+  const results = [];
+  for (let i = 0; i < 4; i++) {
+    results.push(await m.ledger.compensateNoShow({
+      transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+      rates: f.rates, parties: f.parties, label: `R4s no-show ${i + 1}`,
+      idempotencyKey: `PT_NO_SHOW:R4s-${i + 1}`,
+    }));
+    await m.reconcile.assertInvariant(`R4s after no-show ${i + 1}`);
+  }
+  for (const r of results.slice(0, 3)) {
+    assert.equal(r.paid, '100000.00');
+    assert.equal(r.owed, '100000.00');
+    assert.equal(r.unpaid, '0.00');
+    assert.equal(r.obligationId, undefined, 'a fully funded compensation leaves no obligation row');
+  }
+  assert.equal(results[3].paid, '0.00');
+  assert.equal(results[3].owed, '100000.00');
+  assert.equal(results[3].unpaid, '100000.00');
+  assert.ok(results[3].obligationId);
+
+  assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PT debt');
+  const obligations = await m.prisma.contractUnpaidObligation.findMany();
+  assert.equal(obligations.length, 1);
+  assert.equal(obligations[0].kind, 'NO_SHOW');
+  assert.equal(obligations[0].status, 'OPEN');
+  assert.equal(obligations[0].unpaid.toFixed(2), '100000.00');
+  assert.equal((await balances(m, f)).clientAvailable, '300000.00', 'the client holds exactly what the contract could fund');
+  assert.equal((await balances(m, f)).platformRevenue, '0.00', 'the platform fronted nothing');
+
+  // The same PT earns on another contract: every đồng reaches the PT.
+  const next = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+  next.parties.ptUserId = f.parties.ptUserId;
+  await m.ledger.settleContractPayment({
+    transactionId: next.txnId, price: next.price, rates: next.rates, parties: next.parties, label: 'R4s next',
+  });
+  await m.ledger.releaseSession({
+    transactionId: next.txnId, price: next.price, totalSessions: next.totalSessions,
+    rates: next.rates, parties: next.parties, label: 'R4s next session 1',
+    idempotencyKey: 'SESSION_RELEASE:R4s-next-1',
+  });
+  assert.equal((await balances(m, next)).ptAvailable, '90000.00', 'the whole session reached the PT');
+  const report = await m.reconcile.assertInvariant('R4s complete');
+  assert.equal(report.negativeWallets.length, 0);
 });

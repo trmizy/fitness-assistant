@@ -36,6 +36,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
+// FH-0: automatic PartnerReceivable recovery is paused by default; this suite exercises the recovery mechanics themselves.
+process.env.RECEIVABLE_RECOVERY_ENABLED = 'true';
 const databaseUrl = process.env.DATABASE_URL || '';
 const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
@@ -110,6 +112,8 @@ interface Contract {
   seq: number;
   /** The PT holdback rate this contract carries (absent = none), sent on every call that takes it. */
   holdbackRate?: string;
+  /** D77: the session id of the last late arrival; the NEXT release is that same session (same key suffix). */
+  lateSession?: number;
 }
 
 /**
@@ -167,7 +171,8 @@ async function paidContract(
 async function deliver(m: Mods, c: Contract, count: number) {
   const results: Awaited<ReturnType<Mods['ledger']['releaseSession']>>[] = [];
   for (let i = 0; i < count; i++) {
-    const n = ++c.seq;
+    const n = c.lateSession ?? ++c.seq;
+    c.lateSession = undefined;
     const r = await m.ledger.releaseSession({
       transactionId: c.txnId, price: c.price, totalSessions: c.totalSessions,
       rates: c.rates, parties: c.parties, label: `Contract ${c.id} session ${c.usedSessions + 1}`,
@@ -198,6 +203,7 @@ async function noShow(m: Mods, c: Contract) {
 /** The PT joined late: half a no-show's compensation, the entitlement is NOT consumed. */
 async function lateArrival(m: Mods, c: Contract) {
   const n = ++c.seq;
+  c.lateSession = n; // D77: the late session is the next one delivered
   return m.ledger.compensateLateArrival({
     transactionId: c.txnId, price: c.price, totalSessions: c.totalSessions,
     rates: c.rates, parties: c.parties, label: `Contract ${c.id} late arrival ${n}`,
@@ -395,11 +401,16 @@ async function runA(m: Mods, plan: Plan, shared: boolean) {
   });
   const receivables = (await m.prisma.partnerReceivable.findMany({ orderBy: { createdAt: 'asc' } }))
     .map((d) => `${d.partnerType} ${d.partnerId} owes ${d.amount.toFixed(2)} | ${d.reason}`);
+  // FH-1: what A could not fund is an OPEN obligation to its client (never a receivable of the PT).
+  const obligations = (await m.prisma.contractUnpaidObligation.findMany({ orderBy: { createdAt: 'asc' } }))
+    .map((o) => `${o.kind} ${o.party} ${o.status} owed ${o.owed.toFixed(2)} paid ${o.paid.toFixed(2)} unpaid ${o.unpaid.toFixed(2)}`);
+  // obligation ids are random per run: the differential compares everything else
+  const stripIds = <T,>(v: T): T => JSON.parse(JSON.stringify(v, (k, val) => (k === 'obligationId' ? '<id>' : val)));
 
   return {
     A, B, C, gym,
     /** Everything A's own calls returned, in order. */
-    returned: { compensations, releases, result },
+    returned: stripIds({ compensations, releases, result }),
     /** Every ledger row A's releases, compensations and termination wrote. */
     rows: await rowsOf(m, 'Contract A '),
     /** How far each wallet A touches moved between "A is paid for" and "A has ended". */
@@ -411,6 +422,7 @@ async function runA(m: Mods, plan: Plan, shared: boolean) {
       escrow: diff(start.escrow, finish.escrow),
     },
     receivables,
+    obligations,
   };
 }
 
@@ -447,6 +459,14 @@ async function assertAIsContained(m: Mods, plan: Plan, context: string) {
   assert.deepEqual(shared.returned, solo.returned, `${context}: A's calls return the same figures`);
   assert.deepEqual(shared.moved, solo.moved, `${context}: A moves each wallet by the same amounts`);
   assert.deepEqual(shared.receivables, solo.receivables, `${context}: A raises the same receivables`);
+  assert.deepEqual(shared.obligations, solo.obligations, `${context}: A raises the same unpaid obligations`);
+  assert.deepEqual(shared.receivables, [], `${context}: and never a PT receivable`);
+  if (plan.lateArrivals) {
+    // D77: the late-arrival compensation was deducted from THAT session's value, so the books balance exactly
+    assert.deepEqual(shared.obligations, [], `${context}: a late arrival leaves no unpaid obligation`);
+    assert.equal(shared.returned.result.unpaid, '0.00', `${context}: and nothing unpaid at the exit`);
+    assert.equal(shared.returned.result.shortfall, '0.00', `${context}: and no shortfall`);
+  }
 
   // 2. The neighbours' pending is still in the wallets, to the đồng.
   const expected = neighboursPending(plan.withGym);
@@ -512,13 +532,12 @@ for (const withGym of [false, true]) {
     await assertAIsContained(m, { reason: 'EXPIRED', used: 1, noShows: 1, withGym }, `no-show then EXPIRED (${where})`);
   });
 
-  // A late arrival takes half a session out of A's pending WITHOUT consuming an entitlement,
-  // so when A ends early its own pending is short of "refund + final shares" by exactly that
-  // compensation. The single-contract rule for that gap already exists — the platform fronts
-  // it and books it against the PT — and it must be the rule here too: the gap may not be
-  // quietly filled from B's pending instead. REVENUE is funded in both worlds so the fronting
-  // can happen.
-  test(`A had a PT late arrival, then the client cancels (${where}): the gap is fronted and booked exactly as for a lone contract, not filled from B`, skipOpts, async () => {
+  // A late arrival takes half a session out of A's pending WITHOUT consuming an entitlement. D77 (owner decision): that
+  // compensation is deducted from the value of THAT late session - each party is released its share of the session minus
+  // its portion of the compensation - so when A ends early its own pending is exactly "refund + final shares": NO
+  // unpaid obligation, no fronting, no PT debt, nothing taken from B. REVENUE is funded in both worlds so that fronting
+  // WOULD be possible if it were still done.
+  test(`[REGRESSION D77] A had a PT late arrival, then the client cancels (${where}): the books balance exactly - no obligation, not fronted, not a PT debt, not filled from B`, skipOpts, async () => {
     const m = await load();
     await assertAIsContained(m, { reason: 'CLIENT_CANCELLED', used: 1, lateArrivals: 1, withGym, fundRevenue: true }, `late arrival then CLIENT_CANCELLED (${where})`);
   });
@@ -571,6 +590,9 @@ test('the reproduction: one PT, two 1.000.000đ contracts, the client of A cance
     topUp: { pt: '90000.00', gym: '0.00', platform: '10000.00' },
     returnedToEscrow: '900000.00',
     shortfall: '0.00',
+    owed: '900000.00',
+    paid: '900000.00',
+    unpaid: '0.00',
   });
   assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '900000.00', available: '90000.00', locked: '0.00' }, 'B’s 900.000 is still pending');
   assert.deepEqual(await bucketsOf(m, 'PLATFORM', 'REVENUE'), { pending: '100000.00', available: '10000.00', locked: '0.00' }, 'B’s 100.000 commission is still pending, not revenue');
@@ -781,24 +803,39 @@ test('a session of A confirmed AFTER A was terminated releases nothing — it do
 });
 
 for (const kind of ['no-show', 'late arrival'] as const) {
-  test(`a PT ${kind} on a contract whose own pending is already spent is charged to earnings, not to B's pending`, skipOpts, async () => {
+  test(`[REGRESSION FH-1] a PT ${kind} on a contract whose own pending is already spent is NOT charged to earnings: B's pending and the PT's pooled earnings stay whole, the whole compensation is an unpaid obligation`, skipOpts, async () => {
     const m = await load();
     const run = async (shared: boolean) => {
       await resetLedger(m);
       if (shared) await paidContract(m, { id: 'B', pt: PT, gym: GYM, price: 2_000_000, sessions: 8 });
       const A = await paidContract(m, { id: 'A', pt: PT, gym: GYM });
       await deliver(m, A, 4); // every session released: A has no pending left, only earnings
+      const ptBefore = await bucketsOf(m, 'PT', PT);
+      const gymBefore = await bucketsOf(m, 'GYM', GYM);
+      const revenueBefore = await bucketsOf(m, 'PLATFORM', 'REVENUE');
       const result = kind === 'no-show' ? await noShow(m, A) : await lateArrival(m, A);
-      return { result, rows: await rowsOf(m, `Contract A ${kind}`) };
+      return {
+        result: { ...result, obligationId: result.obligationId ? '<id>' : undefined },
+        rows: await rowsOf(m, `Contract A ${kind}`),
+        unchanged: {
+          pt: (await bucketsOf(m, 'PT', PT)).available === ptBefore.available,
+          gym: (await bucketsOf(m, 'GYM', GYM)).available === gymBefore.available,
+          revenue: (await bucketsOf(m, 'PLATFORM', 'REVENUE')).available === revenueBefore.available,
+        },
+      };
     };
 
     const solo = await run(false);
     const shared = await run(true);
 
-    assert.deepEqual(shared.rows, solo.rows, 'the charge lands on the same buckets as when A is alone');
+    assert.deepEqual(shared.rows, solo.rows, 'A does the same alone and beside B');
     assert.deepEqual(shared.result, solo.result);
-    assert.equal(shared.rows.filter((l) => / PENDING /.test(l)).length, 0, 'not one row touches a pending bucket');
-    assert.equal(shared.rows.filter((l) => / DEBIT AVAILABLE /.test(l)).length, 3, 'PT, gym and platform each pay out of what they were released');
+    assert.deepEqual(shared.rows, [], 'not one ledger row: nothing is taken from anyone');
+    assert.deepEqual(shared.unchanged, { pt: true, gym: true, revenue: true }, 'no pooled AVAILABLE balance moved');
+    assert.equal(shared.result.paid, '0.00');
+    assert.equal(shared.result.unpaid, shared.result.owed);
+    assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PT debt');
+    assert.equal(await m.prisma.contractUnpaidObligation.count(), 1, 'one OPEN obligation');
     assert.equal((await bucketsOf(m, 'PT', PT)).pending, '1100000.00', 'B’s PT pending is whole');
     assert.equal((await bucketsOf(m, 'GYM', GYM)).pending, '700000.00', 'B’s gym pending is whole');
     assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).pending, '200000.00', 'B’s platform pending is whole');
@@ -808,40 +845,43 @@ for (const kind of ['no-show', 'late arrival'] as const) {
 
 // ── releaseSession reports what it moved ─────────────────────────────────────
 
-test('releaseSession reports the amounts it actually moved, and termination still reconciles on them', skipOpts, async () => {
+test('[REGRESSION D77] a late arrival is deducted from THAT session: its release moves share - compensation (and says so), the others release in full, and termination reconciles with no shortfall', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const B = await paidContract(m, { id: 'B', pt: PT, price: 2_000_000, sessions: 8 });
   const A = await paidContract(m, { id: 'A', pt: PT });
 
-  // A late arrival takes 112.500 + 12.500 out of A's pending without using up a session, so
-  // by the fourth session A has only half a session's money left to release.
+  // A late arrival takes 112.500 + 12.500 out of A's pending without using up a session. The session it happened in is
+  // the first one delivered here: ITS release is reduced by exactly those portions.
   await lateArrival(m, A);
   const releases = await deliver(m, A, 4);
 
-  assert.deepEqual(releases.slice(0, 3).map((r) => r.released), Array(3).fill({ pt: '225000.00', gym: '0.00', platform: '25000.00' }), 'the first three sessions release in full');
-  assert.deepEqual(releases[3].released, { pt: '112500.00', gym: '0.00', platform: '12500.00' },
-    'the fourth reports the 112.500 + 12.500 it really moved — not the 225.000 + 25.000 the formula would have liked');
-  assert.deepEqual(await rowsOf(m, 'Contract A session 4'), [
-    `PT ${PT} DEBIT PENDING 112500.00 | Contract A session 4 — release to available`,
-    `PT ${PT} CREDIT AVAILABLE 112500.00 | Contract A session 4 — session earned`,
-    'REVENUE DEBIT PENDING 12500.00 | Contract A session 4 — release to available',
-    'REVENUE CREDIT AVAILABLE 12500.00 | Contract A session 4 — session earned',
+  assert.deepEqual(releases[0].released, { pt: '112500.00', gym: '0.00', platform: '12500.00' },
+    'the late session releases 225.000 − 112.500 and 25.000 − 12.500: the compensation the client already got');
+  assert.deepEqual(releases[0].lateArrivalDeducted, { pt: '112500.00', gym: '0.00', platform: '12500.00' }, 'and the result says what was deducted');
+  assert.deepEqual(releases.slice(1).map((r) => r.released), Array(3).fill({ pt: '225000.00', gym: '0.00', platform: '25000.00' }), 'every other session releases in full');
+  assert.ok(releases.slice(1).every((r) => r.lateArrivalDeducted === undefined));
+  assert.deepEqual(await rowsOf(m, 'Contract A session 1'), [
+    `PT ${PT} DEBIT PENDING 112500.00 | Contract A session 1 — release to available`,
+    `PT ${PT} CREDIT AVAILABLE 112500.00 | Contract A session 1 — session earned`,
+    'REVENUE DEBIT PENDING 12500.00 | Contract A session 1 — release to available',
+    'REVENUE CREDIT AVAILABLE 12500.00 | Contract A session 1 — session earned',
   ].sort(), 'and the rows say the same');
   assert.equal(A.releasedTo.pt.toFixed(2), '787500.00', 'so the caller’s running total is what the PT truly holds from A');
 
-  // Termination is handed those truthful totals. A's pending is spent, so there is nothing to
-  // top up with and nothing to drain: the 125.000 the late arrival cost is reported as a
-  // shortfall instead of being hidden behind a "released" figure that never happened.
+  // A's pending is spent exactly: nothing to top up, nothing to drain, nothing short.
   const out = await end(m, A, 'COMPLETED');
   assert.deepEqual(await rowsOf(m, 'Contract A termination'), [], 'nothing left to post');
   assert.deepEqual(out, {
     reason: 'COMPLETED',
     refund: '0.00',
-    entitlement: { pt: '900000.00', gym: '0.00', platform: '100000.00' },
+    entitlement: { pt: '787500.00', gym: '0.00', platform: '87500.00' },
     topUp: { pt: '0.00', gym: '0.00', platform: '0.00' },
     returnedToEscrow: '0.00',
-    shortfall: '125000.00',
+    shortfall: '0.00',
+    owed: '0.00',
+    paid: '0.00',
+    unpaid: '0.00',
   });
 
   // Every đồng of A's price is accounted for, and none of it came from B.
@@ -852,7 +892,8 @@ test('releaseSession reports the amounts it actually moved, and termination stil
   assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).pending, '200000.00', 'B’s platform pending is whole');
   assert.equal(await ledgerPending(m, 'PT', PT, B.txnId), '1800000.00');
   assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no debt was raised for it');
-  await assertBooksSound(m, 'truthful release totals');
+  assert.equal(await m.prisma.contractUnpaidObligation.count(), 0, 'and no unpaid obligation');
+  await assertBooksSound(m, 'D77 late release');
 });
 
 // ── The personalized-service ledger: same pooled read, same reach ────────────
@@ -1020,26 +1061,27 @@ test('damaged wallet: a session of the victim contract releases nothing, says so
   await assertSafeOnDamagedData(m, 'victim release');
 });
 
-test('damaged wallet: terminating the victim contract still makes its client whole, and the missing money shows as a shortfall', skipOpts, async () => {
+test('damaged wallet: terminating the victim contract pays its client only what the contract itself can fund (nothing), and the missing money shows as an unpaid obligation and a shortfall', skipOpts, async () => {
   const m = await load();
   const { B } = await damagedByOldDrain(m);
 
   const out = await end(m, B, 'CLIENT_CANCELLED');
 
-  // B's own pending is not there to drain, so the existing rule for an empty pending bucket
-  // applies unchanged: the platform fronts the refund and books it against the PT.
-  assert.deepEqual(await rowsOf(m, 'Contract B termination'), [
-    'CLIENT client-B CREDIT AVAILABLE 900000.00 | Contract B termination — refund (CLIENT_CANCELLED)',
-    'REVENUE DEBIT AVAILABLE 900000.00 | Termination refund shortfall (Contract B termination, CLIENT_CANCELLED) — fronted by the platform',
-  ].sort());
-  assert.equal(out.refund, '900000.00');
+  // B's own pending is not there to drain. FH-1 (D48): the platform does NOT front the refund and no PT
+  // debt is booked - the client is credited what B itself could fund (nothing) and the 900.000 is an
+  // OPEN unpaid obligation an operator can see.
+  assert.deepEqual(await rowsOf(m, 'Contract B termination'), []);
+  assert.equal(out.refund, '0.00');
+  assert.deepEqual([out.owed, out.paid, out.unpaid], ['900000.00', '0.00', '900000.00']);
   assert.equal(out.returnedToEscrow, '0.00', 'nothing was drained — nothing was there');
   assert.equal(out.shortfall, '1000000.00', 'the 900.000 refund and the 90.000 + 10.000 final shares, none of which B’s pending could fund');
-  assert.equal((await bucketsOf(m, 'CLIENT', 'client-B')).available, '900000.00', 'the client is paid in full');
+  assert.equal((await bucketsOf(m, 'CLIENT', 'client-B')).available, '0.00', 'the client is credited exactly what was drawn');
   assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '0.00', available: '90000.00', locked: '0.00' }, 'the PT wallet is not pushed below zero');
-  const debts = await m.prisma.partnerReceivable.findMany();
-  assert.equal(debts.length, 1, 'the gap is on the books as a receivable, where an operator can see it');
-  assert.equal(debts[0].amount.toFixed(2), '900000.00');
+  assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PT debt');
+  const obligations = await m.prisma.contractUnpaidObligation.findMany();
+  assert.equal(obligations.length, 1, 'the gap is on the books as an unpaid obligation, where an operator can see it');
+  assert.equal(obligations[0].kind, 'REFUND_SHORT');
+  assert.equal(obligations[0].unpaid.toFixed(2), '900000.00');
   await assertSafeOnDamagedData(m, 'victim termination');
 });
 
@@ -1058,8 +1100,9 @@ test('damaged wallet: the over-debited contract cannot reach into money that arr
 
   assert.deepEqual(await rowsOf(m, 'Contract A session'), [], 'the late release posted nothing');
   assert.equal((await rowsOf(m, 'Contract A no-show')).filter((l) => / PENDING /.test(l)).length, 0, 'the no-show charge touched no pending bucket');
-  assert.equal(missed.charged.pt, '90000.00', 'it was charged to the PT’s earnings instead');
-  assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '900000.00', available: '0.00', locked: '0.00' }, 'N’s pending is whole');
+  assert.equal(missed.charged.pt, '0.00', 'FH-1: nothing is charged to the PT’s earnings either');
+  assert.equal(missed.paid, '0.00');
+  assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '900000.00', available: '90000.00', locked: '0.00' }, 'N’s pending is whole and so are the PT’s earnings');
   assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).pending, '100000.00', 'N’s platform pending is whole');
   assert.equal(await ledgerPending(m, 'PT', PT, N.txnId), '900000.00');
   await assertSafeOnDamagedData(m, 'over-debited contract');

@@ -234,6 +234,7 @@ model PaymentTransaction {
 
   commissions   PlatformCommission[]
   ledgerEntries WalletLedgerEntry[]
+  unpaidObligations ContractUnpaidObligation[]
 
   @@index([payerId, status])
   @@index([status])
@@ -283,6 +284,21 @@ model PartnerReceivable {
   settledAt     DateTime?   @map("settled_at")
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
+  /// FH-8 (D62 C.4). Collection of THIS row is paused while suspendedAt is set. History is kept; nothing is
+  /// marked paid and `recovered` is never touched. Set/cleared only by the audited adjustment operation.
+  suspendedAt      DateTime? @map("suspended_at")
+  suspendedBy      String?   @map("suspended_by")
+  suspensionReason String?   @map("suspension_reason")
+  /// Approval / minute number the owner gave for the suspension.
+  suspensionRef    String?   @map("suspension_ref")
+  /// FH-8. Part of `amount` the platform has agreed to bear (forgiven). Outstanding = amount - recovered - waived.
+  waived           Decimal   @default(0) @db.Decimal(14, 2)
+  waivedAt         DateTime? @map("waived_at")
+  waivedBy         String?   @map("waived_by")
+  waiveReason      String?   @map("waive_reason")
+  waiveRef         String?   @map("waive_ref")
+
+  events PartnerReceivableEvent[]
 
   @@index([partnerType, partnerId, settledAt])
   @@map("partner_receivables")
@@ -307,8 +323,118 @@ model LedgerOperation {
   key       String   @unique
   result    Json
   createdAt DateTime @default(now()) @map("created_at")
+  /// FH-2b. Hash of the IMMUTABLE fields of the request that claimed this key (kind, transaction,
+  /// price, session count, rates, parties, reason/outcome). NULL on rows written before the column
+  /// existed and on callers that do not fingerprint: those replay exactly as they always did.
+  requestFingerprint String? @map("request_fingerprint")
+  /// FH-2b. The payment transaction the operation moved money for; lets a later operation (and
+  /// the read-only lookup) find "has this transaction been terminated" without parsing keys.
+  transactionId      String? @map("transaction_id")
+  /// FH-2b. RELEASE_SESSION | NO_SHOW | LATE_ARRIVAL | TERMINATE | RESOLVE_UNRESOLVED | ...
+  kind               String?
 
+  @@index([transactionId])
   @@map("ledger_operations")
+}
+
+enum ContractUnpaidObligationKind {
+  NO_SHOW
+  LATE_ARRIVAL
+  REFUND_SHORT
+  OVER_RELEASED
+}
+
+enum ContractUnpaidObligationStatus {
+  OPEN
+  RESOLVED
+  WAIVED
+}
+
+/// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
+/// pending money. It is an unpaid obligation TO THE CLIENT (or, for OVER_RELEASED, an incident for
+/// the admin) — never a PT debt: no PartnerReceivable is created, the platform does not front it and
+/// the PT's pooled balance is not touched. Written in the same DB transaction as the ledger rows,
+/// keyed by the idempotency key of the operation, so a retry can never create a second one.
+model ContractUnpaidObligation {
+  id            String                         @id @default(uuid())
+  /// Idempotency key of the operation (OVER_RELEASED rows add `#OVER_RELEASED:<party>`).
+  key           String                         @unique
+  transactionId String                         @map("transaction_id")
+  /// Contract reference the caller labelled the operation with (the ledger label).
+  contractRef   String?                        @map("contract_ref")
+  kind          ContractUnpaidObligationKind
+  /// Who the obligation is owed to: CLIENT, or the over-released party (PT | GYM | PLATFORM).
+  party         String
+  owed          Decimal                        @db.Decimal(14, 2)
+  paid          Decimal                        @db.Decimal(14, 2)
+  unpaid        Decimal                        @db.Decimal(14, 2)
+  status        ContractUnpaidObligationStatus @default(OPEN)
+  createdAt     DateTime                       @default(now()) @map("created_at")
+  resolvedAt    DateTime?                      @map("resolved_at")
+  resolvedBy    String?                        @map("resolved_by")
+  resolvedNote  String?                        @map("resolved_note")
+
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+  events      ContractUnpaidObligationEvent[]
+
+  @@index([status])
+  @@index([transactionId])
+  @@map("contract_unpaid_obligations")
+}
+
+enum PartnerReceivableEventAction {
+  SUSPEND
+  RESUME
+  WAIVE
+}
+
+/// FH-8. Append-only audit trail of every adjustment made to a PartnerReceivable. Rows are only ever inserted:
+/// the operation code never updates or deletes them. `idempotencyKey` makes a replayed operation a no-op.
+model PartnerReceivableEvent {
+  id             String                         @id @default(uuid())
+  receivableId   String                         @map("receivable_id")
+  action         PartnerReceivableEventAction
+  /// Amount the action concerned (the waived amount for WAIVE; the row's amount for SUSPEND/RESUME).
+  amount         Decimal                        @db.Decimal(14, 2)
+  reason         String
+  approvedBy     String                         @map("approved_by")
+  approvalRef    String                         @map("approval_ref")
+  idempotencyKey String                         @unique @map("idempotency_key")
+  beforeJson     Json                           @map("before_json")
+  afterJson      Json                           @map("after_json")
+  createdAt      DateTime                       @default(now()) @map("created_at")
+
+  receivable PartnerReceivable @relation(fields: [receivableId], references: [id], onDelete: Restrict)
+
+  @@index([receivableId])
+  @@map("partner_receivable_events")
+}
+
+enum ContractUnpaidObligationEventAction {
+  RESOLVE
+  WAIVE
+}
+
+/// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
+/// it moves no money.
+model ContractUnpaidObligationEvent {
+  id             String                              @id @default(uuid())
+  obligationId   String                              @map("obligation_id")
+  action         ContractUnpaidObligationEventAction
+  note           String
+  actor          String
+  approvalRef    String                              @map("approval_ref")
+  idempotencyKey String                              @unique @map("idempotency_key")
+  fromStatus     ContractUnpaidObligationStatus      @map("from_status")
+  toStatus       ContractUnpaidObligationStatus      @map("to_status")
+  /// Unpaid amount at the time of the change (the CAS value the owner approved).
+  unpaid         Decimal                             @db.Decimal(14, 2)
+  createdAt      DateTime                            @default(now()) @map("created_at")
+
+  obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+
+  @@index([obligationId])
+  @@map("contract_unpaid_obligation_events")
 }
 
 model PaymentWebhookEvent {

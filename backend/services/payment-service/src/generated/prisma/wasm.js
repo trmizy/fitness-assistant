@@ -224,13 +224,70 @@ exports.Prisma.PartnerReceivableScalarFieldEnum = {
   transactionId: 'transactionId',
   settledAt: 'settledAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  suspendedAt: 'suspendedAt',
+  suspendedBy: 'suspendedBy',
+  suspensionReason: 'suspensionReason',
+  suspensionRef: 'suspensionRef',
+  waived: 'waived',
+  waivedAt: 'waivedAt',
+  waivedBy: 'waivedBy',
+  waiveReason: 'waiveReason',
+  waiveRef: 'waiveRef'
 };
 
 exports.Prisma.LedgerOperationScalarFieldEnum = {
   id: 'id',
   key: 'key',
   result: 'result',
+  createdAt: 'createdAt',
+  requestFingerprint: 'requestFingerprint',
+  transactionId: 'transactionId',
+  kind: 'kind'
+};
+
+exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  transactionId: 'transactionId',
+  contractRef: 'contractRef',
+  kind: 'kind',
+  party: 'party',
+  owed: 'owed',
+  paid: 'paid',
+  unpaid: 'unpaid',
+  status: 'status',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  resolvedNote: 'resolvedNote'
+};
+
+exports.Prisma.PartnerReceivableEventScalarFieldEnum = {
+  id: 'id',
+  receivableId: 'receivableId',
+  action: 'action',
+  amount: 'amount',
+  reason: 'reason',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  beforeJson: 'beforeJson',
+  afterJson: 'afterJson',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ContractUnpaidObligationEventScalarFieldEnum = {
+  id: 'id',
+  obligationId: 'obligationId',
+  action: 'action',
+  note: 'note',
+  actor: 'actor',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  unpaid: 'unpaid',
   createdAt: 'createdAt'
 };
 
@@ -363,6 +420,30 @@ exports.CommissionStatus = exports.$Enums.CommissionStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKind = {
+  NO_SHOW: 'NO_SHOW',
+  LATE_ARRIVAL: 'LATE_ARRIVAL',
+  REFUND_SHORT: 'REFUND_SHORT',
+  OVER_RELEASED: 'OVER_RELEASED'
+};
+
+exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {
+  OPEN: 'OPEN',
+  RESOLVED: 'RESOLVED',
+  WAIVED: 'WAIVED'
+};
+
+exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventAction = {
+  SUSPEND: 'SUSPEND',
+  RESUME: 'RESUME',
+  WAIVE: 'WAIVE'
+};
+
+exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidObligationEventAction = {
+  RESOLVE: 'RESOLVE',
+  WAIVE: 'WAIVE'
+};
+
 exports.Prisma.ModelName = {
   Wallet: 'Wallet',
   WalletLedgerEntry: 'WalletLedgerEntry',
@@ -371,6 +452,9 @@ exports.Prisma.ModelName = {
   PlatformCommission: 'PlatformCommission',
   PartnerReceivable: 'PartnerReceivable',
   LedgerOperation: 'LedgerOperation',
+  ContractUnpaidObligation: 'ContractUnpaidObligation',
+  PartnerReceivableEvent: 'PartnerReceivableEvent',
+  ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

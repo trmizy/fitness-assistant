@@ -11,6 +11,7 @@ import { buildReconciliationReport } from '../services/reconcile.service';
 import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-report.service';
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
+import adminObligationsRoutes from './admin-obligations.routes';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -24,6 +25,9 @@ const router = Router();
 // (a REAL fund-reversing endpoint) with no authentication at all. Every
 // route in this file now requires a verified ADMIN token independently.
 router.use(extractUser, requireAuth, requireRoles('ADMIN'));
+
+// FH-4 part 2 - read-only obligations report (must stay above the '/:id/...' routes below).
+router.use('/obligations', adminObligationsRoutes);
 
 // GET /admin/payments — real transaction list (was a hardcoded empty array
 // regardless of what data actually existed).

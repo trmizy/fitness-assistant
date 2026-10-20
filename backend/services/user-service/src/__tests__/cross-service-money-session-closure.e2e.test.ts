@@ -29,7 +29,6 @@ test.after(async () => {
 });
 
 const ADMIN = "admin-e2e";
-const UNIT = 500_000;
 const PT_UNIT = 450_000;
 const w = (a: number, p = 0, l = 0) => ({ a, p, l });
 const show = (label: string, o: Record<string, unknown>) => console.log(`[E2E-MONEY] ${label} ${JSON.stringify(o)}`);
@@ -165,24 +164,26 @@ test("F1 PT_BANNED (PT lock unwind): the leftover is called off; the ban settles
   });
 });
 
-test("F1 the reason for the 'before' picture: with NO guard, compensating the leftover of the ended contract pays the client 500,000 out of the PT's pooled available (hand-computed, shown by calling the raw money step)", { skip }, async () => {
+test("[REGRESSION N7] F1 with NO guard, compensating the leftover of an ended contract no longer pays the client out of the PT's pooled available: the ledger draws only the contract's own pending (none left), nothing is fronted, the whole compensation is an unpaid obligation", { skip }, async () => {
   await scenario(async () => {
     const { pt, A, B, leftover } = await setUp();
     await H.call("POST", `/contracts/${A.id}/terminate`, A.clientToken, { reason: "CLIENT_CANCELLED" });
     const before = await ledger(pt, A.clientUserId);
     // This is exactly what a PT block / late cancel / no-show admission / room-close sweep called on a leftover
-    // before this fix (those callers are now refused - see the other scenarios). Calling the raw step is a DEMONSTRATION
-    // of the hazard, not an endorsement: it is the compensation draw the owner asked to have audited separately.
+    // before the callers were guarded (those callers are still refused - see the other scenarios). Calling the raw step
+    // proves the LEDGER itself is now safe even when a caller misses the gate (FH-1: payment-service draws only the
+    // contract's own pending; D48 / N7).
     await H.m.payout.compensateNoShowMoney(A.id, leftover.id);
     const after = await ledger(pt, A.clientUserId);
-    show("F1 hazard demonstration (raw compensateNoShowMoney on a leftover of an ended contract)", {
+    show("F1 raw compensateNoShowMoney on a leftover of an ended contract (after FH-1)", {
       clientDelta: after.client.a - before.client.a,
       ptAvailableDelta: after.pt.a - before.pt.a,
       platformAvailableDelta: after.platform.a - before.platform.a,
-      note: "money came from the PT's pooled available (contract B's earnings), not from contract A's escrow",
     });
-    assert.equal(after.client.a - before.client.a, UNIT, "the client was paid a SECOND time");
-    assert.ok(after.pt.a < before.pt.a, "and the PT's pooled available paid for it");
+    assert.equal(after.client.a - before.client.a, 0, "the client was NOT paid a second time out of money the contract no longer holds");
+    assert.equal(after.pt.a, before.pt.a, "the PT's pooled available (contract B's earnings) is untouched");
+    assert.equal(after.platform.a, before.platform.a, "and so is the platform's: nothing was fronted");
     assert.ok(B.id);
+    await H.invariant("F1 after FH-1");
   });
 });

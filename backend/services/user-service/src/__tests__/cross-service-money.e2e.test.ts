@@ -539,7 +539,7 @@ test("G2. account-restricted contract with a session awaiting confirmation: the 
     assert.equal(credited, Number(quoted), `credited ${credited} vs quoted ${quoted}`);
     const heldInLedger = (await H.net(c.txnId, "PT", "PENDING")) + (await H.net(c.txnId, "PLATFORM", "PENDING"));
     assert.equal(Math.round(heldInLedger * 100) / 100, Number(quotedHeld), `held ${heldInLedger} vs quoted ${quotedHeld}`);
-    assert.equal(Number(res.body.settlement.unresolved.amountHeld), Number(quotedHeld));
+    // (the client-visible settlement is redacted - commit 50754688 - so the held amount is verified in the ledger above)
     await H.invariant("G2");
     show("G2", { quotedRefund: quoted, credited, quotedHeld, heldInLedger });
   });

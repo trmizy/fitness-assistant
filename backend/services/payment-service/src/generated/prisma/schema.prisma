@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -232,8 +232,9 @@ model PaymentTransaction {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  commissions   PlatformCommission[]
-  ledgerEntries WalletLedgerEntry[]
+  commissions       PlatformCommission[]
+  ledgerEntries     WalletLedgerEntry[]
+  unpaidObligations ContractUnpaidObligation[]
 
   @@index([payerId, status])
   @@index([status])
@@ -303,12 +304,66 @@ model PartnerReceivable {
 /// audit query, e.g. `SESSION_RELEASE:<sessionId>`, `CONTRACT_TERMINATE:<contractId>`,
 /// `MEMBERSHIP_RELEASE:<membershipId>` — see docs/money-flow.md for the full list.
 model LedgerOperation {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  result    Json
-  createdAt DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid())
+  key                String   @unique
+  result             Json
+  createdAt          DateTime @default(now()) @map("created_at")
+  /// FH-2b. Hash of the IMMUTABLE fields of the request that claimed this key (kind, transaction,
+  /// price, session count, rates, parties, reason/outcome). NULL on rows written before the column
+  /// existed and on callers that do not fingerprint: those replay exactly as they always did.
+  requestFingerprint String?  @map("request_fingerprint")
+  /// FH-2b. The payment transaction the operation moved money for; lets a later operation (and
+  /// the read-only lookup) find "has this transaction been terminated" without parsing keys.
+  transactionId      String?  @map("transaction_id")
+  /// FH-2b. RELEASE_SESSION | NO_SHOW | LATE_ARRIVAL | TERMINATE | RESOLVE_UNRESOLVED | ...
+  kind               String?
 
+  @@index([transactionId])
   @@map("ledger_operations")
+}
+
+enum ContractUnpaidObligationKind {
+  NO_SHOW
+  LATE_ARRIVAL
+  REFUND_SHORT
+  OVER_RELEASED
+}
+
+enum ContractUnpaidObligationStatus {
+  OPEN
+  RESOLVED
+  WAIVED
+}
+
+/// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
+/// pending money. It is an unpaid obligation TO THE CLIENT (or, for OVER_RELEASED, an incident for
+/// the admin) — never a PT debt: no PartnerReceivable is created, the platform does not front it and
+/// the PT's pooled balance is not touched. Written in the same DB transaction as the ledger rows,
+/// keyed by the idempotency key of the operation, so a retry can never create a second one.
+model ContractUnpaidObligation {
+  id            String                         @id @default(uuid())
+  /// Idempotency key of the operation (OVER_RELEASED rows add `#OVER_RELEASED:<party>`).
+  key           String                         @unique
+  transactionId String                         @map("transaction_id")
+  /// Contract reference the caller labelled the operation with (the ledger label).
+  contractRef   String?                        @map("contract_ref")
+  kind          ContractUnpaidObligationKind
+  /// Who the obligation is owed to: CLIENT, or the over-released party (PT | GYM | PLATFORM).
+  party         String
+  owed          Decimal                        @db.Decimal(14, 2)
+  paid          Decimal                        @db.Decimal(14, 2)
+  unpaid        Decimal                        @db.Decimal(14, 2)
+  status        ContractUnpaidObligationStatus @default(OPEN)
+  createdAt     DateTime                       @default(now()) @map("created_at")
+  resolvedAt    DateTime?                      @map("resolved_at")
+  resolvedBy    String?                        @map("resolved_by")
+  resolvedNote  String?                        @map("resolved_note")
+
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([status])
+  @@index([transactionId])
+  @@map("contract_unpaid_obligations")
 }
 
 model PaymentWebhookEvent {

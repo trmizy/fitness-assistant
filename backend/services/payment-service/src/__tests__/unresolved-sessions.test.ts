@@ -43,6 +43,10 @@ test('worked example: 5.000.000 / 10 sessions / 0.90-0.10-0, 4 used, 2 unresolve
   assert.equal(t.withheld.toString(), '2000000', 'shared out now: 3.000.000 − 1.000.000 held');
 });
 
+/** What compensateNoShow really paid out for `c` no-shows: each one's value rounded UP to a whole dong (FH-1 follow-up). */
+const compensationCash = (price: number, total: number, c: number) =>
+  Prisma.Decimal.min(D(price).div(total).toDecimalPlaces(0, Prisma.Decimal.ROUND_UP).mul(c), D(price));
+
 test('with no unresolved sessions the outcome is exactly what it was, for every reason', () => {
   for (const rates of [PT_ONLY, WITH_GYM]) {
     for (const reason of REASONS) {
@@ -53,7 +57,7 @@ test('with no unresolved sessions the outcome is exactly what it was, for every 
         assert.deepEqual(zero, absent, `${reason} u=${u} c=${c}: explicit 0 is the same as absent`);
         assert.equal(absent.unresolvedHeld.total.toString(), '0');
         // the legacy identities
-        assert.equal(absent.withheld.toString(), D(1_000_003).minus(D(1_000_003).mul(c).div(10)).minus(absent.refund).toString());
+        assert.equal(absent.withheld.toString(), D(1_000_003).minus(compensationCash(1_000_003, 10, c)).minus(absent.refund).toString());
         const sum = absent.entitlement.pt.plus(absent.entitlement.gym).plus(absent.entitlement.platform);
         assert.equal(sum.toString(), absent.withheld.toString(), 'entitlements still add up to the withheld amount');
       }
@@ -76,7 +80,7 @@ test('conservation for every reason and shape: refund + entitlements + held = pr
                 try { computeTermination({ price: D(price), totalSessions: total, usedSessions: u + n, compensatedSessions: c, rates }, reason); } catch { legacyThrows = true; }
                 if (legacyThrows) continue;
                 const t = computeTermination({ price: D(price), totalSessions: total, usedSessions: u, compensatedSessions: c, unresolvedSessions: n, rates }, reason);
-                const comp = D(price).mul(c).div(total);
+                const comp = compensationCash(price, total, c);
                 const sum = t.refund.plus(t.entitlement.pt).plus(t.entitlement.gym).plus(t.entitlement.platform).plus(t.unresolvedHeld.total);
                 const label = `${reason} P=${price} N=${total} u=${u} c=${c} n=${n}`;
                 assert.equal(sum.toString(), D(price).minus(comp).toString(), label);

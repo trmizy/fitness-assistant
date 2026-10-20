@@ -20,6 +20,31 @@ export interface CheckoutResult {
   provider: string;
 }
 
+/**
+ * FH-1: what a PT-fault money step could actually pay out of the contract's OWN money. `owed` is what the formulas ask
+ * for, `paid` what was credited to the client (and the only figure that may be reported as paid), `unpaid` the rest -
+ * an OPEN obligation (`obligationId`), never a PT debt. Absent on results stored before FH-1 (treat as paid = owed).
+ */
+export interface MoneyOutcomeFigures {
+  owed?: string;
+  paid?: string;
+  unpaid?: string;
+  obligationId?: string;
+}
+
+/** FH-2a: one stored ledger operation, as `GET /internal/ledger-operations/:key` and `/lookup` return it. */
+export interface LedgerOperationRecord {
+  key: string;
+  /** RELEASE_SESSION | NO_SHOW | LATE_ARRIVAL | TERMINATE | RESOLVE_UNRESOLVED | RELEASE_HOLDBACK | ... (null if unknown). */
+  kind: string | null;
+  transactionId: string | null;
+  /** The result payment-service stored and replays for this key. */
+  result: Record<string, unknown>;
+  createdAt: string;
+  /** false for rows written before request fingerprints existed. */
+  fingerprinted: boolean;
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a contract. The client pays the gateway directly — no wallet
@@ -107,6 +132,29 @@ export const paymentClient = {
   async releaseHoldback(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-holdback`, body, { headers, timeout: 15_000 });
     return data.data;
+  },
+
+  /**
+   * FH-2a, read-only: did payment-service already perform the operation with this idempotency key, and with what
+   * result? Returns null when it has not (404). Any other failure (payment-service unreachable, 5xx) throws -
+   * "unknown" must never be read as "not done".
+   */
+  async lookupLedgerOperation(key: string): Promise<LedgerOperationRecord | null> {
+    try {
+      const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/ledger-operations/${encodeURIComponent(key)}`, { headers, timeout: 10_000 });
+      return data.data as LedgerOperationRecord;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  },
+
+  /** FH-2a, read-only: up to 100 keys at once. `missing` are the keys payment-service has no record of. */
+  async lookupLedgerOperations(keys: string[]): Promise<{ operations: LedgerOperationRecord[]; missing: string[] }> {
+    if (keys.length === 0) return { operations: [], missing: [] };
+    if (keys.length > 100) throw new Error('lookupLedgerOperations: at most 100 keys per call');
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/ledger-operations/lookup`, { keys }, { headers, timeout: 15_000 });
+    return data.data as { operations: LedgerOperationRecord[]; missing: string[] };
   },
 
   async moneyBreakdown(body: Record<string, unknown>): Promise<any> {

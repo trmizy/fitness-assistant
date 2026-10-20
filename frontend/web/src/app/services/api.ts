@@ -3798,6 +3798,18 @@ export const adminService = {
     return data;
   },
 
+  // FH-4 phần 2 (chỉ đọc): khoản tiền cần người xem — sổ phụ âm, nợ phải thu, nghĩa vụ chưa trả, thanh toán chưa kích hoạt.
+  getObligationsReport: async (params?: { limit?: number; staleMinutes?: number }) => {
+    const { data } = await api.get("/admin/payments/obligations", { params });
+    return data;
+  },
+
+  // FH-4 phần 1 (chỉ đọc): tất toán cần người xử lý, kết thúc hợp đồng chưa xác nhận, tranh chấp theo hạn.
+  getSessionsReconciliation: async (params?: { limit?: number }) => {
+    const { data } = await api.get("/admin/sessions/reconciliation", { params });
+    return data;
+  },
+
   // "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo ngày/tuần/tháng/quý.
   getFinanceOverview: async (params: { groupBy: "day" | "week" | "month" | "quarter"; from?: string; to?: string }) => {
     const { data } = await api.get("/admin/payments/finance-overview", { params });

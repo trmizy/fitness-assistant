@@ -12,6 +12,8 @@ import {
   compensateNoShow,
   releasePtHoldback,
   releaseSession,
+  loadLateArrivalDeductions,
+  ledgerPrisma,
   resolveUnresolvedSession,
   terminateContract,
   UnresolvedSessionError,
@@ -23,11 +25,36 @@ import {
 } from '../services/membership-ledger.service';
 import { releaseOrder, refundOrder } from '../services/personalized-service-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
+import { IdempotencyKeyConflictError } from '../services/ledger-idempotency';
+import { RequestDoesNotMatchTransactionError } from '../services/contract-request-guard';
+import ledgerOperationRoutes from './ledger-operations.routes';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
+
+// FH-2a: read-only lookup of ledger operations by idempotency key (no writes).
+router.use('/ledger-operations', ledgerOperationRoutes);
+
+/**
+ * FH-2b. The two refusals every contract-money route can raise BEFORE any ledger row is written:
+ * the same idempotency key reused for a different request (409) and a request that disagrees with the
+ * payment transaction it names (422). Returns true when it answered.
+ */
+function respondLedgerRefusal(err: unknown, res: Response): boolean {
+  if (err instanceof IdempotencyKeyConflictError) {
+    logger.warn({ error: 'idempotency key conflict', key: err.key });
+    res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT', message: err.message } });
+    return true;
+  }
+  if (err instanceof RequestDoesNotMatchTransactionError) {
+    logger.warn({ error: 'request does not match transaction', message: err.message });
+    res.status(422).json({ success: false, error: { code: 'REQUEST_DOES_NOT_MATCH_TRANSACTION', message: err.message } });
+    return true;
+  }
+  return false;
+}
 
 const DEFAULT_COMMISSION_RATE = Number(process.env.PLATFORM_COMMISSION_RATE ?? '0.10');
 
@@ -486,6 +513,7 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'release-session failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
   }
@@ -511,6 +539,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'no-show compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
   }
@@ -536,6 +565,7 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'late-arrival compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
   }
@@ -617,6 +647,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'termination failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
   }
@@ -656,6 +687,7 @@ router.post('/contracts/resolve-unresolved-session', async (req: Request, res: R
     if (err instanceof UnresolvedSessionError) {
       return res.status(409).json({ success: false, error: { code: err.code, message: err.message } });
     }
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'resolve-unresolved-session failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'RESOLVE_UNRESOLVED_FAILED', message: (err as Error).message } });
   }
@@ -687,6 +719,7 @@ router.post('/contracts/release-holdback', async (req: Request, res: Response) =
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'holdback release failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'HOLDBACK_RELEASE_FAILED', message: (err as Error).message } });
   }
@@ -708,12 +741,18 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     reason: terminationReasonSchema.optional(),
     unresolvedSessions: unresolvedSessionsSchema,
     rates: rateSchema,
+    // D77: when the contract's payment transaction is named, the preview accounts for the late-arrival compensations
+    // the ledger holds for it - the very facts terminate uses - so the quote equals what is credited.
+    transactionId: z.string().min(1).optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   try {
+    const lateArrival = parsed.data.transactionId
+      ? await loadLateArrivalDeductions(ledgerPrisma, parsed.data.transactionId, parsed.data.unresolvedSessions ?? 0)
+      : undefined;
     return res.json({
       success: true,
       data: buildMoneyBreakdown({
@@ -723,6 +762,7 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
         compensatedSessions: parsed.data.compensatedSessions,
         unresolvedSessions: parsed.data.unresolvedSessions,
         rates: toRates(parsed.data.rates),
+        lateArrival,
       }, parsed.data.reason ?? 'CLIENT_CANCELLED'),
     });
   } catch (err) {

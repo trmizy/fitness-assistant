@@ -21,6 +21,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
+// FH-0: automatic PartnerReceivable recovery is paused by default; this suite exercises the recovery mechanics themselves.
+process.env.RECEIVABLE_RECOVERY_ENABLED = 'true';
 const databaseUrl = process.env.DATABASE_URL || '';
 const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
@@ -583,7 +585,7 @@ async function exited(m: Mods, n = 2, opts: { withGym?: boolean; price?: number;
   return f;
 }
 
-test('resolve is idempotent: the same session, same key replays; the other outcome returns the first result and posts nothing', skipOpts, async () => {
+test('resolve is idempotent: the same session, same key replays; the OTHER outcome is refused (FH-2b: 409 conflict, was a silent replay of the first result) and posts nothing', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await exited(m);
@@ -593,19 +595,25 @@ test('resolve is idempotent: the same session, same key replays; the other outco
 
   const replay = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'NOT_DELIVERED'));
   assert.deepEqual(replay, first);
-  const other = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'DELIVERED'));
-  assert.deepEqual(other, first, 'the other outcome gets the first outcome back');
-  assert.equal(other.outcome, 'NOT_DELIVERED');
+  await assert.rejects(
+    () => m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'DELIVERED')),
+    (e: any) => e.code === 'IDEMPOTENCY_KEY_CONFLICT',
+    'the other outcome is a conflict, not a silent answer with the first outcome',
+  );
+  assert.equal(first.outcome, 'NOT_DELIVERED');
   assert.deepEqual(await balances(m, f), bal, 'no money moved');
   assert.equal((await pendingRows(m, f.txnId)).length, rows, 'no ledger row written');
   assert.equal(await m.prisma.ledgerOperation.count({ where: { key: `UNRESOLVED_SESSION:${f.contractId}:A` } }), 1);
 
   // and concurrently
-  const [x, y] = await Promise.all([
+  const raced = await Promise.allSettled([
     m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'B', 'DELIVERED')),
     m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'B', 'NOT_DELIVERED')),
   ]);
-  assert.deepEqual(x, y, 'racing outcomes for one session: one wins, both see it');
+  assert.equal(raced.filter((r) => r.status === 'fulfilled').length, 1, 'racing outcomes for one session: exactly one wins');
+  const lost = raced.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+  assert.equal(lost.reason.code, 'IDEMPOTENCY_KEY_CONFLICT', 'and the loser is told it conflicted');
+  assert.equal(await m.prisma.ledgerOperation.count({ where: { key: `UNRESOLVED_SESSION:${f.contractId}:B` } }), 1);
   await assertBooksReconcile(m, 'resolve idempotency');
 });
 
@@ -648,15 +656,15 @@ test('resolve only ever touches this contract’s own pending — a neighbour of
   const neighbourBefore = await pendingRows(m, neighbour.txnId);
   const neighbourPending = await contractPending(m, neighbour);
 
-  // a request that claims a bigger session than was held (price 20.000.000 over 10 sessions =
-  // 2.000.000 per session; the contract holds 500.000 each) can move only what the contract has
-  const greedy = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'NOT_DELIVERED', { price: dec(m, 20_000_000) }));
-  assert.equal(greedy.unit, '2000000.00');
-  const movedTotal = dec(m, greedy.moved.pt).plus(greedy.moved.gym).plus(greedy.moved.platform);
-  assert.equal(greedy.moved.client, movedTotal.toFixed(2), 'the client gets exactly what was taken');
-  assert.ok(movedTotal.lessThanOrEqualTo(1_000_000), 'never more than the 2 held sessions');
-  assert.equal(dec(m, greedy.shortfall).toFixed(2), dec(m, 2_000_000).minus(movedTotal).toFixed(2), 'the rest is reported as a shortfall');
-  assert.ok(dec(m, greedy.shortfall).greaterThan(0));
+  // A request that claims a bigger session than was held (price 20.000.000 over 10 sessions = 2.000.000 per
+  // session; the contract holds 500.000 each). Before FH-2b the ledger clamped it to what the contract had and
+  // reported a shortfall; now it never gets that far: the price disagrees with the payment transaction's own
+  // amount, so it is refused (422) and nothing moves at all.
+  await assert.rejects(
+    () => m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'NOT_DELIVERED', { price: dec(m, 20_000_000) })),
+    (e: any) => e.code === 'REQUEST_DOES_NOT_MATCH_TRANSACTION',
+  );
+  assert.equal(await m.prisma.ledgerOperation.count({ where: { key: `UNRESOLVED_SESSION:${f.contractId}:A` } }), 0, 'a refusal is not remembered');
 
   assert.deepEqual(await pendingRows(m, neighbour.txnId), neighbourBefore, 'the neighbour’s ledger rows are untouched');
   assert.deepEqual(await contractPending(m, neighbour), neighbourPending, 'and so is its pending');
@@ -787,9 +795,12 @@ test('POST /internal/contracts/resolve-unresolved-session: shapes, validation, 4
     assert.deepEqual(ok.json.data, {
       outcome: 'NOT_DELIVERED', unit: '500000.00', moved: { pt: '450000.00', gym: '0.00', platform: '50000.00', client: '500000.00' }, shortfall: '0.00',
     });
-    const replay = await post('/contracts/resolve-unresolved-session', body({ outcome: 'DELIVERED' }));
-    assert.equal(replay.status, 200);
-    assert.deepEqual(replay.json.data, ok.json.data, 'the other outcome replays the first result');
+    const same = await post('/contracts/resolve-unresolved-session', body());
+    assert.equal(same.status, 200);
+    assert.deepEqual(same.json.data, ok.json.data, 'the identical request replays the first result');
+    const flipped = await post('/contracts/resolve-unresolved-session', body({ outcome: 'DELIVERED' }));
+    assert.equal(flipped.status, 409, 'the other outcome is a conflict (FH-2b)');
+    assert.equal(flipped.json.error.code, 'IDEMPOTENCY_KEY_CONFLICT');
     const tooMany = await post('/contracts/resolve-unresolved-session', body({ idempotencyKey: `UNRESOLVED_SESSION:${f.contractId}:EXTRA` }));
     assert.equal(tooMany.status, 409);
     assert.equal(tooMany.json.error.code, 'ALL_UNRESOLVED_RESOLVED');
@@ -832,6 +843,7 @@ for (const shape of PREVIEW_SHAPES) {
         });
         assert.equal(real.status, 200, JSON.stringify(real.json));
         assert.equal(preview.json.data.refundIfCancelledNow, real.json.data.refund, 'the preview’s refund is the refund that was posted');
+        assert.equal(real.json.data.unpaid, '0.00', 'and none of it is left unpaid');
 
         const refundRows = await m.prisma.walletLedgerEntry.findMany({
           where: { transactionId: f.txnId, entryType: 'CREDIT', bucket: 'AVAILABLE', description: { contains: `refund (${reason})` } },

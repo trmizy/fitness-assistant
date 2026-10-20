@@ -103,7 +103,12 @@ async function reconcilePendingActivations(): Promise<void> {
  * this means "no, and never" and is turned into a refund.
  */
 export class ContractNotActivatableError extends Error {
-  constructor(public readonly currentStatus: string | null, message: string) {
+  constructor(
+    public readonly currentStatus: string | null,
+    message: string,
+    /** The machine code the owning service answered with; recorded on the refund marker. */
+    public readonly reason: string = CONTRACT_NOT_ACTIVATABLE,
+  ) {
     super(message);
     this.name = 'ContractNotActivatableError';
   }
@@ -112,44 +117,69 @@ export class ContractNotActivatableError extends Error {
 export const CONTRACT_NOT_ACTIVATABLE = 'CONTRACT_NOT_ACTIVATABLE';
 
 /**
+ * FH-5 / R2: the same "definite no" for the other two purchases that are paid at the gateway before the
+ * owning service is told — a personalized-service order (ai-service) or a gym membership (gym-service)
+ * the client cancelled while at the bank's page. HTTP 409 with error.code NOT_ACTIVATABLE. Like the
+ * PT-contract answer it is the ONLY thing that turns into a refund: a timeout, a 5xx, a 404 or a 409
+ * with any other code still means "we do not know" and is retried by the sweep.
+ */
+export const NOT_ACTIVATABLE = 'NOT_ACTIVATABLE';
+
+/** Maps the owning service's 409 {error:{code}} answer to the typed error; rethrows anything else untouched. */
+function rethrowAsNotActivatable(e: unknown, code: string, what: string): never {
+  // axios and the Lambda client both expose the HTTP answer as err.response.{status,data}.
+  const response = (e as { response?: { status?: number; data?: any } }).response;
+  if (response?.status === 409 && response.data?.error?.code === code) {
+    throw new ContractNotActivatableError(
+      response.data.error.currentStatus ?? null,
+      response.data.error.message ?? `${what} cannot be activated by this payment`,
+      code,
+    );
+  }
+  throw e;
+}
+
+/**
  * Tell the owning service its purchase is paid for. Exported so the webhook path calls the
  * same endpoints the retry sweep does — two copies of this routing would eventually disagree
  * about which service owns which entity type.
  *
  * Resolves for an activation (or an idempotent replay of one); throws ContractNotActivatableError
- * for the PT_CONTRACT "definite no"; throws whatever the transport threw for everything else.
- * Callers that act on PT_CONTRACT must go through activateOrRefund, which handles that error.
+ * for the "definite no" of any of the three owning services (PT contract, gym membership,
+ * personalized-service order); throws whatever the transport threw for everything else.
+ * Callers must go through activateOrRefund, which handles that error.
  */
 export async function callActivateEndpoint(txn: PaymentTransaction): Promise<void> {
   const body = { transactionId: txn.id };
   const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
   if (txn.relatedEntityType === 'GYM_MEMBERSHIP') {
-    await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, headers });
+    try {
+      await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, headers });
+    } catch (e) {
+      rethrowAsNotActivatable(e, NOT_ACTIVATABLE, 'Membership');
+    }
   } else if (txn.relatedEntityType === 'PT_CONTRACT') {
     try {
       await postServiceJson({ service: 'user', path: `/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, headers });
     } catch (e) {
-      // axios and the Lambda client both expose the HTTP answer as err.response.{status,data}.
-      const response = (e as { response?: { status?: number; data?: any } }).response;
-      if (response?.status === 409 && response.data?.error?.code === CONTRACT_NOT_ACTIVATABLE) {
-        throw new ContractNotActivatableError(
-          response.data.error.currentStatus ?? null,
-          response.data.error.message ?? 'Contract cannot be activated by this payment',
-        );
-      }
-      throw e;
+      rethrowAsNotActivatable(e, CONTRACT_NOT_ACTIVATABLE, 'Contract');
     }
   } else if (txn.relatedEntityType === 'PERSONALIZED_SERVICE_PURCHASE') {
-    await postServiceJson({ service: 'ai', path: `/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    try {
+      await postServiceJson({ service: 'ai', path: `/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    } catch (e) {
+      rethrowAsNotActivatable(e, NOT_ACTIVATABLE, 'Order');
+    }
   } else {
     throw new Error(`Unknown relatedEntityType for activation: ${txn.relatedEntityType}`);
   }
 }
 
 /**
- * The one place that finishes a PAID purchase: activate it, or — for a PT contract that user-service
- * says can no longer be activated by this payment — give the client the money back.
+ * The one place that finishes a PAID purchase: activate it, or — when the owning service (user-service
+ * for a PT contract, gym-service for a membership, ai-service for a personalized order) answers that it
+ * can no longer be activated by this payment — give the client the money back.
  *
  * Used by every caller that used to do `callActivateEndpoint` + `markActivated` itself (the
  * webhook/poll settlement, the reconcile sweep, the admin "retry activation" route), so they all
@@ -186,7 +216,7 @@ export async function activateOrRefund(txn: PaymentTransaction): Promise<'ACTIVA
         clientUserId: meta.parties.clientUserId,
       },
       label: `${txn.purpose} ${txn.relatedEntityId ?? txn.id}`,
-      reason: CONTRACT_NOT_ACTIVATABLE,
+      reason: e.reason,
       contractStatus: e.currentStatus,
     });
     return 'REFUNDED';

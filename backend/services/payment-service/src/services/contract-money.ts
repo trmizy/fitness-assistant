@@ -43,6 +43,25 @@ export interface RateTable {
   gymRate: Prisma.Decimal;
 }
 
+/** One amount per party. */
+export interface PartySplit {
+  pt: Prisma.Decimal;
+  gym: Prisma.Decimal;
+  platform: Prisma.Decimal;
+}
+
+/**
+ * D77 - late-arrival compensation is deducted from the value of THAT late session: each party's share of the session
+ * is reduced by exactly its portion of the compensation already paid to the client. Both figures are read from the
+ * ledger (the PT_LATE_ARRIVAL operation of the session), never from the caller.
+ *   settled  the session was released / resolved with the deduction applied: the parties were released (share - portion)
+ *   open     the session is still unresolved at the exit: its held value is (share - portion)
+ */
+export interface LateArrivalDeductions {
+  settled: PartySplit;
+  open: PartySplit;
+}
+
 export interface ContractMoneyInput {
   /** P — total contract value. */
   price: Prisma.Decimal;
@@ -71,6 +90,8 @@ export interface ContractMoneyInput {
    * settles exactly as before.
    */
   unresolvedSessions?: number;
+  /** D77, see LateArrivalDeductions. Absent: no session of this contract had its late-arrival compensation deducted. */
+  lateArrival?: LateArrivalDeductions;
   rates: RateTable;
   /**
    * The PT holdback rate THIS contract carries (`h`): the share of the price whose first
@@ -450,7 +471,25 @@ export function computeTermination(
     }
   }
 
-  const refund = roundForClient(rawRefund);
+  // Cụm A1 — what compensateNoShow ACTUALLY paid out per compensated session: one session's value rounded UP to a
+  // whole đồng (computeNoShowCompensation). When the price does not divide evenly, c × the exact unit is a fraction
+  // of a đồng below the cash that really left pending, and a refund rounded up on top of it can exceed what is left
+  // of the price (5.000.000 / 12 sessions, one no-show, a full refund: 4.583.334 + 416.667 = P + 1). The refund is
+  // therefore capped at what remains of the price after the compensation cash, so the figure quoted by the preview,
+  // the figure credited and the pending the contract really holds are one and the same number.
+  const compensationCash = Prisma.Decimal.min(
+    roundForClient(unitValue(input.price, input.totalSessions)).mul(input.compensatedSessions ?? 0),
+    input.price,
+  );
+  // The refund can also never exceed what the contract's pending really holds once the sessions already paid out are
+  // taken away. Per-session releases and the held value use the unit rounded DOWN (computeSessionRelease), the refund
+  // is rounded UP: on a price that does not divide evenly the three can overlap by a few dong, and the ledger would
+  // then credit the client less than the preview quoted. Capping here makes the quote and the credit one number.
+  const unitFloor = computeSessionRelease(input.price, input.totalSessions, input.rates).unit;
+  const afterPaidOut = input.price
+    .minus(unitFloor.mul(input.usedSessions + (input.unresolvedSessions ?? 0)))
+    .minus(compensationCash);
+  const refund = Prisma.Decimal.min(roundForClient(rawRefund), Prisma.Decimal.max(afterPaidOut, ZERO));
   if (refund.lessThan(0)) throw new Error(`refund went negative (${refund.toString()}) — formula bug`);
   if (refund.greaterThan(input.price)) {
     throw new Error(`refund ${refund.toString()} exceeds contract price ${input.price.toString()}`);
@@ -463,18 +502,41 @@ export function computeTermination(
   // value for the parties, or settleParty (contract-ledger.service.ts) tries to top a party up
   // using pending money that compensation already took — a silent shortfall, not a thrown
   // error, because settleParty clamps to whatever pending actually holds.
-  const compensationValue = input.price.mul(input.compensatedSessions ?? 0).div(input.totalSessions);
+  const compensationValue = compensationCash;
   // The split is taken on EVERYTHING that is not refunded, exactly as if the unresolved sessions
   // had been delivered — so a contract whose unresolved sessions all turn out delivered ends with
   // the very figures it would have had if they had been confirmed before the exit. The held
   // value is then carved out of each party's share (never more than the share itself, which
   // only matters in a sub-đồng rounding corner) and stays in pending instead of being topped up.
-  const withheldAll = input.price.minus(compensationValue).minus(refund);
+  // D77: the late-arrival compensation already paid to the client (deducted from the sessions it was paid for) is
+  // outside the parties' pot exactly like a no-show compensation is.
+  const lateSettled = input.lateArrival?.settled ?? { pt: ZERO, gym: ZERO, platform: ZERO };
+  const lateOpen = input.lateArrival?.open ?? { pt: ZERO, gym: ZERO, platform: ZERO };
+  const lateAllTotal = lateSettled.pt.plus(lateSettled.gym).plus(lateSettled.platform).plus(lateOpen.pt).plus(lateOpen.gym).plus(lateOpen.platform);
+  const withheldAll = input.price.minus(compensationValue).minus(lateAllTotal).minus(refund);
   const fullEntitlement = splitThreeWays(withheldAll, input.rates);
-  const idealHeld = unresolvedHeldValue(input.price, input.totalSessions, input.rates, input.unresolvedSessions ?? 0);
-  const heldPt = Prisma.Decimal.min(idealHeld.pt, fullEntitlement.pt);
-  const heldGym = Prisma.Decimal.min(idealHeld.gym, fullEntitlement.gym);
-  const heldPlatform = Prisma.Decimal.min(idealHeld.platform, fullEntitlement.platform);
+  const idealHeldGross = unresolvedHeldValue(input.price, input.totalSessions, input.rates, input.unresolvedSessions ?? 0);
+  const idealHeld = {
+    ...idealHeldGross,
+    pt: Prisma.Decimal.max(idealHeldGross.pt.minus(lateOpen.pt), ZERO),
+    gym: Prisma.Decimal.max(idealHeldGross.gym.minus(lateOpen.gym), ZERO),
+    platform: Prisma.Decimal.max(idealHeldGross.platform.minus(lateOpen.platform), ZERO),
+  };
+  // What each party's pending for this contract can really hold at this point: its share of the whole price, less
+  // what the per-session releases (floor-unit splits) and the compensations (ceil-unit splits) already took out of
+  // it. The platform takes the remainder of EVERY split, so across N sessions its releases can add up to a few dong
+  // more than its share of the price; holding more than the party has would only be clamped by the ledger and then
+  // disagree with the quote. Capping the hold here makes the quoted figure and the held figure one number.
+  const wholeSplit = splitThreeWays(input.price, input.rates);
+  const onePaid = computeSessionRelease(input.price, input.totalSessions, input.rates);
+  const oneComp = splitThreeWays(roundForClient(unitValue(input.price, input.totalSessions)), input.rates);
+  const spentOf = (key: 'pt' | 'gym' | 'platform') =>
+    onePaid[key].mul(input.usedSessions).plus(oneComp[key].mul(input.compensatedSessions ?? 0));
+  // (a late-arrival compensation on a session that is still held was taken out of this pending and has not been given back)
+  const pendingNow = (key: 'pt' | 'gym' | 'platform') => Prisma.Decimal.max(wholeSplit[key].minus(spentOf(key)).minus(lateOpen[key]), ZERO);
+  const heldPt = Prisma.Decimal.min(idealHeld.pt, fullEntitlement.pt, pendingNow('pt'));
+  const heldGym = Prisma.Decimal.min(idealHeld.gym, fullEntitlement.gym, pendingNow('gym'));
+  const heldPlatform = Prisma.Decimal.min(idealHeld.platform, fullEntitlement.platform, pendingNow('platform'));
   const unresolvedHeld = { pt: heldPt, gym: heldGym, platform: heldPlatform, total: heldPt.plus(heldGym).plus(heldPlatform) };
   const entitlement = {
     pt: fullEntitlement.pt.minus(heldPt),
@@ -484,7 +546,7 @@ export function computeTermination(
   const withheld = withheldAll.minus(unresolvedHeld.total);
 
   const total = refund.plus(entitlement.pt).plus(entitlement.gym).plus(entitlement.platform).plus(unresolvedHeld.total);
-  const expectedTotal = input.price.minus(compensationValue);
+  const expectedTotal = input.price.minus(compensationValue).minus(lateAllTotal);
   if (!total.equals(expectedTotal)) {
     throw new Error(`termination does not reconcile: ${total.toString()} != ${expectedTotal.toString()} (price ${input.price.toString()} minus compensation ${compensationValue.toString()} already paid out)`);
   }
@@ -610,10 +672,12 @@ export function buildMoneyBreakdown(input: ContractMoneyInput, reason: Terminati
   const perSession = computeSessionRelease(input.price, input.totalSessions, input.rates);
   const u = input.usedSessions;
   const c = input.compensatedSessions ?? 0;
+  const lateSettled = input.lateArrival?.settled ?? { pt: ZERO, gym: ZERO, platform: ZERO };
+  const lateOpen = input.lateArrival?.open ?? { pt: ZERO, gym: ZERO, platform: ZERO };
   const released = {
-    pt: perSession.pt.mul(u),
-    gym: perSession.gym.mul(u),
-    platform: perSession.platform.mul(u),
+    pt: perSession.pt.mul(u).minus(lateSettled.pt),
+    gym: perSession.gym.mul(u).minus(lateSettled.gym),
+    platform: perSession.platform.mul(u).minus(lateSettled.platform),
   };
   // Cụm A1 — compensateNoShow already debited this amount out of pending/available for a
   // compensated session, same as `released` does for a used one. stillPending must subtract
@@ -645,9 +709,9 @@ export function buildMoneyBreakdown(input: ContractMoneyInput, reason: Terminati
       platform: released.platform.toFixed(2),
     },
     stillPending: {
-      pt: whole.pt.minus(released.pt).minus(compensationSplit.pt).toFixed(2),
-      gym: whole.gym.minus(released.gym).minus(compensationSplit.gym).toFixed(2),
-      platform: whole.platform.minus(released.platform).minus(compensationSplit.platform).toFixed(2),
+      pt: whole.pt.minus(released.pt).minus(compensationSplit.pt).minus(lateSettled.pt).minus(lateOpen.pt).toFixed(2),
+      gym: whole.gym.minus(released.gym).minus(compensationSplit.gym).minus(lateSettled.gym).minus(lateOpen.gym).toFixed(2),
+      platform: whole.platform.minus(released.platform).minus(compensationSplit.platform).minus(lateSettled.platform).minus(lateOpen.platform).toFixed(2),
     },
     refundIfCancelledNow: cancelNow.refund.toFixed(2),
     reasonUsed: reason,
