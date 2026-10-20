@@ -532,6 +532,13 @@ enum NotificationEventType {
   PT_LISTING_CHANGES_REQUESTED
   // The PT's open revision was invalidated (STALE) because an admin changed the public listing meanwhile.
   PT_LISTING_INVALIDATED
+  // Listing management (gym) - sent by gym-service to the branch owner via POST /internal/notifications
+  // (entity GYM_BRANCH): the admin's decision on a branch listing revision / an amenity proposal.
+  GYM_LISTING_APPROVED
+  GYM_LISTING_REJECTED
+  GYM_LISTING_CHANGES_REQUESTED
+  GYM_LISTING_INVALIDATED
+  GYM_AMENITY_PROPOSAL_REVIEWED
 }
 
 enum NotificationEntityType {

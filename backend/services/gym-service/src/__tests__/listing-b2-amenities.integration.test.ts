@@ -705,8 +705,8 @@ test('proposal decisions notify the proposing owners (GYM_AMENITY_PROPOSAL_REVIE
   try {
     const gA = await gymOf(ownerA);
     const gB = await gymOf(ownerB);
-    delete process.env.LISTING_GYM_NOTIFICATIONS_ENABLED;
-    const off = (await propose(ownerA, gA.gymId, nm('thông báo tắt'))).json.data.proposal.id;
+    process.env.LISTING_GYM_NOTIFICATIONS_ENABLED = 'false';
+    const off =(await propose(ownerA, gA.gymId, nm('thông báo tắt'))).json.data.proposal.id;
     assert.equal((await reject(admin.token, [off])).status, 200);
     assert.equal(sent.length, 0, 'flag off -> silent');
 

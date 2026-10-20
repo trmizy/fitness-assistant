@@ -5,10 +5,9 @@ import { userClient } from '../clients/user.client';
  * Listing Management B2 - owner notifications (plan B22): gym-service -> user-service `/internal/notifications`
  * (best-effort, after commit; the existing complaint flow uses the same path).
  *
- * DISABLED BY DEFAULT behind LISTING_GYM_NOTIFICATIONS_ENABLED. user-service's NotificationEventType enum does not have
- * these five event types yet (they are added by a later user-service change); sending an unknown type would make that
- * endpoint answer with an error for every decision. Turn the flag on only after the enum values exist there.
- * The flag is read at CALL time, so a deploy/test can flip it without a restart of this module.
+ * ON BY DEFAULT since user-service migration 20261020132616_gym_listing_notification_types added the five event
+ * types to NotificationEventType. LISTING_GYM_NOTIFICATIONS_ENABLED=false (or 0) turns it off, e.g. for a deploy
+ * where gym-service ships before that user-service migration. The flag is read at CALL time.
  */
 export type GymListingEventType =
   | 'GYM_LISTING_APPROVED'
@@ -18,7 +17,8 @@ export type GymListingEventType =
   | 'GYM_AMENITY_PROPOSAL_REVIEWED';
 
 export function listingNotificationsEnabled(): boolean {
-  return (process.env.LISTING_GYM_NOTIFICATIONS_ENABLED ?? '').trim().toLowerCase() === 'true';
+  const v = (process.env.LISTING_GYM_NOTIFICATIONS_ENABLED ?? '').trim().toLowerCase();
+  return v !== 'false' && v !== '0';
 }
 
 export interface ListingNotice {

@@ -980,7 +980,7 @@ test('Cache-Control: every owner / admin / preview JSON is "no-store, private" w
   }
 });
 
-// ═══ notifications (off by default) ═══════════════════════════════════════════════════════════════
+// ═══ notifications (on by default; LISTING_GYM_NOTIFICATIONS_ENABLED=false|0 turns them off) ═══════════════════════════════════════════════════════════════
 
 test('notifications: nothing is sent while LISTING_GYM_NOTIFICATIONS_ENABLED is off; with it on, each decision notifies the owner (entity GYM_BRANCH, link /gym-owner/listings?gymId=...)', async () => {
   const sent: any[] = [];
@@ -991,10 +991,10 @@ test('notifications: nothing is sent while LISTING_GYM_NOTIFICATIONS_ENABLED is 
   const previousFlag = process.env.LISTING_GYM_NOTIFICATIONS_ENABLED;
   try {
     const g = await gymOf(ownerA);
-    delete process.env.LISTING_GYM_NOTIFICATIONS_ENABLED;
+    process.env.LISTING_GYM_NOTIFICATIONS_ENABLED = '0';
     const r1 = await draftWith(ownerA.token, g.gymId, { description: 'Thông báo 1' }, { submit: true });
     assert.equal((await h.call(admin.token, 'POST', A(`/revisions/${r1.id}/approve`), {})).status, 200);
-    assert.equal(sent.length, 0, 'flag unset -> no notification');
+    assert.equal(sent.length, 0, 'flag 0 -> no notification');
     process.env.LISTING_GYM_NOTIFICATIONS_ENABLED = 'false';
     const r2 = await draftWith(ownerA.token, g.gymId, { description: 'Thông báo 2' }, { submit: true });
     assert.equal((await h.call(admin.token, 'POST', A(`/revisions/${r2.id}/reject`), { note: 'chưa đạt' })).status, 200);

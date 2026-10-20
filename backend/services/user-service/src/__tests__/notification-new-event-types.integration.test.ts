@@ -27,6 +27,12 @@ const CASES: [eventType: string, entityType: string][] = [
   // PT-suspension slice 4
   ["CONTRACT_PAUSED_PT_SUSPENDED", "CONTRACT"],
   ["CONTRACT_RESUMED_PT_REINSTATED", "CONTRACT"],
+  // Listing Management (gym side) — sent by gym-service through POST /internal/notifications
+  ["GYM_LISTING_APPROVED", "GYM_BRANCH"],
+  ["GYM_LISTING_REJECTED", "GYM_BRANCH"],
+  ["GYM_LISTING_CHANGES_REQUESTED", "GYM_BRANCH"],
+  ["GYM_LISTING_INVALIDATED", "GYM_BRANCH"],
+  ["GYM_AMENITY_PROPOSAL_REVIEWED", "GYM_BRANCH"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {
