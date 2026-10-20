@@ -1,21 +1,21 @@
 /**
- * D64-B rule check - CHARACTERISATION of what Phase-0 code does when ONE session-level settlement row of a contract is parked
- * (NEEDS_RECONCILIATION). The owner's rule B: block only the unsafe step, do not lock the whole contract for a small separable
- * obligation, keep it pending and explain it. Current code does the opposite for the ENDING, so these tests are named
- * [KNOWN-GAP D64-B]: they pin the present behaviour (so nobody mistakes it for the rule) and must be FLIPPED by the Phase 1
- * SETTLING redesign. Nothing here is a product change.
+ * D64-B rule check, FLIPPED by FH-3c (D65-B). Owner's rule B: block only the unsafe step, do not lock the whole contract for a small
+ * separable obligation, keep it pending and explain it. Before FH-3c ONE parked session-level row refused the whole ending
+ * ([KNOWN-GAP D64-B]); now (SETTLING_D65B on, the default) the ending looks the step up on the ledger: performed -> its stored result is
+ * applied; not performed -> the session's value is HELD and the certain unused part refunds immediately. The flag-off behaviour (the old
+ * blocking) and every "cannot tell" case are pinned in settlement-d65b-fh3c.integration.test.ts; the real-ledger money is in
+ * cross-service-money-fh6-fh3c.e2e.test.ts.
  *
  * Money example (5.000.000 / 10 sessions = 500.000 per session; split PT 450.000 / platform 50.000): 4 sessions delivered, the
- * release of session 4 failed 12 times and is parked. The client now cancels: the 6 unused sessions (3.000.000) are refundable and
- * have NOTHING to do with session 4's 450.000 - yet the whole ending is refused until a human resolves the 450.000 row, and
- * there is no admin tool for that yet (D64-D).
+ * release of session 4 failed 12 times and is parked. The client cancels: the 6 unused sessions (3.000.000 - 2.700.000 for a
+ * client-initiated cancel) are refundable and have NOTHING to do with session 4's 450.000.
  *
  * Evidence label: BACKEND INTEGRATION against the isolated *_test database; payment-service = TEST FIXTURE (records every call).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "../repositories/profile.repository";
-import { settleContractTermination, terminateContractMoney, releaseSessionMoney } from "../services/contract-payout.service";
+import { terminateContractMoney, releaseSessionMoney } from "../services/contract-payout.service";
 import { addSession, cleanup, makeContract, makePt, skip, stubs } from "./pt-restriction.test-helpers";
 
 async function parkedContract() {
@@ -38,26 +38,22 @@ async function parkedContract() {
   return { pt, contract, s3, s4, row };
 }
 
-test("[KNOWN-GAP D64-B] ONE parked 450.000 release blocks the WHOLE ending of the contract for every reason (client cancel, PT cancel, expiry, admin ban): 409 SESSION_SETTLEMENT_PENDING, no payment call, contract stays ACTIVE", { skip }, async () => {
-  const { pt, contract, row } = await parkedContract();
-  const s = stubs();
-  try {
-    for (const reason of ["CLIENT_CANCELLED", "PT_CANCELLED", "EXPIRED", "MUTUAL", "PT_BANNED"] as const) {
-      await assert.rejects(
-        () => terminateContractMoney(contract.id, reason, { cancelledBy: contract.clientUserId }),
-        (e: any) => e.status === 409 && e.code === "SESSION_SETTLEMENT_PENDING",
-        `${reason} is refused`,
-      );
+test("[REGRESSION D64-B] ONE parked 450.000 release no longer blocks the ending (client cancel, PT cancel, expiry, mutual, admin ban): the certain part refunds now, session 4's value is HELD", { skip }, async () => {
+  for (const reason of ["CLIENT_CANCELLED", "PT_CANCELLED", "EXPIRED", "MUTUAL", "PT_BANNED"] as const) {
+    const { pt, contract, row } = await parkedContract();
+    const s = stubs({ refund: "3000000.00", owed: "3000000.00", paid: "3000000.00", unpaid: "0.00" });
+    try {
+      const result = await terminateContractMoney(contract.id, reason, { cancelledBy: contract.clientUserId });
+      assert.equal(result.refund, "3000000.00", `${reason}: the unused sessions are refunded immediately`);
+      assert.deepEqual(s.payments.map((p) => p.method), ["terminate"]);
+      assert.equal(s.payments[0].body.unresolvedSessions, 1, "session 4's value (500.000) is held, not paid out and not refunded");
+      assert.equal(s.payments[0].body.usedSessions, 3);
+      assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: contract.id } })).status, reason === "EXPIRED" ? "EXPIRED" : "CANCELLED");
+      assert.equal((await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } })).status, "UNCONFIRMED", "surfaced for the admin path, never retried by code");
+    } finally {
+      s.restore();
+      await cleanup([pt], [contract.id]);
     }
-    await assert.rejects(() => settleContractTermination(contract.id, "CLIENT_CANCELLED"), (e: any) => e.code === "SESSION_SETTLEMENT_PENDING");
-    assert.equal(s.payments.length, 0, "no money moved - not even the 3.000.000 of unused sessions that has nothing to do with the parked row");
-    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: contract.id } })).status, "ACTIVE");
-    assert.equal(await prisma.sessionSettlement.count({ where: { contractId: contract.id, kind: "CONTRACT_TERMINATION" } }), 0, "not even an ending intent is recorded (so the client sees no 'ending' state either)");
-    const parked = await prisma.sessionSettlement.findUniqueOrThrow({ where: { id: row.id } });
-    assert.equal(parked.status, "NEEDS_HUMAN", "the row is still there and still parked - it never unblocks by itself");
-  } finally {
-    s.restore();
-    await cleanup([pt], [contract.id]);
   }
 });
 
@@ -75,7 +71,7 @@ test("the block is scoped to the ENDING: the other session's money step on the s
   }
 });
 
-test("[KNOWN-GAP D64-B/key poisoning] a row parked because its session was NOT yet delivered keeps the session's idempotency key: when the session IS delivered later, its release is silently PARKED instead of paid", { skip }, async () => {
+test("[REGRESSION D64-B/key poisoning] a row whose premise is void is closed and frees the session's key: when the session IS delivered later, its release is PAID", { skip }, async () => {
   await prisma.sessionSettlement.deleteMany({});
   const pt = await makePt();
   const contract = await makeContract(pt, { usedSessions: 0 });
@@ -87,12 +83,12 @@ test("[KNOWN-GAP D64-B/key poisoning] a row parked because its session was NOT y
   try {
     const { runSettlementSweep } = await import("../services/session-settlement-sweep.service");
     await runSettlementSweep();
-    assert.match((await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } })).lastError ?? "", /^NEEDS_RECONCILIATION:.*not delivered/);
+    assert.match((await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } })).lastError ?? "", /^ENDED_UNSETTLED:PREMISE_VOID:.*not delivered/);
     // the client now confirms: the session really is delivered
     await prisma.session.update({ where: { id: waiting.id }, data: { status: "COMPLETED", sessionDeducted: true } });
     await releaseSessionMoney(contract.id, waiting.id);
-    assert.equal(s.payments.length, 0, "the legitimate release is NOT sent: the key is held by the parked row (a human must unpark it)");
-    assert.equal((await prisma.sessionSettlement.findFirstOrThrow({ where: { contractId: contract.id } })).status, "NEEDS_HUMAN");
+    assert.deepEqual(s.payments.map((p) => p.method), ["releaseSession"], "the legitimate release IS sent");
+    assert.equal((await prisma.sessionSettlement.findUniqueOrThrow({ where: { idempotencyKey: `SESSION_RELEASE:${waiting.id}` } })).status, "SETTLED");
   } finally {
     s.restore();
     await cleanup([pt], [contract.id]);

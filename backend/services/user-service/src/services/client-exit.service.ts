@@ -259,7 +259,7 @@ export async function terminateAsClient(
 
   // Outstanding session-level money steps (a release / compensation that failed earlier) are settled BEFORE the PT lock is
   // taken, so the network is never waited on under it (the ending itself refuses to be recorded while one is outstanding).
-  await settleUnsettledSessionMoneyFirst(contractId);
+  const sessionMoneyPlan = await settleUnsettledSessionMoneyFirst(contractId);
 
   await options.beforeLock?.();
 
@@ -326,7 +326,7 @@ export async function terminateAsClient(
         fresh.id,
         CLIENT_EXIT_DUE_TO_PT_RESTRICTION,
         { cancelledBy: clientUserId, cancellationReason: CLIENT_EXIT_CANCEL_REASON },
-        { drain: false },
+        { drain: false, plan: sessionMoneyPlan },
       );
       if (!intent) throw new ClientExitError("Contract not found", 404);
       return { kind: "RECORDED", fresh, override, restrictionId, sessionsClosed, intent };

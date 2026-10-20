@@ -304,6 +304,8 @@ test("7. outstanding session-level money steps are settled BEFORE the ending is 
     return { released: { pt: "450000", gym: "0", platform: "50000" } };
   });
   try {
+    // payment-service is DOWN: the release fails AND the ledger cannot be asked (FH-3c: only an unanswerable ledger keeps the ending refused)
+    s.ledger.unreachable = true;
     await assert.rejects(
       () => terminateContractMoney(c.id, "CLIENT_CANCELLED"),
       (e: any) => e.status === 409 && e.code === "SESSION_SETTLEMENT_PENDING",
@@ -313,6 +315,7 @@ test("7. outstanding session-level money steps are settled BEFORE the ending is 
     assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).status, "ACTIVE");
 
     releaseOk = true;
+    s.ledger.unreachable = false;
     await terminateContractMoney(c.id, "CLIENT_CANCELLED");
     const after = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
     assert.equal(after.status, "CANCELLED");

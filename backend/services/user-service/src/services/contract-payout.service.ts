@@ -1,7 +1,7 @@
 import { logger } from "@gym-coach/shared";
 import { Prisma, ContractStatus, SessionSettlementKind, SessionStatus } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
-import { paymentClient } from "../clients/payment.client";
+import { paymentClient, type LedgerOperationRecord } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
 import { settleTracked, settlementAttemptLevel, staleProcessingMs, type SettleOutcome } from "./session-settlement.service";
 import { callOffOpenSessions, holdUnansweredNoShowReports, sessionCallOffReasonFor } from "./contract-session-closure";
@@ -19,6 +19,7 @@ import {
   isParkedRow,
   sessionSettlementRepository,
 } from "../repositories/session-settlement.repository";
+import { invalidMoneyFigures, ledgerRefusalOf, settlingD65bEnabled } from "./session-settlement-answers";
 import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
 
 /** Every termination reason ends the contract in exactly one of these two final states. */
@@ -143,6 +144,25 @@ export function isContractEnded(c: { status: ContractStatus }): boolean {
 export interface TerminationTerms {
   reason: TerminationReason;
   unresolvedSessions: number;
+  /**
+   * FH-3c (D65-B): of `unresolvedSessions`, how many are DELIVERED sessions - already counted in the contract's `usedSessions` - whose
+   * release payment-service never performed (UNCONFIRMED rows). Their value is HELD like any unresolved session, so the terminate
+   * call (and the preview) sends `usedSessions - heldDelivered`: the session is counted once, as held, not also as used.
+   */
+  heldDelivered?: number;
+}
+
+/** FH-3c: what the contract's UNCONFIRMED (held) session rows stand for. A late-arrival row holds no session value. */
+export async function heldUnconfirmedCounts(
+  contractId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
+): Promise<{ delivered: number; noShow: number }> {
+  if (!settlingD65bEnabled()) return { delivered: 0, noShow: 0 };
+  const rows = await sessionSettlementRepository.findHeldSessionRows(contractId, db);
+  return {
+    delivered: rows.filter((r) => r.kind === SessionSettlementKind.SESSION_RELEASE).length,
+    noShow: rows.filter((r) => r.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION).length,
+  };
 }
 
 export async function terminationTermsFor(
@@ -152,14 +172,19 @@ export async function terminationTermsFor(
 ): Promise<TerminationTerms> {
   // D45 / L3: EVERY reason holds the value of sessions awaiting confirmation / disputed (it used to be only the
   // restricted-PT exit; every other ending split a disputed session's value between PT / gym / platform / client).
-  const counted = await countUnresolvedSessions(contractId, db);
+  const countedAwaiting = await countUnresolvedSessions(contractId, db);
+  const held = await heldUnconfirmedCounts(contractId, db);
+  const counted = countedAwaiting + held.delivered + held.noShow;
   if (counted === 0) return { reason, unresolvedSessions: 0 };
   // payment-service refuses used + compensated + held > total. Never let a data glitch block a refund: hold at most
   // what the contract can still owe (the surplus session, if any, is then simply not held - and logged).
   const c = await db.contract.findUnique({ where: { id: contractId }, select: { totalSessions: true, usedSessions: true, compensatedSessions: true } });
-  const room = c ? Math.max(0, c.totalSessions - c.usedSessions - c.compensatedSessions) : counted;
+  // A delivered session held by FH-3c is counted ONCE: as held, not also as used (see TerminationTerms.heldDelivered).
+  const used = c ? Math.max(0, c.usedSessions - held.delivered) : 0;
+  const room = c ? Math.max(0, c.totalSessions - used - c.compensatedSessions) : counted;
   if (counted > room) logger.warn(`[ContractPayout] ${contractId}: ${counted} sessions await a decision but only ${room} are still owed - holding ${room}`);
-  return { reason, unresolvedSessions: Math.min(counted, room) };
+  const unresolvedSessions = Math.min(counted, room);
+  return { reason, unresolvedSessions, ...(held.delivered > 0 ? { heldDelivered: Math.min(held.delivered, unresolvedSessions) } : {}) };
 }
 
 /** The request-body fragment for the held sessions: absent (not 0) when there are none. */
@@ -298,6 +323,8 @@ export async function resolveUnresolvedSessionMoney(
   sessionId: string,
   outcome: UnresolvedOutcome,
   mode: SettleMode = {},
+  /** FH-3c: the UNCONFIRMED (held) session row this resolution settles - flipped to SETTLED in the resolution's own transaction. */
+  opts: { closeHeldRowId?: string } = {},
 ): Promise<SettleOutcome<ResolveAnswer> | undefined> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
@@ -348,12 +375,14 @@ export async function resolveUnresolvedSessionMoney(
     undefined,
     {
       takeover: mode.takeover ?? true,
+      validateFatal: (r) => (r?.nothingHeld ? null : invalidMoneyFigures(r)),
       validate: (r) => {
         if (r?.nothingHeld) return null;
         if (!r || typeof r !== "object" || !r.moved) return "payment-service did not report what it moved";
         return null;
       },
       apply: async (tx, r) => {
+        if (opts.closeHeldRowId) await sessionSettlementRepository.settleOnce(opts.closeHeldRowId, tx);
         // Same bookkeeping as the ordinary release: what the ledger really released to each party.
         if (outcome === "DELIVERED" && !r?.nothingHeld) {
           const moved = (r as { moved?: { pt?: unknown; gym?: unknown; platform?: unknown } }).moved;
@@ -366,6 +395,30 @@ export async function resolveUnresolvedSessionMoney(
       },
     },
   );
+}
+
+/**
+ * FH-3c (D65-B) - the LATER RESOLUTION of a session the ending HELD because payment-service had never performed its step (its row is
+ * UNCONFIRMED). Goes through the existing `UNRESOLVED_SESSION:<sessionId>` path: DELIVERED releases the held value to PT / gym /
+ * platform, NOT_DELIVERED refunds the client from the held amount (the contract's own money - no pooled balance is touched). The
+ * UNCONFIRMED row turns SETTLED in the same transaction as the resolution, so the decision is applied exactly once. For
+ * NOT_DELIVERED the caller (the admin ruling) has already put the session in a not-delivered state (CANCELLED / NO_SHOW).
+ * Nothing calls this on its own: a person decides, from the reconciliation report.
+ */
+export async function resolveUnconfirmedSessionMoney(
+  contractId: string,
+  sessionId: string,
+  outcome: UnresolvedOutcome,
+): Promise<{ state: "NOT_HELD" | "WAITING" | SettleOutcome<ResolveAnswer>["state"] }> {
+  const held = (await sessionSettlementRepository.findHeldSessionRows(contractId)).find(
+    (r) => r.sessionId === sessionId && r.kind !== SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION,
+  );
+  if (!held) return { state: "NOT_HELD" };
+  const answer = await resolveUnresolvedSessionMoney(contractId, sessionId, outcome, {}, { closeHeldRowId: held.id });
+  if (!answer) return { state: "WAITING" }; // the ending is not confirmed yet - the resolution row waits for it
+  // A resolution somebody else already settled: close the held row too (idempotent).
+  if (answer.state === "ALREADY_SETTLED" || (answer.state === "SETTLED" && !answer.applied)) await sessionSettlementRepository.settleOnce(held.id, prisma);
+  return { state: answer.state };
 }
 
 /**
@@ -409,6 +462,31 @@ export async function resolveHeldSessionNotDelivered(contractId: string, session
  * money they still receive in full. (And since Phase 0 an ending first settles every outstanding release, so
  * `alreadyReleased` it sends is the ledger's truth.)
  */
+async function applyReleaseBookkeeping(tx: Tx, contractId: string, sessionId: string, result: any): Promise<void> {
+  await contractRepository.addReleased(contractId, result.released, tx);
+  logger.info(
+    `[ContractPayout] Released session ${sessionId} of ${contractId}: pt=${result.released.pt} gym=${result.released.gym} platform=${result.released.platform}`,
+  );
+}
+
+async function applyNoShowBookkeeping(tx: Tx, contractId: string, sessionId: string, result: any): Promise<void> {
+  const fresh = await tx.contract.findUnique({ where: { id: contractId }, select: { notes: true } });
+  await contractRepository.incrementCompensatedSessions(
+    contractId,
+    `${fresh?.notes ? fresh.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách.`,
+    tx,
+  );
+  if (Number(result.shortfall) > 0) {
+    logger.warn(`[ContractPayout] No-show shortfall ${result.shortfall} on ${contractId} - the unpaid part is an open obligation to the client`);
+  }
+}
+
+async function applyLateArrivalBookkeeping(_tx: Tx, contractId: string, _sessionId: string, result: any): Promise<void> {
+  if (Number(result.shortfall) > 0) {
+    logger.warn(`[ContractPayout] Late-arrival shortfall ${result.shortfall} on ${contractId} - the unpaid part is an open obligation to the client`);
+  }
+}
+
 export async function releaseSessionMoney(contractId: string, sessionId: string, mode: SettleMode = {}): Promise<void> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return;
@@ -441,12 +519,7 @@ export async function releaseSessionMoney(contractId: string, sessionId: string,
       // Track what has actually been paid out so termination can top each party up to their
       // final entitlement instead of paying the released part twice. Added in the transaction that
       // flips the row to SETTLED, so it is counted exactly once.
-      apply: async (tx, result) => {
-        await contractRepository.addReleased(contract.id, result.released, tx);
-        logger.info(
-          `[ContractPayout] Released session ${sessionId} of ${contract.id}: pt=${result.released.pt} gym=${result.released.gym} platform=${result.released.platform}`,
-        );
-      },
+      apply: (tx, result) => applyReleaseBookkeeping(tx, contract.id, sessionId, result),
     },
   );
 }
@@ -491,19 +564,8 @@ export async function compensateNoShowMoney(contractId: string, sessionId: strin
     {
       takeover: mode.takeover ?? true,
       validate: invalidCompensation,
-      apply: async (tx, result) => {
-        const fresh = await tx.contract.findUnique({ where: { id: contract.id }, select: { notes: true } });
-        await contractRepository.incrementCompensatedSessions(
-          contract.id,
-          `${fresh?.notes ? fresh.notes + "\n" : ""}[${new Date().toISOString().slice(0, 10)}] PT vắng buổi ${sessionId}: bồi thường ${result.compensation}đ cho khách.`,
-          tx,
-        );
-        if (Number(result.shortfall) > 0) {
-          logger.warn(
-            `[ContractPayout] No-show shortfall ${result.shortfall} on ${contractId} - platform fronted it, receivable raised against the PT`,
-          );
-        }
-      },
+      validateFatal: invalidMoneyFigures,
+      apply: (tx, result) => applyNoShowBookkeeping(tx, contract.id, sessionId, result),
     },
   );
 }
@@ -537,13 +599,8 @@ export async function compensateLateArrivalMoney(contractId: string, sessionId: 
     {
       takeover: mode.takeover ?? true,
       validate: invalidLateArrival,
-      apply: async (_tx, result) => {
-        if (Number(result.shortfall) > 0) {
-          logger.warn(
-            `[ContractPayout] Late-arrival shortfall ${result.shortfall} on ${contractId} - platform fronted it, receivable raised against the PT`,
-          );
-        }
-      },
+      validateFatal: invalidMoneyFigures,
+      apply: (tx, result) => applyLateArrivalBookkeeping(tx, contract.id, sessionId, result),
     },
   );
 }
@@ -754,24 +811,154 @@ function settlementPendingError(count: number) {
 }
 
 /**
+ * FH-3c (D65-B) - what the ending decided about the session rows it could not settle: the rows whose value it HOLDS. The decision
+ * is taken outside every lock (it needs the ledger lookup); the rows are flipped to UNCONFIRMED later, under the contract lock, in
+ * the very transaction that records the ending.
+ */
+export interface SessionMoneyPlan {
+  hold: Array<{ id: string; kind: SessionSettlementKind; sessionId: string | null }>;
+}
+const NO_PLAN: SessionMoneyPlan = { hold: [] };
+
+/** The ledger operation kind payment-service files each session-level row under (LedgerOperationRecord.kind). */
+const LEDGER_KIND_OF: Partial<Record<SessionSettlementKind, string>> = {
+  [SessionSettlementKind.SESSION_RELEASE]: "RELEASE_SESSION",
+  [SessionSettlementKind.PT_NO_SHOW_COMPENSATION]: "NO_SHOW",
+  [SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION]: "LATE_ARRIVAL",
+};
+
+type UnsettledRow = Awaited<ReturnType<typeof sessionSettlementRepository.findUnsettledSessionMoney>>[number];
+
+/**
+ * FH-3c (a) - payment-service has ALREADY performed this row's operation (the lookup found its stored result): apply that result
+ * locally, exactly once, in the SAME transaction that flips the row to SETTLED (releasedTo* / compensatedSessions), as if the
+ * original answer had arrived. A record that does not belong to this row (another transaction, another operation kind) or is not
+ * a valid confirmation is NEVER applied: the row is parked (CONFLICT / NEEDS_HUMAN) and the ending stays refused.
+ */
+async function applyStoredLedgerResult(
+  row: { id: string; kind: SessionSettlementKind; contractId: string; sessionId: string | null },
+  contract: ContractRow,
+  record: LedgerOperationRecord,
+): Promise<"APPLIED" | "BLOCKED"> {
+  const expectedKind = LEDGER_KIND_OF[row.kind];
+  if ((record.transactionId && record.transactionId !== contract.paymentTransactionId) || (record.kind && expectedKind && record.kind !== expectedKind)) {
+    const note = `ledger operation ${record.key} belongs to transaction ${record.transactionId ?? "?"} / kind ${record.kind ?? "?"}, not to ${contract.paymentTransactionId} / ${expectedKind}`;
+    await sessionSettlementRepository.park(row.id, CONFLICT_PREFIX, note);
+    logger.error({ error: "[MoneyAttention] stored ledger operation does not match the settlement row - parked CONFLICT, nothing applied", contractId: row.contractId, note });
+    return "BLOCKED";
+  }
+  const result = record.result as any;
+  let invalid: string | null;
+  switch (row.kind) {
+    case SessionSettlementKind.SESSION_RELEASE:
+      invalid = invalidRelease(result);
+      break;
+    case SessionSettlementKind.PT_NO_SHOW_COMPENSATION:
+      invalid = invalidCompensation(result) ?? invalidMoneyFigures(result);
+      break;
+    case SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION:
+      invalid = invalidLateArrival(result) ?? invalidMoneyFigures(result);
+      break;
+    default:
+      invalid = `no stored-result bookkeeping for ${row.kind}`;
+  }
+  if (invalid) {
+    await sessionSettlementRepository.park(row.id, NEEDS_RECONCILIATION_PREFIX, `the stored ledger result is not a valid confirmation: ${invalid}`);
+    logger.error({ error: "[MoneyAttention] stored ledger result is not a valid confirmation - parked for a human, nothing applied", contractId: row.contractId, key: record.key, invalid });
+    return "BLOCKED";
+  }
+  const sessionId = row.sessionId ?? "";
+  await prisma.$transaction(async (tx) => {
+    if (!(await sessionSettlementRepository.settleOnce(row.id, tx))) return; // somebody else applied it first
+    if (row.kind === SessionSettlementKind.SESSION_RELEASE) await applyReleaseBookkeeping(tx, contract.id, sessionId, result);
+    else if (row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION) await applyNoShowBookkeeping(tx, contract.id, sessionId, result);
+    else await applyLateArrivalBookkeeping(tx, contract.id, sessionId, result);
+    await tx.sessionSettlement.update({ where: { id: row.id }, data: { result: record.result as Prisma.InputJsonValue, appliedAt: new Date() } });
+  });
+  logger.info(`[ContractPayout] ${row.kind} ${row.id} of ${contract.id}: payment-service had already performed ${record.key} - stored result applied, row SETTLED`);
+  return "APPLIED";
+}
+
+/**
+ * FH-3c - what to do with the session rows an ending could neither run nor wait for (FAILED after a retry, parked NEEDS_HUMAN):
+ * ask payment-service, read-only, whether it ever performed the operation under the row's key.
+ *   - PERFORMED     -> the stored result is applied here ({@link applyStoredLedgerResult}); the row is SETTLED and the ending goes on.
+ *   - NOT PERFORMED -> the session is treated like any unresolved session (D45-L3 / D52): the certain unused part is refunded now and
+ *                      the session's value is HELD in the contract's own pending (the row becomes UNCONFIRMED in the ending's
+ *                      transaction). A row whose session was never delivered / charged has a void premise instead: terminal,
+ *                      and its key is released.
+ *   - cannot tell   -> (payment-service unreachable, a conflicting record, a record that is not a valid confirmation, a live runner)
+ *                      the row stays a blocker: the caller refuses the ending exactly as before.
+ * A step that the ledger DID perform but the system no longer considers due is never voided - that is a human's decision.
+ */
+async function reconcileUnverifiedSessionMoney(contractId: string, left: UnsettledRow[]): Promise<{ plan: SessionMoneyPlan; blocked: number }> {
+  const contract = payableOrNull(await contractRepository.findById(contractId));
+  if (!contract) return { plan: NO_PLAN, blocked: left.length };
+
+  const candidates = left.filter((r) => r.status !== "CONFLICT" && !isLiveRow(r)).slice(0, 100);
+  let blocked = left.length - candidates.length;
+  const found = new Map<string, LedgerOperationRecord>();
+  let lookupOk = candidates.length === 0;
+  if (candidates.length > 0) {
+    try {
+      const answer = await paymentClient.lookupLedgerOperations(candidates.map((r) => r.idempotencyKey));
+      for (const op of answer.operations) found.set(op.key, op);
+      lookupOk = true;
+    } catch (e) {
+      logger.warn(`[ContractPayout] ${contractId}: ledger lookup failed (${(e as Error).message}) - the unverified session step(s) keep the ending refused`);
+    }
+  }
+  if (!lookupOk) return { plan: NO_PLAN, blocked: left.length };
+
+  const plan: SessionMoneyPlan = { hold: [] };
+  for (const row of candidates) {
+    const record = found.get(row.idempotencyKey);
+    const verdict = await assessSettlementRow(row);
+    const premiseVoid = !verdict.ok && "park" in verdict && verdict.code === "STATE";
+    if (record) {
+      if (!verdict.ok) {
+        blocked++; // the ledger moved money for a step the system does not consider due: a human decides
+        continue;
+      }
+      if ((await applyStoredLedgerResult(row, contract, record)) === "BLOCKED") blocked++;
+      continue;
+    }
+    if (verdict.ok) {
+      plan.hold.push({ id: row.id, kind: row.kind, sessionId: row.sessionId });
+    } else if (premiseVoid && (await sessionSettlementRepository.voidRow(row.id, (verdict as { park: string }).park))) {
+      logger.warn(`[ContractPayout] ${row.kind} row ${row.id} of ${contractId}: premise void (${(verdict as { park: string }).park}) and the ledger never performed it - closed, key released`);
+    } else {
+      blocked++;
+    }
+  }
+  return { plan, blocked };
+}
+
+/**
  * Settles every outstanding session-level money step of a RUNNING contract (release, no-show / late-arrival
  * compensation) BEFORE the ending is recorded - OUTSIDE any lock. The ending's snapshot {usedSessions, compensatedSessions,
  * alreadyReleased} and its refund formula assume every counted session was really paid; an unsettled one would be priced
  * again by the ending and paid a second time (D57 a1/a2). Idempotent: each row is re-run with its own key, which
  * payment-service de-duplicates, and its bookkeeping is applied once. A row a live request is processing right now is
- * WAITED for (not duplicated) up to SETTLEMENT_INFLIGHT_WAIT_MS. What cannot be settled leaves the ending refused
- * (409 SESSION_SETTLEMENT_PENDING), loudly, retried by the caller.
+ * WAITED for (not duplicated) up to SETTLEMENT_INFLIGHT_WAIT_MS.
+ *
+ * What still cannot be settled (FH-3c, SETTLING_D65B on): the ledger is asked read-only whether it performed the step
+ * ({@link reconcileUnverifiedSessionMoney}) - performed: applied; not performed: HELD by the ending (returned in the plan, flipped
+ * in the ending's transaction). Only a step whose state cannot be established (payment-service unreachable, a conflicting record,
+ * a live runner) leaves the ending refused (409 SESSION_SETTLEMENT_PENDING), loudly, retried by the caller. With SETTLING_D65B=false
+ * every unsettled step refuses the ending, as before.
  */
-export async function settleUnsettledSessionMoneyFirst(contractId: string): Promise<void> {
+export async function settleUnsettledSessionMoneyFirst(contractId: string): Promise<SessionMoneyPlan> {
   // A contract that has already ended is only being healed / replayed: a compensation is never paid on top of a settled ending.
   const current = await contractRepository.findById(contractId);
-  if (!current || isContractEnded(current)) return;
+  if (!current || isContractEnded(current)) return NO_PLAN;
+  const d65b = settlingD65bEnabled();
 
   for (let round = 0; round < 2; round++) {
-    const rows = await sessionSettlementRepository.findUnsettledSessionMoney(contractId);
-    if (rows.length === 0) return;
+    const rows = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, prisma, { excludeHeld: d65b });
+    if (rows.length === 0) return NO_PLAN;
     for (const row of rows.slice(0, SETTLEMENT_DRAIN_LIMIT)) {
-      if (isParkedRow(row)) continue; // needs a human; it will keep the ending refused below
+      if (isParkedRow(row)) continue; // needs a human (or, with D65-B, the ledger lookup below); it would keep the ending refused
       let cur = row;
       if (isLiveRow(cur)) {
         // Another runner is on it right now (or the request that just recorded it is about to start it) - wait for it
@@ -788,14 +975,26 @@ export async function settleUnsettledSessionMoneyFirst(contractId: string): Prom
       }
       const verdict = await assessSettlementRow(cur);
       if (!verdict.ok) {
-        if ("park" in verdict) await sessionSettlementRepository.park(cur.id, NEEDS_RECONCILIATION_PREFIX, verdict.park);
+        // D65-B: a "never due" verdict is decided together with the ledger lookup below (void only if the ledger never did it).
+        if ("park" in verdict && !(d65b && verdict.code === "STATE")) {
+          await sessionSettlementRepository.park(cur.id, NEEDS_RECONCILIATION_PREFIX, verdict.park);
+        }
         continue;
       }
       await runSessionMoneyRow(cur);
     }
   }
-  const left = await sessionSettlementRepository.findUnsettledSessionMoney(contractId);
-  if (left.length > 0) throw settlementPendingError(left.length);
+  const left = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, prisma, { excludeHeld: d65b });
+  if (left.length === 0) return NO_PLAN;
+  if (!d65b) throw settlementPendingError(left.length);
+
+  const { plan, blocked } = await reconcileUnverifiedSessionMoney(contractId, left);
+  if (blocked > 0) throw settlementPendingError(blocked);
+  const after = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, prisma, { excludeHeld: true });
+  const planned = new Set(plan.hold.map((h) => h.id));
+  const unplanned = after.filter((r) => !planned.has(r.id));
+  if (unplanned.length > 0) throw settlementPendingError(unplanned.length);
+  return plan;
 }
 
 /** An ending that is recorded and being carried through. */
@@ -816,6 +1015,9 @@ export interface TerminationIntent {
 
 const MAX_BEGIN_ROUNDS = 4;
 
+/** A planned hold could not be flipped (a runner took the row meanwhile): the transaction is rolled back and the ending tries again. */
+class HoldRaceError extends Error {}
+
 /**
  * STEP 1 of an ending - RECORD it (D58/D59). Under the contract lock, for milliseconds and with no network call inside:
  * nothing outstanding may remain (see settleUnsettledSessionMoneyFirst), then the accepted ending - reason, who/why
@@ -824,62 +1026,93 @@ const MAX_BEGIN_ROUNDS = 4;
  * amounts are frozen, and any retry, sweep or other caller carries on with THIS ending (same reason, same key
  * `CONTRACT_TERMINATE:<id>`) - nothing is recomputed. Returns null when the contract does not exist.
  *
- * `drain: false` = the caller (client-exit, which holds the PT lock) already settled outstanding steps outside its lock;
- * finding one anyway refuses the ending (409 SESSION_SETTLEMENT_PENDING) instead of waiting on the network under that lock.
+ * FH-3c: the session rows the drain decided to HOLD (`plan`) are the only outstanding rows allowed; they are flipped to UNCONFIRMED in
+ * this same transaction (compare-and-set, so a runner that took one meanwhile makes the attempt start over), which is what makes
+ * "an UNCONFIRMED row exists" imply "an ending is recorded". Only a NEW ending holds rows: a resumed one keeps refusing.
+ *
+ * `drain: false` = the caller (client-exit, which holds the PT lock) already settled outstanding steps outside its lock and passes
+ * the resulting `plan`; finding any other outstanding step refuses the ending (409 SESSION_SETTLEMENT_PENDING) instead of waiting
+ * on the network under that lock.
  */
 export async function beginContractTermination(
   contractId: string,
   reason: TerminationReason,
   extra?: TerminationStatusExtra,
-  opts: { drain?: boolean } = {},
+  opts: { drain?: boolean; plan?: SessionMoneyPlan } = {},
 ): Promise<TerminationIntent | null> {
   const drain = opts.drain ?? true;
+  const d65b = settlingD65bEnabled();
+  let plan = opts.plan ?? NO_PLAN;
   for (let round = 1; round <= MAX_BEGIN_ROUNDS; round++) {
-    if (drain) await settleUnsettledSessionMoneyFirst(contractId);
+    if (drain) plan = await settleUnsettledSessionMoneyFirst(contractId);
 
-    const outcome = await withContractLock(contractId, async (tx) => {
-      const raw = await contractRepository.findById(contractId, tx);
-      if (!raw) return { kind: "NOT_FOUND" as const };
-      const ended = isContractEnded(raw);
-      if (!ended) {
-        const outstanding = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, tx);
-        if (outstanding.length > 0) return { kind: "OUTSTANDING" as const, count: outstanding.length };
-      }
+    let outcome;
+    try {
+      outcome = await withContractLock(contractId, async (tx) => {
+        const raw = await contractRepository.findById(contractId, tx);
+        if (!raw) return { kind: "NOT_FOUND" as const };
+        const ended = isContractEnded(raw);
+        let holds: UnsettledRow[] = [];
+        if (!ended) {
+          const outstanding = await sessionSettlementRepository.findUnsettledSessionMoney(contractId, tx, { excludeHeld: d65b });
+          if (outstanding.length > 0) {
+            const planned = new Set(plan.hold.map((h) => h.id));
+            const resumedEnding = d65b ? await sessionSettlementRepository.findTerminationRow(contractId, tx) : null;
+            if (!d65b || resumedEnding || outstanding.some((r) => !planned.has(r.id))) return { kind: "OUTSTANDING" as const, count: outstanding.length };
+            holds = outstanding;
+          }
+        }
 
-      const payable = payableOrNull(raw);
-      if (!payable) return { kind: "UNPAID" as const, raw };
+        const payable = payableOrNull(raw);
+        if (!payable) return { kind: "UNPAID" as const, raw };
 
-      const existing = await sessionSettlementRepository.findTerminationRow(contractId, tx);
-      if (existing) {
-        const recorded = asTerminationReason(existing.reason) ?? (ended ? asTerminationReason(raw.terminationReason) : null) ?? reason;
-        return { kind: "INTENT" as const, raw, rowId: existing.id, reason: recorded, resumed: existing.status !== "SETTLED" };
-      }
+        const existing = await sessionSettlementRepository.findTerminationRow(contractId, tx);
+        if (existing) {
+          const recorded = asTerminationReason(existing.reason) ?? (ended ? asTerminationReason(raw.terminationReason) : null) ?? reason;
+          return { kind: "INTENT" as const, raw, rowId: existing.id, reason: recorded, resumed: existing.status !== "SETTLED" };
+        }
 
-      // A new ending. The client-facing who/why text is written with it (the final status write repeats it), so a sweep
-      // that completes this ending later still reports who ended it and why.
-      const recorded = ended ? (asTerminationReason(raw.terminationReason) ?? reason) : reason;
-      if (!ended && extra && (extra.cancelledBy !== undefined || extra.cancellationReason !== undefined)) {
-        await tx.contract.updateMany({
-          where: { id: raw.id, status: raw.status },
-          data: {
-            ...(extra.cancelledBy !== undefined ? { cancelledBy: extra.cancelledBy } : {}),
-            ...(extra.cancellationReason !== undefined ? { cancellationReason: extra.cancellationReason } : {}),
+        // A new ending. The client-facing who/why text is written with it (the final status write repeats it), so a sweep
+        // that completes this ending later still reports who ended it and why.
+        const recorded = ended ? (asTerminationReason(raw.terminationReason) ?? reason) : reason;
+        if (!ended && extra && (extra.cancelledBy !== undefined || extra.cancellationReason !== undefined)) {
+          await tx.contract.updateMany({
+            where: { id: raw.id, status: raw.status },
+            data: {
+              ...(extra.cancelledBy !== undefined ? { cancelledBy: extra.cancelledBy } : {}),
+              ...(extra.cancellationReason !== undefined ? { cancellationReason: extra.cancellationReason } : {}),
+            },
+          });
+        }
+        const row = await sessionSettlementRepository.upsertPending(
+          {
+            kind: SessionSettlementKind.CONTRACT_TERMINATION,
+            idempotencyKey: `CONTRACT_TERMINATE:${contractId}`,
+            sessionId: null,
+            contractId,
+            reason: recorded,
+            snapshotFacts: contractMoneyFacts(raw),
           },
-        });
+          tx,
+        );
+        // FH-3c: the held rows, in the SAME transaction as the intent. If any of them was taken by a runner meanwhile, nothing is kept.
+        for (const h of holds) {
+          const held = await sessionSettlementRepository.holdUnconfirmed(
+            h.id,
+            `payment-service never performed ${h.idempotencyKey}; the ending HOLDS this session's value (SETTLING_D65B) - an admin decides it (resolve as DELIVERED / NOT_DELIVERED)`,
+            tx,
+          );
+          if (!held) throw new HoldRaceError();
+        }
+        return { kind: "INTENT" as const, raw, rowId: row.id, reason: recorded, resumed: false };
+      });
+    } catch (e) {
+      if (e instanceof HoldRaceError) {
+        if (!drain || round === MAX_BEGIN_ROUNDS) throw settlementPendingError(plan.hold.length);
+        continue; // a runner took a row we meant to hold: settle / decide again
       }
-      const row = await sessionSettlementRepository.upsertPending(
-        {
-          kind: SessionSettlementKind.CONTRACT_TERMINATION,
-          idempotencyKey: `CONTRACT_TERMINATE:${contractId}`,
-          sessionId: null,
-          contractId,
-          reason: recorded,
-          snapshotFacts: contractMoneyFacts(raw),
-        },
-        tx,
-      );
-      return { kind: "INTENT" as const, raw, rowId: row.id, reason: recorded, resumed: false };
-    });
+      throw e;
+    }
 
     if (outcome.kind === "NOT_FOUND") return null;
     if (outcome.kind === "OUTSTANDING") {
@@ -1041,7 +1274,8 @@ export async function completeContractTermination(
         transactionId: contract.paymentTransactionId,
         price: contract.price!.toString(),
         totalSessions: contract.totalSessions,
-        usedSessions: contract.usedSessions,
+        // FH-3c: a delivered session whose release the ledger never performed is HELD (counted in unresolvedSessions), not also used.
+        usedSessions: Math.max(0, contract.usedSessions - (terms.heldDelivered ?? 0)),
         // Money-flow plan 1.5 / P0 cluster A1: without this, payment-service's remainingValue()
         // does not know a no-show session was already compensated in cash, and counts it as
         // still-unused entitlement on top of the cash payout the client already received -
@@ -1065,6 +1299,14 @@ export async function completeContractTermination(
         ...unresolvedArg(terms),
       });
     } catch (e) {
+      const refusal = ledgerRefusalOf(e);
+      if (refusal) {
+        // FH-2b: payment-service refused BEFORE writing anything. Retrying only repeats the refusal: park CONFLICT, alert, no retry.
+        const note = `payment-service refused the termination (${refusal.code}): ${refusal.message}`;
+        await sessionSettlementRepository.park(intent.rowId, CONFLICT_PREFIX, note);
+        logger.error({ error: `[MoneyAttention] payment-service refused the contract ending (${refusal.code}) - parked CONFLICT, will not be retried`, contractId, message: refusal.message });
+        throw Object.assign(codedError(`Việc kết thúc hợp đồng cần được kiểm tra thủ công: ${note}`, 409, CONTRACT_ENDING_CONFLICT), { cause: e });
+      }
       const message = (e as Error).message;
       await sessionSettlementRepository.markFailed(intent.rowId, message);
       const row = await sessionSettlementRepository.findById(intent.rowId);
@@ -1087,6 +1329,13 @@ export async function completeContractTermination(
       throw Object.assign(contractEndingError(), { cause: e });
     }
 
+    const malformed = invalidMoneyFigures(result);
+    if (malformed) {
+      // FH-3: the figures contradict each other (paid > owed, unpaid != owed - paid ...). Nothing is applied and a retry replays the same answer.
+      await sessionSettlementRepository.park(intent.rowId, NEEDS_RECONCILIATION_PREFIX, `malformed payment-service termination answer: ${malformed}`);
+      logger.error({ error: "[MoneyAttention] payment-service's termination answer has contradicting figures - parked for a human, nothing applied", contractId, malformed });
+      throw codedError(`Việc kết thúc hợp đồng cần được kiểm tra thủ công: ${malformed}`, 409, CONTRACT_ENDING_CONFLICT);
+    }
     const conflict = replay ? null : invalidTerminationAnswer(result, intent.reason, terms.unresolvedSessions);
     if (conflict) {
       await sessionSettlementRepository.park(intent.rowId, CONFLICT_PREFIX, conflict);
@@ -1248,9 +1497,12 @@ export async function moneyBreakdown(
   if (!contract || contract.price == null || contract.totalSessions <= 0) return null;
 
   const breakdown = await paymentClient.moneyBreakdown({
+    // D77: naming the payment transaction lets payment-service account for the late-arrival compensations the ledger holds for it
+    // (deducted from the sessions they were paid for) - the very facts terminate uses - so the quote equals what is credited.
+    ...(contract.paymentTransactionId ? { transactionId: contract.paymentTransactionId } : {}),
     price: contract.price.toString(),
     totalSessions: contract.totalSessions,
-    usedSessions: contract.usedSessions,
+    usedSessions: Math.max(0, contract.usedSessions - (terms?.heldDelivered ?? 0)),
     // Same reason as the terminate call above - a preview of "what would I get back right
     // now" must also exclude compensated sessions from the still-pending pool it quotes.
     compensatedSessions: contract.compensatedSessions,

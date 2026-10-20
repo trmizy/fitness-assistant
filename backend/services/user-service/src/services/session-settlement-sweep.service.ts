@@ -7,6 +7,8 @@ import {
   sessionSettlementRepository,
 } from "../repositories/session-settlement.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import { paymentClient } from "../clients/payment.client";
+import { settlingD65bEnabled } from "./session-settlement-answers";
 import { withContractLock } from "./contract-lock";
 import {
   assessSettlementRow,
@@ -231,6 +233,9 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
     const verdict = await assessSettlementRow({ ...row, contractId: row.contractId }, tx);
     if (verdict.ok) return { kind: "RUN" as const };
     if ("wait" in verdict) return { kind: "SKIP" as const };
+    // FH-3c: a "never due" verdict (the session was not delivered / charged ...) may be VOID - decided below, after the lock, with the
+    // ledger lookup (a step the ledger DID perform is never voided).
+    if (settlingD65bEnabled() && verdict.code === "STATE") return { kind: "VOID_CANDIDATE" as const, detail: verdict.park };
     // (a contract-level orphan is already handled above; any other "never runnable" verdict is parked for a human, not terminal)
     await sessionSettlementRepository.park(row.id, NEEDS_RECONCILIATION_PREFIX, verdict.park, tx);
     logger.error(`[SettlementSweep] ${row.kind} row ${row.id} parked: ${verdict.park}`);
@@ -246,6 +251,8 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
       return "PARKED";
     case "PREMISE":
       return decision.verdict;
+    case "VOID_CANDIDATE":
+      return voidOrParkStateRow(row, decision.detail);
     case "RUN":
       break;
   }
@@ -276,6 +283,27 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
     }
   }
   return "RETRIED";
+}
+
+/**
+ * FH-3c - a row whose premise looks void. Void it (terminal, idempotency key released) only when payment-service never performed
+ * the step; if it DID perform it, or cannot be asked, park it for a human exactly as before.
+ */
+async function voidOrParkStateRow(row: SweepRow, detail: string): Promise<Verdict> {
+  let performed: boolean | null = null;
+  try {
+    const key = (await sessionSettlementRepository.findById(row.id))?.idempotencyKey;
+    if (key) performed = (await paymentClient.lookupLedgerOperation(key)) !== null;
+  } catch (e) {
+    logger.warn(`[SettlementSweep] ledger lookup for ${row.id} failed (${(e as Error).message}) - parking instead of voiding`);
+  }
+  if (performed === false && (await sessionSettlementRepository.voidRow(row.id, detail))) {
+    logger.warn(`[SettlementSweep] ${row.kind} row ${row.id} voided: ${detail} (the ledger never performed it; key released)`);
+    return "PARKED";
+  }
+  await sessionSettlementRepository.park(row.id, NEEDS_RECONCILIATION_PREFIX, detail);
+  logger.error(`[SettlementSweep] ${row.kind} row ${row.id} parked: ${detail}`);
+  return "PARKED";
 }
 
 /**

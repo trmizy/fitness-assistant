@@ -530,6 +530,7 @@ test("F4 settlement 1: a FAILED no-show compensation is settled BEFORE the endin
 test("F4 settlement 2: a compensation that still cannot be paid REFUSES the ending (409 SESSION_SETTLEMENT_PENDING): contract stays ACTIVE, no termination call, nothing priced wrongly", { skip }, async () => {
   const { pt, c } = await failedCompensationFixture();
   const stub = slowMoney({ noShow: async () => { throw new Error("payment-service down"); } });
+  stub.ledger.unreachable = true; // payment-service is down: it cannot be asked either (FH-3c)
   try {
     await assert.rejects(ending(c)(), (e: any) => e.status === 409 && e.code === "SESSION_SETTLEMENT_PENDING");
     assert.equal(callsFor(stub, c.id, "terminate").length, 0);

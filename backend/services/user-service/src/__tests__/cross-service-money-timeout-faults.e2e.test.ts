@@ -22,7 +22,7 @@
  *   - an ending is RECORDED (CONTRACT_TERMINATION intent row, recorded reason) before the money call; until payment-service
  *     confirms it, the contract is ENDING: money-changing actions answer 409 CONTRACT_ENDING, the ending is carried through by a
  *     retry or by the settlement sweep with the SAME reason.
- * One test keeps the label [KNOWN-DEFECT]: payment-service's key semantics (Phase 2, payment-service is out of scope of Phase 0).
+ * The last [KNOWN-DEFECT] (payment-service's key semantics) was flipped to [REGRESSION FH-2b] by the Financial Hardening slice FH-2b.
  * A test named [SAFE] pins a behaviour that was and is correct.
  *
  * Opt-in; run ALONE against YOUR OWN isolated databases:
@@ -121,6 +121,16 @@ const settlements = (contractId: string) => H.m.prisma.sessionSettlement.findMan
 async function opCount(key: string): Promise<number> {
   return Number(((await payDb.$queryRawUnsafe("SELECT count(*)::text AS n FROM ledger_operations WHERE key = $1", key)) as any[])[0].n);
 }
+/**
+ * The result payment-service STORED for a business key (what it replays). The terminate response a CLIENT receives is
+ * redacted (the split between PT / gym / platform is not the client's to see - commit 50754688), so the figures the
+ * ledger really produced (shortfall, topUp ...) are read where they live: in the ledger.
+ */
+async function storedResult(key: string): Promise<any> {
+  const rows: any[] = await payDb.$queryRawUnsafe("SELECT result FROM ledger_operations WHERE key = $1", key);
+  assert.equal(rows.length, 1, `payment-service stored a result for ${key}`);
+  return rows[0].result;
+}
 async function receivables(): Promise<{ n: number; sum: number }> {
   const r: any[] = await payDb.$queryRawUnsafe("SELECT count(*)::text AS n, COALESCE(SUM(amount),0)::text AS s FROM partner_receivables");
   return { n: Number(r[0].n), sum: Number(r[0].s) };
@@ -185,7 +195,7 @@ function ledgerBody(c: PaidContract, key: string, extra: Record<string, unknown>
 // PART 1 - payment-service idempotency key semantics (what a replay does with DIFFERENT request parameters)
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-test("[KNOWN-DEFECT/P2 - payment-service, Phase 2] payment-service replays the STORED result for a known key whatever else the request says: same key + different price / contract / reason is NOT a conflict", { skip }, async () => {
+test("[REGRESSION FH-2b, was KNOWN-DEFECT/P2] payment-service REFUSES a known key reused with different immutable parameters: same key + different price / contract / reason / outcome is a 409 IDEMPOTENCY_KEY_CONFLICT and nothing moves", { skip }, async () => {
   await scenario(async () => {
     const pt = await H.makePt();
     const c1 = await H.paidContract(pt, { packageName: "C1" });
@@ -197,21 +207,26 @@ test("[KNOWN-DEFECT/P2 - payment-service, Phase 2] payment-service replays the S
     const snap = await H.snapshot();
     const afterFirst = await money(c1);
 
-    // (1) same key, a different PRICE (10,000,000 instead of 5,000,000): 200 and the OLD amounts - no 409, nothing moves
+    // (1) same key, a different PRICE (10,000,000 instead of 5,000,000): 409, nothing moves
     const priced = await payPost("/contracts/release-session", ledgerBody(c1, key, { price: "10000000" }));
-    assert.equal(priced.status, 200);
-    assert.deepEqual(priced.body.data, first.body.data, "the stored result comes back, the new price is ignored");
+    assert.equal(priced.status, 409, JSON.stringify(priced.body));
+    assert.equal(priced.body.error.code, "IDEMPOTENCY_KEY_CONFLICT");
 
-    // (2) same key, a DIFFERENT CONTRACT: 200 with c1's result; contract c2 receives NOTHING (a lost payment, silently)
+    // (2) same key, a DIFFERENT CONTRACT: 409 - c2 is not told "done" for a payment that never happened
     const other = await payPost("/contracts/release-session", ledgerBody(c2, key));
-    assert.equal(other.status, 200);
-    assert.deepEqual(other.body.data, first.body.data);
-    assert.equal(await H.net(c2.txnId, "PT", "AVAILABLE"), 0, "c2's PT was not paid, and nobody was told");
-    assert.equal(await H.net(c2.txnId, "PT", "PENDING"), 4_500_000, "c2's pending is untouched");
-    assert.deepEqual(await H.snapshot(), snap, "the ledger did not move on either replay");
+    assert.equal(other.status, 409, JSON.stringify(other.body));
+    assert.equal(other.body.error.code, "IDEMPOTENCY_KEY_CONFLICT");
+    assert.equal(await H.net(c2.txnId, "PT", "AVAILABLE"), 0, "c2's PT was not paid ...");
+    assert.equal(await H.net(c2.txnId, "PT", "PENDING"), 4_500_000, "... and c2's pending is untouched");
+    assert.deepEqual(await H.snapshot(), snap, "the ledger did not move on either refused call");
     assert.deepEqual(await money(c1), afterFirst);
 
-    // (3) terminate: same key, other reason / other used count - the first ending's figures win
+    // the identical request is still a replay of the stored result
+    const replay = await payPost("/contracts/release-session", ledgerBody(c1, key));
+    assert.equal(replay.status, 200);
+    assert.deepEqual(replay.body.data, first.body.data);
+
+    // (3) terminate: same key, other REASON -> 409; the first ending's figures stand
     const tKey = `CONTRACT_TERMINATE:${c1.id}`;
     const termBody = (reason: string, used: number) =>
       ledgerBody(c1, tKey, { usedSessions: used, compensatedSessions: 0, reason, alreadyReleased: { pt: "450000", gym: "0", platform: "50000" } });
@@ -220,12 +235,15 @@ test("[KNOWN-DEFECT/P2 - payment-service, Phase 2] payment-service replays the S
     assert.equal(t1.body.data.refund, "4050000.00", "9 unused x 500,000 x 90%");
     const clientAfter = (await H.wallet("CLIENT", c1.clientUserId)).a;
     const t2 = await payPost("/contracts/terminate", termBody("PT_CANCELLED", 4));
-    assert.equal(t2.status, 200);
-    assert.equal(t2.body.data.reason, "CLIENT_CANCELLED", "a PT_CANCELLED request is answered with the stored CLIENT_CANCELLED result");
-    assert.equal(t2.body.data.refund, t1.body.data.refund);
+    assert.equal(t2.status, 409, JSON.stringify(t2.body));
+    assert.equal(t2.body.error.code, "IDEMPOTENCY_KEY_CONFLICT");
     assert.equal((await H.wallet("CLIENT", c1.clientUserId)).a, clientAfter);
+    // ... but the SAME reason with other counters (a held session resolved meanwhile changes them legitimately) is still a replay
+    const t3 = await payPost("/contracts/terminate", termBody("CLIENT_CANCELLED", 4));
+    assert.equal(t3.status, 200, JSON.stringify(t3.body));
+    assert.deepEqual(t3.body.data, t1.body.data);
 
-    // (4) held session resolved both ways under ONE key: the second outcome gets the first outcome's result
+    // (4) held session resolved both ways under ONE key: the opposite outcome is a 409, never a silent "ok"
     const c3 = await H.paidContract(pt, { packageName: "C3" });
     await payPost(
       "/contracts/terminate",
@@ -236,10 +254,10 @@ test("[KNOWN-DEFECT/P2 - payment-service, Phase 2] payment-service replays the S
     assert.equal(delivered.status, 200, JSON.stringify(delivered.body));
     const clientBefore = (await H.wallet("CLIENT", c3.clientUserId)).a;
     const notDelivered = await payPost("/contracts/resolve-unresolved-session", ledgerBody(c3, uKey, { outcome: "NOT_DELIVERED" }));
-    assert.equal(notDelivered.status, 200, "no 409: the opposite outcome is silently answered with the first result");
-    assert.deepEqual(notDelivered.body.data, delivered.body.data);
-    assert.equal((await H.wallet("CLIENT", c3.clientUserId)).a, clientBefore, "the client was NOT refunded though the caller asked for NOT_DELIVERED");
-    show("key semantics", { refund: t1.body.data.refund, replayedReason: t2.body.data.reason });
+    assert.equal(notDelivered.status, 409, JSON.stringify(notDelivered.body));
+    assert.equal(notDelivered.body.error.code, "IDEMPOTENCY_KEY_CONFLICT");
+    assert.equal((await H.wallet("CLIENT", c3.clientUserId)).a, clientBefore, "the client was not refunded either, and the caller is told so");
+    show("key semantics", { refund: t1.body.data.refund, conflictStatus: t2.status });
     await H.invariant("key semantics");
   });
 });
@@ -443,7 +461,8 @@ test("[REGRESSION D58, was DEFECT/P2] session release answer lost, then the clie
     const m = await money(A);
     assert.equal(m.client, 3_150_000);
     assert.equal(m.ptAvail, 1_665_000, "3 x 450,000 released + 315,000 top-up");
-    assert.equal(end.body.settlement.shortfall, "0.00");
+    assert.equal((await storedResult(`CONTRACT_TERMINATE:${A.id}`)).shortfall, "0.00");
+    assert.equal(end.body.settlement.refund, "3150000.00", "and the client-visible answer carries the refund it was credited");
     assert.equal(await opCount(`SESSION_RELEASE:${s.id}`), 1);
     assert.equal(await opCount(`CONTRACT_TERMINATE:${A.id}`), 1);
     await H.invariant("release lost then ending");
@@ -469,7 +488,9 @@ test("[REGRESSION D58, was DEFECT/P1] session release answer lost, then the clie
     assert.equal(m.client, 3_150_000);
     assert.equal(m.ptAvail, 1_665_000, "the PT ends with exactly what it earned");
     assert.equal(m.platAvail, 185_000);
-    assert.equal(Number(end.body.settlement.shortfall), 0, "no gap, so nothing fronted");
+    const stored = await storedResult(`CONTRACT_TERMINATE:${A.id}`);
+    assert.equal(Number(stored.shortfall), 0, "no gap, so nothing fronted");
+    assert.deepEqual([stored.owed, stored.paid, stored.unpaid], [stored.refund, stored.refund, "0.00"], "paid = owed: nothing unpaid");
     assert.deepEqual(recv, recvBefore, "no receivable raised against the PT");
     await H.invariant("release lost then ending (no gap)");
   });
@@ -538,9 +559,10 @@ test("[REGRESSION D58 apply-once, was DEFECT/P1] session release: the ledger com
     const end = await cancelReq(A)(); // used=3
     assert.equal(end.status, 200, JSON.stringify(end.body));
     const m = await money(A);
-    show("apply-once then ending", { client: m.client, ptAvailOnA: m.ptAvail, topUp: end.body.settlement.topUp, pt });
+    const storedEnd = await storedResult(`CONTRACT_TERMINATE:${A.id}`);
+    show("apply-once then ending", { client: m.client, ptAvailOnA: m.ptAvail, topUp: storedEnd.topUp, pt });
     assert.equal(m.ptAvail, 1_665_000, "the PT receives exactly its 3 sessions + the top-up");
-    assert.equal(end.body.settlement.topUp.pt, "315000.00");
+    assert.equal(storedEnd.topUp.pt, "315000.00");
     assert.equal(m.client, 3_150_000);
     await H.invariant("apply-once");
   });
@@ -598,7 +620,7 @@ test("[REGRESSION D58, was DEFECT/P0] one session can never be paid under two id
   });
 });
 
-test("[REGRESSION D58 unit 1, was DEFECT/P1] a settlement row whose decision never committed (legacy dangling row) is NEVER paid by the sweep: it is PARKED (NEEDS_RECONCILIATION), the PT is not paid for a session the system shows as unconfirmed, a 'not delivered' ruling stays clean", { skip }, async () => {
+test("[REGRESSION D58 unit 1, was DEFECT/P1] a settlement row whose decision never committed (legacy dangling row) is NEVER paid by the sweep: it is closed as VOID (FH-3c), the PT is not paid for a session the system shows as unconfirmed, a 'not delivered' ruling stays clean", { skip }, async () => {
   const { runSettlementSweep } = await import("../services/session-settlement-sweep.service");
   await scenario(async () => {
     const { A } = await setUp(2);
@@ -611,8 +633,9 @@ test("[REGRESSION D58 unit 1, was DEFECT/P1] a settlement row whose decision nev
     await runSettlementSweep();
     assert.deepEqual(await money(A), before, "the sweep paid nothing");
     const parked = (await settlements(A.id)).find((x) => x.sessionId === s.id)!;
-    assert.equal(parked.status, "FAILED");
-    assert.match(parked.lastError ?? "", /^NEEDS_RECONCILIATION:/);
+    // FH-3c: payment-service never performed it (checked by key) -> closed as VOID, releasing the key for a real delivery
+    assert.notEqual(parked.status, "SETTLED");
+    assert.match(parked.lastError ?? "", /^ENDED_UNSETTLED:PREMISE_VOID:/);
     assert.equal((await row(s.id)).status, "PENDING_CLIENT_CONFIRMATION");
 
     // the client disputes it; the admin rules 'not delivered' (CANCELLED): on a running contract that moves no money

@@ -117,7 +117,10 @@ export function stubSessionSettlements(): SessionSettlementMemoryStub {
       .filter((r) => r.contractId === contractId && kinds.includes(r.kind) && r.status !== "SETTLED" && !r.lastError?.startsWith(ENDED_UNSETTLED_PREFIX))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   replace("findUnsettledCompensations", async (contractId: string) => unsettled(contractId, ["PT_NO_SHOW_COMPENSATION", "PT_LATE_ARRIVAL_COMPENSATION"]));
-  replace("findUnsettledSessionMoney", async (contractId: string) => unsettled(contractId, SESSION_MONEY_KINDS as string[]));
+  replace("findUnsettledSessionMoney", async (contractId: string, _db?: unknown, opts?: { excludeHeld?: boolean }) =>
+    unsettled(contractId, SESSION_MONEY_KINDS as string[]).filter((r) => !(opts?.excludeHeld && r.status === "UNCONFIRMED")),
+  );
+  replace("findHeldSessionRows", async (contractId: string) => [...rows.values()].filter((r) => r.contractId === contractId && r.status === "UNCONFIRMED"));
   replace("findTerminationRow", async (contractId: string) => byKey(`CONTRACT_TERMINATE:${contractId}`) ?? null);
   replace("hasUnconfirmedTermination", async (contractId: string) =>
     [...rows.values()].some((r) => r.contractId === contractId && r.kind === "CONTRACT_TERMINATION" && r.status !== "SETTLED"),

@@ -24,7 +24,8 @@ export const CONFLICT_PREFIX = "CONFLICT:";
 
 /**
  * Statuses a row is never claimed / retried in by code: parked for a person (NEEDS_HUMAN), payment-service disagreed (CONFLICT),
- * and UNCONFIRMED (reserved for D65-B: the ledger outcome is not known, only the admin path decides). They still count as
+ * and UNCONFIRMED (FH-3c / D65-B: payment-service was asked and never performed the step; the ending HOLDS the session's value and
+ * only the admin path - resolveUnconfirmedSessionMoney - decides it). They still count as
  * "not SETTLED", so they keep an ending refused exactly as the old FAILED + prefix rows did.
  */
 export const PARKED_STATUSES: SessionSettlementStatus[] = [
@@ -41,7 +42,20 @@ export function parkedStatusFor(prefix: string): SessionSettlementStatus {
 }
 
 /** D64-A - terminal ORPHAN markers (the contract is gone / was never paid: nothing is owed). Written by the sweep and by scripts/orphan-settlement-rows.ts. */
-export const ORPHAN_MARKER_PREFIXES = [`${ENDED_UNSETTLED_PREFIX}CONTRACT_MISSING`, `${ENDED_UNSETTLED_PREFIX}NO_PAYMENT`];
+export const ORPHAN_MARKER_PREFIXES = [
+  `${ENDED_UNSETTLED_PREFIX}CONTRACT_MISSING`,
+  `${ENDED_UNSETTLED_PREFIX}NO_PAYMENT`,
+  // FH-3c (D65-B): the row's premise is void - see VOID_PREMISE_PREFIX.
+  `${ENDED_UNSETTLED_PREFIX}PREMISE_VOID`,
+];
+
+/**
+ * FH-3c (D65-B) - terminal label of a row whose PREMISE IS VOID: the session it was recorded for was never delivered / charged /
+ * no-show'd (or no longer exists), so nothing is owed. Like every ENDED_UNSETTLED row it is excluded from the retry queries, from
+ * the ending's "outstanding" test and from the attention report - and, unlike the others, it GIVES UP its idempotency key (see
+ * `sessionSettlementRepository.voidRow`), so a delivery that really happens later can record and pay a fresh row.
+ */
+export const VOID_PREMISE_PREFIX = `${ENDED_UNSETTLED_PREFIX}PREMISE_VOID:`;
 
 /** How many parked / exhausted rows the attention report reads before it ranks them. */
 const ATTENTION_CANDIDATES = 1000;
@@ -196,6 +210,58 @@ export const sessionSettlementRepository = {
     });
   },
 
+  /**
+   * FH-3c (D65-B) - the row's PREMISE IS VOID (its session was never delivered / charged / no-show'd, or is gone): nothing is owed.
+   * The row is KEPT as history in the terminal `ENDED_UNSETTLED:PREMISE_VOID:` state (excluded from every retry / outstanding /
+   * attention query) and GIVES UP its idempotency key by renaming it, so the key is free again: a session that IS delivered later
+   * records a fresh row and is paid, instead of being silently parked behind this one (the D64-B "key poisoning" gap). The new key
+   * carries the row id, so it stays unique. Never touches a SETTLED row. Returns whether this call voided it.
+   */
+  voidRow: async (id: string, message: string, db: Db = prisma): Promise<boolean> => {
+    const row = await db.sessionSettlement.findUnique({ where: { id } });
+    if (!row || row.status === SessionSettlementStatus.SETTLED || row.idempotencyKey.includes("#VOID:")) return false;
+    const { count } = await db.sessionSettlement.updateMany({
+      where: { id, idempotencyKey: row.idempotencyKey, status: { not: SessionSettlementStatus.SETTLED } },
+      data: {
+        status: SessionSettlementStatus.FAILED,
+        idempotencyKey: `${row.idempotencyKey}#VOID:${row.id}`,
+        lastError: `${VOID_PREMISE_PREFIX} ${message}`.slice(0, 2000),
+      },
+    });
+    return count === 1;
+  },
+
+  /**
+   * FH-3c (D65-B) - the HOLD decision: UNCONFIRMED = "payment-service was asked and has NOT performed this step; the ending holds the
+   * session's value instead". A compare-and-set on the status the decision was taken for - never PROCESSING (a runner has the row
+   * and may be executing it right now), never SETTLED / CONFLICT. Runs in the same transaction that records the ending, so
+   * "an UNCONFIRMED row exists" implies "an ending is recorded". Returns whether the row is now UNCONFIRMED.
+   */
+  holdUnconfirmed: async (id: string, note: string, db: Db): Promise<boolean> => {
+    const { count } = await db.sessionSettlement.updateMany({
+      where: {
+        id,
+        status: {
+          in: [
+            SessionSettlementStatus.PENDING,
+            SessionSettlementStatus.FAILED,
+            SessionSettlementStatus.NEEDS_HUMAN,
+            SessionSettlementStatus.UNCONFIRMED,
+          ],
+        },
+      },
+      data: { status: SessionSettlementStatus.UNCONFIRMED, lastError: `UNCONFIRMED: ${note}`.slice(0, 2000) },
+    });
+    return count === 1;
+  },
+
+  /** FH-3c: the UNCONFIRMED (held) session rows of a contract, oldest first. */
+  findHeldSessionRows: (contractId: string, db: Db = prisma) =>
+    db.sessionSettlement.findMany({
+      where: { contractId, kind: { in: SESSION_MONEY_KINDS }, status: SessionSettlementStatus.UNCONFIRMED },
+      orderBy: { createdAt: "asc" },
+    }),
+
   /** The unsettled compensation rows of one contract (what the ending must settle first), oldest first. */
   findUnsettledCompensations: (contractId: string, db: Pick<typeof prisma, "sessionSettlement"> = prisma) =>
     db.sessionSettlement.findMany({
@@ -213,12 +279,16 @@ export const sessionSettlementRepository = {
    * oldest first - parked-for-a-human rows included (they still block an ending: their effect on the ledger is unknown).
    * Only ENDED_UNSETTLED rows (the contract already ended) are left out.
    */
-  findUnsettledSessionMoney: (contractId: string, db: Db = prisma) =>
+  findUnsettledSessionMoney: (contractId: string, db: Db = prisma, opts: { excludeHeld?: boolean } = {}) =>
     db.sessionSettlement.findMany({
       where: {
         contractId,
         kind: { in: SESSION_MONEY_KINDS },
-        status: { not: SessionSettlementStatus.SETTLED },
+        // FH-3c: with D65-B on, an UNCONFIRMED row is a session whose value the ending HOLDS (the ledger was asked and had not done
+        // it): it no longer keeps the ending refused. With the flag off (old behaviour) it blocks like any parked row.
+        status: opts.excludeHeld
+          ? { notIn: [SessionSettlementStatus.SETTLED, SessionSettlementStatus.UNCONFIRMED] }
+          : { not: SessionSettlementStatus.SETTLED },
         OR: [{ lastError: null }, { NOT: { lastError: { startsWith: ENDED_UNSETTLED_PREFIX } } }],
       },
       orderBy: { createdAt: "asc" },
@@ -350,7 +420,7 @@ export const sessionSettlementRepository = {
         status: { not: SessionSettlementStatus.SETTLED },
         AND: [{ OR: [{ lastError: null }, { AND: ORPHAN_MARKER_PREFIXES.map((p) => ({ NOT: { lastError: { startsWith: p } } })) }] }],
         OR: [
-          { status: { in: [SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT] } },
+          { status: { in: [SessionSettlementStatus.NEEDS_HUMAN, SessionSettlementStatus.CONFLICT, SessionSettlementStatus.UNCONFIRMED] } },
           { attempts: { gte: minAttempts } },
           // FH-4: a row a runner claimed and never finished (only the admin report passes this; the retry paths do not).
           ...(opts.stuckProcessingBefore

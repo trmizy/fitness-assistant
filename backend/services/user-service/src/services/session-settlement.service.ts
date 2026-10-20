@@ -1,7 +1,13 @@
 import { logger } from "@gym-coach/shared";
 import { Prisma, SessionSettlementKind } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
-import { isParkedRow, sessionSettlementRepository } from "../repositories/session-settlement.repository";
+import {
+  CONFLICT_PREFIX,
+  NEEDS_RECONCILIATION_PREFIX,
+  isParkedRow,
+  sessionSettlementRepository,
+} from "../repositories/session-settlement.repository";
+import { ledgerRefusalOf } from "./session-settlement-answers";
 
 /**
  * Money-flow redesign plan 1.6 - "trạng thái buổi tập và trạng thái tiền phải tách nhau".
@@ -51,6 +57,8 @@ export interface SettlementDeps {
   markFailed: (id: string, error: string) => Promise<unknown>;
   /** Compare-and-set claim (Phase 0). Absent (DI unit tests): markProcessing is used. */
   claim?: (id: string, takeover: boolean) => Promise<ClaimResult>;
+  /** Park the row for a person (CONFLICT / NEEDS_HUMAN). Absent (DI unit tests): markFailed is used. */
+  park?: (id: string, prefix: string, message: string) => Promise<unknown>;
   /** Flip the row to SETTLED and run `apply` in the same transaction, behind the flip. Absent: markSettled only. */
   settleWith?: (id: string, apply: (tx: Prisma.TransactionClient) => Promise<void>) => Promise<boolean>;
 }
@@ -103,6 +111,7 @@ const defaultSettlementDeps: SettlementDeps = {
     const cur = await sessionSettlementRepository.findById(id);
     return { claimed: false, status: cur?.status, parked: !!cur && isParkedRow(cur) };
   },
+  park: (id, prefix, message) => sessionSettlementRepository.park(id, prefix, message),
   settleWith: (id, apply) =>
     prisma.$transaction(async (tx) => {
       const flipped = await sessionSettlementRepository.settleOnce(id, tx);
@@ -123,6 +132,11 @@ export interface SettleTrackedParams {
 export interface SettleTrackedOptions<R> {
   /** payment-service's answer -> an error text when it is NOT a valid confirmation (the row then stays FAILED, nothing is applied). */
   validate?: (result: R) => string | null;
+  /**
+   * FH-3: a MALFORMED answer (the figures contradict each other, e.g. paid > owed). Unlike `validate` it is not retried - a replay
+   * of the same operation returns the same stored answer - and nothing is applied: the row is parked NEEDS_HUMAN with an alert.
+   */
+  validateFatal?: (result: R) => string | null;
   /** The sub-ledger bookkeeping of the answer; runs in the transaction that flips the row to SETTLED (apply-once). */
   apply?: (tx: Prisma.TransactionClient, result: R) => Promise<void>;
   /** A live caller may run a row another runner is processing (default true). The settlement sweep passes false. */
@@ -135,8 +149,12 @@ export type SettleOutcome<R> =
   | { state: "ALREADY_SETTLED" }
   /** Another runner holds the row right now (only a sweep, or a caller that chose not to take over, sees this). */
   | { state: "IN_FLIGHT" }
-  /** The row is parked for a human (NEEDS_RECONCILIATION / CONFLICT / ENDED_UNSETTLED): nothing is run. */
-  | { state: "PARKED" }
+  /**
+   * The row is parked for a human (NEEDS_RECONCILIATION / CONFLICT / ENDED_UNSETTLED). `cause` is set when THIS call parked it:
+   * LEDGER_REFUSAL = payment-service refused it (409 IDEMPOTENCY_KEY_CONFLICT / 422 REQUEST_DOES_NOT_MATCH_TRANSACTION, CONFLICT),
+   * MALFORMED_ANSWER = it answered with figures that contradict each other (NEEDS_HUMAN). Nothing was applied.
+   */
+  | { state: "PARKED"; cause?: "LEDGER_REFUSAL" | "MALFORMED_ANSWER" }
   | { state: "FAILED"; error: string };
 
 /**
@@ -176,6 +194,19 @@ export async function settleTracked<R = void>(
     const result = await run();
     const invalid = opts.validate?.(result) ?? null;
     if (invalid) throw new Error(`UNCONFIRMED: ${invalid}`);
+    const malformed = opts.validateFatal?.(result) ?? null;
+    if (malformed) {
+      await parkRow(deps, row.id, NEEDS_RECONCILIATION_PREFIX, `malformed payment-service answer: ${malformed}`);
+      logger.error({
+        error: "[MoneyAttention] payment-service answered with figures that contradict each other - parked for a human, nothing applied",
+        kind: params.kind,
+        idempotencyKey: params.idempotencyKey,
+        contractId: params.contractId,
+        sessionId: params.sessionId,
+        malformed,
+      });
+      return { state: "PARKED", cause: "MALFORMED_ANSWER" };
+    }
     let applied = true;
     if (deps.settleWith) {
       applied = await deps.settleWith(row.id, async (tx) => {
@@ -186,6 +217,21 @@ export async function settleTracked<R = void>(
     }
     return { state: "SETTLED", applied, result };
   } catch (e) {
+    const refusal = ledgerRefusalOf(e);
+    if (refusal) {
+      // FH-2b: payment-service refused BEFORE writing anything (the key was used for a different request / the request does not
+      // match the payment transaction). Retrying produces the same refusal: park CONFLICT for a human, never retry.
+      await parkRow(deps, row.id, CONFLICT_PREFIX, `payment-service refused this request (${refusal.code}): ${refusal.message}`);
+      logger.error({
+        error: `[MoneyAttention] payment-service refused the request (${refusal.code}) - parked CONFLICT, will not be retried`,
+        kind: params.kind,
+        idempotencyKey: params.idempotencyKey,
+        contractId: params.contractId,
+        sessionId: params.sessionId,
+        message: refusal.message,
+      });
+      return { state: "PARKED", cause: "LEDGER_REFUSAL" };
+    }
     const message = (e as Error).message;
     await deps.markFailed(row.id, message);
     logger.error({
@@ -198,4 +244,10 @@ export async function settleTracked<R = void>(
     });
     return { state: "FAILED", error: message };
   }
+}
+
+/** Parks through the dependency when it has one; the DI unit-test deps fall back to a recorded failure. */
+async function parkRow(deps: SettlementDeps, id: string, prefix: string, message: string): Promise<void> {
+  if (deps.park) await deps.park(id, prefix, message);
+  else await deps.markFailed(id, `${prefix} ${message}`);
 }

@@ -109,6 +109,11 @@ export interface Stubs {
   notified: any[];
   /** Every notification handed to the realtime/phone push (publish). */
   pushed: any[];
+  /**
+   * FH-3c: the stand-in for payment-service's read-only ledger lookup. `ops` = the operations the "ledger" has performed, by key
+   * (default: none); `unreachable` makes every lookup throw like a down payment-service. `lookups` records the keys asked.
+   */
+  ledger: { ops: Map<string, any>; unreachable: boolean; lookups: string[] };
   restore: () => void;
 }
 
@@ -140,6 +145,19 @@ export function stubs(terminateResult: unknown = { refund: "1000000.00" }, opts:
       }),
     );
   }
+  const ledger = { ops: new Map<string, any>(), unreachable: false, lookups: [] as string[] };
+  restores.push(
+    patch(paymentClient, "lookupLedgerOperation", async (key: string) => {
+      ledger.lookups.push(key);
+      if (ledger.unreachable) throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+      return ledger.ops.get(key) ?? null;
+    }),
+    patch(paymentClient, "lookupLedgerOperations", async (keys: string[]) => {
+      ledger.lookups.push(...keys);
+      if (ledger.unreachable) throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+      return { operations: keys.filter((k) => ledger.ops.has(k)).map((k) => ledger.ops.get(k)), missing: keys.filter((k) => !ledger.ops.has(k)) };
+    }),
+  );
   for (const method of ["terminate", "releaseSession", "noShow", "lateArrival", "releaseHoldback", "checkout"] as const) {
     restores.push(
       patch(paymentClient, method, async (body: any) => {
@@ -165,7 +183,7 @@ export function stubs(terminateResult: unknown = { refund: "1000000.00" }, opts:
       }),
     );
   }
-  return { payments, notified, pushed, restore: () => restores.reverse().forEach((r) => r()) };
+  return { payments, notified, pushed, ledger, restore: () => restores.reverse().forEach((r) => r()) };
 }
 
 /** The flag and the record must never disagree: ptSuspended === "an active ACCOUNT-scope episode exists" (a contract-scope one never sets it). */
