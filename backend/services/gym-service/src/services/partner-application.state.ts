@@ -100,6 +100,12 @@ export interface ApproveInput {
   draftBranchCount: number;
   /** Số chi nhánh đã không còn là DRAFT của ứng viên — hồ sơ tự đăng ký không được có. */
   nonDraftBranchCount: number;
+  /** Listing Management B3 (B12): `gym_partners.application_flow_version` - 2 = application sent by a new client (amenities required). */
+  applicationFlowVersion?: number | null;
+  /** ACTIVE catalogue amenities attached to the application's DRAFT branch. */
+  amenityCount?: number;
+  /** Custom-amenity proposals still PENDING for the application's DRAFT branch. */
+  pendingAmenityProposalCount?: number;
 }
 
 export interface Blocker {
@@ -108,7 +114,9 @@ export interface Blocker {
     | 'ISSUES_UNRESOLVED'
     | 'DOCUMENT_NOT_VERIFIED'
     | 'BRANCH_COUNT'
-    | 'UNEXPECTED_BRANCH';
+    | 'UNEXPECTED_BRANCH'
+    | 'AMENITIES_REQUIRED'
+    | 'CUSTOM_AMENITY_PENDING';
   message: string;
 }
 
@@ -147,6 +155,18 @@ export function computeApproveBlockers(input: ApproveInput): Blocker[] {
   if (input.nonDraftBranchCount > 0) {
     blockers.push({ code: 'UNEXPECTED_BRANCH', message: 'Ứng viên đã có chi nhánh ngoài hồ sơ ứng tuyển' });
   }
+  // Listing Management B3 (B12). A flow-2 application needs >= 1 amenity on its branch. Rejecting the last custom proposal can
+  // leave 0 - the admin's way out is "Yêu cầu sửa" with category AMENITIES, so there is no dead end. An application from an old
+  // client (flow version not 2) is approved without amenities (it is labelled legacyNoAmenities).
+  if ((input.pendingAmenityProposalCount ?? 0) > 0) {
+    blockers.push({
+      code: 'CUSTOM_AMENITY_PENDING',
+      message: `Còn ${input.pendingAmenityProposalCount} tiện ích do chủ gym đề xuất chưa được xử lý`,
+    });
+  }
+  if ((input.applicationFlowVersion ?? 0) >= 2 && (input.amenityCount ?? 0) === 0) {
+    blockers.push({ code: 'AMENITIES_REQUIRED', message: 'Chi nhánh chưa có tiện ích nào — hãy yêu cầu chủ gym chọn tiện ích' });
+  }
   return blockers;
 }
 
@@ -156,6 +176,7 @@ export type ApplicationSection =
   | 'SCALE'
   | 'BRANCH'
   | 'LOCATION'
+  | 'AMENITIES'
   | 'PHOTOS'
   | 'LEGAL'
   | 'TERMS';
@@ -174,6 +195,10 @@ export interface CompletenessInput {
     longitude?: number | null;
   } | null;
   photoCount: number;
+  /** Listing Management B3: amenities chosen for the DRAFT branch (ACTIVE catalogue rows + the owner's PENDING proposals). */
+  amenityCount?: number;
+  /** true -> having no amenity counts as "missing" (new client, a flow-2 application, or the compat flag is off). */
+  requireAmenities?: boolean;
   legalName?: string | null;
   /** Email liên hệ ban đầu — `legalName` bằng đúng nó nghĩa là ứng viên chưa nhập tên pháp lý. */
   contactEmail?: string | null;
@@ -217,6 +242,11 @@ export function computeMissing(input: CompletenessInput): MissingItem[] {
     if (b.latitude === null || b.latitude === undefined || b.longitude === null || b.longitude === undefined) {
       add('LOCATION', 'Chưa xác nhận vị trí trên bản đồ');
     }
+  }
+
+  // The Amenities step (7) sits between Location and Photos: the section key AMENITIES lets web / mobile resume at that step.
+  if (input.requireAmenities && b && (input.amenityCount ?? 0) < 1) {
+    add('AMENITIES', 'Chưa chọn tiện ích nào cho chi nhánh');
   }
 
   if (input.photoCount < APPLICATION_MIN_PHOTOS) {

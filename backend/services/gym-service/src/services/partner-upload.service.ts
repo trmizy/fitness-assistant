@@ -6,7 +6,8 @@ import type { GymPhotoCategory, PartnerDocumentType } from '../generated/prisma'
 import type { PartnerContext } from './partner.service';
 import { partnerS3 } from './partner-s3.service';
 import { partnerAuditService } from './partner-audit.service';
-import { appError, lockPartner } from './partner-application.service';
+import { appError, finishApplicationTx, lockPartner } from './partner-application.service';
+import { LEGACY_NO_HEADER, type ListingCompat } from './legacy-compat.service';
 import { APPLICATION_DOC_TYPES, deriveAccessState, isEditableState, REQUIRED_APPLICATION_DOCS } from './partner-application.state';
 import {
   MAX_APPLICATION_PHOTOS,
@@ -425,8 +426,8 @@ export const partnerUploadService = {
     return { ok: true };
   },
 
-  async reorderPhotos(ctx: PartnerContext, orderedIds: string[]) {
-    const { ownerId } = requireOwnerIds(ctx);
+  async reorderPhotos(ctx: PartnerContext, orderedIds: string[], compat: ListingCompat = LEGACY_NO_HEADER) {
+    const { partnerId, ownerId } = requireOwnerIds(ctx);
     assertEditable(ctx);
     const gym = await draftGym(ownerId);
     if (!gym) throw appError('Không tìm thấy chi nhánh', 404, 'NOT_FOUND');
@@ -435,9 +436,13 @@ export const partnerUploadService = {
     if (orderedIds.length !== photos.length || !orderedIds.every((id) => known.has(id)) || new Set(orderedIds).size !== orderedIds.length) {
       throw appError('Danh sách sắp xếp không khớp với ảnh hiện có', 400, 'INVALID_ORDER');
     }
-    await prisma.$transaction(
-      orderedIds.map((id, index) => prisma.gymPhoto.update({ where: { id }, data: { sortOrder: index } })),
-    );
+    // PUT /owner/application/photos/reorder is a save step of the wizard: its legacy-compat evidence (Listing Management B3) is
+    // written in the same transaction as the new order.
+    await prisma.$transaction(async (tx) => {
+      await lockPartner(tx, partnerId);
+      for (const [index, id] of orderedIds.entries()) await tx.gymPhoto.update({ where: { id }, data: { sortOrder: index } });
+      await finishApplicationTx(tx, partnerId, ownerId, compat, 'APPLICATION_SAVE_STEP');
+    });
     return { ok: true };
   },
 };

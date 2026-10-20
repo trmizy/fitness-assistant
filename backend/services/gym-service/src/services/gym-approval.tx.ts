@@ -1,4 +1,6 @@
 import type { Prisma } from '../generated/prisma';
+import { withCompatWriter } from '../repositories/compat-writer';
+import { publishStagedGymPhotosTx, wasNeverPublic } from './gym-photo-lifecycle';
 
 type Tx = Prisma.TransactionClient;
 
@@ -16,11 +18,14 @@ type Tx = Prisma.TransactionClient;
  *   • Nếu chi nhánh thuộc một thương hiệu chưa từng có chi nhánh nào được duyệt: duyệt tên thương
  *     hiệu luôn (approvedName ← pendingName ?? name).
  *   • Cuối cùng đặt status = APPROVED.
+ *   • Lần duyệt đầu (DRAFT / PENDING_REVIEW / REJECTED → APPROVED) còn công khai các ảnh STAGED của chi nhánh
+ *     (Listing Management B5: ảnh nộp kèm chi nhánh mới luôn là STAGED, khách chỉ thấy PUBLISHED).
  *
  * Test tích hợp `partner-application.integration.test.ts` chạy cả hai đường trên cùng một dữ liệu và
  * khẳng định kết quả giống hệt, để hai bản không lệch nhau âm thầm.
  */
 export async function applyGymApprovalTx(tx: Tx, gymId: string) {
+  await withCompatWriter(tx);
   const gym = await tx.gym.findUnique({ where: { id: gymId } });
   if (!gym) throw Object.assign(new Error('Gym not found'), { status: 404 });
 
@@ -50,5 +55,12 @@ export async function applyGymApprovalTx(tx: Tx, gymId: string) {
     }
   }
 
-  return tx.gym.update({ where: { id: gymId }, data: { status: 'APPROVED' } });
+  const firstApproval = wasNeverPublic(gym.status);
+  if (firstApproval) await publishStagedGymPhotosTx(tx, gymId);
+
+  // The first approval IS listing v1 (same rule as a PT's approved application); a re-approval from SUSPENDED changes nothing.
+  return tx.gym.update({
+    where: { id: gymId },
+    data: { status: 'APPROVED', ...(firstApproval && gym.listingVersion === 0 ? { listingVersion: 1, listingPublishedAt: new Date() } : {}) },
+  });
 }

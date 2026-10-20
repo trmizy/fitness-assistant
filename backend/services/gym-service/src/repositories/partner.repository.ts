@@ -1,5 +1,6 @@
 import { Prisma, PartnerAccountRole, GymPartnerStatus } from '../generated/prisma';
 import { prisma } from './prisma';
+import { runAsCompatWriter } from './compat-writer';
 
 /**
  * Phase 1 — truy cập dữ liệu cho bộ ba GymPartner / GymPartnerAccount / PartnerInvitation.
@@ -9,7 +10,7 @@ import { prisma } from './prisma';
 export const partnerRepository = {
   // ── GymPartner ────────────────────────────────────────────────────────────
   createPartner(data: Prisma.GymPartnerCreateInput) {
-    return prisma.gymPartner.create({ data });
+    return runAsCompatWriter((tx) => tx.gymPartner.create({ data }));
   },
 
   findPartnerById(id: string) {
@@ -40,7 +41,7 @@ export const partnerRepository = {
   },
 
   updatePartner(id: string, data: Prisma.GymPartnerUpdateInput) {
-    return prisma.gymPartner.update({ where: { id }, data });
+    return runAsCompatWriter((tx) => tx.gymPartner.update({ where: { id }, data }));
   },
 
   // ── GymPartnerAccount ─────────────────────────────────────────────────────

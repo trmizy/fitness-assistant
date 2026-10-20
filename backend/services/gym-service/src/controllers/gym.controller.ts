@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { gymService } from '../services/gym.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { LISTING_REVIEW_REQUIRED, sendListingReviewRequired } from '../services/client-compat.service';
+import { ListingError, MIN_ADMIN_REASON_LENGTH } from '../services/gym-listing.schemas';
+import { sendListingError } from './gym-listing.controller';
+import { listingCompatOf } from '../services/legacy-compat.service';
 
 export const gymController = {
   async listPublic(_req: Request, res: Response) {
@@ -21,9 +25,14 @@ export const gymController = {
   async createOwned(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
-      const gym = await gymService.createGym(ownerId, req.body);
+      const gym = await gymService.createGym(ownerId, req.body, listingCompatOf(req));
       res.status(201).json({ success: true, data: gym });
     } catch (e: any) {
+      if (e.status && e.status < 500) {
+        // 4xx are the client's to read (Vietnamese message, stable code); only real failures are logged as errors.
+        res.status(e.status).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message }, message: e.message, ...(e.extra ?? {}) });
+        return;
+      }
       logger.error(e, 'createOwned gym error');
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
@@ -68,14 +77,17 @@ export const gymController = {
       const gym = await gymService.updateOwnedGym(req.params.id, ownerId, req.body);
       res.json({ success: true, data: gym });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      // description / facilities of a branch that has left DRAFT: 409 in the shared old-client body shape.
+      if (e?.code === LISTING_REVIEW_REQUIRED) return sendListingReviewRequired(req, res);
+      const code = e.status && typeof e.code === 'string' ? { code: e.code } : {};
+      res.status(e.status || 500).json({ success: false, error: { ...code, message: e.message } });
     }
   },
 
   async setStatus(req: Request, res: Response) {
     try {
       const { status } = req.body;
-      const gym = await gymService.setStatus(req.params.id, status);
+      const gym = await gymService.setStatus(req.params.id, status, req.user!.userId);
       res.json({ success: true, data: gym });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
@@ -117,7 +129,7 @@ export const gymController = {
 
   async approveRename(req: Request, res: Response) {
     try {
-      const gym = await gymService.approveRename(req.params.id);
+      const gym = await gymService.approveRename(req.params.id, req.user!.userId);
       res.json({ success: true, data: gym });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
@@ -138,10 +150,27 @@ export const gymController = {
 
   async updateAsAdmin(req: Request, res: Response) {
     try {
-      const gym = await gymService.updateGymAsAdmin(req.params.id, req.body);
-      res.json({ success: true, data: gym });
+      const { reason, expectedListingVersion, ...fields } = req.body ?? {};
+      // `description` is part of the public listing: an admin edit of it is an ADMIN_DIRECT revision (reason of at least
+      // MIN_ADMIN_REASON_LENGTH characters, stored on the revision; expectedListingVersion optional - when given it must
+      // match). The other fields (name / address / city / phone / email) are operational and only get an audit row.
+      const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+      if (fields.description !== undefined && trimmedReason.length < MIN_ADMIN_REASON_LENGTH) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'REASON_REQUIRED', message: `Cần nhập lý do (tối thiểu ${MIN_ADMIN_REASON_LENGTH} ký tự) khi sửa phần giới thiệu của chi nhánh` },
+        });
+      }
+      const gym = await gymService.updateGymAsAdmin(req.params.id, fields, {
+        adminId: req.user!.userId,
+        reason: trimmedReason || undefined,
+        expectedListingVersion: typeof expectedListingVersion === 'number' ? expectedListingVersion : undefined,
+      });
+      return res.json({ success: true, data: gym });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      // The listing workflow answers with its machine codes (LISTING_STALE, GYM_IS_DRAFT, NO_CHANGES, ...).
+      if (e instanceof ListingError) return sendListingError(res, e);
+      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
   },
 };

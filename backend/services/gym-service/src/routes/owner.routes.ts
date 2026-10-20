@@ -22,10 +22,12 @@ import { gymService } from '../services/gym.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validateBody } from '../middleware/validate.middleware';
 import { brandCreateSchema, brandUpdateSchema } from '../schemas/brand.schemas';
-import { gymCreateSchema, gymUpdateSchema, gymOperationalStatusSchema } from '../schemas/gym.schemas';
+import { gymQuickCreateSchema, gymUpdateSchema, gymOperationalStatusSchema, gymDraftUpdateSchema } from '../schemas/gym.schemas';
+import { sendUploadRouteRetired } from '../services/client-compat.service';
 import { planCreateSchema, planUpdateSchema } from '../schemas/plan.schemas';
 import { onboardingController } from '../controllers/onboarding.controller';
 import { ownerPartnerController } from '../controllers/owner-partner.controller';
+import { ownerAmenityRouter, ownerListingRouter } from './owner-listing.routes';
 
 const router = Router();
 // requireRoles('GYM_OWNER') vẫn là cổng vào duy nhất ở tầng xác thực — mọi tài khoản đối
@@ -82,25 +84,28 @@ router.patch('/brands/:id', requirePartnerOwner, validateBody(brandUpdateSchema)
 // Ownership is verified per-row inside each service method (gymService.getOwnedGym) —
 // requireRoles('GYM_OWNER') alone only proves the caller is *a* gym owner, not that
 // they own *this* gym.
-router.post('/gyms', requirePartnerOwner, validateBody(gymCreateSchema), asyncHandler(gymController.createOwned));
+router.post('/gyms', requirePartnerOwner, validateBody(gymQuickCreateSchema), asyncHandler(gymController.createOwned));
 // GYM_BRANCH_FORM_SPEC.md, Phase 1 — "Add Branch" wizard shell. requirePartnerOwner is the
 // same §95.2 gate as the route above: a MANAGER cannot create/edit a branch, draft or not.
-// No validateBody here on purpose — a draft's whole point is accepting partial, unvalidated
-// state (see gym-draft.service.ts's own doc comment); full validation happens once, at submit.
+// A draft's whole point is accepting partial, unvalidated VALUES (see gym-draft.service.ts's own doc comment; full
+// validation happens once, at submit) - but the KEYS are strict (gymDraftUpdateSchema): the wizard cannot write a
+// column it does not own.
 router.post('/gyms/draft', requirePartnerOwner, asyncHandler(gymDraftController.create));
-router.patch('/gyms/:id/draft', requirePartnerOwner, asyncHandler(gymDraftController.update));
+router.patch('/gyms/:id/draft', requirePartnerOwner, validateBody(gymDraftUpdateSchema), asyncHandler(gymDraftController.update));
 router.post('/gyms/:id/submit', requirePartnerOwner, asyncHandler(gymDraftController.submit));
 // GYM_BRANCH_FORM_SPEC.md, Phase 2 — Step 3 "Opening Hours". §74: free edit whether DRAFT
 // or already APPROVED, so this isn't scoped under /draft the way the other new routes are.
 router.get('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.get));
 router.put('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.set));
-// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — no validateBody (the
-// write payload here is multipart/form-data, not JSON).
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Listing Management B1: the disk-photo WRITE routes are retired
+// for EVERY gym status - 410 UPLOAD_ROUTE_RETIRED, answered before any upload middleware runs, so nothing is ever
+// written to the public disk (a STAGED photo must never sit there). Reading the owner's own list stays.
+const retiredPhotoWrite = asyncHandler(async (req, res) => sendUploadRouteRetired(req, res));
 router.get('/gyms/:id/photos', requirePartnerOwner, asyncHandler(gymPhotoController.list));
-router.post('/gyms/:id/photos', requirePartnerOwner, gymPhotoController.uploadMiddleware, asyncHandler(gymPhotoController.upload));
-router.put('/gyms/:id/photos/reorder', requirePartnerOwner, asyncHandler(gymPhotoController.reorder));
-router.patch('/gyms/:id/photos/:photoId/cover', requirePartnerOwner, asyncHandler(gymPhotoController.setCover));
-router.delete('/gyms/:id/photos/:photoId', requirePartnerOwner, asyncHandler(gymPhotoController.remove));
+router.post('/gyms/:id/photos', requirePartnerOwner, retiredPhotoWrite);
+router.put('/gyms/:id/photos/reorder', requirePartnerOwner, retiredPhotoWrite);
+router.patch('/gyms/:id/photos/:photoId/cover', requirePartnerOwner, retiredPhotoWrite);
+router.delete('/gyms/:id/photos/:photoId', requirePartnerOwner, retiredPhotoWrite);
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 6 "Verification" (branch-level only, §95.4).
 router.get('/gyms/:id/branch-documents', requirePartnerOwner, asyncHandler(gymBranchDocumentController.list));
 router.post(
@@ -113,6 +118,10 @@ router.get('/branch-documents/:token', requirePartnerOwner, asyncHandler(branchD
 // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner reads this to show which
 // categories admin flagged, so the owner knows exactly what to revisit before resubmitting.
 router.get('/gyms/:id/review-issues', requirePartnerOwner, asyncHandler(gymBranchReviewController.listOpenForOwner));
+// Listing Management B2 - the branch listing workflow (revisions, preview, photo upload) and the amenity catalogue /
+// proposals. OWNER only (a MANAGER gets 403 from requirePartnerOwner); the branch's ownership is checked per request.
+router.use('/gyms/:id/listing', requirePartnerOwner, ownerListingRouter);
+router.use('/amenities', requirePartnerOwner, ownerAmenityRouter);
 router.get('/gyms', asyncHandler(gymController.listOwned));
 router.get('/gyms/:id', requireGymScope('id'), asyncHandler(gymController.getOwnedById));
 router.patch('/gyms/:id', requirePartnerOwner, validateBody(gymUpdateSchema), asyncHandler(gymController.updateOwned));

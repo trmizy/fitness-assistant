@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { amenitySelectionFields } from '../services/amenity-selection.schemas';
 
 /**
  * Vòng 4 / Phase B — gym.controller.ts's createOwned/updateOwned passed req.body straight to
@@ -95,6 +96,13 @@ export const gymCreateSchema = z.object({
   facilities: gymFacilities,
 });
 
+/**
+ * POST /owner/gyms (the mobile quick create): the fields of `gymCreateSchema` plus the amenity selection of Listing Management B3
+ * (`amenityIds` / `proposals` / `proposalIds`). Whether an empty selection is accepted depends on the client - see
+ * legacy-compat.service.ts. `gymCreateSchema` itself stays the validation the draft submit re-uses.
+ */
+export const gymQuickCreateSchema = gymCreateSchema.extend(amenitySelectionFields);
+
 export const gymUpdateSchema = z.object({
   name: gymName.optional(),
   description: gymDescription,
@@ -129,7 +137,44 @@ export const gymAdminUpdateSchema = z.object({
   city: gymCity,
   phone: gymPhone,
   email: gymEmail,
+  // Listing Management B2 — required (>= 10 characters) whenever `description` is sent (checked in
+  // gymController.updateAsAdmin); it is stored on the ADMIN_DIRECT revision. `expectedListingVersion` is optional: when
+  // given it must equal the branch's current listing_version (409 LISTING_STALE otherwise).
+  reason: z.string().trim().max(500, 'Lý do không được vượt quá 500 ký tự').optional(),
+  expectedListingVersion: z.number().int().min(0).optional(),
 });
+
+// GYM_BRANCH_FORM_SPEC.md Phase 1 — the wizard's draft save: deliberately LOOSE about values (a draft is not yet real;
+// full validation happens once, at submit - see gym-draft.service.ts) but STRICT about keys, so a client cannot slip
+// a column the wizard does not own (status, ownerId, listingVersion, approvedName, ...) into a draft save. `facilities`
+// is the wizard's selection of GymFacility labels; it is written to gym_amenities, never to the column.
+export const gymDraftUpdateSchema = z
+  .object(
+    {
+      name: z.string().optional(),
+      description: z.string().nullable().optional(),
+      address: z.string().optional(),
+      city: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+      email: z.string().nullable().optional(),
+      provinceCode: z.number().nullable().optional(),
+      wardCode: z.number().nullable().optional(),
+      latitude: z.number().nullable().optional(),
+      longitude: z.number().nullable().optional(),
+      locationNote: z.string().nullable().optional(),
+      facilities: gymFacilities,
+      wizardStep: z.number().optional(),
+      // Listing Management B3: the amenity step of the wizard (`amenityIds` wins over the older `facilities` labels).
+      ...amenitySelectionFields,
+    },
+    {
+      errorMap: (issue, ctx) =>
+        issue.code === 'unrecognized_keys'
+          ? { message: `Trường không được hỗ trợ khi lưu bản nháp: ${issue.keys.join(', ')}` }
+          : { message: ctx.defaultError },
+    },
+  )
+  .strict();
 
 // Vòng 4 / Phase C3 — the owner's open/close switch. `reason` is required by the service layer
 // for TEMPORARILY_CLOSED/PERMANENTLY_CLOSED (not enforced here since it depends on which

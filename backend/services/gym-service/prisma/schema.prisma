@@ -144,10 +144,17 @@ model GymPhoto {
   /// PRIVATE cho tới khi hồ sơ được duyệt; sau đó ảnh được sao chép sang vùng công khai.
   visibility GymPhotoVisibility @default(PUBLIC)
   createdAt DateTime @default(now()) @map("created_at")
+  /// Listing Management (B1) — vòng đời ảnh. Khách CHỈ thấy PUBLISHED. Mặc định STAGED: ảnh mới chưa công khai.
+  status      GymPhotoStatus @default(STAGED)
+  /// sha256 của nội dung gốc (tính lúc xác nhận upload); NULL cho ảnh cũ.
+  contentHash String?   @map("content_hash")
+  retiredAt   DateTime? @map("retired_at") @db.Timestamptz(3)
+  uploadedBy  String?   @map("uploaded_by")
 
   gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
 
   @@index([gymId, sortOrder])
+  @@index([gymId, status, sortOrder])
   @@map("gym_photos")
 }
 
@@ -441,6 +448,8 @@ enum PartnerReviewCategory {
   PHOTOS
   LEGAL
   OTHER
+  /// Listing Management (B1) — tiện ích của chi nhánh trong hồ sơ đăng ký.
+  AMENITIES
 }
 
 /// Khác GymBranchReviewIssue (tự đóng khi chủ gym nộp lại): nộp lại KHÔNG chứng minh vấn đề
@@ -519,6 +528,19 @@ enum PartnerAuditAction {
   APPLICATION_REJECTED
   APPLICATION_REOPENED
   DOCUMENT_VIEWED
+  // ── Listing Management (B1) ──
+  LISTING_SUBMITTED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  LISTING_CHANGES_REQUESTED
+  LISTING_ADMIN_EDITED
+  AMENITY_PROPOSED
+  AMENITY_PROPOSAL_APPROVED
+  AMENITY_PROPOSAL_REJECTED
+  AMENITY_PROPOSAL_MERGED
+  GYM_ADMIN_STATUS_CHANGED
+  GYM_ADMIN_RENAME_APPROVED
+  GYM_ADMIN_UPDATED
 }
 
 model PartnerAuditLog {
@@ -649,6 +671,11 @@ model GymPartner {
   payoutBankAccountHolder String?         @map("payout_bank_account_holder")
   termsAcceptedVersion    String?         @map("terms_accepted_version")
   termsAcceptedAt         DateTime?       @map("terms_accepted_at")
+  /// Listing Management (B1) — luồng hồ sơ mà client đã dùng (NULL = hồ sơ có từ trước / client cũ);
+  /// cờ tương thích APK cũ và thời điểm thao tác tương thích gần nhất (cùng now() với legacy_compat_events.occurred_at).
+  applicationFlowVersion  Int?            @map("application_flow_version")
+  legacyNoAmenities       Boolean         @default(false) @map("legacy_no_amenities")
+  legacyClientAt          DateTime?       @map("legacy_client_at") @db.Timestamptz(6)
   createdBy              String?          @map("created_by")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
@@ -981,6 +1008,14 @@ model Gym {
   /// `closureReason`. Null on rows closed before this column existed.
   closedBy          String?              @map("closed_by")
   reopenedAt        DateTime?            @map("reopened_at")
+  /// Listing Management (B1) — phiên bản tin đăng CÔNG KHAI (0 = chưa từng công khai). `listingPublishedAt` NULL
+  /// cho dữ liệu cũ ("công khai trước khi có hệ thống tin đăng"); chỉ việc áp bản sửa mới đặt nó.
+  listingVersion     Int       @default(0) @map("listing_version")
+  listingPublishedAt DateTime? @map("listing_published_at") @db.Timestamptz(3)
+  /// Luồng tạo chi nhánh (NULL = tạo từ trước / client cũ), cờ tương thích APK cũ, thời điểm tương thích gần nhất.
+  createdFlowVersion Int?      @map("created_flow_version")
+  legacyNoAmenities  Boolean   @default(false) @map("legacy_no_amenities")
+  legacyClientAt     DateTime? @map("legacy_client_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -994,6 +1029,9 @@ model Gym {
   photos         GymPhoto[]
   branchDocuments GymBranchDocument[]
   reviewIssues    GymBranchReviewIssue[]
+  amenities        GymAmenity[]
+  amenityProposals AmenityProposal[]
+  listingRevisions GymListingRevision[]
 
   @@index([status])
   @@index([operationalStatus])
@@ -1353,4 +1391,240 @@ model GymPtCheckIn {
   @@index([gymId, localDate], map: "gym_pt_check_ins_gym_date_idx")
   @@index([ptUserId, localDate], map: "gym_pt_check_ins_pt_date_idx")
   @@map("gym_pt_check_ins")
+}
+
+// ── Listing Management (B1): danh mục tiện ích, tin đăng có kiểm duyệt, telemetry tương thích ─────────────────
+//
+// `Gym.facilities` (mảng enum GymFacility) chỉ còn là BẢN SAO của `gym_amenities` cho app cũ — xem
+// syncFacilitiesMirrorTx. Migration `*_amenity_catalog_listing_revisions` viết tay: các chỉ mục UNIQUE một phần
+// (WHERE ...), trigger bất biến và trigger compat-writer không biểu diễn được ở đây và Prisma bỏ qua chúng.
+
+enum AmenityCategory {
+  FACILITY
+  TRAINING_ZONE
+  SERVICE
+  RECOVERY
+}
+
+enum AmenitySource {
+  SYSTEM
+  CUSTOM
+}
+
+/// Danh mục chỉ có hai trạng thái. Đề xuất nằm ở AmenityProposal.
+enum AmenityStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AmenityProposalKind {
+  NEW
+  REENABLE
+}
+
+enum AmenityProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MERGED
+  CANCELLED
+}
+
+enum GymListingRevisionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  WITHDRAWN
+  STALE
+}
+
+enum GymListingRevisionSource {
+  OWNER
+  ADMIN_DIRECT
+}
+
+enum GymPhotoStatus {
+  STAGED
+  PUBLISHED
+  RETIRED
+  DISCARDED
+}
+
+enum LegacyCompatOutcome {
+  ACCEPTED
+  REJECTED_422
+  /// Any other 4xx refusal of an old-client request on a compat route (validation, locked, forbidden...).
+  REJECTED_OTHER
+  WRITER_ABSENT
+  NON_CLIENT
+}
+
+enum LegacyCompatEntityType {
+  GYM_PARTNER
+  GYM
+}
+
+model Amenity {
+  id             String          @id @default(uuid())
+  /// SYSTEM: đúng nguyên văn giá trị enum GymFacility.
+  slug           String          @unique
+  name           String
+  nameNormalized String          @unique @map("name_normalized")
+  category       AmenityCategory
+  iconKey        String          @map("icon_key")
+  sortOrder      Int             @default(0) @map("sort_order")
+  source         AmenitySource   @default(CUSTOM)
+  status         AmenityStatus   @default(ACTIVE)
+  createdFromProposalId String?  @map("created_from_proposal_id")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdFromProposal AmenityProposal?  @relation("AmenityCreatedFromProposal", fields: [createdFromProposalId], references: [id], onDelete: SetNull)
+  gyms                GymAmenity[]
+  targetedBy          AmenityProposal[] @relation("AmenityProposalTarget")
+  resultOf            AmenityProposal[] @relation("AmenityProposalResult")
+
+  @@index([status, category, sortOrder])
+  @@map("amenities")
+}
+
+/// CHECK trong DB: APPROVED/MERGED ⇒ resultingAmenityId khác null; REJECTED/CANCELLED ⇒ null.
+/// Unique một phần: (owner_user_id, gym_id, name_normalized) WHERE status = 'PENDING'.
+model AmenityProposal {
+  id                 String                @id @default(uuid())
+  ownerUserId        String                @map("owner_user_id")
+  gymId              String                @map("gym_id")
+  kind               AmenityProposalKind   @default(NEW)
+  targetAmenityId    String?               @map("target_amenity_id")
+  name               String
+  nameNormalized     String                @map("name_normalized")
+  suggestedCategory  AmenityCategory       @map("suggested_category")
+  note               String?
+  status             AmenityProposalStatus @default(PENDING)
+  resultingAmenityId String?               @map("resulting_amenity_id")
+  reviewedBy         String?               @map("reviewed_by")
+  reviewedAt         DateTime?             @map("reviewed_at") @db.Timestamptz(3)
+  rejectReason       String?               @map("reject_reason")
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym              Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  // Catalogue rows are never deleted (RESTRICT, not Prisma's optional-relation default SET NULL): a decided proposal
+  // always keeps pointing at the amenity it produced or joined.
+  targetAmenity    Amenity?  @relation("AmenityProposalTarget", fields: [targetAmenityId], references: [id], onDelete: Restrict)
+  resultingAmenity Amenity?  @relation("AmenityProposalResult", fields: [resultingAmenityId], references: [id], onDelete: Restrict)
+  createdAmenities Amenity[] @relation("AmenityCreatedFromProposal")
+
+  @@index([status, kind, nameNormalized])
+  @@index([ownerUserId, status])
+  @@index([gymId])
+  @@map("amenity_proposals")
+}
+
+/// Tập tiện ích chuẩn của một chi nhánh.
+model GymAmenity {
+  gymId     String   @map("gym_id")
+  amenityId String   @map("amenity_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym     Gym     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id])
+
+  @@id([gymId, amenityId])
+  @@index([amenityId])
+  @@map("gym_amenities")
+}
+
+/// Bản sửa tin đăng của một chi nhánh: payload {description, amenityIds, proposalIds, photoIds, coverPhotoId}.
+/// Unique một phần: một bản mở (DRAFT|PENDING) mỗi chi nhánh. Trigger chặn sửa/xoá bản đã đóng.
+model GymListingRevision {
+  id                String                   @id @default(uuid())
+  gymId             String                   @map("gym_id")
+  status            GymListingRevisionStatus @default(DRAFT)
+  source            GymListingRevisionSource @default(OWNER)
+  parentRevisionId  String?                  @map("parent_revision_id")
+  baseVersion       Int                      @map("base_version")
+  draftVersion      Int                      @default(1) @map("draft_version")
+  payload           Json
+  previousSnapshot  Json?                    @map("previous_snapshot")
+  systemAdjustments Json                     @default("[]") @map("system_adjustments")
+  submittedBy       String?                  @map("submitted_by")
+  submittedAt       DateTime?                @map("submitted_at") @db.Timestamptz(3)
+  reviewedBy        String?                  @map("reviewed_by")
+  reviewedAt        DateTime?                @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote        String?                  @map("review_note")
+  ownerNote         String?                  @map("owner_note")
+  adminReason       String?                  @map("admin_reason")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, createdAt])
+  @@index([status, submittedAt])
+  @@map("gym_listing_revisions")
+}
+
+/// Bằng chứng chính để tắt cờ tương thích APK cũ. Dòng WRITER_ABSENT / NON_CLIENT do TRIGGER ghi
+/// (gyms, gym_partners); ACCEPTED / REJECTED_422 do code ghi.
+model LegacyCompatEvent {
+  id           String                 @id @default(uuid())
+  occurredAt   DateTime               @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  outcome      LegacyCompatOutcome
+  action       String
+  entityType   LegacyCompatEntityType @map("entity_type")
+  entityId     String                 @map("entity_id")
+  actorUserId  String?                @map("actor_user_id")
+  flowHeader   String?                @map("flow_header")
+  clientHeader String?                @map("client_header")
+
+  @@index([occurredAt])
+  @@index([outcome, occurredAt])
+  @@index([entityType, entityId])
+  @@map("legacy_compat_events")
+}
+
+model CompatWriterHeartbeat {
+  id            String   @id @default(uuid())
+  instanceId    String   @map("instance_id")
+  gitSha        String?  @map("git_sha")
+  writerVersion String   @map("writer_version")
+  seenAt        DateTime @default(now()) @map("seen_at") @db.Timestamptz(3)
+
+  @@index([writerVersion, seenAt])
+  @@index([instanceId, seenAt])
+  @@map("compat_writer_heartbeats")
+}
+
+/// Telemetry best-effort của client cũ trên các route đã gỡ/chặn (cùng dạng với bảng cùng tên ở user-service).
+model ClientCompatEvent {
+  id           String   @id @default(uuid())
+  route        String
+  actorUserId  String?  @map("actor_user_id")
+  clientHeader String?  @map("client_header")
+  outcome      String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@map("client_compat_events")
+}
+
+/// Audit thao tác trên danh mục (không có partnerId nên không dùng PartnerAuditLog). Không có FK: audit sống lâu hơn đối tượng.
+model AmenityAuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String   @map("actor_user_id")
+  action      String
+  amenityId   String?  @map("amenity_id")
+  proposalId  String?  @map("proposal_id")
+  before      Json?
+  after       Json?
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([amenityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("amenity_audit_logs")
 }

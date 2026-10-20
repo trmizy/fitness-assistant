@@ -1,5 +1,6 @@
 import { logger } from '@gym-coach/shared';
 import { partnerRepository } from '../repositories/partner.repository';
+import { withCompatWriter } from '../repositories/compat-writer';
 import type {
   GymPartnerKind,
   GymPartnerStatus,
@@ -341,6 +342,7 @@ export const partnerService = {
 
     const { prisma } = await import('../repositories/prisma');
     const result = await prisma.$transaction(async (tx) => {
+      await withCompatWriter(tx);
       // (1) + (2) — hạ chủ cũ trước, kế thừa phạm vi của người sắp lên.
       await tx.gymPartnerAccount.update({
         where: { id: currentOwner.id },

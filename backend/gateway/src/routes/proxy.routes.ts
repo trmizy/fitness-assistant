@@ -1396,6 +1396,25 @@ router.use(
   }),
 );
 
+// Public — gym branch photos (Gym Service). No auth, GET/HEAD only: the service answers 404 unless the photo is
+// PUBLISHED and its branch is publicly visible, otherwise a 302 to a short presigned URL (or streams a disk photo).
+// Anything but a read never reaches the service.
+router.use(
+  "/media/gym-photos",
+  (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.setHeader("Allow", "GET, HEAD");
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+    return next();
+  },
+  createProxyMiddleware({
+    target: GYM_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("Gym service (media)"),
+  }),
+);
+
 // Protected — Notifications (User Service)
 router.use(
   "/notifications",
@@ -1862,6 +1881,29 @@ router.use(
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// Listing Management B2 — branch listing moderation and the amenity catalogue (Gym Service). Sibling prefixes outside
+// /admin/gyms and /owner/gyms, so each needs its own explicit declaration or it 404s at the gateway. The gateway only
+// gates by role; gym-service re-checks ADMIN / GYM_OWNER and takes the actor from the verified token.
+// (/admin/listings/pts belongs to user-service and is declared above; /owner/gyms/:id/listing/* is covered by /owner/gyms.)
+router.use(
+  '/admin/listings/gyms',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin listings)') }),
+);
+router.use(
+  '/admin/amenities',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin amenities)') }),
+);
+router.use(
+  '/owner/amenities',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (amenities)') }),
 );
 
 export default router;

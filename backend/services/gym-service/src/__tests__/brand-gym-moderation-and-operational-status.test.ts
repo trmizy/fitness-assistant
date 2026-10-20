@@ -181,8 +181,12 @@ test('C2 — updateOwnedGym đổi tên/địa chỉ sau khi đã duyệt chỉ 
   assert.equal(updatedWith.approvedAddress, undefined);
 });
 
-test('C2 — updateOwnedGym: các trường khác (description/city/phone/email) vẫn tự do sửa, không qua duyệt', async () => {
-  const gym = { id: 'gym-1', ownerId: 'owner-1', brandId: null, name: 'N', pendingName: null, approvedName: 'N', address: 'A', pendingAddress: null, approvedAddress: 'A' };
+// Listing Management B1 (plan B3): `description` is part of the public listing, so on a branch that has left DRAFT it is
+// no longer a free edit - it needs a reviewed revision (409 LISTING_REVIEW_REQUIRED, nothing written). city/phone/email
+// stay free edits; a DRAFT branch (the wizard) keeps its free description edit. The second half of this file's old
+// assertion ("description saves directly") encoded the behaviour the plan replaces.
+test('C2 — updateOwnedGym: city/phone/email vẫn tự do sửa; description của chi nhánh đã rời DRAFT thì 409 LISTING_REVIEW_REQUIRED', async () => {
+  const gym = { id: 'gym-1', ownerId: 'owner-1', brandId: null, status: 'APPROVED', name: 'N', pendingName: null, approvedName: 'N', address: 'A', pendingAddress: null, approvedAddress: 'A' };
   let updatedWith: any = null;
   const restores = [
     patch(gymRepository, 'findById', async () => ({ ...gym })),
@@ -192,12 +196,19 @@ test('C2 — updateOwnedGym: các trường khác (description/city/phone/email)
     }),
   ];
   try {
-    await gymService.updateOwnedGym('gym-1', 'owner-1', { description: 'New desc', phone: '0900000000' });
+    await assert.rejects(
+      () => gymService.updateOwnedGym('gym-1', 'owner-1', { description: 'New desc', phone: '0900000001' }),
+      (e: any) => e.status === 409 && e.code === 'LISTING_REVIEW_REQUIRED',
+    );
+    assert.equal(JSON.stringify(updatedWith), 'null', 'a refused request writes nothing - not even the other fields in the same body');
+    await gymService.updateOwnedGym('gym-1', 'owner-1', { city: 'Hà Nội', phone: '0900000000', email: 'a@b.co' });
   } finally {
     restores.forEach((r) => r());
   }
-  assert.equal(updatedWith.description, 'New desc');
+  assert.equal(updatedWith.description, undefined);
+  assert.equal(updatedWith.city, 'Hà Nội');
   assert.equal(updatedWith.phone, '0900000000');
+  assert.equal(updatedWith.email, 'a@b.co');
   assert.equal(updatedWith.pendingName, undefined, 'editing unrelated fields must not touch name moderation at all');
 });
 

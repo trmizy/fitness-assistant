@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { validateBody } from '../middleware/validate.middleware';
 import { applicationController } from '../controllers/application.controller';
+import { applicationAmenitiesSchema } from '../services/amenity-selection.schemas';
 import {
   applicationBranchSchema,
   applicationBrandSchema,
@@ -37,6 +38,7 @@ router.put('/representative', validateBody(representativeSchema), applicationCon
 router.put('/business-scale', validateBody(businessScaleSchema), applicationController.businessScale);
 router.put('/brand', validateBody(applicationBrandSchema), applicationController.brand);
 router.put('/branch', validateBody(applicationBranchSchema), applicationController.branch);
+router.put('/amenities', validateBody(applicationAmenitiesSchema), applicationController.amenities);
 router.put('/social', validateBody(socialLinksSchema), applicationController.social);
 router.put('/legal', validateBody(legalSchema), applicationController.legal);
 

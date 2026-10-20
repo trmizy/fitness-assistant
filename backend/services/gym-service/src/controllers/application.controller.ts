@@ -2,11 +2,14 @@ import { Request, Response } from 'express';
 import { partnerApplicationService } from '../services/partner-application.service';
 import { partnerUploadService } from '../services/partner-upload.service';
 import { PartnerDocumentType } from '../generated/prisma';
+import { listingCompatOf } from '../services/legacy-compat.service';
 
 export function failApplication(res: Response, e: any) {
   res.status(e.status || 500).json({
     success: false,
     error: { code: e.code, message: e.message || 'Đã có lỗi xảy ra', issues: e.issues },
+    // Same shape the other listing refusals use: old mobile builds read the top-level `message` (plan 12.13 item 10).
+    message: e.message || 'Đã có lỗi xảy ra',
   });
 }
 
@@ -44,29 +47,32 @@ export const applicationController = {
   status: handler((req, res) => ok(res, partnerApplicationService.getStatus(ctxOf(req)))),
 
   bootstrap: handler(async (req, res) => {
-    const result = await partnerApplicationService.bootstrap(userIdOf(req), req.user!.email);
+    const result = await partnerApplicationService.bootstrap(userIdOf(req), req.user!.email, listingCompatOf(req));
     ok(res, result, result.created ? 201 : 200);
   }),
 
-  get: handler(async (req, res) => ok(res, await partnerApplicationService.getApplication(ctxOf(req)))),
+  get: handler(async (req, res) => ok(res, await partnerApplicationService.getApplication(ctxOf(req), listingCompatOf(req)))),
 
   timeline: handler(async (req, res) => ok(res, await partnerApplicationService.getTimeline(ctxOf(req), userIdOf(req)))),
 
   representative: handler(async (req, res) =>
-    ok(res, await partnerApplicationService.updateRepresentative(ctxOf(req), req.body)),
+    ok(res, await partnerApplicationService.updateRepresentative(ctxOf(req), req.body, listingCompatOf(req))),
   ),
 
   businessScale: handler(async (req, res) =>
-    ok(res, await partnerApplicationService.updateBusinessScale(ctxOf(req), req.body.scale)),
+    ok(res, await partnerApplicationService.updateBusinessScale(ctxOf(req), req.body.scale, listingCompatOf(req))),
   ),
 
-  brand: handler(async (req, res) => ok(res, await partnerApplicationService.upsertBrand(ctxOf(req), req.body))),
+  brand: handler(async (req, res) => ok(res, await partnerApplicationService.upsertBrand(ctxOf(req), req.body, listingCompatOf(req)))),
 
-  branch: handler(async (req, res) => ok(res, await partnerApplicationService.upsertBranch(ctxOf(req), req.body))),
+  branch: handler(async (req, res) => ok(res, await partnerApplicationService.upsertBranch(ctxOf(req), req.body, listingCompatOf(req)))),
 
-  social: handler(async (req, res) => ok(res, await partnerApplicationService.updateSocialLinks(ctxOf(req), req.body))),
+  // Listing Management B3 (plan 6.4): the Amenities step of the wizard.
+  amenities: handler(async (req, res) => ok(res, await partnerApplicationService.saveAmenities(ctxOf(req), req.body, listingCompatOf(req)))),
 
-  legal: handler(async (req, res) => ok(res, await partnerApplicationService.updateLegal(ctxOf(req), req.body))),
+  social: handler(async (req, res) => ok(res, await partnerApplicationService.updateSocialLinks(ctxOf(req), req.body, listingCompatOf(req)))),
+
+  legal: handler(async (req, res) => ok(res, await partnerApplicationService.updateLegal(ctxOf(req), req.body, listingCompatOf(req)))),
 
   presign: handler(async (req, res) =>
     ok(res, await partnerUploadService.presign(ctxOf(req), userIdOf(req), req.body), 201),
@@ -91,13 +97,17 @@ export const applicationController = {
 
   setCover: handler(async (req, res) => ok(res, await partnerUploadService.setCover(ctxOf(req), req.params.photoId))),
 
-  reorderPhotos: handler(async (req, res) => ok(res, await partnerUploadService.reorderPhotos(ctxOf(req), req.body.ids))),
-
-  submit: handler(async (req, res) =>
-    ok(res, await partnerApplicationService.submit(ctxOf(req), userIdOf(req), req.body ?? {}, req)),
+  reorderPhotos: handler(async (req, res) =>
+    ok(res, await partnerUploadService.reorderPhotos(ctxOf(req), req.body.ids, listingCompatOf(req))),
   ),
 
-  resubmit: handler(async (req, res) => ok(res, await partnerApplicationService.resubmit(ctxOf(req), userIdOf(req), req))),
+  submit: handler(async (req, res) =>
+    ok(res, await partnerApplicationService.submit(ctxOf(req), userIdOf(req), req.body ?? {}, req, listingCompatOf(req))),
+  ),
+
+  resubmit: handler(async (req, res) =>
+    ok(res, await partnerApplicationService.resubmit(ctxOf(req), userIdOf(req), req, listingCompatOf(req))),
+  ),
 
   markIssueUpdated: handler(async (req, res) =>
     ok(res, await partnerApplicationService.markIssueUpdated(ctxOf(req), userIdOf(req), req.params.id, req.body?.note, req)),

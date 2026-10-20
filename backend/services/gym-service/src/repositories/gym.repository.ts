@@ -1,9 +1,11 @@
 import { prisma } from './prisma';
 import { Prisma, GymStatus, GymOperationalStatus } from '../generated/prisma';
+import { runAsCompatWriter } from './compat-writer';
+import { publishStagedGymPhotosTx, wasNeverPublic } from '../services/gym-photo-lifecycle';
 
 export const gymRepository = {
   async create(data: Prisma.GymCreateInput) {
-    return prisma.gym.create({ data });
+    return runAsCompatWriter((tx) => tx.gym.create({ data }));
   },
 
   async findById(id: string) {
@@ -11,28 +13,11 @@ export const gymRepository = {
   },
 
   async update(id: string, data: Prisma.GymUpdateInput) {
-    return prisma.gym.update({ where: { id }, data });
+    return runAsCompatWriter((tx) => tx.gym.update({ where: { id }, data }));
   },
 
-  /** Public listing — approved AND open gyms only (Vòng 4 / Phase C3: a gym the owner has
-   * temporarily/permanently closed must not be discoverable or purchasable, same as one still
-   * PENDING_REVIEW). Includes the brand (if any) so the client can group same-brand branches
-   * into one card without a second round-trip — gymService substitutes approvedName/
-   * approvedAddress (and the brand's approvedName) into the response before it leaves here. */
-  async findApproved() {
-    return prisma.gym.findMany({
-      where: { status: 'APPROVED', operationalStatus: 'OPEN' },
-      include: { brand: true },
-      orderBy: { createdAt: 'desc' },
-    });
-  },
-
-  async findApprovedById(id: string) {
-    return prisma.gym.findFirst({
-      where: { id, status: 'APPROVED', operationalStatus: 'OPEN' },
-      include: { brand: true },
-    });
-  },
+  // The PUBLIC reads (approved AND open AND owner not hidden, with only ACTIVE amenities / PUBLISHED photos) live in
+  // services/gym-public.ts (`gymPublicRepository`) next to the one visibility rule - Listing Management B1.
 
   async findByOwner(ownerId: string) {
     return prisma.gym.findMany({
@@ -42,8 +27,24 @@ export const gymRepository = {
     });
   },
 
+  /** The FIRST approval of a branch (DRAFT / PENDING_REVIEW / REJECTED -> APPROVED) also publishes its STAGED photos,
+   * in the same transaction - clients only ever see PUBLISHED, so an approved branch would otherwise show none. */
   async updateStatus(id: string, status: GymStatus) {
-    return prisma.gym.update({ where: { id }, data: { status } });
+    return runAsCompatWriter(async (tx) => {
+      let firstApproval = false;
+      if (status === 'APPROVED') {
+        const current = await tx.gym.findUnique({ where: { id }, select: { status: true, listingVersion: true } });
+        if (current && wasNeverPublic(current.status)) {
+          await publishStagedGymPhotosTx(tx, id);
+          // the first approval IS listing v1 (same rule as a PT's approved application); a re-approval changes nothing
+          firstApproval = current.listingVersion === 0;
+        }
+      }
+      return tx.gym.update({
+        where: { id },
+        data: { status, ...(firstApproval ? { listingVersion: 1, listingPublishedAt: new Date() } : {}) },
+      });
+    });
   },
 
   /** Admin moderation queue — every gym, optionally filtered to one moderation status (most
@@ -78,6 +79,6 @@ export const gymRepository = {
       expectedReopenAt?: Date | null;
     },
   ) {
-    return prisma.gym.update({ where: { id }, data: { operationalStatus, ...extra } });
+    return runAsCompatWriter((tx) => tx.gym.update({ where: { id }, data: { operationalStatus, ...extra } }));
   },
 };

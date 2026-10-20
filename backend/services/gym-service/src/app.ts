@@ -10,18 +10,26 @@ import clientRoutes from './routes/client.routes';
 import ptRoutes from './routes/pt.routes';
 import adminRoutes from './routes/admin.routes';
 import internalRoutes from './routes/internal.routes';
+import mediaRoutes from './routes/media.routes';
+import { gymMediaController } from './controllers/gym-media.controller';
+import { asyncHandler } from './middleware/asyncHandler';
+import { legacyCompatRefusalGuard } from './services/legacy-compat.service';
 
 const app = express();
 
+// Listing Management B3: a refused old-client request on a compat route leaves a REJECTED_OTHER event BEFORE the response goes out.
+// Mounted ahead of the body parser so a malformed JSON body (400) is seen too.
+app.use(legacyCompatRefusalGuard);
 app.use(express.json());
 // Địa chỉ công khai người gọi đang dùng — cho link tệp ký theo đúng cửa họ đi vào (partner-s3.service.ts).
 app.use(requestContextMiddleware);
 app.use(metricsMiddleware());
 
-// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Only gym-photos gets a static mount:
-// same public/private split as user-service's own uploads (see that service's app.ts doc
-// comment) — complaint-photos and branch-documents are legal/evidence material and stay
-// behind their own authenticated `serve` routes with no static mount at all.
+// GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". complaint-photos and branch-documents are
+// legal/evidence material and stay behind their own authenticated `serve` routes. Branch photos are
+// public - but only the PUBLISHED ones of publicly visible branches (Listing Management B1).
+// There is deliberately NO express.static here any more: a static mount serves every file in the
+// directory, so a withdrawn (RETIRED) or never-approved (STAGED) photo stayed reachable by URL.
 if (!isLambdaRuntime()) {
   const dir = path.join(process.cwd(), 'uploads/gym-photos');
   try {
@@ -30,7 +38,10 @@ if (!isLambdaRuntime()) {
     logger.warn({ dir, err: (err as Error).message }, 'Could not create upload directory');
   }
 }
-app.use('/uploads/gym-photos', express.static(path.join(process.cwd(), 'uploads/gym-photos')));
+// Old URLs (`/uploads/gym-photos/<fileName>`, built by apps from the bare file name) keep working — checked per request.
+app.get('/uploads/gym-photos/:file', asyncHandler(gymMediaController.serveLegacyFile));
+// Stable public photo URL: /media/gym-photos/:photoId (redirect to a short presigned link, or stream a disk photo).
+app.use('/media', mediaRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gym-service' });

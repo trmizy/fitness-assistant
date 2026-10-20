@@ -131,7 +131,11 @@ exports.Prisma.GymPhotoScalarFieldEnum = {
   s3Key: 's3Key',
   category: 'category',
   visibility: 'visibility',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  status: 'status',
+  contentHash: 'contentHash',
+  retiredAt: 'retiredAt',
+  uploadedBy: 'uploadedBy'
 };
 
 exports.Prisma.GymBranchDocumentScalarFieldEnum = {
@@ -251,6 +255,9 @@ exports.Prisma.GymPartnerScalarFieldEnum = {
   payoutBankAccountHolder: 'payoutBankAccountHolder',
   termsAcceptedVersion: 'termsAcceptedVersion',
   termsAcceptedAt: 'termsAcceptedAt',
+  applicationFlowVersion: 'applicationFlowVersion',
+  legacyNoAmenities: 'legacyNoAmenities',
+  legacyClientAt: 'legacyClientAt',
   createdBy: 'createdBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -408,6 +415,11 @@ exports.Prisma.GymScalarFieldEnum = {
   closedAt: 'closedAt',
   closedBy: 'closedBy',
   reopenedAt: 'reopenedAt',
+  listingVersion: 'listingVersion',
+  listingPublishedAt: 'listingPublishedAt',
+  createdFlowVersion: 'createdFlowVersion',
+  legacyNoAmenities: 'legacyNoAmenities',
+  legacyClientAt: 'legacyClientAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -564,6 +576,109 @@ exports.Prisma.GymPtCheckInScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AmenityScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  category: 'category',
+  iconKey: 'iconKey',
+  sortOrder: 'sortOrder',
+  source: 'source',
+  status: 'status',
+  createdFromProposalId: 'createdFromProposalId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AmenityProposalScalarFieldEnum = {
+  id: 'id',
+  ownerUserId: 'ownerUserId',
+  gymId: 'gymId',
+  kind: 'kind',
+  targetAmenityId: 'targetAmenityId',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  suggestedCategory: 'suggestedCategory',
+  note: 'note',
+  status: 'status',
+  resultingAmenityId: 'resultingAmenityId',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  rejectReason: 'rejectReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymAmenityScalarFieldEnum = {
+  gymId: 'gymId',
+  amenityId: 'amenityId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymListingRevisionScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  status: 'status',
+  source: 'source',
+  parentRevisionId: 'parentRevisionId',
+  baseVersion: 'baseVersion',
+  draftVersion: 'draftVersion',
+  payload: 'payload',
+  previousSnapshot: 'previousSnapshot',
+  systemAdjustments: 'systemAdjustments',
+  submittedBy: 'submittedBy',
+  submittedAt: 'submittedAt',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote',
+  ownerNote: 'ownerNote',
+  adminReason: 'adminReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LegacyCompatEventScalarFieldEnum = {
+  id: 'id',
+  occurredAt: 'occurredAt',
+  outcome: 'outcome',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  actorUserId: 'actorUserId',
+  flowHeader: 'flowHeader',
+  clientHeader: 'clientHeader'
+};
+
+exports.Prisma.CompatWriterHeartbeatScalarFieldEnum = {
+  id: 'id',
+  instanceId: 'instanceId',
+  gitSha: 'gitSha',
+  writerVersion: 'writerVersion',
+  seenAt: 'seenAt'
+};
+
+exports.Prisma.ClientCompatEventScalarFieldEnum = {
+  id: 'id',
+  route: 'route',
+  actorUserId: 'actorUserId',
+  clientHeader: 'clientHeader',
+  outcome: 'outcome',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AmenityAuditLogScalarFieldEnum = {
+  id: 'id',
+  actorUserId: 'actorUserId',
+  action: 'action',
+  amenityId: 'amenityId',
+  proposalId: 'proposalId',
+  before: 'before',
+  after: 'after',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -571,6 +686,10 @@ exports.Prisma.SortOrder = {
 
 exports.Prisma.NullableJsonNullValueInput = {
   DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -602,6 +721,13 @@ exports.GymPhotoCategory = exports.$Enums.GymPhotoCategory = {
 exports.GymPhotoVisibility = exports.$Enums.GymPhotoVisibility = {
   PRIVATE: 'PRIVATE',
   PUBLIC: 'PUBLIC'
+};
+
+exports.GymPhotoStatus = exports.$Enums.GymPhotoStatus = {
+  STAGED: 'STAGED',
+  PUBLISHED: 'PUBLISHED',
+  RETIRED: 'RETIRED',
+  DISCARDED: 'DISCARDED'
 };
 
 exports.BranchDocumentType = exports.$Enums.BranchDocumentType = {
@@ -692,7 +818,19 @@ exports.PartnerAuditAction = exports.$Enums.PartnerAuditAction = {
   APPLICATION_APPROVED: 'APPLICATION_APPROVED',
   APPLICATION_REJECTED: 'APPLICATION_REJECTED',
   APPLICATION_REOPENED: 'APPLICATION_REOPENED',
-  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED'
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED',
+  LISTING_SUBMITTED: 'LISTING_SUBMITTED',
+  LISTING_APPROVED: 'LISTING_APPROVED',
+  LISTING_REJECTED: 'LISTING_REJECTED',
+  LISTING_CHANGES_REQUESTED: 'LISTING_CHANGES_REQUESTED',
+  LISTING_ADMIN_EDITED: 'LISTING_ADMIN_EDITED',
+  AMENITY_PROPOSED: 'AMENITY_PROPOSED',
+  AMENITY_PROPOSAL_APPROVED: 'AMENITY_PROPOSAL_APPROVED',
+  AMENITY_PROPOSAL_REJECTED: 'AMENITY_PROPOSAL_REJECTED',
+  AMENITY_PROPOSAL_MERGED: 'AMENITY_PROPOSAL_MERGED',
+  GYM_ADMIN_STATUS_CHANGED: 'GYM_ADMIN_STATUS_CHANGED',
+  GYM_ADMIN_RENAME_APPROVED: 'GYM_ADMIN_RENAME_APPROVED',
+  GYM_ADMIN_UPDATED: 'GYM_ADMIN_UPDATED'
 };
 
 exports.GymPartnerKind = exports.$Enums.GymPartnerKind = {
@@ -772,7 +910,8 @@ exports.PartnerReviewCategory = exports.$Enums.PartnerReviewCategory = {
   LOCATION: 'LOCATION',
   PHOTOS: 'PHOTOS',
   LEGAL: 'LEGAL',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
+  AMENITIES: 'AMENITIES'
 };
 
 exports.PartnerReviewIssueStatus = exports.$Enums.PartnerReviewIssueStatus = {
@@ -874,6 +1013,64 @@ exports.CollaborationParty = exports.$Enums.CollaborationParty = {
   GYM: 'GYM'
 };
 
+exports.AmenityCategory = exports.$Enums.AmenityCategory = {
+  FACILITY: 'FACILITY',
+  TRAINING_ZONE: 'TRAINING_ZONE',
+  SERVICE: 'SERVICE',
+  RECOVERY: 'RECOVERY'
+};
+
+exports.AmenitySource = exports.$Enums.AmenitySource = {
+  SYSTEM: 'SYSTEM',
+  CUSTOM: 'CUSTOM'
+};
+
+exports.AmenityStatus = exports.$Enums.AmenityStatus = {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED'
+};
+
+exports.AmenityProposalKind = exports.$Enums.AmenityProposalKind = {
+  NEW: 'NEW',
+  REENABLE: 'REENABLE'
+};
+
+exports.AmenityProposalStatus = exports.$Enums.AmenityProposalStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  MERGED: 'MERGED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.GymListingRevisionStatus = exports.$Enums.GymListingRevisionStatus = {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  WITHDRAWN: 'WITHDRAWN',
+  STALE: 'STALE'
+};
+
+exports.GymListingRevisionSource = exports.$Enums.GymListingRevisionSource = {
+  OWNER: 'OWNER',
+  ADMIN_DIRECT: 'ADMIN_DIRECT'
+};
+
+exports.LegacyCompatOutcome = exports.$Enums.LegacyCompatOutcome = {
+  ACCEPTED: 'ACCEPTED',
+  REJECTED_422: 'REJECTED_422',
+  REJECTED_OTHER: 'REJECTED_OTHER',
+  WRITER_ABSENT: 'WRITER_ABSENT',
+  NON_CLIENT: 'NON_CLIENT'
+};
+
+exports.LegacyCompatEntityType = exports.$Enums.LegacyCompatEntityType = {
+  GYM_PARTNER: 'GYM_PARTNER',
+  GYM: 'GYM'
+};
+
 exports.Prisma.ModelName = {
   GymPhoto: 'GymPhoto',
   GymBranchDocument: 'GymBranchDocument',
@@ -902,7 +1099,15 @@ exports.Prisma.ModelName = {
   GymBrandPtAgreement: 'GymBrandPtAgreement',
   GymPtAgreementConflict: 'GymPtAgreementConflict',
   GymMembershipReferral: 'GymMembershipReferral',
-  GymPtCheckIn: 'GymPtCheckIn'
+  GymPtCheckIn: 'GymPtCheckIn',
+  Amenity: 'Amenity',
+  AmenityProposal: 'AmenityProposal',
+  GymAmenity: 'GymAmenity',
+  GymListingRevision: 'GymListingRevision',
+  LegacyCompatEvent: 'LegacyCompatEvent',
+  CompatWriterHeartbeat: 'CompatWriterHeartbeat',
+  ClientCompatEvent: 'ClientCompatEvent',
+  AmenityAuditLog: 'AmenityAuditLog'
 };
 
 /**

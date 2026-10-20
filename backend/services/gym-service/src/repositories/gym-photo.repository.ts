@@ -4,8 +4,13 @@ import { prisma } from './prisma';
  * reads here, unlike complaint-photos/branch-documents (see those repositories/controllers
  * for the private counterpart). */
 export const gymPhotoRepository = {
-  listByGym(gymId: string) {
-    return prisma.gymPhoto.findMany({ where: { gymId }, orderBy: { sortOrder: 'asc' } });
+  /** Listing Management B2: DISCARDED photos (file deleted) never appear; `statuses` narrows further (the owner's list
+   * shows STAGED + PUBLISHED only - a RETIRED photo is no longer part of the branch's gallery). */
+  listByGym(gymId: string, statuses?: Array<'STAGED' | 'PUBLISHED' | 'RETIRED'>) {
+    return prisma.gymPhoto.findMany({
+      where: { gymId, status: statuses ? { in: statuses } : { not: 'DISCARDED' } },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
   },
 
   findById(id: string) {

@@ -4,6 +4,7 @@ import type { GymBrandPtAgreement } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
 import { gymService } from './gym.service';
 import { partnerGuard } from './partner-guard.service';
+import { gymPublicWhere } from './gym-public';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -876,11 +877,20 @@ export const collaborationService = {
     const legacyByGym = new Map<string, AgreementRow>();
     for (const r of legacyRows) if (!legacyByGym.has(r.gymId)) legacyByGym.set(r.gymId, r);
 
+    // Listing Management B1: this is a PUBLIC route, so it also goes through the one public-visibility rule
+    // (gymPublicWhere). branchAcceptsNewContracts below already implies it today; applying it here keeps the route
+    // correct even if the two ever drift (the picker may be narrower than the rate lookup, never wider).
+    const publicWhere = await gymPublicWhere();
     const candidates = await prisma.gym.findMany({
       where: {
-        OR: [
-          ...(brandAgreementByBrand.size > 0 ? [{ brandId: { in: [...brandAgreementByBrand.keys()] } }] : []),
-          ...(legacyByGym.size > 0 ? [{ id: { in: [...legacyByGym.keys()] } }] : []),
+        AND: [
+          {
+            OR: [
+              ...(brandAgreementByBrand.size > 0 ? [{ brandId: { in: [...brandAgreementByBrand.keys()] } }] : []),
+              ...(legacyByGym.size > 0 ? [{ id: { in: [...legacyByGym.keys()] } }] : []),
+            ],
+          },
+          publicWhere,
         ],
       },
       select: RESOLUTION_GYM_SELECT,

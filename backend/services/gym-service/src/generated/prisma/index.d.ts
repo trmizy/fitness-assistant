@@ -245,6 +245,49 @@ export type GymMembershipReferral = $Result.DefaultSelection<Prisma.$GymMembersh
  * not accepted as basis for a different day once it has been moved (Q-B).
  */
 export type GymPtCheckIn = $Result.DefaultSelection<Prisma.$GymPtCheckInPayload>
+/**
+ * Model Amenity
+ * 
+ */
+export type Amenity = $Result.DefaultSelection<Prisma.$AmenityPayload>
+/**
+ * Model AmenityProposal
+ * CHECK trong DB: APPROVED/MERGED ⇒ resultingAmenityId khác null; REJECTED/CANCELLED ⇒ null.
+ * Unique một phần: (owner_user_id, gym_id, name_normalized) WHERE status = 'PENDING'.
+ */
+export type AmenityProposal = $Result.DefaultSelection<Prisma.$AmenityProposalPayload>
+/**
+ * Model GymAmenity
+ * Tập tiện ích chuẩn của một chi nhánh.
+ */
+export type GymAmenity = $Result.DefaultSelection<Prisma.$GymAmenityPayload>
+/**
+ * Model GymListingRevision
+ * Bản sửa tin đăng của một chi nhánh: payload {description, amenityIds, proposalIds, photoIds, coverPhotoId}.
+ * Unique một phần: một bản mở (DRAFT|PENDING) mỗi chi nhánh. Trigger chặn sửa/xoá bản đã đóng.
+ */
+export type GymListingRevision = $Result.DefaultSelection<Prisma.$GymListingRevisionPayload>
+/**
+ * Model LegacyCompatEvent
+ * Bằng chứng chính để tắt cờ tương thích APK cũ. Dòng WRITER_ABSENT / NON_CLIENT do TRIGGER ghi
+ * (gyms, gym_partners); ACCEPTED / REJECTED_422 do code ghi.
+ */
+export type LegacyCompatEvent = $Result.DefaultSelection<Prisma.$LegacyCompatEventPayload>
+/**
+ * Model CompatWriterHeartbeat
+ * 
+ */
+export type CompatWriterHeartbeat = $Result.DefaultSelection<Prisma.$CompatWriterHeartbeatPayload>
+/**
+ * Model ClientCompatEvent
+ * Telemetry best-effort của client cũ trên các route đã gỡ/chặn (cùng dạng với bảng cùng tên ở user-service).
+ */
+export type ClientCompatEvent = $Result.DefaultSelection<Prisma.$ClientCompatEventPayload>
+/**
+ * Model AmenityAuditLog
+ * Audit thao tác trên danh mục (không có partnerId nên không dùng PartnerAuditLog). Không có FK: audit sống lâu hơn đối tượng.
+ */
+export type AmenityAuditLog = $Result.DefaultSelection<Prisma.$AmenityAuditLogPayload>
 
 /**
  * Enums
@@ -269,6 +312,16 @@ export const GymPhotoVisibility: {
 };
 
 export type GymPhotoVisibility = (typeof GymPhotoVisibility)[keyof typeof GymPhotoVisibility]
+
+
+export const GymPhotoStatus: {
+  STAGED: 'STAGED',
+  PUBLISHED: 'PUBLISHED',
+  RETIRED: 'RETIRED',
+  DISCARDED: 'DISCARDED'
+};
+
+export type GymPhotoStatus = (typeof GymPhotoStatus)[keyof typeof GymPhotoStatus]
 
 
 export const BranchDocumentType: {
@@ -383,7 +436,19 @@ export const PartnerAuditAction: {
   APPLICATION_APPROVED: 'APPLICATION_APPROVED',
   APPLICATION_REJECTED: 'APPLICATION_REJECTED',
   APPLICATION_REOPENED: 'APPLICATION_REOPENED',
-  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED'
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED',
+  LISTING_SUBMITTED: 'LISTING_SUBMITTED',
+  LISTING_APPROVED: 'LISTING_APPROVED',
+  LISTING_REJECTED: 'LISTING_REJECTED',
+  LISTING_CHANGES_REQUESTED: 'LISTING_CHANGES_REQUESTED',
+  LISTING_ADMIN_EDITED: 'LISTING_ADMIN_EDITED',
+  AMENITY_PROPOSED: 'AMENITY_PROPOSED',
+  AMENITY_PROPOSAL_APPROVED: 'AMENITY_PROPOSAL_APPROVED',
+  AMENITY_PROPOSAL_REJECTED: 'AMENITY_PROPOSAL_REJECTED',
+  AMENITY_PROPOSAL_MERGED: 'AMENITY_PROPOSAL_MERGED',
+  GYM_ADMIN_STATUS_CHANGED: 'GYM_ADMIN_STATUS_CHANGED',
+  GYM_ADMIN_RENAME_APPROVED: 'GYM_ADMIN_RENAME_APPROVED',
+  GYM_ADMIN_UPDATED: 'GYM_ADMIN_UPDATED'
 };
 
 export type PartnerAuditAction = (typeof PartnerAuditAction)[keyof typeof PartnerAuditAction]
@@ -499,7 +564,8 @@ export const PartnerReviewCategory: {
   LOCATION: 'LOCATION',
   PHOTOS: 'PHOTOS',
   LEGAL: 'LEGAL',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
+  AMENITIES: 'AMENITIES'
 };
 
 export type PartnerReviewCategory = (typeof PartnerReviewCategory)[keyof typeof PartnerReviewCategory]
@@ -642,6 +708,91 @@ export const CollaborationParty: {
 
 export type CollaborationParty = (typeof CollaborationParty)[keyof typeof CollaborationParty]
 
+
+export const AmenityCategory: {
+  FACILITY: 'FACILITY',
+  TRAINING_ZONE: 'TRAINING_ZONE',
+  SERVICE: 'SERVICE',
+  RECOVERY: 'RECOVERY'
+};
+
+export type AmenityCategory = (typeof AmenityCategory)[keyof typeof AmenityCategory]
+
+
+export const AmenitySource: {
+  SYSTEM: 'SYSTEM',
+  CUSTOM: 'CUSTOM'
+};
+
+export type AmenitySource = (typeof AmenitySource)[keyof typeof AmenitySource]
+
+
+export const AmenityStatus: {
+  ACTIVE: 'ACTIVE',
+  DISABLED: 'DISABLED'
+};
+
+export type AmenityStatus = (typeof AmenityStatus)[keyof typeof AmenityStatus]
+
+
+export const AmenityProposalKind: {
+  NEW: 'NEW',
+  REENABLE: 'REENABLE'
+};
+
+export type AmenityProposalKind = (typeof AmenityProposalKind)[keyof typeof AmenityProposalKind]
+
+
+export const AmenityProposalStatus: {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  MERGED: 'MERGED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type AmenityProposalStatus = (typeof AmenityProposalStatus)[keyof typeof AmenityProposalStatus]
+
+
+export const GymListingRevisionStatus: {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  WITHDRAWN: 'WITHDRAWN',
+  STALE: 'STALE'
+};
+
+export type GymListingRevisionStatus = (typeof GymListingRevisionStatus)[keyof typeof GymListingRevisionStatus]
+
+
+export const GymListingRevisionSource: {
+  OWNER: 'OWNER',
+  ADMIN_DIRECT: 'ADMIN_DIRECT'
+};
+
+export type GymListingRevisionSource = (typeof GymListingRevisionSource)[keyof typeof GymListingRevisionSource]
+
+
+export const LegacyCompatOutcome: {
+  ACCEPTED: 'ACCEPTED',
+  REJECTED_422: 'REJECTED_422',
+  REJECTED_OTHER: 'REJECTED_OTHER',
+  WRITER_ABSENT: 'WRITER_ABSENT',
+  NON_CLIENT: 'NON_CLIENT'
+};
+
+export type LegacyCompatOutcome = (typeof LegacyCompatOutcome)[keyof typeof LegacyCompatOutcome]
+
+
+export const LegacyCompatEntityType: {
+  GYM_PARTNER: 'GYM_PARTNER',
+  GYM: 'GYM'
+};
+
+export type LegacyCompatEntityType = (typeof LegacyCompatEntityType)[keyof typeof LegacyCompatEntityType]
+
 }
 
 export type GymPhotoCategory = $Enums.GymPhotoCategory
@@ -651,6 +802,10 @@ export const GymPhotoCategory: typeof $Enums.GymPhotoCategory
 export type GymPhotoVisibility = $Enums.GymPhotoVisibility
 
 export const GymPhotoVisibility: typeof $Enums.GymPhotoVisibility
+
+export type GymPhotoStatus = $Enums.GymPhotoStatus
+
+export const GymPhotoStatus: typeof $Enums.GymPhotoStatus
 
 export type BranchDocumentType = $Enums.BranchDocumentType
 
@@ -787,6 +942,42 @@ export const CollaborationStatus: typeof $Enums.CollaborationStatus
 export type CollaborationParty = $Enums.CollaborationParty
 
 export const CollaborationParty: typeof $Enums.CollaborationParty
+
+export type AmenityCategory = $Enums.AmenityCategory
+
+export const AmenityCategory: typeof $Enums.AmenityCategory
+
+export type AmenitySource = $Enums.AmenitySource
+
+export const AmenitySource: typeof $Enums.AmenitySource
+
+export type AmenityStatus = $Enums.AmenityStatus
+
+export const AmenityStatus: typeof $Enums.AmenityStatus
+
+export type AmenityProposalKind = $Enums.AmenityProposalKind
+
+export const AmenityProposalKind: typeof $Enums.AmenityProposalKind
+
+export type AmenityProposalStatus = $Enums.AmenityProposalStatus
+
+export const AmenityProposalStatus: typeof $Enums.AmenityProposalStatus
+
+export type GymListingRevisionStatus = $Enums.GymListingRevisionStatus
+
+export const GymListingRevisionStatus: typeof $Enums.GymListingRevisionStatus
+
+export type GymListingRevisionSource = $Enums.GymListingRevisionSource
+
+export const GymListingRevisionSource: typeof $Enums.GymListingRevisionSource
+
+export type LegacyCompatOutcome = $Enums.LegacyCompatOutcome
+
+export const LegacyCompatOutcome: typeof $Enums.LegacyCompatOutcome
+
+export type LegacyCompatEntityType = $Enums.LegacyCompatEntityType
+
+export const LegacyCompatEntityType: typeof $Enums.LegacyCompatEntityType
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1190,6 +1381,86 @@ export class PrismaClient<
     * ```
     */
   get gymPtCheckIn(): Prisma.GymPtCheckInDelegate<ExtArgs>;
+
+  /**
+   * `prisma.amenity`: Exposes CRUD operations for the **Amenity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Amenities
+    * const amenities = await prisma.amenity.findMany()
+    * ```
+    */
+  get amenity(): Prisma.AmenityDelegate<ExtArgs>;
+
+  /**
+   * `prisma.amenityProposal`: Exposes CRUD operations for the **AmenityProposal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AmenityProposals
+    * const amenityProposals = await prisma.amenityProposal.findMany()
+    * ```
+    */
+  get amenityProposal(): Prisma.AmenityProposalDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymAmenity`: Exposes CRUD operations for the **GymAmenity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymAmenities
+    * const gymAmenities = await prisma.gymAmenity.findMany()
+    * ```
+    */
+  get gymAmenity(): Prisma.GymAmenityDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymListingRevision`: Exposes CRUD operations for the **GymListingRevision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymListingRevisions
+    * const gymListingRevisions = await prisma.gymListingRevision.findMany()
+    * ```
+    */
+  get gymListingRevision(): Prisma.GymListingRevisionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.legacyCompatEvent`: Exposes CRUD operations for the **LegacyCompatEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LegacyCompatEvents
+    * const legacyCompatEvents = await prisma.legacyCompatEvent.findMany()
+    * ```
+    */
+  get legacyCompatEvent(): Prisma.LegacyCompatEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.compatWriterHeartbeat`: Exposes CRUD operations for the **CompatWriterHeartbeat** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CompatWriterHeartbeats
+    * const compatWriterHeartbeats = await prisma.compatWriterHeartbeat.findMany()
+    * ```
+    */
+  get compatWriterHeartbeat(): Prisma.CompatWriterHeartbeatDelegate<ExtArgs>;
+
+  /**
+   * `prisma.clientCompatEvent`: Exposes CRUD operations for the **ClientCompatEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ClientCompatEvents
+    * const clientCompatEvents = await prisma.clientCompatEvent.findMany()
+    * ```
+    */
+  get clientCompatEvent(): Prisma.ClientCompatEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.amenityAuditLog`: Exposes CRUD operations for the **AmenityAuditLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AmenityAuditLogs
+    * const amenityAuditLogs = await prisma.amenityAuditLog.findMany()
+    * ```
+    */
+  get amenityAuditLog(): Prisma.AmenityAuditLogDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1658,7 +1929,15 @@ export namespace Prisma {
     GymBrandPtAgreement: 'GymBrandPtAgreement',
     GymPtAgreementConflict: 'GymPtAgreementConflict',
     GymMembershipReferral: 'GymMembershipReferral',
-    GymPtCheckIn: 'GymPtCheckIn'
+    GymPtCheckIn: 'GymPtCheckIn',
+    Amenity: 'Amenity',
+    AmenityProposal: 'AmenityProposal',
+    GymAmenity: 'GymAmenity',
+    GymListingRevision: 'GymListingRevision',
+    LegacyCompatEvent: 'LegacyCompatEvent',
+    CompatWriterHeartbeat: 'CompatWriterHeartbeat',
+    ClientCompatEvent: 'ClientCompatEvent',
+    AmenityAuditLog: 'AmenityAuditLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1674,7 +1953,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn" | "amenity" | "amenityProposal" | "gymAmenity" | "gymListingRevision" | "legacyCompatEvent" | "compatWriterHeartbeat" | "clientCompatEvent" | "amenityAuditLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3638,6 +3917,566 @@ export namespace Prisma {
           }
         }
       }
+      Amenity: {
+        payload: Prisma.$AmenityPayload<ExtArgs>
+        fields: Prisma.AmenityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AmenityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AmenityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          findFirst: {
+            args: Prisma.AmenityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AmenityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          findMany: {
+            args: Prisma.AmenityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>[]
+          }
+          create: {
+            args: Prisma.AmenityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          createMany: {
+            args: Prisma.AmenityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AmenityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>[]
+          }
+          delete: {
+            args: Prisma.AmenityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          update: {
+            args: Prisma.AmenityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          deleteMany: {
+            args: Prisma.AmenityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AmenityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AmenityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityPayload>
+          }
+          aggregate: {
+            args: Prisma.AmenityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAmenity>
+          }
+          groupBy: {
+            args: Prisma.AmenityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AmenityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AmenityCountArgs<ExtArgs>
+            result: $Utils.Optional<AmenityCountAggregateOutputType> | number
+          }
+        }
+      }
+      AmenityProposal: {
+        payload: Prisma.$AmenityProposalPayload<ExtArgs>
+        fields: Prisma.AmenityProposalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AmenityProposalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AmenityProposalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          findFirst: {
+            args: Prisma.AmenityProposalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AmenityProposalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          findMany: {
+            args: Prisma.AmenityProposalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>[]
+          }
+          create: {
+            args: Prisma.AmenityProposalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          createMany: {
+            args: Prisma.AmenityProposalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AmenityProposalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>[]
+          }
+          delete: {
+            args: Prisma.AmenityProposalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          update: {
+            args: Prisma.AmenityProposalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          deleteMany: {
+            args: Prisma.AmenityProposalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AmenityProposalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AmenityProposalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityProposalPayload>
+          }
+          aggregate: {
+            args: Prisma.AmenityProposalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAmenityProposal>
+          }
+          groupBy: {
+            args: Prisma.AmenityProposalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AmenityProposalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AmenityProposalCountArgs<ExtArgs>
+            result: $Utils.Optional<AmenityProposalCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymAmenity: {
+        payload: Prisma.$GymAmenityPayload<ExtArgs>
+        fields: Prisma.GymAmenityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymAmenityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymAmenityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          findFirst: {
+            args: Prisma.GymAmenityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymAmenityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          findMany: {
+            args: Prisma.GymAmenityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>[]
+          }
+          create: {
+            args: Prisma.GymAmenityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          createMany: {
+            args: Prisma.GymAmenityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymAmenityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>[]
+          }
+          delete: {
+            args: Prisma.GymAmenityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          update: {
+            args: Prisma.GymAmenityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymAmenityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymAmenityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymAmenityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAmenityPayload>
+          }
+          aggregate: {
+            args: Prisma.GymAmenityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymAmenity>
+          }
+          groupBy: {
+            args: Prisma.GymAmenityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymAmenityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymAmenityCountArgs<ExtArgs>
+            result: $Utils.Optional<GymAmenityCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymListingRevision: {
+        payload: Prisma.$GymListingRevisionPayload<ExtArgs>
+        fields: Prisma.GymListingRevisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymListingRevisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymListingRevisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          findFirst: {
+            args: Prisma.GymListingRevisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymListingRevisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          findMany: {
+            args: Prisma.GymListingRevisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>[]
+          }
+          create: {
+            args: Prisma.GymListingRevisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          createMany: {
+            args: Prisma.GymListingRevisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymListingRevisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>[]
+          }
+          delete: {
+            args: Prisma.GymListingRevisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          update: {
+            args: Prisma.GymListingRevisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymListingRevisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymListingRevisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymListingRevisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymListingRevisionPayload>
+          }
+          aggregate: {
+            args: Prisma.GymListingRevisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymListingRevision>
+          }
+          groupBy: {
+            args: Prisma.GymListingRevisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymListingRevisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymListingRevisionCountArgs<ExtArgs>
+            result: $Utils.Optional<GymListingRevisionCountAggregateOutputType> | number
+          }
+        }
+      }
+      LegacyCompatEvent: {
+        payload: Prisma.$LegacyCompatEventPayload<ExtArgs>
+        fields: Prisma.LegacyCompatEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LegacyCompatEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LegacyCompatEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          findFirst: {
+            args: Prisma.LegacyCompatEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LegacyCompatEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          findMany: {
+            args: Prisma.LegacyCompatEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>[]
+          }
+          create: {
+            args: Prisma.LegacyCompatEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          createMany: {
+            args: Prisma.LegacyCompatEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LegacyCompatEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>[]
+          }
+          delete: {
+            args: Prisma.LegacyCompatEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          update: {
+            args: Prisma.LegacyCompatEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.LegacyCompatEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LegacyCompatEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LegacyCompatEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegacyCompatEventPayload>
+          }
+          aggregate: {
+            args: Prisma.LegacyCompatEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLegacyCompatEvent>
+          }
+          groupBy: {
+            args: Prisma.LegacyCompatEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LegacyCompatEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LegacyCompatEventCountArgs<ExtArgs>
+            result: $Utils.Optional<LegacyCompatEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      CompatWriterHeartbeat: {
+        payload: Prisma.$CompatWriterHeartbeatPayload<ExtArgs>
+        fields: Prisma.CompatWriterHeartbeatFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CompatWriterHeartbeatFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CompatWriterHeartbeatFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          findFirst: {
+            args: Prisma.CompatWriterHeartbeatFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CompatWriterHeartbeatFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          findMany: {
+            args: Prisma.CompatWriterHeartbeatFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>[]
+          }
+          create: {
+            args: Prisma.CompatWriterHeartbeatCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          createMany: {
+            args: Prisma.CompatWriterHeartbeatCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CompatWriterHeartbeatCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>[]
+          }
+          delete: {
+            args: Prisma.CompatWriterHeartbeatDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          update: {
+            args: Prisma.CompatWriterHeartbeatUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          deleteMany: {
+            args: Prisma.CompatWriterHeartbeatDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CompatWriterHeartbeatUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CompatWriterHeartbeatUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CompatWriterHeartbeatPayload>
+          }
+          aggregate: {
+            args: Prisma.CompatWriterHeartbeatAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCompatWriterHeartbeat>
+          }
+          groupBy: {
+            args: Prisma.CompatWriterHeartbeatGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CompatWriterHeartbeatGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CompatWriterHeartbeatCountArgs<ExtArgs>
+            result: $Utils.Optional<CompatWriterHeartbeatCountAggregateOutputType> | number
+          }
+        }
+      }
+      ClientCompatEvent: {
+        payload: Prisma.$ClientCompatEventPayload<ExtArgs>
+        fields: Prisma.ClientCompatEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ClientCompatEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ClientCompatEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          findFirst: {
+            args: Prisma.ClientCompatEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ClientCompatEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          findMany: {
+            args: Prisma.ClientCompatEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>[]
+          }
+          create: {
+            args: Prisma.ClientCompatEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          createMany: {
+            args: Prisma.ClientCompatEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ClientCompatEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>[]
+          }
+          delete: {
+            args: Prisma.ClientCompatEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          update: {
+            args: Prisma.ClientCompatEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.ClientCompatEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ClientCompatEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ClientCompatEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ClientCompatEventPayload>
+          }
+          aggregate: {
+            args: Prisma.ClientCompatEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateClientCompatEvent>
+          }
+          groupBy: {
+            args: Prisma.ClientCompatEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ClientCompatEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ClientCompatEventCountArgs<ExtArgs>
+            result: $Utils.Optional<ClientCompatEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      AmenityAuditLog: {
+        payload: Prisma.$AmenityAuditLogPayload<ExtArgs>
+        fields: Prisma.AmenityAuditLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AmenityAuditLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AmenityAuditLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          findFirst: {
+            args: Prisma.AmenityAuditLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AmenityAuditLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          findMany: {
+            args: Prisma.AmenityAuditLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>[]
+          }
+          create: {
+            args: Prisma.AmenityAuditLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          createMany: {
+            args: Prisma.AmenityAuditLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AmenityAuditLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>[]
+          }
+          delete: {
+            args: Prisma.AmenityAuditLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          update: {
+            args: Prisma.AmenityAuditLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.AmenityAuditLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AmenityAuditLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AmenityAuditLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AmenityAuditLogPayload>
+          }
+          aggregate: {
+            args: Prisma.AmenityAuditLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAmenityAuditLog>
+          }
+          groupBy: {
+            args: Prisma.AmenityAuditLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AmenityAuditLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AmenityAuditLogCountArgs<ExtArgs>
+            result: $Utils.Optional<AmenityAuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3991,6 +4830,9 @@ export namespace Prisma {
     photos: number
     branchDocuments: number
     reviewIssues: number
+    amenities: number
+    amenityProposals: number
+    listingRevisions: number
   }
 
   export type GymCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4003,6 +4845,9 @@ export namespace Prisma {
     photos?: boolean | GymCountOutputTypeCountPhotosArgs
     branchDocuments?: boolean | GymCountOutputTypeCountBranchDocumentsArgs
     reviewIssues?: boolean | GymCountOutputTypeCountReviewIssuesArgs
+    amenities?: boolean | GymCountOutputTypeCountAmenitiesArgs
+    amenityProposals?: boolean | GymCountOutputTypeCountAmenityProposalsArgs
+    listingRevisions?: boolean | GymCountOutputTypeCountListingRevisionsArgs
   }
 
   // Custom InputTypes
@@ -4077,6 +4922,27 @@ export namespace Prisma {
    */
   export type GymCountOutputTypeCountReviewIssuesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GymBranchReviewIssueWhereInput
+  }
+
+  /**
+   * GymCountOutputType without action
+   */
+  export type GymCountOutputTypeCountAmenitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAmenityWhereInput
+  }
+
+  /**
+   * GymCountOutputType without action
+   */
+  export type GymCountOutputTypeCountAmenityProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityProposalWhereInput
+  }
+
+  /**
+   * GymCountOutputType without action
+   */
+  export type GymCountOutputTypeCountListingRevisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymListingRevisionWhereInput
   }
 
 
@@ -4183,6 +5049,86 @@ export namespace Prisma {
 
 
   /**
+   * Count Type AmenityCountOutputType
+   */
+
+  export type AmenityCountOutputType = {
+    gyms: number
+    targetedBy: number
+    resultOf: number
+  }
+
+  export type AmenityCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gyms?: boolean | AmenityCountOutputTypeCountGymsArgs
+    targetedBy?: boolean | AmenityCountOutputTypeCountTargetedByArgs
+    resultOf?: boolean | AmenityCountOutputTypeCountResultOfArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AmenityCountOutputType without action
+   */
+  export type AmenityCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityCountOutputType
+     */
+    select?: AmenityCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AmenityCountOutputType without action
+   */
+  export type AmenityCountOutputTypeCountGymsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAmenityWhereInput
+  }
+
+  /**
+   * AmenityCountOutputType without action
+   */
+  export type AmenityCountOutputTypeCountTargetedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityProposalWhereInput
+  }
+
+  /**
+   * AmenityCountOutputType without action
+   */
+  export type AmenityCountOutputTypeCountResultOfArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityProposalWhereInput
+  }
+
+
+  /**
+   * Count Type AmenityProposalCountOutputType
+   */
+
+  export type AmenityProposalCountOutputType = {
+    createdAmenities: number
+  }
+
+  export type AmenityProposalCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdAmenities?: boolean | AmenityProposalCountOutputTypeCountCreatedAmenitiesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AmenityProposalCountOutputType without action
+   */
+  export type AmenityProposalCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposalCountOutputType
+     */
+    select?: AmenityProposalCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AmenityProposalCountOutputType without action
+   */
+  export type AmenityProposalCountOutputTypeCountCreatedAmenitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -4216,6 +5162,10 @@ export namespace Prisma {
     category: $Enums.GymPhotoCategory | null
     visibility: $Enums.GymPhotoVisibility | null
     createdAt: Date | null
+    status: $Enums.GymPhotoStatus | null
+    contentHash: string | null
+    retiredAt: Date | null
+    uploadedBy: string | null
   }
 
   export type GymPhotoMaxAggregateOutputType = {
@@ -4228,6 +5178,10 @@ export namespace Prisma {
     category: $Enums.GymPhotoCategory | null
     visibility: $Enums.GymPhotoVisibility | null
     createdAt: Date | null
+    status: $Enums.GymPhotoStatus | null
+    contentHash: string | null
+    retiredAt: Date | null
+    uploadedBy: string | null
   }
 
   export type GymPhotoCountAggregateOutputType = {
@@ -4240,6 +5194,10 @@ export namespace Prisma {
     category: number
     visibility: number
     createdAt: number
+    status: number
+    contentHash: number
+    retiredAt: number
+    uploadedBy: number
     _all: number
   }
 
@@ -4262,6 +5220,10 @@ export namespace Prisma {
     category?: true
     visibility?: true
     createdAt?: true
+    status?: true
+    contentHash?: true
+    retiredAt?: true
+    uploadedBy?: true
   }
 
   export type GymPhotoMaxAggregateInputType = {
@@ -4274,6 +5236,10 @@ export namespace Prisma {
     category?: true
     visibility?: true
     createdAt?: true
+    status?: true
+    contentHash?: true
+    retiredAt?: true
+    uploadedBy?: true
   }
 
   export type GymPhotoCountAggregateInputType = {
@@ -4286,6 +5252,10 @@ export namespace Prisma {
     category?: true
     visibility?: true
     createdAt?: true
+    status?: true
+    contentHash?: true
+    retiredAt?: true
+    uploadedBy?: true
     _all?: true
   }
 
@@ -4385,6 +5355,10 @@ export namespace Prisma {
     category: $Enums.GymPhotoCategory | null
     visibility: $Enums.GymPhotoVisibility
     createdAt: Date
+    status: $Enums.GymPhotoStatus
+    contentHash: string | null
+    retiredAt: Date | null
+    uploadedBy: string | null
     _count: GymPhotoCountAggregateOutputType | null
     _avg: GymPhotoAvgAggregateOutputType | null
     _sum: GymPhotoSumAggregateOutputType | null
@@ -4416,6 +5390,10 @@ export namespace Prisma {
     category?: boolean
     visibility?: boolean
     createdAt?: boolean
+    status?: boolean
+    contentHash?: boolean
+    retiredAt?: boolean
+    uploadedBy?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPhoto"]>
 
@@ -4429,6 +5407,10 @@ export namespace Prisma {
     category?: boolean
     visibility?: boolean
     createdAt?: boolean
+    status?: boolean
+    contentHash?: boolean
+    retiredAt?: boolean
+    uploadedBy?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymPhoto"]>
 
@@ -4442,6 +5424,10 @@ export namespace Prisma {
     category?: boolean
     visibility?: boolean
     createdAt?: boolean
+    status?: boolean
+    contentHash?: boolean
+    retiredAt?: boolean
+    uploadedBy?: boolean
   }
 
   export type GymPhotoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4480,6 +5466,16 @@ export namespace Prisma {
        */
       visibility: $Enums.GymPhotoVisibility
       createdAt: Date
+      /**
+       * Listing Management (B1) — vòng đời ảnh. Khách CHỈ thấy PUBLISHED. Mặc định STAGED: ảnh mới chưa công khai.
+       */
+      status: $Enums.GymPhotoStatus
+      /**
+       * sha256 của nội dung gốc (tính lúc xác nhận upload); NULL cho ảnh cũ.
+       */
+      contentHash: string | null
+      retiredAt: Date | null
+      uploadedBy: string | null
     }, ExtArgs["result"]["gymPhoto"]>
     composites: {}
   }
@@ -4883,6 +5879,10 @@ export namespace Prisma {
     readonly category: FieldRef<"GymPhoto", 'GymPhotoCategory'>
     readonly visibility: FieldRef<"GymPhoto", 'GymPhotoVisibility'>
     readonly createdAt: FieldRef<"GymPhoto", 'DateTime'>
+    readonly status: FieldRef<"GymPhoto", 'GymPhotoStatus'>
+    readonly contentHash: FieldRef<"GymPhoto", 'String'>
+    readonly retiredAt: FieldRef<"GymPhoto", 'DateTime'>
+    readonly uploadedBy: FieldRef<"GymPhoto", 'String'>
   }
     
 
@@ -12106,11 +13106,13 @@ export namespace Prisma {
   export type GymPartnerAvgAggregateOutputType = {
     commissionRateOverride: Decimal | null
     expectedBranchCount: number | null
+    applicationFlowVersion: number | null
   }
 
   export type GymPartnerSumAggregateOutputType = {
     commissionRateOverride: Decimal | null
     expectedBranchCount: number | null
+    applicationFlowVersion: number | null
   }
 
   export type GymPartnerMinAggregateOutputType = {
@@ -12149,6 +13151,9 @@ export namespace Prisma {
     payoutBankAccountHolder: string | null
     termsAcceptedVersion: string | null
     termsAcceptedAt: Date | null
+    applicationFlowVersion: number | null
+    legacyNoAmenities: boolean | null
+    legacyClientAt: Date | null
     createdBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -12190,6 +13195,9 @@ export namespace Prisma {
     payoutBankAccountHolder: string | null
     termsAcceptedVersion: string | null
     termsAcceptedAt: Date | null
+    applicationFlowVersion: number | null
+    legacyNoAmenities: boolean | null
+    legacyClientAt: Date | null
     createdBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -12231,6 +13239,9 @@ export namespace Prisma {
     payoutBankAccountHolder: number
     termsAcceptedVersion: number
     termsAcceptedAt: number
+    applicationFlowVersion: number
+    legacyNoAmenities: number
+    legacyClientAt: number
     createdBy: number
     createdAt: number
     updatedAt: number
@@ -12241,11 +13252,13 @@ export namespace Prisma {
   export type GymPartnerAvgAggregateInputType = {
     commissionRateOverride?: true
     expectedBranchCount?: true
+    applicationFlowVersion?: true
   }
 
   export type GymPartnerSumAggregateInputType = {
     commissionRateOverride?: true
     expectedBranchCount?: true
+    applicationFlowVersion?: true
   }
 
   export type GymPartnerMinAggregateInputType = {
@@ -12284,6 +13297,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: true
     termsAcceptedVersion?: true
     termsAcceptedAt?: true
+    applicationFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdBy?: true
     createdAt?: true
     updatedAt?: true
@@ -12325,6 +13341,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: true
     termsAcceptedVersion?: true
     termsAcceptedAt?: true
+    applicationFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdBy?: true
     createdAt?: true
     updatedAt?: true
@@ -12366,6 +13385,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: true
     termsAcceptedVersion?: true
     termsAcceptedAt?: true
+    applicationFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdBy?: true
     createdAt?: true
     updatedAt?: true
@@ -12494,6 +13516,9 @@ export namespace Prisma {
     payoutBankAccountHolder: string | null
     termsAcceptedVersion: string | null
     termsAcceptedAt: Date | null
+    applicationFlowVersion: number | null
+    legacyNoAmenities: boolean
+    legacyClientAt: Date | null
     createdBy: string | null
     createdAt: Date
     updatedAt: Date
@@ -12554,6 +13579,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: boolean
     termsAcceptedVersion?: boolean
     termsAcceptedAt?: boolean
+    applicationFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -12604,6 +13632,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: boolean
     termsAcceptedVersion?: boolean
     termsAcceptedAt?: boolean
+    applicationFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -12645,6 +13676,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: boolean
     termsAcceptedVersion?: boolean
     termsAcceptedAt?: boolean
+    applicationFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -12763,6 +13797,13 @@ export namespace Prisma {
       payoutBankAccountHolder: string | null
       termsAcceptedVersion: string | null
       termsAcceptedAt: Date | null
+      /**
+       * Listing Management (B1) — luồng hồ sơ mà client đã dùng (NULL = hồ sơ có từ trước / client cũ);
+       * cờ tương thích APK cũ và thời điểm thao tác tương thích gần nhất (cùng now() với legacy_compat_events.occurred_at).
+       */
+      applicationFlowVersion: number | null
+      legacyNoAmenities: boolean
+      legacyClientAt: Date | null
       createdBy: string | null
       createdAt: Date
       updatedAt: Date
@@ -13202,6 +14243,9 @@ export namespace Prisma {
     readonly payoutBankAccountHolder: FieldRef<"GymPartner", 'String'>
     readonly termsAcceptedVersion: FieldRef<"GymPartner", 'String'>
     readonly termsAcceptedAt: FieldRef<"GymPartner", 'DateTime'>
+    readonly applicationFlowVersion: FieldRef<"GymPartner", 'Int'>
+    readonly legacyNoAmenities: FieldRef<"GymPartner", 'Boolean'>
+    readonly legacyClientAt: FieldRef<"GymPartner", 'DateTime'>
     readonly createdBy: FieldRef<"GymPartner", 'String'>
     readonly createdAt: FieldRef<"GymPartner", 'DateTime'>
     readonly updatedAt: FieldRef<"GymPartner", 'DateTime'>
@@ -22158,6 +23202,8 @@ export namespace Prisma {
     latitude: number | null
     longitude: number | null
     wizardStep: number | null
+    listingVersion: number | null
+    createdFlowVersion: number | null
   }
 
   export type GymSumAggregateOutputType = {
@@ -22166,6 +23212,8 @@ export namespace Prisma {
     latitude: number | null
     longitude: number | null
     wizardStep: number | null
+    listingVersion: number | null
+    createdFlowVersion: number | null
   }
 
   export type GymMinAggregateOutputType = {
@@ -22199,6 +23247,11 @@ export namespace Prisma {
     closedAt: Date | null
     closedBy: string | null
     reopenedAt: Date | null
+    listingVersion: number | null
+    listingPublishedAt: Date | null
+    createdFlowVersion: number | null
+    legacyNoAmenities: boolean | null
+    legacyClientAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -22234,6 +23287,11 @@ export namespace Prisma {
     closedAt: Date | null
     closedBy: string | null
     reopenedAt: Date | null
+    listingVersion: number | null
+    listingPublishedAt: Date | null
+    createdFlowVersion: number | null
+    legacyNoAmenities: boolean | null
+    legacyClientAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -22270,6 +23328,11 @@ export namespace Prisma {
     closedAt: number
     closedBy: number
     reopenedAt: number
+    listingVersion: number
+    listingPublishedAt: number
+    createdFlowVersion: number
+    legacyNoAmenities: number
+    legacyClientAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -22282,6 +23345,8 @@ export namespace Prisma {
     latitude?: true
     longitude?: true
     wizardStep?: true
+    listingVersion?: true
+    createdFlowVersion?: true
   }
 
   export type GymSumAggregateInputType = {
@@ -22290,6 +23355,8 @@ export namespace Prisma {
     latitude?: true
     longitude?: true
     wizardStep?: true
+    listingVersion?: true
+    createdFlowVersion?: true
   }
 
   export type GymMinAggregateInputType = {
@@ -22323,6 +23390,11 @@ export namespace Prisma {
     closedAt?: true
     closedBy?: true
     reopenedAt?: true
+    listingVersion?: true
+    listingPublishedAt?: true
+    createdFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -22358,6 +23430,11 @@ export namespace Prisma {
     closedAt?: true
     closedBy?: true
     reopenedAt?: true
+    listingVersion?: true
+    listingPublishedAt?: true
+    createdFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -22394,6 +23471,11 @@ export namespace Prisma {
     closedAt?: true
     closedBy?: true
     reopenedAt?: true
+    listingVersion?: true
+    listingPublishedAt?: true
+    createdFlowVersion?: true
+    legacyNoAmenities?: true
+    legacyClientAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -22517,6 +23599,11 @@ export namespace Prisma {
     closedAt: Date | null
     closedBy: string | null
     reopenedAt: Date | null
+    listingVersion: number
+    listingPublishedAt: Date | null
+    createdFlowVersion: number | null
+    legacyNoAmenities: boolean
+    legacyClientAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: GymCountAggregateOutputType | null
@@ -22572,6 +23659,11 @@ export namespace Prisma {
     closedAt?: boolean
     closedBy?: boolean
     reopenedAt?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
+    createdFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -22584,6 +23676,9 @@ export namespace Prisma {
     photos?: boolean | Gym$photosArgs<ExtArgs>
     branchDocuments?: boolean | Gym$branchDocumentsArgs<ExtArgs>
     reviewIssues?: boolean | Gym$reviewIssuesArgs<ExtArgs>
+    amenities?: boolean | Gym$amenitiesArgs<ExtArgs>
+    amenityProposals?: boolean | Gym$amenityProposalsArgs<ExtArgs>
+    listingRevisions?: boolean | Gym$listingRevisionsArgs<ExtArgs>
     _count?: boolean | GymCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gym"]>
 
@@ -22619,6 +23714,11 @@ export namespace Prisma {
     closedAt?: boolean
     closedBy?: boolean
     reopenedAt?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
+    createdFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     brand?: boolean | Gym$brandArgs<ExtArgs>
@@ -22656,6 +23756,11 @@ export namespace Prisma {
     closedAt?: boolean
     closedBy?: boolean
     reopenedAt?: boolean
+    listingVersion?: boolean
+    listingPublishedAt?: boolean
+    createdFlowVersion?: boolean
+    legacyNoAmenities?: boolean
+    legacyClientAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -22671,6 +23776,9 @@ export namespace Prisma {
     photos?: boolean | Gym$photosArgs<ExtArgs>
     branchDocuments?: boolean | Gym$branchDocumentsArgs<ExtArgs>
     reviewIssues?: boolean | Gym$reviewIssuesArgs<ExtArgs>
+    amenities?: boolean | Gym$amenitiesArgs<ExtArgs>
+    amenityProposals?: boolean | Gym$amenityProposalsArgs<ExtArgs>
+    listingRevisions?: boolean | Gym$listingRevisionsArgs<ExtArgs>
     _count?: boolean | GymCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -22690,6 +23798,9 @@ export namespace Prisma {
       photos: Prisma.$GymPhotoPayload<ExtArgs>[]
       branchDocuments: Prisma.$GymBranchDocumentPayload<ExtArgs>[]
       reviewIssues: Prisma.$GymBranchReviewIssuePayload<ExtArgs>[]
+      amenities: Prisma.$GymAmenityPayload<ExtArgs>[]
+      amenityProposals: Prisma.$AmenityProposalPayload<ExtArgs>[]
+      listingRevisions: Prisma.$GymListingRevisionPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -22804,6 +23915,18 @@ export namespace Prisma {
        */
       closedBy: string | null
       reopenedAt: Date | null
+      /**
+       * Listing Management (B1) — phiên bản tin đăng CÔNG KHAI (0 = chưa từng công khai). `listingPublishedAt` NULL
+       * cho dữ liệu cũ ("công khai trước khi có hệ thống tin đăng"); chỉ việc áp bản sửa mới đặt nó.
+       */
+      listingVersion: number
+      listingPublishedAt: Date | null
+      /**
+       * Luồng tạo chi nhánh (NULL = tạo từ trước / client cũ), cờ tương thích APK cũ, thời điểm tương thích gần nhất.
+       */
+      createdFlowVersion: number | null
+      legacyNoAmenities: boolean
+      legacyClientAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gym"]>
@@ -23180,6 +24303,9 @@ export namespace Prisma {
     photos<T extends Gym$photosArgs<ExtArgs> = {}>(args?: Subset<T, Gym$photosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPhotoPayload<ExtArgs>, T, "findMany"> | Null>
     branchDocuments<T extends Gym$branchDocumentsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$branchDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBranchDocumentPayload<ExtArgs>, T, "findMany"> | Null>
     reviewIssues<T extends Gym$reviewIssuesArgs<ExtArgs> = {}>(args?: Subset<T, Gym$reviewIssuesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBranchReviewIssuePayload<ExtArgs>, T, "findMany"> | Null>
+    amenities<T extends Gym$amenitiesArgs<ExtArgs> = {}>(args?: Subset<T, Gym$amenitiesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findMany"> | Null>
+    amenityProposals<T extends Gym$amenityProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$amenityProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findMany"> | Null>
+    listingRevisions<T extends Gym$listingRevisionsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$listingRevisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -23240,6 +24366,11 @@ export namespace Prisma {
     readonly closedAt: FieldRef<"Gym", 'DateTime'>
     readonly closedBy: FieldRef<"Gym", 'String'>
     readonly reopenedAt: FieldRef<"Gym", 'DateTime'>
+    readonly listingVersion: FieldRef<"Gym", 'Int'>
+    readonly listingPublishedAt: FieldRef<"Gym", 'DateTime'>
+    readonly createdFlowVersion: FieldRef<"Gym", 'Int'>
+    readonly legacyNoAmenities: FieldRef<"Gym", 'Boolean'>
+    readonly legacyClientAt: FieldRef<"Gym", 'DateTime'>
     readonly createdAt: FieldRef<"Gym", 'DateTime'>
     readonly updatedAt: FieldRef<"Gym", 'DateTime'>
   }
@@ -23752,6 +24883,66 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GymBranchReviewIssueScalarFieldEnum | GymBranchReviewIssueScalarFieldEnum[]
+  }
+
+  /**
+   * Gym.amenities
+   */
+  export type Gym$amenitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    where?: GymAmenityWhereInput
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    cursor?: GymAmenityWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymAmenityScalarFieldEnum | GymAmenityScalarFieldEnum[]
+  }
+
+  /**
+   * Gym.amenityProposals
+   */
+  export type Gym$amenityProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    where?: AmenityProposalWhereInput
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    cursor?: AmenityProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * Gym.listingRevisions
+   */
+  export type Gym$listingRevisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    where?: GymListingRevisionWhereInput
+    orderBy?: GymListingRevisionOrderByWithRelationInput | GymListingRevisionOrderByWithRelationInput[]
+    cursor?: GymListingRevisionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymListingRevisionScalarFieldEnum | GymListingRevisionScalarFieldEnum[]
   }
 
   /**
@@ -34466,6 +35657,7936 @@ export namespace Prisma {
 
 
   /**
+   * Model Amenity
+   */
+
+  export type AggregateAmenity = {
+    _count: AmenityCountAggregateOutputType | null
+    _avg: AmenityAvgAggregateOutputType | null
+    _sum: AmenitySumAggregateOutputType | null
+    _min: AmenityMinAggregateOutputType | null
+    _max: AmenityMaxAggregateOutputType | null
+  }
+
+  export type AmenityAvgAggregateOutputType = {
+    sortOrder: number | null
+  }
+
+  export type AmenitySumAggregateOutputType = {
+    sortOrder: number | null
+  }
+
+  export type AmenityMinAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    name: string | null
+    nameNormalized: string | null
+    category: $Enums.AmenityCategory | null
+    iconKey: string | null
+    sortOrder: number | null
+    source: $Enums.AmenitySource | null
+    status: $Enums.AmenityStatus | null
+    createdFromProposalId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AmenityMaxAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    name: string | null
+    nameNormalized: string | null
+    category: $Enums.AmenityCategory | null
+    iconKey: string | null
+    sortOrder: number | null
+    source: $Enums.AmenitySource | null
+    status: $Enums.AmenityStatus | null
+    createdFromProposalId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AmenityCountAggregateOutputType = {
+    id: number
+    slug: number
+    name: number
+    nameNormalized: number
+    category: number
+    iconKey: number
+    sortOrder: number
+    source: number
+    status: number
+    createdFromProposalId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AmenityAvgAggregateInputType = {
+    sortOrder?: true
+  }
+
+  export type AmenitySumAggregateInputType = {
+    sortOrder?: true
+  }
+
+  export type AmenityMinAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    nameNormalized?: true
+    category?: true
+    iconKey?: true
+    sortOrder?: true
+    source?: true
+    status?: true
+    createdFromProposalId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AmenityMaxAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    nameNormalized?: true
+    category?: true
+    iconKey?: true
+    sortOrder?: true
+    source?: true
+    status?: true
+    createdFromProposalId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AmenityCountAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    nameNormalized?: true
+    category?: true
+    iconKey?: true
+    sortOrder?: true
+    source?: true
+    status?: true
+    createdFromProposalId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AmenityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Amenity to aggregate.
+     */
+    where?: AmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Amenities to fetch.
+     */
+    orderBy?: AmenityOrderByWithRelationInput | AmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Amenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Amenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Amenities
+    **/
+    _count?: true | AmenityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AmenityAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AmenitySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AmenityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AmenityMaxAggregateInputType
+  }
+
+  export type GetAmenityAggregateType<T extends AmenityAggregateArgs> = {
+        [P in keyof T & keyof AggregateAmenity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAmenity[P]>
+      : GetScalarType<T[P], AggregateAmenity[P]>
+  }
+
+
+
+
+  export type AmenityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityWhereInput
+    orderBy?: AmenityOrderByWithAggregationInput | AmenityOrderByWithAggregationInput[]
+    by: AmenityScalarFieldEnum[] | AmenityScalarFieldEnum
+    having?: AmenityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AmenityCountAggregateInputType | true
+    _avg?: AmenityAvgAggregateInputType
+    _sum?: AmenitySumAggregateInputType
+    _min?: AmenityMinAggregateInputType
+    _max?: AmenityMaxAggregateInputType
+  }
+
+  export type AmenityGroupByOutputType = {
+    id: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder: number
+    source: $Enums.AmenitySource
+    status: $Enums.AmenityStatus
+    createdFromProposalId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AmenityCountAggregateOutputType | null
+    _avg: AmenityAvgAggregateOutputType | null
+    _sum: AmenitySumAggregateOutputType | null
+    _min: AmenityMinAggregateOutputType | null
+    _max: AmenityMaxAggregateOutputType | null
+  }
+
+  type GetAmenityGroupByPayload<T extends AmenityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AmenityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AmenityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AmenityGroupByOutputType[P]>
+            : GetScalarType<T[P], AmenityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AmenitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    category?: boolean
+    iconKey?: boolean
+    sortOrder?: boolean
+    source?: boolean
+    status?: boolean
+    createdFromProposalId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    createdFromProposal?: boolean | Amenity$createdFromProposalArgs<ExtArgs>
+    gyms?: boolean | Amenity$gymsArgs<ExtArgs>
+    targetedBy?: boolean | Amenity$targetedByArgs<ExtArgs>
+    resultOf?: boolean | Amenity$resultOfArgs<ExtArgs>
+    _count?: boolean | AmenityCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["amenity"]>
+
+  export type AmenitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    category?: boolean
+    iconKey?: boolean
+    sortOrder?: boolean
+    source?: boolean
+    status?: boolean
+    createdFromProposalId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    createdFromProposal?: boolean | Amenity$createdFromProposalArgs<ExtArgs>
+  }, ExtArgs["result"]["amenity"]>
+
+  export type AmenitySelectScalar = {
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    category?: boolean
+    iconKey?: boolean
+    sortOrder?: boolean
+    source?: boolean
+    status?: boolean
+    createdFromProposalId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AmenityInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdFromProposal?: boolean | Amenity$createdFromProposalArgs<ExtArgs>
+    gyms?: boolean | Amenity$gymsArgs<ExtArgs>
+    targetedBy?: boolean | Amenity$targetedByArgs<ExtArgs>
+    resultOf?: boolean | Amenity$resultOfArgs<ExtArgs>
+    _count?: boolean | AmenityCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AmenityIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdFromProposal?: boolean | Amenity$createdFromProposalArgs<ExtArgs>
+  }
+
+  export type $AmenityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Amenity"
+    objects: {
+      createdFromProposal: Prisma.$AmenityProposalPayload<ExtArgs> | null
+      gyms: Prisma.$GymAmenityPayload<ExtArgs>[]
+      targetedBy: Prisma.$AmenityProposalPayload<ExtArgs>[]
+      resultOf: Prisma.$AmenityProposalPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * SYSTEM: đúng nguyên văn giá trị enum GymFacility.
+       */
+      slug: string
+      name: string
+      nameNormalized: string
+      category: $Enums.AmenityCategory
+      iconKey: string
+      sortOrder: number
+      source: $Enums.AmenitySource
+      status: $Enums.AmenityStatus
+      createdFromProposalId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["amenity"]>
+    composites: {}
+  }
+
+  type AmenityGetPayload<S extends boolean | null | undefined | AmenityDefaultArgs> = $Result.GetResult<Prisma.$AmenityPayload, S>
+
+  type AmenityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AmenityFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AmenityCountAggregateInputType | true
+    }
+
+  export interface AmenityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Amenity'], meta: { name: 'Amenity' } }
+    /**
+     * Find zero or one Amenity that matches the filter.
+     * @param {AmenityFindUniqueArgs} args - Arguments to find a Amenity
+     * @example
+     * // Get one Amenity
+     * const amenity = await prisma.amenity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AmenityFindUniqueArgs>(args: SelectSubset<T, AmenityFindUniqueArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Amenity that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AmenityFindUniqueOrThrowArgs} args - Arguments to find a Amenity
+     * @example
+     * // Get one Amenity
+     * const amenity = await prisma.amenity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AmenityFindUniqueOrThrowArgs>(args: SelectSubset<T, AmenityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Amenity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityFindFirstArgs} args - Arguments to find a Amenity
+     * @example
+     * // Get one Amenity
+     * const amenity = await prisma.amenity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AmenityFindFirstArgs>(args?: SelectSubset<T, AmenityFindFirstArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Amenity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityFindFirstOrThrowArgs} args - Arguments to find a Amenity
+     * @example
+     * // Get one Amenity
+     * const amenity = await prisma.amenity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AmenityFindFirstOrThrowArgs>(args?: SelectSubset<T, AmenityFindFirstOrThrowArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Amenities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Amenities
+     * const amenities = await prisma.amenity.findMany()
+     * 
+     * // Get first 10 Amenities
+     * const amenities = await prisma.amenity.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const amenityWithIdOnly = await prisma.amenity.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AmenityFindManyArgs>(args?: SelectSubset<T, AmenityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Amenity.
+     * @param {AmenityCreateArgs} args - Arguments to create a Amenity.
+     * @example
+     * // Create one Amenity
+     * const Amenity = await prisma.amenity.create({
+     *   data: {
+     *     // ... data to create a Amenity
+     *   }
+     * })
+     * 
+     */
+    create<T extends AmenityCreateArgs>(args: SelectSubset<T, AmenityCreateArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Amenities.
+     * @param {AmenityCreateManyArgs} args - Arguments to create many Amenities.
+     * @example
+     * // Create many Amenities
+     * const amenity = await prisma.amenity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AmenityCreateManyArgs>(args?: SelectSubset<T, AmenityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Amenities and returns the data saved in the database.
+     * @param {AmenityCreateManyAndReturnArgs} args - Arguments to create many Amenities.
+     * @example
+     * // Create many Amenities
+     * const amenity = await prisma.amenity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Amenities and only return the `id`
+     * const amenityWithIdOnly = await prisma.amenity.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AmenityCreateManyAndReturnArgs>(args?: SelectSubset<T, AmenityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Amenity.
+     * @param {AmenityDeleteArgs} args - Arguments to delete one Amenity.
+     * @example
+     * // Delete one Amenity
+     * const Amenity = await prisma.amenity.delete({
+     *   where: {
+     *     // ... filter to delete one Amenity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AmenityDeleteArgs>(args: SelectSubset<T, AmenityDeleteArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Amenity.
+     * @param {AmenityUpdateArgs} args - Arguments to update one Amenity.
+     * @example
+     * // Update one Amenity
+     * const amenity = await prisma.amenity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AmenityUpdateArgs>(args: SelectSubset<T, AmenityUpdateArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Amenities.
+     * @param {AmenityDeleteManyArgs} args - Arguments to filter Amenities to delete.
+     * @example
+     * // Delete a few Amenities
+     * const { count } = await prisma.amenity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AmenityDeleteManyArgs>(args?: SelectSubset<T, AmenityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Amenities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Amenities
+     * const amenity = await prisma.amenity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AmenityUpdateManyArgs>(args: SelectSubset<T, AmenityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Amenity.
+     * @param {AmenityUpsertArgs} args - Arguments to update or create a Amenity.
+     * @example
+     * // Update or create a Amenity
+     * const amenity = await prisma.amenity.upsert({
+     *   create: {
+     *     // ... data to create a Amenity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Amenity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AmenityUpsertArgs>(args: SelectSubset<T, AmenityUpsertArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Amenities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityCountArgs} args - Arguments to filter Amenities to count.
+     * @example
+     * // Count the number of Amenities
+     * const count = await prisma.amenity.count({
+     *   where: {
+     *     // ... the filter for the Amenities we want to count
+     *   }
+     * })
+    **/
+    count<T extends AmenityCountArgs>(
+      args?: Subset<T, AmenityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AmenityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Amenity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AmenityAggregateArgs>(args: Subset<T, AmenityAggregateArgs>): Prisma.PrismaPromise<GetAmenityAggregateType<T>>
+
+    /**
+     * Group by Amenity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AmenityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AmenityGroupByArgs['orderBy'] }
+        : { orderBy?: AmenityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AmenityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAmenityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Amenity model
+   */
+  readonly fields: AmenityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Amenity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AmenityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    createdFromProposal<T extends Amenity$createdFromProposalArgs<ExtArgs> = {}>(args?: Subset<T, Amenity$createdFromProposalArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    gyms<T extends Amenity$gymsArgs<ExtArgs> = {}>(args?: Subset<T, Amenity$gymsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findMany"> | Null>
+    targetedBy<T extends Amenity$targetedByArgs<ExtArgs> = {}>(args?: Subset<T, Amenity$targetedByArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findMany"> | Null>
+    resultOf<T extends Amenity$resultOfArgs<ExtArgs> = {}>(args?: Subset<T, Amenity$resultOfArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Amenity model
+   */ 
+  interface AmenityFieldRefs {
+    readonly id: FieldRef<"Amenity", 'String'>
+    readonly slug: FieldRef<"Amenity", 'String'>
+    readonly name: FieldRef<"Amenity", 'String'>
+    readonly nameNormalized: FieldRef<"Amenity", 'String'>
+    readonly category: FieldRef<"Amenity", 'AmenityCategory'>
+    readonly iconKey: FieldRef<"Amenity", 'String'>
+    readonly sortOrder: FieldRef<"Amenity", 'Int'>
+    readonly source: FieldRef<"Amenity", 'AmenitySource'>
+    readonly status: FieldRef<"Amenity", 'AmenityStatus'>
+    readonly createdFromProposalId: FieldRef<"Amenity", 'String'>
+    readonly createdAt: FieldRef<"Amenity", 'DateTime'>
+    readonly updatedAt: FieldRef<"Amenity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Amenity findUnique
+   */
+  export type AmenityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which Amenity to fetch.
+     */
+    where: AmenityWhereUniqueInput
+  }
+
+  /**
+   * Amenity findUniqueOrThrow
+   */
+  export type AmenityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which Amenity to fetch.
+     */
+    where: AmenityWhereUniqueInput
+  }
+
+  /**
+   * Amenity findFirst
+   */
+  export type AmenityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which Amenity to fetch.
+     */
+    where?: AmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Amenities to fetch.
+     */
+    orderBy?: AmenityOrderByWithRelationInput | AmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Amenities.
+     */
+    cursor?: AmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Amenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Amenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Amenities.
+     */
+    distinct?: AmenityScalarFieldEnum | AmenityScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity findFirstOrThrow
+   */
+  export type AmenityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which Amenity to fetch.
+     */
+    where?: AmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Amenities to fetch.
+     */
+    orderBy?: AmenityOrderByWithRelationInput | AmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Amenities.
+     */
+    cursor?: AmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Amenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Amenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Amenities.
+     */
+    distinct?: AmenityScalarFieldEnum | AmenityScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity findMany
+   */
+  export type AmenityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which Amenities to fetch.
+     */
+    where?: AmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Amenities to fetch.
+     */
+    orderBy?: AmenityOrderByWithRelationInput | AmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Amenities.
+     */
+    cursor?: AmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Amenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Amenities.
+     */
+    skip?: number
+    distinct?: AmenityScalarFieldEnum | AmenityScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity create
+   */
+  export type AmenityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Amenity.
+     */
+    data: XOR<AmenityCreateInput, AmenityUncheckedCreateInput>
+  }
+
+  /**
+   * Amenity createMany
+   */
+  export type AmenityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Amenities.
+     */
+    data: AmenityCreateManyInput | AmenityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Amenity createManyAndReturn
+   */
+  export type AmenityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Amenities.
+     */
+    data: AmenityCreateManyInput | AmenityCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Amenity update
+   */
+  export type AmenityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Amenity.
+     */
+    data: XOR<AmenityUpdateInput, AmenityUncheckedUpdateInput>
+    /**
+     * Choose, which Amenity to update.
+     */
+    where: AmenityWhereUniqueInput
+  }
+
+  /**
+   * Amenity updateMany
+   */
+  export type AmenityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Amenities.
+     */
+    data: XOR<AmenityUpdateManyMutationInput, AmenityUncheckedUpdateManyInput>
+    /**
+     * Filter which Amenities to update
+     */
+    where?: AmenityWhereInput
+  }
+
+  /**
+   * Amenity upsert
+   */
+  export type AmenityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Amenity to update in case it exists.
+     */
+    where: AmenityWhereUniqueInput
+    /**
+     * In case the Amenity found by the `where` argument doesn't exist, create a new Amenity with this data.
+     */
+    create: XOR<AmenityCreateInput, AmenityUncheckedCreateInput>
+    /**
+     * In case the Amenity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AmenityUpdateInput, AmenityUncheckedUpdateInput>
+  }
+
+  /**
+   * Amenity delete
+   */
+  export type AmenityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    /**
+     * Filter which Amenity to delete.
+     */
+    where: AmenityWhereUniqueInput
+  }
+
+  /**
+   * Amenity deleteMany
+   */
+  export type AmenityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Amenities to delete
+     */
+    where?: AmenityWhereInput
+  }
+
+  /**
+   * Amenity.createdFromProposal
+   */
+  export type Amenity$createdFromProposalArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    where?: AmenityProposalWhereInput
+  }
+
+  /**
+   * Amenity.gyms
+   */
+  export type Amenity$gymsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    where?: GymAmenityWhereInput
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    cursor?: GymAmenityWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymAmenityScalarFieldEnum | GymAmenityScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity.targetedBy
+   */
+  export type Amenity$targetedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    where?: AmenityProposalWhereInput
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    cursor?: AmenityProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity.resultOf
+   */
+  export type Amenity$resultOfArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    where?: AmenityProposalWhereInput
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    cursor?: AmenityProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * Amenity without action
+   */
+  export type AmenityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AmenityProposal
+   */
+
+  export type AggregateAmenityProposal = {
+    _count: AmenityProposalCountAggregateOutputType | null
+    _min: AmenityProposalMinAggregateOutputType | null
+    _max: AmenityProposalMaxAggregateOutputType | null
+  }
+
+  export type AmenityProposalMinAggregateOutputType = {
+    id: string | null
+    ownerUserId: string | null
+    gymId: string | null
+    kind: $Enums.AmenityProposalKind | null
+    targetAmenityId: string | null
+    name: string | null
+    nameNormalized: string | null
+    suggestedCategory: $Enums.AmenityCategory | null
+    note: string | null
+    status: $Enums.AmenityProposalStatus | null
+    resultingAmenityId: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    rejectReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AmenityProposalMaxAggregateOutputType = {
+    id: string | null
+    ownerUserId: string | null
+    gymId: string | null
+    kind: $Enums.AmenityProposalKind | null
+    targetAmenityId: string | null
+    name: string | null
+    nameNormalized: string | null
+    suggestedCategory: $Enums.AmenityCategory | null
+    note: string | null
+    status: $Enums.AmenityProposalStatus | null
+    resultingAmenityId: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    rejectReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AmenityProposalCountAggregateOutputType = {
+    id: number
+    ownerUserId: number
+    gymId: number
+    kind: number
+    targetAmenityId: number
+    name: number
+    nameNormalized: number
+    suggestedCategory: number
+    note: number
+    status: number
+    resultingAmenityId: number
+    reviewedBy: number
+    reviewedAt: number
+    rejectReason: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AmenityProposalMinAggregateInputType = {
+    id?: true
+    ownerUserId?: true
+    gymId?: true
+    kind?: true
+    targetAmenityId?: true
+    name?: true
+    nameNormalized?: true
+    suggestedCategory?: true
+    note?: true
+    status?: true
+    resultingAmenityId?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    rejectReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AmenityProposalMaxAggregateInputType = {
+    id?: true
+    ownerUserId?: true
+    gymId?: true
+    kind?: true
+    targetAmenityId?: true
+    name?: true
+    nameNormalized?: true
+    suggestedCategory?: true
+    note?: true
+    status?: true
+    resultingAmenityId?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    rejectReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AmenityProposalCountAggregateInputType = {
+    id?: true
+    ownerUserId?: true
+    gymId?: true
+    kind?: true
+    targetAmenityId?: true
+    name?: true
+    nameNormalized?: true
+    suggestedCategory?: true
+    note?: true
+    status?: true
+    resultingAmenityId?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    rejectReason?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AmenityProposalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AmenityProposal to aggregate.
+     */
+    where?: AmenityProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityProposals to fetch.
+     */
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AmenityProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AmenityProposals
+    **/
+    _count?: true | AmenityProposalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AmenityProposalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AmenityProposalMaxAggregateInputType
+  }
+
+  export type GetAmenityProposalAggregateType<T extends AmenityProposalAggregateArgs> = {
+        [P in keyof T & keyof AggregateAmenityProposal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAmenityProposal[P]>
+      : GetScalarType<T[P], AggregateAmenityProposal[P]>
+  }
+
+
+
+
+  export type AmenityProposalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityProposalWhereInput
+    orderBy?: AmenityProposalOrderByWithAggregationInput | AmenityProposalOrderByWithAggregationInput[]
+    by: AmenityProposalScalarFieldEnum[] | AmenityProposalScalarFieldEnum
+    having?: AmenityProposalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AmenityProposalCountAggregateInputType | true
+    _min?: AmenityProposalMinAggregateInputType
+    _max?: AmenityProposalMaxAggregateInputType
+  }
+
+  export type AmenityProposalGroupByOutputType = {
+    id: string
+    ownerUserId: string
+    gymId: string
+    kind: $Enums.AmenityProposalKind
+    targetAmenityId: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note: string | null
+    status: $Enums.AmenityProposalStatus
+    resultingAmenityId: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    rejectReason: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AmenityProposalCountAggregateOutputType | null
+    _min: AmenityProposalMinAggregateOutputType | null
+    _max: AmenityProposalMaxAggregateOutputType | null
+  }
+
+  type GetAmenityProposalGroupByPayload<T extends AmenityProposalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AmenityProposalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AmenityProposalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AmenityProposalGroupByOutputType[P]>
+            : GetScalarType<T[P], AmenityProposalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AmenityProposalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerUserId?: boolean
+    gymId?: boolean
+    kind?: boolean
+    targetAmenityId?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    suggestedCategory?: boolean
+    note?: boolean
+    status?: boolean
+    resultingAmenityId?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    rejectReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    targetAmenity?: boolean | AmenityProposal$targetAmenityArgs<ExtArgs>
+    resultingAmenity?: boolean | AmenityProposal$resultingAmenityArgs<ExtArgs>
+    createdAmenities?: boolean | AmenityProposal$createdAmenitiesArgs<ExtArgs>
+    _count?: boolean | AmenityProposalCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["amenityProposal"]>
+
+  export type AmenityProposalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerUserId?: boolean
+    gymId?: boolean
+    kind?: boolean
+    targetAmenityId?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    suggestedCategory?: boolean
+    note?: boolean
+    status?: boolean
+    resultingAmenityId?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    rejectReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    targetAmenity?: boolean | AmenityProposal$targetAmenityArgs<ExtArgs>
+    resultingAmenity?: boolean | AmenityProposal$resultingAmenityArgs<ExtArgs>
+  }, ExtArgs["result"]["amenityProposal"]>
+
+  export type AmenityProposalSelectScalar = {
+    id?: boolean
+    ownerUserId?: boolean
+    gymId?: boolean
+    kind?: boolean
+    targetAmenityId?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    suggestedCategory?: boolean
+    note?: boolean
+    status?: boolean
+    resultingAmenityId?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    rejectReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AmenityProposalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    targetAmenity?: boolean | AmenityProposal$targetAmenityArgs<ExtArgs>
+    resultingAmenity?: boolean | AmenityProposal$resultingAmenityArgs<ExtArgs>
+    createdAmenities?: boolean | AmenityProposal$createdAmenitiesArgs<ExtArgs>
+    _count?: boolean | AmenityProposalCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AmenityProposalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    targetAmenity?: boolean | AmenityProposal$targetAmenityArgs<ExtArgs>
+    resultingAmenity?: boolean | AmenityProposal$resultingAmenityArgs<ExtArgs>
+  }
+
+  export type $AmenityProposalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AmenityProposal"
+    objects: {
+      gym: Prisma.$GymPayload<ExtArgs>
+      targetAmenity: Prisma.$AmenityPayload<ExtArgs> | null
+      resultingAmenity: Prisma.$AmenityPayload<ExtArgs> | null
+      createdAmenities: Prisma.$AmenityPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ownerUserId: string
+      gymId: string
+      kind: $Enums.AmenityProposalKind
+      targetAmenityId: string | null
+      name: string
+      nameNormalized: string
+      suggestedCategory: $Enums.AmenityCategory
+      note: string | null
+      status: $Enums.AmenityProposalStatus
+      resultingAmenityId: string | null
+      reviewedBy: string | null
+      reviewedAt: Date | null
+      rejectReason: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["amenityProposal"]>
+    composites: {}
+  }
+
+  type AmenityProposalGetPayload<S extends boolean | null | undefined | AmenityProposalDefaultArgs> = $Result.GetResult<Prisma.$AmenityProposalPayload, S>
+
+  type AmenityProposalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AmenityProposalFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AmenityProposalCountAggregateInputType | true
+    }
+
+  export interface AmenityProposalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AmenityProposal'], meta: { name: 'AmenityProposal' } }
+    /**
+     * Find zero or one AmenityProposal that matches the filter.
+     * @param {AmenityProposalFindUniqueArgs} args - Arguments to find a AmenityProposal
+     * @example
+     * // Get one AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AmenityProposalFindUniqueArgs>(args: SelectSubset<T, AmenityProposalFindUniqueArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AmenityProposal that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AmenityProposalFindUniqueOrThrowArgs} args - Arguments to find a AmenityProposal
+     * @example
+     * // Get one AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AmenityProposalFindUniqueOrThrowArgs>(args: SelectSubset<T, AmenityProposalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AmenityProposal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalFindFirstArgs} args - Arguments to find a AmenityProposal
+     * @example
+     * // Get one AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AmenityProposalFindFirstArgs>(args?: SelectSubset<T, AmenityProposalFindFirstArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AmenityProposal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalFindFirstOrThrowArgs} args - Arguments to find a AmenityProposal
+     * @example
+     * // Get one AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AmenityProposalFindFirstOrThrowArgs>(args?: SelectSubset<T, AmenityProposalFindFirstOrThrowArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AmenityProposals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AmenityProposals
+     * const amenityProposals = await prisma.amenityProposal.findMany()
+     * 
+     * // Get first 10 AmenityProposals
+     * const amenityProposals = await prisma.amenityProposal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const amenityProposalWithIdOnly = await prisma.amenityProposal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AmenityProposalFindManyArgs>(args?: SelectSubset<T, AmenityProposalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AmenityProposal.
+     * @param {AmenityProposalCreateArgs} args - Arguments to create a AmenityProposal.
+     * @example
+     * // Create one AmenityProposal
+     * const AmenityProposal = await prisma.amenityProposal.create({
+     *   data: {
+     *     // ... data to create a AmenityProposal
+     *   }
+     * })
+     * 
+     */
+    create<T extends AmenityProposalCreateArgs>(args: SelectSubset<T, AmenityProposalCreateArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AmenityProposals.
+     * @param {AmenityProposalCreateManyArgs} args - Arguments to create many AmenityProposals.
+     * @example
+     * // Create many AmenityProposals
+     * const amenityProposal = await prisma.amenityProposal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AmenityProposalCreateManyArgs>(args?: SelectSubset<T, AmenityProposalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AmenityProposals and returns the data saved in the database.
+     * @param {AmenityProposalCreateManyAndReturnArgs} args - Arguments to create many AmenityProposals.
+     * @example
+     * // Create many AmenityProposals
+     * const amenityProposal = await prisma.amenityProposal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AmenityProposals and only return the `id`
+     * const amenityProposalWithIdOnly = await prisma.amenityProposal.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AmenityProposalCreateManyAndReturnArgs>(args?: SelectSubset<T, AmenityProposalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AmenityProposal.
+     * @param {AmenityProposalDeleteArgs} args - Arguments to delete one AmenityProposal.
+     * @example
+     * // Delete one AmenityProposal
+     * const AmenityProposal = await prisma.amenityProposal.delete({
+     *   where: {
+     *     // ... filter to delete one AmenityProposal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AmenityProposalDeleteArgs>(args: SelectSubset<T, AmenityProposalDeleteArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AmenityProposal.
+     * @param {AmenityProposalUpdateArgs} args - Arguments to update one AmenityProposal.
+     * @example
+     * // Update one AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AmenityProposalUpdateArgs>(args: SelectSubset<T, AmenityProposalUpdateArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AmenityProposals.
+     * @param {AmenityProposalDeleteManyArgs} args - Arguments to filter AmenityProposals to delete.
+     * @example
+     * // Delete a few AmenityProposals
+     * const { count } = await prisma.amenityProposal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AmenityProposalDeleteManyArgs>(args?: SelectSubset<T, AmenityProposalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AmenityProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AmenityProposals
+     * const amenityProposal = await prisma.amenityProposal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AmenityProposalUpdateManyArgs>(args: SelectSubset<T, AmenityProposalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AmenityProposal.
+     * @param {AmenityProposalUpsertArgs} args - Arguments to update or create a AmenityProposal.
+     * @example
+     * // Update or create a AmenityProposal
+     * const amenityProposal = await prisma.amenityProposal.upsert({
+     *   create: {
+     *     // ... data to create a AmenityProposal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AmenityProposal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AmenityProposalUpsertArgs>(args: SelectSubset<T, AmenityProposalUpsertArgs<ExtArgs>>): Prisma__AmenityProposalClient<$Result.GetResult<Prisma.$AmenityProposalPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AmenityProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalCountArgs} args - Arguments to filter AmenityProposals to count.
+     * @example
+     * // Count the number of AmenityProposals
+     * const count = await prisma.amenityProposal.count({
+     *   where: {
+     *     // ... the filter for the AmenityProposals we want to count
+     *   }
+     * })
+    **/
+    count<T extends AmenityProposalCountArgs>(
+      args?: Subset<T, AmenityProposalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AmenityProposalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AmenityProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AmenityProposalAggregateArgs>(args: Subset<T, AmenityProposalAggregateArgs>): Prisma.PrismaPromise<GetAmenityProposalAggregateType<T>>
+
+    /**
+     * Group by AmenityProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityProposalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AmenityProposalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AmenityProposalGroupByArgs['orderBy'] }
+        : { orderBy?: AmenityProposalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AmenityProposalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAmenityProposalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AmenityProposal model
+   */
+  readonly fields: AmenityProposalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AmenityProposal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AmenityProposalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    targetAmenity<T extends AmenityProposal$targetAmenityArgs<ExtArgs> = {}>(args?: Subset<T, AmenityProposal$targetAmenityArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    resultingAmenity<T extends AmenityProposal$resultingAmenityArgs<ExtArgs> = {}>(args?: Subset<T, AmenityProposal$resultingAmenityArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    createdAmenities<T extends AmenityProposal$createdAmenitiesArgs<ExtArgs> = {}>(args?: Subset<T, AmenityProposal$createdAmenitiesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AmenityProposal model
+   */ 
+  interface AmenityProposalFieldRefs {
+    readonly id: FieldRef<"AmenityProposal", 'String'>
+    readonly ownerUserId: FieldRef<"AmenityProposal", 'String'>
+    readonly gymId: FieldRef<"AmenityProposal", 'String'>
+    readonly kind: FieldRef<"AmenityProposal", 'AmenityProposalKind'>
+    readonly targetAmenityId: FieldRef<"AmenityProposal", 'String'>
+    readonly name: FieldRef<"AmenityProposal", 'String'>
+    readonly nameNormalized: FieldRef<"AmenityProposal", 'String'>
+    readonly suggestedCategory: FieldRef<"AmenityProposal", 'AmenityCategory'>
+    readonly note: FieldRef<"AmenityProposal", 'String'>
+    readonly status: FieldRef<"AmenityProposal", 'AmenityProposalStatus'>
+    readonly resultingAmenityId: FieldRef<"AmenityProposal", 'String'>
+    readonly reviewedBy: FieldRef<"AmenityProposal", 'String'>
+    readonly reviewedAt: FieldRef<"AmenityProposal", 'DateTime'>
+    readonly rejectReason: FieldRef<"AmenityProposal", 'String'>
+    readonly createdAt: FieldRef<"AmenityProposal", 'DateTime'>
+    readonly updatedAt: FieldRef<"AmenityProposal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AmenityProposal findUnique
+   */
+  export type AmenityProposalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AmenityProposal to fetch.
+     */
+    where: AmenityProposalWhereUniqueInput
+  }
+
+  /**
+   * AmenityProposal findUniqueOrThrow
+   */
+  export type AmenityProposalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AmenityProposal to fetch.
+     */
+    where: AmenityProposalWhereUniqueInput
+  }
+
+  /**
+   * AmenityProposal findFirst
+   */
+  export type AmenityProposalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AmenityProposal to fetch.
+     */
+    where?: AmenityProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityProposals to fetch.
+     */
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AmenityProposals.
+     */
+    cursor?: AmenityProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AmenityProposals.
+     */
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityProposal findFirstOrThrow
+   */
+  export type AmenityProposalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AmenityProposal to fetch.
+     */
+    where?: AmenityProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityProposals to fetch.
+     */
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AmenityProposals.
+     */
+    cursor?: AmenityProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AmenityProposals.
+     */
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityProposal findMany
+   */
+  export type AmenityProposalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AmenityProposals to fetch.
+     */
+    where?: AmenityProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityProposals to fetch.
+     */
+    orderBy?: AmenityProposalOrderByWithRelationInput | AmenityProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AmenityProposals.
+     */
+    cursor?: AmenityProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityProposals.
+     */
+    skip?: number
+    distinct?: AmenityProposalScalarFieldEnum | AmenityProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityProposal create
+   */
+  export type AmenityProposalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AmenityProposal.
+     */
+    data: XOR<AmenityProposalCreateInput, AmenityProposalUncheckedCreateInput>
+  }
+
+  /**
+   * AmenityProposal createMany
+   */
+  export type AmenityProposalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AmenityProposals.
+     */
+    data: AmenityProposalCreateManyInput | AmenityProposalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AmenityProposal createManyAndReturn
+   */
+  export type AmenityProposalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AmenityProposals.
+     */
+    data: AmenityProposalCreateManyInput | AmenityProposalCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AmenityProposal update
+   */
+  export type AmenityProposalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AmenityProposal.
+     */
+    data: XOR<AmenityProposalUpdateInput, AmenityProposalUncheckedUpdateInput>
+    /**
+     * Choose, which AmenityProposal to update.
+     */
+    where: AmenityProposalWhereUniqueInput
+  }
+
+  /**
+   * AmenityProposal updateMany
+   */
+  export type AmenityProposalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AmenityProposals.
+     */
+    data: XOR<AmenityProposalUpdateManyMutationInput, AmenityProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which AmenityProposals to update
+     */
+    where?: AmenityProposalWhereInput
+  }
+
+  /**
+   * AmenityProposal upsert
+   */
+  export type AmenityProposalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AmenityProposal to update in case it exists.
+     */
+    where: AmenityProposalWhereUniqueInput
+    /**
+     * In case the AmenityProposal found by the `where` argument doesn't exist, create a new AmenityProposal with this data.
+     */
+    create: XOR<AmenityProposalCreateInput, AmenityProposalUncheckedCreateInput>
+    /**
+     * In case the AmenityProposal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AmenityProposalUpdateInput, AmenityProposalUncheckedUpdateInput>
+  }
+
+  /**
+   * AmenityProposal delete
+   */
+  export type AmenityProposalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+    /**
+     * Filter which AmenityProposal to delete.
+     */
+    where: AmenityProposalWhereUniqueInput
+  }
+
+  /**
+   * AmenityProposal deleteMany
+   */
+  export type AmenityProposalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AmenityProposals to delete
+     */
+    where?: AmenityProposalWhereInput
+  }
+
+  /**
+   * AmenityProposal.targetAmenity
+   */
+  export type AmenityProposal$targetAmenityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    where?: AmenityWhereInput
+  }
+
+  /**
+   * AmenityProposal.resultingAmenity
+   */
+  export type AmenityProposal$resultingAmenityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    where?: AmenityWhereInput
+  }
+
+  /**
+   * AmenityProposal.createdAmenities
+   */
+  export type AmenityProposal$createdAmenitiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Amenity
+     */
+    select?: AmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityInclude<ExtArgs> | null
+    where?: AmenityWhereInput
+    orderBy?: AmenityOrderByWithRelationInput | AmenityOrderByWithRelationInput[]
+    cursor?: AmenityWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AmenityScalarFieldEnum | AmenityScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityProposal without action
+   */
+  export type AmenityProposalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityProposal
+     */
+    select?: AmenityProposalSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AmenityProposalInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymAmenity
+   */
+
+  export type AggregateGymAmenity = {
+    _count: GymAmenityCountAggregateOutputType | null
+    _min: GymAmenityMinAggregateOutputType | null
+    _max: GymAmenityMaxAggregateOutputType | null
+  }
+
+  export type GymAmenityMinAggregateOutputType = {
+    gymId: string | null
+    amenityId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymAmenityMaxAggregateOutputType = {
+    gymId: string | null
+    amenityId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymAmenityCountAggregateOutputType = {
+    gymId: number
+    amenityId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymAmenityMinAggregateInputType = {
+    gymId?: true
+    amenityId?: true
+    createdAt?: true
+  }
+
+  export type GymAmenityMaxAggregateInputType = {
+    gymId?: true
+    amenityId?: true
+    createdAt?: true
+  }
+
+  export type GymAmenityCountAggregateInputType = {
+    gymId?: true
+    amenityId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymAmenityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAmenity to aggregate.
+     */
+    where?: GymAmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAmenities to fetch.
+     */
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymAmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAmenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAmenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymAmenities
+    **/
+    _count?: true | GymAmenityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymAmenityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymAmenityMaxAggregateInputType
+  }
+
+  export type GetGymAmenityAggregateType<T extends GymAmenityAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymAmenity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymAmenity[P]>
+      : GetScalarType<T[P], AggregateGymAmenity[P]>
+  }
+
+
+
+
+  export type GymAmenityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAmenityWhereInput
+    orderBy?: GymAmenityOrderByWithAggregationInput | GymAmenityOrderByWithAggregationInput[]
+    by: GymAmenityScalarFieldEnum[] | GymAmenityScalarFieldEnum
+    having?: GymAmenityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymAmenityCountAggregateInputType | true
+    _min?: GymAmenityMinAggregateInputType
+    _max?: GymAmenityMaxAggregateInputType
+  }
+
+  export type GymAmenityGroupByOutputType = {
+    gymId: string
+    amenityId: string
+    createdAt: Date
+    _count: GymAmenityCountAggregateOutputType | null
+    _min: GymAmenityMinAggregateOutputType | null
+    _max: GymAmenityMaxAggregateOutputType | null
+  }
+
+  type GetGymAmenityGroupByPayload<T extends GymAmenityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymAmenityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymAmenityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymAmenityGroupByOutputType[P]>
+            : GetScalarType<T[P], GymAmenityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymAmenitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    gymId?: boolean
+    amenityId?: boolean
+    createdAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    amenity?: boolean | AmenityDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymAmenity"]>
+
+  export type GymAmenitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    gymId?: boolean
+    amenityId?: boolean
+    createdAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    amenity?: boolean | AmenityDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymAmenity"]>
+
+  export type GymAmenitySelectScalar = {
+    gymId?: boolean
+    amenityId?: boolean
+    createdAt?: boolean
+  }
+
+  export type GymAmenityInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    amenity?: boolean | AmenityDefaultArgs<ExtArgs>
+  }
+  export type GymAmenityIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+    amenity?: boolean | AmenityDefaultArgs<ExtArgs>
+  }
+
+  export type $GymAmenityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymAmenity"
+    objects: {
+      gym: Prisma.$GymPayload<ExtArgs>
+      amenity: Prisma.$AmenityPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      gymId: string
+      amenityId: string
+      createdAt: Date
+    }, ExtArgs["result"]["gymAmenity"]>
+    composites: {}
+  }
+
+  type GymAmenityGetPayload<S extends boolean | null | undefined | GymAmenityDefaultArgs> = $Result.GetResult<Prisma.$GymAmenityPayload, S>
+
+  type GymAmenityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymAmenityFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymAmenityCountAggregateInputType | true
+    }
+
+  export interface GymAmenityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymAmenity'], meta: { name: 'GymAmenity' } }
+    /**
+     * Find zero or one GymAmenity that matches the filter.
+     * @param {GymAmenityFindUniqueArgs} args - Arguments to find a GymAmenity
+     * @example
+     * // Get one GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymAmenityFindUniqueArgs>(args: SelectSubset<T, GymAmenityFindUniqueArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymAmenity that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymAmenityFindUniqueOrThrowArgs} args - Arguments to find a GymAmenity
+     * @example
+     * // Get one GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymAmenityFindUniqueOrThrowArgs>(args: SelectSubset<T, GymAmenityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymAmenity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityFindFirstArgs} args - Arguments to find a GymAmenity
+     * @example
+     * // Get one GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymAmenityFindFirstArgs>(args?: SelectSubset<T, GymAmenityFindFirstArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymAmenity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityFindFirstOrThrowArgs} args - Arguments to find a GymAmenity
+     * @example
+     * // Get one GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymAmenityFindFirstOrThrowArgs>(args?: SelectSubset<T, GymAmenityFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymAmenities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymAmenities
+     * const gymAmenities = await prisma.gymAmenity.findMany()
+     * 
+     * // Get first 10 GymAmenities
+     * const gymAmenities = await prisma.gymAmenity.findMany({ take: 10 })
+     * 
+     * // Only select the `gymId`
+     * const gymAmenityWithGymIdOnly = await prisma.gymAmenity.findMany({ select: { gymId: true } })
+     * 
+     */
+    findMany<T extends GymAmenityFindManyArgs>(args?: SelectSubset<T, GymAmenityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymAmenity.
+     * @param {GymAmenityCreateArgs} args - Arguments to create a GymAmenity.
+     * @example
+     * // Create one GymAmenity
+     * const GymAmenity = await prisma.gymAmenity.create({
+     *   data: {
+     *     // ... data to create a GymAmenity
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymAmenityCreateArgs>(args: SelectSubset<T, GymAmenityCreateArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymAmenities.
+     * @param {GymAmenityCreateManyArgs} args - Arguments to create many GymAmenities.
+     * @example
+     * // Create many GymAmenities
+     * const gymAmenity = await prisma.gymAmenity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymAmenityCreateManyArgs>(args?: SelectSubset<T, GymAmenityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymAmenities and returns the data saved in the database.
+     * @param {GymAmenityCreateManyAndReturnArgs} args - Arguments to create many GymAmenities.
+     * @example
+     * // Create many GymAmenities
+     * const gymAmenity = await prisma.gymAmenity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymAmenities and only return the `gymId`
+     * const gymAmenityWithGymIdOnly = await prisma.gymAmenity.createManyAndReturn({ 
+     *   select: { gymId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymAmenityCreateManyAndReturnArgs>(args?: SelectSubset<T, GymAmenityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymAmenity.
+     * @param {GymAmenityDeleteArgs} args - Arguments to delete one GymAmenity.
+     * @example
+     * // Delete one GymAmenity
+     * const GymAmenity = await prisma.gymAmenity.delete({
+     *   where: {
+     *     // ... filter to delete one GymAmenity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymAmenityDeleteArgs>(args: SelectSubset<T, GymAmenityDeleteArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymAmenity.
+     * @param {GymAmenityUpdateArgs} args - Arguments to update one GymAmenity.
+     * @example
+     * // Update one GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymAmenityUpdateArgs>(args: SelectSubset<T, GymAmenityUpdateArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymAmenities.
+     * @param {GymAmenityDeleteManyArgs} args - Arguments to filter GymAmenities to delete.
+     * @example
+     * // Delete a few GymAmenities
+     * const { count } = await prisma.gymAmenity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymAmenityDeleteManyArgs>(args?: SelectSubset<T, GymAmenityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymAmenities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymAmenities
+     * const gymAmenity = await prisma.gymAmenity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymAmenityUpdateManyArgs>(args: SelectSubset<T, GymAmenityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymAmenity.
+     * @param {GymAmenityUpsertArgs} args - Arguments to update or create a GymAmenity.
+     * @example
+     * // Update or create a GymAmenity
+     * const gymAmenity = await prisma.gymAmenity.upsert({
+     *   create: {
+     *     // ... data to create a GymAmenity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymAmenity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymAmenityUpsertArgs>(args: SelectSubset<T, GymAmenityUpsertArgs<ExtArgs>>): Prisma__GymAmenityClient<$Result.GetResult<Prisma.$GymAmenityPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymAmenities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityCountArgs} args - Arguments to filter GymAmenities to count.
+     * @example
+     * // Count the number of GymAmenities
+     * const count = await prisma.gymAmenity.count({
+     *   where: {
+     *     // ... the filter for the GymAmenities we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymAmenityCountArgs>(
+      args?: Subset<T, GymAmenityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymAmenityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymAmenity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymAmenityAggregateArgs>(args: Subset<T, GymAmenityAggregateArgs>): Prisma.PrismaPromise<GetGymAmenityAggregateType<T>>
+
+    /**
+     * Group by GymAmenity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAmenityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymAmenityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymAmenityGroupByArgs['orderBy'] }
+        : { orderBy?: GymAmenityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymAmenityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymAmenityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymAmenity model
+   */
+  readonly fields: GymAmenityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymAmenity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymAmenityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    amenity<T extends AmenityDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AmenityDefaultArgs<ExtArgs>>): Prisma__AmenityClient<$Result.GetResult<Prisma.$AmenityPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymAmenity model
+   */ 
+  interface GymAmenityFieldRefs {
+    readonly gymId: FieldRef<"GymAmenity", 'String'>
+    readonly amenityId: FieldRef<"GymAmenity", 'String'>
+    readonly createdAt: FieldRef<"GymAmenity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymAmenity findUnique
+   */
+  export type GymAmenityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which GymAmenity to fetch.
+     */
+    where: GymAmenityWhereUniqueInput
+  }
+
+  /**
+   * GymAmenity findUniqueOrThrow
+   */
+  export type GymAmenityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which GymAmenity to fetch.
+     */
+    where: GymAmenityWhereUniqueInput
+  }
+
+  /**
+   * GymAmenity findFirst
+   */
+  export type GymAmenityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which GymAmenity to fetch.
+     */
+    where?: GymAmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAmenities to fetch.
+     */
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAmenities.
+     */
+    cursor?: GymAmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAmenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAmenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAmenities.
+     */
+    distinct?: GymAmenityScalarFieldEnum | GymAmenityScalarFieldEnum[]
+  }
+
+  /**
+   * GymAmenity findFirstOrThrow
+   */
+  export type GymAmenityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which GymAmenity to fetch.
+     */
+    where?: GymAmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAmenities to fetch.
+     */
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAmenities.
+     */
+    cursor?: GymAmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAmenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAmenities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAmenities.
+     */
+    distinct?: GymAmenityScalarFieldEnum | GymAmenityScalarFieldEnum[]
+  }
+
+  /**
+   * GymAmenity findMany
+   */
+  export type GymAmenityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter, which GymAmenities to fetch.
+     */
+    where?: GymAmenityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAmenities to fetch.
+     */
+    orderBy?: GymAmenityOrderByWithRelationInput | GymAmenityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymAmenities.
+     */
+    cursor?: GymAmenityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAmenities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAmenities.
+     */
+    skip?: number
+    distinct?: GymAmenityScalarFieldEnum | GymAmenityScalarFieldEnum[]
+  }
+
+  /**
+   * GymAmenity create
+   */
+  export type GymAmenityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymAmenity.
+     */
+    data: XOR<GymAmenityCreateInput, GymAmenityUncheckedCreateInput>
+  }
+
+  /**
+   * GymAmenity createMany
+   */
+  export type GymAmenityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymAmenities.
+     */
+    data: GymAmenityCreateManyInput | GymAmenityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAmenity createManyAndReturn
+   */
+  export type GymAmenityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymAmenities.
+     */
+    data: GymAmenityCreateManyInput | GymAmenityCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymAmenity update
+   */
+  export type GymAmenityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymAmenity.
+     */
+    data: XOR<GymAmenityUpdateInput, GymAmenityUncheckedUpdateInput>
+    /**
+     * Choose, which GymAmenity to update.
+     */
+    where: GymAmenityWhereUniqueInput
+  }
+
+  /**
+   * GymAmenity updateMany
+   */
+  export type GymAmenityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymAmenities.
+     */
+    data: XOR<GymAmenityUpdateManyMutationInput, GymAmenityUncheckedUpdateManyInput>
+    /**
+     * Filter which GymAmenities to update
+     */
+    where?: GymAmenityWhereInput
+  }
+
+  /**
+   * GymAmenity upsert
+   */
+  export type GymAmenityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymAmenity to update in case it exists.
+     */
+    where: GymAmenityWhereUniqueInput
+    /**
+     * In case the GymAmenity found by the `where` argument doesn't exist, create a new GymAmenity with this data.
+     */
+    create: XOR<GymAmenityCreateInput, GymAmenityUncheckedCreateInput>
+    /**
+     * In case the GymAmenity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymAmenityUpdateInput, GymAmenityUncheckedUpdateInput>
+  }
+
+  /**
+   * GymAmenity delete
+   */
+  export type GymAmenityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+    /**
+     * Filter which GymAmenity to delete.
+     */
+    where: GymAmenityWhereUniqueInput
+  }
+
+  /**
+   * GymAmenity deleteMany
+   */
+  export type GymAmenityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAmenities to delete
+     */
+    where?: GymAmenityWhereInput
+  }
+
+  /**
+   * GymAmenity without action
+   */
+  export type GymAmenityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAmenity
+     */
+    select?: GymAmenitySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymAmenityInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymListingRevision
+   */
+
+  export type AggregateGymListingRevision = {
+    _count: GymListingRevisionCountAggregateOutputType | null
+    _avg: GymListingRevisionAvgAggregateOutputType | null
+    _sum: GymListingRevisionSumAggregateOutputType | null
+    _min: GymListingRevisionMinAggregateOutputType | null
+    _max: GymListingRevisionMaxAggregateOutputType | null
+  }
+
+  export type GymListingRevisionAvgAggregateOutputType = {
+    baseVersion: number | null
+    draftVersion: number | null
+  }
+
+  export type GymListingRevisionSumAggregateOutputType = {
+    baseVersion: number | null
+    draftVersion: number | null
+  }
+
+  export type GymListingRevisionMinAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    status: $Enums.GymListingRevisionStatus | null
+    source: $Enums.GymListingRevisionSource | null
+    parentRevisionId: string | null
+    baseVersion: number | null
+    draftVersion: number | null
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymListingRevisionMaxAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    status: $Enums.GymListingRevisionStatus | null
+    source: $Enums.GymListingRevisionSource | null
+    parentRevisionId: string | null
+    baseVersion: number | null
+    draftVersion: number | null
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymListingRevisionCountAggregateOutputType = {
+    id: number
+    gymId: number
+    status: number
+    source: number
+    parentRevisionId: number
+    baseVersion: number
+    draftVersion: number
+    payload: number
+    previousSnapshot: number
+    systemAdjustments: number
+    submittedBy: number
+    submittedAt: number
+    reviewedBy: number
+    reviewedAt: number
+    reviewNote: number
+    ownerNote: number
+    adminReason: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymListingRevisionAvgAggregateInputType = {
+    baseVersion?: true
+    draftVersion?: true
+  }
+
+  export type GymListingRevisionSumAggregateInputType = {
+    baseVersion?: true
+    draftVersion?: true
+  }
+
+  export type GymListingRevisionMinAggregateInputType = {
+    id?: true
+    gymId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymListingRevisionMaxAggregateInputType = {
+    id?: true
+    gymId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymListingRevisionCountAggregateInputType = {
+    id?: true
+    gymId?: true
+    status?: true
+    source?: true
+    parentRevisionId?: true
+    baseVersion?: true
+    draftVersion?: true
+    payload?: true
+    previousSnapshot?: true
+    systemAdjustments?: true
+    submittedBy?: true
+    submittedAt?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    reviewNote?: true
+    ownerNote?: true
+    adminReason?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymListingRevisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymListingRevision to aggregate.
+     */
+    where?: GymListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymListingRevisions to fetch.
+     */
+    orderBy?: GymListingRevisionOrderByWithRelationInput | GymListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymListingRevisions
+    **/
+    _count?: true | GymListingRevisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymListingRevisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymListingRevisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymListingRevisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymListingRevisionMaxAggregateInputType
+  }
+
+  export type GetGymListingRevisionAggregateType<T extends GymListingRevisionAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymListingRevision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymListingRevision[P]>
+      : GetScalarType<T[P], AggregateGymListingRevision[P]>
+  }
+
+
+
+
+  export type GymListingRevisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymListingRevisionWhereInput
+    orderBy?: GymListingRevisionOrderByWithAggregationInput | GymListingRevisionOrderByWithAggregationInput[]
+    by: GymListingRevisionScalarFieldEnum[] | GymListingRevisionScalarFieldEnum
+    having?: GymListingRevisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymListingRevisionCountAggregateInputType | true
+    _avg?: GymListingRevisionAvgAggregateInputType
+    _sum?: GymListingRevisionSumAggregateInputType
+    _min?: GymListingRevisionMinAggregateInputType
+    _max?: GymListingRevisionMaxAggregateInputType
+  }
+
+  export type GymListingRevisionGroupByOutputType = {
+    id: string
+    gymId: string
+    status: $Enums.GymListingRevisionStatus
+    source: $Enums.GymListingRevisionSource
+    parentRevisionId: string | null
+    baseVersion: number
+    draftVersion: number
+    payload: JsonValue
+    previousSnapshot: JsonValue | null
+    systemAdjustments: JsonValue
+    submittedBy: string | null
+    submittedAt: Date | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
+    ownerNote: string | null
+    adminReason: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymListingRevisionCountAggregateOutputType | null
+    _avg: GymListingRevisionAvgAggregateOutputType | null
+    _sum: GymListingRevisionSumAggregateOutputType | null
+    _min: GymListingRevisionMinAggregateOutputType | null
+    _max: GymListingRevisionMaxAggregateOutputType | null
+  }
+
+  type GetGymListingRevisionGroupByPayload<T extends GymListingRevisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymListingRevisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymListingRevisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymListingRevisionGroupByOutputType[P]>
+            : GetScalarType<T[P], GymListingRevisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymListingRevisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymListingRevision"]>
+
+  export type GymListingRevisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymListingRevision"]>
+
+  export type GymListingRevisionSelectScalar = {
+    id?: boolean
+    gymId?: boolean
+    status?: boolean
+    source?: boolean
+    parentRevisionId?: boolean
+    baseVersion?: boolean
+    draftVersion?: boolean
+    payload?: boolean
+    previousSnapshot?: boolean
+    systemAdjustments?: boolean
+    submittedBy?: boolean
+    submittedAt?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    reviewNote?: boolean
+    ownerNote?: boolean
+    adminReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymListingRevisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }
+  export type GymListingRevisionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }
+
+  export type $GymListingRevisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymListingRevision"
+    objects: {
+      gym: Prisma.$GymPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      gymId: string
+      status: $Enums.GymListingRevisionStatus
+      source: $Enums.GymListingRevisionSource
+      parentRevisionId: string | null
+      baseVersion: number
+      draftVersion: number
+      payload: Prisma.JsonValue
+      previousSnapshot: Prisma.JsonValue | null
+      systemAdjustments: Prisma.JsonValue
+      submittedBy: string | null
+      submittedAt: Date | null
+      reviewedBy: string | null
+      reviewedAt: Date | null
+      reviewNote: string | null
+      ownerNote: string | null
+      adminReason: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymListingRevision"]>
+    composites: {}
+  }
+
+  type GymListingRevisionGetPayload<S extends boolean | null | undefined | GymListingRevisionDefaultArgs> = $Result.GetResult<Prisma.$GymListingRevisionPayload, S>
+
+  type GymListingRevisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymListingRevisionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymListingRevisionCountAggregateInputType | true
+    }
+
+  export interface GymListingRevisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymListingRevision'], meta: { name: 'GymListingRevision' } }
+    /**
+     * Find zero or one GymListingRevision that matches the filter.
+     * @param {GymListingRevisionFindUniqueArgs} args - Arguments to find a GymListingRevision
+     * @example
+     * // Get one GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymListingRevisionFindUniqueArgs>(args: SelectSubset<T, GymListingRevisionFindUniqueArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymListingRevision that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymListingRevisionFindUniqueOrThrowArgs} args - Arguments to find a GymListingRevision
+     * @example
+     * // Get one GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymListingRevisionFindUniqueOrThrowArgs>(args: SelectSubset<T, GymListingRevisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymListingRevision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionFindFirstArgs} args - Arguments to find a GymListingRevision
+     * @example
+     * // Get one GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymListingRevisionFindFirstArgs>(args?: SelectSubset<T, GymListingRevisionFindFirstArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymListingRevision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionFindFirstOrThrowArgs} args - Arguments to find a GymListingRevision
+     * @example
+     * // Get one GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymListingRevisionFindFirstOrThrowArgs>(args?: SelectSubset<T, GymListingRevisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymListingRevisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymListingRevisions
+     * const gymListingRevisions = await prisma.gymListingRevision.findMany()
+     * 
+     * // Get first 10 GymListingRevisions
+     * const gymListingRevisions = await prisma.gymListingRevision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymListingRevisionWithIdOnly = await prisma.gymListingRevision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymListingRevisionFindManyArgs>(args?: SelectSubset<T, GymListingRevisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymListingRevision.
+     * @param {GymListingRevisionCreateArgs} args - Arguments to create a GymListingRevision.
+     * @example
+     * // Create one GymListingRevision
+     * const GymListingRevision = await prisma.gymListingRevision.create({
+     *   data: {
+     *     // ... data to create a GymListingRevision
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymListingRevisionCreateArgs>(args: SelectSubset<T, GymListingRevisionCreateArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymListingRevisions.
+     * @param {GymListingRevisionCreateManyArgs} args - Arguments to create many GymListingRevisions.
+     * @example
+     * // Create many GymListingRevisions
+     * const gymListingRevision = await prisma.gymListingRevision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymListingRevisionCreateManyArgs>(args?: SelectSubset<T, GymListingRevisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymListingRevisions and returns the data saved in the database.
+     * @param {GymListingRevisionCreateManyAndReturnArgs} args - Arguments to create many GymListingRevisions.
+     * @example
+     * // Create many GymListingRevisions
+     * const gymListingRevision = await prisma.gymListingRevision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymListingRevisions and only return the `id`
+     * const gymListingRevisionWithIdOnly = await prisma.gymListingRevision.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymListingRevisionCreateManyAndReturnArgs>(args?: SelectSubset<T, GymListingRevisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymListingRevision.
+     * @param {GymListingRevisionDeleteArgs} args - Arguments to delete one GymListingRevision.
+     * @example
+     * // Delete one GymListingRevision
+     * const GymListingRevision = await prisma.gymListingRevision.delete({
+     *   where: {
+     *     // ... filter to delete one GymListingRevision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymListingRevisionDeleteArgs>(args: SelectSubset<T, GymListingRevisionDeleteArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymListingRevision.
+     * @param {GymListingRevisionUpdateArgs} args - Arguments to update one GymListingRevision.
+     * @example
+     * // Update one GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymListingRevisionUpdateArgs>(args: SelectSubset<T, GymListingRevisionUpdateArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymListingRevisions.
+     * @param {GymListingRevisionDeleteManyArgs} args - Arguments to filter GymListingRevisions to delete.
+     * @example
+     * // Delete a few GymListingRevisions
+     * const { count } = await prisma.gymListingRevision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymListingRevisionDeleteManyArgs>(args?: SelectSubset<T, GymListingRevisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymListingRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymListingRevisions
+     * const gymListingRevision = await prisma.gymListingRevision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymListingRevisionUpdateManyArgs>(args: SelectSubset<T, GymListingRevisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymListingRevision.
+     * @param {GymListingRevisionUpsertArgs} args - Arguments to update or create a GymListingRevision.
+     * @example
+     * // Update or create a GymListingRevision
+     * const gymListingRevision = await prisma.gymListingRevision.upsert({
+     *   create: {
+     *     // ... data to create a GymListingRevision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymListingRevision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymListingRevisionUpsertArgs>(args: SelectSubset<T, GymListingRevisionUpsertArgs<ExtArgs>>): Prisma__GymListingRevisionClient<$Result.GetResult<Prisma.$GymListingRevisionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymListingRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionCountArgs} args - Arguments to filter GymListingRevisions to count.
+     * @example
+     * // Count the number of GymListingRevisions
+     * const count = await prisma.gymListingRevision.count({
+     *   where: {
+     *     // ... the filter for the GymListingRevisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymListingRevisionCountArgs>(
+      args?: Subset<T, GymListingRevisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymListingRevisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymListingRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymListingRevisionAggregateArgs>(args: Subset<T, GymListingRevisionAggregateArgs>): Prisma.PrismaPromise<GetGymListingRevisionAggregateType<T>>
+
+    /**
+     * Group by GymListingRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymListingRevisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymListingRevisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymListingRevisionGroupByArgs['orderBy'] }
+        : { orderBy?: GymListingRevisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymListingRevisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymListingRevisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymListingRevision model
+   */
+  readonly fields: GymListingRevisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymListingRevision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymListingRevisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymListingRevision model
+   */ 
+  interface GymListingRevisionFieldRefs {
+    readonly id: FieldRef<"GymListingRevision", 'String'>
+    readonly gymId: FieldRef<"GymListingRevision", 'String'>
+    readonly status: FieldRef<"GymListingRevision", 'GymListingRevisionStatus'>
+    readonly source: FieldRef<"GymListingRevision", 'GymListingRevisionSource'>
+    readonly parentRevisionId: FieldRef<"GymListingRevision", 'String'>
+    readonly baseVersion: FieldRef<"GymListingRevision", 'Int'>
+    readonly draftVersion: FieldRef<"GymListingRevision", 'Int'>
+    readonly payload: FieldRef<"GymListingRevision", 'Json'>
+    readonly previousSnapshot: FieldRef<"GymListingRevision", 'Json'>
+    readonly systemAdjustments: FieldRef<"GymListingRevision", 'Json'>
+    readonly submittedBy: FieldRef<"GymListingRevision", 'String'>
+    readonly submittedAt: FieldRef<"GymListingRevision", 'DateTime'>
+    readonly reviewedBy: FieldRef<"GymListingRevision", 'String'>
+    readonly reviewedAt: FieldRef<"GymListingRevision", 'DateTime'>
+    readonly reviewNote: FieldRef<"GymListingRevision", 'String'>
+    readonly ownerNote: FieldRef<"GymListingRevision", 'String'>
+    readonly adminReason: FieldRef<"GymListingRevision", 'String'>
+    readonly createdAt: FieldRef<"GymListingRevision", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymListingRevision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymListingRevision findUnique
+   */
+  export type GymListingRevisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymListingRevision to fetch.
+     */
+    where: GymListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * GymListingRevision findUniqueOrThrow
+   */
+  export type GymListingRevisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymListingRevision to fetch.
+     */
+    where: GymListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * GymListingRevision findFirst
+   */
+  export type GymListingRevisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymListingRevision to fetch.
+     */
+    where?: GymListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymListingRevisions to fetch.
+     */
+    orderBy?: GymListingRevisionOrderByWithRelationInput | GymListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymListingRevisions.
+     */
+    cursor?: GymListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymListingRevisions.
+     */
+    distinct?: GymListingRevisionScalarFieldEnum | GymListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * GymListingRevision findFirstOrThrow
+   */
+  export type GymListingRevisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymListingRevision to fetch.
+     */
+    where?: GymListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymListingRevisions to fetch.
+     */
+    orderBy?: GymListingRevisionOrderByWithRelationInput | GymListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymListingRevisions.
+     */
+    cursor?: GymListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymListingRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymListingRevisions.
+     */
+    distinct?: GymListingRevisionScalarFieldEnum | GymListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * GymListingRevision findMany
+   */
+  export type GymListingRevisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which GymListingRevisions to fetch.
+     */
+    where?: GymListingRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymListingRevisions to fetch.
+     */
+    orderBy?: GymListingRevisionOrderByWithRelationInput | GymListingRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymListingRevisions.
+     */
+    cursor?: GymListingRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymListingRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymListingRevisions.
+     */
+    skip?: number
+    distinct?: GymListingRevisionScalarFieldEnum | GymListingRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * GymListingRevision create
+   */
+  export type GymListingRevisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymListingRevision.
+     */
+    data: XOR<GymListingRevisionCreateInput, GymListingRevisionUncheckedCreateInput>
+  }
+
+  /**
+   * GymListingRevision createMany
+   */
+  export type GymListingRevisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymListingRevisions.
+     */
+    data: GymListingRevisionCreateManyInput | GymListingRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymListingRevision createManyAndReturn
+   */
+  export type GymListingRevisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymListingRevisions.
+     */
+    data: GymListingRevisionCreateManyInput | GymListingRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymListingRevision update
+   */
+  export type GymListingRevisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymListingRevision.
+     */
+    data: XOR<GymListingRevisionUpdateInput, GymListingRevisionUncheckedUpdateInput>
+    /**
+     * Choose, which GymListingRevision to update.
+     */
+    where: GymListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * GymListingRevision updateMany
+   */
+  export type GymListingRevisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymListingRevisions.
+     */
+    data: XOR<GymListingRevisionUpdateManyMutationInput, GymListingRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which GymListingRevisions to update
+     */
+    where?: GymListingRevisionWhereInput
+  }
+
+  /**
+   * GymListingRevision upsert
+   */
+  export type GymListingRevisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymListingRevision to update in case it exists.
+     */
+    where: GymListingRevisionWhereUniqueInput
+    /**
+     * In case the GymListingRevision found by the `where` argument doesn't exist, create a new GymListingRevision with this data.
+     */
+    create: XOR<GymListingRevisionCreateInput, GymListingRevisionUncheckedCreateInput>
+    /**
+     * In case the GymListingRevision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymListingRevisionUpdateInput, GymListingRevisionUncheckedUpdateInput>
+  }
+
+  /**
+   * GymListingRevision delete
+   */
+  export type GymListingRevisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+    /**
+     * Filter which GymListingRevision to delete.
+     */
+    where: GymListingRevisionWhereUniqueInput
+  }
+
+  /**
+   * GymListingRevision deleteMany
+   */
+  export type GymListingRevisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymListingRevisions to delete
+     */
+    where?: GymListingRevisionWhereInput
+  }
+
+  /**
+   * GymListingRevision without action
+   */
+  export type GymListingRevisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymListingRevision
+     */
+    select?: GymListingRevisionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymListingRevisionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LegacyCompatEvent
+   */
+
+  export type AggregateLegacyCompatEvent = {
+    _count: LegacyCompatEventCountAggregateOutputType | null
+    _min: LegacyCompatEventMinAggregateOutputType | null
+    _max: LegacyCompatEventMaxAggregateOutputType | null
+  }
+
+  export type LegacyCompatEventMinAggregateOutputType = {
+    id: string | null
+    occurredAt: Date | null
+    outcome: $Enums.LegacyCompatOutcome | null
+    action: string | null
+    entityType: $Enums.LegacyCompatEntityType | null
+    entityId: string | null
+    actorUserId: string | null
+    flowHeader: string | null
+    clientHeader: string | null
+  }
+
+  export type LegacyCompatEventMaxAggregateOutputType = {
+    id: string | null
+    occurredAt: Date | null
+    outcome: $Enums.LegacyCompatOutcome | null
+    action: string | null
+    entityType: $Enums.LegacyCompatEntityType | null
+    entityId: string | null
+    actorUserId: string | null
+    flowHeader: string | null
+    clientHeader: string | null
+  }
+
+  export type LegacyCompatEventCountAggregateOutputType = {
+    id: number
+    occurredAt: number
+    outcome: number
+    action: number
+    entityType: number
+    entityId: number
+    actorUserId: number
+    flowHeader: number
+    clientHeader: number
+    _all: number
+  }
+
+
+  export type LegacyCompatEventMinAggregateInputType = {
+    id?: true
+    occurredAt?: true
+    outcome?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    actorUserId?: true
+    flowHeader?: true
+    clientHeader?: true
+  }
+
+  export type LegacyCompatEventMaxAggregateInputType = {
+    id?: true
+    occurredAt?: true
+    outcome?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    actorUserId?: true
+    flowHeader?: true
+    clientHeader?: true
+  }
+
+  export type LegacyCompatEventCountAggregateInputType = {
+    id?: true
+    occurredAt?: true
+    outcome?: true
+    action?: true
+    entityType?: true
+    entityId?: true
+    actorUserId?: true
+    flowHeader?: true
+    clientHeader?: true
+    _all?: true
+  }
+
+  export type LegacyCompatEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LegacyCompatEvent to aggregate.
+     */
+    where?: LegacyCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LegacyCompatEvents to fetch.
+     */
+    orderBy?: LegacyCompatEventOrderByWithRelationInput | LegacyCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LegacyCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LegacyCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LegacyCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LegacyCompatEvents
+    **/
+    _count?: true | LegacyCompatEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LegacyCompatEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LegacyCompatEventMaxAggregateInputType
+  }
+
+  export type GetLegacyCompatEventAggregateType<T extends LegacyCompatEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateLegacyCompatEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLegacyCompatEvent[P]>
+      : GetScalarType<T[P], AggregateLegacyCompatEvent[P]>
+  }
+
+
+
+
+  export type LegacyCompatEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LegacyCompatEventWhereInput
+    orderBy?: LegacyCompatEventOrderByWithAggregationInput | LegacyCompatEventOrderByWithAggregationInput[]
+    by: LegacyCompatEventScalarFieldEnum[] | LegacyCompatEventScalarFieldEnum
+    having?: LegacyCompatEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LegacyCompatEventCountAggregateInputType | true
+    _min?: LegacyCompatEventMinAggregateInputType
+    _max?: LegacyCompatEventMaxAggregateInputType
+  }
+
+  export type LegacyCompatEventGroupByOutputType = {
+    id: string
+    occurredAt: Date
+    outcome: $Enums.LegacyCompatOutcome
+    action: string
+    entityType: $Enums.LegacyCompatEntityType
+    entityId: string
+    actorUserId: string | null
+    flowHeader: string | null
+    clientHeader: string | null
+    _count: LegacyCompatEventCountAggregateOutputType | null
+    _min: LegacyCompatEventMinAggregateOutputType | null
+    _max: LegacyCompatEventMaxAggregateOutputType | null
+  }
+
+  type GetLegacyCompatEventGroupByPayload<T extends LegacyCompatEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LegacyCompatEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LegacyCompatEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LegacyCompatEventGroupByOutputType[P]>
+            : GetScalarType<T[P], LegacyCompatEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LegacyCompatEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    occurredAt?: boolean
+    outcome?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    actorUserId?: boolean
+    flowHeader?: boolean
+    clientHeader?: boolean
+  }, ExtArgs["result"]["legacyCompatEvent"]>
+
+  export type LegacyCompatEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    occurredAt?: boolean
+    outcome?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    actorUserId?: boolean
+    flowHeader?: boolean
+    clientHeader?: boolean
+  }, ExtArgs["result"]["legacyCompatEvent"]>
+
+  export type LegacyCompatEventSelectScalar = {
+    id?: boolean
+    occurredAt?: boolean
+    outcome?: boolean
+    action?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    actorUserId?: boolean
+    flowHeader?: boolean
+    clientHeader?: boolean
+  }
+
+
+  export type $LegacyCompatEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LegacyCompatEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      occurredAt: Date
+      outcome: $Enums.LegacyCompatOutcome
+      action: string
+      entityType: $Enums.LegacyCompatEntityType
+      entityId: string
+      actorUserId: string | null
+      flowHeader: string | null
+      clientHeader: string | null
+    }, ExtArgs["result"]["legacyCompatEvent"]>
+    composites: {}
+  }
+
+  type LegacyCompatEventGetPayload<S extends boolean | null | undefined | LegacyCompatEventDefaultArgs> = $Result.GetResult<Prisma.$LegacyCompatEventPayload, S>
+
+  type LegacyCompatEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LegacyCompatEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LegacyCompatEventCountAggregateInputType | true
+    }
+
+  export interface LegacyCompatEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LegacyCompatEvent'], meta: { name: 'LegacyCompatEvent' } }
+    /**
+     * Find zero or one LegacyCompatEvent that matches the filter.
+     * @param {LegacyCompatEventFindUniqueArgs} args - Arguments to find a LegacyCompatEvent
+     * @example
+     * // Get one LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LegacyCompatEventFindUniqueArgs>(args: SelectSubset<T, LegacyCompatEventFindUniqueArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LegacyCompatEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LegacyCompatEventFindUniqueOrThrowArgs} args - Arguments to find a LegacyCompatEvent
+     * @example
+     * // Get one LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LegacyCompatEventFindUniqueOrThrowArgs>(args: SelectSubset<T, LegacyCompatEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LegacyCompatEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventFindFirstArgs} args - Arguments to find a LegacyCompatEvent
+     * @example
+     * // Get one LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LegacyCompatEventFindFirstArgs>(args?: SelectSubset<T, LegacyCompatEventFindFirstArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LegacyCompatEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventFindFirstOrThrowArgs} args - Arguments to find a LegacyCompatEvent
+     * @example
+     * // Get one LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LegacyCompatEventFindFirstOrThrowArgs>(args?: SelectSubset<T, LegacyCompatEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LegacyCompatEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LegacyCompatEvents
+     * const legacyCompatEvents = await prisma.legacyCompatEvent.findMany()
+     * 
+     * // Get first 10 LegacyCompatEvents
+     * const legacyCompatEvents = await prisma.legacyCompatEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const legacyCompatEventWithIdOnly = await prisma.legacyCompatEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LegacyCompatEventFindManyArgs>(args?: SelectSubset<T, LegacyCompatEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LegacyCompatEvent.
+     * @param {LegacyCompatEventCreateArgs} args - Arguments to create a LegacyCompatEvent.
+     * @example
+     * // Create one LegacyCompatEvent
+     * const LegacyCompatEvent = await prisma.legacyCompatEvent.create({
+     *   data: {
+     *     // ... data to create a LegacyCompatEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends LegacyCompatEventCreateArgs>(args: SelectSubset<T, LegacyCompatEventCreateArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LegacyCompatEvents.
+     * @param {LegacyCompatEventCreateManyArgs} args - Arguments to create many LegacyCompatEvents.
+     * @example
+     * // Create many LegacyCompatEvents
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LegacyCompatEventCreateManyArgs>(args?: SelectSubset<T, LegacyCompatEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LegacyCompatEvents and returns the data saved in the database.
+     * @param {LegacyCompatEventCreateManyAndReturnArgs} args - Arguments to create many LegacyCompatEvents.
+     * @example
+     * // Create many LegacyCompatEvents
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LegacyCompatEvents and only return the `id`
+     * const legacyCompatEventWithIdOnly = await prisma.legacyCompatEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LegacyCompatEventCreateManyAndReturnArgs>(args?: SelectSubset<T, LegacyCompatEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LegacyCompatEvent.
+     * @param {LegacyCompatEventDeleteArgs} args - Arguments to delete one LegacyCompatEvent.
+     * @example
+     * // Delete one LegacyCompatEvent
+     * const LegacyCompatEvent = await prisma.legacyCompatEvent.delete({
+     *   where: {
+     *     // ... filter to delete one LegacyCompatEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LegacyCompatEventDeleteArgs>(args: SelectSubset<T, LegacyCompatEventDeleteArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LegacyCompatEvent.
+     * @param {LegacyCompatEventUpdateArgs} args - Arguments to update one LegacyCompatEvent.
+     * @example
+     * // Update one LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LegacyCompatEventUpdateArgs>(args: SelectSubset<T, LegacyCompatEventUpdateArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LegacyCompatEvents.
+     * @param {LegacyCompatEventDeleteManyArgs} args - Arguments to filter LegacyCompatEvents to delete.
+     * @example
+     * // Delete a few LegacyCompatEvents
+     * const { count } = await prisma.legacyCompatEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LegacyCompatEventDeleteManyArgs>(args?: SelectSubset<T, LegacyCompatEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LegacyCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LegacyCompatEvents
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LegacyCompatEventUpdateManyArgs>(args: SelectSubset<T, LegacyCompatEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LegacyCompatEvent.
+     * @param {LegacyCompatEventUpsertArgs} args - Arguments to update or create a LegacyCompatEvent.
+     * @example
+     * // Update or create a LegacyCompatEvent
+     * const legacyCompatEvent = await prisma.legacyCompatEvent.upsert({
+     *   create: {
+     *     // ... data to create a LegacyCompatEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LegacyCompatEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LegacyCompatEventUpsertArgs>(args: SelectSubset<T, LegacyCompatEventUpsertArgs<ExtArgs>>): Prisma__LegacyCompatEventClient<$Result.GetResult<Prisma.$LegacyCompatEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LegacyCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventCountArgs} args - Arguments to filter LegacyCompatEvents to count.
+     * @example
+     * // Count the number of LegacyCompatEvents
+     * const count = await prisma.legacyCompatEvent.count({
+     *   where: {
+     *     // ... the filter for the LegacyCompatEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends LegacyCompatEventCountArgs>(
+      args?: Subset<T, LegacyCompatEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LegacyCompatEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LegacyCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LegacyCompatEventAggregateArgs>(args: Subset<T, LegacyCompatEventAggregateArgs>): Prisma.PrismaPromise<GetLegacyCompatEventAggregateType<T>>
+
+    /**
+     * Group by LegacyCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LegacyCompatEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LegacyCompatEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LegacyCompatEventGroupByArgs['orderBy'] }
+        : { orderBy?: LegacyCompatEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LegacyCompatEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLegacyCompatEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LegacyCompatEvent model
+   */
+  readonly fields: LegacyCompatEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LegacyCompatEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LegacyCompatEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LegacyCompatEvent model
+   */ 
+  interface LegacyCompatEventFieldRefs {
+    readonly id: FieldRef<"LegacyCompatEvent", 'String'>
+    readonly occurredAt: FieldRef<"LegacyCompatEvent", 'DateTime'>
+    readonly outcome: FieldRef<"LegacyCompatEvent", 'LegacyCompatOutcome'>
+    readonly action: FieldRef<"LegacyCompatEvent", 'String'>
+    readonly entityType: FieldRef<"LegacyCompatEvent", 'LegacyCompatEntityType'>
+    readonly entityId: FieldRef<"LegacyCompatEvent", 'String'>
+    readonly actorUserId: FieldRef<"LegacyCompatEvent", 'String'>
+    readonly flowHeader: FieldRef<"LegacyCompatEvent", 'String'>
+    readonly clientHeader: FieldRef<"LegacyCompatEvent", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LegacyCompatEvent findUnique
+   */
+  export type LegacyCompatEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which LegacyCompatEvent to fetch.
+     */
+    where: LegacyCompatEventWhereUniqueInput
+  }
+
+  /**
+   * LegacyCompatEvent findUniqueOrThrow
+   */
+  export type LegacyCompatEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which LegacyCompatEvent to fetch.
+     */
+    where: LegacyCompatEventWhereUniqueInput
+  }
+
+  /**
+   * LegacyCompatEvent findFirst
+   */
+  export type LegacyCompatEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which LegacyCompatEvent to fetch.
+     */
+    where?: LegacyCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LegacyCompatEvents to fetch.
+     */
+    orderBy?: LegacyCompatEventOrderByWithRelationInput | LegacyCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LegacyCompatEvents.
+     */
+    cursor?: LegacyCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LegacyCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LegacyCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LegacyCompatEvents.
+     */
+    distinct?: LegacyCompatEventScalarFieldEnum | LegacyCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * LegacyCompatEvent findFirstOrThrow
+   */
+  export type LegacyCompatEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which LegacyCompatEvent to fetch.
+     */
+    where?: LegacyCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LegacyCompatEvents to fetch.
+     */
+    orderBy?: LegacyCompatEventOrderByWithRelationInput | LegacyCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LegacyCompatEvents.
+     */
+    cursor?: LegacyCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LegacyCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LegacyCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LegacyCompatEvents.
+     */
+    distinct?: LegacyCompatEventScalarFieldEnum | LegacyCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * LegacyCompatEvent findMany
+   */
+  export type LegacyCompatEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which LegacyCompatEvents to fetch.
+     */
+    where?: LegacyCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LegacyCompatEvents to fetch.
+     */
+    orderBy?: LegacyCompatEventOrderByWithRelationInput | LegacyCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LegacyCompatEvents.
+     */
+    cursor?: LegacyCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LegacyCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LegacyCompatEvents.
+     */
+    skip?: number
+    distinct?: LegacyCompatEventScalarFieldEnum | LegacyCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * LegacyCompatEvent create
+   */
+  export type LegacyCompatEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a LegacyCompatEvent.
+     */
+    data: XOR<LegacyCompatEventCreateInput, LegacyCompatEventUncheckedCreateInput>
+  }
+
+  /**
+   * LegacyCompatEvent createMany
+   */
+  export type LegacyCompatEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LegacyCompatEvents.
+     */
+    data: LegacyCompatEventCreateManyInput | LegacyCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LegacyCompatEvent createManyAndReturn
+   */
+  export type LegacyCompatEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LegacyCompatEvents.
+     */
+    data: LegacyCompatEventCreateManyInput | LegacyCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LegacyCompatEvent update
+   */
+  export type LegacyCompatEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a LegacyCompatEvent.
+     */
+    data: XOR<LegacyCompatEventUpdateInput, LegacyCompatEventUncheckedUpdateInput>
+    /**
+     * Choose, which LegacyCompatEvent to update.
+     */
+    where: LegacyCompatEventWhereUniqueInput
+  }
+
+  /**
+   * LegacyCompatEvent updateMany
+   */
+  export type LegacyCompatEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LegacyCompatEvents.
+     */
+    data: XOR<LegacyCompatEventUpdateManyMutationInput, LegacyCompatEventUncheckedUpdateManyInput>
+    /**
+     * Filter which LegacyCompatEvents to update
+     */
+    where?: LegacyCompatEventWhereInput
+  }
+
+  /**
+   * LegacyCompatEvent upsert
+   */
+  export type LegacyCompatEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the LegacyCompatEvent to update in case it exists.
+     */
+    where: LegacyCompatEventWhereUniqueInput
+    /**
+     * In case the LegacyCompatEvent found by the `where` argument doesn't exist, create a new LegacyCompatEvent with this data.
+     */
+    create: XOR<LegacyCompatEventCreateInput, LegacyCompatEventUncheckedCreateInput>
+    /**
+     * In case the LegacyCompatEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LegacyCompatEventUpdateInput, LegacyCompatEventUncheckedUpdateInput>
+  }
+
+  /**
+   * LegacyCompatEvent delete
+   */
+  export type LegacyCompatEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter which LegacyCompatEvent to delete.
+     */
+    where: LegacyCompatEventWhereUniqueInput
+  }
+
+  /**
+   * LegacyCompatEvent deleteMany
+   */
+  export type LegacyCompatEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LegacyCompatEvents to delete
+     */
+    where?: LegacyCompatEventWhereInput
+  }
+
+  /**
+   * LegacyCompatEvent without action
+   */
+  export type LegacyCompatEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LegacyCompatEvent
+     */
+    select?: LegacyCompatEventSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CompatWriterHeartbeat
+   */
+
+  export type AggregateCompatWriterHeartbeat = {
+    _count: CompatWriterHeartbeatCountAggregateOutputType | null
+    _min: CompatWriterHeartbeatMinAggregateOutputType | null
+    _max: CompatWriterHeartbeatMaxAggregateOutputType | null
+  }
+
+  export type CompatWriterHeartbeatMinAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    gitSha: string | null
+    writerVersion: string | null
+    seenAt: Date | null
+  }
+
+  export type CompatWriterHeartbeatMaxAggregateOutputType = {
+    id: string | null
+    instanceId: string | null
+    gitSha: string | null
+    writerVersion: string | null
+    seenAt: Date | null
+  }
+
+  export type CompatWriterHeartbeatCountAggregateOutputType = {
+    id: number
+    instanceId: number
+    gitSha: number
+    writerVersion: number
+    seenAt: number
+    _all: number
+  }
+
+
+  export type CompatWriterHeartbeatMinAggregateInputType = {
+    id?: true
+    instanceId?: true
+    gitSha?: true
+    writerVersion?: true
+    seenAt?: true
+  }
+
+  export type CompatWriterHeartbeatMaxAggregateInputType = {
+    id?: true
+    instanceId?: true
+    gitSha?: true
+    writerVersion?: true
+    seenAt?: true
+  }
+
+  export type CompatWriterHeartbeatCountAggregateInputType = {
+    id?: true
+    instanceId?: true
+    gitSha?: true
+    writerVersion?: true
+    seenAt?: true
+    _all?: true
+  }
+
+  export type CompatWriterHeartbeatAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CompatWriterHeartbeat to aggregate.
+     */
+    where?: CompatWriterHeartbeatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CompatWriterHeartbeats to fetch.
+     */
+    orderBy?: CompatWriterHeartbeatOrderByWithRelationInput | CompatWriterHeartbeatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CompatWriterHeartbeatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CompatWriterHeartbeats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CompatWriterHeartbeats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CompatWriterHeartbeats
+    **/
+    _count?: true | CompatWriterHeartbeatCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CompatWriterHeartbeatMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CompatWriterHeartbeatMaxAggregateInputType
+  }
+
+  export type GetCompatWriterHeartbeatAggregateType<T extends CompatWriterHeartbeatAggregateArgs> = {
+        [P in keyof T & keyof AggregateCompatWriterHeartbeat]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCompatWriterHeartbeat[P]>
+      : GetScalarType<T[P], AggregateCompatWriterHeartbeat[P]>
+  }
+
+
+
+
+  export type CompatWriterHeartbeatGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CompatWriterHeartbeatWhereInput
+    orderBy?: CompatWriterHeartbeatOrderByWithAggregationInput | CompatWriterHeartbeatOrderByWithAggregationInput[]
+    by: CompatWriterHeartbeatScalarFieldEnum[] | CompatWriterHeartbeatScalarFieldEnum
+    having?: CompatWriterHeartbeatScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CompatWriterHeartbeatCountAggregateInputType | true
+    _min?: CompatWriterHeartbeatMinAggregateInputType
+    _max?: CompatWriterHeartbeatMaxAggregateInputType
+  }
+
+  export type CompatWriterHeartbeatGroupByOutputType = {
+    id: string
+    instanceId: string
+    gitSha: string | null
+    writerVersion: string
+    seenAt: Date
+    _count: CompatWriterHeartbeatCountAggregateOutputType | null
+    _min: CompatWriterHeartbeatMinAggregateOutputType | null
+    _max: CompatWriterHeartbeatMaxAggregateOutputType | null
+  }
+
+  type GetCompatWriterHeartbeatGroupByPayload<T extends CompatWriterHeartbeatGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CompatWriterHeartbeatGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CompatWriterHeartbeatGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CompatWriterHeartbeatGroupByOutputType[P]>
+            : GetScalarType<T[P], CompatWriterHeartbeatGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CompatWriterHeartbeatSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    gitSha?: boolean
+    writerVersion?: boolean
+    seenAt?: boolean
+  }, ExtArgs["result"]["compatWriterHeartbeat"]>
+
+  export type CompatWriterHeartbeatSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    instanceId?: boolean
+    gitSha?: boolean
+    writerVersion?: boolean
+    seenAt?: boolean
+  }, ExtArgs["result"]["compatWriterHeartbeat"]>
+
+  export type CompatWriterHeartbeatSelectScalar = {
+    id?: boolean
+    instanceId?: boolean
+    gitSha?: boolean
+    writerVersion?: boolean
+    seenAt?: boolean
+  }
+
+
+  export type $CompatWriterHeartbeatPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CompatWriterHeartbeat"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      instanceId: string
+      gitSha: string | null
+      writerVersion: string
+      seenAt: Date
+    }, ExtArgs["result"]["compatWriterHeartbeat"]>
+    composites: {}
+  }
+
+  type CompatWriterHeartbeatGetPayload<S extends boolean | null | undefined | CompatWriterHeartbeatDefaultArgs> = $Result.GetResult<Prisma.$CompatWriterHeartbeatPayload, S>
+
+  type CompatWriterHeartbeatCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CompatWriterHeartbeatFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CompatWriterHeartbeatCountAggregateInputType | true
+    }
+
+  export interface CompatWriterHeartbeatDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CompatWriterHeartbeat'], meta: { name: 'CompatWriterHeartbeat' } }
+    /**
+     * Find zero or one CompatWriterHeartbeat that matches the filter.
+     * @param {CompatWriterHeartbeatFindUniqueArgs} args - Arguments to find a CompatWriterHeartbeat
+     * @example
+     * // Get one CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CompatWriterHeartbeatFindUniqueArgs>(args: SelectSubset<T, CompatWriterHeartbeatFindUniqueArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one CompatWriterHeartbeat that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CompatWriterHeartbeatFindUniqueOrThrowArgs} args - Arguments to find a CompatWriterHeartbeat
+     * @example
+     * // Get one CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CompatWriterHeartbeatFindUniqueOrThrowArgs>(args: SelectSubset<T, CompatWriterHeartbeatFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first CompatWriterHeartbeat that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatFindFirstArgs} args - Arguments to find a CompatWriterHeartbeat
+     * @example
+     * // Get one CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CompatWriterHeartbeatFindFirstArgs>(args?: SelectSubset<T, CompatWriterHeartbeatFindFirstArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first CompatWriterHeartbeat that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatFindFirstOrThrowArgs} args - Arguments to find a CompatWriterHeartbeat
+     * @example
+     * // Get one CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CompatWriterHeartbeatFindFirstOrThrowArgs>(args?: SelectSubset<T, CompatWriterHeartbeatFindFirstOrThrowArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more CompatWriterHeartbeats that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CompatWriterHeartbeats
+     * const compatWriterHeartbeats = await prisma.compatWriterHeartbeat.findMany()
+     * 
+     * // Get first 10 CompatWriterHeartbeats
+     * const compatWriterHeartbeats = await prisma.compatWriterHeartbeat.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const compatWriterHeartbeatWithIdOnly = await prisma.compatWriterHeartbeat.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CompatWriterHeartbeatFindManyArgs>(args?: SelectSubset<T, CompatWriterHeartbeatFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a CompatWriterHeartbeat.
+     * @param {CompatWriterHeartbeatCreateArgs} args - Arguments to create a CompatWriterHeartbeat.
+     * @example
+     * // Create one CompatWriterHeartbeat
+     * const CompatWriterHeartbeat = await prisma.compatWriterHeartbeat.create({
+     *   data: {
+     *     // ... data to create a CompatWriterHeartbeat
+     *   }
+     * })
+     * 
+     */
+    create<T extends CompatWriterHeartbeatCreateArgs>(args: SelectSubset<T, CompatWriterHeartbeatCreateArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many CompatWriterHeartbeats.
+     * @param {CompatWriterHeartbeatCreateManyArgs} args - Arguments to create many CompatWriterHeartbeats.
+     * @example
+     * // Create many CompatWriterHeartbeats
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CompatWriterHeartbeatCreateManyArgs>(args?: SelectSubset<T, CompatWriterHeartbeatCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CompatWriterHeartbeats and returns the data saved in the database.
+     * @param {CompatWriterHeartbeatCreateManyAndReturnArgs} args - Arguments to create many CompatWriterHeartbeats.
+     * @example
+     * // Create many CompatWriterHeartbeats
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CompatWriterHeartbeats and only return the `id`
+     * const compatWriterHeartbeatWithIdOnly = await prisma.compatWriterHeartbeat.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CompatWriterHeartbeatCreateManyAndReturnArgs>(args?: SelectSubset<T, CompatWriterHeartbeatCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a CompatWriterHeartbeat.
+     * @param {CompatWriterHeartbeatDeleteArgs} args - Arguments to delete one CompatWriterHeartbeat.
+     * @example
+     * // Delete one CompatWriterHeartbeat
+     * const CompatWriterHeartbeat = await prisma.compatWriterHeartbeat.delete({
+     *   where: {
+     *     // ... filter to delete one CompatWriterHeartbeat
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CompatWriterHeartbeatDeleteArgs>(args: SelectSubset<T, CompatWriterHeartbeatDeleteArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one CompatWriterHeartbeat.
+     * @param {CompatWriterHeartbeatUpdateArgs} args - Arguments to update one CompatWriterHeartbeat.
+     * @example
+     * // Update one CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CompatWriterHeartbeatUpdateArgs>(args: SelectSubset<T, CompatWriterHeartbeatUpdateArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more CompatWriterHeartbeats.
+     * @param {CompatWriterHeartbeatDeleteManyArgs} args - Arguments to filter CompatWriterHeartbeats to delete.
+     * @example
+     * // Delete a few CompatWriterHeartbeats
+     * const { count } = await prisma.compatWriterHeartbeat.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CompatWriterHeartbeatDeleteManyArgs>(args?: SelectSubset<T, CompatWriterHeartbeatDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CompatWriterHeartbeats.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CompatWriterHeartbeats
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CompatWriterHeartbeatUpdateManyArgs>(args: SelectSubset<T, CompatWriterHeartbeatUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one CompatWriterHeartbeat.
+     * @param {CompatWriterHeartbeatUpsertArgs} args - Arguments to update or create a CompatWriterHeartbeat.
+     * @example
+     * // Update or create a CompatWriterHeartbeat
+     * const compatWriterHeartbeat = await prisma.compatWriterHeartbeat.upsert({
+     *   create: {
+     *     // ... data to create a CompatWriterHeartbeat
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CompatWriterHeartbeat we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CompatWriterHeartbeatUpsertArgs>(args: SelectSubset<T, CompatWriterHeartbeatUpsertArgs<ExtArgs>>): Prisma__CompatWriterHeartbeatClient<$Result.GetResult<Prisma.$CompatWriterHeartbeatPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of CompatWriterHeartbeats.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatCountArgs} args - Arguments to filter CompatWriterHeartbeats to count.
+     * @example
+     * // Count the number of CompatWriterHeartbeats
+     * const count = await prisma.compatWriterHeartbeat.count({
+     *   where: {
+     *     // ... the filter for the CompatWriterHeartbeats we want to count
+     *   }
+     * })
+    **/
+    count<T extends CompatWriterHeartbeatCountArgs>(
+      args?: Subset<T, CompatWriterHeartbeatCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CompatWriterHeartbeatCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CompatWriterHeartbeat.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CompatWriterHeartbeatAggregateArgs>(args: Subset<T, CompatWriterHeartbeatAggregateArgs>): Prisma.PrismaPromise<GetCompatWriterHeartbeatAggregateType<T>>
+
+    /**
+     * Group by CompatWriterHeartbeat.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CompatWriterHeartbeatGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CompatWriterHeartbeatGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CompatWriterHeartbeatGroupByArgs['orderBy'] }
+        : { orderBy?: CompatWriterHeartbeatGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CompatWriterHeartbeatGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCompatWriterHeartbeatGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CompatWriterHeartbeat model
+   */
+  readonly fields: CompatWriterHeartbeatFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CompatWriterHeartbeat.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CompatWriterHeartbeatClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CompatWriterHeartbeat model
+   */ 
+  interface CompatWriterHeartbeatFieldRefs {
+    readonly id: FieldRef<"CompatWriterHeartbeat", 'String'>
+    readonly instanceId: FieldRef<"CompatWriterHeartbeat", 'String'>
+    readonly gitSha: FieldRef<"CompatWriterHeartbeat", 'String'>
+    readonly writerVersion: FieldRef<"CompatWriterHeartbeat", 'String'>
+    readonly seenAt: FieldRef<"CompatWriterHeartbeat", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CompatWriterHeartbeat findUnique
+   */
+  export type CompatWriterHeartbeatFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter, which CompatWriterHeartbeat to fetch.
+     */
+    where: CompatWriterHeartbeatWhereUniqueInput
+  }
+
+  /**
+   * CompatWriterHeartbeat findUniqueOrThrow
+   */
+  export type CompatWriterHeartbeatFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter, which CompatWriterHeartbeat to fetch.
+     */
+    where: CompatWriterHeartbeatWhereUniqueInput
+  }
+
+  /**
+   * CompatWriterHeartbeat findFirst
+   */
+  export type CompatWriterHeartbeatFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter, which CompatWriterHeartbeat to fetch.
+     */
+    where?: CompatWriterHeartbeatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CompatWriterHeartbeats to fetch.
+     */
+    orderBy?: CompatWriterHeartbeatOrderByWithRelationInput | CompatWriterHeartbeatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CompatWriterHeartbeats.
+     */
+    cursor?: CompatWriterHeartbeatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CompatWriterHeartbeats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CompatWriterHeartbeats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CompatWriterHeartbeats.
+     */
+    distinct?: CompatWriterHeartbeatScalarFieldEnum | CompatWriterHeartbeatScalarFieldEnum[]
+  }
+
+  /**
+   * CompatWriterHeartbeat findFirstOrThrow
+   */
+  export type CompatWriterHeartbeatFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter, which CompatWriterHeartbeat to fetch.
+     */
+    where?: CompatWriterHeartbeatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CompatWriterHeartbeats to fetch.
+     */
+    orderBy?: CompatWriterHeartbeatOrderByWithRelationInput | CompatWriterHeartbeatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CompatWriterHeartbeats.
+     */
+    cursor?: CompatWriterHeartbeatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CompatWriterHeartbeats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CompatWriterHeartbeats.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CompatWriterHeartbeats.
+     */
+    distinct?: CompatWriterHeartbeatScalarFieldEnum | CompatWriterHeartbeatScalarFieldEnum[]
+  }
+
+  /**
+   * CompatWriterHeartbeat findMany
+   */
+  export type CompatWriterHeartbeatFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter, which CompatWriterHeartbeats to fetch.
+     */
+    where?: CompatWriterHeartbeatWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CompatWriterHeartbeats to fetch.
+     */
+    orderBy?: CompatWriterHeartbeatOrderByWithRelationInput | CompatWriterHeartbeatOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CompatWriterHeartbeats.
+     */
+    cursor?: CompatWriterHeartbeatWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CompatWriterHeartbeats from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CompatWriterHeartbeats.
+     */
+    skip?: number
+    distinct?: CompatWriterHeartbeatScalarFieldEnum | CompatWriterHeartbeatScalarFieldEnum[]
+  }
+
+  /**
+   * CompatWriterHeartbeat create
+   */
+  export type CompatWriterHeartbeatCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * The data needed to create a CompatWriterHeartbeat.
+     */
+    data: XOR<CompatWriterHeartbeatCreateInput, CompatWriterHeartbeatUncheckedCreateInput>
+  }
+
+  /**
+   * CompatWriterHeartbeat createMany
+   */
+  export type CompatWriterHeartbeatCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CompatWriterHeartbeats.
+     */
+    data: CompatWriterHeartbeatCreateManyInput | CompatWriterHeartbeatCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CompatWriterHeartbeat createManyAndReturn
+   */
+  export type CompatWriterHeartbeatCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many CompatWriterHeartbeats.
+     */
+    data: CompatWriterHeartbeatCreateManyInput | CompatWriterHeartbeatCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CompatWriterHeartbeat update
+   */
+  export type CompatWriterHeartbeatUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * The data needed to update a CompatWriterHeartbeat.
+     */
+    data: XOR<CompatWriterHeartbeatUpdateInput, CompatWriterHeartbeatUncheckedUpdateInput>
+    /**
+     * Choose, which CompatWriterHeartbeat to update.
+     */
+    where: CompatWriterHeartbeatWhereUniqueInput
+  }
+
+  /**
+   * CompatWriterHeartbeat updateMany
+   */
+  export type CompatWriterHeartbeatUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CompatWriterHeartbeats.
+     */
+    data: XOR<CompatWriterHeartbeatUpdateManyMutationInput, CompatWriterHeartbeatUncheckedUpdateManyInput>
+    /**
+     * Filter which CompatWriterHeartbeats to update
+     */
+    where?: CompatWriterHeartbeatWhereInput
+  }
+
+  /**
+   * CompatWriterHeartbeat upsert
+   */
+  export type CompatWriterHeartbeatUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * The filter to search for the CompatWriterHeartbeat to update in case it exists.
+     */
+    where: CompatWriterHeartbeatWhereUniqueInput
+    /**
+     * In case the CompatWriterHeartbeat found by the `where` argument doesn't exist, create a new CompatWriterHeartbeat with this data.
+     */
+    create: XOR<CompatWriterHeartbeatCreateInput, CompatWriterHeartbeatUncheckedCreateInput>
+    /**
+     * In case the CompatWriterHeartbeat was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CompatWriterHeartbeatUpdateInput, CompatWriterHeartbeatUncheckedUpdateInput>
+  }
+
+  /**
+   * CompatWriterHeartbeat delete
+   */
+  export type CompatWriterHeartbeatDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+    /**
+     * Filter which CompatWriterHeartbeat to delete.
+     */
+    where: CompatWriterHeartbeatWhereUniqueInput
+  }
+
+  /**
+   * CompatWriterHeartbeat deleteMany
+   */
+  export type CompatWriterHeartbeatDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CompatWriterHeartbeats to delete
+     */
+    where?: CompatWriterHeartbeatWhereInput
+  }
+
+  /**
+   * CompatWriterHeartbeat without action
+   */
+  export type CompatWriterHeartbeatDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CompatWriterHeartbeat
+     */
+    select?: CompatWriterHeartbeatSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ClientCompatEvent
+   */
+
+  export type AggregateClientCompatEvent = {
+    _count: ClientCompatEventCountAggregateOutputType | null
+    _min: ClientCompatEventMinAggregateOutputType | null
+    _max: ClientCompatEventMaxAggregateOutputType | null
+  }
+
+  export type ClientCompatEventMinAggregateOutputType = {
+    id: string | null
+    route: string | null
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientCompatEventMaxAggregateOutputType = {
+    id: string | null
+    route: string | null
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string | null
+    createdAt: Date | null
+  }
+
+  export type ClientCompatEventCountAggregateOutputType = {
+    id: number
+    route: number
+    actorUserId: number
+    clientHeader: number
+    outcome: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ClientCompatEventMinAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+  }
+
+  export type ClientCompatEventMaxAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+  }
+
+  export type ClientCompatEventCountAggregateInputType = {
+    id?: true
+    route?: true
+    actorUserId?: true
+    clientHeader?: true
+    outcome?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ClientCompatEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientCompatEvent to aggregate.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ClientCompatEvents
+    **/
+    _count?: true | ClientCompatEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ClientCompatEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ClientCompatEventMaxAggregateInputType
+  }
+
+  export type GetClientCompatEventAggregateType<T extends ClientCompatEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateClientCompatEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateClientCompatEvent[P]>
+      : GetScalarType<T[P], AggregateClientCompatEvent[P]>
+  }
+
+
+
+
+  export type ClientCompatEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClientCompatEventWhereInput
+    orderBy?: ClientCompatEventOrderByWithAggregationInput | ClientCompatEventOrderByWithAggregationInput[]
+    by: ClientCompatEventScalarFieldEnum[] | ClientCompatEventScalarFieldEnum
+    having?: ClientCompatEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ClientCompatEventCountAggregateInputType | true
+    _min?: ClientCompatEventMinAggregateInputType
+    _max?: ClientCompatEventMaxAggregateInputType
+  }
+
+  export type ClientCompatEventGroupByOutputType = {
+    id: string
+    route: string
+    actorUserId: string | null
+    clientHeader: string | null
+    outcome: string
+    createdAt: Date
+    _count: ClientCompatEventCountAggregateOutputType | null
+    _min: ClientCompatEventMinAggregateOutputType | null
+    _max: ClientCompatEventMaxAggregateOutputType | null
+  }
+
+  type GetClientCompatEventGroupByPayload<T extends ClientCompatEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ClientCompatEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ClientCompatEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ClientCompatEventGroupByOutputType[P]>
+            : GetScalarType<T[P], ClientCompatEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ClientCompatEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["clientCompatEvent"]>
+
+  export type ClientCompatEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["clientCompatEvent"]>
+
+  export type ClientCompatEventSelectScalar = {
+    id?: boolean
+    route?: boolean
+    actorUserId?: boolean
+    clientHeader?: boolean
+    outcome?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $ClientCompatEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ClientCompatEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      route: string
+      actorUserId: string | null
+      clientHeader: string | null
+      outcome: string
+      createdAt: Date
+    }, ExtArgs["result"]["clientCompatEvent"]>
+    composites: {}
+  }
+
+  type ClientCompatEventGetPayload<S extends boolean | null | undefined | ClientCompatEventDefaultArgs> = $Result.GetResult<Prisma.$ClientCompatEventPayload, S>
+
+  type ClientCompatEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ClientCompatEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ClientCompatEventCountAggregateInputType | true
+    }
+
+  export interface ClientCompatEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ClientCompatEvent'], meta: { name: 'ClientCompatEvent' } }
+    /**
+     * Find zero or one ClientCompatEvent that matches the filter.
+     * @param {ClientCompatEventFindUniqueArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ClientCompatEventFindUniqueArgs>(args: SelectSubset<T, ClientCompatEventFindUniqueArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ClientCompatEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ClientCompatEventFindUniqueOrThrowArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ClientCompatEventFindUniqueOrThrowArgs>(args: SelectSubset<T, ClientCompatEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ClientCompatEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindFirstArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ClientCompatEventFindFirstArgs>(args?: SelectSubset<T, ClientCompatEventFindFirstArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ClientCompatEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindFirstOrThrowArgs} args - Arguments to find a ClientCompatEvent
+     * @example
+     * // Get one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ClientCompatEventFindFirstOrThrowArgs>(args?: SelectSubset<T, ClientCompatEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ClientCompatEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ClientCompatEvents
+     * const clientCompatEvents = await prisma.clientCompatEvent.findMany()
+     * 
+     * // Get first 10 ClientCompatEvents
+     * const clientCompatEvents = await prisma.clientCompatEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const clientCompatEventWithIdOnly = await prisma.clientCompatEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ClientCompatEventFindManyArgs>(args?: SelectSubset<T, ClientCompatEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ClientCompatEvent.
+     * @param {ClientCompatEventCreateArgs} args - Arguments to create a ClientCompatEvent.
+     * @example
+     * // Create one ClientCompatEvent
+     * const ClientCompatEvent = await prisma.clientCompatEvent.create({
+     *   data: {
+     *     // ... data to create a ClientCompatEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends ClientCompatEventCreateArgs>(args: SelectSubset<T, ClientCompatEventCreateArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ClientCompatEvents.
+     * @param {ClientCompatEventCreateManyArgs} args - Arguments to create many ClientCompatEvents.
+     * @example
+     * // Create many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ClientCompatEventCreateManyArgs>(args?: SelectSubset<T, ClientCompatEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ClientCompatEvents and returns the data saved in the database.
+     * @param {ClientCompatEventCreateManyAndReturnArgs} args - Arguments to create many ClientCompatEvents.
+     * @example
+     * // Create many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ClientCompatEvents and only return the `id`
+     * const clientCompatEventWithIdOnly = await prisma.clientCompatEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ClientCompatEventCreateManyAndReturnArgs>(args?: SelectSubset<T, ClientCompatEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ClientCompatEvent.
+     * @param {ClientCompatEventDeleteArgs} args - Arguments to delete one ClientCompatEvent.
+     * @example
+     * // Delete one ClientCompatEvent
+     * const ClientCompatEvent = await prisma.clientCompatEvent.delete({
+     *   where: {
+     *     // ... filter to delete one ClientCompatEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ClientCompatEventDeleteArgs>(args: SelectSubset<T, ClientCompatEventDeleteArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ClientCompatEvent.
+     * @param {ClientCompatEventUpdateArgs} args - Arguments to update one ClientCompatEvent.
+     * @example
+     * // Update one ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ClientCompatEventUpdateArgs>(args: SelectSubset<T, ClientCompatEventUpdateArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ClientCompatEvents.
+     * @param {ClientCompatEventDeleteManyArgs} args - Arguments to filter ClientCompatEvents to delete.
+     * @example
+     * // Delete a few ClientCompatEvents
+     * const { count } = await prisma.clientCompatEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ClientCompatEventDeleteManyArgs>(args?: SelectSubset<T, ClientCompatEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ClientCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ClientCompatEvents
+     * const clientCompatEvent = await prisma.clientCompatEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ClientCompatEventUpdateManyArgs>(args: SelectSubset<T, ClientCompatEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ClientCompatEvent.
+     * @param {ClientCompatEventUpsertArgs} args - Arguments to update or create a ClientCompatEvent.
+     * @example
+     * // Update or create a ClientCompatEvent
+     * const clientCompatEvent = await prisma.clientCompatEvent.upsert({
+     *   create: {
+     *     // ... data to create a ClientCompatEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ClientCompatEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ClientCompatEventUpsertArgs>(args: SelectSubset<T, ClientCompatEventUpsertArgs<ExtArgs>>): Prisma__ClientCompatEventClient<$Result.GetResult<Prisma.$ClientCompatEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ClientCompatEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventCountArgs} args - Arguments to filter ClientCompatEvents to count.
+     * @example
+     * // Count the number of ClientCompatEvents
+     * const count = await prisma.clientCompatEvent.count({
+     *   where: {
+     *     // ... the filter for the ClientCompatEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends ClientCompatEventCountArgs>(
+      args?: Subset<T, ClientCompatEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ClientCompatEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ClientCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ClientCompatEventAggregateArgs>(args: Subset<T, ClientCompatEventAggregateArgs>): Prisma.PrismaPromise<GetClientCompatEventAggregateType<T>>
+
+    /**
+     * Group by ClientCompatEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ClientCompatEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ClientCompatEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ClientCompatEventGroupByArgs['orderBy'] }
+        : { orderBy?: ClientCompatEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ClientCompatEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetClientCompatEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ClientCompatEvent model
+   */
+  readonly fields: ClientCompatEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ClientCompatEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ClientCompatEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ClientCompatEvent model
+   */ 
+  interface ClientCompatEventFieldRefs {
+    readonly id: FieldRef<"ClientCompatEvent", 'String'>
+    readonly route: FieldRef<"ClientCompatEvent", 'String'>
+    readonly actorUserId: FieldRef<"ClientCompatEvent", 'String'>
+    readonly clientHeader: FieldRef<"ClientCompatEvent", 'String'>
+    readonly outcome: FieldRef<"ClientCompatEvent", 'String'>
+    readonly createdAt: FieldRef<"ClientCompatEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ClientCompatEvent findUnique
+   */
+  export type ClientCompatEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent findUniqueOrThrow
+   */
+  export type ClientCompatEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent findFirst
+   */
+  export type ClientCompatEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientCompatEvents.
+     */
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent findFirstOrThrow
+   */
+  export type ClientCompatEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvent to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ClientCompatEvents.
+     */
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent findMany
+   */
+  export type ClientCompatEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter, which ClientCompatEvents to fetch.
+     */
+    where?: ClientCompatEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ClientCompatEvents to fetch.
+     */
+    orderBy?: ClientCompatEventOrderByWithRelationInput | ClientCompatEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ClientCompatEvents.
+     */
+    cursor?: ClientCompatEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ClientCompatEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ClientCompatEvents.
+     */
+    skip?: number
+    distinct?: ClientCompatEventScalarFieldEnum | ClientCompatEventScalarFieldEnum[]
+  }
+
+  /**
+   * ClientCompatEvent create
+   */
+  export type ClientCompatEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a ClientCompatEvent.
+     */
+    data: XOR<ClientCompatEventCreateInput, ClientCompatEventUncheckedCreateInput>
+  }
+
+  /**
+   * ClientCompatEvent createMany
+   */
+  export type ClientCompatEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ClientCompatEvents.
+     */
+    data: ClientCompatEventCreateManyInput | ClientCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientCompatEvent createManyAndReturn
+   */
+  export type ClientCompatEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ClientCompatEvents.
+     */
+    data: ClientCompatEventCreateManyInput | ClientCompatEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ClientCompatEvent update
+   */
+  export type ClientCompatEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a ClientCompatEvent.
+     */
+    data: XOR<ClientCompatEventUpdateInput, ClientCompatEventUncheckedUpdateInput>
+    /**
+     * Choose, which ClientCompatEvent to update.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent updateMany
+   */
+  export type ClientCompatEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ClientCompatEvents.
+     */
+    data: XOR<ClientCompatEventUpdateManyMutationInput, ClientCompatEventUncheckedUpdateManyInput>
+    /**
+     * Filter which ClientCompatEvents to update
+     */
+    where?: ClientCompatEventWhereInput
+  }
+
+  /**
+   * ClientCompatEvent upsert
+   */
+  export type ClientCompatEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the ClientCompatEvent to update in case it exists.
+     */
+    where: ClientCompatEventWhereUniqueInput
+    /**
+     * In case the ClientCompatEvent found by the `where` argument doesn't exist, create a new ClientCompatEvent with this data.
+     */
+    create: XOR<ClientCompatEventCreateInput, ClientCompatEventUncheckedCreateInput>
+    /**
+     * In case the ClientCompatEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ClientCompatEventUpdateInput, ClientCompatEventUncheckedUpdateInput>
+  }
+
+  /**
+   * ClientCompatEvent delete
+   */
+  export type ClientCompatEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+    /**
+     * Filter which ClientCompatEvent to delete.
+     */
+    where: ClientCompatEventWhereUniqueInput
+  }
+
+  /**
+   * ClientCompatEvent deleteMany
+   */
+  export type ClientCompatEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ClientCompatEvents to delete
+     */
+    where?: ClientCompatEventWhereInput
+  }
+
+  /**
+   * ClientCompatEvent without action
+   */
+  export type ClientCompatEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ClientCompatEvent
+     */
+    select?: ClientCompatEventSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AmenityAuditLog
+   */
+
+  export type AggregateAmenityAuditLog = {
+    _count: AmenityAuditLogCountAggregateOutputType | null
+    _min: AmenityAuditLogMinAggregateOutputType | null
+    _max: AmenityAuditLogMaxAggregateOutputType | null
+  }
+
+  export type AmenityAuditLogMinAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    action: string | null
+    amenityId: string | null
+    proposalId: string | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type AmenityAuditLogMaxAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    action: string | null
+    amenityId: string | null
+    proposalId: string | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type AmenityAuditLogCountAggregateOutputType = {
+    id: number
+    actorUserId: number
+    action: number
+    amenityId: number
+    proposalId: number
+    before: number
+    after: number
+    reason: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AmenityAuditLogMinAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    amenityId?: true
+    proposalId?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type AmenityAuditLogMaxAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    amenityId?: true
+    proposalId?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type AmenityAuditLogCountAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    action?: true
+    amenityId?: true
+    proposalId?: true
+    before?: true
+    after?: true
+    reason?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AmenityAuditLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AmenityAuditLog to aggregate.
+     */
+    where?: AmenityAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityAuditLogs to fetch.
+     */
+    orderBy?: AmenityAuditLogOrderByWithRelationInput | AmenityAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AmenityAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AmenityAuditLogs
+    **/
+    _count?: true | AmenityAuditLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AmenityAuditLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AmenityAuditLogMaxAggregateInputType
+  }
+
+  export type GetAmenityAuditLogAggregateType<T extends AmenityAuditLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateAmenityAuditLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAmenityAuditLog[P]>
+      : GetScalarType<T[P], AggregateAmenityAuditLog[P]>
+  }
+
+
+
+
+  export type AmenityAuditLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AmenityAuditLogWhereInput
+    orderBy?: AmenityAuditLogOrderByWithAggregationInput | AmenityAuditLogOrderByWithAggregationInput[]
+    by: AmenityAuditLogScalarFieldEnum[] | AmenityAuditLogScalarFieldEnum
+    having?: AmenityAuditLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AmenityAuditLogCountAggregateInputType | true
+    _min?: AmenityAuditLogMinAggregateInputType
+    _max?: AmenityAuditLogMaxAggregateInputType
+  }
+
+  export type AmenityAuditLogGroupByOutputType = {
+    id: string
+    actorUserId: string
+    action: string
+    amenityId: string | null
+    proposalId: string | null
+    before: JsonValue | null
+    after: JsonValue | null
+    reason: string | null
+    createdAt: Date
+    _count: AmenityAuditLogCountAggregateOutputType | null
+    _min: AmenityAuditLogMinAggregateOutputType | null
+    _max: AmenityAuditLogMaxAggregateOutputType | null
+  }
+
+  type GetAmenityAuditLogGroupByPayload<T extends AmenityAuditLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AmenityAuditLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AmenityAuditLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AmenityAuditLogGroupByOutputType[P]>
+            : GetScalarType<T[P], AmenityAuditLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AmenityAuditLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    amenityId?: boolean
+    proposalId?: boolean
+    before?: boolean
+    after?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["amenityAuditLog"]>
+
+  export type AmenityAuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    amenityId?: boolean
+    proposalId?: boolean
+    before?: boolean
+    after?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["amenityAuditLog"]>
+
+  export type AmenityAuditLogSelectScalar = {
+    id?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    amenityId?: boolean
+    proposalId?: boolean
+    before?: boolean
+    after?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $AmenityAuditLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AmenityAuditLog"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      actorUserId: string
+      action: string
+      amenityId: string | null
+      proposalId: string | null
+      before: Prisma.JsonValue | null
+      after: Prisma.JsonValue | null
+      reason: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["amenityAuditLog"]>
+    composites: {}
+  }
+
+  type AmenityAuditLogGetPayload<S extends boolean | null | undefined | AmenityAuditLogDefaultArgs> = $Result.GetResult<Prisma.$AmenityAuditLogPayload, S>
+
+  type AmenityAuditLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AmenityAuditLogFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AmenityAuditLogCountAggregateInputType | true
+    }
+
+  export interface AmenityAuditLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AmenityAuditLog'], meta: { name: 'AmenityAuditLog' } }
+    /**
+     * Find zero or one AmenityAuditLog that matches the filter.
+     * @param {AmenityAuditLogFindUniqueArgs} args - Arguments to find a AmenityAuditLog
+     * @example
+     * // Get one AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AmenityAuditLogFindUniqueArgs>(args: SelectSubset<T, AmenityAuditLogFindUniqueArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AmenityAuditLog that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AmenityAuditLogFindUniqueOrThrowArgs} args - Arguments to find a AmenityAuditLog
+     * @example
+     * // Get one AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AmenityAuditLogFindUniqueOrThrowArgs>(args: SelectSubset<T, AmenityAuditLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AmenityAuditLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogFindFirstArgs} args - Arguments to find a AmenityAuditLog
+     * @example
+     * // Get one AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AmenityAuditLogFindFirstArgs>(args?: SelectSubset<T, AmenityAuditLogFindFirstArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AmenityAuditLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogFindFirstOrThrowArgs} args - Arguments to find a AmenityAuditLog
+     * @example
+     * // Get one AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AmenityAuditLogFindFirstOrThrowArgs>(args?: SelectSubset<T, AmenityAuditLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AmenityAuditLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AmenityAuditLogs
+     * const amenityAuditLogs = await prisma.amenityAuditLog.findMany()
+     * 
+     * // Get first 10 AmenityAuditLogs
+     * const amenityAuditLogs = await prisma.amenityAuditLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const amenityAuditLogWithIdOnly = await prisma.amenityAuditLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AmenityAuditLogFindManyArgs>(args?: SelectSubset<T, AmenityAuditLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AmenityAuditLog.
+     * @param {AmenityAuditLogCreateArgs} args - Arguments to create a AmenityAuditLog.
+     * @example
+     * // Create one AmenityAuditLog
+     * const AmenityAuditLog = await prisma.amenityAuditLog.create({
+     *   data: {
+     *     // ... data to create a AmenityAuditLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends AmenityAuditLogCreateArgs>(args: SelectSubset<T, AmenityAuditLogCreateArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AmenityAuditLogs.
+     * @param {AmenityAuditLogCreateManyArgs} args - Arguments to create many AmenityAuditLogs.
+     * @example
+     * // Create many AmenityAuditLogs
+     * const amenityAuditLog = await prisma.amenityAuditLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AmenityAuditLogCreateManyArgs>(args?: SelectSubset<T, AmenityAuditLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AmenityAuditLogs and returns the data saved in the database.
+     * @param {AmenityAuditLogCreateManyAndReturnArgs} args - Arguments to create many AmenityAuditLogs.
+     * @example
+     * // Create many AmenityAuditLogs
+     * const amenityAuditLog = await prisma.amenityAuditLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AmenityAuditLogs and only return the `id`
+     * const amenityAuditLogWithIdOnly = await prisma.amenityAuditLog.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AmenityAuditLogCreateManyAndReturnArgs>(args?: SelectSubset<T, AmenityAuditLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AmenityAuditLog.
+     * @param {AmenityAuditLogDeleteArgs} args - Arguments to delete one AmenityAuditLog.
+     * @example
+     * // Delete one AmenityAuditLog
+     * const AmenityAuditLog = await prisma.amenityAuditLog.delete({
+     *   where: {
+     *     // ... filter to delete one AmenityAuditLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AmenityAuditLogDeleteArgs>(args: SelectSubset<T, AmenityAuditLogDeleteArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AmenityAuditLog.
+     * @param {AmenityAuditLogUpdateArgs} args - Arguments to update one AmenityAuditLog.
+     * @example
+     * // Update one AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AmenityAuditLogUpdateArgs>(args: SelectSubset<T, AmenityAuditLogUpdateArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AmenityAuditLogs.
+     * @param {AmenityAuditLogDeleteManyArgs} args - Arguments to filter AmenityAuditLogs to delete.
+     * @example
+     * // Delete a few AmenityAuditLogs
+     * const { count } = await prisma.amenityAuditLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AmenityAuditLogDeleteManyArgs>(args?: SelectSubset<T, AmenityAuditLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AmenityAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AmenityAuditLogs
+     * const amenityAuditLog = await prisma.amenityAuditLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AmenityAuditLogUpdateManyArgs>(args: SelectSubset<T, AmenityAuditLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AmenityAuditLog.
+     * @param {AmenityAuditLogUpsertArgs} args - Arguments to update or create a AmenityAuditLog.
+     * @example
+     * // Update or create a AmenityAuditLog
+     * const amenityAuditLog = await prisma.amenityAuditLog.upsert({
+     *   create: {
+     *     // ... data to create a AmenityAuditLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AmenityAuditLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AmenityAuditLogUpsertArgs>(args: SelectSubset<T, AmenityAuditLogUpsertArgs<ExtArgs>>): Prisma__AmenityAuditLogClient<$Result.GetResult<Prisma.$AmenityAuditLogPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AmenityAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogCountArgs} args - Arguments to filter AmenityAuditLogs to count.
+     * @example
+     * // Count the number of AmenityAuditLogs
+     * const count = await prisma.amenityAuditLog.count({
+     *   where: {
+     *     // ... the filter for the AmenityAuditLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends AmenityAuditLogCountArgs>(
+      args?: Subset<T, AmenityAuditLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AmenityAuditLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AmenityAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AmenityAuditLogAggregateArgs>(args: Subset<T, AmenityAuditLogAggregateArgs>): Prisma.PrismaPromise<GetAmenityAuditLogAggregateType<T>>
+
+    /**
+     * Group by AmenityAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AmenityAuditLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AmenityAuditLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AmenityAuditLogGroupByArgs['orderBy'] }
+        : { orderBy?: AmenityAuditLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AmenityAuditLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAmenityAuditLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AmenityAuditLog model
+   */
+  readonly fields: AmenityAuditLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AmenityAuditLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AmenityAuditLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AmenityAuditLog model
+   */ 
+  interface AmenityAuditLogFieldRefs {
+    readonly id: FieldRef<"AmenityAuditLog", 'String'>
+    readonly actorUserId: FieldRef<"AmenityAuditLog", 'String'>
+    readonly action: FieldRef<"AmenityAuditLog", 'String'>
+    readonly amenityId: FieldRef<"AmenityAuditLog", 'String'>
+    readonly proposalId: FieldRef<"AmenityAuditLog", 'String'>
+    readonly before: FieldRef<"AmenityAuditLog", 'Json'>
+    readonly after: FieldRef<"AmenityAuditLog", 'Json'>
+    readonly reason: FieldRef<"AmenityAuditLog", 'String'>
+    readonly createdAt: FieldRef<"AmenityAuditLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AmenityAuditLog findUnique
+   */
+  export type AmenityAuditLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AmenityAuditLog to fetch.
+     */
+    where: AmenityAuditLogWhereUniqueInput
+  }
+
+  /**
+   * AmenityAuditLog findUniqueOrThrow
+   */
+  export type AmenityAuditLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AmenityAuditLog to fetch.
+     */
+    where: AmenityAuditLogWhereUniqueInput
+  }
+
+  /**
+   * AmenityAuditLog findFirst
+   */
+  export type AmenityAuditLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AmenityAuditLog to fetch.
+     */
+    where?: AmenityAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityAuditLogs to fetch.
+     */
+    orderBy?: AmenityAuditLogOrderByWithRelationInput | AmenityAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AmenityAuditLogs.
+     */
+    cursor?: AmenityAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AmenityAuditLogs.
+     */
+    distinct?: AmenityAuditLogScalarFieldEnum | AmenityAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityAuditLog findFirstOrThrow
+   */
+  export type AmenityAuditLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AmenityAuditLog to fetch.
+     */
+    where?: AmenityAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityAuditLogs to fetch.
+     */
+    orderBy?: AmenityAuditLogOrderByWithRelationInput | AmenityAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AmenityAuditLogs.
+     */
+    cursor?: AmenityAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AmenityAuditLogs.
+     */
+    distinct?: AmenityAuditLogScalarFieldEnum | AmenityAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityAuditLog findMany
+   */
+  export type AmenityAuditLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter, which AmenityAuditLogs to fetch.
+     */
+    where?: AmenityAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AmenityAuditLogs to fetch.
+     */
+    orderBy?: AmenityAuditLogOrderByWithRelationInput | AmenityAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AmenityAuditLogs.
+     */
+    cursor?: AmenityAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AmenityAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AmenityAuditLogs.
+     */
+    skip?: number
+    distinct?: AmenityAuditLogScalarFieldEnum | AmenityAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * AmenityAuditLog create
+   */
+  export type AmenityAuditLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AmenityAuditLog.
+     */
+    data: XOR<AmenityAuditLogCreateInput, AmenityAuditLogUncheckedCreateInput>
+  }
+
+  /**
+   * AmenityAuditLog createMany
+   */
+  export type AmenityAuditLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AmenityAuditLogs.
+     */
+    data: AmenityAuditLogCreateManyInput | AmenityAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AmenityAuditLog createManyAndReturn
+   */
+  export type AmenityAuditLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AmenityAuditLogs.
+     */
+    data: AmenityAuditLogCreateManyInput | AmenityAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AmenityAuditLog update
+   */
+  export type AmenityAuditLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AmenityAuditLog.
+     */
+    data: XOR<AmenityAuditLogUpdateInput, AmenityAuditLogUncheckedUpdateInput>
+    /**
+     * Choose, which AmenityAuditLog to update.
+     */
+    where: AmenityAuditLogWhereUniqueInput
+  }
+
+  /**
+   * AmenityAuditLog updateMany
+   */
+  export type AmenityAuditLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AmenityAuditLogs.
+     */
+    data: XOR<AmenityAuditLogUpdateManyMutationInput, AmenityAuditLogUncheckedUpdateManyInput>
+    /**
+     * Filter which AmenityAuditLogs to update
+     */
+    where?: AmenityAuditLogWhereInput
+  }
+
+  /**
+   * AmenityAuditLog upsert
+   */
+  export type AmenityAuditLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AmenityAuditLog to update in case it exists.
+     */
+    where: AmenityAuditLogWhereUniqueInput
+    /**
+     * In case the AmenityAuditLog found by the `where` argument doesn't exist, create a new AmenityAuditLog with this data.
+     */
+    create: XOR<AmenityAuditLogCreateInput, AmenityAuditLogUncheckedCreateInput>
+    /**
+     * In case the AmenityAuditLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AmenityAuditLogUpdateInput, AmenityAuditLogUncheckedUpdateInput>
+  }
+
+  /**
+   * AmenityAuditLog delete
+   */
+  export type AmenityAuditLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+    /**
+     * Filter which AmenityAuditLog to delete.
+     */
+    where: AmenityAuditLogWhereUniqueInput
+  }
+
+  /**
+   * AmenityAuditLog deleteMany
+   */
+  export type AmenityAuditLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AmenityAuditLogs to delete
+     */
+    where?: AmenityAuditLogWhereInput
+  }
+
+  /**
+   * AmenityAuditLog without action
+   */
+  export type AmenityAuditLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AmenityAuditLog
+     */
+    select?: AmenityAuditLogSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -34488,7 +43609,11 @@ export namespace Prisma {
     s3Key: 's3Key',
     category: 'category',
     visibility: 'visibility',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    status: 'status',
+    contentHash: 'contentHash',
+    retiredAt: 'retiredAt',
+    uploadedBy: 'uploadedBy'
   };
 
   export type GymPhotoScalarFieldEnum = (typeof GymPhotoScalarFieldEnum)[keyof typeof GymPhotoScalarFieldEnum]
@@ -34632,6 +43757,9 @@ export namespace Prisma {
     payoutBankAccountHolder: 'payoutBankAccountHolder',
     termsAcceptedVersion: 'termsAcceptedVersion',
     termsAcceptedAt: 'termsAcceptedAt',
+    applicationFlowVersion: 'applicationFlowVersion',
+    legacyNoAmenities: 'legacyNoAmenities',
+    legacyClientAt: 'legacyClientAt',
     createdBy: 'createdBy',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -34816,6 +43944,11 @@ export namespace Prisma {
     closedAt: 'closedAt',
     closedBy: 'closedBy',
     reopenedAt: 'reopenedAt',
+    listingVersion: 'listingVersion',
+    listingPublishedAt: 'listingPublishedAt',
+    createdFlowVersion: 'createdFlowVersion',
+    legacyNoAmenities: 'legacyNoAmenities',
+    legacyClientAt: 'legacyClientAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -35005,6 +44138,133 @@ export namespace Prisma {
   export type GymPtCheckInScalarFieldEnum = (typeof GymPtCheckInScalarFieldEnum)[keyof typeof GymPtCheckInScalarFieldEnum]
 
 
+  export const AmenityScalarFieldEnum: {
+    id: 'id',
+    slug: 'slug',
+    name: 'name',
+    nameNormalized: 'nameNormalized',
+    category: 'category',
+    iconKey: 'iconKey',
+    sortOrder: 'sortOrder',
+    source: 'source',
+    status: 'status',
+    createdFromProposalId: 'createdFromProposalId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AmenityScalarFieldEnum = (typeof AmenityScalarFieldEnum)[keyof typeof AmenityScalarFieldEnum]
+
+
+  export const AmenityProposalScalarFieldEnum: {
+    id: 'id',
+    ownerUserId: 'ownerUserId',
+    gymId: 'gymId',
+    kind: 'kind',
+    targetAmenityId: 'targetAmenityId',
+    name: 'name',
+    nameNormalized: 'nameNormalized',
+    suggestedCategory: 'suggestedCategory',
+    note: 'note',
+    status: 'status',
+    resultingAmenityId: 'resultingAmenityId',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt',
+    rejectReason: 'rejectReason',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AmenityProposalScalarFieldEnum = (typeof AmenityProposalScalarFieldEnum)[keyof typeof AmenityProposalScalarFieldEnum]
+
+
+  export const GymAmenityScalarFieldEnum: {
+    gymId: 'gymId',
+    amenityId: 'amenityId',
+    createdAt: 'createdAt'
+  };
+
+  export type GymAmenityScalarFieldEnum = (typeof GymAmenityScalarFieldEnum)[keyof typeof GymAmenityScalarFieldEnum]
+
+
+  export const GymListingRevisionScalarFieldEnum: {
+    id: 'id',
+    gymId: 'gymId',
+    status: 'status',
+    source: 'source',
+    parentRevisionId: 'parentRevisionId',
+    baseVersion: 'baseVersion',
+    draftVersion: 'draftVersion',
+    payload: 'payload',
+    previousSnapshot: 'previousSnapshot',
+    systemAdjustments: 'systemAdjustments',
+    submittedBy: 'submittedBy',
+    submittedAt: 'submittedAt',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt',
+    reviewNote: 'reviewNote',
+    ownerNote: 'ownerNote',
+    adminReason: 'adminReason',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymListingRevisionScalarFieldEnum = (typeof GymListingRevisionScalarFieldEnum)[keyof typeof GymListingRevisionScalarFieldEnum]
+
+
+  export const LegacyCompatEventScalarFieldEnum: {
+    id: 'id',
+    occurredAt: 'occurredAt',
+    outcome: 'outcome',
+    action: 'action',
+    entityType: 'entityType',
+    entityId: 'entityId',
+    actorUserId: 'actorUserId',
+    flowHeader: 'flowHeader',
+    clientHeader: 'clientHeader'
+  };
+
+  export type LegacyCompatEventScalarFieldEnum = (typeof LegacyCompatEventScalarFieldEnum)[keyof typeof LegacyCompatEventScalarFieldEnum]
+
+
+  export const CompatWriterHeartbeatScalarFieldEnum: {
+    id: 'id',
+    instanceId: 'instanceId',
+    gitSha: 'gitSha',
+    writerVersion: 'writerVersion',
+    seenAt: 'seenAt'
+  };
+
+  export type CompatWriterHeartbeatScalarFieldEnum = (typeof CompatWriterHeartbeatScalarFieldEnum)[keyof typeof CompatWriterHeartbeatScalarFieldEnum]
+
+
+  export const ClientCompatEventScalarFieldEnum: {
+    id: 'id',
+    route: 'route',
+    actorUserId: 'actorUserId',
+    clientHeader: 'clientHeader',
+    outcome: 'outcome',
+    createdAt: 'createdAt'
+  };
+
+  export type ClientCompatEventScalarFieldEnum = (typeof ClientCompatEventScalarFieldEnum)[keyof typeof ClientCompatEventScalarFieldEnum]
+
+
+  export const AmenityAuditLogScalarFieldEnum: {
+    id: 'id',
+    actorUserId: 'actorUserId',
+    action: 'action',
+    amenityId: 'amenityId',
+    proposalId: 'proposalId',
+    before: 'before',
+    after: 'after',
+    reason: 'reason',
+    createdAt: 'createdAt'
+  };
+
+  export type AmenityAuditLogScalarFieldEnum = (typeof AmenityAuditLogScalarFieldEnum)[keyof typeof AmenityAuditLogScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -35019,6 +44279,13 @@ export namespace Prisma {
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -35125,6 +44392,20 @@ export namespace Prisma {
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPhotoStatus'
+   */
+  export type EnumGymPhotoStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymPhotoStatus[]'
+   */
+  export type ListEnumGymPhotoStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymPhotoStatus[]'>
     
 
 
@@ -35637,6 +44918,132 @@ export namespace Prisma {
    */
   export type ListEnumCollaborationPartyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationParty[]'>
     
+
+
+  /**
+   * Reference to a field of type 'AmenityCategory'
+   */
+  export type EnumAmenityCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityCategory'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityCategory[]'
+   */
+  export type ListEnumAmenityCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenitySource'
+   */
+  export type EnumAmenitySourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenitySource'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenitySource[]'
+   */
+  export type ListEnumAmenitySourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenitySource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityStatus'
+   */
+  export type EnumAmenityStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityStatus[]'
+   */
+  export type ListEnumAmenityStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityProposalKind'
+   */
+  export type EnumAmenityProposalKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityProposalKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityProposalKind[]'
+   */
+  export type ListEnumAmenityProposalKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityProposalKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityProposalStatus'
+   */
+  export type EnumAmenityProposalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityProposalStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AmenityProposalStatus[]'
+   */
+  export type ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AmenityProposalStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymListingRevisionStatus'
+   */
+  export type EnumGymListingRevisionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymListingRevisionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymListingRevisionStatus[]'
+   */
+  export type ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymListingRevisionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymListingRevisionSource'
+   */
+  export type EnumGymListingRevisionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymListingRevisionSource'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymListingRevisionSource[]'
+   */
+  export type ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymListingRevisionSource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LegacyCompatOutcome'
+   */
+  export type EnumLegacyCompatOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LegacyCompatOutcome'>
+    
+
+
+  /**
+   * Reference to a field of type 'LegacyCompatOutcome[]'
+   */
+  export type ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LegacyCompatOutcome[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LegacyCompatEntityType'
+   */
+  export type EnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LegacyCompatEntityType'>
+    
+
+
+  /**
+   * Reference to a field of type 'LegacyCompatEntityType[]'
+   */
+  export type ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LegacyCompatEntityType[]'>
+    
   /**
    * Deep Input Types
    */
@@ -35655,6 +45062,10 @@ export namespace Prisma {
     category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
+    status?: EnumGymPhotoStatusFilter<"GymPhoto"> | $Enums.GymPhotoStatus
+    contentHash?: StringNullableFilter<"GymPhoto"> | string | null
+    retiredAt?: DateTimeNullableFilter<"GymPhoto"> | Date | string | null
+    uploadedBy?: StringNullableFilter<"GymPhoto"> | string | null
     gym?: XOR<GymRelationFilter, GymWhereInput>
   }
 
@@ -35668,6 +45079,10 @@ export namespace Prisma {
     category?: SortOrderInput | SortOrder
     visibility?: SortOrder
     createdAt?: SortOrder
+    status?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
     gym?: GymOrderByWithRelationInput
   }
 
@@ -35684,6 +45099,10 @@ export namespace Prisma {
     category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
+    status?: EnumGymPhotoStatusFilter<"GymPhoto"> | $Enums.GymPhotoStatus
+    contentHash?: StringNullableFilter<"GymPhoto"> | string | null
+    retiredAt?: DateTimeNullableFilter<"GymPhoto"> | Date | string | null
+    uploadedBy?: StringNullableFilter<"GymPhoto"> | string | null
     gym?: XOR<GymRelationFilter, GymWhereInput>
   }, "id">
 
@@ -35697,6 +45116,10 @@ export namespace Prisma {
     category?: SortOrderInput | SortOrder
     visibility?: SortOrder
     createdAt?: SortOrder
+    status?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    retiredAt?: SortOrderInput | SortOrder
+    uploadedBy?: SortOrderInput | SortOrder
     _count?: GymPhotoCountOrderByAggregateInput
     _avg?: GymPhotoAvgOrderByAggregateInput
     _max?: GymPhotoMaxOrderByAggregateInput
@@ -35717,6 +45140,10 @@ export namespace Prisma {
     category?: EnumGymPhotoCategoryNullableWithAggregatesFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityWithAggregatesFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeWithAggregatesFilter<"GymPhoto"> | Date | string
+    status?: EnumGymPhotoStatusWithAggregatesFilter<"GymPhoto"> | $Enums.GymPhotoStatus
+    contentHash?: StringNullableWithAggregatesFilter<"GymPhoto"> | string | null
+    retiredAt?: DateTimeNullableWithAggregatesFilter<"GymPhoto"> | Date | string | null
+    uploadedBy?: StringNullableWithAggregatesFilter<"GymPhoto"> | string | null
   }
 
   export type GymBranchDocumentWhereInput = {
@@ -36271,6 +45698,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: StringNullableFilter<"GymPartner"> | string | null
     termsAcceptedVersion?: StringNullableFilter<"GymPartner"> | string | null
     termsAcceptedAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
+    applicationFlowVersion?: IntNullableFilter<"GymPartner"> | number | null
+    legacyNoAmenities?: BoolFilter<"GymPartner"> | boolean
+    legacyClientAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
     createdBy?: StringNullableFilter<"GymPartner"> | string | null
     createdAt?: DateTimeFilter<"GymPartner"> | Date | string
     updatedAt?: DateTimeFilter<"GymPartner"> | Date | string
@@ -36320,6 +45750,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: SortOrderInput | SortOrder
     termsAcceptedVersion?: SortOrderInput | SortOrder
     termsAcceptedAt?: SortOrderInput | SortOrder
+    applicationFlowVersion?: SortOrderInput | SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrderInput | SortOrder
     createdBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -36372,6 +45805,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: StringNullableFilter<"GymPartner"> | string | null
     termsAcceptedVersion?: StringNullableFilter<"GymPartner"> | string | null
     termsAcceptedAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
+    applicationFlowVersion?: IntNullableFilter<"GymPartner"> | number | null
+    legacyNoAmenities?: BoolFilter<"GymPartner"> | boolean
+    legacyClientAt?: DateTimeNullableFilter<"GymPartner"> | Date | string | null
     createdBy?: StringNullableFilter<"GymPartner"> | string | null
     createdAt?: DateTimeFilter<"GymPartner"> | Date | string
     updatedAt?: DateTimeFilter<"GymPartner"> | Date | string
@@ -36421,6 +45857,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: SortOrderInput | SortOrder
     termsAcceptedVersion?: SortOrderInput | SortOrder
     termsAcceptedAt?: SortOrderInput | SortOrder
+    applicationFlowVersion?: SortOrderInput | SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrderInput | SortOrder
     createdBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -36470,6 +45909,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     termsAcceptedVersion?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     termsAcceptedAt?: DateTimeNullableWithAggregatesFilter<"GymPartner"> | Date | string | null
+    applicationFlowVersion?: IntNullableWithAggregatesFilter<"GymPartner"> | number | null
+    legacyNoAmenities?: BoolWithAggregatesFilter<"GymPartner"> | boolean
+    legacyClientAt?: DateTimeNullableWithAggregatesFilter<"GymPartner"> | Date | string | null
     createdBy?: StringNullableWithAggregatesFilter<"GymPartner"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymPartner"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymPartner"> | Date | string
@@ -37251,6 +46693,11 @@ export namespace Prisma {
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    listingVersion?: IntFilter<"Gym"> | number
+    listingPublishedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
+    legacyNoAmenities?: BoolFilter<"Gym"> | boolean
+    legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -37263,6 +46710,9 @@ export namespace Prisma {
     photos?: GymPhotoListRelationFilter
     branchDocuments?: GymBranchDocumentListRelationFilter
     reviewIssues?: GymBranchReviewIssueListRelationFilter
+    amenities?: GymAmenityListRelationFilter
+    amenityProposals?: AmenityProposalListRelationFilter
+    listingRevisions?: GymListingRevisionListRelationFilter
   }
 
   export type GymOrderByWithRelationInput = {
@@ -37297,6 +46747,11 @@ export namespace Prisma {
     closedAt?: SortOrderInput | SortOrder
     closedBy?: SortOrderInput | SortOrder
     reopenedAt?: SortOrderInput | SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrderInput | SortOrder
+    createdFlowVersion?: SortOrderInput | SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     brand?: GymBrandOrderByWithRelationInput
@@ -37309,6 +46764,9 @@ export namespace Prisma {
     photos?: GymPhotoOrderByRelationAggregateInput
     branchDocuments?: GymBranchDocumentOrderByRelationAggregateInput
     reviewIssues?: GymBranchReviewIssueOrderByRelationAggregateInput
+    amenities?: GymAmenityOrderByRelationAggregateInput
+    amenityProposals?: AmenityProposalOrderByRelationAggregateInput
+    listingRevisions?: GymListingRevisionOrderByRelationAggregateInput
   }
 
   export type GymWhereUniqueInput = Prisma.AtLeast<{
@@ -37346,6 +46804,11 @@ export namespace Prisma {
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    listingVersion?: IntFilter<"Gym"> | number
+    listingPublishedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
+    legacyNoAmenities?: BoolFilter<"Gym"> | boolean
+    legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
     brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
@@ -37358,6 +46821,9 @@ export namespace Prisma {
     photos?: GymPhotoListRelationFilter
     branchDocuments?: GymBranchDocumentListRelationFilter
     reviewIssues?: GymBranchReviewIssueListRelationFilter
+    amenities?: GymAmenityListRelationFilter
+    amenityProposals?: AmenityProposalListRelationFilter
+    listingRevisions?: GymListingRevisionListRelationFilter
   }, "id">
 
   export type GymOrderByWithAggregationInput = {
@@ -37392,6 +46858,11 @@ export namespace Prisma {
     closedAt?: SortOrderInput | SortOrder
     closedBy?: SortOrderInput | SortOrder
     reopenedAt?: SortOrderInput | SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrderInput | SortOrder
+    createdFlowVersion?: SortOrderInput | SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymCountOrderByAggregateInput
@@ -37436,6 +46907,11 @@ export namespace Prisma {
     closedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
     closedBy?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
+    listingVersion?: IntWithAggregatesFilter<"Gym"> | number
+    listingPublishedAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
+    createdFlowVersion?: IntNullableWithAggregatesFilter<"Gym"> | number | null
+    legacyNoAmenities?: BoolWithAggregatesFilter<"Gym"> | boolean
+    legacyClientAt?: DateTimeNullableWithAggregatesFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Gym"> | Date | string
   }
@@ -38390,6 +47866,655 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"GymPtCheckIn"> | Date | string
   }
 
+  export type AmenityWhereInput = {
+    AND?: AmenityWhereInput | AmenityWhereInput[]
+    OR?: AmenityWhereInput[]
+    NOT?: AmenityWhereInput | AmenityWhereInput[]
+    id?: StringFilter<"Amenity"> | string
+    slug?: StringFilter<"Amenity"> | string
+    name?: StringFilter<"Amenity"> | string
+    nameNormalized?: StringFilter<"Amenity"> | string
+    category?: EnumAmenityCategoryFilter<"Amenity"> | $Enums.AmenityCategory
+    iconKey?: StringFilter<"Amenity"> | string
+    sortOrder?: IntFilter<"Amenity"> | number
+    source?: EnumAmenitySourceFilter<"Amenity"> | $Enums.AmenitySource
+    status?: EnumAmenityStatusFilter<"Amenity"> | $Enums.AmenityStatus
+    createdFromProposalId?: StringNullableFilter<"Amenity"> | string | null
+    createdAt?: DateTimeFilter<"Amenity"> | Date | string
+    updatedAt?: DateTimeFilter<"Amenity"> | Date | string
+    createdFromProposal?: XOR<AmenityProposalNullableRelationFilter, AmenityProposalWhereInput> | null
+    gyms?: GymAmenityListRelationFilter
+    targetedBy?: AmenityProposalListRelationFilter
+    resultOf?: AmenityProposalListRelationFilter
+  }
+
+  export type AmenityOrderByWithRelationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    category?: SortOrder
+    iconKey?: SortOrder
+    sortOrder?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    createdFromProposalId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    createdFromProposal?: AmenityProposalOrderByWithRelationInput
+    gyms?: GymAmenityOrderByRelationAggregateInput
+    targetedBy?: AmenityProposalOrderByRelationAggregateInput
+    resultOf?: AmenityProposalOrderByRelationAggregateInput
+  }
+
+  export type AmenityWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    slug?: string
+    nameNormalized?: string
+    AND?: AmenityWhereInput | AmenityWhereInput[]
+    OR?: AmenityWhereInput[]
+    NOT?: AmenityWhereInput | AmenityWhereInput[]
+    name?: StringFilter<"Amenity"> | string
+    category?: EnumAmenityCategoryFilter<"Amenity"> | $Enums.AmenityCategory
+    iconKey?: StringFilter<"Amenity"> | string
+    sortOrder?: IntFilter<"Amenity"> | number
+    source?: EnumAmenitySourceFilter<"Amenity"> | $Enums.AmenitySource
+    status?: EnumAmenityStatusFilter<"Amenity"> | $Enums.AmenityStatus
+    createdFromProposalId?: StringNullableFilter<"Amenity"> | string | null
+    createdAt?: DateTimeFilter<"Amenity"> | Date | string
+    updatedAt?: DateTimeFilter<"Amenity"> | Date | string
+    createdFromProposal?: XOR<AmenityProposalNullableRelationFilter, AmenityProposalWhereInput> | null
+    gyms?: GymAmenityListRelationFilter
+    targetedBy?: AmenityProposalListRelationFilter
+    resultOf?: AmenityProposalListRelationFilter
+  }, "id" | "slug" | "nameNormalized">
+
+  export type AmenityOrderByWithAggregationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    category?: SortOrder
+    iconKey?: SortOrder
+    sortOrder?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    createdFromProposalId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AmenityCountOrderByAggregateInput
+    _avg?: AmenityAvgOrderByAggregateInput
+    _max?: AmenityMaxOrderByAggregateInput
+    _min?: AmenityMinOrderByAggregateInput
+    _sum?: AmenitySumOrderByAggregateInput
+  }
+
+  export type AmenityScalarWhereWithAggregatesInput = {
+    AND?: AmenityScalarWhereWithAggregatesInput | AmenityScalarWhereWithAggregatesInput[]
+    OR?: AmenityScalarWhereWithAggregatesInput[]
+    NOT?: AmenityScalarWhereWithAggregatesInput | AmenityScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Amenity"> | string
+    slug?: StringWithAggregatesFilter<"Amenity"> | string
+    name?: StringWithAggregatesFilter<"Amenity"> | string
+    nameNormalized?: StringWithAggregatesFilter<"Amenity"> | string
+    category?: EnumAmenityCategoryWithAggregatesFilter<"Amenity"> | $Enums.AmenityCategory
+    iconKey?: StringWithAggregatesFilter<"Amenity"> | string
+    sortOrder?: IntWithAggregatesFilter<"Amenity"> | number
+    source?: EnumAmenitySourceWithAggregatesFilter<"Amenity"> | $Enums.AmenitySource
+    status?: EnumAmenityStatusWithAggregatesFilter<"Amenity"> | $Enums.AmenityStatus
+    createdFromProposalId?: StringNullableWithAggregatesFilter<"Amenity"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Amenity"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Amenity"> | Date | string
+  }
+
+  export type AmenityProposalWhereInput = {
+    AND?: AmenityProposalWhereInput | AmenityProposalWhereInput[]
+    OR?: AmenityProposalWhereInput[]
+    NOT?: AmenityProposalWhereInput | AmenityProposalWhereInput[]
+    id?: StringFilter<"AmenityProposal"> | string
+    ownerUserId?: StringFilter<"AmenityProposal"> | string
+    gymId?: StringFilter<"AmenityProposal"> | string
+    kind?: EnumAmenityProposalKindFilter<"AmenityProposal"> | $Enums.AmenityProposalKind
+    targetAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    name?: StringFilter<"AmenityProposal"> | string
+    nameNormalized?: StringFilter<"AmenityProposal"> | string
+    suggestedCategory?: EnumAmenityCategoryFilter<"AmenityProposal"> | $Enums.AmenityCategory
+    note?: StringNullableFilter<"AmenityProposal"> | string | null
+    status?: EnumAmenityProposalStatusFilter<"AmenityProposal"> | $Enums.AmenityProposalStatus
+    resultingAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedBy?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"AmenityProposal"> | Date | string | null
+    rejectReason?: StringNullableFilter<"AmenityProposal"> | string | null
+    createdAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+    targetAmenity?: XOR<AmenityNullableRelationFilter, AmenityWhereInput> | null
+    resultingAmenity?: XOR<AmenityNullableRelationFilter, AmenityWhereInput> | null
+    createdAmenities?: AmenityListRelationFilter
+  }
+
+  export type AmenityProposalOrderByWithRelationInput = {
+    id?: SortOrder
+    ownerUserId?: SortOrder
+    gymId?: SortOrder
+    kind?: SortOrder
+    targetAmenityId?: SortOrderInput | SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    suggestedCategory?: SortOrder
+    note?: SortOrderInput | SortOrder
+    status?: SortOrder
+    resultingAmenityId?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    rejectReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    gym?: GymOrderByWithRelationInput
+    targetAmenity?: AmenityOrderByWithRelationInput
+    resultingAmenity?: AmenityOrderByWithRelationInput
+    createdAmenities?: AmenityOrderByRelationAggregateInput
+  }
+
+  export type AmenityProposalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AmenityProposalWhereInput | AmenityProposalWhereInput[]
+    OR?: AmenityProposalWhereInput[]
+    NOT?: AmenityProposalWhereInput | AmenityProposalWhereInput[]
+    ownerUserId?: StringFilter<"AmenityProposal"> | string
+    gymId?: StringFilter<"AmenityProposal"> | string
+    kind?: EnumAmenityProposalKindFilter<"AmenityProposal"> | $Enums.AmenityProposalKind
+    targetAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    name?: StringFilter<"AmenityProposal"> | string
+    nameNormalized?: StringFilter<"AmenityProposal"> | string
+    suggestedCategory?: EnumAmenityCategoryFilter<"AmenityProposal"> | $Enums.AmenityCategory
+    note?: StringNullableFilter<"AmenityProposal"> | string | null
+    status?: EnumAmenityProposalStatusFilter<"AmenityProposal"> | $Enums.AmenityProposalStatus
+    resultingAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedBy?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"AmenityProposal"> | Date | string | null
+    rejectReason?: StringNullableFilter<"AmenityProposal"> | string | null
+    createdAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+    targetAmenity?: XOR<AmenityNullableRelationFilter, AmenityWhereInput> | null
+    resultingAmenity?: XOR<AmenityNullableRelationFilter, AmenityWhereInput> | null
+    createdAmenities?: AmenityListRelationFilter
+  }, "id">
+
+  export type AmenityProposalOrderByWithAggregationInput = {
+    id?: SortOrder
+    ownerUserId?: SortOrder
+    gymId?: SortOrder
+    kind?: SortOrder
+    targetAmenityId?: SortOrderInput | SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    suggestedCategory?: SortOrder
+    note?: SortOrderInput | SortOrder
+    status?: SortOrder
+    resultingAmenityId?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    rejectReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AmenityProposalCountOrderByAggregateInput
+    _max?: AmenityProposalMaxOrderByAggregateInput
+    _min?: AmenityProposalMinOrderByAggregateInput
+  }
+
+  export type AmenityProposalScalarWhereWithAggregatesInput = {
+    AND?: AmenityProposalScalarWhereWithAggregatesInput | AmenityProposalScalarWhereWithAggregatesInput[]
+    OR?: AmenityProposalScalarWhereWithAggregatesInput[]
+    NOT?: AmenityProposalScalarWhereWithAggregatesInput | AmenityProposalScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AmenityProposal"> | string
+    ownerUserId?: StringWithAggregatesFilter<"AmenityProposal"> | string
+    gymId?: StringWithAggregatesFilter<"AmenityProposal"> | string
+    kind?: EnumAmenityProposalKindWithAggregatesFilter<"AmenityProposal"> | $Enums.AmenityProposalKind
+    targetAmenityId?: StringNullableWithAggregatesFilter<"AmenityProposal"> | string | null
+    name?: StringWithAggregatesFilter<"AmenityProposal"> | string
+    nameNormalized?: StringWithAggregatesFilter<"AmenityProposal"> | string
+    suggestedCategory?: EnumAmenityCategoryWithAggregatesFilter<"AmenityProposal"> | $Enums.AmenityCategory
+    note?: StringNullableWithAggregatesFilter<"AmenityProposal"> | string | null
+    status?: EnumAmenityProposalStatusWithAggregatesFilter<"AmenityProposal"> | $Enums.AmenityProposalStatus
+    resultingAmenityId?: StringNullableWithAggregatesFilter<"AmenityProposal"> | string | null
+    reviewedBy?: StringNullableWithAggregatesFilter<"AmenityProposal"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"AmenityProposal"> | Date | string | null
+    rejectReason?: StringNullableWithAggregatesFilter<"AmenityProposal"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AmenityProposal"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AmenityProposal"> | Date | string
+  }
+
+  export type GymAmenityWhereInput = {
+    AND?: GymAmenityWhereInput | GymAmenityWhereInput[]
+    OR?: GymAmenityWhereInput[]
+    NOT?: GymAmenityWhereInput | GymAmenityWhereInput[]
+    gymId?: StringFilter<"GymAmenity"> | string
+    amenityId?: StringFilter<"GymAmenity"> | string
+    createdAt?: DateTimeFilter<"GymAmenity"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+    amenity?: XOR<AmenityRelationFilter, AmenityWhereInput>
+  }
+
+  export type GymAmenityOrderByWithRelationInput = {
+    gymId?: SortOrder
+    amenityId?: SortOrder
+    createdAt?: SortOrder
+    gym?: GymOrderByWithRelationInput
+    amenity?: AmenityOrderByWithRelationInput
+  }
+
+  export type GymAmenityWhereUniqueInput = Prisma.AtLeast<{
+    gymId_amenityId?: GymAmenityGymIdAmenityIdCompoundUniqueInput
+    AND?: GymAmenityWhereInput | GymAmenityWhereInput[]
+    OR?: GymAmenityWhereInput[]
+    NOT?: GymAmenityWhereInput | GymAmenityWhereInput[]
+    gymId?: StringFilter<"GymAmenity"> | string
+    amenityId?: StringFilter<"GymAmenity"> | string
+    createdAt?: DateTimeFilter<"GymAmenity"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+    amenity?: XOR<AmenityRelationFilter, AmenityWhereInput>
+  }, "gymId_amenityId">
+
+  export type GymAmenityOrderByWithAggregationInput = {
+    gymId?: SortOrder
+    amenityId?: SortOrder
+    createdAt?: SortOrder
+    _count?: GymAmenityCountOrderByAggregateInput
+    _max?: GymAmenityMaxOrderByAggregateInput
+    _min?: GymAmenityMinOrderByAggregateInput
+  }
+
+  export type GymAmenityScalarWhereWithAggregatesInput = {
+    AND?: GymAmenityScalarWhereWithAggregatesInput | GymAmenityScalarWhereWithAggregatesInput[]
+    OR?: GymAmenityScalarWhereWithAggregatesInput[]
+    NOT?: GymAmenityScalarWhereWithAggregatesInput | GymAmenityScalarWhereWithAggregatesInput[]
+    gymId?: StringWithAggregatesFilter<"GymAmenity"> | string
+    amenityId?: StringWithAggregatesFilter<"GymAmenity"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GymAmenity"> | Date | string
+  }
+
+  export type GymListingRevisionWhereInput = {
+    AND?: GymListingRevisionWhereInput | GymListingRevisionWhereInput[]
+    OR?: GymListingRevisionWhereInput[]
+    NOT?: GymListingRevisionWhereInput | GymListingRevisionWhereInput[]
+    id?: StringFilter<"GymListingRevision"> | string
+    gymId?: StringFilter<"GymListingRevision"> | string
+    status?: EnumGymListingRevisionStatusFilter<"GymListingRevision"> | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFilter<"GymListingRevision"> | $Enums.GymListingRevisionSource
+    parentRevisionId?: StringNullableFilter<"GymListingRevision"> | string | null
+    baseVersion?: IntFilter<"GymListingRevision"> | number
+    draftVersion?: IntFilter<"GymListingRevision"> | number
+    payload?: JsonFilter<"GymListingRevision">
+    previousSnapshot?: JsonNullableFilter<"GymListingRevision">
+    systemAdjustments?: JsonFilter<"GymListingRevision">
+    submittedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    submittedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    ownerNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    adminReason?: StringNullableFilter<"GymListingRevision"> | string | null
+    createdAt?: DateTimeFilter<"GymListingRevision"> | Date | string
+    updatedAt?: DateTimeFilter<"GymListingRevision"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+  }
+
+  export type GymListingRevisionOrderByWithRelationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrderInput | SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrderInput | SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    ownerNote?: SortOrderInput | SortOrder
+    adminReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    gym?: GymOrderByWithRelationInput
+  }
+
+  export type GymListingRevisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymListingRevisionWhereInput | GymListingRevisionWhereInput[]
+    OR?: GymListingRevisionWhereInput[]
+    NOT?: GymListingRevisionWhereInput | GymListingRevisionWhereInput[]
+    gymId?: StringFilter<"GymListingRevision"> | string
+    status?: EnumGymListingRevisionStatusFilter<"GymListingRevision"> | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFilter<"GymListingRevision"> | $Enums.GymListingRevisionSource
+    parentRevisionId?: StringNullableFilter<"GymListingRevision"> | string | null
+    baseVersion?: IntFilter<"GymListingRevision"> | number
+    draftVersion?: IntFilter<"GymListingRevision"> | number
+    payload?: JsonFilter<"GymListingRevision">
+    previousSnapshot?: JsonNullableFilter<"GymListingRevision">
+    systemAdjustments?: JsonFilter<"GymListingRevision">
+    submittedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    submittedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    ownerNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    adminReason?: StringNullableFilter<"GymListingRevision"> | string | null
+    createdAt?: DateTimeFilter<"GymListingRevision"> | Date | string
+    updatedAt?: DateTimeFilter<"GymListingRevision"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+  }, "id">
+
+  export type GymListingRevisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrderInput | SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrderInput | SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrderInput | SortOrder
+    submittedAt?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    ownerNote?: SortOrderInput | SortOrder
+    adminReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymListingRevisionCountOrderByAggregateInput
+    _avg?: GymListingRevisionAvgOrderByAggregateInput
+    _max?: GymListingRevisionMaxOrderByAggregateInput
+    _min?: GymListingRevisionMinOrderByAggregateInput
+    _sum?: GymListingRevisionSumOrderByAggregateInput
+  }
+
+  export type GymListingRevisionScalarWhereWithAggregatesInput = {
+    AND?: GymListingRevisionScalarWhereWithAggregatesInput | GymListingRevisionScalarWhereWithAggregatesInput[]
+    OR?: GymListingRevisionScalarWhereWithAggregatesInput[]
+    NOT?: GymListingRevisionScalarWhereWithAggregatesInput | GymListingRevisionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymListingRevision"> | string
+    gymId?: StringWithAggregatesFilter<"GymListingRevision"> | string
+    status?: EnumGymListingRevisionStatusWithAggregatesFilter<"GymListingRevision"> | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceWithAggregatesFilter<"GymListingRevision"> | $Enums.GymListingRevisionSource
+    parentRevisionId?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    baseVersion?: IntWithAggregatesFilter<"GymListingRevision"> | number
+    draftVersion?: IntWithAggregatesFilter<"GymListingRevision"> | number
+    payload?: JsonWithAggregatesFilter<"GymListingRevision">
+    previousSnapshot?: JsonNullableWithAggregatesFilter<"GymListingRevision">
+    systemAdjustments?: JsonWithAggregatesFilter<"GymListingRevision">
+    submittedBy?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    submittedAt?: DateTimeNullableWithAggregatesFilter<"GymListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"GymListingRevision"> | Date | string | null
+    reviewNote?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    ownerNote?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    adminReason?: StringNullableWithAggregatesFilter<"GymListingRevision"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymListingRevision"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymListingRevision"> | Date | string
+  }
+
+  export type LegacyCompatEventWhereInput = {
+    AND?: LegacyCompatEventWhereInput | LegacyCompatEventWhereInput[]
+    OR?: LegacyCompatEventWhereInput[]
+    NOT?: LegacyCompatEventWhereInput | LegacyCompatEventWhereInput[]
+    id?: StringFilter<"LegacyCompatEvent"> | string
+    occurredAt?: DateTimeFilter<"LegacyCompatEvent"> | Date | string
+    outcome?: EnumLegacyCompatOutcomeFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatOutcome
+    action?: StringFilter<"LegacyCompatEvent"> | string
+    entityType?: EnumLegacyCompatEntityTypeFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatEntityType
+    entityId?: StringFilter<"LegacyCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+    flowHeader?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+  }
+
+  export type LegacyCompatEventOrderByWithRelationInput = {
+    id?: SortOrder
+    occurredAt?: SortOrder
+    outcome?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    flowHeader?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+  }
+
+  export type LegacyCompatEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LegacyCompatEventWhereInput | LegacyCompatEventWhereInput[]
+    OR?: LegacyCompatEventWhereInput[]
+    NOT?: LegacyCompatEventWhereInput | LegacyCompatEventWhereInput[]
+    occurredAt?: DateTimeFilter<"LegacyCompatEvent"> | Date | string
+    outcome?: EnumLegacyCompatOutcomeFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatOutcome
+    action?: StringFilter<"LegacyCompatEvent"> | string
+    entityType?: EnumLegacyCompatEntityTypeFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatEntityType
+    entityId?: StringFilter<"LegacyCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+    flowHeader?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"LegacyCompatEvent"> | string | null
+  }, "id">
+
+  export type LegacyCompatEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    occurredAt?: SortOrder
+    outcome?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    flowHeader?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+    _count?: LegacyCompatEventCountOrderByAggregateInput
+    _max?: LegacyCompatEventMaxOrderByAggregateInput
+    _min?: LegacyCompatEventMinOrderByAggregateInput
+  }
+
+  export type LegacyCompatEventScalarWhereWithAggregatesInput = {
+    AND?: LegacyCompatEventScalarWhereWithAggregatesInput | LegacyCompatEventScalarWhereWithAggregatesInput[]
+    OR?: LegacyCompatEventScalarWhereWithAggregatesInput[]
+    NOT?: LegacyCompatEventScalarWhereWithAggregatesInput | LegacyCompatEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LegacyCompatEvent"> | string
+    occurredAt?: DateTimeWithAggregatesFilter<"LegacyCompatEvent"> | Date | string
+    outcome?: EnumLegacyCompatOutcomeWithAggregatesFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatOutcome
+    action?: StringWithAggregatesFilter<"LegacyCompatEvent"> | string
+    entityType?: EnumLegacyCompatEntityTypeWithAggregatesFilter<"LegacyCompatEvent"> | $Enums.LegacyCompatEntityType
+    entityId?: StringWithAggregatesFilter<"LegacyCompatEvent"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"LegacyCompatEvent"> | string | null
+    flowHeader?: StringNullableWithAggregatesFilter<"LegacyCompatEvent"> | string | null
+    clientHeader?: StringNullableWithAggregatesFilter<"LegacyCompatEvent"> | string | null
+  }
+
+  export type CompatWriterHeartbeatWhereInput = {
+    AND?: CompatWriterHeartbeatWhereInput | CompatWriterHeartbeatWhereInput[]
+    OR?: CompatWriterHeartbeatWhereInput[]
+    NOT?: CompatWriterHeartbeatWhereInput | CompatWriterHeartbeatWhereInput[]
+    id?: StringFilter<"CompatWriterHeartbeat"> | string
+    instanceId?: StringFilter<"CompatWriterHeartbeat"> | string
+    gitSha?: StringNullableFilter<"CompatWriterHeartbeat"> | string | null
+    writerVersion?: StringFilter<"CompatWriterHeartbeat"> | string
+    seenAt?: DateTimeFilter<"CompatWriterHeartbeat"> | Date | string
+  }
+
+  export type CompatWriterHeartbeatOrderByWithRelationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    gitSha?: SortOrderInput | SortOrder
+    writerVersion?: SortOrder
+    seenAt?: SortOrder
+  }
+
+  export type CompatWriterHeartbeatWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CompatWriterHeartbeatWhereInput | CompatWriterHeartbeatWhereInput[]
+    OR?: CompatWriterHeartbeatWhereInput[]
+    NOT?: CompatWriterHeartbeatWhereInput | CompatWriterHeartbeatWhereInput[]
+    instanceId?: StringFilter<"CompatWriterHeartbeat"> | string
+    gitSha?: StringNullableFilter<"CompatWriterHeartbeat"> | string | null
+    writerVersion?: StringFilter<"CompatWriterHeartbeat"> | string
+    seenAt?: DateTimeFilter<"CompatWriterHeartbeat"> | Date | string
+  }, "id">
+
+  export type CompatWriterHeartbeatOrderByWithAggregationInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    gitSha?: SortOrderInput | SortOrder
+    writerVersion?: SortOrder
+    seenAt?: SortOrder
+    _count?: CompatWriterHeartbeatCountOrderByAggregateInput
+    _max?: CompatWriterHeartbeatMaxOrderByAggregateInput
+    _min?: CompatWriterHeartbeatMinOrderByAggregateInput
+  }
+
+  export type CompatWriterHeartbeatScalarWhereWithAggregatesInput = {
+    AND?: CompatWriterHeartbeatScalarWhereWithAggregatesInput | CompatWriterHeartbeatScalarWhereWithAggregatesInput[]
+    OR?: CompatWriterHeartbeatScalarWhereWithAggregatesInput[]
+    NOT?: CompatWriterHeartbeatScalarWhereWithAggregatesInput | CompatWriterHeartbeatScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CompatWriterHeartbeat"> | string
+    instanceId?: StringWithAggregatesFilter<"CompatWriterHeartbeat"> | string
+    gitSha?: StringNullableWithAggregatesFilter<"CompatWriterHeartbeat"> | string | null
+    writerVersion?: StringWithAggregatesFilter<"CompatWriterHeartbeat"> | string
+    seenAt?: DateTimeWithAggregatesFilter<"CompatWriterHeartbeat"> | Date | string
+  }
+
+  export type ClientCompatEventWhereInput = {
+    AND?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    OR?: ClientCompatEventWhereInput[]
+    NOT?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    id?: StringFilter<"ClientCompatEvent"> | string
+    route?: StringFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeFilter<"ClientCompatEvent"> | Date | string
+  }
+
+  export type ClientCompatEventOrderByWithRelationInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    OR?: ClientCompatEventWhereInput[]
+    NOT?: ClientCompatEventWhereInput | ClientCompatEventWhereInput[]
+    route?: StringFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeFilter<"ClientCompatEvent"> | Date | string
+  }, "id">
+
+  export type ClientCompatEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    clientHeader?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+    _count?: ClientCompatEventCountOrderByAggregateInput
+    _max?: ClientCompatEventMaxOrderByAggregateInput
+    _min?: ClientCompatEventMinOrderByAggregateInput
+  }
+
+  export type ClientCompatEventScalarWhereWithAggregatesInput = {
+    AND?: ClientCompatEventScalarWhereWithAggregatesInput | ClientCompatEventScalarWhereWithAggregatesInput[]
+    OR?: ClientCompatEventScalarWhereWithAggregatesInput[]
+    NOT?: ClientCompatEventScalarWhereWithAggregatesInput | ClientCompatEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    route?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"ClientCompatEvent"> | string | null
+    clientHeader?: StringNullableWithAggregatesFilter<"ClientCompatEvent"> | string | null
+    outcome?: StringWithAggregatesFilter<"ClientCompatEvent"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"ClientCompatEvent"> | Date | string
+  }
+
+  export type AmenityAuditLogWhereInput = {
+    AND?: AmenityAuditLogWhereInput | AmenityAuditLogWhereInput[]
+    OR?: AmenityAuditLogWhereInput[]
+    NOT?: AmenityAuditLogWhereInput | AmenityAuditLogWhereInput[]
+    id?: StringFilter<"AmenityAuditLog"> | string
+    actorUserId?: StringFilter<"AmenityAuditLog"> | string
+    action?: StringFilter<"AmenityAuditLog"> | string
+    amenityId?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    proposalId?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    before?: JsonNullableFilter<"AmenityAuditLog">
+    after?: JsonNullableFilter<"AmenityAuditLog">
+    reason?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    createdAt?: DateTimeFilter<"AmenityAuditLog"> | Date | string
+  }
+
+  export type AmenityAuditLogOrderByWithRelationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    amenityId?: SortOrderInput | SortOrder
+    proposalId?: SortOrderInput | SortOrder
+    before?: SortOrderInput | SortOrder
+    after?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AmenityAuditLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AmenityAuditLogWhereInput | AmenityAuditLogWhereInput[]
+    OR?: AmenityAuditLogWhereInput[]
+    NOT?: AmenityAuditLogWhereInput | AmenityAuditLogWhereInput[]
+    actorUserId?: StringFilter<"AmenityAuditLog"> | string
+    action?: StringFilter<"AmenityAuditLog"> | string
+    amenityId?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    proposalId?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    before?: JsonNullableFilter<"AmenityAuditLog">
+    after?: JsonNullableFilter<"AmenityAuditLog">
+    reason?: StringNullableFilter<"AmenityAuditLog"> | string | null
+    createdAt?: DateTimeFilter<"AmenityAuditLog"> | Date | string
+  }, "id">
+
+  export type AmenityAuditLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    amenityId?: SortOrderInput | SortOrder
+    proposalId?: SortOrderInput | SortOrder
+    before?: SortOrderInput | SortOrder
+    after?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: AmenityAuditLogCountOrderByAggregateInput
+    _max?: AmenityAuditLogMaxOrderByAggregateInput
+    _min?: AmenityAuditLogMinOrderByAggregateInput
+  }
+
+  export type AmenityAuditLogScalarWhereWithAggregatesInput = {
+    AND?: AmenityAuditLogScalarWhereWithAggregatesInput | AmenityAuditLogScalarWhereWithAggregatesInput[]
+    OR?: AmenityAuditLogScalarWhereWithAggregatesInput[]
+    NOT?: AmenityAuditLogScalarWhereWithAggregatesInput | AmenityAuditLogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AmenityAuditLog"> | string
+    actorUserId?: StringWithAggregatesFilter<"AmenityAuditLog"> | string
+    action?: StringWithAggregatesFilter<"AmenityAuditLog"> | string
+    amenityId?: StringNullableWithAggregatesFilter<"AmenityAuditLog"> | string | null
+    proposalId?: StringNullableWithAggregatesFilter<"AmenityAuditLog"> | string | null
+    before?: JsonNullableWithAggregatesFilter<"AmenityAuditLog">
+    after?: JsonNullableWithAggregatesFilter<"AmenityAuditLog">
+    reason?: StringNullableWithAggregatesFilter<"AmenityAuditLog"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AmenityAuditLog"> | Date | string
+  }
+
   export type GymPhotoCreateInput = {
     id?: string
     fileName: string
@@ -38399,6 +48524,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
     gym: GymCreateNestedOneWithoutPhotosInput
   }
 
@@ -38412,6 +48541,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
   }
 
   export type GymPhotoUpdateInput = {
@@ -38423,6 +48556,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
     gym?: GymUpdateOneRequiredWithoutPhotosNestedInput
   }
 
@@ -38436,6 +48573,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymPhotoCreateManyInput = {
@@ -38448,6 +48589,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
   }
 
   export type GymPhotoUpdateManyMutationInput = {
@@ -38459,6 +48604,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymPhotoUncheckedUpdateManyInput = {
@@ -38471,6 +48620,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymBranchDocumentCreateInput = {
@@ -39070,6 +49223,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -39119,6 +49275,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -39168,6 +49327,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -39217,6 +49379,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -39266,6 +49431,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -39307,6 +49475,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -39348,6 +49519,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -40237,6 +50411,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -40249,6 +50428,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateInput = {
@@ -40283,6 +50465,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -40294,6 +50481,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymUpdateInput = {
@@ -40327,6 +50517,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -40339,6 +50534,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateInput = {
@@ -40373,6 +50571,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -40384,6 +50587,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateManyInput = {
@@ -40418,6 +50624,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -40453,6 +50664,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -40489,6 +50705,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -41565,6 +51786,736 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type AmenityCreateInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdFromProposal?: AmenityProposalCreateNestedOneWithoutCreatedAmenitiesInput
+    gyms?: GymAmenityCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityUncheckedCreateInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdFromProposalId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gyms?: GymAmenityUncheckedCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalUncheckedCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalUncheckedCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdFromProposal?: AmenityProposalUpdateOneWithoutCreatedAmenitiesNestedInput
+    gyms?: GymAmenityUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdFromProposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gyms?: GymAmenityUncheckedUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUncheckedUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUncheckedUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityCreateManyInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdFromProposalId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AmenityUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdFromProposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityProposalCreateInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenityProposalsInput
+    targetAmenity?: AmenityCreateNestedOneWithoutTargetedByInput
+    resultingAmenity?: AmenityCreateNestedOneWithoutResultOfInput
+    createdAmenities?: AmenityCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalUncheckedCreateInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdAmenities?: AmenityUncheckedCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenityProposalsNestedInput
+    targetAmenity?: AmenityUpdateOneWithoutTargetedByNestedInput
+    resultingAmenity?: AmenityUpdateOneWithoutResultOfNestedInput
+    createdAmenities?: AmenityUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAmenities?: AmenityUncheckedUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalCreateManyInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AmenityProposalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityProposalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityCreateInput = {
+    createdAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenitiesInput
+    amenity: AmenityCreateNestedOneWithoutGymsInput
+  }
+
+  export type GymAmenityUncheckedCreateInput = {
+    gymId: string
+    amenityId: string
+    createdAt?: Date | string
+  }
+
+  export type GymAmenityUpdateInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenitiesNestedInput
+    amenity?: AmenityUpdateOneRequiredWithoutGymsNestedInput
+  }
+
+  export type GymAmenityUncheckedUpdateInput = {
+    gymId?: StringFieldUpdateOperationsInput | string
+    amenityId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityCreateManyInput = {
+    gymId: string
+    amenityId: string
+    createdAt?: Date | string
+  }
+
+  export type GymAmenityUpdateManyMutationInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityUncheckedUpdateManyInput = {
+    gymId?: StringFieldUpdateOperationsInput | string
+    amenityId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionCreateInput = {
+    id?: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutListingRevisionsInput
+  }
+
+  export type GymListingRevisionUncheckedCreateInput = {
+    id?: string
+    gymId: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymListingRevisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutListingRevisionsNestedInput
+  }
+
+  export type GymListingRevisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionCreateManyInput = {
+    id?: string
+    gymId: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymListingRevisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LegacyCompatEventCreateInput = {
+    id?: string
+    occurredAt?: Date | string
+    outcome: $Enums.LegacyCompatOutcome
+    action: string
+    entityType: $Enums.LegacyCompatEntityType
+    entityId: string
+    actorUserId?: string | null
+    flowHeader?: string | null
+    clientHeader?: string | null
+  }
+
+  export type LegacyCompatEventUncheckedCreateInput = {
+    id?: string
+    occurredAt?: Date | string
+    outcome: $Enums.LegacyCompatOutcome
+    action: string
+    entityType: $Enums.LegacyCompatEntityType
+    entityId: string
+    actorUserId?: string | null
+    flowHeader?: string | null
+    clientHeader?: string | null
+  }
+
+  export type LegacyCompatEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outcome?: EnumLegacyCompatOutcomeFieldUpdateOperationsInput | $Enums.LegacyCompatOutcome
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumLegacyCompatEntityTypeFieldUpdateOperationsInput | $Enums.LegacyCompatEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    flowHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type LegacyCompatEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outcome?: EnumLegacyCompatOutcomeFieldUpdateOperationsInput | $Enums.LegacyCompatOutcome
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumLegacyCompatEntityTypeFieldUpdateOperationsInput | $Enums.LegacyCompatEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    flowHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type LegacyCompatEventCreateManyInput = {
+    id?: string
+    occurredAt?: Date | string
+    outcome: $Enums.LegacyCompatOutcome
+    action: string
+    entityType: $Enums.LegacyCompatEntityType
+    entityId: string
+    actorUserId?: string | null
+    flowHeader?: string | null
+    clientHeader?: string | null
+  }
+
+  export type LegacyCompatEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outcome?: EnumLegacyCompatOutcomeFieldUpdateOperationsInput | $Enums.LegacyCompatOutcome
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumLegacyCompatEntityTypeFieldUpdateOperationsInput | $Enums.LegacyCompatEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    flowHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type LegacyCompatEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outcome?: EnumLegacyCompatOutcomeFieldUpdateOperationsInput | $Enums.LegacyCompatOutcome
+    action?: StringFieldUpdateOperationsInput | string
+    entityType?: EnumLegacyCompatEntityTypeFieldUpdateOperationsInput | $Enums.LegacyCompatEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    flowHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type CompatWriterHeartbeatCreateInput = {
+    id?: string
+    instanceId: string
+    gitSha?: string | null
+    writerVersion: string
+    seenAt?: Date | string
+  }
+
+  export type CompatWriterHeartbeatUncheckedCreateInput = {
+    id?: string
+    instanceId: string
+    gitSha?: string | null
+    writerVersion: string
+    seenAt?: Date | string
+  }
+
+  export type CompatWriterHeartbeatUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    gitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    writerVersion?: StringFieldUpdateOperationsInput | string
+    seenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CompatWriterHeartbeatUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    gitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    writerVersion?: StringFieldUpdateOperationsInput | string
+    seenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CompatWriterHeartbeatCreateManyInput = {
+    id?: string
+    instanceId: string
+    gitSha?: string | null
+    writerVersion: string
+    seenAt?: Date | string
+  }
+
+  export type CompatWriterHeartbeatUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    gitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    writerVersion?: StringFieldUpdateOperationsInput | string
+    seenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CompatWriterHeartbeatUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    instanceId?: StringFieldUpdateOperationsInput | string
+    gitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    writerVersion?: StringFieldUpdateOperationsInput | string
+    seenAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventCreateInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUncheckedCreateInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventCreateManyInput = {
+    id?: string
+    route: string
+    actorUserId?: string | null
+    clientHeader?: string | null
+    outcome: string
+    createdAt?: Date | string
+  }
+
+  export type ClientCompatEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClientCompatEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    route?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientHeader?: NullableStringFieldUpdateOperationsInput | string | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityAuditLogCreateInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    amenityId?: string | null
+    proposalId?: string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AmenityAuditLogUncheckedCreateInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    amenityId?: string | null
+    proposalId?: string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AmenityAuditLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    amenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    proposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityAuditLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    amenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    proposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityAuditLogCreateManyInput = {
+    id?: string
+    actorUserId: string
+    action: string
+    amenityId?: string | null
+    proposalId?: string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AmenityAuditLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    amenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    proposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityAuditLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    amenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    proposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    before?: NullableJsonNullValueInput | InputJsonValue
+    after?: NullableJsonNullValueInput | InputJsonValue
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -41636,6 +52587,24 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type EnumGymPhotoStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoStatus | EnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoStatusFilter<$PrismaModel> | $Enums.GymPhotoStatus
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type GymRelationFilter = {
     is?: GymWhereInput
     isNot?: GymWhereInput
@@ -41656,6 +52625,10 @@ export namespace Prisma {
     category?: SortOrder
     visibility?: SortOrder
     createdAt?: SortOrder
+    status?: SortOrder
+    contentHash?: SortOrder
+    retiredAt?: SortOrder
+    uploadedBy?: SortOrder
   }
 
   export type GymPhotoAvgOrderByAggregateInput = {
@@ -41672,6 +52645,10 @@ export namespace Prisma {
     category?: SortOrder
     visibility?: SortOrder
     createdAt?: SortOrder
+    status?: SortOrder
+    contentHash?: SortOrder
+    retiredAt?: SortOrder
+    uploadedBy?: SortOrder
   }
 
   export type GymPhotoMinOrderByAggregateInput = {
@@ -41684,6 +52661,10 @@ export namespace Prisma {
     category?: SortOrder
     visibility?: SortOrder
     createdAt?: SortOrder
+    status?: SortOrder
+    contentHash?: SortOrder
+    retiredAt?: SortOrder
+    uploadedBy?: SortOrder
   }
 
   export type GymPhotoSumOrderByAggregateInput = {
@@ -41784,6 +52765,30 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type EnumGymPhotoStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoStatus | EnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoStatusFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type EnumBranchDocumentTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.BranchDocumentType | EnumBranchDocumentTypeFieldRefInput<$PrismaModel>
     in?: $Enums.BranchDocumentType[] | ListEnumBranchDocumentTypeFieldRefInput<$PrismaModel>
@@ -41796,17 +52801,6 @@ export namespace Prisma {
     in?: $Enums.PartnerDocumentStatus[] | ListEnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.PartnerDocumentStatus[] | ListEnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel> | $Enums.PartnerDocumentStatus
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type GymBranchDocumentGymIdDocTypeCompoundUniqueInput = {
@@ -41871,20 +52865,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel>
     _max?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type EnumBranchReviewCategoryFilter<$PrismaModel = never> = {
@@ -42519,6 +53499,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: SortOrder
     termsAcceptedVersion?: SortOrder
     termsAcceptedAt?: SortOrder
+    applicationFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -42527,6 +53510,7 @@ export namespace Prisma {
   export type GymPartnerAvgOrderByAggregateInput = {
     commissionRateOverride?: SortOrder
     expectedBranchCount?: SortOrder
+    applicationFlowVersion?: SortOrder
   }
 
   export type GymPartnerMaxOrderByAggregateInput = {
@@ -42565,6 +53549,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: SortOrder
     termsAcceptedVersion?: SortOrder
     termsAcceptedAt?: SortOrder
+    applicationFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -42606,6 +53593,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: SortOrder
     termsAcceptedVersion?: SortOrder
     termsAcceptedAt?: SortOrder
+    applicationFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -42614,6 +53604,7 @@ export namespace Prisma {
   export type GymPartnerSumOrderByAggregateInput = {
     commissionRateOverride?: SortOrder
     expectedBranchCount?: SortOrder
+    applicationFlowVersion?: SortOrder
   }
 
   export type EnumGymPartnerKindWithAggregatesFilter<$PrismaModel = never> = {
@@ -43397,6 +54388,24 @@ export namespace Prisma {
     none?: GymBranchReviewIssueWhereInput
   }
 
+  export type GymAmenityListRelationFilter = {
+    every?: GymAmenityWhereInput
+    some?: GymAmenityWhereInput
+    none?: GymAmenityWhereInput
+  }
+
+  export type AmenityProposalListRelationFilter = {
+    every?: AmenityProposalWhereInput
+    some?: AmenityProposalWhereInput
+    none?: AmenityProposalWhereInput
+  }
+
+  export type GymListingRevisionListRelationFilter = {
+    every?: GymListingRevisionWhereInput
+    some?: GymListingRevisionWhereInput
+    none?: GymListingRevisionWhereInput
+  }
+
   export type GymMembershipContractOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -43433,6 +54442,18 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type GymAmenityOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AmenityProposalOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymListingRevisionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type GymCountOrderByAggregateInput = {
     id?: SortOrder
     ownerId?: SortOrder
@@ -43465,6 +54486,11 @@ export namespace Prisma {
     closedAt?: SortOrder
     closedBy?: SortOrder
     reopenedAt?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
+    createdFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43475,6 +54501,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     wizardStep?: SortOrder
+    listingVersion?: SortOrder
+    createdFlowVersion?: SortOrder
   }
 
   export type GymMaxOrderByAggregateInput = {
@@ -43508,6 +54536,11 @@ export namespace Prisma {
     closedAt?: SortOrder
     closedBy?: SortOrder
     reopenedAt?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
+    createdFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43543,6 +54576,11 @@ export namespace Prisma {
     closedAt?: SortOrder
     closedBy?: SortOrder
     reopenedAt?: SortOrder
+    listingVersion?: SortOrder
+    listingPublishedAt?: SortOrder
+    createdFlowVersion?: SortOrder
+    legacyNoAmenities?: SortOrder
+    legacyClientAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43553,6 +54591,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     wizardStep?: SortOrder
+    listingVersion?: SortOrder
+    createdFlowVersion?: SortOrder
   }
 
   export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -44301,6 +55341,553 @@ export namespace Prisma {
     scanCount?: SortOrder
   }
 
+  export type EnumAmenityCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityCategory | EnumAmenityCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityCategoryFilter<$PrismaModel> | $Enums.AmenityCategory
+  }
+
+  export type EnumAmenitySourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenitySource | EnumAmenitySourceFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenitySourceFilter<$PrismaModel> | $Enums.AmenitySource
+  }
+
+  export type EnumAmenityStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityStatus | EnumAmenityStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityStatusFilter<$PrismaModel> | $Enums.AmenityStatus
+  }
+
+  export type AmenityProposalNullableRelationFilter = {
+    is?: AmenityProposalWhereInput | null
+    isNot?: AmenityProposalWhereInput | null
+  }
+
+  export type AmenityCountOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    category?: SortOrder
+    iconKey?: SortOrder
+    sortOrder?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    createdFromProposalId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AmenityAvgOrderByAggregateInput = {
+    sortOrder?: SortOrder
+  }
+
+  export type AmenityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    category?: SortOrder
+    iconKey?: SortOrder
+    sortOrder?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    createdFromProposalId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AmenityMinOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    category?: SortOrder
+    iconKey?: SortOrder
+    sortOrder?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    createdFromProposalId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AmenitySumOrderByAggregateInput = {
+    sortOrder?: SortOrder
+  }
+
+  export type EnumAmenityCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityCategory | EnumAmenityCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityCategoryWithAggregatesFilter<$PrismaModel> | $Enums.AmenityCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityCategoryFilter<$PrismaModel>
+    _max?: NestedEnumAmenityCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumAmenitySourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenitySource | EnumAmenitySourceFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenitySourceWithAggregatesFilter<$PrismaModel> | $Enums.AmenitySource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenitySourceFilter<$PrismaModel>
+    _max?: NestedEnumAmenitySourceFilter<$PrismaModel>
+  }
+
+  export type EnumAmenityStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityStatus | EnumAmenityStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityStatusWithAggregatesFilter<$PrismaModel> | $Enums.AmenityStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityStatusFilter<$PrismaModel>
+    _max?: NestedEnumAmenityStatusFilter<$PrismaModel>
+  }
+
+  export type EnumAmenityProposalKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalKind | EnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalKindFilter<$PrismaModel> | $Enums.AmenityProposalKind
+  }
+
+  export type EnumAmenityProposalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalStatus | EnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalStatusFilter<$PrismaModel> | $Enums.AmenityProposalStatus
+  }
+
+  export type AmenityNullableRelationFilter = {
+    is?: AmenityWhereInput | null
+    isNot?: AmenityWhereInput | null
+  }
+
+  export type AmenityListRelationFilter = {
+    every?: AmenityWhereInput
+    some?: AmenityWhereInput
+    none?: AmenityWhereInput
+  }
+
+  export type AmenityOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AmenityProposalCountOrderByAggregateInput = {
+    id?: SortOrder
+    ownerUserId?: SortOrder
+    gymId?: SortOrder
+    kind?: SortOrder
+    targetAmenityId?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    suggestedCategory?: SortOrder
+    note?: SortOrder
+    status?: SortOrder
+    resultingAmenityId?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    rejectReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AmenityProposalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ownerUserId?: SortOrder
+    gymId?: SortOrder
+    kind?: SortOrder
+    targetAmenityId?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    suggestedCategory?: SortOrder
+    note?: SortOrder
+    status?: SortOrder
+    resultingAmenityId?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    rejectReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AmenityProposalMinOrderByAggregateInput = {
+    id?: SortOrder
+    ownerUserId?: SortOrder
+    gymId?: SortOrder
+    kind?: SortOrder
+    targetAmenityId?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    suggestedCategory?: SortOrder
+    note?: SortOrder
+    status?: SortOrder
+    resultingAmenityId?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    rejectReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumAmenityProposalKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalKind | EnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalKindWithAggregatesFilter<$PrismaModel> | $Enums.AmenityProposalKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityProposalKindFilter<$PrismaModel>
+    _max?: NestedEnumAmenityProposalKindFilter<$PrismaModel>
+  }
+
+  export type EnumAmenityProposalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalStatus | EnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalStatusWithAggregatesFilter<$PrismaModel> | $Enums.AmenityProposalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityProposalStatusFilter<$PrismaModel>
+    _max?: NestedEnumAmenityProposalStatusFilter<$PrismaModel>
+  }
+
+  export type AmenityRelationFilter = {
+    is?: AmenityWhereInput
+    isNot?: AmenityWhereInput
+  }
+
+  export type GymAmenityGymIdAmenityIdCompoundUniqueInput = {
+    gymId: string
+    amenityId: string
+  }
+
+  export type GymAmenityCountOrderByAggregateInput = {
+    gymId?: SortOrder
+    amenityId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAmenityMaxOrderByAggregateInput = {
+    gymId?: SortOrder
+    amenityId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAmenityMinOrderByAggregateInput = {
+    gymId?: SortOrder
+    amenityId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumGymListingRevisionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionStatus | EnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel> | $Enums.GymListingRevisionStatus
+  }
+
+  export type EnumGymListingRevisionSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionSource | EnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel> | $Enums.GymListingRevisionSource
+  }
+  export type JsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type GymListingRevisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    payload?: SortOrder
+    previousSnapshot?: SortOrder
+    systemAdjustments?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymListingRevisionAvgOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+  }
+
+  export type GymListingRevisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymListingRevisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    status?: SortOrder
+    source?: SortOrder
+    parentRevisionId?: SortOrder
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+    submittedBy?: SortOrder
+    submittedAt?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    reviewNote?: SortOrder
+    ownerNote?: SortOrder
+    adminReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymListingRevisionSumOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    draftVersion?: SortOrder
+  }
+
+  export type EnumGymListingRevisionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionStatus | EnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymListingRevisionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel>
+  }
+
+  export type EnumGymListingRevisionSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionSource | EnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymListingRevisionSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel>
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type EnumLegacyCompatOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatOutcome | EnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel> | $Enums.LegacyCompatOutcome
+  }
+
+  export type EnumLegacyCompatEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatEntityType | EnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel> | $Enums.LegacyCompatEntityType
+  }
+
+  export type LegacyCompatEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    occurredAt?: SortOrder
+    outcome?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    actorUserId?: SortOrder
+    flowHeader?: SortOrder
+    clientHeader?: SortOrder
+  }
+
+  export type LegacyCompatEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    occurredAt?: SortOrder
+    outcome?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    actorUserId?: SortOrder
+    flowHeader?: SortOrder
+    clientHeader?: SortOrder
+  }
+
+  export type LegacyCompatEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    occurredAt?: SortOrder
+    outcome?: SortOrder
+    action?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    actorUserId?: SortOrder
+    flowHeader?: SortOrder
+    clientHeader?: SortOrder
+  }
+
+  export type EnumLegacyCompatOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatOutcome | EnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.LegacyCompatOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel>
+  }
+
+  export type EnumLegacyCompatEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatEntityType | EnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.LegacyCompatEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
+  }
+
+  export type CompatWriterHeartbeatCountOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    gitSha?: SortOrder
+    writerVersion?: SortOrder
+    seenAt?: SortOrder
+  }
+
+  export type CompatWriterHeartbeatMaxOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    gitSha?: SortOrder
+    writerVersion?: SortOrder
+    seenAt?: SortOrder
+  }
+
+  export type CompatWriterHeartbeatMinOrderByAggregateInput = {
+    id?: SortOrder
+    instanceId?: SortOrder
+    gitSha?: SortOrder
+    writerVersion?: SortOrder
+    seenAt?: SortOrder
+  }
+
+  export type ClientCompatEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ClientCompatEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    route?: SortOrder
+    actorUserId?: SortOrder
+    clientHeader?: SortOrder
+    outcome?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AmenityAuditLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    amenityId?: SortOrder
+    proposalId?: SortOrder
+    before?: SortOrder
+    after?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AmenityAuditLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    amenityId?: SortOrder
+    proposalId?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AmenityAuditLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    amenityId?: SortOrder
+    proposalId?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type GymCreateNestedOneWithoutPhotosInput = {
     create?: XOR<GymCreateWithoutPhotosInput, GymUncheckedCreateWithoutPhotosInput>
     connectOrCreate?: GymCreateOrConnectWithoutPhotosInput
@@ -44339,6 +55926,14 @@ export namespace Prisma {
     set?: Date | string
   }
 
+  export type EnumGymPhotoStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymPhotoStatus
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type GymUpdateOneRequiredWithoutPhotosNestedInput = {
     create?: XOR<GymCreateWithoutPhotosInput, GymUncheckedCreateWithoutPhotosInput>
     connectOrCreate?: GymCreateOrConnectWithoutPhotosInput
@@ -44359,10 +55954,6 @@ export namespace Prisma {
 
   export type EnumPartnerDocumentStatusFieldUpdateOperationsInput = {
     set?: $Enums.PartnerDocumentStatus
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type GymUpdateOneRequiredWithoutBranchDocumentsNestedInput = {
@@ -45303,6 +56894,27 @@ export namespace Prisma {
     connect?: GymBranchReviewIssueWhereUniqueInput | GymBranchReviewIssueWhereUniqueInput[]
   }
 
+  export type GymAmenityCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput> | GymAmenityCreateWithoutGymInput[] | GymAmenityUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutGymInput | GymAmenityCreateOrConnectWithoutGymInput[]
+    createMany?: GymAmenityCreateManyGymInputEnvelope
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+  }
+
+  export type AmenityProposalCreateNestedManyWithoutGymInput = {
+    create?: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput> | AmenityProposalCreateWithoutGymInput[] | AmenityProposalUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutGymInput | AmenityProposalCreateOrConnectWithoutGymInput[]
+    createMany?: AmenityProposalCreateManyGymInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type GymListingRevisionCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput> | GymListingRevisionCreateWithoutGymInput[] | GymListingRevisionUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymListingRevisionCreateOrConnectWithoutGymInput | GymListingRevisionCreateOrConnectWithoutGymInput[]
+    createMany?: GymListingRevisionCreateManyGymInputEnvelope
+    connect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+  }
+
   export type GymMembershipContractUncheckedCreateNestedManyWithoutGymInput = {
     create?: XOR<GymMembershipContractCreateWithoutGymInput, GymMembershipContractUncheckedCreateWithoutGymInput> | GymMembershipContractCreateWithoutGymInput[] | GymMembershipContractUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipContractCreateOrConnectWithoutGymInput | GymMembershipContractCreateOrConnectWithoutGymInput[]
@@ -45364,6 +56976,27 @@ export namespace Prisma {
     connectOrCreate?: GymBranchReviewIssueCreateOrConnectWithoutGymInput | GymBranchReviewIssueCreateOrConnectWithoutGymInput[]
     createMany?: GymBranchReviewIssueCreateManyGymInputEnvelope
     connect?: GymBranchReviewIssueWhereUniqueInput | GymBranchReviewIssueWhereUniqueInput[]
+  }
+
+  export type GymAmenityUncheckedCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput> | GymAmenityCreateWithoutGymInput[] | GymAmenityUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutGymInput | GymAmenityCreateOrConnectWithoutGymInput[]
+    createMany?: GymAmenityCreateManyGymInputEnvelope
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+  }
+
+  export type AmenityProposalUncheckedCreateNestedManyWithoutGymInput = {
+    create?: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput> | AmenityProposalCreateWithoutGymInput[] | AmenityProposalUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutGymInput | AmenityProposalCreateOrConnectWithoutGymInput[]
+    createMany?: AmenityProposalCreateManyGymInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type GymListingRevisionUncheckedCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput> | GymListingRevisionCreateWithoutGymInput[] | GymListingRevisionUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymListingRevisionCreateOrConnectWithoutGymInput | GymListingRevisionCreateOrConnectWithoutGymInput[]
+    createMany?: GymListingRevisionCreateManyGymInputEnvelope
+    connect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
   }
 
   export type NullableFloatFieldUpdateOperationsInput = {
@@ -45523,6 +57156,48 @@ export namespace Prisma {
     deleteMany?: GymBranchReviewIssueScalarWhereInput | GymBranchReviewIssueScalarWhereInput[]
   }
 
+  export type GymAmenityUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput> | GymAmenityCreateWithoutGymInput[] | GymAmenityUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutGymInput | GymAmenityCreateOrConnectWithoutGymInput[]
+    upsert?: GymAmenityUpsertWithWhereUniqueWithoutGymInput | GymAmenityUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymAmenityCreateManyGymInputEnvelope
+    set?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    disconnect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    delete?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    update?: GymAmenityUpdateWithWhereUniqueWithoutGymInput | GymAmenityUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymAmenityUpdateManyWithWhereWithoutGymInput | GymAmenityUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+  }
+
+  export type AmenityProposalUpdateManyWithoutGymNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput> | AmenityProposalCreateWithoutGymInput[] | AmenityProposalUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutGymInput | AmenityProposalCreateOrConnectWithoutGymInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutGymInput | AmenityProposalUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: AmenityProposalCreateManyGymInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutGymInput | AmenityProposalUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutGymInput | AmenityProposalUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type GymListingRevisionUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput> | GymListingRevisionCreateWithoutGymInput[] | GymListingRevisionUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymListingRevisionCreateOrConnectWithoutGymInput | GymListingRevisionCreateOrConnectWithoutGymInput[]
+    upsert?: GymListingRevisionUpsertWithWhereUniqueWithoutGymInput | GymListingRevisionUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymListingRevisionCreateManyGymInputEnvelope
+    set?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    disconnect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    delete?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    connect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    update?: GymListingRevisionUpdateWithWhereUniqueWithoutGymInput | GymListingRevisionUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymListingRevisionUpdateManyWithWhereWithoutGymInput | GymListingRevisionUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymListingRevisionScalarWhereInput | GymListingRevisionScalarWhereInput[]
+  }
+
   export type GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput = {
     create?: XOR<GymMembershipContractCreateWithoutGymInput, GymMembershipContractUncheckedCreateWithoutGymInput> | GymMembershipContractCreateWithoutGymInput[] | GymMembershipContractUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipContractCreateOrConnectWithoutGymInput | GymMembershipContractCreateOrConnectWithoutGymInput[]
@@ -45647,6 +57322,48 @@ export namespace Prisma {
     update?: GymBranchReviewIssueUpdateWithWhereUniqueWithoutGymInput | GymBranchReviewIssueUpdateWithWhereUniqueWithoutGymInput[]
     updateMany?: GymBranchReviewIssueUpdateManyWithWhereWithoutGymInput | GymBranchReviewIssueUpdateManyWithWhereWithoutGymInput[]
     deleteMany?: GymBranchReviewIssueScalarWhereInput | GymBranchReviewIssueScalarWhereInput[]
+  }
+
+  export type GymAmenityUncheckedUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput> | GymAmenityCreateWithoutGymInput[] | GymAmenityUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutGymInput | GymAmenityCreateOrConnectWithoutGymInput[]
+    upsert?: GymAmenityUpsertWithWhereUniqueWithoutGymInput | GymAmenityUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymAmenityCreateManyGymInputEnvelope
+    set?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    disconnect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    delete?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    update?: GymAmenityUpdateWithWhereUniqueWithoutGymInput | GymAmenityUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymAmenityUpdateManyWithWhereWithoutGymInput | GymAmenityUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutGymNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput> | AmenityProposalCreateWithoutGymInput[] | AmenityProposalUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutGymInput | AmenityProposalCreateOrConnectWithoutGymInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutGymInput | AmenityProposalUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: AmenityProposalCreateManyGymInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutGymInput | AmenityProposalUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutGymInput | AmenityProposalUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput> | GymListingRevisionCreateWithoutGymInput[] | GymListingRevisionUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymListingRevisionCreateOrConnectWithoutGymInput | GymListingRevisionCreateOrConnectWithoutGymInput[]
+    upsert?: GymListingRevisionUpsertWithWhereUniqueWithoutGymInput | GymListingRevisionUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymListingRevisionCreateManyGymInputEnvelope
+    set?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    disconnect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    delete?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    connect?: GymListingRevisionWhereUniqueInput | GymListingRevisionWhereUniqueInput[]
+    update?: GymListingRevisionUpdateWithWhereUniqueWithoutGymInput | GymListingRevisionUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymListingRevisionUpdateManyWithWhereWithoutGymInput | GymListingRevisionUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymListingRevisionScalarWhereInput | GymListingRevisionScalarWhereInput[]
   }
 
   export type GymBrandCreateNestedOneWithoutPlansInput = {
@@ -46076,6 +57793,314 @@ export namespace Prisma {
     push?: string | string[]
   }
 
+  export type AmenityProposalCreateNestedOneWithoutCreatedAmenitiesInput = {
+    create?: XOR<AmenityProposalCreateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedCreateWithoutCreatedAmenitiesInput>
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutCreatedAmenitiesInput
+    connect?: AmenityProposalWhereUniqueInput
+  }
+
+  export type GymAmenityCreateNestedManyWithoutAmenityInput = {
+    create?: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput> | GymAmenityCreateWithoutAmenityInput[] | GymAmenityUncheckedCreateWithoutAmenityInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutAmenityInput | GymAmenityCreateOrConnectWithoutAmenityInput[]
+    createMany?: GymAmenityCreateManyAmenityInputEnvelope
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+  }
+
+  export type AmenityProposalCreateNestedManyWithoutTargetAmenityInput = {
+    create?: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput> | AmenityProposalCreateWithoutTargetAmenityInput[] | AmenityProposalUncheckedCreateWithoutTargetAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutTargetAmenityInput | AmenityProposalCreateOrConnectWithoutTargetAmenityInput[]
+    createMany?: AmenityProposalCreateManyTargetAmenityInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type AmenityProposalCreateNestedManyWithoutResultingAmenityInput = {
+    create?: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput> | AmenityProposalCreateWithoutResultingAmenityInput[] | AmenityProposalUncheckedCreateWithoutResultingAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutResultingAmenityInput | AmenityProposalCreateOrConnectWithoutResultingAmenityInput[]
+    createMany?: AmenityProposalCreateManyResultingAmenityInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type GymAmenityUncheckedCreateNestedManyWithoutAmenityInput = {
+    create?: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput> | GymAmenityCreateWithoutAmenityInput[] | GymAmenityUncheckedCreateWithoutAmenityInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutAmenityInput | GymAmenityCreateOrConnectWithoutAmenityInput[]
+    createMany?: GymAmenityCreateManyAmenityInputEnvelope
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+  }
+
+  export type AmenityProposalUncheckedCreateNestedManyWithoutTargetAmenityInput = {
+    create?: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput> | AmenityProposalCreateWithoutTargetAmenityInput[] | AmenityProposalUncheckedCreateWithoutTargetAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutTargetAmenityInput | AmenityProposalCreateOrConnectWithoutTargetAmenityInput[]
+    createMany?: AmenityProposalCreateManyTargetAmenityInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type AmenityProposalUncheckedCreateNestedManyWithoutResultingAmenityInput = {
+    create?: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput> | AmenityProposalCreateWithoutResultingAmenityInput[] | AmenityProposalUncheckedCreateWithoutResultingAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutResultingAmenityInput | AmenityProposalCreateOrConnectWithoutResultingAmenityInput[]
+    createMany?: AmenityProposalCreateManyResultingAmenityInputEnvelope
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+  }
+
+  export type EnumAmenityCategoryFieldUpdateOperationsInput = {
+    set?: $Enums.AmenityCategory
+  }
+
+  export type EnumAmenitySourceFieldUpdateOperationsInput = {
+    set?: $Enums.AmenitySource
+  }
+
+  export type EnumAmenityStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AmenityStatus
+  }
+
+  export type AmenityProposalUpdateOneWithoutCreatedAmenitiesNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedCreateWithoutCreatedAmenitiesInput>
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutCreatedAmenitiesInput
+    upsert?: AmenityProposalUpsertWithoutCreatedAmenitiesInput
+    disconnect?: AmenityProposalWhereInput | boolean
+    delete?: AmenityProposalWhereInput | boolean
+    connect?: AmenityProposalWhereUniqueInput
+    update?: XOR<XOR<AmenityProposalUpdateToOneWithWhereWithoutCreatedAmenitiesInput, AmenityProposalUpdateWithoutCreatedAmenitiesInput>, AmenityProposalUncheckedUpdateWithoutCreatedAmenitiesInput>
+  }
+
+  export type GymAmenityUpdateManyWithoutAmenityNestedInput = {
+    create?: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput> | GymAmenityCreateWithoutAmenityInput[] | GymAmenityUncheckedCreateWithoutAmenityInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutAmenityInput | GymAmenityCreateOrConnectWithoutAmenityInput[]
+    upsert?: GymAmenityUpsertWithWhereUniqueWithoutAmenityInput | GymAmenityUpsertWithWhereUniqueWithoutAmenityInput[]
+    createMany?: GymAmenityCreateManyAmenityInputEnvelope
+    set?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    disconnect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    delete?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    update?: GymAmenityUpdateWithWhereUniqueWithoutAmenityInput | GymAmenityUpdateWithWhereUniqueWithoutAmenityInput[]
+    updateMany?: GymAmenityUpdateManyWithWhereWithoutAmenityInput | GymAmenityUpdateManyWithWhereWithoutAmenityInput[]
+    deleteMany?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+  }
+
+  export type AmenityProposalUpdateManyWithoutTargetAmenityNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput> | AmenityProposalCreateWithoutTargetAmenityInput[] | AmenityProposalUncheckedCreateWithoutTargetAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutTargetAmenityInput | AmenityProposalCreateOrConnectWithoutTargetAmenityInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutTargetAmenityInput | AmenityProposalUpsertWithWhereUniqueWithoutTargetAmenityInput[]
+    createMany?: AmenityProposalCreateManyTargetAmenityInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutTargetAmenityInput | AmenityProposalUpdateWithWhereUniqueWithoutTargetAmenityInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutTargetAmenityInput | AmenityProposalUpdateManyWithWhereWithoutTargetAmenityInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type AmenityProposalUpdateManyWithoutResultingAmenityNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput> | AmenityProposalCreateWithoutResultingAmenityInput[] | AmenityProposalUncheckedCreateWithoutResultingAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutResultingAmenityInput | AmenityProposalCreateOrConnectWithoutResultingAmenityInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutResultingAmenityInput | AmenityProposalUpsertWithWhereUniqueWithoutResultingAmenityInput[]
+    createMany?: AmenityProposalCreateManyResultingAmenityInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutResultingAmenityInput | AmenityProposalUpdateWithWhereUniqueWithoutResultingAmenityInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutResultingAmenityInput | AmenityProposalUpdateManyWithWhereWithoutResultingAmenityInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type GymAmenityUncheckedUpdateManyWithoutAmenityNestedInput = {
+    create?: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput> | GymAmenityCreateWithoutAmenityInput[] | GymAmenityUncheckedCreateWithoutAmenityInput[]
+    connectOrCreate?: GymAmenityCreateOrConnectWithoutAmenityInput | GymAmenityCreateOrConnectWithoutAmenityInput[]
+    upsert?: GymAmenityUpsertWithWhereUniqueWithoutAmenityInput | GymAmenityUpsertWithWhereUniqueWithoutAmenityInput[]
+    createMany?: GymAmenityCreateManyAmenityInputEnvelope
+    set?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    disconnect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    delete?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    connect?: GymAmenityWhereUniqueInput | GymAmenityWhereUniqueInput[]
+    update?: GymAmenityUpdateWithWhereUniqueWithoutAmenityInput | GymAmenityUpdateWithWhereUniqueWithoutAmenityInput[]
+    updateMany?: GymAmenityUpdateManyWithWhereWithoutAmenityInput | GymAmenityUpdateManyWithWhereWithoutAmenityInput[]
+    deleteMany?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutTargetAmenityNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput> | AmenityProposalCreateWithoutTargetAmenityInput[] | AmenityProposalUncheckedCreateWithoutTargetAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutTargetAmenityInput | AmenityProposalCreateOrConnectWithoutTargetAmenityInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutTargetAmenityInput | AmenityProposalUpsertWithWhereUniqueWithoutTargetAmenityInput[]
+    createMany?: AmenityProposalCreateManyTargetAmenityInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutTargetAmenityInput | AmenityProposalUpdateWithWhereUniqueWithoutTargetAmenityInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutTargetAmenityInput | AmenityProposalUpdateManyWithWhereWithoutTargetAmenityInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutResultingAmenityNestedInput = {
+    create?: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput> | AmenityProposalCreateWithoutResultingAmenityInput[] | AmenityProposalUncheckedCreateWithoutResultingAmenityInput[]
+    connectOrCreate?: AmenityProposalCreateOrConnectWithoutResultingAmenityInput | AmenityProposalCreateOrConnectWithoutResultingAmenityInput[]
+    upsert?: AmenityProposalUpsertWithWhereUniqueWithoutResultingAmenityInput | AmenityProposalUpsertWithWhereUniqueWithoutResultingAmenityInput[]
+    createMany?: AmenityProposalCreateManyResultingAmenityInputEnvelope
+    set?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    disconnect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    delete?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    connect?: AmenityProposalWhereUniqueInput | AmenityProposalWhereUniqueInput[]
+    update?: AmenityProposalUpdateWithWhereUniqueWithoutResultingAmenityInput | AmenityProposalUpdateWithWhereUniqueWithoutResultingAmenityInput[]
+    updateMany?: AmenityProposalUpdateManyWithWhereWithoutResultingAmenityInput | AmenityProposalUpdateManyWithWhereWithoutResultingAmenityInput[]
+    deleteMany?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+  }
+
+  export type GymCreateNestedOneWithoutAmenityProposalsInput = {
+    create?: XOR<GymCreateWithoutAmenityProposalsInput, GymUncheckedCreateWithoutAmenityProposalsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutAmenityProposalsInput
+    connect?: GymWhereUniqueInput
+  }
+
+  export type AmenityCreateNestedOneWithoutTargetedByInput = {
+    create?: XOR<AmenityCreateWithoutTargetedByInput, AmenityUncheckedCreateWithoutTargetedByInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutTargetedByInput
+    connect?: AmenityWhereUniqueInput
+  }
+
+  export type AmenityCreateNestedOneWithoutResultOfInput = {
+    create?: XOR<AmenityCreateWithoutResultOfInput, AmenityUncheckedCreateWithoutResultOfInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutResultOfInput
+    connect?: AmenityWhereUniqueInput
+  }
+
+  export type AmenityCreateNestedManyWithoutCreatedFromProposalInput = {
+    create?: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput> | AmenityCreateWithoutCreatedFromProposalInput[] | AmenityUncheckedCreateWithoutCreatedFromProposalInput[]
+    connectOrCreate?: AmenityCreateOrConnectWithoutCreatedFromProposalInput | AmenityCreateOrConnectWithoutCreatedFromProposalInput[]
+    createMany?: AmenityCreateManyCreatedFromProposalInputEnvelope
+    connect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+  }
+
+  export type AmenityUncheckedCreateNestedManyWithoutCreatedFromProposalInput = {
+    create?: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput> | AmenityCreateWithoutCreatedFromProposalInput[] | AmenityUncheckedCreateWithoutCreatedFromProposalInput[]
+    connectOrCreate?: AmenityCreateOrConnectWithoutCreatedFromProposalInput | AmenityCreateOrConnectWithoutCreatedFromProposalInput[]
+    createMany?: AmenityCreateManyCreatedFromProposalInputEnvelope
+    connect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+  }
+
+  export type EnumAmenityProposalKindFieldUpdateOperationsInput = {
+    set?: $Enums.AmenityProposalKind
+  }
+
+  export type EnumAmenityProposalStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AmenityProposalStatus
+  }
+
+  export type GymUpdateOneRequiredWithoutAmenityProposalsNestedInput = {
+    create?: XOR<GymCreateWithoutAmenityProposalsInput, GymUncheckedCreateWithoutAmenityProposalsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutAmenityProposalsInput
+    upsert?: GymUpsertWithoutAmenityProposalsInput
+    connect?: GymWhereUniqueInput
+    update?: XOR<XOR<GymUpdateToOneWithWhereWithoutAmenityProposalsInput, GymUpdateWithoutAmenityProposalsInput>, GymUncheckedUpdateWithoutAmenityProposalsInput>
+  }
+
+  export type AmenityUpdateOneWithoutTargetedByNestedInput = {
+    create?: XOR<AmenityCreateWithoutTargetedByInput, AmenityUncheckedCreateWithoutTargetedByInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutTargetedByInput
+    upsert?: AmenityUpsertWithoutTargetedByInput
+    disconnect?: AmenityWhereInput | boolean
+    delete?: AmenityWhereInput | boolean
+    connect?: AmenityWhereUniqueInput
+    update?: XOR<XOR<AmenityUpdateToOneWithWhereWithoutTargetedByInput, AmenityUpdateWithoutTargetedByInput>, AmenityUncheckedUpdateWithoutTargetedByInput>
+  }
+
+  export type AmenityUpdateOneWithoutResultOfNestedInput = {
+    create?: XOR<AmenityCreateWithoutResultOfInput, AmenityUncheckedCreateWithoutResultOfInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutResultOfInput
+    upsert?: AmenityUpsertWithoutResultOfInput
+    disconnect?: AmenityWhereInput | boolean
+    delete?: AmenityWhereInput | boolean
+    connect?: AmenityWhereUniqueInput
+    update?: XOR<XOR<AmenityUpdateToOneWithWhereWithoutResultOfInput, AmenityUpdateWithoutResultOfInput>, AmenityUncheckedUpdateWithoutResultOfInput>
+  }
+
+  export type AmenityUpdateManyWithoutCreatedFromProposalNestedInput = {
+    create?: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput> | AmenityCreateWithoutCreatedFromProposalInput[] | AmenityUncheckedCreateWithoutCreatedFromProposalInput[]
+    connectOrCreate?: AmenityCreateOrConnectWithoutCreatedFromProposalInput | AmenityCreateOrConnectWithoutCreatedFromProposalInput[]
+    upsert?: AmenityUpsertWithWhereUniqueWithoutCreatedFromProposalInput | AmenityUpsertWithWhereUniqueWithoutCreatedFromProposalInput[]
+    createMany?: AmenityCreateManyCreatedFromProposalInputEnvelope
+    set?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    disconnect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    delete?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    connect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    update?: AmenityUpdateWithWhereUniqueWithoutCreatedFromProposalInput | AmenityUpdateWithWhereUniqueWithoutCreatedFromProposalInput[]
+    updateMany?: AmenityUpdateManyWithWhereWithoutCreatedFromProposalInput | AmenityUpdateManyWithWhereWithoutCreatedFromProposalInput[]
+    deleteMany?: AmenityScalarWhereInput | AmenityScalarWhereInput[]
+  }
+
+  export type AmenityUncheckedUpdateManyWithoutCreatedFromProposalNestedInput = {
+    create?: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput> | AmenityCreateWithoutCreatedFromProposalInput[] | AmenityUncheckedCreateWithoutCreatedFromProposalInput[]
+    connectOrCreate?: AmenityCreateOrConnectWithoutCreatedFromProposalInput | AmenityCreateOrConnectWithoutCreatedFromProposalInput[]
+    upsert?: AmenityUpsertWithWhereUniqueWithoutCreatedFromProposalInput | AmenityUpsertWithWhereUniqueWithoutCreatedFromProposalInput[]
+    createMany?: AmenityCreateManyCreatedFromProposalInputEnvelope
+    set?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    disconnect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    delete?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    connect?: AmenityWhereUniqueInput | AmenityWhereUniqueInput[]
+    update?: AmenityUpdateWithWhereUniqueWithoutCreatedFromProposalInput | AmenityUpdateWithWhereUniqueWithoutCreatedFromProposalInput[]
+    updateMany?: AmenityUpdateManyWithWhereWithoutCreatedFromProposalInput | AmenityUpdateManyWithWhereWithoutCreatedFromProposalInput[]
+    deleteMany?: AmenityScalarWhereInput | AmenityScalarWhereInput[]
+  }
+
+  export type GymCreateNestedOneWithoutAmenitiesInput = {
+    create?: XOR<GymCreateWithoutAmenitiesInput, GymUncheckedCreateWithoutAmenitiesInput>
+    connectOrCreate?: GymCreateOrConnectWithoutAmenitiesInput
+    connect?: GymWhereUniqueInput
+  }
+
+  export type AmenityCreateNestedOneWithoutGymsInput = {
+    create?: XOR<AmenityCreateWithoutGymsInput, AmenityUncheckedCreateWithoutGymsInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutGymsInput
+    connect?: AmenityWhereUniqueInput
+  }
+
+  export type GymUpdateOneRequiredWithoutAmenitiesNestedInput = {
+    create?: XOR<GymCreateWithoutAmenitiesInput, GymUncheckedCreateWithoutAmenitiesInput>
+    connectOrCreate?: GymCreateOrConnectWithoutAmenitiesInput
+    upsert?: GymUpsertWithoutAmenitiesInput
+    connect?: GymWhereUniqueInput
+    update?: XOR<XOR<GymUpdateToOneWithWhereWithoutAmenitiesInput, GymUpdateWithoutAmenitiesInput>, GymUncheckedUpdateWithoutAmenitiesInput>
+  }
+
+  export type AmenityUpdateOneRequiredWithoutGymsNestedInput = {
+    create?: XOR<AmenityCreateWithoutGymsInput, AmenityUncheckedCreateWithoutGymsInput>
+    connectOrCreate?: AmenityCreateOrConnectWithoutGymsInput
+    upsert?: AmenityUpsertWithoutGymsInput
+    connect?: AmenityWhereUniqueInput
+    update?: XOR<XOR<AmenityUpdateToOneWithWhereWithoutGymsInput, AmenityUpdateWithoutGymsInput>, AmenityUncheckedUpdateWithoutGymsInput>
+  }
+
+  export type GymCreateNestedOneWithoutListingRevisionsInput = {
+    create?: XOR<GymCreateWithoutListingRevisionsInput, GymUncheckedCreateWithoutListingRevisionsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutListingRevisionsInput
+    connect?: GymWhereUniqueInput
+  }
+
+  export type EnumGymListingRevisionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.GymListingRevisionStatus
+  }
+
+  export type EnumGymListingRevisionSourceFieldUpdateOperationsInput = {
+    set?: $Enums.GymListingRevisionSource
+  }
+
+  export type GymUpdateOneRequiredWithoutListingRevisionsNestedInput = {
+    create?: XOR<GymCreateWithoutListingRevisionsInput, GymUncheckedCreateWithoutListingRevisionsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutListingRevisionsInput
+    upsert?: GymUpsertWithoutListingRevisionsInput
+    connect?: GymWhereUniqueInput
+    update?: XOR<XOR<GymUpdateToOneWithWhereWithoutListingRevisionsInput, GymUpdateWithoutListingRevisionsInput>, GymUncheckedUpdateWithoutListingRevisionsInput>
+  }
+
+  export type EnumLegacyCompatOutcomeFieldUpdateOperationsInput = {
+    set?: $Enums.LegacyCompatOutcome
+  }
+
+  export type EnumLegacyCompatEntityTypeFieldUpdateOperationsInput = {
+    set?: $Enums.LegacyCompatEntityType
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -46143,6 +58168,24 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type NestedEnumGymPhotoStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoStatus | EnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoStatusFilter<$PrismaModel> | $Enums.GymPhotoStatus
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
@@ -46259,6 +58302,30 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedEnumGymPhotoStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymPhotoStatus | EnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymPhotoStatus[] | ListEnumGymPhotoStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymPhotoStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymPhotoStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymPhotoStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymPhotoStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumBranchDocumentTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.BranchDocumentType | EnumBranchDocumentTypeFieldRefInput<$PrismaModel>
     in?: $Enums.BranchDocumentType[] | ListEnumBranchDocumentTypeFieldRefInput<$PrismaModel>
@@ -46271,17 +58338,6 @@ export namespace Prisma {
     in?: $Enums.PartnerDocumentStatus[] | ListEnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.PartnerDocumentStatus[] | ListEnumPartnerDocumentStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel> | $Enums.PartnerDocumentStatus
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedEnumBranchDocumentTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -46302,20 +58358,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel>
     _max?: NestedEnumPartnerDocumentStatusFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumBranchReviewCategoryFilter<$PrismaModel = never> = {
@@ -46981,6 +59023,181 @@ export namespace Prisma {
     _max?: NestedEnumCollaborationPartyFilter<$PrismaModel>
   }
 
+  export type NestedEnumAmenityCategoryFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityCategory | EnumAmenityCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityCategoryFilter<$PrismaModel> | $Enums.AmenityCategory
+  }
+
+  export type NestedEnumAmenitySourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenitySource | EnumAmenitySourceFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenitySourceFilter<$PrismaModel> | $Enums.AmenitySource
+  }
+
+  export type NestedEnumAmenityStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityStatus | EnumAmenityStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityStatusFilter<$PrismaModel> | $Enums.AmenityStatus
+  }
+
+  export type NestedEnumAmenityCategoryWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityCategory | EnumAmenityCategoryFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityCategory[] | ListEnumAmenityCategoryFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityCategoryWithAggregatesFilter<$PrismaModel> | $Enums.AmenityCategory
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityCategoryFilter<$PrismaModel>
+    _max?: NestedEnumAmenityCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAmenitySourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenitySource | EnumAmenitySourceFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenitySource[] | ListEnumAmenitySourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenitySourceWithAggregatesFilter<$PrismaModel> | $Enums.AmenitySource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenitySourceFilter<$PrismaModel>
+    _max?: NestedEnumAmenitySourceFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAmenityStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityStatus | EnumAmenityStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityStatus[] | ListEnumAmenityStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityStatusWithAggregatesFilter<$PrismaModel> | $Enums.AmenityStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityStatusFilter<$PrismaModel>
+    _max?: NestedEnumAmenityStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAmenityProposalKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalKind | EnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalKindFilter<$PrismaModel> | $Enums.AmenityProposalKind
+  }
+
+  export type NestedEnumAmenityProposalStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalStatus | EnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalStatusFilter<$PrismaModel> | $Enums.AmenityProposalStatus
+  }
+
+  export type NestedEnumAmenityProposalKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalKind | EnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalKind[] | ListEnumAmenityProposalKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalKindWithAggregatesFilter<$PrismaModel> | $Enums.AmenityProposalKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityProposalKindFilter<$PrismaModel>
+    _max?: NestedEnumAmenityProposalKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAmenityProposalStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AmenityProposalStatus | EnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AmenityProposalStatus[] | ListEnumAmenityProposalStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAmenityProposalStatusWithAggregatesFilter<$PrismaModel> | $Enums.AmenityProposalStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAmenityProposalStatusFilter<$PrismaModel>
+    _max?: NestedEnumAmenityProposalStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymListingRevisionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionStatus | EnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel> | $Enums.GymListingRevisionStatus
+  }
+
+  export type NestedEnumGymListingRevisionSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionSource | EnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel> | $Enums.GymListingRevisionSource
+  }
+
+  export type NestedEnumGymListingRevisionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionStatus | EnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionStatus[] | ListEnumGymListingRevisionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymListingRevisionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymListingRevisionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymListingRevisionSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymListingRevisionSource | EnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymListingRevisionSource[] | ListEnumGymListingRevisionSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymListingRevisionSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymListingRevisionSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymListingRevisionSourceFilter<$PrismaModel>
+  }
+  export type NestedJsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumLegacyCompatOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatOutcome | EnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel> | $Enums.LegacyCompatOutcome
+  }
+
+  export type NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatEntityType | EnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel> | $Enums.LegacyCompatEntityType
+  }
+
+  export type NestedEnumLegacyCompatOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatOutcome | EnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatOutcome[] | ListEnumLegacyCompatOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.LegacyCompatOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumLegacyCompatOutcomeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLegacyCompatEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LegacyCompatEntityType | EnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LegacyCompatEntityType[] | ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLegacyCompatEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.LegacyCompatEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
+  }
+
   export type GymCreateWithoutPhotosInput = {
     id?: string
     ownerId: string
@@ -47012,6 +59229,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -47023,6 +59245,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutPhotosInput = {
@@ -47057,6 +59282,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -47067,6 +59297,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutPhotosInput = {
@@ -47116,6 +59349,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -47127,6 +59365,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutPhotosInput = {
@@ -47161,6 +59402,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -47171,6 +59417,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateWithoutBranchDocumentsInput = {
@@ -47204,6 +59453,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -47215,6 +59469,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutBranchDocumentsInput = {
@@ -47249,6 +59506,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -47259,6 +59521,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutBranchDocumentsInput = {
@@ -47308,6 +59573,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -47319,6 +59589,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutBranchDocumentsInput = {
@@ -47353,6 +59626,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -47363,6 +59641,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateWithoutReviewIssuesInput = {
@@ -47396,6 +59677,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -47407,6 +59693,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutReviewIssuesInput = {
@@ -47441,6 +59730,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -47451,6 +59745,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutReviewIssuesInput = {
@@ -47500,6 +59797,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -47511,6 +59813,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutReviewIssuesInput = {
@@ -47545,6 +59850,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -47555,6 +59865,9 @@ export namespace Prisma {
     operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateWithoutOperatingHoursInput = {
@@ -47588,6 +59901,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -47599,6 +59917,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutOperatingHoursInput = {
@@ -47633,6 +59954,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -47643,6 +59969,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutOperatingHoursInput = {
@@ -47692,6 +60021,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -47703,6 +60037,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutOperatingHoursInput = {
@@ -47737,6 +60074,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -47747,6 +60089,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateWithoutComplaintsInput = {
@@ -47780,6 +60125,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -47791,6 +60141,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutComplaintsInput = {
@@ -47825,6 +60178,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -47835,6 +60193,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutComplaintsInput = {
@@ -47884,6 +60245,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -47895,6 +60261,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutComplaintsInput = {
@@ -47929,6 +60298,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -47939,6 +60313,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymPartnerCreateWithoutAuditLogsInput = {
@@ -47977,6 +60354,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48025,6 +60405,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48089,6 +60472,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48137,6 +60523,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48185,6 +60574,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48233,6 +60625,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -48297,6 +60692,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48345,6 +60743,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48956,6 +61357,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49004,6 +61408,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49068,6 +61475,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49116,6 +61526,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49164,6 +61577,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49212,6 +61628,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49276,6 +61695,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49324,6 +61746,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49372,6 +61797,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49420,6 +61848,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49512,6 +61943,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49560,6 +61994,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49733,6 +62170,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49781,6 +62221,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49845,6 +62288,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49893,6 +62339,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49941,6 +62390,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -49989,6 +62441,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -50053,6 +62508,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50101,6 +62559,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50149,6 +62610,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -50197,6 +62661,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: string | null
     termsAcceptedVersion?: string | null
     termsAcceptedAt?: Date | string | null
+    applicationFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -50261,6 +62728,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50309,6 +62779,9 @@ export namespace Prisma {
     payoutBankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedVersion?: NullableStringFieldUpdateOperationsInput | string | null
     termsAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    applicationFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50352,6 +62825,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
@@ -50363,6 +62841,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutBrandInput = {
@@ -50396,6 +62877,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -50407,6 +62893,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutBrandInput = {
@@ -50596,6 +63085,11 @@ export namespace Prisma {
     closedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     closedBy?: StringNullableFilter<"Gym"> | string | null
     reopenedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    listingVersion?: IntFilter<"Gym"> | number
+    listingPublishedAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
+    createdFlowVersion?: IntNullableFilter<"Gym"> | number | null
+    legacyNoAmenities?: BoolFilter<"Gym"> | boolean
+    legacyClientAt?: DateTimeNullableFilter<"Gym"> | Date | string | null
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
   }
@@ -51001,6 +63495,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
   }
 
   export type GymPhotoUncheckedCreateWithoutGymInput = {
@@ -51012,6 +63510,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
   }
 
   export type GymPhotoCreateOrConnectWithoutGymInput = {
@@ -51083,6 +63585,126 @@ export namespace Prisma {
 
   export type GymBranchReviewIssueCreateManyGymInputEnvelope = {
     data: GymBranchReviewIssueCreateManyGymInput | GymBranchReviewIssueCreateManyGymInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymAmenityCreateWithoutGymInput = {
+    createdAt?: Date | string
+    amenity: AmenityCreateNestedOneWithoutGymsInput
+  }
+
+  export type GymAmenityUncheckedCreateWithoutGymInput = {
+    amenityId: string
+    createdAt?: Date | string
+  }
+
+  export type GymAmenityCreateOrConnectWithoutGymInput = {
+    where: GymAmenityWhereUniqueInput
+    create: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymAmenityCreateManyGymInputEnvelope = {
+    data: GymAmenityCreateManyGymInput | GymAmenityCreateManyGymInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AmenityProposalCreateWithoutGymInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetAmenity?: AmenityCreateNestedOneWithoutTargetedByInput
+    resultingAmenity?: AmenityCreateNestedOneWithoutResultOfInput
+    createdAmenities?: AmenityCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalUncheckedCreateWithoutGymInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdAmenities?: AmenityUncheckedCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalCreateOrConnectWithoutGymInput = {
+    where: AmenityProposalWhereUniqueInput
+    create: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput>
+  }
+
+  export type AmenityProposalCreateManyGymInputEnvelope = {
+    data: AmenityProposalCreateManyGymInput | AmenityProposalCreateManyGymInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymListingRevisionCreateWithoutGymInput = {
+    id?: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymListingRevisionUncheckedCreateWithoutGymInput = {
+    id?: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymListingRevisionCreateOrConnectWithoutGymInput = {
+    where: GymListingRevisionWhereUniqueInput
+    create: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymListingRevisionCreateManyGymInputEnvelope = {
+    data: GymListingRevisionCreateManyGymInput | GymListingRevisionCreateManyGymInput[]
     skipDuplicates?: boolean
   }
 
@@ -51374,6 +63996,10 @@ export namespace Prisma {
     category?: EnumGymPhotoCategoryNullableFilter<"GymPhoto"> | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFilter<"GymPhoto"> | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFilter<"GymPhoto"> | Date | string
+    status?: EnumGymPhotoStatusFilter<"GymPhoto"> | $Enums.GymPhotoStatus
+    contentHash?: StringNullableFilter<"GymPhoto"> | string | null
+    retiredAt?: DateTimeNullableFilter<"GymPhoto"> | Date | string | null
+    uploadedBy?: StringNullableFilter<"GymPhoto"> | string | null
   }
 
   export type GymBranchDocumentUpsertWithWhereUniqueWithoutGymInput = {
@@ -51435,6 +64061,110 @@ export namespace Prisma {
     createdBy?: StringFilter<"GymBranchReviewIssue"> | string
     resolvedAt?: DateTimeNullableFilter<"GymBranchReviewIssue"> | Date | string | null
     createdAt?: DateTimeFilter<"GymBranchReviewIssue"> | Date | string
+  }
+
+  export type GymAmenityUpsertWithWhereUniqueWithoutGymInput = {
+    where: GymAmenityWhereUniqueInput
+    update: XOR<GymAmenityUpdateWithoutGymInput, GymAmenityUncheckedUpdateWithoutGymInput>
+    create: XOR<GymAmenityCreateWithoutGymInput, GymAmenityUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymAmenityUpdateWithWhereUniqueWithoutGymInput = {
+    where: GymAmenityWhereUniqueInput
+    data: XOR<GymAmenityUpdateWithoutGymInput, GymAmenityUncheckedUpdateWithoutGymInput>
+  }
+
+  export type GymAmenityUpdateManyWithWhereWithoutGymInput = {
+    where: GymAmenityScalarWhereInput
+    data: XOR<GymAmenityUpdateManyMutationInput, GymAmenityUncheckedUpdateManyWithoutGymInput>
+  }
+
+  export type GymAmenityScalarWhereInput = {
+    AND?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+    OR?: GymAmenityScalarWhereInput[]
+    NOT?: GymAmenityScalarWhereInput | GymAmenityScalarWhereInput[]
+    gymId?: StringFilter<"GymAmenity"> | string
+    amenityId?: StringFilter<"GymAmenity"> | string
+    createdAt?: DateTimeFilter<"GymAmenity"> | Date | string
+  }
+
+  export type AmenityProposalUpsertWithWhereUniqueWithoutGymInput = {
+    where: AmenityProposalWhereUniqueInput
+    update: XOR<AmenityProposalUpdateWithoutGymInput, AmenityProposalUncheckedUpdateWithoutGymInput>
+    create: XOR<AmenityProposalCreateWithoutGymInput, AmenityProposalUncheckedCreateWithoutGymInput>
+  }
+
+  export type AmenityProposalUpdateWithWhereUniqueWithoutGymInput = {
+    where: AmenityProposalWhereUniqueInput
+    data: XOR<AmenityProposalUpdateWithoutGymInput, AmenityProposalUncheckedUpdateWithoutGymInput>
+  }
+
+  export type AmenityProposalUpdateManyWithWhereWithoutGymInput = {
+    where: AmenityProposalScalarWhereInput
+    data: XOR<AmenityProposalUpdateManyMutationInput, AmenityProposalUncheckedUpdateManyWithoutGymInput>
+  }
+
+  export type AmenityProposalScalarWhereInput = {
+    AND?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+    OR?: AmenityProposalScalarWhereInput[]
+    NOT?: AmenityProposalScalarWhereInput | AmenityProposalScalarWhereInput[]
+    id?: StringFilter<"AmenityProposal"> | string
+    ownerUserId?: StringFilter<"AmenityProposal"> | string
+    gymId?: StringFilter<"AmenityProposal"> | string
+    kind?: EnumAmenityProposalKindFilter<"AmenityProposal"> | $Enums.AmenityProposalKind
+    targetAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    name?: StringFilter<"AmenityProposal"> | string
+    nameNormalized?: StringFilter<"AmenityProposal"> | string
+    suggestedCategory?: EnumAmenityCategoryFilter<"AmenityProposal"> | $Enums.AmenityCategory
+    note?: StringNullableFilter<"AmenityProposal"> | string | null
+    status?: EnumAmenityProposalStatusFilter<"AmenityProposal"> | $Enums.AmenityProposalStatus
+    resultingAmenityId?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedBy?: StringNullableFilter<"AmenityProposal"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"AmenityProposal"> | Date | string | null
+    rejectReason?: StringNullableFilter<"AmenityProposal"> | string | null
+    createdAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AmenityProposal"> | Date | string
+  }
+
+  export type GymListingRevisionUpsertWithWhereUniqueWithoutGymInput = {
+    where: GymListingRevisionWhereUniqueInput
+    update: XOR<GymListingRevisionUpdateWithoutGymInput, GymListingRevisionUncheckedUpdateWithoutGymInput>
+    create: XOR<GymListingRevisionCreateWithoutGymInput, GymListingRevisionUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymListingRevisionUpdateWithWhereUniqueWithoutGymInput = {
+    where: GymListingRevisionWhereUniqueInput
+    data: XOR<GymListingRevisionUpdateWithoutGymInput, GymListingRevisionUncheckedUpdateWithoutGymInput>
+  }
+
+  export type GymListingRevisionUpdateManyWithWhereWithoutGymInput = {
+    where: GymListingRevisionScalarWhereInput
+    data: XOR<GymListingRevisionUpdateManyMutationInput, GymListingRevisionUncheckedUpdateManyWithoutGymInput>
+  }
+
+  export type GymListingRevisionScalarWhereInput = {
+    AND?: GymListingRevisionScalarWhereInput | GymListingRevisionScalarWhereInput[]
+    OR?: GymListingRevisionScalarWhereInput[]
+    NOT?: GymListingRevisionScalarWhereInput | GymListingRevisionScalarWhereInput[]
+    id?: StringFilter<"GymListingRevision"> | string
+    gymId?: StringFilter<"GymListingRevision"> | string
+    status?: EnumGymListingRevisionStatusFilter<"GymListingRevision"> | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFilter<"GymListingRevision"> | $Enums.GymListingRevisionSource
+    parentRevisionId?: StringNullableFilter<"GymListingRevision"> | string | null
+    baseVersion?: IntFilter<"GymListingRevision"> | number
+    draftVersion?: IntFilter<"GymListingRevision"> | number
+    payload?: JsonFilter<"GymListingRevision">
+    previousSnapshot?: JsonNullableFilter<"GymListingRevision">
+    systemAdjustments?: JsonFilter<"GymListingRevision">
+    submittedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    submittedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewedBy?: StringNullableFilter<"GymListingRevision"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"GymListingRevision"> | Date | string | null
+    reviewNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    ownerNote?: StringNullableFilter<"GymListingRevision"> | string | null
+    adminReason?: StringNullableFilter<"GymListingRevision"> | string | null
+    createdAt?: DateTimeFilter<"GymListingRevision"> | Date | string
+    updatedAt?: DateTimeFilter<"GymListingRevision"> | Date | string
   }
 
   export type GymBrandCreateWithoutPlansInput = {
@@ -51628,6 +64358,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -51639,6 +64374,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutMembershipsInput = {
@@ -51673,6 +64411,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
@@ -51683,6 +64426,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutMembershipsInput = {
@@ -51824,6 +64570,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -51835,6 +64586,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutMembershipsInput = {
@@ -51869,6 +64623,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
@@ -51879,6 +64638,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymMembershipPlanUpsertWithoutMembershipsInput = {
@@ -52018,6 +64780,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -52029,6 +64796,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutAffiliationsInput = {
@@ -52063,6 +64833,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -52073,6 +64848,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutAffiliationsInput = {
@@ -52122,6 +64900,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -52133,6 +64916,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutAffiliationsInput = {
@@ -52167,6 +64953,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -52177,6 +64968,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymMembershipContractCreateWithoutCheckInsInput = {
@@ -52310,6 +65104,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -52321,6 +65120,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutReviewsInput = {
@@ -52355,6 +65157,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -52365,6 +65172,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutReviewsInput = {
@@ -52414,6 +65224,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -52425,6 +65240,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutReviewsInput = {
@@ -52459,6 +65277,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -52469,6 +65292,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateWithoutCollaborationsInput = {
@@ -52502,6 +65328,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     brand?: GymBrandCreateNestedOneWithoutBranchesInput
@@ -52513,6 +65344,9 @@ export namespace Prisma {
     photos?: GymPhotoCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutCollaborationsInput = {
@@ -52547,6 +65381,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
@@ -52557,6 +65396,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
     branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
     reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutCollaborationsInput = {
@@ -52657,6 +65499,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     brand?: GymBrandUpdateOneWithoutBranchesNestedInput
@@ -52668,6 +65515,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutCollaborationsInput = {
@@ -52702,6 +65552,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -52712,6 +65567,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymBrandPtAgreementUpsertWithoutSupersededLegacyInput = {
@@ -53279,6 +66137,1264 @@ export namespace Prisma {
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
   }
 
+  export type AmenityProposalCreateWithoutCreatedAmenitiesInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenityProposalsInput
+    targetAmenity?: AmenityCreateNestedOneWithoutTargetedByInput
+    resultingAmenity?: AmenityCreateNestedOneWithoutResultOfInput
+  }
+
+  export type AmenityProposalUncheckedCreateWithoutCreatedAmenitiesInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AmenityProposalCreateOrConnectWithoutCreatedAmenitiesInput = {
+    where: AmenityProposalWhereUniqueInput
+    create: XOR<AmenityProposalCreateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedCreateWithoutCreatedAmenitiesInput>
+  }
+
+  export type GymAmenityCreateWithoutAmenityInput = {
+    createdAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenitiesInput
+  }
+
+  export type GymAmenityUncheckedCreateWithoutAmenityInput = {
+    gymId: string
+    createdAt?: Date | string
+  }
+
+  export type GymAmenityCreateOrConnectWithoutAmenityInput = {
+    where: GymAmenityWhereUniqueInput
+    create: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput>
+  }
+
+  export type GymAmenityCreateManyAmenityInputEnvelope = {
+    data: GymAmenityCreateManyAmenityInput | GymAmenityCreateManyAmenityInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AmenityProposalCreateWithoutTargetAmenityInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenityProposalsInput
+    resultingAmenity?: AmenityCreateNestedOneWithoutResultOfInput
+    createdAmenities?: AmenityCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalUncheckedCreateWithoutTargetAmenityInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdAmenities?: AmenityUncheckedCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalCreateOrConnectWithoutTargetAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    create: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput>
+  }
+
+  export type AmenityProposalCreateManyTargetAmenityInputEnvelope = {
+    data: AmenityProposalCreateManyTargetAmenityInput | AmenityProposalCreateManyTargetAmenityInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AmenityProposalCreateWithoutResultingAmenityInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutAmenityProposalsInput
+    targetAmenity?: AmenityCreateNestedOneWithoutTargetedByInput
+    createdAmenities?: AmenityCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalUncheckedCreateWithoutResultingAmenityInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdAmenities?: AmenityUncheckedCreateNestedManyWithoutCreatedFromProposalInput
+  }
+
+  export type AmenityProposalCreateOrConnectWithoutResultingAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    create: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput>
+  }
+
+  export type AmenityProposalCreateManyResultingAmenityInputEnvelope = {
+    data: AmenityProposalCreateManyResultingAmenityInput | AmenityProposalCreateManyResultingAmenityInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AmenityProposalUpsertWithoutCreatedAmenitiesInput = {
+    update: XOR<AmenityProposalUpdateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedUpdateWithoutCreatedAmenitiesInput>
+    create: XOR<AmenityProposalCreateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedCreateWithoutCreatedAmenitiesInput>
+    where?: AmenityProposalWhereInput
+  }
+
+  export type AmenityProposalUpdateToOneWithWhereWithoutCreatedAmenitiesInput = {
+    where?: AmenityProposalWhereInput
+    data: XOR<AmenityProposalUpdateWithoutCreatedAmenitiesInput, AmenityProposalUncheckedUpdateWithoutCreatedAmenitiesInput>
+  }
+
+  export type AmenityProposalUpdateWithoutCreatedAmenitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenityProposalsNestedInput
+    targetAmenity?: AmenityUpdateOneWithoutTargetedByNestedInput
+    resultingAmenity?: AmenityUpdateOneWithoutResultOfNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateWithoutCreatedAmenitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityUpsertWithWhereUniqueWithoutAmenityInput = {
+    where: GymAmenityWhereUniqueInput
+    update: XOR<GymAmenityUpdateWithoutAmenityInput, GymAmenityUncheckedUpdateWithoutAmenityInput>
+    create: XOR<GymAmenityCreateWithoutAmenityInput, GymAmenityUncheckedCreateWithoutAmenityInput>
+  }
+
+  export type GymAmenityUpdateWithWhereUniqueWithoutAmenityInput = {
+    where: GymAmenityWhereUniqueInput
+    data: XOR<GymAmenityUpdateWithoutAmenityInput, GymAmenityUncheckedUpdateWithoutAmenityInput>
+  }
+
+  export type GymAmenityUpdateManyWithWhereWithoutAmenityInput = {
+    where: GymAmenityScalarWhereInput
+    data: XOR<GymAmenityUpdateManyMutationInput, GymAmenityUncheckedUpdateManyWithoutAmenityInput>
+  }
+
+  export type AmenityProposalUpsertWithWhereUniqueWithoutTargetAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    update: XOR<AmenityProposalUpdateWithoutTargetAmenityInput, AmenityProposalUncheckedUpdateWithoutTargetAmenityInput>
+    create: XOR<AmenityProposalCreateWithoutTargetAmenityInput, AmenityProposalUncheckedCreateWithoutTargetAmenityInput>
+  }
+
+  export type AmenityProposalUpdateWithWhereUniqueWithoutTargetAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    data: XOR<AmenityProposalUpdateWithoutTargetAmenityInput, AmenityProposalUncheckedUpdateWithoutTargetAmenityInput>
+  }
+
+  export type AmenityProposalUpdateManyWithWhereWithoutTargetAmenityInput = {
+    where: AmenityProposalScalarWhereInput
+    data: XOR<AmenityProposalUpdateManyMutationInput, AmenityProposalUncheckedUpdateManyWithoutTargetAmenityInput>
+  }
+
+  export type AmenityProposalUpsertWithWhereUniqueWithoutResultingAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    update: XOR<AmenityProposalUpdateWithoutResultingAmenityInput, AmenityProposalUncheckedUpdateWithoutResultingAmenityInput>
+    create: XOR<AmenityProposalCreateWithoutResultingAmenityInput, AmenityProposalUncheckedCreateWithoutResultingAmenityInput>
+  }
+
+  export type AmenityProposalUpdateWithWhereUniqueWithoutResultingAmenityInput = {
+    where: AmenityProposalWhereUniqueInput
+    data: XOR<AmenityProposalUpdateWithoutResultingAmenityInput, AmenityProposalUncheckedUpdateWithoutResultingAmenityInput>
+  }
+
+  export type AmenityProposalUpdateManyWithWhereWithoutResultingAmenityInput = {
+    where: AmenityProposalScalarWhereInput
+    data: XOR<AmenityProposalUpdateManyMutationInput, AmenityProposalUncheckedUpdateManyWithoutResultingAmenityInput>
+  }
+
+  export type GymCreateWithoutAmenityProposalsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
+    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
+    photos?: GymPhotoCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
+  }
+
+  export type GymUncheckedCreateWithoutAmenityProposalsInput = {
+    id?: string
+    ownerId: string
+    brandId?: string | null
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintUncheckedCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
+    photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
+  }
+
+  export type GymCreateOrConnectWithoutAmenityProposalsInput = {
+    where: GymWhereUniqueInput
+    create: XOR<GymCreateWithoutAmenityProposalsInput, GymUncheckedCreateWithoutAmenityProposalsInput>
+  }
+
+  export type AmenityCreateWithoutTargetedByInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdFromProposal?: AmenityProposalCreateNestedOneWithoutCreatedAmenitiesInput
+    gyms?: GymAmenityCreateNestedManyWithoutAmenityInput
+    resultOf?: AmenityProposalCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityUncheckedCreateWithoutTargetedByInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdFromProposalId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gyms?: GymAmenityUncheckedCreateNestedManyWithoutAmenityInput
+    resultOf?: AmenityProposalUncheckedCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityCreateOrConnectWithoutTargetedByInput = {
+    where: AmenityWhereUniqueInput
+    create: XOR<AmenityCreateWithoutTargetedByInput, AmenityUncheckedCreateWithoutTargetedByInput>
+  }
+
+  export type AmenityCreateWithoutResultOfInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdFromProposal?: AmenityProposalCreateNestedOneWithoutCreatedAmenitiesInput
+    gyms?: GymAmenityCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalCreateNestedManyWithoutTargetAmenityInput
+  }
+
+  export type AmenityUncheckedCreateWithoutResultOfInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdFromProposalId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gyms?: GymAmenityUncheckedCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalUncheckedCreateNestedManyWithoutTargetAmenityInput
+  }
+
+  export type AmenityCreateOrConnectWithoutResultOfInput = {
+    where: AmenityWhereUniqueInput
+    create: XOR<AmenityCreateWithoutResultOfInput, AmenityUncheckedCreateWithoutResultOfInput>
+  }
+
+  export type AmenityCreateWithoutCreatedFromProposalInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gyms?: GymAmenityCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityUncheckedCreateWithoutCreatedFromProposalInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gyms?: GymAmenityUncheckedCreateNestedManyWithoutAmenityInput
+    targetedBy?: AmenityProposalUncheckedCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalUncheckedCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityCreateOrConnectWithoutCreatedFromProposalInput = {
+    where: AmenityWhereUniqueInput
+    create: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput>
+  }
+
+  export type AmenityCreateManyCreatedFromProposalInputEnvelope = {
+    data: AmenityCreateManyCreatedFromProposalInput | AmenityCreateManyCreatedFromProposalInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymUpsertWithoutAmenityProposalsInput = {
+    update: XOR<GymUpdateWithoutAmenityProposalsInput, GymUncheckedUpdateWithoutAmenityProposalsInput>
+    create: XOR<GymCreateWithoutAmenityProposalsInput, GymUncheckedCreateWithoutAmenityProposalsInput>
+    where?: GymWhereInput
+  }
+
+  export type GymUpdateToOneWithWhereWithoutAmenityProposalsInput = {
+    where?: GymWhereInput
+    data: XOR<GymUpdateWithoutAmenityProposalsInput, GymUncheckedUpdateWithoutAmenityProposalsInput>
+  }
+
+  export type GymUpdateWithoutAmenityProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
+    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateWithoutAmenityProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUncheckedUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type AmenityUpsertWithoutTargetedByInput = {
+    update: XOR<AmenityUpdateWithoutTargetedByInput, AmenityUncheckedUpdateWithoutTargetedByInput>
+    create: XOR<AmenityCreateWithoutTargetedByInput, AmenityUncheckedCreateWithoutTargetedByInput>
+    where?: AmenityWhereInput
+  }
+
+  export type AmenityUpdateToOneWithWhereWithoutTargetedByInput = {
+    where?: AmenityWhereInput
+    data: XOR<AmenityUpdateWithoutTargetedByInput, AmenityUncheckedUpdateWithoutTargetedByInput>
+  }
+
+  export type AmenityUpdateWithoutTargetedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdFromProposal?: AmenityProposalUpdateOneWithoutCreatedAmenitiesNestedInput
+    gyms?: GymAmenityUpdateManyWithoutAmenityNestedInput
+    resultOf?: AmenityProposalUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateWithoutTargetedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdFromProposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gyms?: GymAmenityUncheckedUpdateManyWithoutAmenityNestedInput
+    resultOf?: AmenityProposalUncheckedUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUpsertWithoutResultOfInput = {
+    update: XOR<AmenityUpdateWithoutResultOfInput, AmenityUncheckedUpdateWithoutResultOfInput>
+    create: XOR<AmenityCreateWithoutResultOfInput, AmenityUncheckedCreateWithoutResultOfInput>
+    where?: AmenityWhereInput
+  }
+
+  export type AmenityUpdateToOneWithWhereWithoutResultOfInput = {
+    where?: AmenityWhereInput
+    data: XOR<AmenityUpdateWithoutResultOfInput, AmenityUncheckedUpdateWithoutResultOfInput>
+  }
+
+  export type AmenityUpdateWithoutResultOfInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdFromProposal?: AmenityProposalUpdateOneWithoutCreatedAmenitiesNestedInput
+    gyms?: GymAmenityUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUpdateManyWithoutTargetAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateWithoutResultOfInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdFromProposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gyms?: GymAmenityUncheckedUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUncheckedUpdateManyWithoutTargetAmenityNestedInput
+  }
+
+  export type AmenityUpsertWithWhereUniqueWithoutCreatedFromProposalInput = {
+    where: AmenityWhereUniqueInput
+    update: XOR<AmenityUpdateWithoutCreatedFromProposalInput, AmenityUncheckedUpdateWithoutCreatedFromProposalInput>
+    create: XOR<AmenityCreateWithoutCreatedFromProposalInput, AmenityUncheckedCreateWithoutCreatedFromProposalInput>
+  }
+
+  export type AmenityUpdateWithWhereUniqueWithoutCreatedFromProposalInput = {
+    where: AmenityWhereUniqueInput
+    data: XOR<AmenityUpdateWithoutCreatedFromProposalInput, AmenityUncheckedUpdateWithoutCreatedFromProposalInput>
+  }
+
+  export type AmenityUpdateManyWithWhereWithoutCreatedFromProposalInput = {
+    where: AmenityScalarWhereInput
+    data: XOR<AmenityUpdateManyMutationInput, AmenityUncheckedUpdateManyWithoutCreatedFromProposalInput>
+  }
+
+  export type AmenityScalarWhereInput = {
+    AND?: AmenityScalarWhereInput | AmenityScalarWhereInput[]
+    OR?: AmenityScalarWhereInput[]
+    NOT?: AmenityScalarWhereInput | AmenityScalarWhereInput[]
+    id?: StringFilter<"Amenity"> | string
+    slug?: StringFilter<"Amenity"> | string
+    name?: StringFilter<"Amenity"> | string
+    nameNormalized?: StringFilter<"Amenity"> | string
+    category?: EnumAmenityCategoryFilter<"Amenity"> | $Enums.AmenityCategory
+    iconKey?: StringFilter<"Amenity"> | string
+    sortOrder?: IntFilter<"Amenity"> | number
+    source?: EnumAmenitySourceFilter<"Amenity"> | $Enums.AmenitySource
+    status?: EnumAmenityStatusFilter<"Amenity"> | $Enums.AmenityStatus
+    createdFromProposalId?: StringNullableFilter<"Amenity"> | string | null
+    createdAt?: DateTimeFilter<"Amenity"> | Date | string
+    updatedAt?: DateTimeFilter<"Amenity"> | Date | string
+  }
+
+  export type GymCreateWithoutAmenitiesInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
+    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
+    photos?: GymPhotoCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionCreateNestedManyWithoutGymInput
+  }
+
+  export type GymUncheckedCreateWithoutAmenitiesInput = {
+    id?: string
+    ownerId: string
+    brandId?: string | null
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintUncheckedCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
+    photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+    listingRevisions?: GymListingRevisionUncheckedCreateNestedManyWithoutGymInput
+  }
+
+  export type GymCreateOrConnectWithoutAmenitiesInput = {
+    where: GymWhereUniqueInput
+    create: XOR<GymCreateWithoutAmenitiesInput, GymUncheckedCreateWithoutAmenitiesInput>
+  }
+
+  export type AmenityCreateWithoutGymsInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdFromProposal?: AmenityProposalCreateNestedOneWithoutCreatedAmenitiesInput
+    targetedBy?: AmenityProposalCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityUncheckedCreateWithoutGymsInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdFromProposalId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetedBy?: AmenityProposalUncheckedCreateNestedManyWithoutTargetAmenityInput
+    resultOf?: AmenityProposalUncheckedCreateNestedManyWithoutResultingAmenityInput
+  }
+
+  export type AmenityCreateOrConnectWithoutGymsInput = {
+    where: AmenityWhereUniqueInput
+    create: XOR<AmenityCreateWithoutGymsInput, AmenityUncheckedCreateWithoutGymsInput>
+  }
+
+  export type GymUpsertWithoutAmenitiesInput = {
+    update: XOR<GymUpdateWithoutAmenitiesInput, GymUncheckedUpdateWithoutAmenitiesInput>
+    create: XOR<GymCreateWithoutAmenitiesInput, GymUncheckedCreateWithoutAmenitiesInput>
+    where?: GymWhereInput
+  }
+
+  export type GymUpdateToOneWithWhereWithoutAmenitiesInput = {
+    where?: GymWhereInput
+    data: XOR<GymUpdateWithoutAmenitiesInput, GymUncheckedUpdateWithoutAmenitiesInput>
+  }
+
+  export type GymUpdateWithoutAmenitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
+    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateWithoutAmenitiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUncheckedUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type AmenityUpsertWithoutGymsInput = {
+    update: XOR<AmenityUpdateWithoutGymsInput, AmenityUncheckedUpdateWithoutGymsInput>
+    create: XOR<AmenityCreateWithoutGymsInput, AmenityUncheckedCreateWithoutGymsInput>
+    where?: AmenityWhereInput
+  }
+
+  export type AmenityUpdateToOneWithWhereWithoutGymsInput = {
+    where?: AmenityWhereInput
+    data: XOR<AmenityUpdateWithoutGymsInput, AmenityUncheckedUpdateWithoutGymsInput>
+  }
+
+  export type AmenityUpdateWithoutGymsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdFromProposal?: AmenityProposalUpdateOneWithoutCreatedAmenitiesNestedInput
+    targetedBy?: AmenityProposalUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateWithoutGymsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdFromProposalId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetedBy?: AmenityProposalUncheckedUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUncheckedUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type GymCreateWithoutListingRevisionsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
+    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursCreateNestedManyWithoutGymInput
+    photos?: GymPhotoCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalCreateNestedManyWithoutGymInput
+  }
+
+  export type GymUncheckedCreateWithoutListingRevisionsInput = {
+    id?: string
+    ownerId: string
+    brandId?: string | null
+    name: string
+    approvedName?: string | null
+    pendingName?: string | null
+    pendingNameNote?: string | null
+    pendingAddressNote?: string | null
+    changesRequestedAt?: Date | string | null
+    changesRequestedBy?: string | null
+    description?: string | null
+    address: string
+    approvedAddress?: string | null
+    pendingAddress?: string | null
+    city?: string | null
+    provinceCode?: number | null
+    wardCode?: number | null
+    latitude?: number | null
+    longitude?: number | null
+    locationNote?: string | null
+    facilities?: GymCreatefacilitiesInput | $Enums.GymFacility[]
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    wizardStep?: number | null
+    operationalStatus?: $Enums.GymOperationalStatus
+    closureReason?: string | null
+    expectedReopenAt?: Date | string | null
+    closedAt?: Date | string | null
+    closedBy?: string | null
+    reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
+    complaints?: GymComplaintUncheckedCreateNestedManyWithoutGymInput
+    operatingHours?: GymOperatingHoursUncheckedCreateNestedManyWithoutGymInput
+    photos?: GymPhotoUncheckedCreateNestedManyWithoutGymInput
+    branchDocuments?: GymBranchDocumentUncheckedCreateNestedManyWithoutGymInput
+    reviewIssues?: GymBranchReviewIssueUncheckedCreateNestedManyWithoutGymInput
+    amenities?: GymAmenityUncheckedCreateNestedManyWithoutGymInput
+    amenityProposals?: AmenityProposalUncheckedCreateNestedManyWithoutGymInput
+  }
+
+  export type GymCreateOrConnectWithoutListingRevisionsInput = {
+    where: GymWhereUniqueInput
+    create: XOR<GymCreateWithoutListingRevisionsInput, GymUncheckedCreateWithoutListingRevisionsInput>
+  }
+
+  export type GymUpsertWithoutListingRevisionsInput = {
+    update: XOR<GymUpdateWithoutListingRevisionsInput, GymUncheckedUpdateWithoutListingRevisionsInput>
+    create: XOR<GymCreateWithoutListingRevisionsInput, GymUncheckedCreateWithoutListingRevisionsInput>
+    where?: GymWhereInput
+  }
+
+  export type GymUpdateToOneWithWhereWithoutListingRevisionsInput = {
+    where?: GymWhereInput
+    data: XOR<GymUpdateWithoutListingRevisionsInput, GymUncheckedUpdateWithoutListingRevisionsInput>
+  }
+
+  export type GymUpdateWithoutListingRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
+    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateWithoutListingRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    approvedName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingName?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingNameNote?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddressNote?: NullableStringFieldUpdateOperationsInput | string | null
+    changesRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    changesRequestedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    approvedAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    provinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    locationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    facilities?: GymUpdatefacilitiesInput | $Enums.GymFacility[]
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    wizardStep?: NullableIntFieldUpdateOperationsInput | number | null
+    operationalStatus?: EnumGymOperationalStatusFieldUpdateOperationsInput | $Enums.GymOperationalStatus
+    closureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedReopenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    closedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+    complaints?: GymComplaintUncheckedUpdateManyWithoutGymNestedInput
+    operatingHours?: GymOperatingHoursUncheckedUpdateManyWithoutGymNestedInput
+    photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
+    branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
+    reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+  }
+
   export type GymPartnerAccountCreateManyPartnerInput = {
     id?: string
     userId: string
@@ -53776,6 +67892,11 @@ export namespace Prisma {
     closedAt?: Date | string | null
     closedBy?: string | null
     reopenedAt?: Date | string | null
+    listingVersion?: number
+    listingPublishedAt?: Date | string | null
+    createdFlowVersion?: number | null
+    legacyNoAmenities?: boolean
+    legacyClientAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -53856,6 +67977,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
@@ -53867,6 +67993,9 @@ export namespace Prisma {
     photos?: GymPhotoUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutBrandInput = {
@@ -53900,6 +68029,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
@@ -53911,6 +68045,9 @@ export namespace Prisma {
     photos?: GymPhotoUncheckedUpdateManyWithoutGymNestedInput
     branchDocuments?: GymBranchDocumentUncheckedUpdateManyWithoutGymNestedInput
     reviewIssues?: GymBranchReviewIssueUncheckedUpdateManyWithoutGymNestedInput
+    amenities?: GymAmenityUncheckedUpdateManyWithoutGymNestedInput
+    amenityProposals?: AmenityProposalUncheckedUpdateManyWithoutGymNestedInput
+    listingRevisions?: GymListingRevisionUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateManyWithoutBrandInput = {
@@ -53944,6 +68081,11 @@ export namespace Prisma {
     closedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     closedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reopenedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    listingVersion?: IntFieldUpdateOperationsInput | number
+    listingPublishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdFlowVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    legacyNoAmenities?: BoolFieldUpdateOperationsInput | boolean
+    legacyClientAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -54188,6 +68330,10 @@ export namespace Prisma {
     category?: $Enums.GymPhotoCategory | null
     visibility?: $Enums.GymPhotoVisibility
     createdAt?: Date | string
+    status?: $Enums.GymPhotoStatus
+    contentHash?: string | null
+    retiredAt?: Date | string | null
+    uploadedBy?: string | null
   }
 
   export type GymBranchDocumentCreateManyGymInput = {
@@ -54209,6 +68355,50 @@ export namespace Prisma {
     createdBy: string
     resolvedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type GymAmenityCreateManyGymInput = {
+    amenityId: string
+    createdAt?: Date | string
+  }
+
+  export type AmenityProposalCreateManyGymInput = {
+    id?: string
+    ownerUserId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymListingRevisionCreateManyGymInput = {
+    id?: string
+    status?: $Enums.GymListingRevisionStatus
+    source?: $Enums.GymListingRevisionSource
+    parentRevisionId?: string | null
+    baseVersion: number
+    draftVersion?: number
+    payload: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: string | null
+    submittedAt?: Date | string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    reviewNote?: string | null
+    ownerNote?: string | null
+    adminReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type GymMembershipContractUpdateWithoutGymInput = {
@@ -54494,6 +68684,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymPhotoUncheckedUpdateWithoutGymInput = {
@@ -54505,6 +68699,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymPhotoUncheckedUpdateManyWithoutGymInput = {
@@ -54516,6 +68714,10 @@ export namespace Prisma {
     category?: NullableEnumGymPhotoCategoryFieldUpdateOperationsInput | $Enums.GymPhotoCategory | null
     visibility?: EnumGymPhotoVisibilityFieldUpdateOperationsInput | $Enums.GymPhotoVisibility
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: EnumGymPhotoStatusFieldUpdateOperationsInput | $Enums.GymPhotoStatus
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    uploadedBy?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type GymBranchDocumentUpdateWithoutGymInput = {
@@ -54579,6 +68781,140 @@ export namespace Prisma {
     createdBy?: StringFieldUpdateOperationsInput | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityUpdateWithoutGymInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    amenity?: AmenityUpdateOneRequiredWithoutGymsNestedInput
+  }
+
+  export type GymAmenityUncheckedUpdateWithoutGymInput = {
+    amenityId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityUncheckedUpdateManyWithoutGymInput = {
+    amenityId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityProposalUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetAmenity?: AmenityUpdateOneWithoutTargetedByNestedInput
+    resultingAmenity?: AmenityUpdateOneWithoutResultOfNestedInput
+    createdAmenities?: AmenityUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAmenities?: AmenityUncheckedUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionUncheckedUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymListingRevisionUncheckedUpdateManyWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymListingRevisionStatusFieldUpdateOperationsInput | $Enums.GymListingRevisionStatus
+    source?: EnumGymListingRevisionSourceFieldUpdateOperationsInput | $Enums.GymListingRevisionSource
+    parentRevisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    draftVersion?: IntFieldUpdateOperationsInput | number
+    payload?: JsonNullValueInput | InputJsonValue
+    previousSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    systemAdjustments?: JsonNullValueInput | InputJsonValue
+    submittedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerNote?: NullableStringFieldUpdateOperationsInput | string | null
+    adminReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GymMembershipContractCreateManyPlanInput = {
@@ -54821,6 +69157,236 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type GymAmenityCreateManyAmenityInput = {
+    gymId: string
+    createdAt?: Date | string
+  }
+
+  export type AmenityProposalCreateManyTargetAmenityInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    resultingAmenityId?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AmenityProposalCreateManyResultingAmenityInput = {
+    id?: string
+    ownerUserId: string
+    gymId: string
+    kind?: $Enums.AmenityProposalKind
+    targetAmenityId?: string | null
+    name: string
+    nameNormalized: string
+    suggestedCategory: $Enums.AmenityCategory
+    note?: string | null
+    status?: $Enums.AmenityProposalStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    rejectReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymAmenityUpdateWithoutAmenityInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenitiesNestedInput
+  }
+
+  export type GymAmenityUncheckedUpdateWithoutAmenityInput = {
+    gymId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAmenityUncheckedUpdateManyWithoutAmenityInput = {
+    gymId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityProposalUpdateWithoutTargetAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenityProposalsNestedInput
+    resultingAmenity?: AmenityUpdateOneWithoutResultOfNestedInput
+    createdAmenities?: AmenityUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateWithoutTargetAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAmenities?: AmenityUncheckedUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutTargetAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    resultingAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityProposalUpdateWithoutResultingAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutAmenityProposalsNestedInput
+    targetAmenity?: AmenityUpdateOneWithoutTargetedByNestedInput
+    createdAmenities?: AmenityUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateWithoutResultingAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAmenities?: AmenityUncheckedUpdateManyWithoutCreatedFromProposalNestedInput
+  }
+
+  export type AmenityProposalUncheckedUpdateManyWithoutResultingAmenityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerUserId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumAmenityProposalKindFieldUpdateOperationsInput | $Enums.AmenityProposalKind
+    targetAmenityId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumAmenityProposalStatusFieldUpdateOperationsInput | $Enums.AmenityProposalStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rejectReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AmenityCreateManyCreatedFromProposalInput = {
+    id?: string
+    slug: string
+    name: string
+    nameNormalized: string
+    category: $Enums.AmenityCategory
+    iconKey: string
+    sortOrder?: number
+    source?: $Enums.AmenitySource
+    status?: $Enums.AmenityStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AmenityUpdateWithoutCreatedFromProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gyms?: GymAmenityUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateWithoutCreatedFromProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gyms?: GymAmenityUncheckedUpdateManyWithoutAmenityNestedInput
+    targetedBy?: AmenityProposalUncheckedUpdateManyWithoutTargetAmenityNestedInput
+    resultOf?: AmenityProposalUncheckedUpdateManyWithoutResultingAmenityNestedInput
+  }
+
+  export type AmenityUncheckedUpdateManyWithoutCreatedFromProposalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    category?: EnumAmenityCategoryFieldUpdateOperationsInput | $Enums.AmenityCategory
+    iconKey?: StringFieldUpdateOperationsInput | string
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    source?: EnumAmenitySourceFieldUpdateOperationsInput | $Enums.AmenitySource
+    status?: EnumAmenityStatusFieldUpdateOperationsInput | $Enums.AmenityStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -54854,6 +69420,14 @@ export namespace Prisma {
      * @deprecated Use GymBrandPtAgreementCountOutputTypeDefaultArgs instead
      */
     export type GymBrandPtAgreementCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandPtAgreementCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AmenityCountOutputTypeDefaultArgs instead
+     */
+    export type AmenityCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AmenityProposalCountOutputTypeDefaultArgs instead
+     */
+    export type AmenityProposalCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityProposalCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymPhotoDefaultArgs instead
      */
@@ -54966,6 +69540,38 @@ export namespace Prisma {
      * @deprecated Use GymPtCheckInDefaultArgs instead
      */
     export type GymPtCheckInArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPtCheckInDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AmenityDefaultArgs instead
+     */
+    export type AmenityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AmenityProposalDefaultArgs instead
+     */
+    export type AmenityProposalArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityProposalDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymAmenityDefaultArgs instead
+     */
+    export type GymAmenityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymAmenityDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymListingRevisionDefaultArgs instead
+     */
+    export type GymListingRevisionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymListingRevisionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LegacyCompatEventDefaultArgs instead
+     */
+    export type LegacyCompatEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LegacyCompatEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CompatWriterHeartbeatDefaultArgs instead
+     */
+    export type CompatWriterHeartbeatArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CompatWriterHeartbeatDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ClientCompatEventDefaultArgs instead
+     */
+    export type ClientCompatEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ClientCompatEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AmenityAuditLogDefaultArgs instead
+     */
+    export type AmenityAuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityAuditLogDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

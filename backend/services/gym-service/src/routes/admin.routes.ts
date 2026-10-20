@@ -19,9 +19,14 @@ import { gymBranchDocumentController } from '../controllers/gym-branch-document.
 
 import { applicationReviewController, blockSelfServicePartner } from '../controllers/application-review.controller';
 import { rejectApplicationSchema, reopenIssueSchema, requestChangesSchema } from '../schemas/application.schemas';
+import { adminAmenityRouter, adminGymListingRouter } from './admin-listing.routes';
 
 const router = Router();
 router.use(extractUser, requireAuth, requireRoles('ADMIN'));
+
+// Listing Management B2 - listing moderation (revisions, direct edit, photos) and the amenity catalogue + proposals.
+router.use('/listings/gyms', adminGymListingRouter);
+router.use('/amenities', adminAmenityRouter);
 
 // Vòng 4 / Phase C — there was no admin-facing gym/brand moderation list at all before this
 // phase; ?status= defaults to everything (the UI defaults it to PENDING_REVIEW itself).

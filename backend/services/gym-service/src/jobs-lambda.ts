@@ -8,7 +8,9 @@ import { assertPartnerS3ProductionSafe } from "./services/partner-s3.guard";
 export type GymServiceJobName =
   | "membership-payout-sweep"
   | "referral-settlement-sweep"
-  | "partner-upload-sweep";
+  | "partner-upload-sweep"
+  | "gym-listing-sweep"
+  | "compat-writer-heartbeat";
 
 export interface GymServiceJobEvent {
   job?: GymServiceJobName | string;
@@ -27,6 +29,14 @@ export async function runGymServiceJob(event: GymServiceJobEvent) {
     case "partner-upload-sweep": {
       const { runPartnerUploadSweep } = await import("./services/partner-upload-sweep.service");
       return runPartnerUploadSweep();
+    }
+    case "gym-listing-sweep": {
+      const { runGymListingSweep } = await import("./services/gym-listing-sweep.service");
+      return runGymListingSweep();
+    }
+    case "compat-writer-heartbeat": {
+      const { recordCompatWriterHeartbeat } = await import("./services/compat-writer-heartbeat.service");
+      return { recorded: await recordCompatWriterHeartbeat() };
     }
     default:
       throw Object.assign(new Error(`Unknown gym-service job: ${event.job ?? ""}`), {

@@ -125,7 +125,7 @@ export const reorderPhotosSchema = z.object({ ids: z.array(z.string().uuid()).ma
 
 // ── Admin ────────────────────────────────────────────────────────────────────────────────────
 
-const REVIEW_CATEGORIES = ['REPRESENTATIVE', 'BRAND', 'BRANCH', 'LOCATION', 'PHOTOS', 'LEGAL', 'OTHER'] as const;
+const REVIEW_CATEGORIES = ['REPRESENTATIVE', 'BRAND', 'BRANCH', 'LOCATION', 'AMENITIES', 'PHOTOS', 'LEGAL', 'OTHER'] as const;
 
 export const requestChangesSchema = z
   .object({
