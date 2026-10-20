@@ -1,0 +1,4 @@
+scenario,item,turn,text
+A1,1,1,(câu bạn viết)
+B1,1,1,(lượt 1)
+B1,1,2,(lượt 2 của cùng chuỗi)

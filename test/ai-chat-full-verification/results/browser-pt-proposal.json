@@ -1,0 +1,66 @@
+{
+  "at": "2026-10-20T14:58:59.945Z",
+  "evidence": "REAL BROWSER",
+  "results": [
+    {
+      "name": "mobile390: the PT workspace (/pt/dashboard) has the AI Coach entry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile390: the PT opens the coach from the PT workspace",
+      "pass": true,
+      "detail": "/pt/dashboard"
+    },
+    {
+      "name": "mobile390: proposal card is shown with the \"nothing sent\" note",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile390: card cites real evidence and offers a message draft",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile390: no horizontal overflow at 390px",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile390: approve is recorded (audit +1) and the draft text is shown",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile390: after approval the \"Để sau\" button is gone",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop1280: the PT workspace (/pt/dashboard) has the AI Coach entry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop1280: the PT opens the coach from the PT workspace",
+      "pass": true,
+      "detail": "/pt/dashboard"
+    },
+    {
+      "name": "desktop1280: proposal card is shown with the \"nothing sent\" note",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop1280: card cites real evidence and offers a message draft",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop1280: no horizontal overflow at 1280px",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "at": "2026-10-20T08:51:30.487Z",
+  "baseline": {
+    "kcal": 2370,
+    "protein": 145,
+    "carbs": 299,
+    "fat": 66,
+    "meals": 4,
+    "excluded": [
+      "cá",
+      "thịt bò"
+    ],
+    "days": 7,
+    "fish": 0,
+    "beef": 0,
+    "peanut": 0
+  },
+  "final": {
+    "kcal": 2370,
+    "protein": 145,
+    "carbs": 299,
+    "fat": 66,
+    "meals": 3,
+    "excluded": [
+      "cá",
+      "thịt bò",
+      "đậu phộng/lạc"
+    ],
+    "days": 7,
+    "fish": 0,
+    "beef": 0,
+    "peanut": 0
+  },
+  "checks": {
+    "targetUnchanged": true,
+    "exclusionsAccumulated": true,
+    "noFishBeefPeanut": true,
+    "mealsReduced": true
+  },
+  "log": [
+    {
+      "step": "1 initial (no fish, no beef, 4 meals)",
+      "note": "",
+      "kcal": 2370,
+      "protein": 145,
+      "carbs": 299,
+      "fat": 66,
+      "meals": 4,
+      "excluded": [
+        "cá",
+        "thịt bò"
+      ],
+      "days": 7,
+      "fish": 0,
+      "beef": 0,
+      "peanut": 0
+    },
+    {
+      "step": "2 'Ít bữa hơn' (fewer meals)",
+      "note": "Thực đơn đã sẵn sàng (~2370 kcal/ngày, 3 bữa). Bạn có thể yêu cầu chỉnh sửa hoặc xác nhận để lưu.",
+      "kcal": 2370,
+      "protein": 145,
+      "carbs": 299,
+      "fat": 66,
+      "meals": 3,
+      "excluded": [
+        "cá",
+        "thịt bò"
+      ],
+      "days": 7,
+      "fish": 0,
+      "beef": 0,
+      "peanut": 0
+    },
+    {
+      "step": "3 + peanut allergy",
+      "note": "Thực đơn đã sẵn sàng (~2370 kcal/ngày, 3 bữa). Bạn có thể yêu cầu chỉnh sửa hoặc xác nhận để lưu.",
+      "kcal": 2370,
+      "protein": 145,
+      "carbs": 299,
+      "fat": 66,
+      "meals": 3,
+      "excluded": [
+        "cá",
+        "thịt bò",
+        "đậu phộng/lạc"
+      ],
+      "days": 7,
+      "fish": 0,
+      "beef": 0,
+      "peanut": 0
+    }
+  ]
+}

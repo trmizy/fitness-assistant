@@ -318,6 +318,46 @@ export const fitnessAgentTools = {
   // nutrition-onboarding-bootstrap.service.ts::resolveNutritionTargetForUser):
   // the ACTIVE NutritionGoal if one exists, else the SAME deterministic
   // initial prescription onboarding computes — never a new formula here.
+  // PT Copilot (Phase 4): the verified PT's roster-wide adherence. Authorization is fitness-service's: the roster is built from the caller's
+  // own ACTIVE contracts (the id comes from the verified identity, never from this request), so a non-PT simply gets an empty roster.
+  async getRosterAdherence(identity: AgentIdentity, windowDays: number) {
+    const result = await domain(identity, "fitness", "GET", `/coach/clients/adherence?windowDays=${encodeURIComponent(String(windowDays))}`, undefined,
+      z.object({ success: z.boolean(), data: z.object({
+        window: z.object({ days: z.number() }).passthrough(),
+        summary: z.object({ totalClients: z.number(), AT_RISK: z.number(), NEEDS_ATTENTION: z.number(), ON_TRACK: z.number(), NO_DATA: z.number() }).passthrough(),
+        clients: z.array(z.object({
+          clientUserId: z.string(),
+          status: z.enum(["AT_RISK", "NEEDS_ATTENTION", "ON_TRACK", "NO_DATA"]),
+          workout: z.object({ scheduled: z.number(), completed: z.number(), adherencePercent: z.number().nullable() }).passthrough(),
+          signals: z.array(z.object({ code: z.string(), severity: z.string(), evidence: z.string() }).passthrough()),
+          dataGaps: z.array(z.string()),
+        }).passthrough()),
+      }).passthrough() }).passthrough(), 30000);
+    return result.data;
+  },
+  // PT Copilot step 2: records the PT's approve/dismiss of an AI-DRAFTED proposal. fitness-service RE-VERIFIES the active PT -> client
+  // relationship server-side at this moment and writes only an audit row: nothing is sent to the client, no client data changes.
+  async recordPtProposalDecision(identity: AgentIdentity, clientUserId: string, input: { decision: "APPROVED" | "DISMISSED"; proposalId: string; proposalTypes: string[]; basedOnCount: number }) {
+    return domain(identity, "fitness", "POST", `/coach/clients/${encodeURIComponent(clientUserId)}/ai-proposals/decision`, input,
+      z.object({ success: z.boolean(), data: z.object({ recorded: z.boolean() }).passthrough() }).passthrough());
+  },
+  // Display names of the PT's OWN active clients, read with the PT's own credentials from their contracts (user-service authorizes it).
+  // Best effort: a failure only means the reply uses neutral labels instead of names.
+  async getActiveClientNames(identity: AgentIdentity): Promise<Map<string, string>> {
+    try {
+      const contracts = await domain(identity, "user", "GET", "/contracts/pt?status=ACTIVE", undefined,
+        z.array(z.object({ clientUserId: z.string(), clientProfile: z.object({ firstName: z.string().nullable().optional(), lastName: z.string().nullable().optional(), email: z.string().nullable().optional() }).passthrough().nullable().optional() }).passthrough()));
+      const out = new Map<string, string>();
+      for (const c of contracts) {
+        // name, else the email the PT already sees on this contract; never a guess
+        const name = [c.clientProfile?.firstName, c.clientProfile?.lastName].filter(Boolean).join(" ").trim() || (c.clientProfile?.email ?? "").trim();
+        if (name) out.set(c.clientUserId, name);
+      }
+      return out;
+    } catch {
+      return new Map();
+    }
+  },
   getNutritionTargetPreview(identity: AgentIdentity) {
     return domain(identity, "fitness", "GET", "/nutrition/target-preview", undefined, z.discriminatedUnion("status", [
       z.object({ status: z.literal("ACTIVE_GOAL"), goalId: z.string(), calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number() }),
@@ -467,6 +507,21 @@ export const fitnessAgentTools = {
   // implementation — just an earlier call to the one that already exists,
   // so a user can see an equipment-compatible draft before confirming,
   // instead of only finding out at confirm time.
+  // Canonical muscle data (fitness-service Exercise catalog) for the exercises of a draft — the only source the agent uses to
+  // decide which exercises load a body part. Ids the catalog does not return are absent: callers treat that as "unknown".
+  async getExerciseMuscleProfiles(identity: AgentIdentity, exerciseIds: string[]): Promise<Array<{ id: string; name?: string; bodyPart?: string | null; muscleGroups?: string[] | null }>> {
+    const unique = [...new Set(exerciseIds.filter((x) => typeof x === "string" && x.length > 0))];
+    if (unique.length === 0) return [];
+    const out: Array<{ id: string; name?: string; bodyPart?: string | null; muscleGroups?: string[] | null }> = [];
+    for (let i = 0; i < unique.length; i += 200) {
+      const result = await domain(identity, "fitness", "POST", "/internal/exercises/muscle-profiles", { exerciseIds: unique.slice(i, i + 200) },
+        z.object({ success: z.boolean(), data: z.object({
+          exercises: z.array(z.object({ id: z.string(), name: z.string().optional(), bodyPart: z.string().nullable().optional(), muscleGroups: z.array(z.string()).nullable().optional() }).passthrough()),
+        }).passthrough() }).passthrough());
+      out.push(...result.data.exercises);
+    }
+    return out;
+  },
   async validatePlanEquipment(identity: AgentIdentity, weeklySchedule: Array<{ day: string; exercises: Array<{ exerciseId: string; name?: string }> }>): Promise<{
     valid: boolean;
     violations: Array<{ exerciseId: string; exerciseName?: string; day?: string; dayIndex?: number; required?: string[]; alternatives?: string[]; available?: string[] }>;

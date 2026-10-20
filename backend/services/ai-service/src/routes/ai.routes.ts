@@ -7,7 +7,9 @@ import { clientPlanDraftController } from "../controllers/client-plan-draft.cont
 import { roadmapDraftController } from "../controllers/roadmap-draft.controller";
 import { exerciseProgressionExplanationController } from "../controllers/exercise-progression-explanation.controller";
 import { requireAuth } from "../middleware/auth.middleware";
-import { createRateLimiter } from "../middleware/rate-limit.middleware";
+import { askRateLimiter, expensiveRateLimiter, internalAiRateLimiter } from "../middleware/ai-rate-limiters";
+import { bindRequestIdentity } from "../services/request-identity";
+import { requireTrustedService } from "../middleware/require-trusted-service.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
   AskRequestSchema,
@@ -28,24 +30,15 @@ router.use("/agent", fitnessAgentRoutes);
 router.use("/sessions", sessionRoutes);
 router.use("/memories", memoryRoutes);
 
-// Restores the old Express gateway's aiAskRateLimiter (20 req/60s/user) now
-// that traffic reaches this Lambda directly, without that gateway process in
-// front of it — see middleware/rate-limit.middleware.ts's doc comment.
-// Mounted after requireAuth: req.context.userId is only trustworthy from
-// this point on.
-const askRateLimiter = createRateLimiter({
-  name: "ai-ask",
-  max: Number.parseInt(process.env.AI_ASK_RATE_LIMIT_MAX || "20", 10),
-  windowSeconds: Number.parseInt(
-    process.env.AI_ASK_RATE_LIMIT_WINDOW_SECONDS || "60",
-    10,
-  ),
-});
+// Per-user buckets (20/60s ask, 10/60s expensive, 30/60s service-originated) live in
+// middleware/ai-rate-limiters.ts so a bucket shared across route files cannot drift.
+// Mounted after requireAuth: req.context.userId is only trustworthy from this point on.
 
 router.post(
   "/ask",
   askRateLimiter,
   validateBody(AskRequestSchema),
+  bindRequestIdentity,
   aiController.ask,
 );
 
@@ -53,6 +46,7 @@ router.post(
   "/ask/stream",
   askRateLimiter,
   validateBody(AskRequestSchema),
+  bindRequestIdentity,
   aiController.askStream,
 );
 
@@ -70,19 +64,8 @@ router.post(
 
 router.get("/feedback/stats", aiController.getFeedbackStats);
 
-// Second, more conservative tier for endpoints that call the LLM/vision
-// model directly and synchronously outside the /ai/ask chat path — a plain
-// quick-workout generation, same cost profile as one ask. The vision routes
-// (goal-image, image-chat) share this same tier — see fitness-agent.routes.ts.
-const expensiveRateLimiter = createRateLimiter({
-  name: "ai-expensive",
-  max: Number.parseInt(process.env.AI_EXPENSIVE_RATE_LIMIT_MAX || "10", 10),
-  windowSeconds: Number.parseInt(
-    process.env.AI_EXPENSIVE_RATE_LIMIT_WINDOW_SECONDS || "60",
-    10,
-  ),
-});
-
+// The "ai-expensive" tier is shared with the vision routes (fitness-agent.routes.ts), the
+// /plans/* generate/adjust/explain routes and marketplace improvement suggestions.
 router.post(
   "/generate-workout",
   expensiveRateLimiter,
@@ -95,28 +78,36 @@ router.post(
 
 // Called by fitness-service (service-to-service, requireAuth accepts the
 // x-internal-token + x-user-id pair) after a training cycle completes.
-router.post("/analyze-cycle", cycleAnalysisController.analyzeCycle);
+//
+// The six routes below (analyze-cycle … explain-exercise-progression) are TRUSTED_SERVICE_ONLY:
+// they accept a body-supplied `userId` and a precomputed payload from fitness-service, which owns
+// the user/PT authorization for what it sends. They are not meant for end users, so
+// requireTrustedService refuses any caller that is not a bare service call (an end-user JWT, or the
+// gateway forwarding one — the gateway proxies all of /ai/*). internalAiRateLimiter then bounds
+// service-originated calls per originating user (req.context.userId from x-user-id), never per
+// body `userId`.
+router.post("/analyze-cycle", requireTrustedService, internalAiRateLimiter, cycleAnalysisController.analyzeCycle);
 
 // Adaptive Training Cycle Evaluation — called by fitness-service's
 // POST /training-cycles/:id/evaluate with an already-computed Decision
 // Engine result; this endpoint only explains it, never decides. Additive:
 // does not replace /analyze-cycle, which the legacy /complete flow still
 // calls unchanged.
-router.post("/assess-cycle", cycleAssessmentController.assessCycle);
+router.post("/assess-cycle", requireTrustedService, internalAiRateLimiter, cycleAssessmentController.assessCycle);
 
 // Phase 4 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — called by
 // fitness-service with an already-computed (rule-based, no AI)
 // CycleFeedbackSummary; this endpoint only interprets/explains it, never
 // decides. Advisory-only signal, consumed by the Decision Engine (Phase 5)
 // as one input among several, never as the final decision.
-router.post("/analyze-feedback", feedbackAnalysisController.analyzeFeedback);
+router.post("/analyze-feedback", requireTrustedService, internalAiRateLimiter, feedbackAnalysisController.analyzeFeedback);
 
 // Phase 7 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md — called by
 // fitness-service's coach.service.ts when a PT clicks "Gợi ý bằng AI" while
 // building a plan for a client. Returns a DRAFT only — never persisted as a
 // real plan here; the PT must review/edit and explicitly submit via the
 // existing POST /coach/clients/:clientId/plans.
-router.post("/generate-client-plan-draft", clientPlanDraftController.generateDraft);
+router.post("/generate-client-plan-draft", requireTrustedService, internalAiRateLimiter, clientPlanDraftController.generateDraft);
 
 // FitnessRoadmap AI Draft generation (Phase B of the roadmap next-phase
 // work) — called by fitness-service's POST /fitness-roadmaps/ai-draft.
@@ -124,7 +115,7 @@ router.post("/generate-client-plan-draft", clientPlanDraftController.generateDra
 // user/PT must explicitly accept it via fitness-service's own
 // POST /fitness-roadmaps/ai-draft/accept before a real FitnessRoadmap row
 // is created. See docs/FITNESS_ROADMAP_AI_DRAFT_DESIGN.md.
-router.post("/generate-roadmap-draft", roadmapDraftController.generateDraft);
+router.post("/generate-roadmap-draft", requireTrustedService, internalAiRateLimiter, roadmapDraftController.generateDraft);
 
 // openGym FINAL P0 CLOSURE PASS — docs/TRAINING_PROGRESSION_ARCHITECTURE.md
 // §5. Called by fitness-service's GET /workouts/exercises/:id/progression/
@@ -134,6 +125,6 @@ router.post("/generate-roadmap-draft", roadmapDraftController.generateDraft);
 // already-computed exercise-progression decision; the response schema has
 // no field for a decision/target at all, so there is no code path by which
 // this could ever override the deterministic engine's output.
-router.post("/explain-exercise-progression", exerciseProgressionExplanationController.explain);
+router.post("/explain-exercise-progression", requireTrustedService, internalAiRateLimiter, exerciseProgressionExplanationController.explain);
 
 export default router;

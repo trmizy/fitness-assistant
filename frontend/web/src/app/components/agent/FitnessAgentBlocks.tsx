@@ -142,6 +142,17 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
           : <p className="text-amber-300">🏋️ Chưa tìm được chương trình tập phù hợp — phần này sẽ bị bỏ qua khi xác nhận.</p>}
         <p>🥗 Dinh dưỡng: sẽ tính tự động từ hồ sơ/InBody hiện tại khi xác nhận.</p>
       </div>}
+      {block.kind === "PT_CLIENT_ACTION_PROPOSAL" && <div className="space-y-2 rounded-lg border border-zinc-700 p-2.5 text-xs">
+        <p className="break-words text-zinc-200">👤 {block.summary?.clientLabel}</p>
+        {Array.isArray(block.summary?.basedOn) && block.summary.basedOn.length > 0 && <ul className="list-disc space-y-0.5 pl-4 text-zinc-400">
+          {block.summary.basedOn.map((e: string, i: number) => <li key={i}>{e}</li>)}
+        </ul>}
+        {Array.isArray(block.summary?.proposals) && block.summary.proposals.map((p: { title: string; body: string }, i: number) => <div key={i} className="space-y-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+          <p className="font-medium text-zinc-200">{p.title}</p>
+          <p className="whitespace-pre-wrap break-words text-zinc-300">{p.body}</p>
+        </div>)}
+        <p className="text-amber-300">Bản nháp để bạn duyệt — chưa gửi gì cho client và chưa thay đổi dữ liệu nào.</p>
+      </div>}
       {block.kind === "SAVE_GENERATED_PLAN" && <div className="space-y-1.5 rounded-lg border border-zinc-700 p-2.5 text-xs">
         <p>🏋️ {block.summary?.planName} · {block.summary?.daysPerWeek} buổi/tuần · {block.summary?.durationWeeks} tuần</p>
         <p className="text-amber-300">Sẽ thay thế lịch tập chưa hoàn thành hiện tại của bạn.</p>
@@ -177,7 +188,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       <button className={button} disabled={busy || completed || (!!block.expiresAt && new Date(block.expiresAt) < new Date())} onClick={() => void run(() => fitnessAgentService.confirm(block.actionId!))}>{busy ? "Đang xử lý…" : completed ? "Đã xác nhận" : "Xác nhận"}</button>
       {dismissed
         ? <p className="text-xs text-zinc-400">Đã để sau — chưa thực hiện gì. Bạn vẫn có thể bấm Xác nhận khi sẵn sàng.</p>
-        : <button className="min-h-11 px-3" disabled={busy || completed} onClick={() => setDismissed(true)}>Để sau</button>}
+        : !completed && <button className="min-h-11 px-3" disabled={busy} onClick={() => setDismissed(true)}>Để sau</button>}
     </div>}
     {block.type === "GOAL_ANALYSIS" && <div className="space-y-3">
       <p>{block.note}</p>

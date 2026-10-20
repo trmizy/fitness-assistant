@@ -327,6 +327,17 @@ export async function isActivePtClientRelationship(
 }
 
 /**
+ * The PT's authoritative roster (ACTIVE contracts). STRICT: throws on any failure — an outage must never read as "no clients", and a
+ * caller must never fall back to a roster it was handed in a request. Used only to build the cross-client adherence view.
+ */
+export async function fetchActiveClientIdsStrict(ptUserId: string): Promise<string[]> {
+  const res = await userServiceGet("/internal/contracts/active-clients", { ptUserId });
+  const ids = res.data?.clientUserIds;
+  if (!Array.isArray(ids) || !ids.every((x: unknown) => typeof x === "string")) throw new Error("active-clients: malformed response");
+  return ids as string[];
+}
+
+/**
  * Phase 4.4 — STRICT variants for read models that must tell "no data" apart
  * from "could not read". fetchInBodyHistory / fetchUserProfile above swallow
  * every failure into []/null (right for their cycle callers, wrong for a

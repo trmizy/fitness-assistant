@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
-import { logger, register, metricsMiddleware } from "@gym-coach/shared";
+import { logger, httpLogSerializers, register, metricsMiddleware } from "@gym-coach/shared";
 import { isLambdaRuntime } from "./utils/runtime.util";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
@@ -34,7 +34,7 @@ app.use(
 // origin-scoped CORS header with an invalid wildcard-plus-credentials
 // combination once http-proxy-middleware forwarded it through.
 app.use(express.json());
-app.use(pinoHttp({ logger }));
+app.use(pinoHttp({ logger, serializers: httpLogSerializers }));
 app.use(metricsMiddleware());
 
 // Ensure upload directories exist — local/Docker only. Skipped entirely on Lambda rather than

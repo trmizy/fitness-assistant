@@ -1,0 +1,80 @@
+{
+  "at": "2026-10-20T12:26:40.723Z",
+  "results": [
+    {
+      "name": "1a. a drafted proposal card is returned for the slipping client (kind PT_CLIENT_ACTION_PROPOSAL)",
+      "pass": true,
+      "detail": "Mình đã soạn 2 đề xuất cho probe.pt.risk.mvggjxi2@gymini-test.local dựa trên dữ liệu 14 ngày gần nhất. Đây chỉ là bản nh"
+    },
+    {
+      "name": "1b. it cites the real evidence (1/5 sessions) and contains a message draft",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "1c. the draft never contains the client's email or id",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "1d. nothing was recorded or changed by merely asking (no approval/dismissal audit, client data unchanged)",
+      "pass": true,
+      "detail": "5/0/0"
+    },
+    {
+      "name": "2. another PT and the client themself cannot approve this proposal (action not found for them)",
+      "pass": true,
+      "detail": "404/404"
+    },
+    {
+      "name": "2b. and they left no audit trace",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "3a. the PT's approval is acknowledged and shows the draft text",
+      "pass": true,
+      "detail": "Đã ghi nhận bạn duyệt đề xuất cho probe.pt.risk.mvggjxi2@gymini-test.local. Mình chưa gửi gì cho client và chưa thay đổi dữ liệu nào của họ "
+    },
+    {
+      "name": "3b. exactly ONE audit row AI_PROPOSAL_APPROVED, flagged sentToClient=false / clientDataChanged=false",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "3c. the client's own data is unchanged by the approval (schedules/programs/nutrition rows)",
+      "pass": true,
+      "detail": "5/0/0"
+    },
+    {
+      "name": "3d. a repeated confirm does not record a second approval",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "4. dismissing a proposal is audited and approves nothing",
+      "pass": true,
+      "detail": "{\"success\":true,\"data\":{\"sessionId\":\"1a44d6bd-032d-4a24-869a-61934057a82a\",\"conversationId\":\"a6813f9"
+    },
+    {
+      "name": "5a. a contract that ended after the draft is refused at approval (re-verified server-side) and the draft text is withheld",
+      "pass": true,
+      "detail": "Không ghi nhận được việc duyệt: bạn không còn quan hệ huấn luyện đang hiệu lực (ACTIVE) với client này nên mình không hi"
+    },
+    {
+      "name": "5b. no approval was recorded for it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "6. an unknown name gets no proposal card and no leak",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "7. another PT (no active clients) gets no proposal for someone else's client",
+      "pass": true,
+      "detail": "Mình không thấy client nào đang có hợp đồng còn hiệu lực (ACTIVE) với bạn nên chưa có gì để tổng hợp"
+    }
+  ]
+}

@@ -512,6 +512,29 @@ export const internalController = {
     }
   },
 
+  // INTERNAL — canonical muscle data for up to 200 Exercise ids: { exercises: [{ id, name, bodyPart, muscleGroups }] }.
+  // Unknown ids are simply absent from the result (the caller must treat "not returned" as "unknown", never as "safe").
+  async exerciseMuscleProfiles(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const ids = (req.body as { exerciseIds?: unknown })?.exerciseIds;
+      if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((x) => typeof x === "string" && x.length > 0 && x.length <= 64)) {
+        res.status(400).json({ success: false, error: "exerciseIds must be a non-empty array of at most 200 ids" });
+        return;
+      }
+      const rows = await prisma.exercise.findMany({
+        where: { id: { in: [...new Set(ids as string[])] } },
+        select: { id: true, exerciseName: true, bodyPart: true, muscleGroupsActivated: true },
+      });
+      res.json({
+        success: true,
+        data: { exercises: rows.map((r: { id: string; exerciseName: string; bodyPart: string; muscleGroupsActivated: string[] }) => ({ id: r.id, name: r.exerciseName, bodyPart: r.bodyPart, muscleGroups: r.muscleGroupsActivated })) },
+      });
+    } catch (err) {
+      logger.error({ err }, "internal.exerciseMuscleProfiles failed");
+      res.status(500).json({ success: false, error: "Failed to load exercise muscle profiles" });
+    }
+  },
+
   // Hardening pass §7/§8 — ai-service calls this as a FINAL, authoritative
   // equipment-compliance check on a specific generated plan's exact
   // exerciseIds, right before persisting it. Deliberately separate from

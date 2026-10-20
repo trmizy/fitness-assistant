@@ -6,6 +6,9 @@ export const AskRequestSchema = z.object({
     .min(1, "question must not be empty")
     .max(2000, "question must be at most 2000 characters"),
   sessionId: z.string().uuid("sessionId must be a valid UUID").optional(),
+  // Stable id of this user action, generated once by the client and reused by its retries (see services/request-identity.ts).
+  // Deliberately lenient here: a malformed value is ignored (legacy behaviour), never a 400.
+  clientRequestId: z.string().max(64).optional(),
 });
 export type AskRequest = z.infer<typeof AskRequestSchema>;
 

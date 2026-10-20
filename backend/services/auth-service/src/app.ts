@@ -1,7 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
-import { logger, register, metricsMiddleware } from "@gym-coach/shared";
+import { logger, httpLogSerializers, register, metricsMiddleware } from "@gym-coach/shared";
 import authRoutes from "./routes/auth.routes";
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(helmet());
 // origin + Access-Control-Allow-Credentials: true) with an invalid
 // wildcard-plus-credentials combination once proxied back to the browser.
 app.use(express.json({ limit: "1mb" }));
-app.use(pinoHttp({ logger }));
+app.use(pinoHttp({ logger, serializers: httpLogSerializers }));
 app.use(metricsMiddleware());
 
 app.get("/health", (_req, res) => {

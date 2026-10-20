@@ -1,3 +1,4 @@
+import { describeOperationJob } from "../services/generation-operations";
 import { Request, Response, NextFunction } from "express";
 import { AxiosError } from "axios";
 import { logger, aiPlanGenerationsTotal } from "@gym-coach/shared";
@@ -12,6 +13,7 @@ import {
 import { llmService } from "../services/llm.service";
 import {
   ApiError,
+  RateLimitedError,
   formatSuccessResponse,
   formatErrorResponse,
 } from "../errors/api-error";
@@ -183,6 +185,17 @@ Please explain:
 5. How to progress across the weeks`;
 }
 
+/**
+ * Optional `Idempotency-Key` request header -> stable operation identity. The key only ever names a logical
+ * request WITHIN the verified caller's own namespace (the operation row is unique per actor+key); it grants
+ * no authorization and is never used for quota ownership. A malformed key is ignored (treated as no key).
+ */
+function idempotencyKeyFrom(req: Request, scope: string): string | undefined {
+  const raw = req.header("idempotency-key");
+  if (!raw || !/^[A-Za-z0-9._:-]{8,128}$/.test(raw)) return undefined;
+  return `rest:${scope}:${raw}`;
+}
+
 export const planController = {
   async getLlmHealth(
     _req: Request,
@@ -260,6 +273,7 @@ export const planController = {
 
       const result = await conversationService.queuePlanGeneration({
         userId,
+        idempotencyKey: idempotencyKeyFrom(req, "workout"),
         goal,
         durationWeeks,
         daysPerWeek,
@@ -292,6 +306,7 @@ export const planController = {
       const result = await conversationService.queueNutritionPlanGeneration({
         userId,
         ...req.body,
+        idempotencyKey: idempotencyKeyFrom(req, "nutrition"),
       });
       aiPlanGenerationsTotal.inc({ status: "queued" });
       // 202 Accepted: the plan is queued, not yet complete.
@@ -433,6 +448,18 @@ export const planController = {
     const { jobId } = req.params;
 
     try {
+      // Canonical path: the public job reference is an OPERATION id (workout AND nutrition). Pre-operation jobs fall through
+      // to the legacy Plan.jobId / BullMQ lookup below, whose behaviour is unchanged (workout plans only).
+      const canonical = await describeOperationJob(userId, jobId);
+      if (canonical.kind === "FORBIDDEN") {
+        res.status(403).json(formatErrorResponse("FORBIDDEN", "You do not have access to this job"));
+        return;
+      }
+      if (canonical.kind === "OK") {
+        res.json(formatSuccessResponse(canonical.body));
+        return;
+      }
+
       // Check DB first — the plan record is created before the job is queued.
       const dbPlan = await conversationRepository.findPlanByJobId(jobId);
       if (dbPlan && dbPlan.userId !== userId) {
@@ -778,6 +805,7 @@ export const planController = {
       const result = await conversationService.queuePlanAdjustment({
         originalPlanId: planId,
         userId,
+        idempotencyKey: idempotencyKeyFrom(req, `adjust:${planId}`),
         adjustments,
         daysPerWeek,
         exercisesPerDay,
@@ -787,6 +815,7 @@ export const planController = {
     } catch (err) {
       aiPlanGenerationsTotal.inc({ status: "failure" });
       if (err instanceof ApiError) {
+        if (err instanceof RateLimitedError) res.setHeader("Retry-After", String(err.retryAfterSeconds));
         res.status(err.statusCode).json(err.toJSON());
         return;
       }
@@ -1217,6 +1246,7 @@ Hãy giải thích:
         durationWeeks: 1,
         mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
         notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
+        idempotencyKey: idempotencyKeyFrom(req, `nutrition-adjust:${planId}`),
       });
 
       aiPlanGenerationsTotal.inc({ status: "queued" });

@@ -1,0 +1,189 @@
+{
+  "at": "2026-10-20T08:09:41.089Z",
+  "base": {
+    "sessions": 4,
+    "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+    "exercisesPerDay": "5/5/4/5",
+    "legExercises": 8,
+    "exclusions": [],
+    "answer": "Mình đã đổi lịch tập sang các ngày: Thứ 2, Thứ 4, Thứ 6, Chủ nhật."
+  },
+  "out": [
+    {
+      "id": "S1-move",
+      "expect": "4 sessions on Mon, Wed, Sat, Sun",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 7, Chủ nhật",
+        "legs": 8,
+        "exclusions": []
+      },
+      "answer": "Mình đã dời buổi Thứ 6 sang Thứ 7; vẫn 4 buổi/tuần (Thứ 2, Thứ 4, Thứ 7, Chủ nhật), các buổi và bài tập khác giữ nguyên."
+    },
+    {
+      "id": "S2-move-variant",
+      "expect": "4 sessions on Mon, Wed, Sat, Sun",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 7, Chủ nhật",
+        "legs": 8,
+        "exclusions": []
+      },
+      "answer": "Mình đã dời buổi Thứ 6 sang Thứ 7; vẫn 4 buổi/tuần (Thứ 2, Thứ 4, Thứ 7, Chủ nhật), các buổi và bài tập khác giữ nguyên."
+    },
+    {
+      "id": "S3-move-no-diacritics",
+      "expect": "4 sessions on Mon, Wed, Sat, Sun",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 7, Chủ nhật",
+        "legs": 8,
+        "exclusions": []
+      },
+      "answer": "Mình đã dời buổi Thứ 6 sang Thứ 7; vẫn 4 buổi/tuần (Thứ 2, Thứ 4, Thứ 7, Chủ nhật), các buổi và bài tập khác giữ nguyên."
+    },
+    {
+      "id": "S4-set-frequency",
+      "expect": "3 sessions",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 4, Thứ 6",
+        "legs": 5,
+        "exclusions": []
+      },
+      "answer": "Mình đã đổi lịch tập sang 3 buổi/tuần (Thứ 2, Thứ 4, Thứ 6)."
+    },
+    {
+      "id": "S5-replace-session",
+      "expect": "unchanged count; no Sat session exists -> must ask/explain, not corrupt",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8,
+        "exclusions": []
+      },
+      "answer": "Mình chưa thấy buổi Thứ 7 trong lịch hiện tại (đang tập: Thứ 2, Thứ 4, Thứ 6, Chủ nhật) nên chưa đổi gì. Bạn nói lại ngày cần đổi giúp mình nhé."
+    },
+    {
+      "id": "S6-remove-body-part",
+      "expect": "asks (or applies if no session would vanish); never a false reassurance",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8,
+        "exclusions": []
+      },
+      "answer": "Mình thấy lịch có 9 bài tác động lên chân, trong đó 1 buổi (Thứ 4) chỉ gồm bài chân nên sẽ không còn buổi nào. Bạn muốn mình bỏ các bài đó và các buổi chỉ có bài đó (lịch"
+    },
+    {
+      "id": "S6b-pain-then-yes",
+      "expect": "0 leg exercises; sessions that were all-leg removed; count reported truthfully",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 6, Chủ nhật",
+        "legs": 0,
+        "exclusions": []
+      },
+      "answer": "Mình đã bỏ 9 bài có tác động tới chân (Barbell Squat, Romanian Deadlift, Leg Press, Leg Lift, Seated Calf Raise, Rack Pulls, …). 1 buổi chỉ gồm bài chân (Thứ 4) cũng được"
+    },
+    {
+      "id": "S7-constraint-then-move",
+      "expect": "still 0 leg exercises after a move",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 6, Thứ 7",
+        "legs": 0,
+        "exclusions": []
+      },
+      "answer": "Mình đã dời buổi Chủ nhật sang Thứ 7; vẫn 3 buổi/tuần (Thứ 2, Thứ 6, Thứ 7), các buổi và bài tập khác giữ nguyên."
+    },
+    {
+      "id": "S8-constraint-then-unrelated-then-move",
+      "expect": "constraint survives an unrelated question: 0 leg exercises",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 6, Thứ 7",
+        "legs": 0,
+        "exclusions": []
+      },
+      "answer": "Mình đã dời buổi Chủ nhật sang Thứ 7; vẫn 3 buổi/tuần (Thứ 2, Thứ 6, Thứ 7), các buổi và bài tập khác giữ nguyên."
+    },
+    {
+      "id": "S9-constraint-then-regenerate",
+      "expect": "regenerated draft (real catalog) still has 0 leg exercises, or says it cannot",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 4, Thứ 6",
+        "legs": 0,
+        "exclusions": []
+      },
+      "answer": "Mình đã đổi lịch tập sang 3 buổi/tuần (Thứ 2, Thứ 4, Thứ 6)."
+    },
+    {
+      "id": "S10-lift",
+      "expect": "avoidance lifted; draft not changed by the lift",
+      "before": {
+        "sessions": 4,
+        "days": "Thứ 2, Thứ 4, Thứ 6, Chủ nhật",
+        "legs": 8
+      },
+      "after": {
+        "sessions": 3,
+        "days": "Thứ 2, Thứ 6, Chủ nhật",
+        "legs": 0,
+        "exclusions": []
+      },
+      "answer": "Ok, mình không tránh chân nữa trong các lần chỉnh sau. Các bài đã bỏ trước đó không tự quay lại; nếu muốn lịch có lại bài chân, bạn nhờ mình tạo lại lịch nhé."
+    }
+  ]
+}

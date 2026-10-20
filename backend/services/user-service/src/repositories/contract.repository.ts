@@ -67,6 +67,19 @@ export const contractRepository = {
       select: { id: true },
     }),
 
+  /** The PT's current roster: distinct clients with an ACTIVE contract in the PT -> client direction, the SAME condition as
+   * findActivePtClientPair above (a client listed here passes the per-client relationship check, and only then). Bounded. */
+  findActiveClientIdsOfPt: async (ptUserId: string, limit = 500): Promise<string[]> => {
+    const rows = await prisma.contract.findMany({
+      where: { ptUserId, status: ContractStatus.ACTIVE },
+      select: { clientUserId: true },
+      distinct: ["clientUserId"],
+      orderBy: { clientUserId: "asc" },
+      take: limit,
+    });
+    return rows.map((r) => r.clientUserId);
+  },
+
   findByClient: (clientUserId: string, status?: ContractStatus) =>
     prisma.contract.findMany({
       where: { clientUserId, ...(status && { status }) },

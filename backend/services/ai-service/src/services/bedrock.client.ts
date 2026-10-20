@@ -2,9 +2,16 @@
  * Amazon Bedrock Runtime access for ai-service: Nova chat (Converse), Nova
  * vision with a forced tool (Converse), and Cohere Embed (InvokeModel).
  *
- * Credentials come only from the AWS SDK default provider chain — on Lambda,
- * the function's execution role. Nothing here reads an access key, a Bedrock
- * API key, or ANTHROPIC_API_KEY.
+ * Credentials: the AWS SDK default provider chain — on Lambda, the
+ * function's execution role — UNLESS `BEDROCK_CROSS_ACCOUNT_ROLE_ARN` is
+ * set, in which case every Bedrock call instead uses temporary credentials
+ * obtained by assuming that role (see `getCrossAccountCredentials` below).
+ * This exists because the primary DEV account's on-demand Bedrock quotas
+ * for Nova Pro / Cohere Embed are account-level 0 and `Adjustable: false`
+ * (confirmed via `service-quotas list-service-quotas`, 2026-10-18) — not an
+ * IAM or authorization problem, a hard per-account throughput ceiling with
+ * no self-service increase path. The role lives in a separate AWS account
+ * that has real quota; nothing here reads a static access key anywhere.
  *
  * IAM: Converse and InvokeModel are both authorised by `bedrock:InvokeModel`.
  * No streaming API (ConverseStream / InvokeModelWithResponseStream) is called
@@ -23,6 +30,7 @@ import {
   type InvokeModelCommandInput,
   type ToolInputSchema,
 } from "@aws-sdk/client-bedrock-runtime";
+import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 import {
   resolveBedrockEmbeddingModel,
   type EmbeddingInputType,
@@ -72,12 +80,94 @@ export class BedrockRefusalError extends Error {
 export type BedrockCommand = ConverseCommand | InvokeModelCommand;
 export type BedrockSendOptions = { abortSignal: AbortSignal; maxAttempts: number };
 
+/** Read at call time, not cached as a module-level const: on Lambda this is
+ * set once per execution environment anyway, and reading it lazily avoids
+ * any dependency on env vars being present before this module first loads
+ * (relevant for tests, which set them per-case). */
+function crossAccountRoleArn(): string | undefined {
+  return process.env.BEDROCK_CROSS_ACCOUNT_ROLE_ARN || undefined;
+}
+function crossAccountExternalId(): string | undefined {
+  return process.env.BEDROCK_CROSS_ACCOUNT_EXTERNAL_ID || undefined;
+}
+/** Re-assume this long before the session actually expires, never mid-request. */
+const CREDENTIAL_REFRESH_SKEW_MS = 5 * 60 * 1000;
+
+export interface CachedCredentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken: string;
+  expiration: Date;
+}
+
+let cachedCrossAccountCredentials: CachedCredentials | undefined;
+const stsClient = new STSClient({ region: BEDROCK_REGION });
+
+/** Transport seam, same pattern as `bedrockRuntimeDeps.send` — tests replace
+ * `send` to exercise the caching/refresh logic without a real STS call. */
+export const stsDeps = {
+  send(command: AssumeRoleCommand) {
+    return stsClient.send(command);
+  },
+};
+
+/** Lets tests force the next call to re-assume instead of reusing a cached session. */
+export function resetCrossAccountCredentialsCacheForTests(): void {
+  cachedCrossAccountCredentials = undefined;
+}
+
+/**
+ * Assumes `BEDROCK_CROSS_ACCOUNT_ROLE_ARN` and caches the result until
+ * `CREDENTIAL_REFRESH_SKEW_MS` before it expires, so a steady stream of
+ * Bedrock calls does not re-assume on every single request. Module-level
+ * cache: correct for a Lambda execution environment, which is reused across
+ * invocations until AWS recycles it (a cold start simply re-assumes once).
+ */
+export async function getCrossAccountCredentials(): Promise<CachedCredentials> {
+  const now = Date.now();
+  if (
+    cachedCrossAccountCredentials &&
+    cachedCrossAccountCredentials.expiration.getTime() - now > CREDENTIAL_REFRESH_SKEW_MS
+  ) {
+    return cachedCrossAccountCredentials;
+  }
+
+  const externalId = crossAccountExternalId();
+  const { Credentials } = await stsDeps.send(
+    new AssumeRoleCommand({
+      RoleArn: crossAccountRoleArn(),
+      RoleSessionName: "gymini-ai-service-bedrock",
+      ...(externalId ? { ExternalId: externalId } : {}),
+    }),
+  );
+  if (
+    !Credentials?.AccessKeyId ||
+    !Credentials.SecretAccessKey ||
+    !Credentials.SessionToken ||
+    !Credentials.Expiration
+  ) {
+    throw new Error("AssumeRole for BEDROCK_CROSS_ACCOUNT_ROLE_ARN returned incomplete credentials");
+  }
+
+  cachedCrossAccountCredentials = {
+    accessKeyId: Credentials.AccessKeyId,
+    secretAccessKey: Credentials.SecretAccessKey,
+    sessionToken: Credentials.SessionToken,
+    expiration: Credentials.Expiration,
+  };
+  return cachedCrossAccountCredentials;
+}
+
 const clients = new Map<number, BedrockRuntimeClient>();
 
 function getClient(maxAttempts: number): BedrockRuntimeClient {
   let client = clients.get(maxAttempts);
   if (!client) {
-    client = new BedrockRuntimeClient({ region: BEDROCK_REGION, maxAttempts });
+    client = new BedrockRuntimeClient({
+      region: BEDROCK_REGION,
+      maxAttempts,
+      ...(crossAccountRoleArn() ? { credentials: getCrossAccountCredentials } : {}),
+    });
     clients.set(maxAttempts, client);
   }
   return client;

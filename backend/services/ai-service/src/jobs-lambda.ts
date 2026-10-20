@@ -48,7 +48,8 @@ export type JobsLambdaEvent = {
     | "pubmed-refresh"
     | "rss-refresh"
     | "web-refresh"
-    | "personalized-service-autoaccept-sweep";
+    | "personalized-service-autoaccept-sweep"
+    | "ai-generation-recovery";
   // Passed straight through to the pipeline function for local-evidence/rss —
   // lets one EventBridge rule override defaults without a code change.
   limit?: number;
@@ -101,6 +102,12 @@ export const handler = async (event: JobsLambdaEvent): Promise<unknown> => {
       });
     case "personalized-service-autoaccept-sweep":
       return runAutoAcceptSweep();
+    case "ai-generation-recovery": {
+      // Bounded, idempotent recovery of stranded AI generation executions (V-T012.2.1). Recommended schedule
+      // rate(5 minutes). NOT scheduled by this repository change; creating the EventBridge rule is a deployment step.
+      const { recoverPendingGenerations } = await import("./services/generation-operations");
+      return recoverPendingGenerations({ limit: event.limit });
+    }
     default:
       throw new Error(`jobs-lambda: unknown job "${(event as { job?: string }).job}"`);
   }

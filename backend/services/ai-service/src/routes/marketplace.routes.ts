@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { marketplaceController } from "../controllers/marketplace.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { expensiveRateLimiter } from "../middleware/ai-rate-limiters";
 
 const router = Router();
 
@@ -18,7 +19,9 @@ router.post("/plans/:id/reviews", marketplaceController.submitReview);
 router.post("/plans/:id/republish", marketplaceController.republish);
 router.get("/plans/:id/versions", marketplaceController.getVersionHistory);
 router.post("/plans/:id/adopt", marketplaceController.adopt);
-router.post("/plans/:id/improvement-suggestions", marketplaceController.generateImprovementSuggestions);
+// Publisher-ownership is enforced in the service (marketplace.service.ts); this adds the missing
+// model-cost budget — an LLM call per request, same shared "ai-expensive" bucket.
+router.post("/plans/:id/improvement-suggestions", expensiveRateLimiter, marketplaceController.generateImprovementSuggestions);
 router.get("/plans/:id/improvement-suggestions", marketplaceController.listImprovementSuggestions);
 
 // NOTE: named routes must be declared BEFORE /:id to avoid route shadowing

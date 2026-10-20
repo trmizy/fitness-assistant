@@ -5,7 +5,8 @@ import {
   PlanStatus,
 } from "../repositories/conversation.repository";
 import { llmService } from "./llm.service";
-import { enqueueAiTask } from "../workers/queue-provider";
+import { randomUUID } from "node:crypto";
+import { submitGeneration } from "./generation-operations";
 import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
 import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
 import { ApiError, LlmGenerationError } from "../errors/api-error";
@@ -114,6 +115,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       exercisesPerDay?: number;
       trainingLocation?: string;
       equipmentPreference?: string;
+      /** Stable identity of the logical request (retries reuse it). Omit for a one-off operation. */
+      idempotencyKey?: string;
     },
   ) {
     const {
@@ -128,35 +131,37 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       equipmentPreference,
     } = params;
 
-    const plan = await conversationRepository.createWorkoutPlan({
-      userId,
-      name: `${goal} Plan`,
-      description: `${durationWeeks}-week ${goal} program, ${daysPerWeek} days/week`,
-      goal,
-      duration: durationWeeks,
-      daysPerWeek,
-      ptUserId,
-      clientName,
+    const op = await submitGeneration({
+      actorUserId: userId,
+      subjectUserId: ptUserId,
+      kind: "WORKOUT_PLAN",
+      idempotencyKey: params.idempotencyKey ?? `auto:${randomUUID()}`,
+      planCreate: {
+        userId,
+        name: `${goal} Plan`,
+        description: `${durationWeeks}-week ${goal} program, ${daysPerWeek} days/week`,
+        goal,
+        duration: durationWeeks,
+        daysPerWeek,
+        ptUserId,
+        clientName,
+      },
+      job: {
+        userId,
+        goal,
+        durationWeeks,
+        daysPerWeek,
+        exercisesPerDay,
+        trainingLocation: trainingLocation ?? "GYM",
+        equipmentPreference: equipmentPreference ?? "MIXED_GYM",
+      },
     });
-
-    const job = await enqueueAiTask("generate-plan", {
-      planId: plan.id,
-      userId,
-      goal,
-      durationWeeks,
-      daysPerWeek,
-      exercisesPerDay,
-      trainingLocation: trainingLocation ?? "GYM",
-      equipmentPreference: equipmentPreference ?? "MIXED_GYM",
-    });
-
-    await conversationRepository.updatePlanJob(plan.id, job.id!);
 
     logger.info(
-      { planId: plan.id, jobId: job.id, userId, ptUserId },
+      { planId: op.planId, jobId: op.jobId, operationId: op.operationId, reused: op.reused, userId, ptUserId },
       "Plan generation queued",
     );
-    return { planId: plan.id, jobId: job.id!, status: PlanStatus.QUEUED };
+    return { planId: op.planId, jobId: op.jobId ?? op.operationId, status: PlanStatus.QUEUED };
   },
 
   async queuePlanAdjustment(params: {
@@ -165,6 +170,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     adjustments: string;
     daysPerWeek?: number;
     exercisesPerDay?: number;
+    idempotencyKey?: string;
   }) {
     const original = await conversationRepository.findPlanById(
       params.originalPlanId,
@@ -199,39 +205,36 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     const exercisesPerDay =
       params.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
 
-    const newPlan = await conversationRepository.createAdjustedPlan({
-      userId: params.userId,
-      originalPlanId: params.originalPlanId,
-      goal: original.goal,
-      duration: original.duration,
-      daysPerWeek,
-      adjustments: params.adjustments,
-      version: newVersion,
-    });
-
-    const job = await enqueueAiTask("generate-plan", {
-      planId: newPlan.id,
-      userId: params.userId,
-      goal: original.goal,
-      durationWeeks: original.duration,
-      daysPerWeek,
-      exercisesPerDay,
-      adjustmentContext: params.adjustments,
-    });
-
-    await conversationRepository.updatePlanJob(newPlan.id, job.id!);
-
-    logger.info(
-      {
-        newPlanId: newPlan.id,
+    const op = await submitGeneration({
+      actorUserId: params.userId,
+      kind: "PLAN_ADJUSTMENT",
+      idempotencyKey: params.idempotencyKey ?? `auto:${randomUUID()}`,
+      planCreate: {
+        userId: params.userId,
         originalPlanId: params.originalPlanId,
+        goal: original.goal,
+        duration: original.duration,
+        daysPerWeek,
+        adjustments: params.adjustments,
         version: newVersion,
       },
+      job: {
+        userId: params.userId,
+        goal: original.goal,
+        durationWeeks: original.duration,
+        daysPerWeek,
+        exercisesPerDay,
+        adjustmentContext: params.adjustments,
+      },
+    });
+
+    logger.info(
+      { newPlanId: op.planId, originalPlanId: params.originalPlanId, version: newVersion, operationId: op.operationId, reused: op.reused },
       "Plan adjustment queued",
     );
     return {
-      planId: newPlan.id,
-      jobId: job.id!,
+      planId: op.planId,
+      jobId: op.jobId ?? op.operationId,
       version: newVersion,
       status: PlanStatus.QUEUED,
     };
@@ -273,59 +276,27 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     preworkoutMeal?: boolean;
     postworkoutMeal?: boolean;
     autoSaveOnComplete?: boolean;
+    idempotencyKey?: string;
   }) {
     const { userId, goal, durationWeeks, mealsPerDay } = params;
 
-    const plan = await conversationRepository.createNutritionPlan({
-      userId,
-      name: `Ke hoach dinh duong - ${goal}`,
-      goal,
-      durationWeeks,
-      mealsPerDay,
+    const { idempotencyKey, ...jobParams } = params;
+    const op = await submitGeneration({
+      actorUserId: userId,
+      kind: "NUTRITION_PLAN",
+      idempotencyKey: idempotencyKey ?? `auto:${randomUUID()}`,
+      planCreate: { userId, name: `Ke hoach dinh duong - ${goal}`, goal, durationWeeks, mealsPerDay },
+      job: {
+        ...jobParams,
+        restrictions: params.restrictions ?? [],
+        excludedFoodKeys: params.excludedFoodKeys ?? [],
+      },
     });
-
-    const job = await enqueueAiTask("generate-nutrition-plan", {
-      planId: plan.id,
-      userId,
-      goal,
-      durationWeeks,
-      mealsPerDay,
-      dailyCaloriesTarget: params.dailyCaloriesTarget,
-      dietPreference: params.dietPreference,
-      budgetLevel: params.budgetLevel,
-      cuisineCountry: params.cuisineCountry,
-      vietnameseRegion: params.vietnameseRegion,
-      restrictions: params.restrictions ?? [],
-      excludedFoodKeys: params.excludedFoodKeys ?? [],
-      // Extended fields passed through to the prompt
-      weightKg: params.weightKg,
-      heightCm: params.heightCm,
-      age: params.age,
-      gender: params.gender,
-      bodyFatPct: params.bodyFatPct,
-      activityLevel: params.activityLevel,
-      trainingDaysPerWeek: params.trainingDaysPerWeek,
-      trainingDurationMin: params.trainingDurationMin,
-      trainingType: params.trainingType,
-      trainingPhase: params.trainingPhase,
-      experienceLevel: params.experienceLevel,
-      primaryPriority: params.primaryPriority,
-      weightChangeRateKgPerWeek: params.weightChangeRateKgPerWeek,
-      proteinTargetG: params.proteinTargetG,
-      carbTargetG: params.carbTargetG,
-      fatTargetG: params.fatTargetG,
-      carbsAroundWorkout: params.carbsAroundWorkout,
-      preworkoutMeal: params.preworkoutMeal,
-      postworkoutMeal: params.postworkoutMeal,
-      autoSaveOnComplete: params.autoSaveOnComplete,
-    });
-
-    await conversationRepository.updateNutritionPlanJob(plan.id, job.id!);
 
     logger.info(
-      { planId: plan.id, jobId: job.id, userId },
+      { planId: op.planId, jobId: op.jobId, operationId: op.operationId, reused: op.reused, userId },
       "Nutrition plan generation queued",
     );
-    return { planId: plan.id, jobId: job.id!, status: PlanStatus.QUEUED };
+    return { planId: op.planId, jobId: op.jobId ?? op.operationId, status: PlanStatus.QUEUED };
   },
 };

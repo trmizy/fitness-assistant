@@ -1,4 +1,5 @@
 import type { UnsafeGuidance } from "./types";
+import { resolveSafetySignals, type SafetySignalClass } from "./safety-signals";
 
 // ── Rapid / extreme weight-loss ───────────────────────────────────────────────
 function detectUnsafeWeightLoss(question: string): boolean {
@@ -282,8 +283,31 @@ function isDefinitelyOffTopic(question: string): boolean {
   return !hasStrongFitnessSignal(question);
 }
 
+// Red-flag classes of the shared safety-signal classifier that warrant the emergency reply. The classifier already separates a PERSONAL
+// symptom ("suýt ngất sau khi tập, tim đập rất nhanh") from a general-knowledge question ("triệu chứng của đau tim là gì?" -> NONE) and
+// reads unaccented Vietnamese and English, which the fixed patterns above cannot ("suýt ngất" was missed: only "ngất xỉu" matched).
+const EMERGENCY_SIGNAL_CLASSES = new Set<SafetySignalClass>([
+  "CHEST_OR_CARDIO_RED_FLAG", "SEVERE_DIZZINESS_OR_FAINTING", "SEVERE_SHORTNESS_OF_BREATH", "NEUROLOGICAL_SYMPTOM",
+]);
 function detectMedicalEmergency(question: string): boolean {
-  return MEDICAL_PATTERNS.some((p) => p.test(question));
+  if (MEDICAL_PATTERNS.some((p) => p.test(question))) return true;
+  try {
+    const resolved = resolveSafetySignals(question);
+    return resolved.level === "HIGH_RISK" && resolved.signals.some((sig) => sig.level === "HIGH_RISK" && EMERGENCY_SIGNAL_CLASSES.has(sig.cls));
+  } catch {
+    return false; // the classifier must never be able to break the safety gate; the fixed patterns above still ran
+  }
+}
+
+// "Chẩn đoán giúp tôi bị bệnh gì": a PERSONAL request to be diagnosed. Not a safety emergency, but never something to answer with a
+// generic dashboard or a guess. A knowledge question about how a condition is diagnosed does not match (no personal request framing).
+function detectDiagnosisRequest(question: string): boolean {
+  const q = question
+    .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+  const asksDiagnosis = /(chan doan|diagnos(e|is)|toi bi (benh )?gi\b|bi benh gi|minh bi (benh )?gi\b|what('s| is) wrong with me|do i have (a |an )?[a-z ]*(disease|condition|injury|tear|hernia|arthritis))/.test(q);
+  const personal = /(\btoi\b|\bminh\b|cua toi|giup toi|cho toi|\bmy\b|\bme\b|\bi\b)/.test(q);
+  const asksForIt = /(giup|ho tro|duoc khong|co the|xem giup|cho biet|can you|could you|please|tell me|help)/.test(q);
+  return asksDiagnosis && personal && asksForIt;
 }
 
 // ── Exported types ────────────────────────────────────────────────────────────
@@ -291,6 +315,7 @@ export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
   | { type: "medical_emergency"; messageVi: string; messageEn: string }
+  | { type: "medical_diagnosis_request"; messageVi: string; messageEn: string }
   | { type: "off_topic"; messageVi: string; messageEn: string }
   | { type: "unsafe_ped_request"; messageVi: string; messageEn: string }
   | {
@@ -337,6 +362,36 @@ export const safetyGuard = {
     if (detectUnsafeWeightLoss(question)) {
       const guidance = this.evaluate(question)!;
       return { type: "unsafe_weight_loss", guidance };
+    }
+
+    if (!detectMedicalEmergency(question) && detectDiagnosisRequest(question)) {
+      return {
+        type: "medical_diagnosis_request",
+        messageVi: [
+          "## Mình không thể chẩn đoán bệnh",
+          "",
+          "Mình là **AI Fitness Coach** nên không thể chẩn đoán nguyên nhân của triệu chứng hay xác định bạn bị bệnh gì — đoán sai có thể làm bạn chủ quan hoặc lo lắng không cần thiết.",
+          "",
+          "**Bạn nên làm:**",
+          "- Đi khám bác sĩ (cơ xương khớp / thể thao) hoặc chuyên viên vật lý trị liệu để được thăm khám và chẩn đoán đúng.",
+          "- Ghi lại: đau ở đâu, từ khi nào, đau khi làm động tác nào, mức độ đau — để bác sĩ đánh giá nhanh hơn.",
+          "- Trong lúc chờ khám, tránh các bài tập gây đau; nếu đau tăng, sưng, tê hoặc yếu, hãy đi khám sớm.",
+          "",
+          "Nếu bạn muốn, mình có thể giúp **điều chỉnh tạm thời lịch tập** để tránh bài làm bạn đau trong lúc chờ khám.",
+        ].join("\n"),
+        messageEn: [
+          "## I can't diagnose conditions",
+          "",
+          "I'm an **AI Fitness Coach**, so I can't work out the cause of a symptom or tell you what condition you have — a wrong guess could make you complacent or worried for nothing.",
+          "",
+          "**What to do:**",
+          "- See a doctor (musculoskeletal / sports medicine) or a physiotherapist for a proper examination and diagnosis.",
+          "- Note where it hurts, since when, which movements trigger it and how bad it is, so the clinician can assess faster.",
+          "- Until then avoid the exercises that cause pain; if the pain grows or you get swelling, numbness or weakness, get seen sooner.",
+          "",
+          "If you like, I can **temporarily adjust your training plan** to avoid what hurts while you wait.",
+        ].join("\n"),
+      };
     }
 
     if (detectMedicalEmergency(question)) {

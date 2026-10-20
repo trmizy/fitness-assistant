@@ -396,6 +396,7 @@ async function runInner(
     if (
       safetyCheck.type === "off_topic" ||
       safetyCheck.type === "medical_emergency" ||
+      safetyCheck.type === "medical_diagnosis_request" ||
       safetyCheck.type === "unsafe_ped_request" ||
       safetyCheck.type === "unsafe_extreme_calorie_request" ||
       safetyCheck.type === "severe_energy_restriction_warning" ||

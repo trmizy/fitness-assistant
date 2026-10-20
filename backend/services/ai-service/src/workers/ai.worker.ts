@@ -1,3 +1,4 @@
+import { withGenerationOperation } from "../services/generation-operations";
 import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
@@ -1053,7 +1054,12 @@ type PlanJobData = z.infer<typeof PlanJobDataSchema>;
  *      is a safe substitute; nothing here calls a BullMQ-specific Job method
  *      (updateProgress/log/moveToFailed/etc.).
  */
+/** Entry point: claims the durable generation operation (duplicate delivery / stale attempt protection) before the model runs. */
 export async function processAiTaskJob(job: Job): Promise<void> {
+  return withGenerationOperation(job, () => processAiTaskJobInner(job));
+}
+
+async function processAiTaskJobInner(job: Job): Promise<void> {
     if (job.name === "generate-nutrition-plan") {
       const { processNutritionPlanJob } =
         await import("../services/nutrition.processor");

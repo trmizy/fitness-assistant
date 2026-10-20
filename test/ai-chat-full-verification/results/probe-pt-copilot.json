@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-20T09:38:11.105Z",
+  "ptAnswer": "Tổng hợp 3 client trong 14 ngày gần nhất: 1 cần xử lý ngay, 0 cần chú ý, 1 đang ổn, 1 chưa đủ dữ liệu để nhận định.\n\n**Cần xem xét:**\n- **probe.pt.risk.mvggjxi2@gymini-test.local** (cần xử lý ngay):\n  - Hoàn thành 1/5 buổi (≈20%) trong 14 ngày gần nhất.\n  - Thiếu dữ liệu: chưa có thực đơn đang áp dụng.\n\n**Chưa đủ dữ liệu để nhận định** (mình không đoán):\n- probe.pt.empty.mvggjxi2@gymini-test.local: chưa có buổi tập nào được lên lịch trong khoảng này; chưa có thực đơn đang áp dụng.\n\n1 client còn lại đang ổn theo dữ liệu hiện có.\n\nĐây là số liệu tổng hợp từ lịch tập và nhật ký bữa ăn đã ghi nhận; mình chưa nhắn tin hay thay đổi gì cho client nào.",
+  "results": [
+    {
+      "name": "1. the PT's own roster is summarised (3 clients)",
+      "pass": true,
+      "detail": "Tổng hợp 3 client trong 14 ngày gần nhất: 1 cần xử lý ngay, 0 cần chú ý, 1 đang ổn, 1 chưa đủ dữ liệu để nhận định."
+    },
+    {
+      "name": "2. the slipping client is named and flagged with its evidence (1/5 sessions)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "3. the client with no scheduled sessions is 'not judged', never given a verdict",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "4. the client who trains consistently is only counted as fine (not listed as a concern)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "5. someone outside the roster never appears (name, id)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "6. read-only: no action card/blocks, and the reply says nothing was sent or changed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "7. another PT with no active clients gets an honest empty answer — and none of the first PT's data",
+      "pass": true,
+      "detail": "Mình không thấy client nào đang có hợp đồng còn hiệu lực (ACTIVE) với bạn nên chưa có gì để tổng hợp"
+    },
+    {
+      "name": "8. a CLIENT asking the same question gets no roster and no other client's data",
+      "pass": true,
+      "detail": "Mình không thấy client nào đang có hợp đồng còn hiệu lực (ACTIVE) với bạn nên chưa có gì để tổng hợp"
+    },
+    {
+      "name": "9. an ordinary question from the same PT is NOT taken over by the roster handler",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

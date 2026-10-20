@@ -145,6 +145,7 @@ exports.Prisma.ConversationScalarFieldEnum = {
   responseLanguage: 'responseLanguage',
   routeIntent: 'routeIntent',
   warningCount: 'warningCount',
+  clientRequestId: 'clientRequestId',
   createdAt: 'createdAt'
 };
 
@@ -539,6 +540,31 @@ exports.Prisma.AgentWorkflowSessionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AiGenerationOperationScalarFieldEnum = {
+  id: 'id',
+  actorUserId: 'actorUserId',
+  subjectUserId: 'subjectUserId',
+  kind: 'kind',
+  idempotencyKey: 'idempotencyKey',
+  fingerprint: 'fingerprint',
+  status: 'status',
+  epoch: 'epoch',
+  reservationToken: 'reservationToken',
+  publishCount: 'publishCount',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  payload: 'payload',
+  messageId: 'messageId',
+  attempt: 'attempt',
+  leaseOwner: 'leaseOwner',
+  leaseExpiresAt: 'leaseExpiresAt',
+  lastError: 'lastError',
+  publishedAt: 'publishedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -708,7 +734,8 @@ exports.Prisma.ModelName = {
   KnowledgeReviewItem: 'KnowledgeReviewItem',
   FitnessRecommendation: 'FitnessRecommendation',
   FitnessAgentAction: 'FitnessAgentAction',
-  AgentWorkflowSession: 'AgentWorkflowSession'
+  AgentWorkflowSession: 'AgentWorkflowSession',
+  AiGenerationOperation: 'AiGenerationOperation'
 };
 
 /**

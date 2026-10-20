@@ -57,7 +57,44 @@ function handleServiceError(res: Response, error: any, fallbackMessage: string):
   res.status(500).json({ error: fallbackMessage });
 }
 
+const aiProposalDecisionSchema = z.object({
+  decision: z.enum(["APPROVED", "DISMISSED"]),
+  proposalId: z.string().min(1).max(64),
+  proposalTypes: z.array(z.enum(["MESSAGE_DRAFT", "PLAN_REVIEW_SUGGESTION", "CHECKIN_QUESTION", "ASSIGN_PLAN_SUGGESTION"])).min(1).max(6),
+  basedOnCount: z.number().int().min(0).max(50),
+});
+
+const rosterAdherenceQuerySchema = z.object({ windowDays: z.coerce.number().int().refine((n) => [7, 14, 28].includes(n), "windowDays must be 7, 14 or 28").optional() });
+
 export const coachController = {
+  /** POST /coach/clients/:clientId/ai-proposals/decision — audit of a PT's approve/dismiss of an AI-drafted proposal (writes no client data). */
+  async recordAiProposalDecision(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = aiProposalDecisionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid body" });
+        return;
+      }
+      res.json({ success: true, data: await coachService.recordAiProposalDecision(req.user!.id, req.params.clientId, parsed.data) });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to record the proposal decision");
+    }
+  },
+
+  /** GET /coach/clients/adherence — roster-wide adherence for the verified PT's ACTIVE clients (the PT id is the token's, never a parameter). */
+  async getRosterAdherence(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const parsed = rosterAdherenceQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid query" });
+        return;
+      }
+      res.json({ success: true, data: await coachService.getRosterAdherence(req.user!.id, parsed.data.windowDays ?? 14) });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to load roster adherence");
+    }
+  },
+
   // Phase 6 of docs/SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md
   async getClientSummary(req: AuthRequest, res: Response): Promise<void> {
     try {

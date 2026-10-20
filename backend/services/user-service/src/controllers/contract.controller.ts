@@ -265,6 +265,21 @@ export const contractController = {
     }
   },
 
+  // INTERNAL — fitness-service asks for the PT's current ACTIVE clients to build the roster adherence view (Phase 4, PT Copilot).
+  async listActiveClientsForPt(req: any, res: Response) {
+    try {
+      const { ptUserId } = req.query;
+      if (!ptUserId || typeof ptUserId !== "string" || ptUserId.trim() === "") {
+        res.status(400).json({ error: "ptUserId is required" });
+        return;
+      }
+      res.json(await contractService.listActiveClientIdsForPt(ptUserId.trim()));
+    } catch (error: any) {
+      logger.error(error, "listActiveClientsForPt error");
+      res.status(500).json({ error: "Failed to list active clients" });
+    }
+  },
+
   // INTERNAL — called by ai-service to verify that a contract is ACTIVE and get the PT user ID.
   // Security: validates clientId owns this contract and it is currently ACTIVE.
   // Response: minimal { ptUserId, contractId } — no full contract object.

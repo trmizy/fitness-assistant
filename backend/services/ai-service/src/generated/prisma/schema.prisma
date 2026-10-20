@@ -40,8 +40,12 @@ model Conversation {
   responseLanguage          String?   @map("response_language")
   routeIntent               String?   @map("route_intent")
   warningCount              Int       @default(0) @map("warning_count")
+  // Stable id of the deliberate user action that produced this turn (client-generated, see request-identity.ts). A retry of the same
+  // action (lost response, refresh) finds this row and replays it instead of running the model again; NULL for legacy clients.
+  clientRequestId           String?   @map("client_request_id")
   createdAt                 DateTime  @default(now()) @map("created_at")
 
+  @@unique([userId, clientRequestId])
   @@index([userId, createdAt])
   @@index([userId, sessionId, createdAt])
   @@index([createdAt])
@@ -937,4 +941,46 @@ model AgentWorkflowSession {
   //     ON "agent_workflow_sessions" ("user_id", "session_id")
   //     WHERE status NOT IN ('COMPLETED', 'CANCELLED', 'EXPIRED');
   @@map("agent_workflow_sessions")
+}
+
+// V-T012.2 — durable coordination record for ONE logical paid AI generation (workout plan, nutrition plan,
+// plan adjustment). It does NOT replace WorkoutPlan/NutritionPlan: those stay the authoritative, user-visible
+// plan status. This row only carries what the plan rows cannot: a stable idempotency identity
+// (UNIQUE actor+key), a request fingerprint, the outbox payload for queue recovery, and the worker
+// claim/lease used to stop duplicate deliveries and fence stale attempts. See
+// docs/architecture/gymini-implementation/V-T012_2_IMPLEMENTATION_REPORT.md.
+// status: RESERVING -> ADMITTED -> PUBLISHED -> RUNNING -> COMPLETED | FAILED (RUNNING may return to PUBLISHED).
+model AiGenerationOperation {
+  id               String    @id @default(uuid())
+  actorUserId      String    @map("actor_user_id")
+  subjectUserId    String?   @map("subject_user_id")
+  kind             String
+  idempotencyKey   String    @map("idempotency_key")
+  fingerprint      String
+  status           String    @default("RESERVING")
+  // Immutable per CHARGED execution: reopening a FAILED operation increments it. Every queue message carries it and the
+  // worker claim refuses any message whose epoch differs, so a delayed message from an older execution can never
+  // act on a newer one (D22-R02).
+  epoch            Int       @default(1)
+  // Owner of the RESERVING phase (changes on create/takeover/reopen); admit/cleanup transitions must present it (D22-R05).
+  reservationToken String?   @map("reservation_token")
+  // Number of times the message was (re)published for this epoch; bounds recovery republishing.
+  publishCount     Int       @default(0) @map("publish_count")
+  targetType       String?   @map("target_type")
+  targetId         String?   @map("target_id")
+  payload          Json?
+  messageId        String?   @map("message_id")
+  attempt          Int       @default(0)
+  leaseOwner       String?   @map("lease_owner")
+  leaseExpiresAt   DateTime? @map("lease_expires_at")
+  lastError        String?   @map("last_error")
+  publishedAt      DateTime? @map("published_at")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@unique([actorUserId, idempotencyKey])
+  @@index([status, updatedAt])
+  @@index([targetType, targetId])
+  @@map("ai_generation_operations")
 }

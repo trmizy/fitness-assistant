@@ -78,6 +78,12 @@ router.get(
   contractController.checkActivePtClientRelationship as any,
 );
 
+// fitness-service calls this to build the PT's roster-wide adherence view: ACTIVE clients only, same condition as active-relationship.
+router.get(
+  "/contracts/active-clients",
+  contractController.listActiveClientsForPt as any,
+);
+
 // ai-service calls this right after a Marketplace Personalized PT Service
 // purchase is paid, to create the ACTIVE Contract that the whole existing
 // PT-client authorization surface (coach.service.ts, chat eligibility) is

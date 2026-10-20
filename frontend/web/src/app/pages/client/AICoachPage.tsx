@@ -145,7 +145,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
   const sessionKey = activeSessionId ?? draftKey;
 
-  const { session, setInitialMessage, sendQuestion } = useAiCoachSession(
+  const { session, setInitialMessage, sendQuestion, retryQuestion, retryable } = useAiCoachSession(
     userScopeId,
     sessionKey,
   );
@@ -755,6 +755,18 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+          {/* Explicit retry of a failed/uncertain send: re-sends the SAME request id, so the server never creates a duplicate generation. */}
+          {session.status === "failed" && retryable && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => retryQuestion(handleSessionAdopted)}
+                className="px-4 py-2 rounded-xl border border-green-500/40 text-green-400 text-sm hover:bg-green-500/10"
+              >
+                Thử lại
+              </button>
             </div>
           )}
           <div ref={messagesEndRef} aria-hidden="true" />

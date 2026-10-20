@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-20T08:48:36.437Z",
+  "out": [
+    {
+      "id": "R1-12-weeks",
+      "expect": "12 weeks, 'theo yêu cầu'",
+      "last": {
+        "turn": "Tạo lộ trình giảm mỡ trong 12 tuần cho tôi",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 12,
+        "phaseCount": 4,
+        "timeframeNote": "Lộ trình dài 12 tuần theo yêu cầu của bạn.",
+        "answerHead": "Đây là lộ trình mình đề xuất dựa trên hồ sơ thật của bạn:\n\nKế hoạch thể hình dài hạn cho mục tiêu giảm cân.\n\nLộ trình dà"
+      },
+      "steps": 1
+    },
+    {
+      "id": "R2-6-months",
+      "expect": "~26 weeks",
+      "last": {
+        "turn": "Tạo lộ trình 6 tháng cho tôi",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 26,
+        "phaseCount": 4,
+        "timeframeNote": "Lộ trình dài 26 tuần theo yêu cầu của bạn.",
+        "answerHead": "Đây là lộ trình mình đề xuất dựa trên hồ sơ thật của bạn:\n\nKế hoạch thể hình dài hạn cho mục tiêu giảm cân.\n\nLộ trình dà"
+      },
+      "steps": 1
+    },
+    {
+      "id": "R3-no-limit",
+      "expect": "no fixed deadline; reply says so",
+      "last": {
+        "turn": "Tạo lộ trình không giới hạn thời gian cho tôi",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 36,
+        "phaseCount": 4,
+        "timeframeNote": "Bạn không muốn đặt thời hạn nên mình không ép khung thời gian; lộ trình AI đề xuất dài 36 tuần. Nói “trong 12 tuần” (hoặc số khác) nếu bạn muốn một mốc cụ thể.",
+        "answerHead": "Đây là lộ trình mình đề xuất dựa trên hồ sơ thật của bạn:\n\nKế hoạch thể hình dài hạn cho mục tiêu giảm cân.\n\nBạn không m"
+      },
+      "steps": 1
+    },
+    {
+      "id": "R4-default",
+      "expect": "default 16 weeks, DISCLOSED as default",
+      "last": {
+        "turn": "Tạo lộ trình cho tôi",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 16,
+        "phaseCount": 4,
+        "timeframeNote": "Bạn chưa nêu thời hạn nên mình dùng mặc định 16 tuần. Nói “trong 12 tuần” hoặc “không giới hạn thời gian” để đổi.",
+        "answerHead": "Đây là lộ trình mình đề xuất dựa trên hồ sơ thật của bạn:\n\nKế hoạch thể hình dài hạn cho mục tiêu giảm cân.\n\nBạn chưa nê"
+      },
+      "steps": 1
+    },
+    {
+      "id": "R5-revise-weeks",
+      "expect": "8 weeks after revision",
+      "last": {
+        "turn": "đổi sang 8 tuần",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 8,
+        "phaseCount": 3,
+        "timeframeNote": "Lộ trình dài 8 tuần theo yêu cầu của bạn.",
+        "answerHead": "Mình đã điều chỉnh lộ trình theo yêu cầu của bạn:\n\nKế hoạch 8 tuần tập trung vào giảm mỡ với các giai đoạn giảm mỡ và ng"
+      },
+      "steps": 2
+    },
+    {
+      "id": "R6-revise-keeps",
+      "expect": "still 12 weeks (not 16)",
+      "last": {
+        "turn": "Ưu tiên tập nhẹ nhàng hơn",
+        "type": "ACTION_CONFIRMATION",
+        "totalWeeks": 12,
+        "phaseCount": 4,
+        "timeframeNote": "Lộ trình dài 12 tuần theo yêu cầu của bạn.",
+        "answerHead": "Mình đã điều chỉnh lộ trình theo yêu cầu của bạn:\n\nKế hoạch thể hình dài hạn cho mục tiêu giảm cân.\n\nLộ trình dài 12 tuầ"
+      },
+      "steps": 2
+    },
+    {
+      "id": "R7-ambiguous",
+      "expect": "asks, no draft",
+      "last": {
+        "turn": "Tạo lộ trình không giới hạn thời gian nhưng muốn xong trong 12 tuần",
+        "type": null,
+        "totalWeeks": null,
+        "phaseCount": null,
+        "timeframeNote": "Mình chưa chắc bạn muốn lộ trình dài bao lâu (vừa nói không giới hạn thời gian vừa nêu một thời hạn cụ thể). Bạn cho mình một lựa chọn nhé — ví dụ “trong 12 tuần” hoặc “không giới hạn thời gian”.",
+        "answerHead": "Mình chưa chắc bạn muốn lộ trình dài bao lâu (vừa nói không giới hạn thời gian vừa nêu một thời hạn cụ thể). Bạn cho mìn"
+      },
+      "steps": 1
+    }
+  ]
+}

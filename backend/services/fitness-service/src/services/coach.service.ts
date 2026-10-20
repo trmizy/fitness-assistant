@@ -12,7 +12,8 @@
  */
 import { prisma } from "../repositories/prisma";
 import { logger } from "@gym-coach/shared";
-import { isActivePtClientRelationship, fetchUserProfile, fetchInBodyHistory } from "../clients/user.client";
+import { isActivePtClientRelationship, fetchUserProfile, fetchInBodyHistory, fetchActiveClientIdsStrict } from "../clients/user.client";
+import { evaluateRosterClient, sortRosterRows, summarizeRoster, type RosterClientRow } from "./coach-roster-adherence.engine";
 import { generateClientPlanDraftSafe } from "../clients/ai.client";
 import { trainingCycleService, findAssessmentForNutritionReview } from "./training-cycle.service";
 import { cycleFeedbackAggregator } from "./cycle-feedback-aggregator";
@@ -32,6 +33,7 @@ import type { CreateFitnessRoadmapInput } from "../models/fitness-roadmap.models
  * getter-only) — this plain mutable object exists specifically so it can. */
 export const coachDeps = {
   isActivePtClientRelationship,
+  fetchActiveClientIdsStrict,
 };
 
 export const coachService = {
@@ -40,6 +42,88 @@ export const coachService = {
     if (!active) {
       throw { status: 403, message: "No active PT-client relationship with this client" };
     }
+  },
+
+  /**
+   * PT Copilot — roster-wide adherence/progress for the clients THIS PT is authorised for (audit BDG-08). Authorization is the roster
+   * itself: the ids come only from user-service's authoritative ACTIVE contracts for the verified ptUserId (never from the request),
+   * every query below is scoped to exactly those ids, and a roster that cannot be read FAILS (503) instead of reading as "no clients".
+   * Read-only; one audit row per client viewed. No model call, no write to any client data.
+   */
+  async getRosterAdherence(ptUserId: string, windowDays: number = 14, asOf: Date = new Date()) {
+    let clientIds: string[];
+    try {
+      clientIds = await coachDeps.fetchActiveClientIdsStrict(ptUserId);
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, ptUserId }, "[coach] roster lookup failed — refusing to build the adherence view");
+      throw { status: 503, message: "Không đọc được danh sách client của bạn lúc này. Vui lòng thử lại." };
+    }
+    const start = new Date(asOf.getTime() - windowDays * 86_400_000);
+    const window = { days: windowDays, start: start.toISOString(), end: asOf.toISOString() };
+    if (clientIds.length === 0) return { window, summary: summarizeRoster([]), clients: [] as RosterClientRow[] };
+
+    const startDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+    const [scheduleCounts, lastCompleted, programs, mealCounts, mealDays] = await Promise.all([
+      prisma.workoutSchedule.groupBy({ by: ["userId", "status"], where: { userId: { in: clientIds }, date: { gte: start, lte: asOf } }, _count: { _all: true } }),
+      prisma.workoutSchedule.groupBy({ by: ["userId"], where: { userId: { in: clientIds }, status: "COMPLETED", date: { lte: asOf } }, _max: { date: true } }),
+      prisma.nutritionProgram.findMany({ where: { userId: { in: clientIds }, status: "ACTIVE" }, select: { userId: true } }),
+      prisma.nutritionMealCompletion.groupBy({ by: ["userId", "status"], where: { userId: { in: clientIds }, logDate: { gte: startDay, lte: asOf } }, _count: { _all: true } }),
+      prisma.nutritionMealCompletion.groupBy({ by: ["userId", "logDate"], where: { userId: { in: clientIds }, logDate: { gte: startDay, lte: asOf }, status: { in: ["COMPLETED", "PARTIAL"] } } }),
+    ]);
+
+    const rows = clientIds.map((clientUserId) => {
+      const sc = (status: string) => scheduleCounts.find((r) => r.userId === clientUserId && r.status === status)?._count._all ?? 0;
+      const scheduled = scheduleCounts.filter((r) => r.userId === clientUserId).reduce((n, r) => n + r._count._all, 0);
+      const mc = (status: string) => mealCounts.find((r) => r.userId === clientUserId && r.status === status)?._count._all ?? 0;
+      const days = mealDays.filter((r) => r.userId === clientUserId).map((r) => r.logDate).sort((a, b) => a.getTime() - b.getTime());
+      return evaluateRosterClient({
+        clientUserId, windowDays, asOf,
+        workout: {
+          scheduled, completed: sc("COMPLETED"), partiallyCompleted: sc("PARTIALLY_COMPLETED"), skipped: sc("SKIPPED"),
+          lastCompletedAt: lastCompleted.find((r) => r.userId === clientUserId)?._max.date ?? null,
+        },
+        nutrition: {
+          hasActiveProgram: programs.some((p) => p.userId === clientUserId),
+          completedMeals: mc("COMPLETED"), partialMeals: mc("PARTIAL"), skippedMeals: mc("SKIPPED"),
+          logDays: days.length, lastLogDate: days.length ? days[days.length - 1] : null,
+        },
+      });
+    });
+    const sorted = sortRosterRows(rows);
+
+    try {
+      await prisma.coachClientActionAudit.createMany({
+        data: clientIds.map((clientUserId) => ({ ptUserId, clientUserId, action: "VIEW_ROSTER_ADHERENCE", metadata: { windowDays, rosterSize: clientIds.length } as any })),
+      });
+    } catch (err) {
+      // Same tolerance as getClientSummary: an audit-write failure never blocks a PT from data they are authorised to see.
+      logger.warn({ err: (err as Error).message, ptUserId }, "[coach] roster-adherence audit write failed");
+    }
+    return { window, summary: summarizeRoster(sorted), clients: sorted };
+  },
+
+  /**
+   * PT Copilot (Phase 4, step 2) — records a PT's decision on an AI-DRAFTED proposal for one client (message draft / plan review
+   * suggestion). It changes NOTHING about the client: no message is sent and no plan/goal is written — the proposal text is only a draft
+   * the PT may use. What is stored is the audit trail (who approved or dismissed what, for which client). The active PT -> client
+   * relationship is RE-VERIFIED here, server-side, at decision time: the client id in the request and the earlier chat proposal are never
+   * trusted (the contract may have ended since the proposal was drafted).
+   */
+  async recordAiProposalDecision(
+    ptUserId: string,
+    clientUserId: string,
+    input: { decision: "APPROVED" | "DISMISSED"; proposalId: string; proposalTypes: string[]; basedOnCount: number },
+  ) {
+    await this.assertActivePtClientRelationship(ptUserId, clientUserId);
+    const action = input.decision === "APPROVED" ? "AI_PROPOSAL_APPROVED" : "AI_PROPOSAL_DISMISSED";
+    const row = await prisma.coachClientActionAudit.create({
+      data: {
+        ptUserId, clientUserId, action,
+        metadata: { proposalId: input.proposalId, proposalTypes: input.proposalTypes, basedOnCount: input.basedOnCount, sentToClient: false, clientDataChanged: false } as any,
+      },
+      select: { id: true, action: true, createdAt: true },
+    });
+    return { recorded: true, auditId: row.id, action: row.action, sentToClient: false, clientDataChanged: false };
   },
 
   /** Everything a PT needs to make a plan decision for a client: current

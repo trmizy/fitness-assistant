@@ -63,9 +63,27 @@ export const bullmqStatsDeps = {
   },
 };
 
+/** Seam for the BullMQ publish (tests assert the exact options without a Redis connection). */
+export const bullmqPublishDeps = {
+  add: async (name: string, data: Record<string, unknown>, opts?: { jobId?: string }) => {
+    // BullMQ ignores add() for an id that still exists. A republish of an execution whose previous job is only RETAINED (failed or
+    // completed, kept by the queue's retention) must replace it, otherwise recovery silently does nothing. A waiting/active/delayed
+    // job is left alone (that is the duplicate we want to absorb); the durable worker claim dedupes the rest.
+    if (opts?.jobId) {
+      const existing = await aiQueue.getJob(opts.jobId);
+      if (existing) {
+        const state = await existing.getState();
+        if (state === "failed" || state === "completed") await existing.remove();
+      }
+    }
+    return aiQueue.add(name, data, opts);
+  },
+};
+
 export async function enqueueAiTask(
   name: AiTaskName,
   data: Record<string, unknown>,
+  opts: { jobId?: string } = {},
 ): Promise<EnqueuedAiTask> {
   if (process.env.QUEUE_PROVIDER === "sqs") {
     const queueUrl = process.env.AI_TASKS_QUEUE_URL;
@@ -90,7 +108,9 @@ export async function enqueueAiTask(
     return { id: result.MessageId };
   }
 
-  const job = await aiQueue.add(name, data);
+  // opts.jobId makes the BullMQ add idempotent per execution (same id => no duplicate job). SQS has no equivalent here;
+  // duplicate SQS messages are absorbed by the durable worker claim instead.
+  const job = await bullmqPublishDeps.add(name, data, opts.jobId ? { jobId: opts.jobId } : undefined);
   return { id: job.id! };
 }
 

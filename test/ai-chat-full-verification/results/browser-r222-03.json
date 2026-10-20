@@ -1,0 +1,127 @@
+{
+  "at": "2026-10-20T08:21:41.873Z",
+  "requests": [
+    {
+      "path": "/ai/ask/stream",
+      "id": "442ee52c-f0eb-460a-85da-a9145ecf1f8a",
+      "question": "Một câu thôi: protein giúp gì cho cơ bắp?"
+    },
+    {
+      "path": "/ai/ask/stream",
+      "id": "442ee52c-f0eb-460a-85da-a9145ecf1f8a",
+      "question": "Một câu thôi: protein giúp gì cho cơ bắp?"
+    },
+    {
+      "path": "/ai/ask/stream",
+      "id": "3bb7944c-287f-4932-b274-aec0051959e8",
+      "question": "Một câu thôi: protein giúp gì cho cơ bắp?"
+    },
+    {
+      "path": "/ai/ask/stream",
+      "id": "fceba1e3-c369-447a-a1a0-ac754832ae9a",
+      "question": "Câu cuối: uống nước bao nhiêu mỗi ngày?"
+    },
+    {
+      "path": "/ai/ask/stream",
+      "id": "fceba1e3-c369-447a-a1a0-ac754832ae9a",
+      "question": "Câu cuối: uống nước bao nhiêu mỗi ngày?"
+    },
+    {
+      "path": "/ai/ask/stream",
+      "id": "931fedb1-86f0-4da4-8951-24c48af14ca6",
+      "question": "Tin nhắn thất bại của người dùng A"
+    }
+  ],
+  "results": [
+    {
+      "name": "1a. the first send carried a client-generated clientRequestId",
+      "pass": true,
+      "detail": "442ee52c-f0eb-460a-85da-a9145ecf1f8a"
+    },
+    {
+      "name": "1b. after the dropped response the UI offers 'Thử lại' and says the outcome is unclear / not duplicated",
+      "pass": true,
+      "detail": "⚠️ Chưa rõ yêu cầu đã được xử lý hay chưa. Bấm “Thử lại” để gửi lại đúng yêu cầu này — nếu yêu cầu trước đã được xử lý, bạn sẽ nhận lại đúng kết quả đó và không bị tạo trùng."
+    },
+    {
+      "name": "2a. 'Thử lại' sent exactly one new request",
+      "pass": true,
+      "detail": "1 request(s)"
+    },
+    {
+      "name": "2b. the retry reused the original clientRequestId",
+      "pass": true,
+      "detail": "442ee52c-f0eb-460a-85da-a9145ecf1f8a vs 442ee52c-f0eb-460a-85da-a9145ecf1f8a"
+    },
+    {
+      "name": "2c. the retry sent the stored question unchanged",
+      "pass": true,
+      "detail": "Một câu thôi: protein giúp gì cho cơ bắp?"
+    },
+    {
+      "name": "2c2. the retry did NOT create a second conversation (server de-duplicated the plain question)",
+      "pass": true,
+      "detail": "1 session(s)"
+    },
+    {
+      "name": "2d. after a successful retry the failed banner / retry button is gone",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "3. a deliberate resend of identical text uses a NEW clientRequestId",
+      "pass": true,
+      "detail": "3bb7944c-287f-4932-b274-aec0051959e8 vs 442ee52c-f0eb-460a-85da-a9145ecf1f8a"
+    },
+    {
+      "name": "4a. the in-flight request had an id persisted before it left",
+      "pass": true,
+      "detail": "fceba1e3-c369-447a-a1a0-ac754832ae9a"
+    },
+    {
+      "name": "4b. the request record (with its id) was persisted to the user-scoped store before completion",
+      "pass": true,
+      "detail": "6 matching key(s)"
+    },
+    {
+      "name": "4c. after the reload the interrupted send is shown as unclear with 'Thử lại' (not silently replayed)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "4d. the reload did not auto-resend anything",
+      "pass": true,
+      "detail": "1 request(s) since"
+    },
+    {
+      "name": "4e. the retry after reload reused the original id and question",
+      "pass": true,
+      "detail": "fceba1e3-c369-447a-a1a0-ac754832ae9a vs fceba1e3-c369-447a-a1a0-ac754832ae9a"
+    },
+    {
+      "name": "5a. user A has a failed message with 'Thử lại' before switching",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "5b. signing out through the UI lands on /login",
+      "pass": true,
+      "detail": "http://127.0.0.1:15173/login"
+    },
+    {
+      "name": "5b2. after sign-out no access/refresh token or user record remains in storage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "5c. user B (same browser) does not see user A's retry button or failed text",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "5d. switching account sent no chat request on its own",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

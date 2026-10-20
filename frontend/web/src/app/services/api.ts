@@ -3565,12 +3565,23 @@ function aiFriendlyErrorMessage(status?: number): string {
   return "Không thể kết nối AI Coach. Vui lòng thử lại.";
 }
 
+/**
+ * One id per intentional user action (a chat send). Retries of that same send (the 401 refresh-and-resend below, or a
+ * caller that passes the id back in) reuse it so the server can recognise them as the same request and not start a
+ * second paid generation. A NEW user command must get a new id (the default).
+ */
+function newClientRequestId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export const coachService = {
-  chat: async (message: string, sessionId?: string) => {
+  chat: async (message: string, sessionId?: string, clientRequestId: string = newClientRequestId()) => {
     try {
       const { data } = await api.post(
         "/ai/ask",
-        { question: message, ...(sessionId ? { sessionId } : {}) },
+        { question: message, clientRequestId, ...(sessionId ? { sessionId } : {}) },
         {
           // API Gateway/Lambda HTTP integrations are bounded around 30s.
           timeout: 30000,
@@ -3619,6 +3630,7 @@ export const coachService = {
       onError: (message: string) => void;
     },
     sessionId?: string,
+    clientRequestId: string = newClientRequestId(),
   ): () => void {
     const controller = new AbortController();
     const slowNoticeTimer = window.setTimeout(() => {
@@ -3643,6 +3655,7 @@ export const coachService = {
             },
             body: JSON.stringify({
               question: message,
+              clientRequestId, // same id on the 401 refresh-and-resend below
               ...(sessionId ? { sessionId } : {}),
             }),
             signal: controller.signal,

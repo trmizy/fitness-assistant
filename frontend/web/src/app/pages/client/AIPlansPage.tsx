@@ -937,19 +937,19 @@ export function AIPlansPage() {
       return;
     }
     if (
-      !Number.isFinite(durationWeeks) ||
+      !Number.isInteger(durationWeeks) ||
       durationWeeks < 1 ||
       durationWeeks > 52
     ) {
       toast.error("durationWeeks phải trong khoảng 1-52");
       return;
     }
-    if (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+    if (!Number.isInteger(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
       toast.error("daysPerWeek phải trong khoảng 1-7");
       return;
     }
     if (
-      !Number.isFinite(exercisesPerDay) ||
+      !Number.isInteger(exercisesPerDay) ||
       exercisesPerDay < 1 ||
       exercisesPerDay > 8
     ) {
@@ -1050,6 +1050,10 @@ export function AIPlansPage() {
     setDaysPerWeek(plan.daysPerWeek);
     const retryExercisesPerDay =
       toPlanContent(plan.plan)?.exercisesPerDay ?? exercisesPerDay;
+    if (!Number.isInteger(retryExercisesPerDay) || retryExercisesPerDay < 1 || retryExercisesPerDay > 8) {
+      toast.error("Vui lòng nhập số bài mỗi buổi từ 1 đến 8 trước khi tạo lại");
+      return;
+    }
     setExercisesPerDay(retryExercisesPerDay);
     setPlanFilter("all");
     generateMutation.mutate({
@@ -1332,8 +1336,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={52}
-                  value={durationWeeks}
-                  onChange={(e) => setDurationWeeks(Number(e.target.value))}
+                  value={Number.isFinite(durationWeeks) ? durationWeeks : ""}
+                  onChange={(e) => setDurationWeeks(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(durationWeeks)) e.currentTarget.value = String(durationWeeks); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>
@@ -1346,8 +1351,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={7}
-                  value={daysPerWeek}
-                  onChange={(e) => setDaysPerWeek(Number(e.target.value))}
+                  value={Number.isFinite(daysPerWeek) ? daysPerWeek : ""}
+                  onChange={(e) => setDaysPerWeek(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(daysPerWeek)) e.currentTarget.value = String(daysPerWeek); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>
@@ -1360,8 +1366,9 @@ export function AIPlansPage() {
                   type="number"
                   min={1}
                   max={8}
-                  value={exercisesPerDay}
-                  onChange={(e) => setExercisesPerDay(Number(e.target.value))}
+                  value={Number.isFinite(exercisesPerDay) ? exercisesPerDay : ""}
+                  onChange={(e) => setExercisesPerDay(e.target.value === "" ? NaN : Number(e.target.value))}
+                  onBlur={(e) => { if (Number.isFinite(exercisesPerDay)) e.currentTarget.value = String(exercisesPerDay); }}
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
                 />
               </div>

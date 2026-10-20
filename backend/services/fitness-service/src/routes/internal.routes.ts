@@ -25,6 +25,13 @@ router.get(
   internalAuthMiddleware,
   internalController.getLatestClosedCycle as any,
 );
+// Read-only muscle data for a small set of canonical Exercise ids (AI draft revisions by body part). Exercise is the
+// catalog source of truth; ai-service never copies or guesses muscle groups.
+router.post(
+  "/exercises/muscle-profiles",
+  internalAuthMiddleware,
+  internalController.exerciseMuscleProfiles as any,
+);
 router.post(
   "/exercises/validate-plan-equipment",
   internalAuthMiddleware,

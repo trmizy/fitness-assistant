@@ -48,6 +48,19 @@ declare global {
         role: string;
         /** Original Authorization header — forwarded to profile/fitness calls */
         authorizationHeader?: string;
+        /**
+         * How the caller proved itself — set only by requireAuth, never read from a
+         * request header:
+         *  - "service":      proved INTERNAL_SERVICE_SECRET and carries NO end-user
+         *                    bearer (a genuine service-to-service call such as
+         *                    fitness-service). The only kind a service-only route accepts.
+         *  - "gateway_user": proved INTERNAL_SERVICE_SECRET AND carries an end-user
+         *                    bearer — the Express gateway forwarding a logged-in user
+         *                    (the gateway stamps the secret on every proxied request, so
+         *                    the secret alone cannot tell it apart from fitness-service).
+         *  - "user":         end-user JWT verified against auth-service directly.
+         */
+        callerKind?: "service" | "gateway_user" | "user";
       };
     }
   }
@@ -118,6 +131,7 @@ export async function requireAuth(
       userId: rawUserId.trim(),
       role: (extractHeader(req, "x-user-role") ?? "").trim(),
       authorizationHeader,
+      callerKind: bearerToken(req) ? "gateway_user" : "service",
     };
     return next();
   }
@@ -134,6 +148,7 @@ export async function requireAuth(
         userId: user.id,
         role: (user.role ?? "").trim(),
         authorizationHeader,
+        callerKind: "user",
       };
       return next();
     } catch (error) {
@@ -180,6 +195,7 @@ export async function requireAuth(
       userId: rawUserId,
       role: (extractHeader(req, "x-user-role") ?? "").trim(),
       authorizationHeader,
+      callerKind: "service",
     };
     return next();
   }

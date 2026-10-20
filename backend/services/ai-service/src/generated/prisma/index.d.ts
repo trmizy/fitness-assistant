@@ -143,6 +143,11 @@ export type FitnessAgentAction = $Result.DefaultSelection<Prisma.$FitnessAgentAc
  * 
  */
 export type AgentWorkflowSession = $Result.DefaultSelection<Prisma.$AgentWorkflowSessionPayload>
+/**
+ * Model AiGenerationOperation
+ * 
+ */
+export type AiGenerationOperation = $Result.DefaultSelection<Prisma.$AiGenerationOperationPayload>
 
 /**
  * Enums
@@ -750,6 +755,16 @@ export class PrismaClient<
     * ```
     */
   get agentWorkflowSession(): Prisma.AgentWorkflowSessionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.aiGenerationOperation`: Exposes CRUD operations for the **AiGenerationOperation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AiGenerationOperations
+    * const aiGenerationOperations = await prisma.aiGenerationOperation.findMany()
+    * ```
+    */
+  get aiGenerationOperation(): Prisma.AiGenerationOperationDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1216,7 +1231,8 @@ export namespace Prisma {
     KnowledgeReviewItem: 'KnowledgeReviewItem',
     FitnessRecommendation: 'FitnessRecommendation',
     FitnessAgentAction: 'FitnessAgentAction',
-    AgentWorkflowSession: 'AgentWorkflowSession'
+    AgentWorkflowSession: 'AgentWorkflowSession',
+    AiGenerationOperation: 'AiGenerationOperation'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1232,7 +1248,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction" | "agentWorkflowSession"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction" | "agentWorkflowSession" | "aiGenerationOperation"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3056,6 +3072,76 @@ export namespace Prisma {
           }
         }
       }
+      AiGenerationOperation: {
+        payload: Prisma.$AiGenerationOperationPayload<ExtArgs>
+        fields: Prisma.AiGenerationOperationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AiGenerationOperationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AiGenerationOperationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          findFirst: {
+            args: Prisma.AiGenerationOperationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AiGenerationOperationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          findMany: {
+            args: Prisma.AiGenerationOperationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>[]
+          }
+          create: {
+            args: Prisma.AiGenerationOperationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          createMany: {
+            args: Prisma.AiGenerationOperationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AiGenerationOperationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>[]
+          }
+          delete: {
+            args: Prisma.AiGenerationOperationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          update: {
+            args: Prisma.AiGenerationOperationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          deleteMany: {
+            args: Prisma.AiGenerationOperationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AiGenerationOperationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AiGenerationOperationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiGenerationOperationPayload>
+          }
+          aggregate: {
+            args: Prisma.AiGenerationOperationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAiGenerationOperation>
+          }
+          groupBy: {
+            args: Prisma.AiGenerationOperationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AiGenerationOperationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AiGenerationOperationCountArgs<ExtArgs>
+            result: $Utils.Optional<AiGenerationOperationCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3541,6 +3627,7 @@ export namespace Prisma {
     responseLanguage: string | null
     routeIntent: string | null
     warningCount: number | null
+    clientRequestId: string | null
     createdAt: Date | null
   }
 
@@ -3566,6 +3653,7 @@ export namespace Prisma {
     responseLanguage: string | null
     routeIntent: string | null
     warningCount: number | null
+    clientRequestId: string | null
     createdAt: Date | null
   }
 
@@ -3592,6 +3680,7 @@ export namespace Prisma {
     responseLanguage: number
     routeIntent: number
     warningCount: number
+    clientRequestId: number
     createdAt: number
     _all: number
   }
@@ -3639,6 +3728,7 @@ export namespace Prisma {
     responseLanguage?: true
     routeIntent?: true
     warningCount?: true
+    clientRequestId?: true
     createdAt?: true
   }
 
@@ -3664,6 +3754,7 @@ export namespace Prisma {
     responseLanguage?: true
     routeIntent?: true
     warningCount?: true
+    clientRequestId?: true
     createdAt?: true
   }
 
@@ -3690,6 +3781,7 @@ export namespace Prisma {
     responseLanguage?: true
     routeIntent?: true
     warningCount?: true
+    clientRequestId?: true
     createdAt?: true
     _all?: true
   }
@@ -3803,6 +3895,7 @@ export namespace Prisma {
     responseLanguage: string | null
     routeIntent: string | null
     warningCount: number
+    clientRequestId: string | null
     createdAt: Date
     _count: ConversationCountAggregateOutputType | null
     _avg: ConversationAvgAggregateOutputType | null
@@ -3848,6 +3941,7 @@ export namespace Prisma {
     responseLanguage?: boolean
     routeIntent?: boolean
     warningCount?: boolean
+    clientRequestId?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["conversation"]>
 
@@ -3874,6 +3968,7 @@ export namespace Prisma {
     responseLanguage?: boolean
     routeIntent?: boolean
     warningCount?: boolean
+    clientRequestId?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["conversation"]>
 
@@ -3900,6 +3995,7 @@ export namespace Prisma {
     responseLanguage?: boolean
     routeIntent?: boolean
     warningCount?: boolean
+    clientRequestId?: boolean
     createdAt?: boolean
   }
 
@@ -3930,6 +4026,7 @@ export namespace Prisma {
       responseLanguage: string | null
       routeIntent: string | null
       warningCount: number
+      clientRequestId: string | null
       createdAt: Date
     }, ExtArgs["result"]["conversation"]>
     composites: {}
@@ -4346,6 +4443,7 @@ export namespace Prisma {
     readonly responseLanguage: FieldRef<"Conversation", 'String'>
     readonly routeIntent: FieldRef<"Conversation", 'String'>
     readonly warningCount: FieldRef<"Conversation", 'Int'>
+    readonly clientRequestId: FieldRef<"Conversation", 'String'>
     readonly createdAt: FieldRef<"Conversation", 'DateTime'>
   }
     
@@ -30817,6 +30915,1126 @@ export namespace Prisma {
 
 
   /**
+   * Model AiGenerationOperation
+   */
+
+  export type AggregateAiGenerationOperation = {
+    _count: AiGenerationOperationCountAggregateOutputType | null
+    _avg: AiGenerationOperationAvgAggregateOutputType | null
+    _sum: AiGenerationOperationSumAggregateOutputType | null
+    _min: AiGenerationOperationMinAggregateOutputType | null
+    _max: AiGenerationOperationMaxAggregateOutputType | null
+  }
+
+  export type AiGenerationOperationAvgAggregateOutputType = {
+    epoch: number | null
+    publishCount: number | null
+    attempt: number | null
+  }
+
+  export type AiGenerationOperationSumAggregateOutputType = {
+    epoch: number | null
+    publishCount: number | null
+    attempt: number | null
+  }
+
+  export type AiGenerationOperationMinAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    subjectUserId: string | null
+    kind: string | null
+    idempotencyKey: string | null
+    fingerprint: string | null
+    status: string | null
+    epoch: number | null
+    reservationToken: string | null
+    publishCount: number | null
+    targetType: string | null
+    targetId: string | null
+    messageId: string | null
+    attempt: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    lastError: string | null
+    publishedAt: Date | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiGenerationOperationMaxAggregateOutputType = {
+    id: string | null
+    actorUserId: string | null
+    subjectUserId: string | null
+    kind: string | null
+    idempotencyKey: string | null
+    fingerprint: string | null
+    status: string | null
+    epoch: number | null
+    reservationToken: string | null
+    publishCount: number | null
+    targetType: string | null
+    targetId: string | null
+    messageId: string | null
+    attempt: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    lastError: string | null
+    publishedAt: Date | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiGenerationOperationCountAggregateOutputType = {
+    id: number
+    actorUserId: number
+    subjectUserId: number
+    kind: number
+    idempotencyKey: number
+    fingerprint: number
+    status: number
+    epoch: number
+    reservationToken: number
+    publishCount: number
+    targetType: number
+    targetId: number
+    payload: number
+    messageId: number
+    attempt: number
+    leaseOwner: number
+    leaseExpiresAt: number
+    lastError: number
+    publishedAt: number
+    completedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AiGenerationOperationAvgAggregateInputType = {
+    epoch?: true
+    publishCount?: true
+    attempt?: true
+  }
+
+  export type AiGenerationOperationSumAggregateInputType = {
+    epoch?: true
+    publishCount?: true
+    attempt?: true
+  }
+
+  export type AiGenerationOperationMinAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    subjectUserId?: true
+    kind?: true
+    idempotencyKey?: true
+    fingerprint?: true
+    status?: true
+    epoch?: true
+    reservationToken?: true
+    publishCount?: true
+    targetType?: true
+    targetId?: true
+    messageId?: true
+    attempt?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    lastError?: true
+    publishedAt?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiGenerationOperationMaxAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    subjectUserId?: true
+    kind?: true
+    idempotencyKey?: true
+    fingerprint?: true
+    status?: true
+    epoch?: true
+    reservationToken?: true
+    publishCount?: true
+    targetType?: true
+    targetId?: true
+    messageId?: true
+    attempt?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    lastError?: true
+    publishedAt?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiGenerationOperationCountAggregateInputType = {
+    id?: true
+    actorUserId?: true
+    subjectUserId?: true
+    kind?: true
+    idempotencyKey?: true
+    fingerprint?: true
+    status?: true
+    epoch?: true
+    reservationToken?: true
+    publishCount?: true
+    targetType?: true
+    targetId?: true
+    payload?: true
+    messageId?: true
+    attempt?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    lastError?: true
+    publishedAt?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AiGenerationOperationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiGenerationOperation to aggregate.
+     */
+    where?: AiGenerationOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiGenerationOperations to fetch.
+     */
+    orderBy?: AiGenerationOperationOrderByWithRelationInput | AiGenerationOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AiGenerationOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiGenerationOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiGenerationOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AiGenerationOperations
+    **/
+    _count?: true | AiGenerationOperationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AiGenerationOperationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AiGenerationOperationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AiGenerationOperationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AiGenerationOperationMaxAggregateInputType
+  }
+
+  export type GetAiGenerationOperationAggregateType<T extends AiGenerationOperationAggregateArgs> = {
+        [P in keyof T & keyof AggregateAiGenerationOperation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAiGenerationOperation[P]>
+      : GetScalarType<T[P], AggregateAiGenerationOperation[P]>
+  }
+
+
+
+
+  export type AiGenerationOperationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiGenerationOperationWhereInput
+    orderBy?: AiGenerationOperationOrderByWithAggregationInput | AiGenerationOperationOrderByWithAggregationInput[]
+    by: AiGenerationOperationScalarFieldEnum[] | AiGenerationOperationScalarFieldEnum
+    having?: AiGenerationOperationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AiGenerationOperationCountAggregateInputType | true
+    _avg?: AiGenerationOperationAvgAggregateInputType
+    _sum?: AiGenerationOperationSumAggregateInputType
+    _min?: AiGenerationOperationMinAggregateInputType
+    _max?: AiGenerationOperationMaxAggregateInputType
+  }
+
+  export type AiGenerationOperationGroupByOutputType = {
+    id: string
+    actorUserId: string
+    subjectUserId: string | null
+    kind: string
+    idempotencyKey: string
+    fingerprint: string
+    status: string
+    epoch: number
+    reservationToken: string | null
+    publishCount: number
+    targetType: string | null
+    targetId: string | null
+    payload: JsonValue | null
+    messageId: string | null
+    attempt: number
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    lastError: string | null
+    publishedAt: Date | null
+    completedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AiGenerationOperationCountAggregateOutputType | null
+    _avg: AiGenerationOperationAvgAggregateOutputType | null
+    _sum: AiGenerationOperationSumAggregateOutputType | null
+    _min: AiGenerationOperationMinAggregateOutputType | null
+    _max: AiGenerationOperationMaxAggregateOutputType | null
+  }
+
+  type GetAiGenerationOperationGroupByPayload<T extends AiGenerationOperationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AiGenerationOperationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AiGenerationOperationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AiGenerationOperationGroupByOutputType[P]>
+            : GetScalarType<T[P], AiGenerationOperationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AiGenerationOperationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    subjectUserId?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    fingerprint?: boolean
+    status?: boolean
+    epoch?: boolean
+    reservationToken?: boolean
+    publishCount?: boolean
+    targetType?: boolean
+    targetId?: boolean
+    payload?: boolean
+    messageId?: boolean
+    attempt?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    lastError?: boolean
+    publishedAt?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiGenerationOperation"]>
+
+  export type AiGenerationOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    actorUserId?: boolean
+    subjectUserId?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    fingerprint?: boolean
+    status?: boolean
+    epoch?: boolean
+    reservationToken?: boolean
+    publishCount?: boolean
+    targetType?: boolean
+    targetId?: boolean
+    payload?: boolean
+    messageId?: boolean
+    attempt?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    lastError?: boolean
+    publishedAt?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiGenerationOperation"]>
+
+  export type AiGenerationOperationSelectScalar = {
+    id?: boolean
+    actorUserId?: boolean
+    subjectUserId?: boolean
+    kind?: boolean
+    idempotencyKey?: boolean
+    fingerprint?: boolean
+    status?: boolean
+    epoch?: boolean
+    reservationToken?: boolean
+    publishCount?: boolean
+    targetType?: boolean
+    targetId?: boolean
+    payload?: boolean
+    messageId?: boolean
+    attempt?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    lastError?: boolean
+    publishedAt?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $AiGenerationOperationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AiGenerationOperation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      actorUserId: string
+      subjectUserId: string | null
+      kind: string
+      idempotencyKey: string
+      fingerprint: string
+      status: string
+      epoch: number
+      reservationToken: string | null
+      publishCount: number
+      targetType: string | null
+      targetId: string | null
+      payload: Prisma.JsonValue | null
+      messageId: string | null
+      attempt: number
+      leaseOwner: string | null
+      leaseExpiresAt: Date | null
+      lastError: string | null
+      publishedAt: Date | null
+      completedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aiGenerationOperation"]>
+    composites: {}
+  }
+
+  type AiGenerationOperationGetPayload<S extends boolean | null | undefined | AiGenerationOperationDefaultArgs> = $Result.GetResult<Prisma.$AiGenerationOperationPayload, S>
+
+  type AiGenerationOperationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AiGenerationOperationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AiGenerationOperationCountAggregateInputType | true
+    }
+
+  export interface AiGenerationOperationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AiGenerationOperation'], meta: { name: 'AiGenerationOperation' } }
+    /**
+     * Find zero or one AiGenerationOperation that matches the filter.
+     * @param {AiGenerationOperationFindUniqueArgs} args - Arguments to find a AiGenerationOperation
+     * @example
+     * // Get one AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AiGenerationOperationFindUniqueArgs>(args: SelectSubset<T, AiGenerationOperationFindUniqueArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AiGenerationOperation that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AiGenerationOperationFindUniqueOrThrowArgs} args - Arguments to find a AiGenerationOperation
+     * @example
+     * // Get one AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AiGenerationOperationFindUniqueOrThrowArgs>(args: SelectSubset<T, AiGenerationOperationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AiGenerationOperation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationFindFirstArgs} args - Arguments to find a AiGenerationOperation
+     * @example
+     * // Get one AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AiGenerationOperationFindFirstArgs>(args?: SelectSubset<T, AiGenerationOperationFindFirstArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AiGenerationOperation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationFindFirstOrThrowArgs} args - Arguments to find a AiGenerationOperation
+     * @example
+     * // Get one AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AiGenerationOperationFindFirstOrThrowArgs>(args?: SelectSubset<T, AiGenerationOperationFindFirstOrThrowArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AiGenerationOperations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AiGenerationOperations
+     * const aiGenerationOperations = await prisma.aiGenerationOperation.findMany()
+     * 
+     * // Get first 10 AiGenerationOperations
+     * const aiGenerationOperations = await prisma.aiGenerationOperation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aiGenerationOperationWithIdOnly = await prisma.aiGenerationOperation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AiGenerationOperationFindManyArgs>(args?: SelectSubset<T, AiGenerationOperationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AiGenerationOperation.
+     * @param {AiGenerationOperationCreateArgs} args - Arguments to create a AiGenerationOperation.
+     * @example
+     * // Create one AiGenerationOperation
+     * const AiGenerationOperation = await prisma.aiGenerationOperation.create({
+     *   data: {
+     *     // ... data to create a AiGenerationOperation
+     *   }
+     * })
+     * 
+     */
+    create<T extends AiGenerationOperationCreateArgs>(args: SelectSubset<T, AiGenerationOperationCreateArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AiGenerationOperations.
+     * @param {AiGenerationOperationCreateManyArgs} args - Arguments to create many AiGenerationOperations.
+     * @example
+     * // Create many AiGenerationOperations
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AiGenerationOperationCreateManyArgs>(args?: SelectSubset<T, AiGenerationOperationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AiGenerationOperations and returns the data saved in the database.
+     * @param {AiGenerationOperationCreateManyAndReturnArgs} args - Arguments to create many AiGenerationOperations.
+     * @example
+     * // Create many AiGenerationOperations
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AiGenerationOperations and only return the `id`
+     * const aiGenerationOperationWithIdOnly = await prisma.aiGenerationOperation.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AiGenerationOperationCreateManyAndReturnArgs>(args?: SelectSubset<T, AiGenerationOperationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AiGenerationOperation.
+     * @param {AiGenerationOperationDeleteArgs} args - Arguments to delete one AiGenerationOperation.
+     * @example
+     * // Delete one AiGenerationOperation
+     * const AiGenerationOperation = await prisma.aiGenerationOperation.delete({
+     *   where: {
+     *     // ... filter to delete one AiGenerationOperation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AiGenerationOperationDeleteArgs>(args: SelectSubset<T, AiGenerationOperationDeleteArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AiGenerationOperation.
+     * @param {AiGenerationOperationUpdateArgs} args - Arguments to update one AiGenerationOperation.
+     * @example
+     * // Update one AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AiGenerationOperationUpdateArgs>(args: SelectSubset<T, AiGenerationOperationUpdateArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AiGenerationOperations.
+     * @param {AiGenerationOperationDeleteManyArgs} args - Arguments to filter AiGenerationOperations to delete.
+     * @example
+     * // Delete a few AiGenerationOperations
+     * const { count } = await prisma.aiGenerationOperation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AiGenerationOperationDeleteManyArgs>(args?: SelectSubset<T, AiGenerationOperationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiGenerationOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AiGenerationOperations
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AiGenerationOperationUpdateManyArgs>(args: SelectSubset<T, AiGenerationOperationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AiGenerationOperation.
+     * @param {AiGenerationOperationUpsertArgs} args - Arguments to update or create a AiGenerationOperation.
+     * @example
+     * // Update or create a AiGenerationOperation
+     * const aiGenerationOperation = await prisma.aiGenerationOperation.upsert({
+     *   create: {
+     *     // ... data to create a AiGenerationOperation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AiGenerationOperation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AiGenerationOperationUpsertArgs>(args: SelectSubset<T, AiGenerationOperationUpsertArgs<ExtArgs>>): Prisma__AiGenerationOperationClient<$Result.GetResult<Prisma.$AiGenerationOperationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AiGenerationOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationCountArgs} args - Arguments to filter AiGenerationOperations to count.
+     * @example
+     * // Count the number of AiGenerationOperations
+     * const count = await prisma.aiGenerationOperation.count({
+     *   where: {
+     *     // ... the filter for the AiGenerationOperations we want to count
+     *   }
+     * })
+    **/
+    count<T extends AiGenerationOperationCountArgs>(
+      args?: Subset<T, AiGenerationOperationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AiGenerationOperationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AiGenerationOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AiGenerationOperationAggregateArgs>(args: Subset<T, AiGenerationOperationAggregateArgs>): Prisma.PrismaPromise<GetAiGenerationOperationAggregateType<T>>
+
+    /**
+     * Group by AiGenerationOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiGenerationOperationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AiGenerationOperationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AiGenerationOperationGroupByArgs['orderBy'] }
+        : { orderBy?: AiGenerationOperationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AiGenerationOperationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAiGenerationOperationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AiGenerationOperation model
+   */
+  readonly fields: AiGenerationOperationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AiGenerationOperation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AiGenerationOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AiGenerationOperation model
+   */ 
+  interface AiGenerationOperationFieldRefs {
+    readonly id: FieldRef<"AiGenerationOperation", 'String'>
+    readonly actorUserId: FieldRef<"AiGenerationOperation", 'String'>
+    readonly subjectUserId: FieldRef<"AiGenerationOperation", 'String'>
+    readonly kind: FieldRef<"AiGenerationOperation", 'String'>
+    readonly idempotencyKey: FieldRef<"AiGenerationOperation", 'String'>
+    readonly fingerprint: FieldRef<"AiGenerationOperation", 'String'>
+    readonly status: FieldRef<"AiGenerationOperation", 'String'>
+    readonly epoch: FieldRef<"AiGenerationOperation", 'Int'>
+    readonly reservationToken: FieldRef<"AiGenerationOperation", 'String'>
+    readonly publishCount: FieldRef<"AiGenerationOperation", 'Int'>
+    readonly targetType: FieldRef<"AiGenerationOperation", 'String'>
+    readonly targetId: FieldRef<"AiGenerationOperation", 'String'>
+    readonly payload: FieldRef<"AiGenerationOperation", 'Json'>
+    readonly messageId: FieldRef<"AiGenerationOperation", 'String'>
+    readonly attempt: FieldRef<"AiGenerationOperation", 'Int'>
+    readonly leaseOwner: FieldRef<"AiGenerationOperation", 'String'>
+    readonly leaseExpiresAt: FieldRef<"AiGenerationOperation", 'DateTime'>
+    readonly lastError: FieldRef<"AiGenerationOperation", 'String'>
+    readonly publishedAt: FieldRef<"AiGenerationOperation", 'DateTime'>
+    readonly completedAt: FieldRef<"AiGenerationOperation", 'DateTime'>
+    readonly createdAt: FieldRef<"AiGenerationOperation", 'DateTime'>
+    readonly updatedAt: FieldRef<"AiGenerationOperation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AiGenerationOperation findUnique
+   */
+  export type AiGenerationOperationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which AiGenerationOperation to fetch.
+     */
+    where: AiGenerationOperationWhereUniqueInput
+  }
+
+  /**
+   * AiGenerationOperation findUniqueOrThrow
+   */
+  export type AiGenerationOperationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which AiGenerationOperation to fetch.
+     */
+    where: AiGenerationOperationWhereUniqueInput
+  }
+
+  /**
+   * AiGenerationOperation findFirst
+   */
+  export type AiGenerationOperationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which AiGenerationOperation to fetch.
+     */
+    where?: AiGenerationOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiGenerationOperations to fetch.
+     */
+    orderBy?: AiGenerationOperationOrderByWithRelationInput | AiGenerationOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiGenerationOperations.
+     */
+    cursor?: AiGenerationOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiGenerationOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiGenerationOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiGenerationOperations.
+     */
+    distinct?: AiGenerationOperationScalarFieldEnum | AiGenerationOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AiGenerationOperation findFirstOrThrow
+   */
+  export type AiGenerationOperationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which AiGenerationOperation to fetch.
+     */
+    where?: AiGenerationOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiGenerationOperations to fetch.
+     */
+    orderBy?: AiGenerationOperationOrderByWithRelationInput | AiGenerationOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiGenerationOperations.
+     */
+    cursor?: AiGenerationOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiGenerationOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiGenerationOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiGenerationOperations.
+     */
+    distinct?: AiGenerationOperationScalarFieldEnum | AiGenerationOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AiGenerationOperation findMany
+   */
+  export type AiGenerationOperationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter, which AiGenerationOperations to fetch.
+     */
+    where?: AiGenerationOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiGenerationOperations to fetch.
+     */
+    orderBy?: AiGenerationOperationOrderByWithRelationInput | AiGenerationOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AiGenerationOperations.
+     */
+    cursor?: AiGenerationOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiGenerationOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiGenerationOperations.
+     */
+    skip?: number
+    distinct?: AiGenerationOperationScalarFieldEnum | AiGenerationOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AiGenerationOperation create
+   */
+  export type AiGenerationOperationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AiGenerationOperation.
+     */
+    data: XOR<AiGenerationOperationCreateInput, AiGenerationOperationUncheckedCreateInput>
+  }
+
+  /**
+   * AiGenerationOperation createMany
+   */
+  export type AiGenerationOperationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AiGenerationOperations.
+     */
+    data: AiGenerationOperationCreateManyInput | AiGenerationOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiGenerationOperation createManyAndReturn
+   */
+  export type AiGenerationOperationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AiGenerationOperations.
+     */
+    data: AiGenerationOperationCreateManyInput | AiGenerationOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiGenerationOperation update
+   */
+  export type AiGenerationOperationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AiGenerationOperation.
+     */
+    data: XOR<AiGenerationOperationUpdateInput, AiGenerationOperationUncheckedUpdateInput>
+    /**
+     * Choose, which AiGenerationOperation to update.
+     */
+    where: AiGenerationOperationWhereUniqueInput
+  }
+
+  /**
+   * AiGenerationOperation updateMany
+   */
+  export type AiGenerationOperationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AiGenerationOperations.
+     */
+    data: XOR<AiGenerationOperationUpdateManyMutationInput, AiGenerationOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which AiGenerationOperations to update
+     */
+    where?: AiGenerationOperationWhereInput
+  }
+
+  /**
+   * AiGenerationOperation upsert
+   */
+  export type AiGenerationOperationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AiGenerationOperation to update in case it exists.
+     */
+    where: AiGenerationOperationWhereUniqueInput
+    /**
+     * In case the AiGenerationOperation found by the `where` argument doesn't exist, create a new AiGenerationOperation with this data.
+     */
+    create: XOR<AiGenerationOperationCreateInput, AiGenerationOperationUncheckedCreateInput>
+    /**
+     * In case the AiGenerationOperation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AiGenerationOperationUpdateInput, AiGenerationOperationUncheckedUpdateInput>
+  }
+
+  /**
+   * AiGenerationOperation delete
+   */
+  export type AiGenerationOperationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+    /**
+     * Filter which AiGenerationOperation to delete.
+     */
+    where: AiGenerationOperationWhereUniqueInput
+  }
+
+  /**
+   * AiGenerationOperation deleteMany
+   */
+  export type AiGenerationOperationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiGenerationOperations to delete
+     */
+    where?: AiGenerationOperationWhereInput
+  }
+
+  /**
+   * AiGenerationOperation without action
+   */
+  export type AiGenerationOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiGenerationOperation
+     */
+    select?: AiGenerationOperationSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -30853,6 +32071,7 @@ export namespace Prisma {
     responseLanguage: 'responseLanguage',
     routeIntent: 'routeIntent',
     warningCount: 'warningCount',
+    clientRequestId: 'clientRequestId',
     createdAt: 'createdAt'
   };
 
@@ -31325,6 +32544,34 @@ export namespace Prisma {
   export type AgentWorkflowSessionScalarFieldEnum = (typeof AgentWorkflowSessionScalarFieldEnum)[keyof typeof AgentWorkflowSessionScalarFieldEnum]
 
 
+  export const AiGenerationOperationScalarFieldEnum: {
+    id: 'id',
+    actorUserId: 'actorUserId',
+    subjectUserId: 'subjectUserId',
+    kind: 'kind',
+    idempotencyKey: 'idempotencyKey',
+    fingerprint: 'fingerprint',
+    status: 'status',
+    epoch: 'epoch',
+    reservationToken: 'reservationToken',
+    publishCount: 'publishCount',
+    targetType: 'targetType',
+    targetId: 'targetId',
+    payload: 'payload',
+    messageId: 'messageId',
+    attempt: 'attempt',
+    leaseOwner: 'leaseOwner',
+    leaseExpiresAt: 'leaseExpiresAt',
+    lastError: 'lastError',
+    publishedAt: 'publishedAt',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AiGenerationOperationScalarFieldEnum = (typeof AiGenerationOperationScalarFieldEnum)[keyof typeof AiGenerationOperationScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -31701,6 +32948,7 @@ export namespace Prisma {
     responseLanguage?: StringNullableFilter<"Conversation"> | string | null
     routeIntent?: StringNullableFilter<"Conversation"> | string | null
     warningCount?: IntFilter<"Conversation"> | number
+    clientRequestId?: StringNullableFilter<"Conversation"> | string | null
     createdAt?: DateTimeFilter<"Conversation"> | Date | string
   }
 
@@ -31727,11 +32975,13 @@ export namespace Prisma {
     responseLanguage?: SortOrderInput | SortOrder
     routeIntent?: SortOrderInput | SortOrder
     warningCount?: SortOrder
+    clientRequestId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
   }
 
   export type ConversationWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    userId_clientRequestId?: ConversationUserIdClientRequestIdCompoundUniqueInput
     AND?: ConversationWhereInput | ConversationWhereInput[]
     OR?: ConversationWhereInput[]
     NOT?: ConversationWhereInput | ConversationWhereInput[]
@@ -31756,8 +33006,9 @@ export namespace Prisma {
     responseLanguage?: StringNullableFilter<"Conversation"> | string | null
     routeIntent?: StringNullableFilter<"Conversation"> | string | null
     warningCount?: IntFilter<"Conversation"> | number
+    clientRequestId?: StringNullableFilter<"Conversation"> | string | null
     createdAt?: DateTimeFilter<"Conversation"> | Date | string
-  }, "id">
+  }, "id" | "userId_clientRequestId">
 
   export type ConversationOrderByWithAggregationInput = {
     structuredBlocks?: SortOrderInput | SortOrder
@@ -31782,6 +33033,7 @@ export namespace Prisma {
     responseLanguage?: SortOrderInput | SortOrder
     routeIntent?: SortOrderInput | SortOrder
     warningCount?: SortOrder
+    clientRequestId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ConversationCountOrderByAggregateInput
     _avg?: ConversationAvgOrderByAggregateInput
@@ -31816,6 +33068,7 @@ export namespace Prisma {
     responseLanguage?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     routeIntent?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     warningCount?: IntWithAggregatesFilter<"Conversation"> | number
+    clientRequestId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Conversation"> | Date | string
   }
 
@@ -34198,6 +35451,146 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"AgentWorkflowSession"> | Date | string
   }
 
+  export type AiGenerationOperationWhereInput = {
+    AND?: AiGenerationOperationWhereInput | AiGenerationOperationWhereInput[]
+    OR?: AiGenerationOperationWhereInput[]
+    NOT?: AiGenerationOperationWhereInput | AiGenerationOperationWhereInput[]
+    id?: StringFilter<"AiGenerationOperation"> | string
+    actorUserId?: StringFilter<"AiGenerationOperation"> | string
+    subjectUserId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    kind?: StringFilter<"AiGenerationOperation"> | string
+    idempotencyKey?: StringFilter<"AiGenerationOperation"> | string
+    fingerprint?: StringFilter<"AiGenerationOperation"> | string
+    status?: StringFilter<"AiGenerationOperation"> | string
+    epoch?: IntFilter<"AiGenerationOperation"> | number
+    reservationToken?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    publishCount?: IntFilter<"AiGenerationOperation"> | number
+    targetType?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    targetId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    payload?: JsonNullableFilter<"AiGenerationOperation">
+    messageId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    attempt?: IntFilter<"AiGenerationOperation"> | number
+    leaseOwner?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    lastError?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    publishedAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"AiGenerationOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"AiGenerationOperation"> | Date | string
+  }
+
+  export type AiGenerationOperationOrderByWithRelationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    subjectUserId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    fingerprint?: SortOrder
+    status?: SortOrder
+    epoch?: SortOrder
+    reservationToken?: SortOrderInput | SortOrder
+    publishCount?: SortOrder
+    targetType?: SortOrderInput | SortOrder
+    targetId?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    messageId?: SortOrderInput | SortOrder
+    attempt?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    lastError?: SortOrderInput | SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiGenerationOperationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    actorUserId_idempotencyKey?: AiGenerationOperationActorUserIdIdempotencyKeyCompoundUniqueInput
+    AND?: AiGenerationOperationWhereInput | AiGenerationOperationWhereInput[]
+    OR?: AiGenerationOperationWhereInput[]
+    NOT?: AiGenerationOperationWhereInput | AiGenerationOperationWhereInput[]
+    actorUserId?: StringFilter<"AiGenerationOperation"> | string
+    subjectUserId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    kind?: StringFilter<"AiGenerationOperation"> | string
+    idempotencyKey?: StringFilter<"AiGenerationOperation"> | string
+    fingerprint?: StringFilter<"AiGenerationOperation"> | string
+    status?: StringFilter<"AiGenerationOperation"> | string
+    epoch?: IntFilter<"AiGenerationOperation"> | number
+    reservationToken?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    publishCount?: IntFilter<"AiGenerationOperation"> | number
+    targetType?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    targetId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    payload?: JsonNullableFilter<"AiGenerationOperation">
+    messageId?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    attempt?: IntFilter<"AiGenerationOperation"> | number
+    leaseOwner?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    lastError?: StringNullableFilter<"AiGenerationOperation"> | string | null
+    publishedAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"AiGenerationOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"AiGenerationOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"AiGenerationOperation"> | Date | string
+  }, "id" | "actorUserId_idempotencyKey">
+
+  export type AiGenerationOperationOrderByWithAggregationInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    subjectUserId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    fingerprint?: SortOrder
+    status?: SortOrder
+    epoch?: SortOrder
+    reservationToken?: SortOrderInput | SortOrder
+    publishCount?: SortOrder
+    targetType?: SortOrderInput | SortOrder
+    targetId?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    messageId?: SortOrderInput | SortOrder
+    attempt?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    lastError?: SortOrderInput | SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AiGenerationOperationCountOrderByAggregateInput
+    _avg?: AiGenerationOperationAvgOrderByAggregateInput
+    _max?: AiGenerationOperationMaxOrderByAggregateInput
+    _min?: AiGenerationOperationMinOrderByAggregateInput
+    _sum?: AiGenerationOperationSumOrderByAggregateInput
+  }
+
+  export type AiGenerationOperationScalarWhereWithAggregatesInput = {
+    AND?: AiGenerationOperationScalarWhereWithAggregatesInput | AiGenerationOperationScalarWhereWithAggregatesInput[]
+    OR?: AiGenerationOperationScalarWhereWithAggregatesInput[]
+    NOT?: AiGenerationOperationScalarWhereWithAggregatesInput | AiGenerationOperationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    actorUserId?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    subjectUserId?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    kind?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    fingerprint?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    status?: StringWithAggregatesFilter<"AiGenerationOperation"> | string
+    epoch?: IntWithAggregatesFilter<"AiGenerationOperation"> | number
+    reservationToken?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    publishCount?: IntWithAggregatesFilter<"AiGenerationOperation"> | number
+    targetType?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    targetId?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    payload?: JsonNullableWithAggregatesFilter<"AiGenerationOperation">
+    messageId?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    attempt?: IntWithAggregatesFilter<"AiGenerationOperation"> | number
+    leaseOwner?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"AiGenerationOperation"> | Date | string | null
+    lastError?: StringNullableWithAggregatesFilter<"AiGenerationOperation"> | string | null
+    publishedAt?: DateTimeNullableWithAggregatesFilter<"AiGenerationOperation"> | Date | string | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"AiGenerationOperation"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AiGenerationOperation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AiGenerationOperation"> | Date | string
+  }
+
   export type ConversationCreateInput = {
     structuredBlocks?: NullableJsonNullValueInput | InputJsonValue
     id?: string
@@ -34221,6 +35614,7 @@ export namespace Prisma {
     responseLanguage?: string | null
     routeIntent?: string | null
     warningCount?: number
+    clientRequestId?: string | null
     createdAt?: Date | string
   }
 
@@ -34247,6 +35641,7 @@ export namespace Prisma {
     responseLanguage?: string | null
     routeIntent?: string | null
     warningCount?: number
+    clientRequestId?: string | null
     createdAt?: Date | string
   }
 
@@ -34273,6 +35668,7 @@ export namespace Prisma {
     responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
     warningCount?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -34299,6 +35695,7 @@ export namespace Prisma {
     responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
     warningCount?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -34325,6 +35722,7 @@ export namespace Prisma {
     responseLanguage?: string | null
     routeIntent?: string | null
     warningCount?: number
+    clientRequestId?: string | null
     createdAt?: Date | string
   }
 
@@ -34351,6 +35749,7 @@ export namespace Prisma {
     responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
     warningCount?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -34377,6 +35776,7 @@ export namespace Prisma {
     responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
     warningCount?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -37158,6 +38558,181 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
+
+  export type AiGenerationOperationCreateInput = {
+    id?: string
+    actorUserId: string
+    subjectUserId?: string | null
+    kind: string
+    idempotencyKey: string
+    fingerprint: string
+    status?: string
+    epoch?: number
+    reservationToken?: string | null
+    publishCount?: number
+    targetType?: string | null
+    targetId?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: string | null
+    attempt?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    lastError?: string | null
+    publishedAt?: Date | string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiGenerationOperationUncheckedCreateInput = {
+    id?: string
+    actorUserId: string
+    subjectUserId?: string | null
+    kind: string
+    idempotencyKey: string
+    fingerprint: string
+    status?: string
+    epoch?: number
+    reservationToken?: string | null
+    publishCount?: number
+    targetType?: string | null
+    targetId?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: string | null
+    attempt?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    lastError?: string | null
+    publishedAt?: Date | string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiGenerationOperationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    epoch?: IntFieldUpdateOperationsInput | number
+    reservationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    publishCount?: IntFieldUpdateOperationsInput | number
+    targetType?: NullableStringFieldUpdateOperationsInput | string | null
+    targetId?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    attempt?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiGenerationOperationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    epoch?: IntFieldUpdateOperationsInput | number
+    reservationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    publishCount?: IntFieldUpdateOperationsInput | number
+    targetType?: NullableStringFieldUpdateOperationsInput | string | null
+    targetId?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    attempt?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiGenerationOperationCreateManyInput = {
+    id?: string
+    actorUserId: string
+    subjectUserId?: string | null
+    kind: string
+    idempotencyKey: string
+    fingerprint: string
+    status?: string
+    epoch?: number
+    reservationToken?: string | null
+    publishCount?: number
+    targetType?: string | null
+    targetId?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: string | null
+    attempt?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    lastError?: string | null
+    publishedAt?: Date | string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiGenerationOperationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    epoch?: IntFieldUpdateOperationsInput | number
+    reservationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    publishCount?: IntFieldUpdateOperationsInput | number
+    targetType?: NullableStringFieldUpdateOperationsInput | string | null
+    targetId?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    attempt?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiGenerationOperationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    epoch?: IntFieldUpdateOperationsInput | number
+    reservationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    publishCount?: IntFieldUpdateOperationsInput | number
+    targetType?: NullableStringFieldUpdateOperationsInput | string | null
+    targetId?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    attempt?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastError?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -37276,6 +38851,11 @@ export namespace Prisma {
     nulls?: NullsOrder
   }
 
+  export type ConversationUserIdClientRequestIdCompoundUniqueInput = {
+    userId: string
+    clientRequestId: string
+  }
+
   export type ConversationCountOrderByAggregateInput = {
     structuredBlocks?: SortOrder
     id?: SortOrder
@@ -37299,6 +38879,7 @@ export namespace Prisma {
     responseLanguage?: SortOrder
     routeIntent?: SortOrder
     warningCount?: SortOrder
+    clientRequestId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -37334,6 +38915,7 @@ export namespace Prisma {
     responseLanguage?: SortOrder
     routeIntent?: SortOrder
     warningCount?: SortOrder
+    clientRequestId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -37359,6 +38941,7 @@ export namespace Prisma {
     responseLanguage?: SortOrder
     routeIntent?: SortOrder
     warningCount?: SortOrder
+    clientRequestId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -39429,6 +41012,96 @@ export namespace Prisma {
 
   export type AgentWorkflowSessionSumOrderByAggregateInput = {
     revision?: SortOrder
+  }
+
+  export type AiGenerationOperationActorUserIdIdempotencyKeyCompoundUniqueInput = {
+    actorUserId: string
+    idempotencyKey: string
+  }
+
+  export type AiGenerationOperationCountOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    subjectUserId?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    fingerprint?: SortOrder
+    status?: SortOrder
+    epoch?: SortOrder
+    reservationToken?: SortOrder
+    publishCount?: SortOrder
+    targetType?: SortOrder
+    targetId?: SortOrder
+    payload?: SortOrder
+    messageId?: SortOrder
+    attempt?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    lastError?: SortOrder
+    publishedAt?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiGenerationOperationAvgOrderByAggregateInput = {
+    epoch?: SortOrder
+    publishCount?: SortOrder
+    attempt?: SortOrder
+  }
+
+  export type AiGenerationOperationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    subjectUserId?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    fingerprint?: SortOrder
+    status?: SortOrder
+    epoch?: SortOrder
+    reservationToken?: SortOrder
+    publishCount?: SortOrder
+    targetType?: SortOrder
+    targetId?: SortOrder
+    messageId?: SortOrder
+    attempt?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    lastError?: SortOrder
+    publishedAt?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiGenerationOperationMinOrderByAggregateInput = {
+    id?: SortOrder
+    actorUserId?: SortOrder
+    subjectUserId?: SortOrder
+    kind?: SortOrder
+    idempotencyKey?: SortOrder
+    fingerprint?: SortOrder
+    status?: SortOrder
+    epoch?: SortOrder
+    reservationToken?: SortOrder
+    publishCount?: SortOrder
+    targetType?: SortOrder
+    targetId?: SortOrder
+    messageId?: SortOrder
+    attempt?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    lastError?: SortOrder
+    publishedAt?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiGenerationOperationSumOrderByAggregateInput = {
+    epoch?: SortOrder
+    publishCount?: SortOrder
+    attempt?: SortOrder
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -44967,6 +46640,10 @@ export namespace Prisma {
      * @deprecated Use AgentWorkflowSessionDefaultArgs instead
      */
     export type AgentWorkflowSessionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AgentWorkflowSessionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AiGenerationOperationDefaultArgs instead
+     */
+    export type AiGenerationOperationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AiGenerationOperationDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

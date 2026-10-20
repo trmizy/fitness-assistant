@@ -11,7 +11,12 @@ const router = Router();
 // happens inside coachService against every request, not at the route
 // layer, since it depends on the caller+clientId pair rather than a static
 // role check.
+// PT Copilot (Phase 4): roster-wide adherence for the caller's OWN active clients. Registered before the /clients/:clientId/* routes; the
+// path has no :clientId on purpose — which clients are visible is decided by the PT's contracts, never by a request parameter.
+router.get("/clients/adherence", authMiddleware, coachController.getRosterAdherence as any);
 router.get("/clients/:clientId/summary", authMiddleware, coachController.getClientSummary as any);
+// PT Copilot (Phase 4, step 2): audit of a PT's approve/dismiss of an AI-drafted proposal. Re-verifies the PT-client relationship; writes no client data.
+router.post("/clients/:clientId/ai-proposals/decision", authMiddleware, coachController.recordAiProposalDecision as any);
 // PT Coaching Workspace phase §23 — lazy-loaded InBody/progress, separate
 // from the always-loaded summary above (§32: load detailed sections on
 // tab activation, not up front).

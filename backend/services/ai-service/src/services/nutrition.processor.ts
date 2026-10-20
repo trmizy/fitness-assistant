@@ -1,7 +1,9 @@
+import { assertGenerationLeaseHeld, StaleLeaseError } from "./generation-lease-context";
+import { withGenerationOperation, acknowledgeAutoSave } from "./generation-operations";
 import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
-import axios from "axios";
+import { requestService } from "../clients/service-lambda.client";
 import { llmService } from "./llm.service";
 import {
   conversationRepository,
@@ -235,7 +237,12 @@ const NutritionPlanJobDataSchema = z.object({
   autoSaveOnComplete: z.boolean().optional(),
 });
 
-export async function processNutritionPlanJob(job: Job) {
+/** Entry point: claims the durable generation operation (duplicate delivery / stale attempt protection) before the model runs. */
+export async function processNutritionPlanJob(job: Job): Promise<void> {
+  return withGenerationOperation(job, () => processNutritionPlanJobInner(job));
+}
+
+async function processNutritionPlanJobInner(job: Job): Promise<void> {
   // 1. Validate job data
   const dataResult = NutritionPlanJobDataSchema.safeParse(job.data);
   if (!dataResult.success) {
@@ -274,22 +281,20 @@ export async function processNutritionPlanJob(job: Job) {
     );
 
     // 3. Fetch allowed foods from fitness-service
-    const fitnessServiceUrl =
-      process.env.FITNESS_SERVICE_URL || "http://localhost:3002";
+    // Same transport as every other ai-service -> fitness-service call: a direct Lambda invoke when FITNESS_LAMBDA_NAME is set (the
+    // AWS deployment has no FITNESS_SERVICE_URL, so a bare HTTP call fell back to localhost:3002 and every nutrition plan failed with
+    // "no food data"), plain HTTP to FITNESS_SERVICE_URL otherwise (local dev / docker, unchanged).
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
     let allowedFoods: any[] = [];
     try {
-      const resp = await axios.get(
-        `${fitnessServiceUrl}/internal/foods/for-ai-nutrition`,
-        {
-          timeout: 10000,
-          headers: {
-            "x-internal-token": internalSecret,
-            "x-user-id": userId,
-          },
-        },
-      );
+      const resp = await requestService<any>({
+        service: "fitness",
+        method: "GET",
+        path: "/internal/foods/for-ai-nutrition",
+        timeoutMs: 10000,
+        headers: serviceHeaders(userId, internalSecret),
+      });
       if (resp?.data?.success && Array.isArray(resp.data.data?.foods)) {
         allowedFoods = resp.data.data.foods;
       }
@@ -587,9 +592,19 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     // succeeds, and the user's deterministic NutritionGoal already makes
     // Nutrition usable even if this fails (spec §LI fallback rule).
     if (autoSaveOnComplete) {
-      await autoSaveCompletedNutritionPlan(planId, userId, goal, finalContent, fitnessServiceUrl, internalSecret);
+      // Cross-service side effect: it cannot join the database transaction, so this is a best-effort ownership probe
+      // (not an atomic fence). A stale attempt is stopped here instead of pushing stale content to fitness-service.
+      await assertGenerationLeaseHeld();
+      const saved = await autoSaveCompletedNutritionPlan(planId, userId, goal, finalContent, internalSecret);
+      // Durable intent (R222-04): the operation row records that the save is acknowledged. If this attempt dies or the
+      // call fails, the operation stays COMPLETED-without-ack and recovery replays the save idempotently
+      // (fitness-service answers alreadyExists for a (user, sourcePlanId) it already holds).
+      if (saved) await acknowledgeAutoSave();
     }
   } catch (err: any) {
+    // A lapsed/taken-over lease (raised by the lease probe before the auto-save, or by a fenced write) means a NEWER attempt owns this
+    // execution: this attempt must not touch the plan at all — in particular it must never flip an already COMPLETED plan to FAILED.
+    if (err instanceof StaleLeaseError) throw err;
     logger.error(
       { err, jobId: job.id, planId },
       "Nutrition plan generation failed unexpectedly",
@@ -600,6 +615,11 @@ Hãy sửa lỗi và CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ, khôn
     );
     throw err;
   }
+}
+
+/** Identity headers for an internal call. With no secret configured the token header is OMITTED (not sent empty), as the old axios call did. */
+function serviceHeaders(userId: string, internalSecret: string | undefined): Record<string, string> {
+  return { ...(internalSecret ? { "x-internal-token": internalSecret } : {}), "x-user-id": userId };
 }
 
 function toDateOnlyString(date: Date): string {
@@ -629,18 +649,22 @@ async function autoSaveCompletedNutritionPlan(
   userId: string,
   goal: string,
   content: NutritionPlanContent,
-  fitnessServiceUrl: string,
   internalSecret: string | undefined,
-): Promise<void> {
+  baseDate: Date = new Date(),
+): Promise<boolean> {
   try {
-    const startDate = toDateOnlyString(new Date());
-    const endDateObj = new Date();
+    const startDate = toDateOnlyString(baseDate);
+    const endDateObj = new Date(baseDate);
     endDateObj.setDate(endDateObj.getDate() + 6);
     const endDate = toDateOnlyString(endDateObj);
 
-    await axios.post(
-      `${fitnessServiceUrl}/nutrition/from-ai-plan`,
-      {
+    await requestService({
+      service: "fitness",
+      method: "POST",
+      path: "/nutrition/from-ai-plan",
+      timeoutMs: 20000,
+      headers: serviceHeaders(userId, internalSecret),
+      body: {
         sourcePlanId: planId,
         sourcePlanName: `Ke hoach dinh duong - ${goal}`,
         goal: content.goal,
@@ -656,21 +680,40 @@ async function autoSaveCompletedNutritionPlan(
         carbTargetGrams: content.carbTargetGrams,
         fatTargetGrams: content.fatTargetGrams,
       },
-      {
-        timeout: 20000,
-        headers: {
-          "x-internal-token": internalSecret,
-          "x-user-id": userId,
-        },
-      },
-    );
+    });
     logger.info({ planId, userId }, "[nutrition-bootstrap] auto-saved AI plan to NutritionProgram");
+    return true;
   } catch (err) {
     logger.warn(
       { err: (err as Error).message, planId, userId },
       "[nutrition-bootstrap] auto-save of completed nutrition plan failed (non-blocking)",
     );
+    return false;
   }
+}
+
+/**
+ * Recovery replay of a missed/failed auto-save for an operation that already COMPLETED (R222-04, durable intent).
+ * Only the operation's own epoch target plan is ever replayed, and only when that plan is COMPLETED and owned by the
+ * operation's verified actor, so a stale execution can never push anything but its own committed content. The save is
+ * idempotent downstream: UNIQUE (user_id, source_plan_id) + alreadyExists. Returns true when the save is acknowledged.
+ */
+export async function replayCompletedNutritionAutoSave(op: {
+  actorUserId: string;
+  targetId: string | null;
+}): Promise<boolean> {
+  if (!op.targetId) return false;
+  const plan: any = await conversationRepository.findNutritionPlanById(op.targetId);
+  if (!plan || plan.status !== "COMPLETED" || plan.userId !== op.actorUserId) return false;
+  const content = plan.plan as NutritionPlanContent;
+  if (!content || !Array.isArray((content as any).weeklySchedule) || (content as any).weeklySchedule.length === 0) return false;
+  return autoSaveCompletedNutritionPlan(
+    plan.id,
+    plan.userId,
+    plan.goal,
+    content,
+    process.env.INTERNAL_SERVICE_SECRET,
+  );
 }
 
 function normalizeFoodName(value: string): string {

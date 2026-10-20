@@ -7,7 +7,7 @@ import internalRoutes from "./routes/internal.routes";
 import marketplaceRoutes from "./routes/marketplace.routes";
 import personalizedServiceRoutes from "./routes/personalized-service.routes";
 import adminMarketplaceRoutes from "./routes/admin-marketplace.routes";
-import { ApiError, formatErrorResponse } from "./errors/api-error";
+import { ApiError, RateLimitedError, formatErrorResponse } from "./errors/api-error";
 import { llmService } from "./services/llm.service";
 
 const app = express();
@@ -85,6 +85,8 @@ app.use("/internal", internalRoutes);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof ApiError) {
+    // A rate-limit refusal raised by a domain command (not the route middleware) still owes the client Retry-After.
+    if (err instanceof RateLimitedError) res.setHeader("Retry-After", String(err.retryAfterSeconds));
     res.status(err.statusCode).json(err.toJSON());
     return;
   }

@@ -1,5 +1,6 @@
 import type { SlotDefinition, WorkflowContext, WorkflowDefinition } from "../types";
 import { parseSessionsPerWeek, parseMinutes } from "../slot-values";
+import { normalizeAgentText } from "../../services/fitness-agent-intent";
 
 /**
  * CREATE_WORKOUT_PLAN — a standalone "tạo lịch tập cho tôi" workflow,
@@ -67,4 +68,15 @@ export const createWorkoutPlanWorkflow: WorkflowDefinition = {
   type: "CREATE_WORKOUT_PLAN",
   gatesIntentKind: "CREATE_WORKOUT_PLAN",
   slots: createWorkoutPlanSlots,
+  // What the OPENING message already says must not be asked again ("Tạo lịch tập 3 buổi mỗi tuần, mỗi buổi 45 phút"). Deliberately strict
+  // (a unit word must sit next to the number) so an unrelated number elsewhere (age, weight, "8 bài cho thứ 7") is never read as a slot.
+  extractFromMessage: (message: string) => {
+    const out: Record<string, unknown> = {};
+    const s = normalizeAgentText(message);
+    const days = s.match(/(\d)\s*(?:buoi|ngay)\s*(?:\/|moi|mot|trong|1)?\s*tuan\b/);
+    if (days) { const r = parseSessionsPerWeek(days[1]); if (r.ok) out.daysPerWeek = r.value; }
+    const mins = s.match(/(?<![\d.,])(\d{2,3})\s*(?:phut|min)\b|(?<![\d.,])(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:gio|tieng)\b/);
+    if (mins) { const r = parseMinutes(mins[0]); if (r.ok) out.sessionMinutes = r.value; }
+    return out;
+  },
 };

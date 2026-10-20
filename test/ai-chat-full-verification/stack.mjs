@@ -41,7 +41,7 @@ const services = [
   { name: "fitness", cwd: "backend/services/fitness-service", port: p(3002), env: { PORT: String(p(3002)), DATABASE_URL: `${PG}/gymcoach_fitness_test?schema=public`, FITNESS_DATABASE_URL: `${PG}/gymcoach_fitness_test?schema=public` } },
   { name: "ai", cwd: "backend/services/ai-service", port: p(3003), env: {
     PORT: String(p(3003)), DATABASE_URL: `${PG}/gymcoach_ai_test?schema=public`, AI_DATABASE_URL: `${PG}/gymcoach_ai_test?schema=public`, QDRANT_HOST: "localhost", QDRANT_PORT: "6333",
-    LLM_PROVIDER: "ollama", LLM_MODEL: MODEL, LLM_BASE_URL: LLM, OLLAMA_BASE_URL: LLM, EMBEDDING_PROVIDER: "ollama", EMBEDDING_MODEL: "nomic-embed-text", EMBEDDING_DIMENSIONS: "768",
+    LLM_PROVIDER: process.env.LLM_PROVIDER_OVERRIDE || "ollama", LLM_MODEL: MODEL, LLM_BASE_URL: LLM, OLLAMA_BASE_URL: LLM, EMBEDDING_PROVIDER: "ollama", EMBEDDING_MODEL: "nomic-embed-text", EMBEDDING_DIMENSIONS: "768",
     LLM_TIMEOUT_MS: "170000", EMBEDDING_TIMEOUT_MS: "120000", LLM_NUM_CTX: "8192", LLM_JSON_NUM_CTX: "8192", ENABLE_TOOL_CALLING: "false",
     AI_ASK_RATE_LIMIT_MAX: "1000", AI_EXPENSIVE_RATE_LIMIT_MAX: "1000" } },
   { name: "gateway", cwd: "backend/gateway", port: p(3000), env: { PORT: String(p(3000)), NODE_PATH: path.join(root, ".tmp-stack/deps/node_modules"), AI_ASK_RATE_LIMIT_MAX_REQUESTS: "1000", PARTNER_APPLICATION_START_RATE_MAX: "1000", PARTNER_APPLICATION_RATE_MAX: "1000" } },
