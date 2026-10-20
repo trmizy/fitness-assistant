@@ -220,7 +220,9 @@ const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Phải trả cho", cell: (r) => partyLabel(r.party) },
   { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   { header: "Đã trả / phải trả", cell: (r) => `${money(r.paid)} / ${money(r.owed)}`, right: true },
-  { header: "Hợp đồng", cell: (r) => shortId(r.contract) },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Buổi", cell: (r) => shortId(r.sessionId) },
+  { header: "Lý do", cell: (r) => r.reason || "—" },
   { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
 ];
 const paidNotActivatedCols: Column<PaidNotActivatedRow>[] = [

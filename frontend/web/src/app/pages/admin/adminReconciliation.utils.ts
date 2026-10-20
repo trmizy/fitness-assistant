@@ -60,6 +60,11 @@ export interface UnpaidObligationRow {
   unpaid: string;
   transactionId: string;
   contract: string | null;
+  /** The real contract id and the session the step was about (absent on older payment-service builds). */
+  contractId?: string | null;
+  sessionId?: string | null;
+  /** Why the obligation exists, in words (D77 sets it; absent / null on older rows). */
+  reason?: string | null;
   createdAt: string;
 }
 export interface PaidNotActivatedRow {

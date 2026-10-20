@@ -15,6 +15,7 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 import { ptContractShare } from "../../utils/ptContractShare";
+import { withRefundLabel } from "../../utils/sessionRefund";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -41,7 +42,7 @@ const SESSION_STATUS: Record<
     bg: "bg-red-500/10 border-red-500/20",
   },
   NO_SHOW: {
-    label: "No Show",
+    label: "Không diễn ra", // the refund-aware text comes from withRefundLabel at the render site
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
   },
@@ -476,15 +477,15 @@ export function PTContractsPage() {
                   onClick={() => setExpanded(isExpanded ? null : c.id)}
                   className="w-full text-left p-4 hover:bg-zinc-800/30 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-3 sm:gap-4">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border ${cfg.bg}`}
+                      className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${cfg.bg}`}
                     >
                       <cfg.icon className={`w-5 h-5 ${cfg.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-zinc-200 truncate">
+                        <span className="text-sm font-bold text-zinc-200 break-words min-w-0 max-w-full">
                           {c.packageName}
                         </span>
                         <span
@@ -525,22 +526,23 @@ export function PTContractsPage() {
                       </div>
                     </div>
 
-                    {/* Quick accept/reject for pending */}
+                    {/* Quick accept/reject for pending. Under sm it drops to its own full-width line (after the
+                        chevron) so it can never overlap the package / client name. */}
                     {c.status === "PENDING_REVIEW" && (
                       <div
-                        className="flex gap-2"
+                        className="flex gap-2 order-last w-full sm:order-none sm:w-auto"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => acceptMutation.mutate(c.id)}
                           disabled={acceptMutation.isPending}
-                          className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          className="flex flex-1 sm:flex-none items-center justify-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                         >
                           <Check className="w-3.5 h-3.5" /> Accept
                         </button>
                         <button
                           onClick={() => setRejectId(c.id)}
-                          className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          className="flex flex-1 sm:flex-none items-center justify-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         >
                           <X className="w-3.5 h-3.5" /> Reject
                         </button>
@@ -557,9 +559,9 @@ export function PTContractsPage() {
                     </div>
 
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-zinc-600" />
+                      <ChevronUp className="w-4 h-4 shrink-0 text-zinc-600" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-zinc-600" />
+                      <ChevronDown className="w-4 h-4 shrink-0 text-zinc-600" />
                     )}
                   </div>
                 </button>
@@ -665,7 +667,7 @@ export function PTContractsPage() {
                           </div>
                           <div className="space-y-2">
                             {(expandedSessions as Session[]).map((s) => {
-                              const scfg = SESSION_STATUS[s.status];
+                              const scfg = withRefundLabel(SESSION_STATUS[s.status], s, "PT");
                               return (
                                 <div
                                   key={s.id}

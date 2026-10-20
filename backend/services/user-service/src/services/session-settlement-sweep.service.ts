@@ -12,8 +12,10 @@ import { settlingD65bEnabled } from "./session-settlement-answers";
 import { withContractLock } from "./contract-lock";
 import {
   assessSettlementRow,
+  healHeldLateArrivalRows,
   isContractEnded,
   runSessionMoneyRow,
+  settleEndedCompensationRow,
   settleContractTermination,
   SettlementInFlightError,
   type TerminationReason,
@@ -126,6 +128,9 @@ export async function runSettlementSweep(opts: { deadlineAt?: number } = {}): Pr
   let skipped = 0;
   let parked = 0;
   try {
+    // D77: a late-arrival compensation an earlier ending left UNCONFIRMED holds nothing - it becomes an OPEN obligation (or its stored
+    // result is applied). Best-effort and bounded: it must never stop the retry pass below.
+    await healHeldLateArrivalRows().catch((e) => logger.warn(`[SettlementSweep] healing held late-arrival rows failed: ${(e as Error).message}`));
     const rows = await collectDueRows(Date.now(), opts.deadlineAt);
     scanned = rows.length;
     if (scanned === 0) return { scanned, retried };
@@ -211,6 +216,12 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
       // The row was read BEFORE the lock was won: the ending may have settled it meanwhile (it settles outstanding steps first).
       const isCompensation =
         row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION || row.kind === SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION;
+      if (isCompensation && settlingD65bEnabled() && (await assessSettlementRow(row, tx)).ok) {
+        // D77: its contract ended before the compensation was settled (natural completion does not drain rows first). It is NOT paid
+        // (that would be drawn from the PT's pooled available) and NOT dropped: the ledger is asked and the compensation is recorded as
+        // an OPEN obligation to the client under the original key (after the lock; no money moves).
+        return { kind: "ENDED_LATE" as const };
+      }
       if (isCompensation) {
         // F4: a compensation still unsettled when its contract ended is NOT paid (the ending priced the session as unused; a
         // late cash compensation would be drawn from the PT's pooled available balance = other contracts' money). It is marked
@@ -253,6 +264,10 @@ async function dispatchSessionRow(row: SweepRow): Promise<Verdict> {
       return decision.verdict;
     case "VOID_CANDIDATE":
       return voidOrParkStateRow(row, decision.detail);
+    case "ENDED_LATE": {
+      const outcome = await settleEndedCompensationRow(row.id);
+      return outcome === "RECORDED" || outcome === "APPLIED" ? "RETRIED" : "SKIPPED";
+    }
     case "RUN":
       break;
   }

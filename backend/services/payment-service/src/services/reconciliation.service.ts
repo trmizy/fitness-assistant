@@ -5,6 +5,7 @@ import type { PaymentTransaction } from '../generated/prisma';
 import { pollAndSettle } from './webhook.service';
 import { postServiceJson } from '../clients/service-lambda.client';
 import { refundUnactivatedContractPayment } from './contract-ledger.service';
+import { notifyClientOfAutoRefund } from './refund-notification.service';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 10;
@@ -198,7 +199,12 @@ export async function callActivateEndpoint(txn: PaymentTransaction): Promise<voi
 export async function activateOrRefund(txn: PaymentTransaction): Promise<'ACTIVATED' | 'REFUNDED'> {
   // Already refunded (an admin re-driving a closed row, a late duplicate): never ask user-service
   // and never activate afterwards — the client has the money, the contract must not also run.
-  if ((txn.metadata as Record<string, unknown> | null)?.unactivatedRefund) return 'REFUNDED';
+  if ((txn.metadata as Record<string, unknown> | null)?.unactivatedRefund) {
+    // The refund is already committed; a duplicate callback / admin re-drive is also the retry point for a notice that
+    // could not be sent the first time (a no-op once it was sent - it is claimed per transaction).
+    await notifyClientOfAutoRefund(txn.id);
+    return 'REFUNDED';
+  }
 
   try {
     await callActivateEndpoint(txn);
@@ -219,6 +225,8 @@ export async function activateOrRefund(txn: PaymentTransaction): Promise<'ACTIVA
       reason: e.reason,
       contractStatus: e.currentStatus,
     });
+    // FH-5: the refund has committed. Tell the client, best-effort and outside the money transaction (never throws).
+    await notifyClientOfAutoRefund(txn.id);
     return 'REFUNDED';
   }
   await transactionRepository.markActivated(txn.id);

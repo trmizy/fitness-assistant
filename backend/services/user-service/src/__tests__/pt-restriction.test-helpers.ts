@@ -158,7 +158,7 @@ export function stubs(terminateResult: unknown = { refund: "1000000.00" }, opts:
       return { operations: keys.filter((k) => ledger.ops.has(k)).map((k) => ledger.ops.get(k)), missing: keys.filter((k) => !ledger.ops.has(k)) };
     }),
   );
-  for (const method of ["terminate", "releaseSession", "noShow", "lateArrival", "releaseHoldback", "checkout"] as const) {
+  for (const method of ["terminate", "releaseSession", "noShow", "lateArrival", "recordLateArrivalObligation", "recordNoShowObligation", "releaseHoldback", "checkout"] as const) {
     restores.push(
       patch(paymentClient, method, async (body: any) => {
         payments.push({ method, body });
@@ -179,6 +179,20 @@ export function stubs(terminateResult: unknown = { refund: "1000000.00" }, opts:
         if (method === "releaseSession") return { released: { pt: "450000", gym: "0", platform: "50000" } };
         if (method === "noShow") return { compensation: "500000", shortfall: "0" };
         if (method === "lateArrival") return { shortfall: "0" };
+        if (method === "recordLateArrivalObligation" || method === "recordNoShowObligation") {
+          // D77: the record-only answer of the real payment-service - owed = half a session, paid 0, nothing moved.
+          const owed = Math.round(Number(body.price) / body.totalSessions / (method === "recordNoShowObligation" ? 1 : 2)).toFixed(2);
+          return {
+            compensation: "0.00",
+            charged: { pt: "0.00", gym: "0.00", platform: "0.00" },
+            shortfall: owed,
+            owed,
+            paid: "0.00",
+            unpaid: owed,
+            obligationId: `obl-${body.idempotencyKey}`,
+            recordedOnly: true,
+          };
+        }
         return {};
       }),
     );

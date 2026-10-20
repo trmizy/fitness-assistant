@@ -269,7 +269,7 @@ test('inventory: counts and amounts only, matches the seeded backlog, writes not
   const { buildInventory, formatInventory } = await import('../services/obligations-inventory');
   const before = await tableCounts(seed.prisma);
   const inv = await buildInventory({ staleMinutes: 30, databaseUrl: DB });
-  assert.equal(inv.database, new URL(DB).pathname.slice(1));
+  assert.equal(inv.database, new URL(DB ?? '').pathname.slice(1));
   assert.equal(inv.negativeSubledgers.count, 1);
   assert.equal(inv.negativeSubledgers.unbackedTotal, '50000.00');
   assert.deepEqual(inv.negativeSubledgers.byOwnerType, [{ label: 'PT', count: 1, amount: '50000.00' }]);

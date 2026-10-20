@@ -262,6 +262,33 @@ export const sessionSettlementRepository = {
       orderBy: { createdAt: "asc" },
     }),
 
+  /**
+   * D77: late-arrival rows an earlier ending parked UNCONFIRMED (they hold no session value and, before the record-only obligation
+   * existed, were simply left there). The settlement sweep turns each into an OPEN obligation (or applies its stored result).
+   */
+  findHeldLateArrivalRows: (limit = 20, db: Db = prisma) =>
+    db.sessionSettlement.findMany({
+      where: { kind: SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION, status: SessionSettlementStatus.UNCONFIRMED },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: Math.max(1, Math.floor(limit)),
+    }),
+
+  /**
+   * Compensation rows an earlier build parked as ENDED_UNSETTLED ("contract X is COMPLETED; ... not paid - needs a human") because their
+   * contract had ended before they settled. They are NOT orphans (the contract exists and is paid): the sweep turns each into an OPEN
+   * obligation, or applies its stored result. The orphan markers (CONTRACT_MISSING / NO_PAYMENT / PREMISE_VOID) have no space after the colon.
+   */
+  findEndedUnsettledCompensations: (limit = 20, db: Db = prisma) =>
+    db.sessionSettlement.findMany({
+      where: {
+        kind: { in: [SessionSettlementKind.PT_NO_SHOW_COMPENSATION, SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION] },
+        status: SessionSettlementStatus.FAILED,
+        lastError: { startsWith: `${ENDED_UNSETTLED_PREFIX} contract ` },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: Math.max(1, Math.floor(limit)),
+    }),
+
   /** The unsettled compensation rows of one contract (what the ending must settle first), oldest first. */
   findUnsettledCompensations: (contractId: string, db: Pick<typeof prisma, "sessionSettlement"> = prisma) =>
     db.sessionSettlement.findMany({

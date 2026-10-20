@@ -5,9 +5,16 @@ import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
 import { withdrawalService } from '../services/withdrawal.service';
 import type { WalletOwnerType } from '../generated/prisma';
+import { classifyWalletEntry } from '../services/wallet-entry-category';
 
 const router = Router();
 router.use(extractUser, requireAuth);
+
+/** History rows as stored plus the derived, additive `category` (see wallet-entry-category.ts). */
+async function historyFor(walletId: string) {
+  const entries = await walletRepository.findLedgerEntriesWithPurpose(walletId);
+  return entries.map(({ transaction, ...entry }) => ({ ...entry, category: classifyWalletEntry(entry, transaction) }));
+}
 
 // GET /me/wallet — always the CLIENT (buyer) wallet, regardless of the user's other roles.
 //
@@ -23,8 +30,7 @@ router.get('/wallet', async (req: Request, res: Response) => {
 router.get('/wallet/transactions', async (req: Request, res: Response) => {
   const wallet = await walletRepository.findByOwner('CLIENT', req.user!.userId);
   if (!wallet) return res.json({ success: true, data: [] });
-  const entries = await walletRepository.findLedgerEntries(wallet.id);
-  return res.json({ success: true, data: entries });
+  return res.json({ success: true, data: await historyFor(wallet.id) });
 });
 
 /**
@@ -65,8 +71,7 @@ router.get('/pt-wallet/transactions', async (req: Request, res: Response) => {
   }
   const wallet = await walletRepository.findByOwner('PT', req.user!.userId);
   if (!wallet) return res.json({ success: true, data: [] });
-  const entries = await walletRepository.findLedgerEntries(wallet.id);
-  return res.json({ success: true, data: entries });
+  return res.json({ success: true, data: await historyFor(wallet.id) });
 });
 
 // Money-flow plan 5.3 — self-service withdrawal requests for the two owner types payment-service

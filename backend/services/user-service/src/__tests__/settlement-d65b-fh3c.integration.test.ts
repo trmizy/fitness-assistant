@@ -381,7 +381,7 @@ test("a PT no-show compensation the ledger never performed is HELD (no counter c
   }
 });
 
-test("a late-arrival compensation the ledger never performed does not block the ending and holds no session value: row UNCONFIRMED for a human", { skip }, async () => {
+test("D77: a late-arrival compensation the ledger never performed does not block the ending and holds no session value: it is recorded as an OPEN obligation under the original key and the row is terminal", { skip }, async () => {
   await prisma.sessionSettlement.deleteMany({});
   const pt = await makePt();
   const contract = await makeContract(pt, { usedSessions: 1 });
@@ -395,7 +395,20 @@ test("a late-arrival compensation the ledger never performed does not block the 
     const body = termBody(s)[0];
     assert.equal(body.unresolvedSessions, undefined);
     assert.equal(body.usedSessions, 1);
-    assert.equal((await reload(row.id)).status, "UNCONFIRMED");
+    const recorded = s.payments.filter((p) => p.method === "recordLateArrivalObligation");
+    assert.equal(recorded.length, 1, "payment-service was asked once to write the obligation down");
+    assert.equal(recorded[0].body.idempotencyKey, `PT_LATE_ARRIVAL:${late.id}`, "under the ORIGINAL key");
+    assert.match(recorded[0].body.reason, /PT vào muộn/);
+    assert.equal(s.payments.filter((p) => p.method === "lateArrival").length, 0, "no compensation was paid");
+    const after = await reload(row.id);
+    assert.equal(after.status, "SETTLED", "terminal: not a status that waits for somebody");
+    assert.equal((after.result as any).obligationId, `obl-PT_LATE_ARRIVAL:${late.id}`, "and it points at the obligation");
+    assert.equal((after.result as any).recordedOnly, true);
+    assert.equal(Number((after.result as any).paid), 0);
+    assert.equal((await contractOf(contract.id)).compensatedSessions, 0, "a late arrival never consumes the client's entitlement");
+    // the ending replayed (a retry, the sweep): nothing is recorded a second time
+    await terminateContractMoney(contract.id, "CLIENT_CANCELLED", { cancelledBy: contract.clientUserId });
+    assert.equal(s.payments.filter((p) => p.method === "recordLateArrivalObligation").length, 1);
   } finally {
     s.restore();
     await cleanup([pt], [contract.id]);

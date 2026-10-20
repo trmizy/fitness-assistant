@@ -400,6 +400,8 @@ export interface WalletLedgerEntry {
   balanceBefore: string;
   balanceAfter: string;
   description?: string;
+  /** Derived by payment-service (wallet-entry-category.ts); the label comes from this, never from `description`. */
+  category?: string | null;
   createdAt: string;
 }
 

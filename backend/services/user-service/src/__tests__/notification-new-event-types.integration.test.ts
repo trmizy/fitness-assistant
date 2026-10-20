@@ -33,6 +33,8 @@ const CASES: [eventType: string, entityType: string][] = [
   ["GYM_LISTING_CHANGES_REQUESTED", "GYM_BRANCH"],
   ["GYM_LISTING_INVALIDATED", "GYM_BRANCH"],
   ["GYM_AMENITY_PROPOSAL_REVIEWED", "GYM_BRANCH"],
+  // payment-service: late payment for a cancelled order / membership / contract was auto-refunded
+  ["PAYMENT_AUTO_REFUNDED", "PAYMENT"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

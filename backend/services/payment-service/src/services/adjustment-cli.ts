@@ -56,6 +56,13 @@ export const USAGE = `FH-8 adjustment tool (dry-run unless --apply)
   --apply                                          write (default is dry-run)
   --i-have-owner-approval=<group>                  required for any database whose name does not end with _test
 
+What the obligation operations mean (an obligation is money the ledger owes a CLIENT and could not pay out of the contract's own money):
+  obligation-resolve  RESOLVED = handled OUTSIDE the ledger, WITH a reference. This tool moves no money: if the client has to be paid
+                      (e.g. an unperformed D77 late-arrival compensation), an authorised person pays them by their own approved route
+                      first, then records it here - put the reference (payout / ticket / minute number) in --reason and --approval-ref.
+  obligation-waive    WAIVED = the owner decided the obligation is not pursued. The client is NOT paid.
+Both leave the obligation, its owed/paid/unpaid figures and an audit event on record; nothing is deleted.
+
 DATABASE_URL selects the database. Real data needs the owner's approval per group.`;
 
 export function parseArgs(argv: string[]): CliOptions {

@@ -287,8 +287,8 @@ export default function BookingScreen() {
               <Text className="font-display text-base text-foreground">
                 {`${dateLabel(detail.startAt)} · ${timeLabel(detail.startAt)}–${timeLabel(detail.endAt)}`}
               </Text>
-              <Badge tone={sessionStatus(detail.status).tone}>
-                {sessionStatus(detail.status).label}
+              <Badge tone={sessionStatus(detail.status, detail).tone}>
+                {sessionStatus(detail.status, detail).label}
               </Badge>
             </View>
 
@@ -509,7 +509,7 @@ export default function BookingScreen() {
 }
 
 function SessionCard({ session, onPress }: { session: SessionRow; onPress: () => void }) {
-  const status = sessionStatus(session.status);
+  const status = sessionStatus(session.status, session);
   return (
     <Tappable onPress={onPress}>
       <Card className="gap-1.5 p-4">

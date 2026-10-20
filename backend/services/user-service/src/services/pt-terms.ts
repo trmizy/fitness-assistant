@@ -19,7 +19,7 @@
  * running production service cannot be taken down by it.
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-2";
+export const PT_TERMS_VERSION = "2026-10-pt-draft-3";
 export const PT_TERMS_IS_DRAFT = true;
 
 /** A version id that marks a draft text. */
@@ -110,16 +110,18 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
   },
   {
     id: "pt-cancel",
-    title: "5. Khi bạn hủy hoặc vắng mặt",
+    title: "5. Khi bạn hủy, vắng mặt hoặc vào phòng học muộn",
     body: [
       "Bạn hủy buổi hoặc chặn ngày trước giờ hẹn từ 24 giờ trở lên: buổi được dời sang lịch khác, không ai bị tính phí.",
-      "Bạn hủy hoặc chặn ngày trong vòng 24 giờ trước giờ hẹn, hoặc không có mặt ở buổi đã hẹn: khách được hoàn giá trị của buổi đó (giá hợp đồng chia cho tổng số buổi) vào ví. Buổi đó được đóng với trạng thái «không diễn ra — đã hoàn tiền» và vẫn được tính là một buổi đã dùng của gói; hệ thống không tạo buổi bù. Bạn không nhận tiền của buổi đó.",
-      "Khoản hoàn được lấy từ chính tiền của hợp đồng đó. Nếu tiền của hợp đồng không đủ, phần còn thiếu được ghi nhận là một khoản đang được đối soát giữa các bên; khoản này không tự động trở thành khoản nợ của bạn.",
+      "Bạn hủy hoặc chặn ngày trong vòng 24 giờ trước giờ hẹn, hoặc không có mặt ở buổi đã hẹn: buổi đó được đóng là «không diễn ra» và khách được hoàn giá trị của buổi đó (giá hợp đồng chia cho tổng số buổi) vào ví. Bạn không nhận tiền của buổi đó.",
+      "Cần phân biệt hai khái niệm: «buổi được tính vào số buổi đã xử lý của gói» và «buổi bạn đã cung cấp dịch vụ». Buổi «không diễn ra» thuộc loại thứ nhất: nó được trừ vào số buổi của gói và hệ thống không tạo buổi bù. Nhưng đó không phải là buổi bạn đã dạy: nó không bao giờ được hiển thị là đã hoàn thành và không tạo thu nhập cho bạn.",
+      "Khoản hoàn được lấy từ chính tiền của hợp đồng đó, không lấy từ tiền của hợp đồng khác. Gymini không cam kết mọi khoản còn thiếu đều được hoàn ngay; trên từng buổi, ứng dụng hiển thị đúng trường hợp đang xảy ra: (a) tiền của hợp đồng đủ — khách được hoàn đủ vào ví, buổi hiện «đã hoàn tiền»; (b) chỉ đủ một phần — khách được hoàn phần đó vào ví, phần còn lại được ghi nhận là khoản đang được đối soát giữa các bên, buổi hiện «đã hoàn một phần, còn … đang chờ xử lý»; (c) chưa hoàn được — toàn bộ khoản đang được đối soát, buổi hiện «chưa hoàn, đang chờ xử lý». Phần đang đối soát chỉ được coi là đã hoàn khi đã được xử lý xong, và không tự động trở thành khoản nợ của bạn.",
+      "Buổi học trực tuyến mà bạn vào phòng học muộn hơn 15 phút so với giờ bắt đầu đã hẹn, trong khi khách cũng có mặt: buổi vẫn được tính là buổi đã diễn ra, nhưng khách được bồi thường một nửa giá trị của buổi đó (một nửa của giá hợp đồng chia cho tổng số buổi). Khoản bồi thường này được trừ vào chính tiền của buổi đó: bạn, phòng gym (nếu có) và nền tảng mỗi bên chịu phần của mình theo đúng tỷ lệ chia của hợp đồng. Sau khi buổi được xác nhận, bạn nhận phần còn lại của buổi đó sau khi đã trừ phần bồi thường của bạn; các buổi khác không bị ảnh hưởng. Nếu khoản bồi thường chưa thực hiện được ngay, nó được ghi nhận là khoản đang được đối soát với khách và không tự động trở thành khoản nợ của bạn.",
       "Nếu bạn vắng mặt 3 buổi trên cùng một hợp đồng, khách có quyền chấm dứt hợp đồng và được hoàn đầy đủ phần chưa dùng.",
       "Nếu bạn chấm dứt hợp đồng giữa chừng, khách được hoàn đầy đủ 100% phần chưa dùng.",
     ],
     source:
-      "session-outcome.ts rows 3-5; PT_REPEATED_NO_SHOW_THRESHOLD=3 (contract.service.ts); D19; payment-service compensateNoShow. DQ-2(a): refund of price/totalSessions to the wallet, session closed as not-delivered-refunded and counted (compensatedSessions), no replacement session, PT not paid. DQ-1: funded from the contract's own funds; an unfunded remainder is a reconciling obligation (paid/owed/unpaid), not PT debt",
+      "session-outcome.ts rows 3-5; PT_REPEATED_NO_SHOW_THRESHOLD=3 (contract.service.ts); D19; payment-service compensateNoShow. DQ-2(a): refund of price/totalSessions to the wallet, session closed as not-delivered (NO_SHOW), counted in compensatedSessions (NOT usedSessions: it is not a delivered session), no replacement session, PT not paid. DQ-1: funded from the contract's own funds only; the refund state (FULL/PARTIAL/PENDING, session-refund-state.ts) comes from the ledger's paid/owed/unpaid and the live obligation; an unfunded remainder is a reconciling obligation, not PT debt. D77: room-close-resolution ptLate = PT joined > NO_SHOW_GRACE_MINUTES (15) after the start with the client present; payment-service computeLateArrivalCompensation = half of roundForClient(price/totalSessions), charged to PT/gym/platform by the contract's rates and deducted from THAT session's release (releaseSession dueOf); the rest is released on confirmation; an unperformed compensation is a record-only OPEN obligation (recordLateArrivalObligation)",
   },
   {
     id: "neutral-exit",

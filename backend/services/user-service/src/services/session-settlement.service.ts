@@ -59,8 +59,12 @@ export interface SettlementDeps {
   claim?: (id: string, takeover: boolean) => Promise<ClaimResult>;
   /** Park the row for a person (CONFLICT / NEEDS_HUMAN). Absent (DI unit tests): markFailed is used. */
   park?: (id: string, prefix: string, message: string) => Promise<unknown>;
-  /** Flip the row to SETTLED and run `apply` in the same transaction, behind the flip. Absent: markSettled only. */
-  settleWith?: (id: string, apply: (tx: Prisma.TransactionClient) => Promise<void>) => Promise<boolean>;
+  /**
+   * Flip the row to SETTLED and run `apply` in the same transaction, behind the flip. Absent: markSettled only.
+   * `result`, when given, is payment-service's confirmed answer and is stored on the row in that same transaction
+   * (PT-fault compensations only: it is what the "was the client refunded in full?" view reads, see session-refund-state.ts).
+   */
+  settleWith?: (id: string, apply: (tx: Prisma.TransactionClient) => Promise<void>, result?: unknown) => Promise<boolean>;
 }
 
 /** A row stuck PROCESSING longer than this almost certainly means the runner crashed mid-call (read at call time). */
@@ -112,14 +116,20 @@ const defaultSettlementDeps: SettlementDeps = {
     return { claimed: false, status: cur?.status, parked: !!cur && isParkedRow(cur) };
   },
   park: (id, prefix, message) => sessionSettlementRepository.park(id, prefix, message),
-  settleWith: (id, apply) =>
+  settleWith: (id, apply, result) =>
     prisma.$transaction(async (tx) => {
       const flipped = await sessionSettlementRepository.settleOnce(id, tx);
       if (!flipped) return false; // somebody else settled (and applied) it first
       await apply(tx);
+      if (result !== undefined && result !== null && typeof result === "object") {
+        await tx.sessionSettlement.update({ where: { id }, data: { result: result as Prisma.InputJsonValue, appliedAt: new Date() } });
+      }
       return true;
     }),
 };
+
+/** The session-level steps that pay the client for a PT fault: their answer carries owed / paid / unpaid. */
+const PT_FAULT_KINDS: SessionSettlementKind[] = [SessionSettlementKind.PT_NO_SHOW_COMPENSATION, SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION];
 
 export interface SettleTrackedParams {
   kind: SessionSettlementKind;
@@ -209,9 +219,14 @@ export async function settleTracked<R = void>(
     }
     let applied = true;
     if (deps.settleWith) {
-      applied = await deps.settleWith(row.id, async (tx) => {
-        if (opts.apply) await opts.apply(tx, result);
-      });
+      applied = await deps.settleWith(
+        row.id,
+        async (tx) => {
+          if (opts.apply) await opts.apply(tx, result);
+        },
+        // The answer of a PT-fault compensation is kept with the row (the refund-state view reads it); a release's answer is not.
+        PT_FAULT_KINDS.includes(params.kind) ? result : undefined,
+      );
     } else {
       await deps.markSettled(row.id);
     }

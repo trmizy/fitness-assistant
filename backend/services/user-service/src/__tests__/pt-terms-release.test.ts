@@ -50,22 +50,40 @@ test("a confirmation of the draft id does not match any other id (draft rows can
   assert.equal(isDraftTermsVersionId("2026-10-pt-v1"), false);
 });
 
-test("Điều 5 states DQ-2(a)/DQ-1 and the text was re-versioned (draft-1 text was changed, so its id must not be reused)", () => {
+test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (earlier drafts had other text, so their ids must not be reused)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-2");
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-2");
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-3");
   assert.equal(PT_TERMS_IS_DRAFT, true);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
   assert.match(clause.title, /^5\./);
   const text = clause.body.join(" ");
-  assert.match(text, /«không diễn ra — đã hoàn tiền»/);
-  assert.match(text, /vẫn được tính là một buổi đã dùng/);
+  // DQ-2(a): two different notions, kept apart
+  assert.match(text, /«buổi được tính vào số buổi đã xử lý của gói» và «buổi bạn đã cung cấp dịch vụ»/);
+  assert.match(text, /không bao giờ được hiển thị là đã hoàn thành/);
+  assert.match(text, /không tạo thu nhập cho bạn/);
   assert.match(text, /không tạo buổi bù/);
   assert.match(text, /không nhận tiền của buổi đó/);
-  assert.match(text, /chính tiền của hợp đồng đó/);
+  assert.match(text, /đóng là «không diễn ra»/);
+  // the refund wording promises neither "đã hoàn tiền" for every NO_SHOW nor immediacy: full / partial / pending, remainder reconciling
+  assert.doesNotMatch(text, /«không diễn ra — đã hoàn tiền»/);
+  assert.match(text, /chính tiền của hợp đồng đó, không lấy từ tiền của hợp đồng khác/);
+  assert.match(text, /không cam kết mọi khoản còn thiếu đều được hoàn ngay/);
+  assert.match(text, /\(a\) tiền của hợp đồng đủ[^;]*«đã hoàn tiền»/);
+  assert.match(text, /\(b\) chỉ đủ một phần[^;]*«đã hoàn một phần, còn … đang chờ xử lý»/);
+  assert.match(text, /\(c\) chưa hoàn được[^.]*«chưa hoàn, đang chờ xử lý»/);
+  assert.match(text, /chỉ được coi là đã hoàn khi đã được xử lý xong/);
   assert.match(text, /đối soát/);
   assert.match(text, /không tự động trở thành khoản nợ của bạn/);
   assert.doesNotMatch(text, /không bị trừ/);
+  // D77: the rule exactly as the code runs it
+  assert.match(text, /muộn hơn 15 phút so với giờ bắt đầu đã hẹn, trong khi khách cũng có mặt/);
+  assert.match(text, /bồi thường một nửa giá trị của buổi đó \(một nửa của giá hợp đồng chia cho tổng số buổi\)/);
+  assert.match(text, /trừ vào chính tiền của buổi đó: bạn, phòng gym \(nếu có\) và nền tảng mỗi bên chịu phần của mình theo đúng tỷ lệ chia của hợp đồng/);
+  assert.match(text, /Sau khi buổi được xác nhận, bạn nhận phần còn lại của buổi đó/);
+  assert.match(text, /các buổi khác không bị ảnh hưởng/);
+  assert.match(clause.title, /vào phòng học muộn/);
   assert.equal(PT_TERMS_SECTIONS.length, 9);
   assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."]);
 });

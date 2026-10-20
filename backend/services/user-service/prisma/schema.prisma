@@ -539,6 +539,11 @@ enum NotificationEventType {
   GYM_LISTING_CHANGES_REQUESTED
   GYM_LISTING_INVALIDATED
   GYM_AMENITY_PROPOSAL_REVIEWED
+  // Payment (client) - sent by payment-service via POST /internal/notifications after the platform auto-refunded a LATE
+  // payment for a personalized order / gym membership / contract that was already cancelled (entity PAYMENT,
+  // entityId = the payment transaction id). A direct consequence of the recipient's own payment, so no opt-out
+  // preference entry.
+  PAYMENT_AUTO_REFUNDED
 }
 
 enum NotificationEntityType {
@@ -567,6 +572,8 @@ enum NotificationEntityType {
   PT_APPLICATION
   // PT_LISTING_* notices - entityId = the PT's userId (the listing is one-per-PT).
   PT_LISTING
+  // PAYMENT_AUTO_REFUNDED's entityId = payment-service's PaymentTransaction.id (cross-service reference by convention).
+  PAYMENT
 }
 
 enum RescheduleStatus {

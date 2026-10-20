@@ -15,6 +15,7 @@ import {
 } from "./contract-lock";
 import {
   CONFLICT_PREFIX,
+  ENDED_UNSETTLED_PREFIX,
   NEEDS_RECONCILIATION_PREFIX,
   isParkedRow,
   sessionSettlementRepository,
@@ -871,12 +872,146 @@ async function applyStoredLedgerResult(
   await prisma.$transaction(async (tx) => {
     if (!(await sessionSettlementRepository.settleOnce(row.id, tx))) return; // somebody else applied it first
     if (row.kind === SessionSettlementKind.SESSION_RELEASE) await applyReleaseBookkeeping(tx, contract.id, sessionId, result);
-    else if (row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION) await applyNoShowBookkeeping(tx, contract.id, sessionId, result);
+    // A stored RECORD-ONLY answer (recordedOnly: an OPEN obligation, nothing paid) compensated nothing: the counter is not touched.
+    else if (row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION) {
+      if (result?.recordedOnly !== true) await applyNoShowBookkeeping(tx, contract.id, sessionId, result);
+    }
     else await applyLateArrivalBookkeeping(tx, contract.id, sessionId, result);
     await tx.sessionSettlement.update({ where: { id: row.id }, data: { result: record.result as Prisma.InputJsonValue, appliedAt: new Date() } });
   });
   logger.info(`[ContractPayout] ${row.kind} ${row.id} of ${contract.id}: payment-service had already performed ${record.key} - stored result applied, row SETTLED`);
   return "APPLIED";
+}
+
+// ── D77: a client compensation the ledger never performed becomes an OPEN obligation, not a lost row ──────────────────────
+
+/** The words stored with the obligation (payment-service cuts them to 120 characters in the admin report). */
+function compensationObligationReason(kind: SessionSettlementKind, sessionId: string): string {
+  return kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION
+    ? `PT vắng mặt (buổi ${sessionId.slice(0, 8)}): khoản hoàn tiền chưa được thực hiện trước khi hợp đồng kết thúc; chưa chi tiền, chờ xử lý`
+    : `PT vào muộn (buổi ${sessionId.slice(0, 8)}): khoản bồi thường chưa được thực hiện trước khi hợp đồng kết thúc; chưa chi tiền, chờ xử lý`;
+}
+const COMPENSATION_KINDS: SessionSettlementKind[] = [SessionSettlementKind.PT_NO_SHOW_COMPENSATION, SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION];
+
+/**
+ * D77 (owner decision, final) - the PT joined late, the contract is ending and payment-service has NEVER performed this session's
+ * `PT_LATE_ARRIVAL:<sessionId>` compensation (its ledger lookup found no record). The row used to be parked UNCONFIRMED and held
+ * nothing: the client's compensation lived only in a local status. Now payment-service writes it down - durably, under the very
+ * same key - as an OPEN unpaid obligation to the client (kind LATE_ARRIVAL, owed = the late-arrival formula, paid = 0, a reason),
+ * and this row turns terminal (SETTLED) with the answer stored in `result`, which names the obligationId.
+ *
+ *   - NO MONEY MOVES: not from this contract's pending, not from any pooled balance, nothing is fronted. A person who decides the
+ *     client must still be paid does that outside the ledger and resolves / waives the obligation with the FH-8 CLI (audited).
+ *   - Idempotent end to end: the ledger operation is keyed (retries and concurrent endings replay one obligation), the local flip
+ *     is the apply-once gate (settleOnce).
+ *   - If the ledger turns out to have performed the compensation after all (the answer carries no `recordedOnly: true`), its stored
+ *     real result is applied exactly as applyStoredLedgerResult does.
+ *   - An answer that cannot be trusted is parked (CONFLICT / NEEDS_HUMAN) and the ending stays refused; an unreachable payment-service
+ *     leaves the row as it is and the ending stays refused too - the obligation must be durable BEFORE the ending is recorded.
+ */
+async function recordUnperformedCompensation(
+  row: { id: string; kind: SessionSettlementKind; contractId: string; sessionId: string | null; idempotencyKey: string },
+  contract: ContractRow,
+): Promise<"RECORDED" | "APPLIED" | "BLOCKED"> {
+  const sessionId = row.sessionId ?? "";
+  const isNoShow = row.kind === SessionSettlementKind.PT_NO_SHOW_COMPENSATION;
+  const what = isNoShow ? "no-show" : "late-arrival";
+  let answer: any;
+  try {
+    answer = await (isNoShow ? paymentClient.recordNoShowObligation : paymentClient.recordLateArrivalObligation).call(paymentClient, {
+      transactionId: contract.paymentTransactionId,
+      price: contract.price!.toString(),
+      totalSessions: contract.totalSessions,
+      rates: ratesOf(contract),
+      parties: partiesOf(contract),
+      label: `Contract ${contract.id} ${isNoShow ? "no-show" : "PT late arrival"} ${sessionId}`,
+      idempotencyKey: row.idempotencyKey,
+      reason: compensationObligationReason(row.kind, sessionId),
+    });
+  } catch (e) {
+    const refusal = ledgerRefusalOf(e);
+    if (refusal) {
+      await sessionSettlementRepository.park(row.id, CONFLICT_PREFIX, `payment-service refused to record the ${what} obligation (${refusal.code}): ${refusal.message}`);
+      logger.error({ error: `[MoneyAttention] payment-service refused the ${what} obligation (${refusal.code}) - parked CONFLICT`, contractId: row.contractId, sessionId });
+    } else {
+      logger.warn(`[ContractPayout] ${row.contractId}: recording the ${what} obligation of ${sessionId} failed (${(e as Error).message}) - the ending stays refused, will be retried`);
+    }
+    return "BLOCKED";
+  }
+  const recordedOnly = answer?.recordedOnly === true;
+  const invalid =
+    (isNoShow ? invalidCompensation(answer) : invalidLateArrival(answer)) ??
+    invalidMoneyFigures(answer) ??
+    (recordedOnly && Number(answer.owed) > 0 && typeof answer.obligationId !== "string" ? "payment-service recorded no obligation for a compensation that is owed" : null) ??
+    (recordedOnly && Number(answer.paid) !== 0 ? "payment-service reported a record-only answer that paid money" : null);
+  if (invalid) {
+    await sessionSettlementRepository.park(row.id, NEEDS_RECONCILIATION_PREFIX, `the ${what} obligation answer is not valid: ${invalid}`);
+    logger.error({ error: `[MoneyAttention] ${what} obligation answer is not valid - parked for a human, nothing applied`, contractId: row.contractId, sessionId, invalid });
+    return "BLOCKED";
+  }
+  await prisma.$transaction(async (tx) => {
+    if (!(await sessionSettlementRepository.settleOnce(row.id, tx))) return; // a concurrent ending already closed it
+    // A record-only answer compensated nothing, so the NO_SHOW counter (compensatedSessions) is NOT touched; a real one is applied as always.
+    if (isNoShow) {
+      if (!recordedOnly) await applyNoShowBookkeeping(tx, contract.id, sessionId, answer);
+    } else await applyLateArrivalBookkeeping(tx, contract.id, sessionId, answer);
+    await tx.sessionSettlement.update({ where: { id: row.id }, data: { result: answer as Prisma.InputJsonValue, appliedAt: new Date() } });
+  });
+  logger.info(
+    recordedOnly
+      ? `[ContractPayout] ${contract.id}: ${what} compensation of ${sessionId} was never performed - recorded as OPEN obligation ${answer.obligationId ?? "(owed 0)"} (owed ${answer.owed}, paid 0); row ${row.id} SETTLED, no money moved`
+      : `[ContractPayout] ${contract.id}: ${what} compensation of ${sessionId} had been performed after all - stored result applied, row ${row.id} SETTLED`,
+  );
+  return recordedOnly ? "RECORDED" : "APPLIED";
+}
+
+/** A row an earlier build parked because its contract had ended before it settled ("ENDED_UNSETTLED: contract X is COMPLETED ..."): not an orphan marker. */
+const isEndedUnsettledCompensation = (row: { status: string; lastError?: string | null }) =>
+  row.status === "FAILED" && !!row.lastError && row.lastError.startsWith(`${ENDED_UNSETTLED_PREFIX} contract `);
+
+/**
+ * One client-compensation settlement row (PT no-show / PT late arrival) that is not SETTLED and whose contract has ENDED (or whose row an
+ * earlier build left UNCONFIRMED / parked ENDED_UNSETTLED): ask the ledger, read-only; performed -> apply its stored result, not
+ * performed -> record the OBLIGATION (owner rule: an obligation is never lost after the contract ends). Used by the settlement sweep
+ * (natural completion never drains rows first). No money moves. SKIPPED = nothing to do (already settled, a live runner has it, the
+ * premise is not met, no payment behind the contract).
+ */
+export async function settleEndedCompensationRow(rowId: string): Promise<"RECORDED" | "APPLIED" | "BLOCKED" | "SKIPPED"> {
+  const row = await sessionSettlementRepository.findById(rowId);
+  if (!row || !COMPENSATION_KINDS.includes(row.kind) || row.status === "SETTLED" || !row.sessionId) return "SKIPPED";
+  if (row.status !== "UNCONFIRMED" && !isEndedUnsettledCompensation(row) && (isParkedRow(row) || isLiveRow(row))) return "SKIPPED";
+  const contract = payableOrNull(await contractRepository.findById(row.contractId));
+  if (!contract) return "SKIPPED";
+  if (!(await assessSettlementRow(row)).ok) return "SKIPPED";
+  let record: LedgerOperationRecord | null;
+  try {
+    record = await paymentClient.lookupLedgerOperation(row.idempotencyKey);
+  } catch (e) {
+    logger.warn(`[ContractPayout] ledger lookup for compensation row ${row.id} failed (${(e as Error).message}) - left as it is`);
+    return "BLOCKED";
+  }
+  if (record) return (await applyStoredLedgerResult(row, contract, record)) === "APPLIED" ? "APPLIED" : "BLOCKED";
+  return recordUnperformedCompensation(row, contract);
+}
+
+/**
+ * Heals the compensation rows an EARLIER build left behind: late-arrival rows parked UNCONFIRMED (they hold nothing) and compensation rows
+ * parked ENDED_UNSETTLED ("not paid - needs a human"). Each becomes an OPEN obligation or has its stored result applied. Bounded per tick.
+ */
+export async function healHeldLateArrivalRows(limit = 20): Promise<{ recorded: number; applied: number; blocked: number }> {
+  const out = { recorded: 0, applied: 0, blocked: 0 };
+  if (!settlingD65bEnabled()) return out;
+  const rows = [
+    ...(await sessionSettlementRepository.findHeldLateArrivalRows(limit)),
+    ...(await sessionSettlementRepository.findEndedUnsettledCompensations(limit)),
+  ];
+  for (const row of rows) {
+    const verdict = await settleEndedCompensationRow(row.id);
+    if (verdict === "RECORDED") out.recorded++;
+    else if (verdict === "APPLIED") out.applied++;
+    else if (verdict === "BLOCKED") out.blocked++;
+  }
+  return out;
 }
 
 /**
@@ -886,7 +1021,8 @@ async function applyStoredLedgerResult(
  *   - NOT PERFORMED -> the session is treated like any unresolved session (D45-L3 / D52): the certain unused part is refunded now and
  *                      the session's value is HELD in the contract's own pending (the row becomes UNCONFIRMED in the ending's
  *                      transaction). A row whose session was never delivered / charged has a void premise instead: terminal,
- *                      and its key is released.
+ *                      and its key is released. A LATE-ARRIVAL row holds no session value: payment-service records it as an OPEN
+ *                      obligation to the client (D77, recordUnperformedCompensation) and the row is terminal at once.
  *   - cannot tell   -> (payment-service unreachable, a conflicting record, a record that is not a valid confirmation, a live runner)
  *                      the row stays a blocker: the caller refuses the ending exactly as before.
  * A step that the ledger DID perform but the system no longer considers due is never voided - that is a human's decision.
@@ -924,6 +1060,11 @@ async function reconcileUnverifiedSessionMoney(contractId: string, left: Unsettl
       continue;
     }
     if (verdict.ok) {
+      if (row.kind === SessionSettlementKind.PT_LATE_ARRIVAL_COMPENSATION) {
+        // D77: not held (it holds no session value) - written down as an OPEN obligation before the ending is recorded.
+        if ((await recordUnperformedCompensation(row, contract)) === "BLOCKED") blocked++;
+        continue;
+      }
       plan.hold.push({ id: row.id, kind: row.kind, sessionId: row.sessionId });
     } else if (premiseVoid && (await sessionSettlementRepository.voidRow(row.id, (verdict as { park: string }).park))) {
       logger.warn(`[ContractPayout] ${row.kind} row ${row.id} of ${contractId}: premise void (${(verdict as { park: string }).park}) and the ledger never performed it - closed, key released`);

@@ -9848,6 +9848,7 @@ export namespace Prisma {
     resolvedAt: Date | null
     resolvedBy: string | null
     resolvedNote: string | null
+    reason: string | null
   }
 
   export type ContractUnpaidObligationMaxAggregateOutputType = {
@@ -9865,6 +9866,7 @@ export namespace Prisma {
     resolvedAt: Date | null
     resolvedBy: string | null
     resolvedNote: string | null
+    reason: string | null
   }
 
   export type ContractUnpaidObligationCountAggregateOutputType = {
@@ -9882,6 +9884,7 @@ export namespace Prisma {
     resolvedAt: number
     resolvedBy: number
     resolvedNote: number
+    reason: number
     _all: number
   }
 
@@ -9913,6 +9916,7 @@ export namespace Prisma {
     resolvedAt?: true
     resolvedBy?: true
     resolvedNote?: true
+    reason?: true
   }
 
   export type ContractUnpaidObligationMaxAggregateInputType = {
@@ -9930,6 +9934,7 @@ export namespace Prisma {
     resolvedAt?: true
     resolvedBy?: true
     resolvedNote?: true
+    reason?: true
   }
 
   export type ContractUnpaidObligationCountAggregateInputType = {
@@ -9947,6 +9952,7 @@ export namespace Prisma {
     resolvedAt?: true
     resolvedBy?: true
     resolvedNote?: true
+    reason?: true
     _all?: true
   }
 
@@ -10051,6 +10057,7 @@ export namespace Prisma {
     resolvedAt: Date | null
     resolvedBy: string | null
     resolvedNote: string | null
+    reason: string | null
     _count: ContractUnpaidObligationCountAggregateOutputType | null
     _avg: ContractUnpaidObligationAvgAggregateOutputType | null
     _sum: ContractUnpaidObligationSumAggregateOutputType | null
@@ -10087,6 +10094,7 @@ export namespace Prisma {
     resolvedAt?: boolean
     resolvedBy?: boolean
     resolvedNote?: boolean
+    reason?: boolean
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
     events?: boolean | ContractUnpaidObligation$eventsArgs<ExtArgs>
     _count?: boolean | ContractUnpaidObligationCountOutputTypeDefaultArgs<ExtArgs>
@@ -10107,6 +10115,7 @@ export namespace Prisma {
     resolvedAt?: boolean
     resolvedBy?: boolean
     resolvedNote?: boolean
+    reason?: boolean
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligation"]>
 
@@ -10125,6 +10134,7 @@ export namespace Prisma {
     resolvedAt?: boolean
     resolvedBy?: boolean
     resolvedNote?: boolean
+    reason?: boolean
   }
 
   export type ContractUnpaidObligationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10166,6 +10176,10 @@ export namespace Prisma {
       resolvedAt: Date | null
       resolvedBy: string | null
       resolvedNote: string | null
+      /**
+       * Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
+       */
+      reason: string | null
     }, ExtArgs["result"]["contractUnpaidObligation"]>
     composites: {}
   }
@@ -10575,6 +10589,7 @@ export namespace Prisma {
     readonly resolvedAt: FieldRef<"ContractUnpaidObligation", 'DateTime'>
     readonly resolvedBy: FieldRef<"ContractUnpaidObligation", 'String'>
     readonly resolvedNote: FieldRef<"ContractUnpaidObligation", 'String'>
+    readonly reason: FieldRef<"ContractUnpaidObligation", 'String'>
   }
     
 
@@ -14132,7 +14147,8 @@ export namespace Prisma {
     createdAt: 'createdAt',
     resolvedAt: 'resolvedAt',
     resolvedBy: 'resolvedBy',
-    resolvedNote: 'resolvedNote'
+    resolvedNote: 'resolvedNote',
+    reason: 'reason'
   };
 
   export type ContractUnpaidObligationScalarFieldEnum = (typeof ContractUnpaidObligationScalarFieldEnum)[keyof typeof ContractUnpaidObligationScalarFieldEnum]
@@ -15309,6 +15325,7 @@ export namespace Prisma {
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
   }
@@ -15328,6 +15345,7 @@ export namespace Prisma {
     resolvedAt?: SortOrderInput | SortOrder
     resolvedBy?: SortOrderInput | SortOrder
     resolvedNote?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
     transaction?: PaymentTransactionOrderByWithRelationInput
     events?: ContractUnpaidObligationEventOrderByRelationAggregateInput
   }
@@ -15350,6 +15368,7 @@ export namespace Prisma {
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
   }, "id" | "key">
@@ -15369,6 +15388,7 @@ export namespace Prisma {
     resolvedAt?: SortOrderInput | SortOrder
     resolvedBy?: SortOrderInput | SortOrder
     resolvedNote?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
     _count?: ContractUnpaidObligationCountOrderByAggregateInput
     _avg?: ContractUnpaidObligationAvgOrderByAggregateInput
     _max?: ContractUnpaidObligationMaxOrderByAggregateInput
@@ -15394,6 +15414,7 @@ export namespace Prisma {
     resolvedAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligation"> | Date | string | null
     resolvedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
+    reason?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
   }
 
   export type PartnerReceivableEventWhereInput = {
@@ -16547,6 +16568,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
   }
@@ -16566,6 +16588,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
   }
 
@@ -16583,6 +16606,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
   }
@@ -16602,6 +16626,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
   }
 
@@ -16620,6 +16645,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
   }
 
   export type ContractUnpaidObligationUpdateManyMutationInput = {
@@ -16636,6 +16662,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ContractUnpaidObligationUncheckedUpdateManyInput = {
@@ -16653,6 +16680,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PartnerReceivableEventCreateInput = {
@@ -17946,6 +17974,7 @@ export namespace Prisma {
     resolvedAt?: SortOrder
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
+    reason?: SortOrder
   }
 
   export type ContractUnpaidObligationAvgOrderByAggregateInput = {
@@ -17969,6 +17998,7 @@ export namespace Prisma {
     resolvedAt?: SortOrder
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
+    reason?: SortOrder
   }
 
   export type ContractUnpaidObligationMinOrderByAggregateInput = {
@@ -17986,6 +18016,7 @@ export namespace Prisma {
     resolvedAt?: SortOrder
     resolvedBy?: SortOrder
     resolvedNote?: SortOrder
+    reason?: SortOrder
   }
 
   export type ContractUnpaidObligationSumOrderByAggregateInput = {
@@ -19721,6 +19752,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
   }
 
@@ -19738,6 +19770,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
   }
 
@@ -19834,6 +19867,7 @@ export namespace Prisma {
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
     resolvedBy?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
+    reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
   }
 
   export type PaymentTransactionCreateWithoutCommissionsInput = {
@@ -20424,6 +20458,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
   }
 
@@ -20442,6 +20477,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
   }
 
   export type ContractUnpaidObligationCreateOrConnectWithoutEventsInput = {
@@ -20474,6 +20510,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
   }
 
@@ -20492,6 +20529,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type WalletLedgerEntryCreateManyWalletInput = {
@@ -20645,6 +20683,7 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
+    reason?: string | null
   }
 
   export type PlatformCommissionUpdateWithoutTransactionInput = {
@@ -20736,6 +20775,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
   }
 
@@ -20753,6 +20793,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
   }
 
@@ -20770,6 +20811,7 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PartnerReceivableEventCreateManyReceivableInput = {

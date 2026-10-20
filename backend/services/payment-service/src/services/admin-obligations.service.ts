@@ -50,7 +50,14 @@ export interface UnpaidObligationRow {
   paid: string;
   unpaid: string;
   transactionId: string;
+  /** First 8 characters of `contractId` (kept for the list's compact column). */
   contract: string | null;
+  /** The REAL contract id: the payment transaction's related PT contract (structured), never parsed from the free-text label. null for a non-contract payment. */
+  contractId: string | null;
+  /** The session the obligation is about (PT no-show / late arrival): taken from the operation key `PT_NO_SHOW:<id>` / `PT_LATE_ARRIVAL:<id>`. null otherwise. */
+  sessionId: string | null;
+  /** Why the obligation exists, in words (D77 sets it; null on rows FH-1 wrote). Cut to 120 characters. */
+  reason: string | null;
   createdAt: string;
   resolvedAt: string | null;
 }
@@ -114,6 +121,12 @@ export interface ObligationsReport {
   };
 }
 
+/** `PT_NO_SHOW:<sessionId>` / `PT_LATE_ARRIVAL:<sessionId>` (an OVER_RELEASED row appends `#...`): the session the step was about. */
+export function sessionIdOfKey(key: string | null | undefined): string | null {
+  const m = /^(?:PT_NO_SHOW|PT_LATE_ARRIVAL):([^#]+)/.exec(key ?? '');
+  return m ? m[1] : null;
+}
+
 export function clampLimit(raw: unknown): number {
   const n = Number.parseInt(String(raw ?? ''), 10);
   if (!Number.isFinite(n) || n < 1) return OBLIGATIONS_DEFAULT_LIMIT;
@@ -169,10 +182,13 @@ export async function buildObligationsReport(
            FROM contract_unpaid_obligations GROUP BY 1`,
       );
       const obRows = await tx.$queryRawUnsafe<any[]>(
-        `SELECT id, kind::text AS kind, party, status::text AS status, owed::text AS owed, paid::text AS paid,
-                unpaid::text AS unpaid, transaction_id, contract_ref, created_at, resolved_at
-           FROM contract_unpaid_obligations WHERE status = 'OPEN'
-          ORDER BY created_at ASC, id LIMIT $1`,
+        `SELECT o.id, o.key, o.kind::text AS kind, o.party, o.status::text AS status, o.owed::text AS owed, o.paid::text AS paid,
+                o.unpaid::text AS unpaid, o.transaction_id, o.reason, o.created_at, o.resolved_at,
+                CASE WHEN t.related_entity_type::text = 'PT_CONTRACT' THEN t.related_entity_id END AS contract_id
+           FROM contract_unpaid_obligations o
+           LEFT JOIN payment_transactions t ON t.id = o.transaction_id
+          WHERE o.status = 'OPEN'
+          ORDER BY o.created_at ASC, o.id LIMIT $1`,
         limit,
       );
 
@@ -262,7 +278,10 @@ export async function buildObligationsReport(
       paid: money(r.paid),
       unpaid: money(r.unpaid),
       transactionId: r.transaction_id,
-      contract: short(r.contract_ref),
+      contract: short(r.contract_id),
+      contractId: r.contract_id ?? null,
+      sessionId: sessionIdOfKey(r.key),
+      reason: r.reason ? cut(r.reason) : null,
       createdAt: iso(r.created_at) as string,
       resolvedAt: iso(r.resolved_at),
     })),

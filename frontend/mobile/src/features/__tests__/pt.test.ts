@@ -87,6 +87,17 @@ describe("status from the trainer's chair", () => {
     assert.equal(ptSessionStatus("PT_NO_SHOW_REPORTED").label, "Học viên báo bạn vắng");
   });
 
+  it("NO_SHOW is the trainer's fault: never 'Học viên vắng'; the label says what happened to the CLIENT's refund", () => {
+    assert.equal(ptSessionStatus("NO_SHOW").label, "Không diễn ra");
+    assert.equal(ptSessionStatus("NO_SHOW", { refundState: "FULL" }).label, "Không diễn ra — đã hoàn tiền cho khách");
+    assert.equal(ptSessionStatus("NO_SHOW", { refundState: "PENDING", refundPendingAmount: "250000.00" }).label, "Không diễn ra — hoàn tiền cho khách đang chờ xử lý");
+    assert.match(ptSessionStatus("NO_SHOW", { refundState: "PARTIAL", refundPendingAmount: "125000.00" }).label.replace(/\s/g, " "), /hoàn một phần cho khách, còn 125\.000đ đang chờ xử lý/);
+    for (const refundState of [undefined, "FULL", "PARTIAL", "PENDING"] as const) {
+      assert.doesNotMatch(ptSessionStatus("NO_SHOW", { refundState }).label, /vắng/i);
+    }
+    assert.equal(ptSessionStatus("COMPLETED", { refundState: "FULL" }).label, SESSION_STATUS.COMPLETED.label);
+  });
+
   it("neutral statuses keep the shared label so the two workspaces cannot drift", () => {
     assert.equal(ptContractStatus("ACTIVE").label, CONTRACT_STATUS.ACTIVE.label);
     assert.equal(ptSessionStatus("COMPLETED").label, SESSION_STATUS.COMPLETED.label);

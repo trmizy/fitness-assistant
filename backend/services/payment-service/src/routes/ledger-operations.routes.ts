@@ -11,8 +11,12 @@ import { prisma } from '../repositories/prisma';
  * already do the operation with this business key, and what was the result?". It never writes: every
  * read runs in a READ ONLY transaction, so the guarantee is the database's, not just this file's.
  *
- *   GET  /internal/ledger-operations/:key                  200 {key, kind, transactionId, result, createdAt, fingerprinted} | 404
+ *   GET  /internal/ledger-operations/:key                  200 {key, kind, transactionId, result, createdAt, fingerprinted, obligation?} | 404
  *   POST /internal/ledger-operations/lookup  {keys[<=100]} 200 {operations[], missing[]}
+ *
+ * `obligation` ({id, status, owed, paid, unpaid}) is present when the operation's stored result names an `obligationId`: the LIVE
+ * status of the unpaid obligation (OPEN / RESOLVED / WAIVED), so a caller that shows the client how much was refunded can tell a
+ * still-open shortfall from one an authorised person has since handled. List responses do not carry it.
  *   GET  /internal/ledger-operations?prefix&since&cursor&limit<=200   200 {operations[], nextCursor}
  */
 const router = Router();
@@ -48,8 +52,12 @@ type Row = {
   requestFingerprint: string | null;
 };
 
-function present(r: Row) {
+type ObligationView = { id: string; status: string; owed: string; paid: string; unpaid: string };
+
+function present(r: Row, obligations?: Map<string, ObligationView>) {
   const prefix = r.key.split(':')[0];
+  const obligationId = (r.result as { obligationId?: unknown } | null)?.obligationId;
+  const obligation = typeof obligationId === 'string' ? obligations?.get(obligationId) : undefined;
   return {
     key: r.key,
     kind: r.kind ?? KIND_BY_PREFIX[prefix] ?? null,
@@ -57,7 +65,20 @@ function present(r: Row) {
     result: r.result,
     createdAt: r.createdAt.toISOString(),
     fingerprinted: r.requestFingerprint !== null,
+    ...(obligation ? { obligation } : {}),
   };
+}
+
+type ReadTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/** The live status of the obligations the given rows' results point at (one query, same READ ONLY transaction). */
+async function obligationsOf(tx: ReadTx, rows: Row[]): Promise<Map<string, ObligationView>> {
+  const ids = [...new Set(rows.map((r) => (r.result as { obligationId?: unknown } | null)?.obligationId).filter((v): v is string => typeof v === 'string'))];
+  if (ids.length === 0) return new Map();
+  const found = await tx.contractUnpaidObligation.findMany({ where: { id: { in: ids } } });
+  return new Map(
+    found.map((o) => [o.id, { id: o.id, status: o.status, owed: o.owed.toFixed(2), paid: o.paid.toFixed(2), unpaid: o.unpaid.toFixed(2) }]),
+  );
 }
 
 /** Runs `fn` in a READ ONLY transaction: any write attempted inside is rejected by Postgres. */
@@ -77,12 +98,15 @@ router.post('/lookup', async (req: Request, res: Response) => {
   }
   const keys = [...new Set(parsed.data.keys)];
   try {
-    const rows = await readOnly((tx) => tx.ledgerOperation.findMany({ where: { key: { in: keys } } }));
+    const { rows, obligations } = await readOnly(async (tx) => {
+      const rows = await tx.ledgerOperation.findMany({ where: { key: { in: keys } } });
+      return { rows, obligations: await obligationsOf(tx, rows) };
+    });
     const found = new Set(rows.map((r) => r.key));
     logger.info(`[LedgerLookup] ${keys.length} key(s) asked, ${rows.length} found`);
     return res.json({
       success: true,
-      data: { operations: rows.map(present), missing: keys.filter((k) => !found.has(k)) },
+      data: { operations: rows.map((r) => present(r, obligations)), missing: keys.filter((k) => !found.has(k)) },
     });
   } catch (err) {
     logger.error({ error: 'ledger-operations lookup failed', message: (err as Error).message });
@@ -119,7 +143,7 @@ router.get('/', async (req: Request, res: Response) => {
     logger.info(`[LedgerLookup] list prefix=${prefix ?? '*'} returned ${page.length}`);
     return res.json({
       success: true,
-      data: { operations: page.map(present), nextCursor: rows.length > limit ? (rows[limit - 1] as unknown as { id: string }).id : null },
+      data: { operations: page.map((r) => present(r)), nextCursor: rows.length > limit ? (rows[limit - 1] as unknown as { id: string }).id : null },
     });
   } catch (err) {
     logger.error({ error: 'ledger-operations list failed', message: (err as Error).message });
@@ -129,10 +153,13 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:key', async (req: Request, res: Response) => {
   try {
-    const row = await readOnly((tx) => tx.ledgerOperation.findUnique({ where: { key: req.params.key } }));
+    const { row, obligations } = await readOnly(async (tx) => {
+      const row = await tx.ledgerOperation.findUnique({ where: { key: req.params.key } });
+      return { row, obligations: row ? await obligationsOf(tx, [row]) : undefined };
+    });
     if (!row) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
     logger.info('[LedgerLookup] 1 key asked, 1 found');
-    return res.json({ success: true, data: present(row) });
+    return res.json({ success: true, data: present(row, obligations) });
   } catch (err) {
     logger.error({ error: 'ledger-operations get failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'LOOKUP_FAILED' } });

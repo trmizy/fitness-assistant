@@ -80,7 +80,7 @@ export const contractController = {
         req.params.id,
         ptUserId,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Accept contract error");
       res.status(error.status || 500).json({
@@ -101,7 +101,7 @@ export const contractController = {
         ptUserId,
         reason,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Reject contract error");
       res
@@ -134,7 +134,7 @@ export const contractController = {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
       const contract = await contractService.create(ptUserId, req.body);
-      res.status(201).json(contract);
+      res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Create contract error");
       res
@@ -152,7 +152,7 @@ export const contractController = {
         ptUserId,
         status as string,
       );
-      res.json(contracts);
+      res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get PT contracts error");
       res.status(500).json({ error: "Failed to fetch contracts" });
@@ -230,7 +230,7 @@ export const contractController = {
         ptUserId,
         req.body,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Update contract error");
       res
@@ -247,7 +247,7 @@ export const contractController = {
         req.params.id,
         ptUserId,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Log session error");
       res
@@ -547,7 +547,8 @@ export const contractController = {
       const platform: 'web' | 'mobile' = req.headers.origin === 'http://localhost' ? 'mobile' : 'web';
       const returnBaseUrl = typeof req.headers['x-public-base-url'] === 'string' ? req.headers['x-public-base-url'] : undefined;
       const result = await contractService.pay(req.params.id, clientUserId, provider, platform, returnBaseUrl);
-      res.json(result);
+      // `result.contract` is the raw row (frozen split, holdback, released-to-*): the client gets it without those fields.
+      res.json(redactContractSplit(result, viewerOf(req)));
     } catch (error: any) {
       if (error.message === 'ALREADY_PAID') {
         res.status(409).json({ error: error.message });

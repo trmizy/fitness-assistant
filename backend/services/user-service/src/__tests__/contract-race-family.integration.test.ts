@@ -542,7 +542,7 @@ test("F4 settlement 2: a compensation that still cannot be paid REFUSES the endi
   }
 });
 
-test("F4 settlement 3: the settlement sweep NEVER pays a compensation of a contract that has ended (it would be drawn from the PT's pooled available) - the row is marked ENDED_UNSETTLED and not retried", { skip }, async () => {
+test("F4 settlement 3: the settlement sweep NEVER pays a compensation of a contract that has ended (it would be drawn from the PT's pooled available) - and never loses it: the compensation is recorded as an OPEN obligation (no money), the row is terminal", { skip }, async () => {
   const pt = await makePt();
   const c = await makeContract(pt, { status: "CANCELLED", terminationReason: "CLIENT_CANCELLED", terminatedAt: new Date() });
   const s = await addSession(c, "NO_SHOW", new Date(Date.now() - 2 * DAY), { ptAtFault: true });
@@ -554,12 +554,17 @@ test("F4 settlement 3: the settlement sweep NEVER pays a compensation of a contr
   const stub = slowMoney();
   try {
     await runSettlementSweep();
-    assert.equal(callsFor(stub, c.id).length, 0, "no payment call at all");
+    for (const method of ["noShow", "lateArrival", "terminate", "releaseSession", "resolveUnresolvedSession"]) {
+      assert.equal(callsFor(stub, c.id, method).length, 0, `no money call (${method})`);
+    }
+    assert.equal(callsFor(stub, c.id, "recordNoShowObligation").length, 1, "one record-only call, under the original key");
+    assert.equal(callsFor(stub, c.id, "recordNoShowObligation")[0].body.idempotencyKey, `PT_NO_SHOW:${s.id}`);
     const row = await prisma.sessionSettlement.findUniqueOrThrow({ where: { idempotencyKey: `PT_NO_SHOW:${s.id}` } });
-    assert.equal(row.status, "FAILED");
-    assert.ok(row.lastError?.startsWith("ENDED_UNSETTLED:"), row.lastError ?? "");
+    assert.equal(row.status, "SETTLED");
+    assert.equal((row.result as any).recordedOnly, true);
+    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).compensatedSessions, 0, "nothing was compensated");
     await runSettlementSweep();
-    assert.equal(callsFor(stub, c.id).length, 0);
+    assert.equal(callsFor(stub, c.id).length, 1, "a second tick asks for nothing more");
   } finally {
     stub.restore();
     await scrubSessions([c.id]);

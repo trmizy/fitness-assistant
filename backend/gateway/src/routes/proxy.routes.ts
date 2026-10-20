@@ -1569,6 +1569,15 @@ router.post(
     onError: serviceUnavailable('Payment service (webhook)'),
   }),
 );
+// FH E2E: VNPay IPN is GET
+router.get(
+  '/payments/webhook/:provider',
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service (webhook)'),
+  }),
+);
 
 // VNPay's own return-URL handler (no auth — this is VNPay redirecting the payer's browser
 // back, not an authenticated app call; the query string is itself signature-verified inside

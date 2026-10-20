@@ -105,6 +105,19 @@ export function redactBreakdownForViewer<T>(breakdown: T, viewer: ContractViewer
 }
 
 /**
+ * `GET /contracts/:id/checkout-context`. The contract's PT and admins get the whole object; the client gets it WITHOUT the frozen
+ * revenue split (`rates`) and without the PT-gym agreement ids/scope the split came from. Everything the client needs to understand
+ * what they are about to pay (amount, package, deadline, the re-check) stays.
+ */
+export function redactCheckoutContextForViewer<T>(context: T, viewer: ContractViewer, ptUserId: string): T {
+  if (!isPlainObject(context) || mayViewContractSplit(viewer, ptUserId)) return context;
+  const out: Obj = { ...context };
+  delete out.rates;
+  if (isPlainObject(out.gym)) out.gym = { ...out.gym, agreementId: null, agreementScope: null };
+  return out as unknown as T;
+}
+
+/**
  * The money result of ending a contract (`settlement` in the terminate response). payment-service's answer carries what each
  * party is finally entitled to; the client's screens only read `refund` (and `remaining` / `reason`). Same whitelist rule.
  */

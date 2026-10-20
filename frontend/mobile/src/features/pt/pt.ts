@@ -13,7 +13,7 @@
  */
 import { CONTRACT_STATUS, type StatusTone } from "../services/contracts";
 import { canRespondAs, collabStatusFor } from "../collaboration/collaboration";
-import { SESSION_STATUS, type SessionTone } from "../services/sessions";
+import { noShowRefundLabel, SESSION_STATUS, type RefundFields, type SessionTone } from "../services/sessions";
 import { GOAL_OPTIONS } from "../profile/profile";
 
 // ── Naming a client ────────────────────────────────────────────────────────────────────────
@@ -79,14 +79,16 @@ const PT_SESSION_OVERRIDE: Record<string, { label: string; tone: SessionTone; no
     tone: "danger",
     note: "Hãy phản hồi báo cáo này — im lặng bị tính là đồng ý.",
   },
-  NO_SHOW: { label: "Học viên vắng", tone: "danger" },
+  // DQ-2(a): NO_SHOW is always the TRAINER's fault (a student's absence ends COMPLETED), so it never reads "học viên vắng". It is "không
+  // diễn ra", not delivered, not paid; the label says what happened to the client's refund (noShowRefundLabel) when the session is given.
+  NO_SHOW: { label: "Không diễn ra", tone: "danger" },
 };
 
-export function ptSessionStatus(status: string) {
-  return (
+export function ptSessionStatus(status: string, session?: RefundFields) {
+  const base =
     PT_SESSION_OVERRIDE[status] ??
-    SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone }
-  );
+    SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone };
+  return status === "NO_SHOW" && session ? { ...base, label: noShowRefundLabel(session, "PT") } : base;
 }
 
 // ── Roster (PT-02) ─────────────────────────────────────────────────────────────────────────

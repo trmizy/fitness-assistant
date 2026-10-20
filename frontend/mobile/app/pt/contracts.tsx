@@ -473,7 +473,7 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
   return (
     <View className="gap-2.5">
       {sessions.map((s: any) => {
-        const st = ptSessionStatus(s.status);
+        const st = ptSessionStatus(s.status, s);
         const actions = sessionActions(s);
         return (
           <View key={s.id} className="gap-2 rounded-xl bg-panel p-3">

@@ -387,7 +387,8 @@ export const NotificationEventType: {
   GYM_LISTING_REJECTED: 'GYM_LISTING_REJECTED',
   GYM_LISTING_CHANGES_REQUESTED: 'GYM_LISTING_CHANGES_REQUESTED',
   GYM_LISTING_INVALIDATED: 'GYM_LISTING_INVALIDATED',
-  GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED'
+  GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
+  PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -403,7 +404,8 @@ export const NotificationEntityType: {
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH',
   PT_APPLICATION: 'PT_APPLICATION',
-  PT_LISTING: 'PT_LISTING'
+  PT_LISTING: 'PT_LISTING',
+  PAYMENT: 'PAYMENT'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]

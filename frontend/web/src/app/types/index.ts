@@ -232,6 +232,16 @@ export interface Session {
   /** Vòng 4 / Phase E2 — true only when this NO_SHOW was actually the PT's fault. 3+ across a
    * contract's sessions gives the client the right to terminate for a full refund. */
   ptAtFault?: boolean;
+  /**
+   * DQ-2(a) — only on a NO_SHOW session of GET /sessions/contract/:id, derived by the server from the ledger: FULL (refunded in full),
+   * PARTIAL (part refunded, the rest an open obligation), PENDING (nothing refunded yet / not confirmed). null/absent = the server could
+   * not tell: make NO refund claim. Never a new SessionStatus — the session stays NO_SHOW ("không diễn ra") and is never delivered.
+   */
+  refundState?: "FULL" | "PARTIAL" | "PENDING" | null;
+  /** What the ledger really credited to the client (decimal string, VND). */
+  refundedAmount?: string | null;
+  /** What is still owed to the client and open ("0.00" once closed without payment). */
+  refundPendingAmount?: string | null;
   // Money-flow plan 4.1: the client-confirmation window (PENDING_CLIENT_CONFIRMATION →
   // COMPLETED, or DISPUTED if the client objects before this deadline).
   clientConfirmDeadline?: string | null;

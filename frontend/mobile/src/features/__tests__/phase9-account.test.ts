@@ -59,9 +59,37 @@ describe("wallet", () => {
       transactionLabel("Contract 97aa71d5-3388-4e8b-8740-887f852b6435 termination — refund (CLIENT_CANCELLED)", "CREDIT"),
       "Hoàn tiền hợp đồng PT",
     );
-    assert.equal(transactionLabel("PT no-show compensation", "CREDIT"), "Bồi thường PT vắng mặt");
+    assert.equal(transactionLabel("PT no-show compensation", "CREDIT"), "Hoàn tiền buổi PT vắng");
     assert.equal(transactionLabel("Session 1f0e2a3b-1111-2222-3333-444455556666 SETTLED_X", "DEBIT"), "Tiền ra khỏi ví");
-    assert.equal(transactionLabel("Quà tặng khai trương", "CREDIT"), "Quà tặng khai trương");
+    // free text is never shown raw any more: an unrecognised row is labelled by direction only
+    assert.equal(transactionLabel("Quà tặng khai trương", "CREDIT"), "Tiền vào ví");
+  });
+
+  it("late-payment auto-refunds are named by what was bought, not 'Hoàn tiền hợp đồng PT'", () => {
+    const id = "97aa71d5-3388-4e8b-8740-887f852b6435";
+    // with the server's derived `category`
+    assert.equal(
+      transactionLabel(`PERSONALIZED_SERVICE_PURCHASE ${id} — refund (contract could not be activated)`, "CREDIT", "REFUND_UNACTIVATED_PERSONALIZED_SERVICE"),
+      "Hoàn tiền dịch vụ cá nhân hóa (đơn đã hủy trước khi thanh toán xong)",
+    );
+    assert.equal(
+      transactionLabel(`GYM_MEMBERSHIP ${id} — refund (contract could not be activated)`, "CREDIT", "REFUND_UNACTIVATED_MEMBERSHIP"),
+      "Hoàn tiền gói hội viên (gói đã hủy trước khi thanh toán xong)",
+    );
+    assert.equal(transactionLabel("x", "CREDIT", "REFUND_PT_CONTRACT"), "Hoàn tiền hợp đồng PT");
+    assert.equal(transactionLabel("x", "CREDIT", "COMPENSATION_PT_LATE_ARRIVAL"), "Bồi thường PT đến muộn");
+    assert.equal(transactionLabel("x", "CREDIT", "COMPENSATION_PT_NO_SHOW"), "Hoàn tiền buổi PT vắng");
+    // an older backend without `category`: the description is read product-first (it used to say "contract" for all of them)
+    assert.equal(
+      transactionLabel(`PERSONALIZED_SERVICE_PURCHASE ${id} — refund (contract could not be activated)`, "CREDIT"),
+      "Hoàn tiền dịch vụ cá nhân hóa (đơn đã hủy trước khi thanh toán xong)",
+    );
+    assert.equal(
+      transactionLabel(`GYM_MEMBERSHIP ${id} — refund (contract could not be activated)`, "CREDIT"),
+      "Hoàn tiền gói hội viên (gói đã hủy trước khi thanh toán xong)",
+    );
+    // an unknown category is labelled by direction
+    assert.equal(transactionLabel(`X ${id}`, "DEBIT", "SOMETHING_NEW"), "Tiền ra khỏi ví");
   });
 
   it("money strings, amount input and the withdraw form", () => {

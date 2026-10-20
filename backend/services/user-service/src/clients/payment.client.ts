@@ -43,6 +43,11 @@ export interface LedgerOperationRecord {
   createdAt: string;
   /** false for rows written before request fingerprints existed. */
   fingerprinted: boolean;
+  /**
+   * Present when `result.obligationId` names an unpaid obligation: its LIVE status. OPEN = still owed; RESOLVED = handled outside
+   * the ledger with a reference; WAIVED = the owner decided it is not pursued (the client was not paid).
+   */
+  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | string; owed: string; paid: string; unpaid: string };
 }
 
 export const paymentClient = {
@@ -110,6 +115,27 @@ export const paymentClient = {
   /** Open-room online session — PT joined after the grace window (half a no-show's rate). */
   async lateArrival(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * D77, RECORD-ONLY: the late-arrival compensation of a session was never performed by the ledger and the contract is ending.
+   * payment-service writes it down as an OPEN unpaid obligation to the client under the ORIGINAL `PT_LATE_ARRIVAL:<sessionId>` key
+   * (owed = the late-arrival formula, paid = 0, `reason` in words). NO MONEY MOVES. Idempotent per key; if the compensation had in
+   * fact been performed the stored real result comes back instead (no `recordedOnly: true`).
+   */
+  async recordLateArrivalObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival-obligation`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * RECORD-ONLY PT no-show compensation (same contract as {@link recordLateArrivalObligation}): the `PT_NO_SHOW:<sessionId>` step was never
+   * performed by the ledger and the contract has ended. One OPEN unpaid obligation of kind NO_SHOW (owed = one session's value, paid 0)
+   * under the ORIGINAL key; no money moves. Idempotent per key.
+   */
+  async recordNoShowObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show-obligation`, body, { headers, timeout: 15_000 });
     return data.data;
   },
 

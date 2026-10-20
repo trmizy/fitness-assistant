@@ -100,6 +100,11 @@ export interface HarnessOptions {
   };
   /** Override the payment test database (default: PAYMENT_DB_URL). Must still be a `*_test` database. */
   paymentDatabaseUrl?: string;
+  /**
+   * D77 follow-up: point the payment-service child's AUTH_SERVICE_URL at the small token-table fixture (the same one the gym bridge
+   * uses) so a test can call payment-service's ADMIN routes over real HTTP (`adminCall`). Off by default: the child keeps the dead port.
+   */
+  paymentAuth?: boolean;
 }
 
 export async function startHarness(opts: HarnessOptions = {}) {
@@ -117,8 +122,8 @@ export async function startHarness(opts: HarnessOptions = {}) {
   let userPort = 0; // 0 = ephemeral (the default); reserved up front only when the gym child must reach us
   let authFixture: http.Server | null = null;
   let authFixtureUrl = DEAD;
-  if (opts.gym?.bridge) {
-    userPort = await freePort();
+  if (opts.gym?.bridge) userPort = await freePort();
+  if (opts.gym?.bridge || opts.paymentAuth) {
     authFixture = http.createServer((req, res) => {
       const send = (status: number, body: unknown) => {
         res.writeHead(status, { "content-type": "application/json" });
@@ -267,7 +272,7 @@ ${gymLog.slice(-30).join("")}`);
       USER_SERVICE_URL: userUrl,
       GYM_SERVICE_URL: DEAD,
       AI_SERVICE_URL: DEAD,
-      AUTH_SERVICE_URL: DEAD,
+      AUTH_SERVICE_URL: opts.paymentAuth ? authFixtureUrl : DEAD,
       USER_LAMBDA_NAME: "",
       GYM_LAMBDA_NAME: "",
       AI_LAMBDA_NAME: "",
@@ -461,6 +466,13 @@ ${gymLog.slice(-30).join("")}`);
     return { status: res.status, body: json };
   }
 
+  /** D77 follow-up (opt-in `paymentAuth`): a request to payment-service's gateway-facing routes as an ADMIN, over real HTTP. */
+  async function adminCall(method: string, p: string) {
+    const token = tokenFor(`admin-${crypto.randomUUID()}`, "ADMIN");
+    const res = await fetch(payUrl + p, { method, headers: { authorization: `Bearer ${token}` } });
+    return { status: res.status, body: (await res.json().catch(() => null)) as any };
+  }
+
   // ── fixtures ──
   const { prisma } = m;
   const created = { contracts: [] as string[], pts: [] as string[], extraUsers: [] as string[] };
@@ -591,6 +603,7 @@ ${log.slice(-15).join("")}`);
     payTxnsFor,
     tokenFor,
     call,
+    adminCall,
     makePt,
     startCheckout,
     paidContract,

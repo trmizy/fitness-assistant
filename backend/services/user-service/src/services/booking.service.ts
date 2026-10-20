@@ -28,6 +28,7 @@ import { notificationService } from "./notification.service";
 import { contractService, getRemainingEntitlements } from "./contract.service";
 import { auditService } from "./audit.service";
 import { ptFaultClientMessage, ptFaultPtMessage, readPtFaultMoney } from "./pt-fault-session-wording";
+import { attachRefundStates } from "./session-refund-state";
 import {
   withContractLock,
   withRunningContract,
@@ -1300,7 +1301,13 @@ export const bookingService = {
     if (contract.clientUserId !== userId && contract.ptUserId !== userId) {
       throw err("Not authorized", 403);
     }
-    return sessionRepository.findByContract(contractId);
+    // DQ-2(a): a NO_SHOW (PT-fault) session also carries refundState / refundedAmount / refundPendingAmount - how much of the
+    // client's refund the ledger really paid (session-refund-state.ts). Best-effort: a failure here never hides the sessions.
+    const sessions = await sessionRepository.findByContract(contractId);
+    return attachRefundStates(sessions).catch((e: unknown) => {
+      logger.warn(`[Booking] refund state of contract ${contractId} sessions unavailable: ${(e as Error).message}`);
+      return sessions;
+    });
   },
 
   // ── Get single session (used by chat-service to verify call permissions) ─

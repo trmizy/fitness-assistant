@@ -127,6 +127,8 @@ async function recordObligation(
     party: 'CLIENT' | 'PT' | 'GYM' | 'PLATFORM';
     owed: Prisma.Decimal;
     paid: Prisma.Decimal;
+    /** Why, in words (D77 record-only late arrival). */
+    reason?: string;
   },
 ): Promise<string> {
   const unpaid = o.owed.minus(o.paid);
@@ -140,6 +142,7 @@ async function recordObligation(
       owed: o.owed,
       paid: o.paid,
       unpaid,
+      ...(o.reason ? { reason: o.reason } : {}),
     },
   });
   logger.warn(
@@ -239,6 +242,9 @@ export async function loadLateArrivalDeductions(
   for (const late of lateOps) {
     const charged = chargedOf(late.result);
     if (!charged) continue;
+    // A compensation that charged nothing (record-only obligation, or one whose contract money was already spent) deducts nothing from
+    // anyone: it must not take the place of a real one in the "first N open" attribution below.
+    if (charged.pt.plus(charged.gym).plus(charged.platform).lessThanOrEqualTo(0)) continue;
     const suffix = late.key.startsWith(LATE_ARRIVAL_KEY_PREFIX) ? late.key.slice(LATE_ARRIVAL_KEY_PREFIX.length) : null;
     if (suffix === null) continue;
     const done =
@@ -961,6 +967,93 @@ export async function compensateLateArrival(params: {
         shortfallReason: 'PT late-arrival compensation shortfall',
       }),
     ),
+  );
+}
+
+/**
+ * D77 - RECORD-ONLY late-arrival compensation. The PT joined late, but when the contract ended payment-service had never
+ * performed the session's `PT_LATE_ARRIVAL:<sessionId>` compensation (user-service asked the ledger first and the key was
+ * unknown). The ending must not lose it and must not pay it out of money that is not this session's, so it is written down:
+ * an OPEN unpaid obligation to the client (kind LATE_ARRIVAL, owed = the compensation computeLateArrivalCompensation gives,
+ * paid = 0, a reason in words) under the ORIGINAL key. NO MONEY MOVES: no wallet is debited or credited, no pending is drawn
+ * (not this contract's, a fortiori not a neighbour's), nothing is fronted, no PartnerReceivable is created. It cannot be
+ * paid by this operation - a person who decides the client must be paid does it outside the ledger and marks the
+ * obligation RESOLVED with a reference (scripts/fh8-adjust.ts), or waives it.
+ *
+ * Idempotent on the SAME key as the real compensation and with the same fingerprint (kind LATE_ARRIVAL): a retry or a
+ * concurrent ending replays the stored result and never makes a second obligation; and a real compensateLateArrival that
+ * arrives afterwards under that key (a slow call that outlived its caller) replays THIS result - it cannot also pay the
+ * client. loadLateArrivalDeductions reads charged = 0 from it, so the session's own release is not reduced.
+ */
+export function recordLateArrivalObligation(params: RecordCompensationObligationParams): Promise<NoShowResult & { recordedOnly: true }> {
+  return recordCompensationObligation('LATE_ARRIVAL', params);
+}
+
+/**
+ * RECORD-ONLY PT no-show compensation - the same mechanism as {@link recordLateArrivalObligation}, for a `PT_NO_SHOW:<sessionId>`
+ * step the ledger never performed before the contract ended (a natural completion never drains its session rows first). Kind NO_SHOW,
+ * owed = computeNoShowCompensation (one session's value, rounded up), paid 0, no money moves, same key and same fingerprint as the real
+ * compensateNoShow (so a slow real call arriving later replays the record and cannot also pay the client). The caller must NOT count the
+ * session in compensatedSessions: nothing was compensated.
+ */
+export function recordNoShowObligation(params: RecordCompensationObligationParams): Promise<NoShowResult & { recordedOnly: true }> {
+  return recordCompensationObligation('NO_SHOW', params);
+}
+
+export interface RecordCompensationObligationParams {
+  transactionId: string;
+  price: Prisma.Decimal;
+  totalSessions: number;
+  rates: RateTable;
+  parties: ContractParties;
+  label: string;
+  /** `PT_LATE_ARRIVAL:<sessionId>` / `PT_NO_SHOW:<sessionId>` - the very key the compensation used (or would have used). */
+  idempotencyKey: string;
+  reason: string;
+}
+
+const COMPENSATION_KEY_PREFIX: Record<'NO_SHOW' | 'LATE_ARRIVAL', string> = { NO_SHOW: 'PT_NO_SHOW:', LATE_ARRIVAL: LATE_ARRIVAL_KEY_PREFIX };
+
+async function recordCompensationObligation(
+  kind: 'NO_SHOW' | 'LATE_ARRIVAL',
+  params: RecordCompensationObligationParams,
+): Promise<NoShowResult & { recordedOnly: true }> {
+  const { transactionId, price, totalSessions, rates, parties, label, idempotencyKey, reason } = params;
+  const prefix = COMPENSATION_KEY_PREFIX[kind];
+  if (!idempotencyKey.startsWith(prefix) || idempotencyKey.length <= prefix.length) {
+    throw new Error(`record-only ${kind} obligation needs a ${prefix}<sessionId> key`);
+  }
+  const opMeta = contractOpMeta(kind, { transactionId, price, totalSessions, rates, parties });
+  await assertRequestMatchesTransaction({ idempotencyKey, transactionId, price, rates, parties, meta: opMeta });
+  const wallets = await resolveWallets(parties);
+  const owed = (kind === 'NO_SHOW' ? computeNoShowCompensation(price, totalSessions, rates) : computeLateArrivalCompensation(price, totalSessions, rates)).compensation;
+
+  return walletService.withWallets(wallets.all, transactionId, (ops) =>
+    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
+      let obligationId: string | undefined;
+      if (owed.greaterThan(0)) {
+        obligationId = await recordObligation(ops, {
+          key: idempotencyKey,
+          transactionId,
+          contractRef: label,
+          kind,
+          party: 'CLIENT',
+          owed,
+          paid: ZERO,
+          reason,
+        });
+      }
+      return {
+        compensation: ZERO.toFixed(2),
+        charged: { pt: ZERO.toFixed(2), gym: ZERO.toFixed(2), platform: ZERO.toFixed(2) },
+        shortfall: owed.toFixed(2),
+        owed: owed.toFixed(2),
+        paid: ZERO.toFixed(2),
+        unpaid: owed.toFixed(2),
+        ...(obligationId ? { obligationId } : {}),
+        recordedOnly: true as const,
+      };
+    }),
   );
 }
 

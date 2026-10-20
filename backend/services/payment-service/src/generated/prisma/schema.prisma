@@ -272,18 +272,33 @@ model PlatformCommission {
 /// here. Without this row the shortfall would either push a wallet negative or silently break
 /// the reconciliation invariant; instead it stays visible and recoverable.
 model PartnerReceivable {
-  id            String      @id @default(uuid())
-  partnerType   PartnerType @map("partner_type")
-  partnerId     String      @map("partner_id")
-  amount        Decimal     @db.Decimal(14, 2)
+  id               String      @id @default(uuid())
+  partnerType      PartnerType @map("partner_type")
+  partnerId        String      @map("partner_id")
+  amount           Decimal     @db.Decimal(14, 2)
   /// Recovered so far, by withholding from the partner's later credits.
-  recovered     Decimal     @default(0) @db.Decimal(14, 2)
-  reason        String
-  contractId    String?     @map("contract_id")
-  transactionId String?     @map("transaction_id")
-  settledAt     DateTime?   @map("settled_at")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  recovered        Decimal     @default(0) @db.Decimal(14, 2)
+  reason           String
+  contractId       String?     @map("contract_id")
+  transactionId    String?     @map("transaction_id")
+  settledAt        DateTime?   @map("settled_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  /// FH-8 (D62 C.4). Collection of THIS row is paused while suspendedAt is set. History is kept; nothing is
+  /// marked paid and `recovered` is never touched. Set/cleared only by the audited adjustment operation.
+  suspendedAt      DateTime?   @map("suspended_at")
+  suspendedBy      String?     @map("suspended_by")
+  suspensionReason String?     @map("suspension_reason")
+  /// Approval / minute number the owner gave for the suspension.
+  suspensionRef    String?     @map("suspension_ref")
+  /// FH-8. Part of `amount` the platform has agreed to bear (forgiven). Outstanding = amount - recovered - waived.
+  waived           Decimal     @default(0) @db.Decimal(14, 2)
+  waivedAt         DateTime?   @map("waived_at")
+  waivedBy         String?     @map("waived_by")
+  waiveReason      String?     @map("waive_reason")
+  waiveRef         String?     @map("waive_ref")
+
+  events PartnerReceivableEvent[]
 
   @@index([partnerType, partnerId, settledAt])
   @@map("partner_receivables")
@@ -358,12 +373,70 @@ model ContractUnpaidObligation {
   resolvedAt    DateTime?                      @map("resolved_at")
   resolvedBy    String?                        @map("resolved_by")
   resolvedNote  String?                        @map("resolved_note")
+  /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
+  reason        String?
 
-  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+  transaction PaymentTransaction              @relation(fields: [transactionId], references: [id])
+  events      ContractUnpaidObligationEvent[]
 
   @@index([status])
   @@index([transactionId])
   @@map("contract_unpaid_obligations")
+}
+
+enum PartnerReceivableEventAction {
+  SUSPEND
+  RESUME
+  WAIVE
+}
+
+/// FH-8. Append-only audit trail of every adjustment made to a PartnerReceivable. Rows are only ever inserted:
+/// the operation code never updates or deletes them. `idempotencyKey` makes a replayed operation a no-op.
+model PartnerReceivableEvent {
+  id             String                       @id @default(uuid())
+  receivableId   String                       @map("receivable_id")
+  action         PartnerReceivableEventAction
+  /// Amount the action concerned (the waived amount for WAIVE; the row's amount for SUSPEND/RESUME).
+  amount         Decimal                      @db.Decimal(14, 2)
+  reason         String
+  approvedBy     String                       @map("approved_by")
+  approvalRef    String                       @map("approval_ref")
+  idempotencyKey String                       @unique @map("idempotency_key")
+  beforeJson     Json                         @map("before_json")
+  afterJson      Json                         @map("after_json")
+  createdAt      DateTime                     @default(now()) @map("created_at")
+
+  receivable PartnerReceivable @relation(fields: [receivableId], references: [id], onDelete: Restrict)
+
+  @@index([receivableId])
+  @@map("partner_receivable_events")
+}
+
+enum ContractUnpaidObligationEventAction {
+  RESOLVE
+  WAIVE
+}
+
+/// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
+/// it moves no money.
+model ContractUnpaidObligationEvent {
+  id             String                              @id @default(uuid())
+  obligationId   String                              @map("obligation_id")
+  action         ContractUnpaidObligationEventAction
+  note           String
+  actor          String
+  approvalRef    String                              @map("approval_ref")
+  idempotencyKey String                              @unique @map("idempotency_key")
+  fromStatus     ContractUnpaidObligationStatus      @map("from_status")
+  toStatus       ContractUnpaidObligationStatus      @map("to_status")
+  /// Unpaid amount at the time of the change (the CAS value the owner approved).
+  unpaid         Decimal                             @db.Decimal(14, 2)
+  createdAt      DateTime                            @default(now()) @map("created_at")
+
+  obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+
+  @@index([obligationId])
+  @@map("contract_unpaid_obligation_events")
 }
 
 model PaymentWebhookEvent {

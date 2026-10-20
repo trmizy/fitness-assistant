@@ -80,6 +80,46 @@ describe("normalizeSession", () => {
   });
 });
 
+describe("NO_SHOW (PT fault) follows the refund state - \"đã hoàn tiền\" only when it is FULL", () => {
+  const noShow = (extra: Record<string, unknown>) => at("NO_SHOW", extra);
+  const label = (s: SessionRow) => sessionStatus(s.status, s).label;
+  const norm = (t: string) => t.replace(/\s/g, " ");
+
+  it("normalizeSession keeps the server's refund facts and drops anything it does not know", () => {
+    const s = noShow({ refundState: "PARTIAL", refundedAmount: "125000.00", refundPendingAmount: "125000.00" });
+    assert.deepEqual([s.refundState, s.refundedAmount, s.refundPendingAmount], ["PARTIAL", "125000.00", "125000.00"]);
+    assert.equal(noShow({ refundState: "PAID" }).refundState, null);
+    assert.equal(at("COMPLETED").refundState, null);
+  });
+
+  it("FULL -> đã hoàn tiền; PARTIAL names the open remainder; PENDING says nothing is back yet; unknown makes no claim", () => {
+    assert.equal(label(noShow({ refundState: "FULL", refundedAmount: "250000.00", refundPendingAmount: "0.00" })), "Không diễn ra — đã hoàn tiền");
+    assert.equal(norm(label(noShow({ refundState: "PARTIAL", refundedAmount: "125000.00", refundPendingAmount: "125000.00" }))), "Không diễn ra — đã hoàn một phần, còn 125.000đ đang chờ xử lý");
+    assert.equal(label(noShow({ refundState: "PENDING", refundedAmount: "0.00", refundPendingAmount: "250000.00" })), "Không diễn ra — chưa hoàn, đang chờ xử lý");
+    assert.equal(label(noShow({})), "Không diễn ra");
+    assert.equal(sessionStatus("NO_SHOW").label, "Không diễn ra", "no session given: no refund claim");
+  });
+
+  it("an open remainder is never 'đã hoàn tiền'; a closed-unpaid one is never 'đang chờ xử lý'", () => {
+    for (const extra of [
+      { refundState: "PARTIAL", refundPendingAmount: "125000.00" },
+      { refundState: "PENDING", refundPendingAmount: "250000.00" },
+      { refundState: "PENDING", refundPendingAmount: "0.00" },
+      { refundState: "PARTIAL", refundPendingAmount: "0.00" },
+    ]) {
+      assert.doesNotMatch(label(noShow(extra)), /đã hoàn tiền/);
+    }
+    assert.doesNotMatch(label(noShow({ refundState: "PENDING", refundPendingAmount: "0.00" })), /đang chờ/);
+  });
+
+  it("the session is never delivered: it keeps NO_SHOW, does not consume the package as 'completed', and a COMPLETED label is untouched", () => {
+    const s = noShow({ refundState: "FULL" });
+    assert.equal(s.status, "NO_SHOW");
+    assert.equal(consumesQuota(s), false);
+    assert.equal(sessionStatus("COMPLETED", at("COMPLETED", { refundState: "FULL" })).label, "Hoàn thành");
+  });
+});
+
 describe("statuses and quota", () => {
   it("names all eight the backend can produce", () => {
     for (const status of [

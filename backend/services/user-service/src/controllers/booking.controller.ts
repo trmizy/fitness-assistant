@@ -188,7 +188,7 @@ export const bookingController = {
   async listNoShowReportsForPT(req: any, res: Response) {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
-      res.json(await bookingService.listNoShowReportsForPT(ptUserId));
+      res.json(redactContractSplit(await bookingService.listNoShowReportsForPT(ptUserId), { userId: ptUserId, role: req.headers["x-user-role"] as string | undefined }));
     } catch (error: any) {
       logger.error(error, "List no-show reports error");
       res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });
@@ -207,9 +207,9 @@ export const bookingController = {
   },
 
   // ── Admin ──────────────────────────────────────────────────────────
-  async listDisputed(_req: any, res: Response) {
+  async listDisputed(req: any, res: Response) {
     try {
-      res.json(await bookingService.listDisputed());
+      res.json(redactContractSplit(await bookingService.listDisputed(), { userId: req.headers["x-user-id"] as string | undefined, role: req.headers["x-user-role"] as string | undefined }));
     } catch (error: any) {
       logger.error(error, "List disputed sessions error");
       res.status(error.status || 500).json({ error: clientErrorMessage(error, "Không tải được danh sách buổi tập. Vui lòng thử lại.") });

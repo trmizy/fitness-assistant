@@ -39,6 +39,8 @@ export type RescheduleRequest = {
   responseNote: string | null;
 };
 
+export type RefundState = "FULL" | "PARTIAL" | "PENDING";
+
 export type SessionRow = {
   id: string;
   contractId: string;
@@ -54,6 +56,14 @@ export type SessionRow = {
   /** True once the session has actually been charged against the package. */
   deducted: boolean;
   ptAtFault: boolean;
+  /**
+   * DQ-2(a) - only a NO_SHOW session of the per-contract list carries these, derived by the server from the ledger: FULL (refunded in
+   * full), PARTIAL (part refunded, the rest an open obligation), PENDING (nothing refunded yet / not confirmed). null = the server
+   * could not tell: make NO refund claim.
+   */
+  refundState: RefundState | null;
+  refundedAmount: string | null;
+  refundPendingAmount: string | null;
   confirmDeadline: string | null;
   autoConfirmed: boolean;
   /** Only `/sessions/upcoming` carries these; the per-contract list does not. */
@@ -89,6 +99,9 @@ export function normalizeSession(raw: any): SessionRow {
     disputeReason: raw?.disputeReason ?? null,
     deducted: raw?.sessionDeducted === true,
     ptAtFault: raw?.ptAtFault === true,
+    refundState: raw?.refundState === "FULL" || raw?.refundState === "PARTIAL" || raw?.refundState === "PENDING" ? raw.refundState : null,
+    refundedAmount: raw?.refundedAmount ?? null,
+    refundPendingAmount: raw?.refundPendingAmount ?? null,
     confirmDeadline: raw?.clientConfirmDeadline ?? null,
     autoConfirmed: raw?.autoConfirmed === true,
     reschedules: Array.isArray(raw?.rescheduleRequests)
@@ -159,12 +172,50 @@ export const SESSION_STATUS: Record<string, { label: string; tone: SessionTone; 
   },
   COMPLETED: { label: "Hoàn thành", tone: "neutral" },
   CANCELLED: { label: "Đã huỷ", tone: "neutral" },
-  // NO_SHOW is always the trainer's fault (the client's own absence goes through confirmation and ends COMPLETED): refunded, closed, still counted.
-  NO_SHOW: { label: "Không diễn ra — đã hoàn tiền", tone: "danger" },
+  // NO_SHOW is always the trainer's fault (the client's own absence goes through confirmation and ends COMPLETED): closed, still counted,
+  // never delivered. Whether the money is back follows the session's refundState (noShowRefundLabel) - "đã hoàn tiền" only when FULL.
+  NO_SHOW: { label: "Không diễn ra", tone: "danger" },
 };
 
-export function sessionStatus(status: string) {
-  return SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone };
+/** The refund facts a NO_SHOW session carries (the normalized row and the raw API row both use these names). */
+export type RefundFields = { refundState?: RefundState | null; refundedAmount?: string | null; refundPendingAmount?: string | null };
+
+const vnd = (v: string | null | undefined): string | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : null;
+};
+const closedWithoutMore = (s: RefundFields) => s.refundPendingAmount !== null && s.refundPendingAmount !== undefined && Number(s.refundPendingAmount) === 0;
+
+/**
+ * What a NO_SHOW (PT-fault) session says about the client's refund. FULL -> "đã hoàn tiền"; PARTIAL -> the open remainder is named;
+ * PENDING -> nothing refunded yet; unknown -> no claim. An open remainder is never written as paid, and a remainder the owner closed
+ * without paying (`refundPendingAmount` = 0, not FULL) says so. `audience` PT words the same facts about the client's refund.
+ */
+export function noShowRefundLabel(s: RefundFields, audience: "CLIENT" | "PT" = "CLIENT"): string {
+  const base = "Không diễn ra";
+  const pt = audience === "PT";
+  switch (s.refundState) {
+    case "FULL":
+      return pt ? `${base} — đã hoàn tiền cho khách` : `${base} — đã hoàn tiền`;
+    case "PARTIAL": {
+      const lead = pt ? "hoàn một phần cho khách" : "đã hoàn một phần";
+      if (closedWithoutMore(s)) return `${base} — ${lead}, phần còn lại ${pt ? "đã đóng" : "đã được đóng"}`;
+      const rest = vnd(s.refundPendingAmount);
+      return rest ? `${base} — ${lead}, còn ${rest}đ đang chờ xử lý` : `${base} — ${lead}, phần còn lại đang chờ xử lý`;
+    }
+    case "PENDING":
+      if (closedWithoutMore(s)) return pt ? `${base} — không hoàn thêm cho khách (đã đóng)` : `${base} — không hoàn thêm (đã đóng)`;
+      return pt ? `${base} — hoàn tiền cho khách đang chờ xử lý` : `${base} — chưa hoàn, đang chờ xử lý`;
+    default:
+      return base;
+  }
+}
+
+/** `session` (optional) lets a NO_SHOW session show how much of the client's refund the ledger really paid. */
+export function sessionStatus(status: string, session?: RefundFields) {
+  const base = SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone };
+  return status === "NO_SHOW" && session ? { ...base, label: noShowRefundLabel(session, "CLIENT") } : base;
 }
 
 /** The one rule the whole quota display rests on. */

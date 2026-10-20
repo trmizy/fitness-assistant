@@ -12,6 +12,8 @@ import {
   compensateNoShow,
   releasePtHoldback,
   releaseSession,
+  recordLateArrivalObligation,
+  recordNoShowObligation,
   loadLateArrivalDeductions,
   ledgerPrisma,
   resolveUnresolvedSession,
@@ -568,6 +570,70 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
     if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'late-arrival compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+// POST /internal/contracts/late-arrival-obligation - D77, RECORD-ONLY: the late-arrival compensation of a session was never
+// performed by the ledger and the contract is ending; write it down as an OPEN unpaid obligation to the client under the
+// ORIGINAL `PT_LATE_ARRIVAL:<sessionId>` key. No wallet is touched. Idempotent on that key (a retry or a concurrent
+// ending replays the stored result), so there is never a second obligation and never a second payment.
+const lateArrivalObligationSchema = releaseSchema.extend({
+  reason: z.string().trim().min(5).max(300),
+});
+// POST /internal/contracts/no-show-obligation - the same, for a PT no-show step (`PT_NO_SHOW:<sessionId>`) the ledger never performed
+// before the contract ended. No money moves; one OPEN obligation of kind NO_SHOW, idempotent on the original key.
+router.post('/contracts/no-show-obligation', async (req: Request, res: Response) => {
+  const parsed = lateArrivalObligationSchema.safeParse(req.body);
+  if (!parsed.success || !parsed.data.idempotencyKey.startsWith('PT_NO_SHOW:')) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', details: parsed.success ? { idempotencyKey: ['must be PT_NO_SHOW:<sessionId>'] } : parsed.error.flatten() },
+    });
+  }
+  const d = parsed.data;
+  try {
+    const result = await recordNoShowObligation({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      reason: d.reason,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'no-show obligation record failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
+  }
+});
+router.post('/contracts/late-arrival-obligation', async (req: Request, res: Response) => {
+  const parsed = lateArrivalObligationSchema.safeParse(req.body);
+  if (!parsed.success || !parsed.data.idempotencyKey.startsWith('PT_LATE_ARRIVAL:')) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', details: parsed.success ? { idempotencyKey: ['must be PT_LATE_ARRIVAL:<sessionId>'] } : parsed.error.flatten() },
+    });
+  }
+  const d = parsed.data;
+  try {
+    const result = await recordLateArrivalObligation({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      reason: d.reason,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'late-arrival obligation record failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
   }
 });
 

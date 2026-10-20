@@ -260,7 +260,8 @@ exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
   createdAt: 'createdAt',
   resolvedAt: 'resolvedAt',
   resolvedBy: 'resolvedBy',
-  resolvedNote: 'resolvedNote'
+  resolvedNote: 'resolvedNote',
+  reason: 'reason'
 };
 
 exports.Prisma.PartnerReceivableEventScalarFieldEnum = {

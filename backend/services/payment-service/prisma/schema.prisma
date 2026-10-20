@@ -373,6 +373,8 @@ model ContractUnpaidObligation {
   resolvedAt    DateTime?                      @map("resolved_at")
   resolvedBy    String?                        @map("resolved_by")
   resolvedNote  String?                        @map("resolved_note")
+  /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
+  reason        String?
 
   transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
   events      ContractUnpaidObligationEvent[]

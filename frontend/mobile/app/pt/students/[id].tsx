@@ -256,7 +256,7 @@ export default function PtStudentDetailScreen() {
             ) : (
               <Card className="overflow-hidden">
                 {sessions.map((s: any, i: number) => {
-                  const ss = ptSessionStatus(s.status);
+                  const ss = ptSessionStatus(s.status, s);
                   return (
                     <View key={s.id} className={`flex-row items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
                       <View className="min-w-0 flex-1">
