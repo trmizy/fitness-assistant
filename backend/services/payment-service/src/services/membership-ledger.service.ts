@@ -1,9 +1,7 @@
-import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
 import { pendingForTransaction, walletService, type LedgerOps } from './wallet.service';
-import { coverShortfall, ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
-import { ledgerStrictOwnFunds } from './contract-request-guard';
+import { ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 
 /**
@@ -50,7 +48,7 @@ export interface ReferralSettleResult {
   owed?: string;
   paid?: string;
   unpaid?: string;
-  /** Present only when `unpaid > 0` (strict mode): the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
+  /** Present only when `unpaid > 0` : the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
   obligationId?: string;
 }
 
@@ -64,11 +62,11 @@ export interface ReferralSettleResult {
  *
  * D48 / DQ-1 S (own funds only): only what THIS membership's gym pending holds is moved. If it holds
  * less than the commission, the PT is NOT credited the difference out of thin air, the platform does
- * NOT front it (no `coverShortfall`) and no PartnerReceivable is created against the gym: the unpaid
+ * NOT front it and no PartnerReceivable is created against the gym: the unpaid
  * commission is a durable, idempotent OPEN `OVER_RELEASED` row (party PT, same kind/party/key-suffix
  * convention as `clawbackMembershipReferral`) in contract_unpaid_obligations for the admin. REFUND_SHORT
  * is not used: it means "owed to the client", and this is a PT commission, i.e. an admin incident.
- * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old platform fronting.
+ * This is a financial invariant: no flag, env or API restores the old platform fronting.
  */
 export async function settleMembershipReferral(params: {
   transactionId: string;
@@ -91,56 +89,39 @@ export async function settleMembershipReferral(params: {
 
   return walletService.withWallets([gymWallet.id, ptWallet.id, revenueWallet.id], transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, async () => {
-      const strict = ledgerStrictOwnFunds();
-      // Strict: this membership's own pending, also capped by what the pooled bucket really holds
-      // (never push the gym wallet negative). Legacy: unchanged.
-      const gymPendingForTxn = strict
-        ? await ownPending(ops, gymWallet.id, transactionId)
-        : await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
+      // This membership's own pending, also capped by what the pooled bucket really holds
+      // (never push the gym wallet negative).
+      const gymPendingForTxn = await ownPending(ops, gymWallet.id, transactionId);
       const moving = gymPendingForTxn.lessThan(amount) ? gymPendingForTxn : amount;
       if (moving.greaterThan(0)) {
         await ops.debit(gymWallet.id, moving, `${label} — referral commission`, 'PENDING');
         await ops.credit(ptWallet.id, moving, `${label} — referral commission`, 'PENDING');
       }
       const shortfall = amount.minus(moving);
-      if (strict) {
-        // Should not happen — the commission is always a slice of the gym's own settlement share — but
-        // if this membership's pending is short, nothing outside it is touched. The PT's unpaid
-        // commission is an OPEN incident for the admin, not a debt of the gym and not fronted money.
-        let obligationId: string | undefined;
-        if (shortfall.greaterThan(0)) {
-          obligationId = await recordObligation(ops, {
-            key: `${idempotencyKey}#OVER_RELEASED:PT`,
-            transactionId,
-            contractRef: label,
-            kind: 'OVER_RELEASED',
-            party: 'PT',
-            owed: amount,
-            paid: moving,
-            reason: `Referral commission: this membership's own gym pending could not fund the commission owed to PT ${ptUserId}`,
-          });
-        }
-        return {
-          moved: moving.toFixed(2),
-          shortfall: shortfall.toFixed(2),
-          owed: amount.toFixed(2),
-          paid: moving.toFixed(2),
-          unpaid: shortfall.toFixed(2),
-          ...(obligationId ? { obligationId } : {}),
-        };
-      }
-      // LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): the platform fronts the gap
-      // rather than shorting the PT, and books the debt against the gym whose commitment this was.
+      // Should not happen — the commission is always a slice of the gym's own settlement share — but
+      // if this membership's pending is short, nothing outside it is touched. The PT's unpaid
+      // commission is an OPEN incident for the admin, not a debt of the gym and not fronted money.
+      let obligationId: string | undefined;
       if (shortfall.greaterThan(0)) {
-        await coverShortfall(ops, revenueWallet.id, shortfall, {
-          partnerType: 'GYM',
-          partnerId: gymId,
-          reason: `Referral commission shortfall (${label})`,
+        obligationId = await recordObligation(ops, {
+          key: `${idempotencyKey}#OVER_RELEASED:PT`,
           transactionId,
+          contractRef: label,
+          kind: 'OVER_RELEASED',
+          party: 'PT',
+          owed: amount,
+          paid: moving,
+          reason: `Referral commission: this membership's own gym pending could not fund the commission owed to PT ${ptUserId}`,
         });
-        await ops.credit(ptWallet.id, shortfall, `${label} — referral commission (platform-fronted)`, 'PENDING');
       }
-      return { moved: moving.plus(shortfall).toFixed(2), shortfall: shortfall.toFixed(2) };
+      return {
+        moved: moving.toFixed(2),
+        shortfall: shortfall.toFixed(2),
+        owed: amount.toFixed(2),
+        paid: moving.toFixed(2),
+        unpaid: shortfall.toFixed(2),
+        ...(obligationId ? { obligationId } : {}),
+      };
     }),
   );
 }
@@ -154,7 +135,7 @@ export interface ClawbackResult {
   owed?: string;
   paid?: string;
   unpaid?: string;
-  /** Present only when `unpaid > 0` (strict mode): the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
+  /** Present only when `unpaid > 0` : the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
   obligationId?: string;
 }
 
@@ -172,7 +153,7 @@ export interface ClawbackResult {
  * PT's pooled AVAILABLE (earnings of other work), NOT fronted by the platform and NOT booked as a
  * PartnerReceivable: it is a durable, idempotent OPEN `OVER_RELEASED` incident (party PT) in
  * contract_unpaid_obligations for the admin, and `recovered`/`shortfall` report exactly what moved.
- * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old pooled AVAILABLE draw + receivable.
+ * This is a financial invariant: no flag, env or API restores the old pooled AVAILABLE draw + receivable.
  *
  * History: this used to run AVAILABLE-first, pooled across every referral the PT has ever earned (the
  * same precedent compensateNoShow uses for a PT-contract no-show charge) — reasonable for a
@@ -217,20 +198,8 @@ export async function clawbackMembershipReferral(params: {
       outstanding = outstanding.minus(fromPending);
     }
 
-    // LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): fall back to the PT's pooled
-    // AVAILABLE. In the default strict mode (D48 / DQ-3) nothing outside THIS membership's own pending
-    // is ever touched: a commission that already matured and was withdrawn is not clawed back from
-    // the PT's other earnings.
-    const strict = ledgerStrictOwnFunds();
-    if (!strict && outstanding.greaterThan(0)) {
-      const availHeld = ops.balance(ptWallet.id, 'AVAILABLE');
-      const fromAvail = availHeld.lessThan(outstanding) ? availHeld : outstanding;
-      if (fromAvail.greaterThan(0)) {
-        await ops.debit(ptWallet.id, fromAvail, `${label} — referral clawback`, 'AVAILABLE');
-        recovered = recovered.plus(fromAvail);
-        outstanding = outstanding.minus(fromAvail);
-      }
-    }
+    // D48 / DQ-3: nothing outside THIS membership's own pending is ever touched. A commission that
+    // already matured and was withdrawn is not clawed back from the PT's other earnings.
 
     if (recovered.greaterThan(0)) {
       await ops.credit(gymWallet.id, recovered, `${label} — referral clawback returned`, 'PENDING');
@@ -239,36 +208,22 @@ export async function clawbackMembershipReferral(params: {
     const shortfall = outstanding;
     let obligationId: string | undefined;
     if (shortfall.greaterThan(0)) {
-      if (strict) {
-        // The PT's commission for this membership already matured (and may have been withdrawn), so
-        // the part of it this refund should have reclaimed is no longer in this membership's pending.
-        // That is an over-release, not a PT debt: an OPEN incident for the admin (same kind and party
-        // convention as a contract termination that finds a party over-released). No
-        // PartnerReceivable, no pooled draw, nothing fronted - the gym's refund source simply stays
-        // short by this amount and the release step refunds from what the membership still holds.
-        obligationId = await recordObligation(ops, {
-          key: `${idempotencyKey}#OVER_RELEASED:PT`,
-          transactionId,
-          contractRef: label,
-          kind: 'OVER_RELEASED',
-          party: 'PT',
-          owed: amount,
-          paid: recovered,
-          reason: `Referral clawback: the commission was already released to PT ${ptUserId}; this membership's own pending could not reclaim it`,
-        });
-      } else {
-        // LEGACY: record the PT's debt as before.
-        await ops.tx.partnerReceivable.create({
-          data: {
-            partnerType: 'PT',
-            partnerId: ptUserId,
-            amount: shortfall,
-            reason: `Referral clawback shortfall (${label})`,
-            transactionId,
-          },
-        });
-        logger.warn(`[MembershipLedger] PT ${ptUserId} owes ${shortfall.toString()} — referral clawback shortfall (${label})`);
-      }
+      // The PT's commission for this membership already matured (and may have been withdrawn), so
+      // the part of it this refund should have reclaimed is no longer in this membership's pending.
+      // That is an over-release, not a PT debt: an OPEN incident for the admin (same kind and party
+      // convention as a contract termination that finds a party over-released). No
+      // PartnerReceivable, no pooled draw, nothing fronted - the gym's refund source simply stays
+      // short by this amount and the release step refunds from what the membership still holds.
+      obligationId = await recordObligation(ops, {
+        key: `${idempotencyKey}#OVER_RELEASED:PT`,
+        transactionId,
+        contractRef: label,
+        kind: 'OVER_RELEASED',
+        party: 'PT',
+        owed: amount,
+        paid: recovered,
+        reason: `Referral clawback: the commission was already released to PT ${ptUserId}; this membership's own pending could not reclaim it`,
+      });
     }
 
     return {

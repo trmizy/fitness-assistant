@@ -3,8 +3,7 @@ import { Prisma } from '../generated/prisma';
 import { walletService } from './wallet.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { splitThreeWays, ZERO } from './contract-money';
-import { coverShortfall, ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
-import { ledgerStrictOwnFunds } from './contract-request-guard';
+import { ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
 
 /**
  * P0 cluster C3 — escrow for Personalized PT Service orders (ai-service).
@@ -14,7 +13,7 @@ import { ledgerStrictOwnFunds } from './contract-request-guard';
  * it is one lump-sum price, held until the buyer accepts the delivered work (or the
  * auto-accept sweep does, on their behalf, after the review window lapses) or refunded. Same
  * underlying primitives (walletService.withWallets, withIdempotentLedgerOp,
- * coverShortfall/recoverReceivables) — a different shape of formula.
+ * recordObligation/recoverReceivables) — a different shape of formula.
  *
  * There is no `holdOrder` here: the "hold" step (price → escrow, PT/platform shares →
  * PENDING) is exactly what the existing generic checkout + webhook pipeline already does for
@@ -141,9 +140,8 @@ export interface RefundResult {
  *
  * Escrow does not move: the cash never left the platform, only whose claim on it changed.
  *
- * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old behaviour: pending, then
- * pooled AVAILABLE, then the platform fronts the PT's remainder via coverShortfall + PartnerReceivable,
- * and the client is credited in full.
+ * This is a financial invariant (D48): no flag, env or API restores the old pooled draw / platform
+ * fronting / PartnerReceivable behaviour.
  */
 export async function refundOrder(params: {
   transactionId: string;
@@ -165,61 +163,25 @@ export async function refundOrder(params: {
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, async () => {
-      const strict = ledgerStrictOwnFunds();
       const clawedBack = { pt: ZERO, platform: ZERO };
-      let platformShortfall = ZERO; // legacy only: the platform cannot owe itself
 
-      const clawback = async (
-        walletId: string,
-        amount: Prisma.Decimal,
-        key: 'pt' | 'platform',
-        debtor?: { partnerType: 'PT'; partnerId: string },
-      ) => {
+      const clawback = async (walletId: string, amount: Prisma.Decimal, key: 'pt' | 'platform') => {
         if (amount.lessThanOrEqualTo(0)) return;
-        let remaining = amount;
-
         // Only this order's own pending: a refund taken from the pool would be paid out of the
-        // PT's other contracts and orders.
+        // PT's other contracts and orders. The rest is the client's unpaid obligation, recorded below.
         const pending = await ownPending(ops, walletId, transactionId);
-        const fromPending = pending.lessThan(remaining) ? pending : remaining;
+        const fromPending = pending.lessThan(amount) ? pending : amount;
         if (fromPending.greaterThan(0)) {
           await ops.debit(walletId, fromPending, `${label} — refund funded from pending`, 'PENDING');
           clawedBack[key] = clawedBack[key].plus(fromPending);
-          remaining = remaining.minus(fromPending);
-        }
-        // Strict (default): stop here. The rest is the client's unpaid obligation, recorded below.
-        if (strict || remaining.lessThanOrEqualTo(0)) return;
-
-        // LEGACY (LEDGER_STRICT_OWN_FUNDS=false): pooled AVAILABLE, then platform fronting.
-        const available = ops.balance(walletId, 'AVAILABLE');
-        const fromAvailable = available.lessThan(remaining) ? available : remaining;
-        if (fromAvailable.greaterThan(0)) {
-          await ops.debit(walletId, fromAvailable, `${label} — refund clawed back from available`, 'AVAILABLE');
-          clawedBack[key] = clawedBack[key].plus(fromAvailable);
-          remaining = remaining.minus(fromAvailable);
-        }
-        if (remaining.lessThanOrEqualTo(0)) return;
-
-        if (debtor) {
-          await coverShortfall(ops, wallets.revenueId, remaining, {
-            partnerType: debtor.partnerType,
-            partnerId: debtor.partnerId,
-            reason: `${label} — refund shortfall`,
-            transactionId,
-          });
-          clawedBack[key] = clawedBack[key].plus(remaining);
-        } else {
-          platformShortfall = platformShortfall.plus(remaining);
         }
       };
 
-      await clawback(wallets.ptId, shares.pt, 'pt', { partnerType: 'PT', partnerId: parties.ptUserId });
+      await clawback(wallets.ptId, shares.pt, 'pt');
       await clawback(wallets.revenueId, shares.platform, 'platform');
 
-      const drawn = clawedBack.pt.plus(clawedBack.platform);
-      // Strict: the client gets exactly what the order's own money funded. Legacy: made whole
-      // regardless (the platform-share gap is only logged), as before D48.
-      const paid = strict ? drawn : refundAmount;
+      // The client gets exactly what the order's own money funded.
+      const paid = clawedBack.pt.plus(clawedBack.platform);
       if (paid.greaterThan(0)) {
         await ops.credit(wallets.clientId, paid, `${label} — refund`);
       }
@@ -238,14 +200,10 @@ export async function refundOrder(params: {
           reason: "Personalized-service refund: the order's own pending money could not fund the full amount",
         });
       }
-      if (!strict && platformShortfall.greaterThan(0)) {
-        logger.error(`[PersonalizedServiceLedger] ${label}: platform revenue itself came up ${platformShortfall.toString()} short covering a refund - needs manual attention`);
-      }
-
       return {
         refund: paid.toFixed(2),
         clawedBack: { pt: clawedBack.pt.toFixed(2), platform: clawedBack.platform.toFixed(2) },
-        shortfall: (strict ? unpaid : platformShortfall).toFixed(2),
+        shortfall: unpaid.toFixed(2),
         owed: refundAmount.toFixed(2),
         paid: paid.toFixed(2),
         unpaid: unpaid.toFixed(2),

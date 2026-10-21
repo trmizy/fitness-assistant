@@ -27,10 +27,21 @@ export class RequestDoesNotMatchTransactionError extends Error {
   }
 }
 
-/** LEDGER_STRICT_OWN_FUNDS (default ON). OFF restores the pre-FH-1 pooled draw / platform fronting: emergency rollback only. */
-export function ledgerStrictOwnFunds(): boolean {
-  return (process.env.LEDGER_STRICT_OWN_FUNDS ?? 'true').trim().toLowerCase() !== 'false';
+/**
+ * D48 is a financial INVARIANT, not a feature: every contract / personalized-service / membership
+ * ledger operation is funded ONLY from the transaction's own pending money. A shortfall becomes an
+ * OPEN obligation; the platform never fronts money, no PartnerReceivable is created, pooled AVAILABLE
+ * is never drawn. The old `LEDGER_STRICT_OWN_FUNDS` switch no longer exists: nothing reads it, so
+ * setting it (to anything) changes nothing. This only warns, once, when somebody still sets it.
+ */
+export function warnIfRemovedOwnFundsFlagSet(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.LEDGER_STRICT_OWN_FUNDS === undefined) return false;
+  logger.warn(
+    `[ContractLedger] LEDGER_STRICT_OWN_FUNDS is set ("${String(env.LEDGER_STRICT_OWN_FUNDS).slice(0, 20)}") but the flag was removed (D48 invariant): it is ignored and the strict own-funds behaviour always applies. Remove it from the environment.`,
+  );
+  return true;
 }
+warnIfRemovedOwnFundsFlagSet();
 
 export type ContractOpKind =
   | 'RELEASE_SESSION'

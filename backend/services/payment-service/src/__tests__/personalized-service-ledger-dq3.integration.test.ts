@@ -16,6 +16,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { HOSTILE_FLAG_VALUES, withRemovedFlag } from './support/d48-flag';
 import { isTestDatabaseUrl } from './support/test-db-guard';
 
 const canUseIntegrationDb = isTestDatabaseUrl(process.env.DATABASE_URL || '');
@@ -356,27 +357,41 @@ test('[REGRESSION D48] one order cannot be refunded out of a neighbour order of 
   await assertNoDebtNoNegative(m, a, 'D48 neighbour order untouched');
 });
 
-test('LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the legacy pooled draw / platform fronting', opts, async () => {
+test('[REGRESSION D48-INVARIANT] LEDGER_STRICT_OWN_FUNDS=false / garbage is inert: personalized refund still draws no pooled AVAILABLE, the platform fronts nothing, no PartnerReceivable - the shortfall is an OPEN REFUND_SHORT obligation', opts, async () => {
   const m = await load();
-  await resetLedger(m);
-  const prev = process.env.LEDGER_STRICT_OWN_FUNDS;
-  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
-  try {
-    const f = await seedAcceptedOrder(m, 1_000_000);
-    await ptWithdrawsAll(m, f, '900000');
-    await seedOtherRevenue(m, f, '2000000');
+  for (const value of HOSTILE_FLAG_VALUES) {
+    await withRemovedFlag(value, async () => {
+      const tag = `flag=${JSON.stringify(value)}`;
 
-    const result = await m.ledger.refundOrder(refundArgs(f, '1000000', 'legacy full refund'));
+      // the PT withdrew everything, the platform holds plenty of other revenue it could have fronted with
+      await resetLedger(m);
+      const f = await seedAcceptedOrder(m, 1_000_000);
+      await ptWithdrawsAll(m, f, '900000');
+      await seedOtherRevenue(m, f, '2000000');
+      const before = await snapshot(m, f);
+      const result = await m.ledger.refundOrder(refundArgs(f, '1000000', 'invariant full refund'));
+      assert.deepEqual([result.owed, result.paid, result.unpaid, result.refund], ['1000000.00', '0.00', '1000000.00', '0.00'], tag);
+      assert.ok(result.obligationId, tag);
+      assert.equal(await m.prisma.partnerReceivable.count(), 0, `${tag}: no PartnerReceivable`);
+      const obligations = await m.prisma.contractUnpaidObligation.findMany({ where: { transactionId: f.txnId } });
+      assert.equal(obligations.length, 1, tag);
+      assert.deepEqual([obligations[0].kind, obligations[0].status, obligations[0].party], ['REFUND_SHORT', 'OPEN', 'CLIENT'], tag);
+      const after = await snapshot(m, f);
+      assert.equal(after.clientAvailable, '0.00', `${tag}: client not paid out of platform money`);
+      assert.equal(after.revenueAvailable, before.revenueAvailable, `${tag}: platform fronted nothing`);
+      await assertNoDebtNoNegative(m, f, `D48 invariant refund ${tag}`);
 
-    assert.equal(result.refund, '1000000.00', 'legacy: the client is made whole');
-    assert.equal(result.paid, '1000000.00');
-    assert.equal(result.unpaid, '0.00');
-    assert.equal(await m.prisma.partnerReceivable.count({ where: { partnerId: f.parties.ptUserId } }), 1, 'legacy: PT debt booked');
-    assert.equal(await m.prisma.contractUnpaidObligation.count(), 0);
-    assert.equal((await snapshot(m, f)).clientAvailable, '1000000.00');
-    await m.reconcile.assertInvariant('legacy refund');
-  } finally {
-    if (prev === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
-    else process.env.LEDGER_STRICT_OWN_FUNDS = prev;
+      // the PT holds pooled AVAILABLE from other work: a refund after acceptance must not touch it
+      await resetLedger(m);
+      const g = await seedAcceptedOrder(m, 1_000_000);
+      await seedPtOtherEarnings(m, g, '300000');
+      const gBefore = await snapshot(m, g);
+      const r2 = await m.ledger.refundOrder(refundArgs(g, '500000', 'invariant pooled refund'));
+      assert.deepEqual([r2.paid, r2.unpaid], ['0.00', '500000.00'], tag);
+      const gAfter = await snapshot(m, g);
+      assert.equal(gAfter.ptAvailable, gBefore.ptAvailable, `${tag}: PT pooled AVAILABLE not drawn`);
+      assert.equal(gAfter.revenueAvailable, gBefore.revenueAvailable, tag);
+      await assertNoDebtNoNegative(m, g, `D48 invariant pooled ${tag}`);
+    });
   }
 });

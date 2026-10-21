@@ -15,6 +15,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { randomUUID } from 'crypto';
+import { HOSTILE_FLAG_VALUES, withRemovedFlag } from './support/d48-flag';
 import { isTestDatabaseUrl } from './support/test-db-guard';
 
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -401,23 +402,70 @@ test('FH-1 refundUnactivatedContractPayment: pending already short -> client cre
   await assertBooksSound(m, 'FH-1 unactivated short');
 });
 
-test('FH-1 LEDGER_STRICT_OWN_FUNDS=false is the emergency switch back to the old behaviour (pooled draw / fronting)', skipOpts, async () => {
+test('[REGRESSION D48-INVARIANT] LEDGER_STRICT_OWN_FUNDS=false / garbage is inert: no-show, terminate and unactivated refund stay strict (no pooled draw, no fronting, no PartnerReceivable, OPEN obligation)', skipOpts, async () => {
   const m = await load();
-  await resetLedger(m);
-  const prev = process.env.LEDGER_STRICT_OWN_FUNDS;
-  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
-  try {
-    const B = await paidContract(m, { id: 'B', pt: PT, price: 2_000_000, sessions: 8 });
-    const A = await paidContract(m, { id: 'A', pt: PT, price: 1_000_000, sessions: 4 });
-    await deliver(m, B, 2);
-    await terminate(m, A, 'MUTUAL');
-    const r = await noShow(m, A);
-    assert.equal(r.charged.pt, '225000.00', 'old behaviour: charged to the pooled AVAILABLE');
-    assert.equal(r.unpaid, '0.00');
-    assert.equal(await m.prisma.contractUnpaidObligation.count(), 0);
-  } finally {
-    if (prev === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
-    else process.env.LEDGER_STRICT_OWN_FUNDS = prev;
+  for (const value of HOSTILE_FLAG_VALUES) {
+    await withRemovedFlag(value, async () => {
+      const tag = `flag=${JSON.stringify(value)}`;
+
+      // ── no-show whose contract pending is gone, while the PT holds pooled AVAILABLE from another contract
+      await resetLedger(m);
+      {
+        const B = await paidContract(m, { id: 'B', pt: PT, price: 2_000_000, sessions: 8 });
+        const A = await paidContract(m, { id: 'A', pt: PT, price: 1_000_000, sessions: 4 });
+        await deliver(m, B, 2);
+        await terminate(m, A, 'MUTUAL');
+        const ptPoolBefore = (await bucketsOf(m, 'PT', PT)).available;
+        const revenueBefore = (await bucketsOf(m, 'PLATFORM', 'REVENUE')).available;
+        const r = await noShow(m, A);
+        assert.equal(r.charged.pt, '0.00', `${tag}: nothing charged to the pooled AVAILABLE`);
+        assert.deepEqual([r.paid, r.owed, r.unpaid], ['0.00', '250000.00', '250000.00'], tag);
+        assert.ok(r.obligationId, tag);
+        assert.equal(await m.prisma.contractUnpaidObligation.count(), 1, tag);
+        assert.equal(await m.prisma.partnerReceivable.count(), 0, tag);
+        assert.equal((await bucketsOf(m, 'PT', PT)).available, ptPoolBefore, `${tag}: PT pooled AVAILABLE untouched`);
+        assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).available, revenueBefore, `${tag}: REVENUE untouched`);
+        await assertBooksSound(m, `d48 no-show ${tag}`);
+      }
+
+      // ── terminate with A's own pending already spent (money exists elsewhere that a legacy path could front with)
+      await resetLedger(m);
+      {
+        const funder = await paidContract(m, { id: 'F', pt: 'pt-funder', price: 10_000_000, sessions: 1 });
+        await deliver(m, funder, 1);
+        const A = await paidContract(m, { id: 'A', pt: PT, price: 1_000_000, sessions: 4 });
+        await lateArrival(m, A);
+        const revBefore = await bucketsOf(m, 'PLATFORM', 'REVENUE');
+        const r = await terminate(m, A, 'CLIENT_CANCELLED');
+        assert.equal(r.owed, '900000.00', tag);
+        assert.ok(Number(r.paid) >= 775_000 && Number(r.paid) <= 775_008, `${tag}: paid ${r.paid}`);
+        assert.equal(new m.Prisma.Decimal(r.paid).plus(r.unpaid).toFixed(2), '900000.00', tag);
+        assert.ok(r.obligationId, tag);
+        assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).available, new m.Prisma.Decimal(revBefore.available).plus(10_000).toFixed(2), `${tag}: platform fronted nothing`);
+        assert.equal(await m.prisma.partnerReceivable.count(), 0, tag);
+        const ob = await m.prisma.contractUnpaidObligation.findUniqueOrThrow({ where: { id: r.obligationId! } });
+        assert.deepEqual([ob.kind, ob.party, ob.status], ['REFUND_SHORT', 'CLIENT', 'OPEN'], tag);
+        await assertBooksSound(m, `d48 terminate ${tag}`);
+      }
+
+      // ── unactivated refund with the transaction's pending already short
+      await resetLedger(m);
+      {
+        const funder = await paidContract(m, { id: 'F', pt: 'pt-funder', price: 10_000_000, sessions: 1 });
+        await deliver(m, funder, 1);
+        const A = await paidContract(m, { id: 'A', pt: PT, price: 1_000_000, sessions: 4 });
+        await noShow(m, A);
+        const revBefore = await bucketsOf(m, 'PLATFORM', 'REVENUE');
+        const r = await m.ledger.refundUnactivatedContractPayment({
+          transactionId: A.txnId, parties: A.parties, label: 'Contract A', reason: 'CONTRACT_NOT_ACTIVATABLE', contractStatus: 'CANCELLED',
+        });
+        assert.deepEqual([r.owed, r.paid, r.unpaid, r.refunded], ['1000000.00', '750000.00', '250000.00', '750000.00'], tag);
+        assert.ok(r.obligationId, tag);
+        assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).available, revBefore.available, `${tag}: REVENUE AVAILABLE untouched`);
+        assert.equal(await m.prisma.partnerReceivable.count(), 0, tag);
+        await assertBooksSound(m, `d48 unactivated ${tag}`);
+      }
+    });
   }
 });
 

@@ -19,7 +19,6 @@ import { withIdempotentLedgerOp } from './ledger-idempotency';
 import {
   assertRequestMatchesTransaction,
   contractOpMeta,
-  ledgerStrictOwnFunds,
 } from './contract-request-guard';
 
 /**
@@ -210,10 +209,9 @@ type LedgerOpReader = { ledgerOperation: LedgerOps['tx']['ledgerOperation'] };
  * the stored result of the session's `PT_LATE_ARRIVAL:<session>` operation (same session id as the release /
  * resolution key - no field from the caller). Only operations written under this transaction by FH-2b-and-later code
  * count (they carry `kind` and `transactionId`); an older row, or no row, means no deduction, so a session that was
- * already released in full before D77 keeps the outcome it had and nothing is clawed back. Strict mode only.
+ * already released in full before D77 keeps the outcome it had and nothing is clawed back.
  */
 async function lateDeductionFor(ops: LedgerOps, transactionId: string, opKey: string): Promise<PartyAmounts | null> {
-  if (!ledgerStrictOwnFunds()) return null;
   const lateKey = lateArrivalKeyFor(opKey);
   if (!lateKey) return null;
   const row = await ops.tx.ledgerOperation.findUnique({ where: { key: lateKey } });
@@ -236,7 +234,6 @@ export async function loadLateArrivalDeductions(
 ): Promise<{ settled: PartyAmounts; open: PartyAmounts }> {
   const settled = NO_AMOUNTS();
   const open = NO_AMOUNTS();
-  if (!ledgerStrictOwnFunds()) return { settled, open };
   const lateOps = await db.ledgerOperation.findMany({ where: { transactionId, kind: 'LATE_ARRIVAL' }, orderBy: { createdAt: 'asc' } });
   let openTaken = 0;
   for (const late of lateOps) {
@@ -513,12 +510,10 @@ export async function refundUnactivatedContractPayment(params: {
       // A deficit (pending already short — only possible on a ledger damaged by the old pooled
       // drain) is the client's unpaid obligation (FH-1, D48): the client is credited exactly what
       // the transaction's own money could fund, the rest is an OPEN obligation for the admin. The
-      // platform does not front it and no PartnerReceivable is created. With
-      // LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) the old behaviour returns: the
-      // client is credited in full, the platform fronts the gap and books it against the PT.
-      const strict = ledgerStrictOwnFunds();
+      // platform does not front it and no PartnerReceivable is created. This is a financial
+      // invariant (D48), not a feature: there is no flag, env or API that brings fronting back.
       const residue = drained.minus(price);
-      const paid = strict && residue.lessThan(0) ? drained : price;
+      const paid = residue.lessThan(0) ? drained : price;
       let obligationId: string | undefined;
       if (paid.greaterThan(0)) {
         await ops.credit(wallets.clientId, paid, `${label} — refund (contract could not be activated)`);
@@ -526,24 +521,15 @@ export async function refundUnactivatedContractPayment(params: {
       if (residue.greaterThan(0)) {
         await ops.credit(wallets.revenueId, residue, `${label} — surplus of reversed pending`, 'AVAILABLE');
       } else if (residue.lessThan(0)) {
-        if (strict) {
-          obligationId = await recordObligation(ops, {
-            key: idempotencyKey,
-            transactionId,
-            contractRef: label,
-            kind: 'REFUND_SHORT',
-            party: 'CLIENT',
-            owed: price,
-            paid,
-          });
-        } else {
-          await coverShortfall(ops, wallets.revenueId, residue.abs(), {
-            partnerType: 'PT',
-            partnerId: parties.ptUserId,
-            reason: `Refund of unactivated contract payment shortfall (${label})`,
-            transactionId,
-          });
-        }
+        obligationId = await recordObligation(ops, {
+          key: idempotencyKey,
+          transactionId,
+          contractRef: label,
+          kind: 'REFUND_SHORT',
+          party: 'CLIENT',
+          owed: price,
+          paid,
+        });
       }
       const unpaid = price.minus(paid);
 
@@ -778,12 +764,10 @@ export interface NoShowResult {
  * Shared body of compensateNoShow / compensateLateArrival: charge the three parties for the client's
  * compensation and credit the client. Runs inside withIdempotentLedgerOp, i.e. under the wallet locks.
  *
- * STRICT (default, LEDGER_STRICT_OWN_FUNDS): each party is charged ONLY from this contract's own
- * pending (ownPending, minus the FH-2c reserve of unresolved sessions); the client is credited exactly
- * what was drawn; the rest becomes an OPEN obligation.
- *
- * LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): this contract's pending, then the
- * party's pooled AVAILABLE, then the platform fronts the remainder and books a PartnerReceivable.
+ * Each party is charged ONLY from this contract's own pending (ownPending, minus the FH-2c reserve
+ * of unresolved sessions); the client is credited exactly what was drawn; the rest becomes an OPEN
+ * obligation (D48 invariant: no pooled AVAILABLE draw, no platform fronting, no PartnerReceivable —
+ * there is no flag that restores any of them).
  */
 async function chargeCompensation(
   ops: LedgerOps,
@@ -798,80 +782,51 @@ async function chargeCompensation(
     rel: { pt: Prisma.Decimal; gym: Prisma.Decimal; platform: Prisma.Decimal };
     chargeWording: string;
     creditWording: string;
-    shortfallReason: string;
   },
 ): Promise<NoShowResult> {
-  const { wallets, transactionId, parties, label, idempotencyKey, kind, comp: c } = p;
-  const strict = ledgerStrictOwnFunds();
+  const { wallets, transactionId, label, idempotencyKey, kind, comp: c } = p;
   const charged = { pt: ZERO, gym: ZERO, platform: ZERO };
-  let shortfall = ZERO;
-  const reserve = strict
-    ? await unresolvedReserve(ops, wallets.revenueId, transactionId, p.rel)
-    : { pt: ZERO, gym: ZERO, platform: ZERO };
+  const reserve = await unresolvedReserve(ops, wallets.revenueId, transactionId, p.rel);
 
   const charge = async (walletId: string, amount: Prisma.Decimal, key: 'pt' | 'gym' | 'platform') => {
     if (amount.lessThanOrEqualTo(0)) return;
-    let outstanding = amount;
-    // Pending first — that is the money set aside for sessions still owed, and this is one
-    // of them: THIS contract's pending, not the wallet's pooled bucket (which also holds the
-    // party's other contracts' unearned money). Strict mode stops there. The legacy path then
-    // goes on to the party's pooled available balance and, for the rest, to the platform-fronted
-    // shortfall below.
-    for (const bucket of strict ? (['PENDING'] as const) : (['PENDING', 'AVAILABLE'] as const)) {
-      if (outstanding.lessThanOrEqualTo(0)) break;
-      let held: Prisma.Decimal;
-      if (bucket === 'PENDING') {
-        const own = (await ownPending(ops, walletId, transactionId)).minus(reserve[key]);
-        held = own.greaterThan(0) ? own : ZERO;
-      } else {
-        held = ops.balance(walletId, bucket);
-      }
-      const taken = held.lessThan(outstanding) ? held : outstanding;
-      if (taken.greaterThan(0)) {
-        await ops.debit(walletId, taken, `${label} — ${p.chargeWording}`, bucket);
-        charged[key] = charged[key].plus(taken);
-        outstanding = outstanding.minus(taken);
-      }
+    // THIS contract's pending only — the money set aside for sessions still owed, and this is one of
+    // them — not the wallet's pooled bucket (which also holds the party's other contracts' unearned
+    // money). Whatever it cannot fund is left unpaid and becomes the client's OPEN obligation below.
+    const own = (await ownPending(ops, walletId, transactionId)).minus(reserve[key]);
+    const held = own.greaterThan(0) ? own : ZERO;
+    const taken = held.lessThan(amount) ? held : amount;
+    if (taken.greaterThan(0)) {
+      await ops.debit(walletId, taken, `${label} — ${p.chargeWording}`, 'PENDING');
+      charged[key] = charged[key].plus(taken);
     }
-    shortfall = shortfall.plus(outstanding);
   };
 
   await charge(wallets.ptId, c.pt, 'pt');
   if (wallets.gymId) await charge(wallets.gymId, c.gym, 'gym');
-  else if (c.gym.greaterThan(0)) shortfall = shortfall.plus(c.gym);
   await charge(wallets.revenueId, c.platform, 'platform');
 
   const owed = c.compensation;
   // Escrow does NOT move: the cash never left the platform, the claim on it simply passed from the
   // parties to the client. Both sides of the invariant fall and rise by the same amount.
-  // Strict: the client gets exactly what was drawn. Legacy: the client is made whole regardless
-  // (section 3.9) and the platform fronts what the parties could not fund.
-  const paid = strict ? charged.pt.plus(charged.gym).plus(charged.platform) : owed;
+  // The client gets exactly what was drawn.
+  const paid = charged.pt.plus(charged.gym).plus(charged.platform);
   if (paid.greaterThan(0)) await ops.credit(wallets.clientId, paid, `${label} — ${p.creditWording}`);
 
   let obligationId: string | undefined;
-  if (strict) {
-    if (owed.minus(paid).greaterThan(0)) {
-      obligationId = await recordObligation(ops, {
-        key: idempotencyKey,
-        transactionId,
-        contractRef: label,
-        kind,
-        party: 'CLIENT',
-        owed,
-        paid,
-      });
-    }
-  } else if (shortfall.greaterThan(0)) {
-    await coverShortfall(ops, wallets.revenueId, shortfall, {
-      partnerType: 'PT',
-      partnerId: parties.ptUserId,
-      reason: `${p.shortfallReason} (${label})`,
+  if (owed.minus(paid).greaterThan(0)) {
+    obligationId = await recordObligation(ops, {
+      key: idempotencyKey,
       transactionId,
+      contractRef: label,
+      kind,
+      party: 'CLIENT',
+      owed,
+      paid,
     });
   }
 
-  const unpaid = strict ? owed.minus(paid) : ZERO;
+  const unpaid = owed.minus(paid);
   return {
     compensation: paid.toFixed(2),
     charged: {
@@ -879,7 +834,7 @@ async function chargeCompensation(
       gym: charged.gym.toFixed(2),
       platform: charged.platform.toFixed(2),
     },
-    shortfall: (strict ? unpaid : shortfall).toFixed(2),
+    shortfall: unpaid.toFixed(2),
     owed: owed.toFixed(2),
     paid: paid.toFixed(2),
     unpaid: unpaid.toFixed(2),
@@ -928,7 +883,6 @@ export async function compensateNoShow(params: {
         wallets, transactionId, parties, label, idempotencyKey, kind: 'NO_SHOW', comp: c, rel,
         chargeWording: 'PT no-show charge',
         creditWording: 'compensation for a missed session',
-        shortfallReason: 'PT no-show compensation shortfall',
       }),
     ),
   );
@@ -964,7 +918,6 @@ export async function compensateLateArrival(params: {
         wallets, transactionId, parties, label, idempotencyKey, kind: 'LATE_ARRIVAL', comp: c, rel,
         chargeWording: 'PT late-arrival charge',
         creditWording: "compensation for the PT's late arrival",
-        shortfallReason: 'PT late-arrival compensation shortfall',
       }),
     ),
   );
@@ -1058,40 +1011,6 @@ async function recordCompensationObligation(
 }
 
 /**
- * The platform funds a gap out of its own revenue and books it as owed by the partner.
- *
- * Called when a party's buckets could not cover a charge the client is nonetheless entitled
- * to. The alternative — letting a wallet go negative, or crediting the client with money
- * nobody funded — would break the reconciliation invariant, and a broken invariant is
- * indistinguishable from theft when someone comes to audit it. If even revenue cannot cover
- * the gap, the whole movement is refused: better a failed operation than untraceable money.
- */
-export async function coverShortfall(
-  ops: LedgerOps,
-  revenueWalletId: string,
-  shortfall: Prisma.Decimal,
-  debt: { partnerType: 'PT' | 'GYM'; partnerId: string; reason: string; transactionId: string },
-): Promise<void> {
-  const revenueHeld = ops.balance(revenueWalletId, 'AVAILABLE');
-  if (revenueHeld.lessThan(shortfall)) {
-    throw new Error(
-      `[ContractLedger] cannot fund ${shortfall.toString()} shortfall: platform revenue holds only ${revenueHeld.toString()}`,
-    );
-  }
-  await ops.debit(revenueWalletId, shortfall, `${debt.reason} — fronted by the platform`, 'AVAILABLE');
-  await ops.tx.partnerReceivable.create({
-    data: {
-      partnerType: debt.partnerType,
-      partnerId: debt.partnerId,
-      amount: shortfall,
-      reason: debt.reason,
-      transactionId: debt.transactionId,
-    },
-  });
-  logger.warn(`[ContractLedger] platform fronted ${shortfall.toString()} owed by ${debt.partnerType} ${debt.partnerId}`);
-}
-
-/**
  * RECEIVABLE_RECOVERY_ENABLED — only the exact value "true" (case-insensitive) turns automatic debt
  * recovery on. Unset or anything else: paused (FH-0). Read on every call, never cached.
  */
@@ -1100,7 +1019,8 @@ export function receivableRecoveryEnabled(): boolean {
 }
 
 /**
- * The other half of coverShortfall: take the fronted money back out of what the partner
+ * Recovery of OLD PartnerReceivable rows (created before D48 by the removed platform-fronting path;
+ * no code creates new ones): take the fronted money back out of what the partner
  * earns next (money-flow §3.9, "khoản phải thu này bị trừ vào các lần ghi có sau").
  *
  * Called immediately after a partner's AVAILABLE bucket is credited, and withholds from
@@ -1110,7 +1030,7 @@ export function receivableRecoveryEnabled(): boolean {
  *    earnings*, not by raiding a balance the partner built up before the debt arose — that
  *    would be a seizure, and it would surprise someone who had already been told a figure.
  *  · Oldest debt first, so a long-standing receivable cannot be starved by newer ones.
- *  · The recovered money goes back to REVENUE, which is where coverShortfall took it from.
+ *  · The recovered money goes back to REVENUE, which is where the (removed) D48-era platform fronting took it from.
  *    Escrow does not move: the partner's claim shrinks and the platform's grows by the same
  *    amount, so the §6 invariant holds without a compensating entry.
  *
@@ -1360,10 +1280,9 @@ export async function terminateContract(params: {
       { price, totalSessions, usedSessions, compensatedSessions, unresolvedSessions, rates, ptHoldbackRate, lateArrival },
       reason,
     );
-    const strict = ledgerStrictOwnFunds();
     const topUp = { pt: ZERO, gym: ZERO, platform: ZERO };
     let shortfall = ZERO;
-    // Parties whose caller-supplied `alreadyReleased` is ahead of their final entitlement (strict mode).
+    // Parties whose caller-supplied `alreadyReleased` is ahead of their final entitlement.
     const overReleased: Array<{ party: 'PT' | 'GYM' | 'PLATFORM'; amount: Prisma.Decimal }> = [];
     // Sum of the other parties' positive gaps (what they are still owed on top of what they were released).
     let positiveGapTotal = ZERO;
@@ -1436,27 +1355,17 @@ export async function terminateContract(params: {
           }
         }
         shortfall = shortfall.plus(gap.minus(trimmed).minus(moving));
-      } else if (gap.lessThan(0) && strict) {
+      } else if (gap.lessThan(0)) {
         // FH-1 (DQ-5): the caller says this party was released more than it ends up entitled to.
         // Whatever the books say, the answer is NEVER to take it out of the party pooled AVAILABLE
         // (that is money earned on other contracts) and NEVER to move it to REVENUE as a forfeit.
         // Record the discrepancy for the admin; if the money really was paid out, the contract own
         // pending is short and the client refund shows it as an unpaid obligation below.
         overReleased.push({ party: key === 'pt' ? 'PT' : key === 'gym' ? 'GYM' : 'PLATFORM', amount: gap.abs() });
-      } else if (gap.lessThan(0)) {
-        const owed = gap.abs();
-        const heldAvailable = ops.balance(walletId, 'AVAILABLE');
-        const clawed = heldAvailable.lessThan(owed) ? heldAvailable : owed;
-        if (clawed.greaterThan(0)) {
-          await ops.debit(walletId, clawed, `${label} — over-released, clawed back`, 'AVAILABLE');
-          await ops.credit(walletId, clawed, `${label} — returned to pending`, 'PENDING');
-          topUp[key] = clawed.negated();
-        }
-        shortfall = shortfall.plus(owed.minus(clawed));
       }
     };
 
-    // Rounding dust (strict mode). The three-way split rounds the PT and gym DOWN and gives the platform the
+    // Rounding dust. The three-way split rounds the PT and gym DOWN and gives the platform the
     // remainder, at every split: the per-session releases (computeSessionRelease), the unresolved hold and the final
     // entitlement. Those remainders do not add up the same way, so a party can end a whole-dong or two AHEAD of its
     // final entitlement (the platform) while another is that much BEHIND (PT / gym top-up): the books balance in
@@ -1467,7 +1376,7 @@ export async function terminateContract(params: {
     // caller counter far ahead of the ledger) and is reported as before.
     const trim = { pt: ZERO, gym: ZERO, platform: ZERO };
     let trimmedTotal = ZERO;
-    if (strict) {
+    {
       const plan: Array<{ key: 'pt' | 'gym' | 'platform'; walletId: string | null; ent: Prisma.Decimal; rel: Prisma.Decimal; reserve: Prisma.Decimal }> = [
         { key: 'pt', walletId: wallets.ptId, ent: outcome.entitlement.pt, rel: alreadyReleased.pt, reserve: compensation },
         { key: 'gym', walletId: wallets.gymId, ent: outcome.entitlement.gym, rel: alreadyReleased.gym, reserve: ZERO },
@@ -1520,7 +1429,7 @@ export async function terminateContract(params: {
     // remainders the per-session splits can accumulate (at most 2 dong per session of the contract) AND another
     // party's top-up in this very settlement is the other side of the same rounding. Anything bigger, or without that
     // counterpart, is a real discrepancy and stays an OVER_RELEASED incident.
-    if (strict) {
+    {
       let counterpart = positiveGapTotal.minus(trimmedTotal);
       const dustCeiling = new Prisma.Decimal(2 * totalSessions);
       for (const o of overReleased) {
@@ -1558,12 +1467,12 @@ export async function terminateContract(params: {
       }
     }
 
-    // What the client can really be paid: strict mode credits only what this contract's own pending
-    // funded (refund first, then the PT-fault compensation); legacy credits in full and fronts the gap.
+    // What the client can really be paid: only what this contract's own pending funded (refund first,
+    // then the PT-fault compensation).
     const owedToClient = outcome.refund.plus(compensation);
     let refundPaid = outcome.refund;
     let compensationPaid = compensation;
-    if (strict && drained.lessThan(owedToClient)) {
+    if (drained.lessThan(owedToClient)) {
       refundPaid = Prisma.Decimal.min(outcome.refund, drained);
       compensationPaid = Prisma.Decimal.min(compensation, drained.minus(refundPaid));
     }
@@ -1596,7 +1505,7 @@ export async function terminateContract(params: {
       // Drained more than the client is owed — the surplus is the parties' forfeited share
       // (a cancellation fee, say) and belongs to the platform, not to nobody.
       await ops.credit(wallets.revenueId, residue, `${label} — forfeited share`, 'AVAILABLE');
-    } else if (residue.lessThan(0) && strict) {
+    } else if (residue.lessThan(0)) {
       // Drained less than the client is owed: this contract's own pending was already short.
       // The client was credited what could be drawn; the rest is an OPEN obligation (FH-1),
       // not fronted by the platform and not a PT debt.
@@ -1608,15 +1517,6 @@ export async function terminateContract(params: {
         party: 'CLIENT',
         owed: owedToClient,
         paid: refundPaid.plus(compensationPaid),
-      });
-    } else if (residue.lessThan(0)) {
-      // LEGACY (LEDGER_STRICT_OWN_FUNDS=false): the platform funds the difference and books it
-      // against the PT, exactly as for a no-show.
-      await coverShortfall(ops, wallets.revenueId, residue.abs(), {
-        partnerType: 'PT',
-        partnerId: parties.ptUserId,
-        reason: `Termination refund shortfall (${label}, ${reason})`,
-        transactionId,
       });
     }
 
@@ -1660,7 +1560,7 @@ export async function terminateContract(params: {
       shortfall: shortfall.plus(residue.lessThan(0) ? residue.abs() : ZERO).toFixed(2),
       owed: owedToClient.toFixed(2),
       paid: paidToClient.toFixed(2),
-      unpaid: (strict ? unpaidToClient : ZERO).toFixed(2),
+      unpaid: unpaidToClient.toFixed(2),
       ...(obligationId ? { obligationId } : {}),
       ...(overReleasedOut.length > 0 ? { overReleased: overReleasedOut } : {}),
       // Spread in rather than assigned, so the key does not exist at all when no holdback was

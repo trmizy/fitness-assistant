@@ -5,7 +5,7 @@
  * coverShortfall: the platform fronted the rest, booked a PartnerReceivable (a gym debt) and credited the PT in full.
  * Now: only the gym's pending for THIS membership's transaction moves; the PT's unpaid commission is a durable,
  * idempotent OPEN OVER_RELEASED incident in contract_unpaid_obligations (party PT, owed = the commission, paid = what
- * moved) - no PartnerReceivable, no platform fronting, no pooled draw. LEDGER_STRICT_OWN_FUNDS=false restores the old
+ * moved) - no PartnerReceivable, no platform fronting, no pooled draw. There is no flag that restores the old
  * platform fronting.
  *
  * BACKEND INTEGRATION (real ledger, isolated *_test database). Run THIS FILE ALONE (it TRUNCATEs the ledger):
@@ -15,6 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { HOSTILE_FLAG_VALUES, withRemovedFlag } from './support/d48-flag';
 import { isTestDatabaseUrl } from './support/test-db-guard';
 
 const skipOpts = {
@@ -256,30 +257,28 @@ test('[REGRESSION D48] a neighbouring membership of the same gym keeps its pendi
   await assertSound(m, 'D48 settle neighbour');
 });
 
-test('LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the legacy platform fronting', skipOpts, async () => {
+test('[REGRESSION D48-INVARIANT] LEDGER_STRICT_OWN_FUNDS=false / garbage is inert: a referral commission settle is still own-funds only - no platform fronting, no PartnerReceivable, OPEN incident', skipOpts, async () => {
   const m = await load();
-  await resetLedger(m);
-  const prev = process.env.LEDGER_STRICT_OWN_FUNDS;
-  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
-  try {
-    const f = await seedMembership(m);
-    // coverShortfall refuses when the platform's revenue AVAILABLE cannot front the gap: give it some.
-    const revenue = await m.wallet.getRevenueWallet();
-    const escrow = await m.wallet.getEscrowWallet();
-    await m.wallet.withWallets([revenue.id, escrow.id], f.txnId, async (ops) => {
-      await ops.credit(revenue.id, D(m, 200_000), 'seed - platform revenue', 'AVAILABLE');
-      await ops.credit(escrow.id, D(m, 200_000), 'seed - escrow');
+  for (const value of HOSTILE_FLAG_VALUES) {
+    await withRemovedFlag(value, async () => {
+      const tag = `flag=${JSON.stringify(value)}`;
+      await resetLedger(m);
+      const f = await seedMembership(m);
+      // Give the platform plenty of REVENUE AVAILABLE: the legacy path would have fronted the gap with it.
+      const revenue = await m.wallet.getRevenueWallet();
+      const escrow = await m.wallet.getEscrowWallet();
+      await m.wallet.withWallets([revenue.id, escrow.id], f.txnId, async (ops) => {
+        await ops.credit(revenue.id, D(m, 200_000), 'seed - platform revenue', 'AVAILABLE');
+        await ops.credit(escrow.id, D(m, 200_000), 'seed - escrow');
+      });
+      const r = await m.membership.settleMembershipReferral(refArgs(m, f, '1000000'));
+      assert.deepEqual([r.moved, r.shortfall, r.paid, r.unpaid], ['900000.00', '100000.00', '900000.00', '100000.00'], tag);
+      assert.ok(r.obligationId, tag);
+      assert.equal((await m.ledger.readWallet('PT', f.ptUserId)).pendingBalance, '900000.00', `${tag}: PT credited only what the membership funded`);
+      assert.equal((await m.prisma.wallet.findUniqueOrThrow({ where: { id: revenue.id } })).availableBalance.toFixed(2), '200000.00', `${tag}: REVENUE AVAILABLE untouched`);
+      assert.equal(await m.prisma.partnerReceivable.count(), 0, `${tag}: no PartnerReceivable`);
+      assert.equal(await m.prisma.contractUnpaidObligation.count({ where: { status: 'OPEN', kind: 'OVER_RELEASED', party: 'PT' } }), 1, tag);
+      await assertSound(m, `D48 invariant settle ${tag}`);
     });
-    const r = await m.membership.settleMembershipReferral(refArgs(m, f, '1000000'));
-    assert.equal(r.moved, '1000000.00', 'legacy: moved includes the platform-fronted part');
-    assert.equal(r.shortfall, '100000.00');
-    assert.equal(r.obligationId, undefined);
-    assert.equal((await m.ledger.readWallet('PT', f.ptUserId)).pendingBalance, '1000000.00', 'legacy: PT credited in full');
-    assert.equal(await m.prisma.partnerReceivable.count({ where: { partnerId: f.gymId } }), 1, 'legacy: gym debt booked');
-    assert.equal(await m.prisma.contractUnpaidObligation.count(), 0);
-    await m.reconcile.assertInvariant('legacy settle');
-  } finally {
-    if (prev === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
-    else process.env.LEDGER_STRICT_OWN_FUNDS = prev;
   }
 });

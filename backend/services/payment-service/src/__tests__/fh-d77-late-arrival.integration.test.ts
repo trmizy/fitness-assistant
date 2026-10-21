@@ -17,6 +17,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { HOSTILE_FLAG_VALUES, withRemovedFlag } from './support/d48-flag';
 import { isTestDatabaseUrl } from './support/test-db-guard';
 
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -346,18 +347,44 @@ test('D77 a late compensation under another transaction is never applied to this
   assert.equal(r.lateArrivalDeducted, undefined);
 });
 
-test('D77 LEDGER_STRICT_OWN_FUNDS=false is the emergency switch: no deduction is applied', skipOpts, async () => {
+test('[REGRESSION D48-INVARIANT] LEDGER_STRICT_OWN_FUNDS=false / garbage is inert: late arrival still deducts from its own session, never touches pooled AVAILABLE, no fronting, no PartnerReceivable', skipOpts, async () => {
   const m = await load();
-  await reset(m);
-  const A = await paidContract(m, 'A');
-  const prev = process.env.LEDGER_STRICT_OWN_FUNDS;
-  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
-  try {
-    await late(m, A, 's1');
-    const r = await release(m, A, 's1');
-    assert.deepEqual(r.released, { pt: '225000.00', gym: '0.00', platform: '25000.00' });
-  } finally {
-    if (prev === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
-    else process.env.LEDGER_STRICT_OWN_FUNDS = prev;
+  for (const value of HOSTILE_FLAG_VALUES) {
+    await withRemovedFlag(value, async () => {
+      const tag = `flag=${JSON.stringify(value)}`;
+      await reset(m);
+      // B gives the PT pooled AVAILABLE and REVENUE some money the old legacy path could have drawn / fronted with.
+      const B = await paidContract(m, 'B', { price: 2_000_000, total: 8 });
+      await m.ledger.releaseSession({ ...base(B), label: 'b release', idempotencyKey: 'SESSION_RELEASE:b1' });
+      const A = await paidContract(m, 'A');
+
+      // late-arrival compensation: funded by A's own pending only
+      const comp = await late(m, A, 's1');
+      assert.deepEqual([comp.owed, comp.paid, comp.unpaid], ['125000.00', '125000.00', '0.00'], tag);
+      const ptAvailableBefore = (await bucketsOf(m, 'PT', 'pt-d77')).available;
+
+      // the deduction is still applied to the session's release (the old legacy path skipped it)
+      const r = await release(m, A, 's1');
+      assert.deepEqual(r.released, { pt: '112500.00', gym: '0.00', platform: '12500.00' }, tag);
+      assert.deepEqual(r.lateArrivalDeducted, { pt: '112500.00', gym: '0.00', platform: '12500.00' }, tag);
+      assert.equal(new m.Prisma.Decimal((await bucketsOf(m, 'PT', 'pt-d77')).available).minus(ptAvailableBefore).toFixed(2), '112500.00', tag);
+
+      // a second late arrival with the contract's remaining pending exhausted by other compensations: the shortfall is an
+      // OPEN obligation, never fronted and never drawn from the PT's pooled AVAILABLE.
+      const revenueBefore = (await bucketsOf(m, 'PLATFORM', 'REVENUE')).available;
+      const ptPoolBefore = (await bucketsOf(m, 'PT', 'pt-d77')).available;
+      let unpaidTotal = new m.Prisma.Decimal(0);
+      for (let i = 0; i < 8; i++) {
+        const c = await late(m, A, `x${i}`);
+        unpaidTotal = unpaidTotal.plus(c.unpaid);
+        assert.equal(new m.Prisma.Decimal(c.paid).plus(c.unpaid).toFixed(2), '125000.00', tag);
+      }
+      assert.ok(unpaidTotal.greaterThan(0), `${tag}: the contract's own pending ran out`);
+      assert.equal(await m.prisma.partnerReceivable.count(), 0, `${tag}: no PartnerReceivable`);
+      assert.equal((await bucketsOf(m, 'PT', 'pt-d77')).available, ptPoolBefore, `${tag}: PT pooled AVAILABLE untouched`);
+      assert.equal((await bucketsOf(m, 'PLATFORM', 'REVENUE')).available, revenueBefore, `${tag}: REVENUE AVAILABLE untouched (nothing fronted)`);
+      assert.ok(await m.prisma.contractUnpaidObligation.count({ where: { status: 'OPEN' } }) > 0, `${tag}: shortfall recorded as OPEN obligation`);
+      await assertBooksSound(m, `d48 late ${tag}`);
+    });
   }
 });

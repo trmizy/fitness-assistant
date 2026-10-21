@@ -6,7 +6,7 @@
  * Now: only the PT's pending for THIS membership's transaction; what could not be reclaimed (the commission already
  * matured to AVAILABLE and may have been withdrawn) is a durable, idempotent OPEN OVER_RELEASED incident in
  * contract_unpaid_obligations (party PT, owed = the clawback requested, paid = reclaimed) - no PartnerReceivable, no
- * pooled draw, nothing fronted. LEDGER_STRICT_OWN_FUNDS=false restores the legacy behaviour.
+ * pooled draw, nothing fronted. There is no flag that restores the legacy behaviour (D48 is an invariant).
  *
  * BACKEND INTEGRATION (real ledger, isolated *_test database). Run THIS FILE ALONE (it TRUNCATEs the ledger):
  *   DATABASE_URL=".../gymcoach_payment_g1_test?schema=public" FITNESS_DISABLE_REDIS=true \
@@ -15,6 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { HOSTILE_FLAG_VALUES, withRemovedFlag } from './support/d48-flag';
 import { isTestDatabaseUrl } from './support/test-db-guard';
 
 const skipOpts = {
@@ -282,23 +283,24 @@ test('[REGRESSION D48] the clawback never reaches a neighbouring membership’s 
   await assertSound(m, 'D48 neighbour membership untouched');
 });
 
-test('LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the legacy pooled draw and receivable', skipOpts, async () => {
+test('[REGRESSION D48-INVARIANT] LEDGER_STRICT_OWN_FUNDS=false / garbage is inert: a matured-commission clawback is still an OPEN incident - no pooled draw, no PartnerReceivable', skipOpts, async () => {
   const m = await load();
-  await resetLedger(m);
-  const prev = process.env.LEDGER_STRICT_OWN_FUNDS;
-  process.env.LEDGER_STRICT_OWN_FUNDS = 'false';
-  try {
-    const f = await seedMembershipWithReferral(m);
-    await matureMembership(m, f);
-    await seedPtOtherEarnings(m, f, '50000'); // PT has 150.000 AVAILABLE in total
-    const r = await m.membership.clawbackMembershipReferral(clawArgs(m, f, '200000'));
-    assert.equal(r.recovered, '150000.00', 'legacy: pooled AVAILABLE drawn');
-    assert.equal(r.shortfall, '50000.00');
-    assert.equal(await m.prisma.partnerReceivable.count({ where: { partnerId: f.ptUserId } }), 1, 'legacy: PT debt booked');
-    assert.equal(await m.prisma.contractUnpaidObligation.count(), 0);
-    await m.reconcile.assertInvariant('legacy clawback');
-  } finally {
-    if (prev === undefined) delete process.env.LEDGER_STRICT_OWN_FUNDS;
-    else process.env.LEDGER_STRICT_OWN_FUNDS = prev;
+  for (const value of HOSTILE_FLAG_VALUES) {
+    await withRemovedFlag(value, async () => {
+      const tag = `flag=${JSON.stringify(value)}`;
+      await resetLedger(m);
+      const f = await seedMembershipWithReferral(m);
+      await matureMembership(m, f);
+      await seedPtOtherEarnings(m, f, '50000'); // PT has 150.000 AVAILABLE in total
+      const before = await snap(m, f);
+      const r = await m.membership.clawbackMembershipReferral(clawArgs(m, f, '200000'));
+      assert.deepEqual([r.recovered, r.shortfall, r.paid, r.unpaid], ['0.00', '200000.00', '0.00', '200000.00'], tag);
+      const after = await snap(m, f);
+      assert.equal(after.ptAvailable, before.ptAvailable, `${tag}: PT pooled AVAILABLE untouched`);
+      assert.equal(after.revenueAvailable, before.revenueAvailable, `${tag}: nothing fronted`);
+      assert.equal(await m.prisma.partnerReceivable.count(), 0, `${tag}: no PartnerReceivable`);
+      assert.equal(await m.prisma.contractUnpaidObligation.count({ where: { status: 'OPEN', kind: 'OVER_RELEASED' } }), 1, tag);
+      await assertSound(m, `D48 invariant clawback ${tag}`);
+    });
   }
 });
