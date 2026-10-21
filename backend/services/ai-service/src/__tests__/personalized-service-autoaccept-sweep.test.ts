@@ -22,6 +22,7 @@ const originalFetch = personalizedServiceDeps.fetchPtMarketplaceEligibility;
 const originalCommit = personalizedServiceDeps.commitPersonalizedPlan;
 const originalRelease = personalizedServiceDeps.releaseOrder;
 const originalCheckout = personalizedServiceDeps.checkout;
+const originalHasStanding = personalizedServiceDeps.hasStandingPtContract;
 const originalGetTransaction = personalizedServiceDeps.getTransaction;
 
 function stubApprovedPt(userId: string) {
@@ -32,6 +33,7 @@ function stubApprovedPt(userId: string) {
 }
 
 test.before(() => {
+  personalizedServiceDeps.hasStandingPtContract = async () => false; // BR-27 pre-payment check: no standing PT contract in these tests
   personalizedServiceDeps.checkout = async (params) => ({
     transactionId: `mock-txn-${params.orderId}`,
     status: "PENDING",
@@ -52,6 +54,7 @@ test.after(async () => {
   personalizedServiceDeps.commitPersonalizedPlan = originalCommit;
   personalizedServiceDeps.releaseOrder = originalRelease;
   personalizedServiceDeps.checkout = originalCheckout;
+  personalizedServiceDeps.hasStandingPtContract = originalHasStanding;
   personalizedServiceDeps.getTransaction = originalGetTransaction;
   await prisma.$disconnect();
 });

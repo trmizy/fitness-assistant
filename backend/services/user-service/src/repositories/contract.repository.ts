@@ -7,6 +7,15 @@ import { prisma } from "./profile.repository";
  *  the lock was ever acquired). Defaults to the singleton client everywhere else. */
 type Db = typeof prisma | Prisma.TransactionClient;
 
+/** Statuses in which a PT-client contract is still alive (BR-27). Must match the partial unique index
+ *  contracts_one_live_per_pair (migration 20261021130000), which additionally exempts source MARKETPLACE. */
+const NON_TERMINAL_PAIR_STATUSES: ContractStatus[] = [
+  ContractStatus.PENDING_REVIEW,
+  ContractStatus.PENDING_SIGNATURE,
+  ContractStatus.PENDING_PAYMENT,
+  ContractStatus.ACTIVE,
+];
+
 export const contractRepository = {
   create: (data: {
     agentActionId?: string;
@@ -89,21 +98,42 @@ export const contractRepository = {
       },
     }),
 
-  /** Find active/pending contract between specific PT and client (BR-27) */
-  findActiveByPair: (ptUserId: string, clientUserId: string) =>
-    prisma.contract.findFirst({
+  /** Find active/pending contract between specific PT and client (BR-27).
+   *  Every non-terminal status counts, PENDING_PAYMENT included: a contract awaiting the client's payment is
+   *  still a live request, and a second one beside it would send the client two payment requests for one PT.
+   *  Pass the transaction client to run the same check under the pair lock (see lockPtClientPair). */
+  findActiveByPair: (ptUserId: string, clientUserId: string, db: Db = prisma) =>
+    db.contract.findFirst({
       where: {
         ptUserId,
         clientUserId,
-        status: {
-          in: [
-            ContractStatus.PENDING_REVIEW,
-            ContractStatus.PENDING_SIGNATURE,
-            ContractStatus.ACTIVE,
-          ],
-        },
+        status: { in: NON_TERMINAL_PAIR_STATUSES },
       },
     }),
+
+  /** Same statuses as findActiveByPair, but ignoring marketplace-originated contracts. Used BEFORE a personalized
+   *  service is paid for: a standing PT contract with this PT is a conflict, a previous marketplace order is not
+   *  (repeat purchases from one PT are allowed; a marketplace contract has no end the buyer could wait for). */
+  findNonMarketplaceActiveByPair: (ptUserId: string, clientUserId: string, db: Db = prisma) =>
+    db.contract.findFirst({
+      where: {
+        ptUserId,
+        clientUserId,
+        source: { not: ContractSource.MARKETPLACE },
+        status: { in: NON_TERMINAL_PAIR_STATUSES },
+      },
+      select: { id: true, status: true },
+    }),
+
+  /** Serialises contract creation for ONE PT-client pair (transaction-scoped advisory lock). A second creator for
+   *  the same pair waits here until the first commits, then re-runs the active-pair check and sees its row. */
+  lockPtClientPair: async (tx: Prisma.TransactionClient, ptUserId: string, clientUserId: string) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"contract-pair:" + ptUserId + ":" + clientUserId}, 0))`;
+  },
+
+  /** A contract already created for this payment (marketplace retries must not create a second one). */
+  findByPaymentTransactionId: (paymentTransactionId: string, db: Db = prisma) =>
+    db.contract.findFirst({ where: { paymentTransactionId } }),
 
   /** Find ACTIVE or COMPLETED contract between PT and client (BR-32) */
   findActiveOrCompletedByPair: (ptUserId: string, clientUserId: string) =>

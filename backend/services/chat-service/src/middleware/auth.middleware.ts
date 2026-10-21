@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import axios from "axios";
 import { logger, readGatewayVerifiedUser } from "@gym-coach/shared";
 import { verifyToken } from "../clients/auth-service.client";
 
@@ -31,13 +30,27 @@ export async function authMiddleware(
     const token = authHeader.substring(7);
     const data = await verifyToken(token);
 
+    // Fail closed: only a verified identity continues. A 2xx answer that carries no user (a malformed or
+    // misbehaving auth-service) is NOT "authenticated" - without this, req.user stayed undefined and the request
+    // went on to the handler.
+    if (!data?.user?.id) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
     req.user = data.user;
     return next();
   } catch (error) {
-    if (axios.isAxiosError(error) && error.code === "ECONNREFUSED") {
-      return res.status(503).json({ error: "Auth service unavailable" });
+    // auth-service ANSWERED with a client error (invalid / expired token, disabled account): that is a verdict on
+    // the token, so pass it on. Anything else - unreachable, timeout, DNS, 5xx, Lambda failure - means the token
+    // could not be verified: refuse with 503 (never continue as authenticated).
+    const status = (error as any)?.response?.status;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      const message = (error as any)?.response?.data?.error;
+      return res.status(status === 403 ? 403 : 401).json({
+        error: typeof message === "string" && message ? message : "Invalid or expired token",
+      });
     }
-    logger.error(error, "Auth middleware error");
-    return res.status(401).json({ error: "Invalid or expired token" });
+    logger.error(error, "Auth middleware error: token could not be verified");
+    return res.status(503).json({ error: "Auth service unavailable" });
   }
 }

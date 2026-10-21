@@ -28,6 +28,7 @@ const originalFetchEligibility = personalizedServiceDeps.fetchPtMarketplaceEligi
 const originalCreateContract = personalizedServiceDeps.createMarketplaceContract;
 const originalCommitPlan = personalizedServiceDeps.commitPersonalizedPlan;
 const originalCheckout = personalizedServiceDeps.checkout;
+const originalHasStanding = personalizedServiceDeps.hasStandingPtContract;
 const originalGetTransaction = personalizedServiceDeps.getTransaction;
 const originalReleaseOrder = personalizedServiceDeps.releaseOrder;
 const originalRefundOrder = personalizedServiceDeps.refundOrder;
@@ -40,6 +41,7 @@ const originalRefundOrder = personalizedServiceDeps.refundOrder;
  * orderId so getTransaction's stub can echo back a matching relatedEntityId without needing
  * any shared state between the two stubs. */
 function stubPaymentSuccess() {
+  personalizedServiceDeps.hasStandingPtContract = async () => false; // BR-27 pre-payment check: no standing PT contract unless a test says so
   personalizedServiceDeps.checkout = async (params) => ({
     transactionId: `mock-txn-${params.orderId}`,
     status: "PENDING",
@@ -70,6 +72,7 @@ test.after(async () => {
   personalizedServiceDeps.createMarketplaceContract = originalCreateContract;
   personalizedServiceDeps.commitPersonalizedPlan = originalCommitPlan;
   personalizedServiceDeps.checkout = originalCheckout;
+  personalizedServiceDeps.hasStandingPtContract = originalHasStanding;
   personalizedServiceDeps.getTransaction = originalGetTransaction;
   personalizedServiceDeps.releaseOrder = originalReleaseOrder;
   personalizedServiceDeps.refundOrder = originalRefundOrder;
@@ -714,6 +717,89 @@ test("openDispute: either buyer or seller can open one; a random third party can
       return true;
     },
   );
+});
+
+// ── Audit #3: a dispute may only be opened from a live delivery state ─────────
+
+test("openDispute: refused (409) from every state that is not a live delivery, and the order is left untouched", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order } = await deliverToDraft(sellerId);
+  for (const status of ["PENDING_PAYMENT", "PURCHASED", "INTAKE_PENDING", "COMPLETED", "CANCELLED", "REFUNDED", "REFUND_REQUESTED", "DISPUTED"]) {
+    await prisma.personalizedServiceOrder.update({ where: { id: order.id }, data: { status: status as any, disputedAt: null, disputeReason: null } });
+    await assert.rejects(
+      () => personalizedServiceService.openDispute(order.id, sellerId, "should not be allowed"),
+      (err: any) => {
+        assert.equal(err.statusCode ?? err.status, 409, `status ${status}`);
+        return true;
+      },
+      `dispute from ${status} must be refused`,
+    );
+    const after = await prisma.personalizedServiceOrder.findUniqueOrThrow({ where: { id: order.id } });
+    assert.equal(after.status, status, `${status} must be left as it was`);
+    assert.equal(after.disputedAt, null);
+  }
+});
+
+test("openDispute: allowed from each live delivery state", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const { order } = await deliverToDraft(sellerId);
+  for (const status of ["INTAKE_SUBMITTED", "PT_REVIEWING", "IN_PROGRESS", "DRAFT_DELIVERED", "REVISION_REQUESTED", "REVISION_IN_PROGRESS", "ACCEPTED", "ACTIVE"]) {
+    await prisma.personalizedServiceOrder.update({ where: { id: order.id }, data: { status: status as any, disputedAt: null, disputeReason: null } });
+    const disputed = await personalizedServiceService.openDispute(order.id, sellerId, `dispute from ${status}`);
+    assert.equal(disputed.status, "DISPUTED", status);
+    assert.equal(disputed.disputeReason, `dispute from ${status}`);
+  }
+});
+
+// ── Audit #1: BR-27 before payment ────────────────────────────────────────────
+
+test("purchaseService: a standing PT contract with the seller refuses the purchase (409) before any order or payment exists", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const buyerId = `buyer-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  let checkoutCalls = 0;
+  const realCheckout = personalizedServiceDeps.checkout;
+  personalizedServiceDeps.checkout = async (...args: Parameters<typeof realCheckout>) => {
+    checkoutCalls++;
+    return realCheckout(...args);
+  };
+  personalizedServiceDeps.hasStandingPtContract = async (p) => p.ptUserId === sellerId && p.clientUserId === buyerId;
+  try {
+    await assert.rejects(
+      () => personalizedServiceService.purchaseService(service.id, buyerId),
+      (err: any) => {
+        assert.equal(err.statusCode ?? err.status, 409);
+        assert.equal(err.code, "PERSONALIZED_SERVICE_PT_CONTRACT_EXISTS");
+        return true;
+      },
+    );
+    assert.equal(checkoutCalls, 0, "no gateway checkout was started");
+    assert.equal(await prisma.personalizedServiceOrder.count({ where: { buyerId } }), 0, "no order row was created");
+  } finally {
+    personalizedServiceDeps.checkout = realCheckout;
+    personalizedServiceDeps.hasStandingPtContract = async () => false;
+  }
+});
+
+test("purchaseService: fails closed (503) when the standing-contract check cannot be made", async () => {
+  const sellerId = `pt-${randomUUID()}`;
+  const buyerId = `buyer-${randomUUID()}`;
+  const service = await createTestService(sellerId);
+  personalizedServiceDeps.hasStandingPtContract = async () => {
+    throw new Error("user-service down");
+  };
+  try {
+    await assert.rejects(
+      () => personalizedServiceService.purchaseService(service.id, buyerId),
+      (err: any) => {
+        assert.equal(err.statusCode ?? err.status, 503);
+        return true;
+      },
+    );
+    assert.equal(await prisma.personalizedServiceOrder.count({ where: { buyerId } }), 0);
+  } finally {
+    personalizedServiceDeps.hasStandingPtContract = async () => false;
+  }
 });
 
 // ── Plan version history (§XVIII) — deliverDraft must never overwrite a

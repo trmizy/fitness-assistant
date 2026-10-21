@@ -8,6 +8,7 @@ import {
 } from '../services/contract-payout.service';
 import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { AuthServiceUnavailableError } from "../clients/auth-service.client";
 import { assertPtMayActOnContract } from "../services/pt-restriction.service";
 import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
 import { errorCodeBody } from "../utils/error-code.util";
@@ -270,6 +271,10 @@ export const contractController = {
       );
       res.json(result);
     } catch (error: any) {
+      if (error instanceof AuthServiceUnavailableError) {
+        res.status(503).json({ error: "Account status cannot be verified right now" });
+        return;
+      }
       logger.error(error, "Check relationship error");
       res.status(500).json({ error: "Failed to check relationship" });
     }
@@ -362,6 +367,23 @@ export const contractController = {
     }
   },
 
+  // INTERNAL — called by ai-service BEFORE a personalized service checkout starts: is there already a live
+  // (non-terminal, PENDING_PAYMENT included) PT contract between this PT and this client? Marketplace-originated
+  // contracts do not count. See contractService.hasStandingPtContract.
+  async hasStandingPtContract(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId } = req.query;
+      if (!ptUserId || !clientUserId || typeof ptUserId !== "string" || typeof clientUserId !== "string") {
+        res.status(400).json({ error: "ptUserId and clientUserId are required" });
+        return;
+      }
+      res.json({ conflict: await contractService.hasStandingPtContract(ptUserId, clientUserId) });
+    } catch (error: any) {
+      logger.error(error, "hasStandingPtContract error");
+      res.status(500).json({ error: "Failed to check existing PT contract" });
+    }
+  },
+
   // INTERNAL — called by chat-service to decide whether two users can chat.
   // BR-29 (loosened): client → APPROVED PT can chat for pre-contract discovery.
   // Protected by serviceSecretMiddleware (mounted under /internal).
@@ -378,6 +400,10 @@ export const contractController = {
       );
       res.json(result);
     } catch (error: any) {
+      if (error instanceof AuthServiceUnavailableError) {
+        res.status(503).json({ error: "Account status cannot be verified right now" });
+        return;
+      }
       logger.error(error, "Chat-eligibility error");
       res.status(500).json({ error: "Failed to compute chat eligibility" });
     }

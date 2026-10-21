@@ -169,6 +169,13 @@ router.post(
   contractController.createMarketplaceContract as any,
 );
 
+// ai-service asks this before it starts a personalized-service checkout (BR-27: no second live contract with the
+// same PT while one is requested, awaiting payment or running).
+router.get(
+  "/contracts/pair-conflict",
+  contractController.hasStandingPtContract as any,
+);
+
 // ai-service workers run without an end-user bearer token. These read-only
 // endpoints expose the same user-owned context after service-secret validation.
 router.get("/profile/:userId", async (req, res) => {

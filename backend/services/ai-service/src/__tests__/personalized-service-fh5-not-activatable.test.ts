@@ -93,6 +93,7 @@ async function newOrder(m: Mods) {
     supportWeeks: 12,
   } as any);
   const buyerId = `buyer-${randomUUID()}`;
+  m.deps.hasStandingPtContract = async () => false; // BR-27 pre-payment check: no standing PT contract in these tests
   m.deps.checkout = async (params: any) => ({
     transactionId: `mock-txn-${params.orderId}`, status: "PENDING", redirectUrl: "https://mock-gateway.test/pay", qrCodeUrl: null, provider: "MOCK",
   }) as any;

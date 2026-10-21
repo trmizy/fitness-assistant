@@ -13,7 +13,7 @@ import { contractRepository } from "../repositories/contract.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
-import { authServiceClient } from "../clients/auth-service.client";
+import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-service.client";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
@@ -394,10 +394,14 @@ function fullName(
 }
 
 /**
- * Best-effort check whether a user is active (auth.users.isActive).
- * Returns `true` if the column does not yet exist (pre-migration) or if auth
- * is unreachable — i.e. fail-open for compatibility, but log so admins notice.
- * After the migration BUG-002 lands, this becomes the source of truth.
+ * Whether a user's account is active (auth.users.isActive), asked of auth-service.
+ *
+ * FAILS CLOSED. If auth-service cannot answer (unreachable, timeout, 5xx, rejected service secret) this THROWS
+ * AuthServiceUnavailableError - it never guesses "active". The two callers (chat eligibility, call permission)
+ * exist precisely to keep deactivated/banned accounts out, so treating an outage as "active" let a banned user chat or
+ * call for as long as auth-service was down. The controllers turn the error into 503, and chat-service denies on a
+ * failed check. Only "auth-service answered and has no such user" (404) or "answered with no isActive column yet"
+ * (pre-migration) count as active, because in those cases nothing says the account is blocked.
  */
 async function isUserActive(userId: string): Promise<boolean> {
   try {
@@ -409,8 +413,10 @@ async function isUserActive(userId: string): Promise<boolean> {
     if (!u) return true;
     if (typeof u.isActive === "boolean") return u.isActive;
     return true; // pre-migration: treat as active
-  } catch {
-    return true; // fail-open; alternative would block everything on auth outage
+  } catch (e: any) {
+    if (e?.response?.status === 404) return true; // auth-service has no such account: nothing marks it blocked
+    logger.warn({ status: e?.response?.status, code: e?.code }, "isUserActive: auth-service check failed - failing closed");
+    throw e instanceof AuthServiceUnavailableError ? e : new AuthServiceUnavailableError(e);
   }
 }
 
@@ -600,6 +606,13 @@ export const contractService = {
     //    snapshot live in here.
     const ptHoldbackRate = await resolvePtHoldbackRate(data.ptUserId);
     const contract = await prisma.$transaction(async (tx) => {
+      // BR-27 race guard. The pre-check at step 5 is a fast refusal, not a guarantee: two concurrent requests
+      // for the same PT-client pair both pass it. Serialise on the pair here and look again - the loser waits for
+      // the winner's commit, sees its row and is refused (the partial unique index is the last-resort backstop).
+      await contractRepository.lockPtClientPair(tx, data.ptUserId, clientUserId);
+      if (await contractRepository.findActiveByPair(data.ptUserId, clientUserId, tx)) {
+        throw err("You already have an active or pending contract with this PT", 409);
+      }
       const locked = await ptServicePackageRepository.findByIdForShare(data.packageId, tx);
       if (!locked) throw err("Gói dịch vụ không tồn tại", 404);
       if (!locked.isActive || locked.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
@@ -690,19 +703,41 @@ export const contractService = {
     price: number;
     paymentTransactionId?: string;
   }) {
-    return contractRepository.create({
-      ptUserId: data.ptUserId,
-      clientUserId: data.clientUserId,
-      status: ContractStatus.ACTIVE,
-      source: ContractSource.MARKETPLACE,
-      packageType: PackageType.PACKAGE,
-      packageName: data.packageName,
-      description: data.description,
-      totalSessions: 0, // marketplace personalized services are not session-count-based
-      price: data.price,
-      startDate: new Date(),
-      paymentTransactionId: data.paymentTransactionId,
+    // The order is ALREADY PAID when this runs, so a conflicting PT contract is never refused here (that would strand
+    // the money): the conflict check lives before payment (ai-service purchaseService -> hasStandingPtContract).
+    // What this does guarantee, under the pair lock: a retry of the same paid order returns its contract instead of
+    // creating a second one.
+    return prisma.$transaction(async (tx) => {
+      await contractRepository.lockPtClientPair(tx, data.ptUserId, data.clientUserId);
+      if (data.paymentTransactionId) {
+        const prior = await contractRepository.findByPaymentTransactionId(data.paymentTransactionId, tx);
+        if (prior && prior.ptUserId === data.ptUserId && prior.clientUserId === data.clientUserId) return prior;
+      }
+      return contractRepository.create(
+        {
+          ptUserId: data.ptUserId,
+          clientUserId: data.clientUserId,
+          status: ContractStatus.ACTIVE,
+          source: ContractSource.MARKETPLACE,
+          packageType: PackageType.PACKAGE,
+          packageName: data.packageName,
+          description: data.description,
+          totalSessions: 0, // marketplace personalized services are not session-count-based
+          price: data.price,
+          startDate: new Date(),
+          paymentTransactionId: data.paymentTransactionId,
+        },
+        tx,
+      );
     });
+  },
+
+  /**
+   * Internal-only - ai-service asks this BEFORE it starts a personalized-service checkout. True when the pair already
+   * has a live PT contract (any non-terminal status, PENDING_PAYMENT included) that is not itself a marketplace one.
+   */
+  async hasStandingPtContract(ptUserId: string, clientUserId: string): Promise<boolean> {
+    return !!(await contractRepository.findNonMarketplaceActiveByPair(ptUserId, clientUserId));
   },
 
   // ── PT accepts a pending contract ─────────────────────────────────

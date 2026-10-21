@@ -33,7 +33,7 @@ import { logger } from "@gym-coach/shared";
 import { prisma } from "../repositories/conversation.repository";
 import { ApiError } from "../errors/api-error";
 import { fetchPtMarketplaceEligibility } from "../clients/user.client";
-import { createMarketplaceContract } from "../clients/user.client";
+import { createMarketplaceContract, hasStandingPtContract } from "../clients/user.client";
 import { paymentClient, PaymentClientError } from "../clients/payment.client";
 import { commitPersonalizedPlan } from "../clients/fitness.client";
 
@@ -59,12 +59,25 @@ export class PersonalizedOrderNotActivatableError extends Error {
 export const personalizedServiceDeps = {
   fetchPtMarketplaceEligibility,
   createMarketplaceContract,
+  hasStandingPtContract,
   commitPersonalizedPlan,
   checkout: paymentClient.checkout,
   getTransaction: paymentClient.getTransaction,
   releaseOrder: paymentClient.releaseOrder,
   refundOrder: paymentClient.refundOrder,
 };
+
+/** The only states a dispute may be opened from - see openDispute. */
+export const DISPUTABLE_ORDER_STATUSES = [
+  "INTAKE_SUBMITTED",
+  "PT_REVIEWING",
+  "IN_PROGRESS",
+  "DRAFT_DELIVERED",
+  "REVISION_REQUESTED",
+  "REVISION_IN_PROGRESS",
+  "ACCEPTED",
+  "ACTIVE",
+] as const;
 
 /** P0 cluster C3 — the platform's cut of a Personalized Service order. Floored at 10%, same
  * as PT contracts and gym memberships. */
@@ -288,6 +301,21 @@ export const personalizedServiceService = {
     // Defense in depth — createService already gates this, but a PT's
     // approval could theoretically have been revoked since listing.
     await assertApprovedPt(service.sellerId);
+
+    // BR-27, before any order or payment exists: a buyer who already has a live PT contract with this PT (requested,
+    // awaiting payment, or running) does not get a second, parallel contract - and a second payment request - by
+    // buying a personalized service from the same PT. Fail-closed: if the check cannot be made, the purchase does
+    // not start. (The contract itself is only created after payment, where refusing would strand the money.)
+    let standingContract: boolean;
+    try {
+      standingContract = await personalizedServiceDeps.hasStandingPtContract({ ptUserId: service.sellerId, clientUserId: buyerId });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, serviceId }, "[personalized-service] standing-contract check unavailable");
+      throw new ApiError("PERSONALIZED_SERVICE_CONTRACT_CHECK_UNAVAILABLE", "Cannot verify your existing coaching contracts right now - please try again shortly", 503);
+    }
+    if (standingContract) {
+      throw new ApiError("PERSONALIZED_SERVICE_PT_CONTRACT_EXISTS", "You already have an active or pending contract with this PT", 409);
+    }
 
     // §XXXVIII — snapshot the service's terms NOW, immutably, onto the order. Rates too
     // (platformRateSnapshot/ptRateSnapshot): a later change to PLATFORM_COMMISSION_RATE must
@@ -936,10 +964,24 @@ export const personalizedServiceService = {
     if (order.buyerId !== requesterId && order.sellerId !== requesterId) {
       throw new ApiError("PERSONALIZED_SERVICE_ORDER_FORBIDDEN", "You are not part of this order", 403);
     }
-    return prisma.personalizedServiceOrder.update({
-      where: { id: orderId },
+    // Explicit allowed-from states. A dispute is a hold on work and money that are in flight, so it can only be
+    // opened while the paid order is being worked on or has just been accepted. It must never overwrite a state
+    // that is not a live delivery: unpaid (PENDING_PAYMENT / PURCHASED - a late payment would then find nothing to
+    // activate), CANCELLED / REFUNDED / COMPLETED (finished - the record must stay what it was), REFUND_REQUESTED
+    // (adminResolveRefund only resolves that state, so the refund request would be orphaned), DISPUTED (already open).
+    // Intake not yet submitted (INTAKE_PENDING) has nothing to dispute: the buyer cancels instead.
+    // Conditional write: the status is re-checked in the UPDATE itself so a concurrent transition cannot be overwritten.
+    if (!DISPUTABLE_ORDER_STATUSES.includes(order.status as (typeof DISPUTABLE_ORDER_STATUSES)[number])) {
+      throw new ApiError("PERSONALIZED_SERVICE_ORDER_INVALID_STATE", `Cannot open a dispute for an order in status ${order.status}`, 409);
+    }
+    const flipped = await prisma.personalizedServiceOrder.updateMany({
+      where: { id: orderId, status: order.status },
       data: { status: "DISPUTED", disputedAt: new Date(), disputeReason: reason },
     });
+    if (flipped.count !== 1) {
+      throw new ApiError("PERSONALIZED_SERVICE_ORDER_INVALID_STATE", "The order changed while opening the dispute - please reload and try again", 409);
+    }
+    return prisma.personalizedServiceOrder.findUniqueOrThrow({ where: { id: orderId } });
   },
 
   // ── Weekly check-in (§14/§15) — deterministic only, no AI diagnosis. The

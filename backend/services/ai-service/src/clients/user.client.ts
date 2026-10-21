@@ -74,6 +74,24 @@ export async function fetchPtMarketplaceEligibility(userId: string): Promise<PtM
 }
 
 /**
+ * BR-27, asked BEFORE a personalized-service checkout starts: does this buyer already have a live PT contract
+ * (requested, awaiting signature, awaiting payment or active) with this PT? Marketplace-originated contracts do not
+ * count. FAILS CLOSED: if user-service cannot answer, this throws and the purchase does not start - a checkout that
+ * could not be checked would send the buyer a payment request for a second concurrent contract with the same PT.
+ */
+export async function hasStandingPtContract(params: { ptUserId: string; clientUserId: string }): Promise<boolean> {
+  const res = await requestService({
+    service: "user",
+    method: "GET",
+    path: "/internal/contracts/pair-conflict",
+    params: { ptUserId: params.ptUserId, clientUserId: params.clientUserId },
+    headers: userServiceHeaders(),
+    timeoutMs: 5000,
+  });
+  return res.data?.conflict === true;
+}
+
+/**
  * Creates the ACTIVE Contract (ContractSource.MARKETPLACE) that a
  * Personalized PT Service order's Intake submission requires — the single
  * event that turns on the entire existing PT-client authorization surface

@@ -754,6 +754,10 @@ model Contract {
   @@index([ptUserId])
   @@index([clientUserId])
   @@index([status])
+  // Constraint that lives ONLY in the migration SQL (the schema DSL cannot express a WHERE-conditioned unique index):
+  // contracts_one_live_per_pair UNIQUE (pt_user_id, client_user_id) WHERE status IN (PENDING_REVIEW, PENDING_SIGNATURE,
+  // PENDING_PAYMENT, ACTIVE) AND source <> 'MARKETPLACE'  (migration 20261021130000; skipped with a NOTICE on a database that
+  // already holds duplicate live pairs).
   @@map("contracts")
 }
 
