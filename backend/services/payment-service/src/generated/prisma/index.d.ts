@@ -103,6 +103,15 @@ export type PartnerReceivableEvent = $Result.DefaultSelection<Prisma.$PartnerRec
  */
 export type ContractUnpaidObligationEvent = $Result.DefaultSelection<Prisma.$ContractUnpaidObligationEventPayload>
 /**
+ * Model ContractUnpaidObligationPayment
+ * FH-8. ONE manual (outside-the-ledger) payment of an unpaid obligation: approved -> evidence submitted -> verified (or cancelled).
+ * At most ONE open (APPROVED / EVIDENCE_SUBMITTED) row per obligation (partial unique index in the migration), so the sum of
+ * VERIFIED payments can never exceed what was owed. Recipient comes from the ledger (the obligation's party; for a CLIENT
+ * obligation the payer of the payment transaction), never from input. Moves no money: no wallet / ledger / receivable row.
+ * DELETE is rejected and the identity columns are immutable (trigger in the migration); the event table keeps the full history.
+ */
+export type ContractUnpaidObligationPayment = $Result.DefaultSelection<Prisma.$ContractUnpaidObligationPaymentPayload>
+/**
  * Model PaymentWebhookEvent
  * 
  */
@@ -251,7 +260,11 @@ export const ContractUnpaidObligationStatus: {
   RESOLVED: 'RESOLVED',
   WAIVED: 'WAIVED',
   UNDER_REVIEW: 'UNDER_REVIEW',
-  PAID_EXTERNALLY: 'PAID_EXTERNALLY'
+  PAID_EXTERNALLY: 'PAID_EXTERNALLY',
+  APPROVED_FOR_PAYMENT: 'APPROVED_FOR_PAYMENT',
+  AWAITING_EVIDENCE: 'AWAITING_EVIDENCE',
+  PAID_VERIFIED: 'PAID_VERIFIED',
+  RESOLVED_OTHER: 'RESOLVED_OTHER'
 };
 
 export type ContractUnpaidObligationStatus = (typeof ContractUnpaidObligationStatus)[keyof typeof ContractUnpaidObligationStatus]
@@ -271,10 +284,25 @@ export const ContractUnpaidObligationEventAction: {
   WAIVE: 'WAIVE',
   REVIEW: 'REVIEW',
   RELEASE_REVIEW: 'RELEASE_REVIEW',
-  PAY_EXTERNALLY: 'PAY_EXTERNALLY'
+  PAY_EXTERNALLY: 'PAY_EXTERNALLY',
+  APPROVE_PAYMENT: 'APPROVE_PAYMENT',
+  SUBMIT_EVIDENCE: 'SUBMIT_EVIDENCE',
+  VERIFY_PAYMENT: 'VERIFY_PAYMENT',
+  CANCEL_APPROVAL: 'CANCEL_APPROVAL',
+  RESOLVE_OTHER: 'RESOLVE_OTHER'
 };
 
 export type ContractUnpaidObligationEventAction = (typeof ContractUnpaidObligationEventAction)[keyof typeof ContractUnpaidObligationEventAction]
+
+
+export const ContractUnpaidObligationPaymentStatus: {
+  APPROVED: 'APPROVED',
+  EVIDENCE_SUBMITTED: 'EVIDENCE_SUBMITTED',
+  VERIFIED: 'VERIFIED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type ContractUnpaidObligationPaymentStatus = (typeof ContractUnpaidObligationPaymentStatus)[keyof typeof ContractUnpaidObligationPaymentStatus]
 
 }
 
@@ -341,6 +369,10 @@ export const PartnerReceivableEventAction: typeof $Enums.PartnerReceivableEventA
 export type ContractUnpaidObligationEventAction = $Enums.ContractUnpaidObligationEventAction
 
 export const ContractUnpaidObligationEventAction: typeof $Enums.ContractUnpaidObligationEventAction
+
+export type ContractUnpaidObligationPaymentStatus = $Enums.ContractUnpaidObligationPaymentStatus
+
+export const ContractUnpaidObligationPaymentStatus: typeof $Enums.ContractUnpaidObligationPaymentStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -564,6 +596,16 @@ export class PrismaClient<
     * ```
     */
   get contractUnpaidObligationEvent(): Prisma.ContractUnpaidObligationEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.contractUnpaidObligationPayment`: Exposes CRUD operations for the **ContractUnpaidObligationPayment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ContractUnpaidObligationPayments
+    * const contractUnpaidObligationPayments = await prisma.contractUnpaidObligationPayment.findMany()
+    * ```
+    */
+  get contractUnpaidObligationPayment(): Prisma.ContractUnpaidObligationPaymentDelegate<ExtArgs>;
 
   /**
    * `prisma.paymentWebhookEvent`: Exposes CRUD operations for the **PaymentWebhookEvent** model.
@@ -1025,6 +1067,7 @@ export namespace Prisma {
     ContractUnpaidObligation: 'ContractUnpaidObligation',
     PartnerReceivableEvent: 'PartnerReceivableEvent',
     ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
+    ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
     PaymentWebhookEvent: 'PaymentWebhookEvent'
   };
 
@@ -1041,7 +1084,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "paymentWebhookEvent"
+      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "contractUnpaidObligationPayment" | "paymentWebhookEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1745,6 +1788,76 @@ export namespace Prisma {
           }
         }
       }
+      ContractUnpaidObligationPayment: {
+        payload: Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>
+        fields: Prisma.ContractUnpaidObligationPaymentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ContractUnpaidObligationPaymentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ContractUnpaidObligationPaymentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          findFirst: {
+            args: Prisma.ContractUnpaidObligationPaymentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ContractUnpaidObligationPaymentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          findMany: {
+            args: Prisma.ContractUnpaidObligationPaymentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>[]
+          }
+          create: {
+            args: Prisma.ContractUnpaidObligationPaymentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          createMany: {
+            args: Prisma.ContractUnpaidObligationPaymentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ContractUnpaidObligationPaymentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>[]
+          }
+          delete: {
+            args: Prisma.ContractUnpaidObligationPaymentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          update: {
+            args: Prisma.ContractUnpaidObligationPaymentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          deleteMany: {
+            args: Prisma.ContractUnpaidObligationPaymentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ContractUnpaidObligationPaymentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ContractUnpaidObligationPaymentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractUnpaidObligationPaymentPayload>
+          }
+          aggregate: {
+            args: Prisma.ContractUnpaidObligationPaymentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateContractUnpaidObligationPayment>
+          }
+          groupBy: {
+            args: Prisma.ContractUnpaidObligationPaymentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ContractUnpaidObligationPaymentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ContractUnpaidObligationPaymentCountArgs<ExtArgs>
+            result: $Utils.Optional<ContractUnpaidObligationPaymentCountAggregateOutputType> | number
+          }
+        }
+      }
       PaymentWebhookEvent: {
         payload: Prisma.$PaymentWebhookEventPayload<ExtArgs>
         fields: Prisma.PaymentWebhookEventFieldRefs
@@ -2097,10 +2210,12 @@ export namespace Prisma {
 
   export type ContractUnpaidObligationCountOutputType = {
     events: number
+    payments: number
   }
 
   export type ContractUnpaidObligationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     events?: boolean | ContractUnpaidObligationCountOutputTypeCountEventsArgs
+    payments?: boolean | ContractUnpaidObligationCountOutputTypeCountPaymentsArgs
   }
 
   // Custom InputTypes
@@ -2119,6 +2234,13 @@ export namespace Prisma {
    */
   export type ContractUnpaidObligationCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ContractUnpaidObligationEventWhereInput
+  }
+
+  /**
+   * ContractUnpaidObligationCountOutputType without action
+   */
+  export type ContractUnpaidObligationCountOutputTypeCountPaymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ContractUnpaidObligationPaymentWhereInput
   }
 
 
@@ -9831,6 +9953,7 @@ export namespace Prisma {
     paid: Decimal | null
     unpaid: Decimal | null
     externallyPaid: Decimal | null
+    verifiedPaid: Decimal | null
   }
 
   export type ContractUnpaidObligationSumAggregateOutputType = {
@@ -9838,6 +9961,7 @@ export namespace Prisma {
     paid: Decimal | null
     unpaid: Decimal | null
     externallyPaid: Decimal | null
+    verifiedPaid: Decimal | null
   }
 
   export type ContractUnpaidObligationMinAggregateOutputType = {
@@ -9851,6 +9975,7 @@ export namespace Prisma {
     paid: Decimal | null
     unpaid: Decimal | null
     externallyPaid: Decimal | null
+    verifiedPaid: Decimal | null
     status: $Enums.ContractUnpaidObligationStatus | null
     createdAt: Date | null
     resolvedAt: Date | null
@@ -9870,6 +9995,7 @@ export namespace Prisma {
     paid: Decimal | null
     unpaid: Decimal | null
     externallyPaid: Decimal | null
+    verifiedPaid: Decimal | null
     status: $Enums.ContractUnpaidObligationStatus | null
     createdAt: Date | null
     resolvedAt: Date | null
@@ -9889,6 +10015,7 @@ export namespace Prisma {
     paid: number
     unpaid: number
     externallyPaid: number
+    verifiedPaid: number
     status: number
     createdAt: number
     resolvedAt: number
@@ -9904,6 +10031,7 @@ export namespace Prisma {
     paid?: true
     unpaid?: true
     externallyPaid?: true
+    verifiedPaid?: true
   }
 
   export type ContractUnpaidObligationSumAggregateInputType = {
@@ -9911,6 +10039,7 @@ export namespace Prisma {
     paid?: true
     unpaid?: true
     externallyPaid?: true
+    verifiedPaid?: true
   }
 
   export type ContractUnpaidObligationMinAggregateInputType = {
@@ -9924,6 +10053,7 @@ export namespace Prisma {
     paid?: true
     unpaid?: true
     externallyPaid?: true
+    verifiedPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -9943,6 +10073,7 @@ export namespace Prisma {
     paid?: true
     unpaid?: true
     externallyPaid?: true
+    verifiedPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -9962,6 +10093,7 @@ export namespace Prisma {
     paid?: true
     unpaid?: true
     externallyPaid?: true
+    verifiedPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -10068,6 +10200,7 @@ export namespace Prisma {
     paid: Decimal
     unpaid: Decimal
     externallyPaid: Decimal
+    verifiedPaid: Decimal
     status: $Enums.ContractUnpaidObligationStatus
     createdAt: Date
     resolvedAt: Date | null
@@ -10106,6 +10239,7 @@ export namespace Prisma {
     paid?: boolean
     unpaid?: boolean
     externallyPaid?: boolean
+    verifiedPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10114,6 +10248,7 @@ export namespace Prisma {
     reason?: boolean
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
     events?: boolean | ContractUnpaidObligation$eventsArgs<ExtArgs>
+    payments?: boolean | ContractUnpaidObligation$paymentsArgs<ExtArgs>
     _count?: boolean | ContractUnpaidObligationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligation"]>
 
@@ -10128,6 +10263,7 @@ export namespace Prisma {
     paid?: boolean
     unpaid?: boolean
     externallyPaid?: boolean
+    verifiedPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10148,6 +10284,7 @@ export namespace Prisma {
     paid?: boolean
     unpaid?: boolean
     externallyPaid?: boolean
+    verifiedPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10159,6 +10296,7 @@ export namespace Prisma {
   export type ContractUnpaidObligationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
     events?: boolean | ContractUnpaidObligation$eventsArgs<ExtArgs>
+    payments?: boolean | ContractUnpaidObligation$paymentsArgs<ExtArgs>
     _count?: boolean | ContractUnpaidObligationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ContractUnpaidObligationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10170,6 +10308,7 @@ export namespace Prisma {
     objects: {
       transaction: Prisma.$PaymentTransactionPayload<ExtArgs>
       events: Prisma.$ContractUnpaidObligationEventPayload<ExtArgs>[]
+      payments: Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -10194,6 +10333,11 @@ export namespace Prisma {
        * FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
        */
       externallyPaid: Prisma.Decimal
+      /**
+       * FH-8: total paid outside the ledger AND VERIFIED by a second person (sum of VERIFIED payments). Only this reduces `unpaid`
+       * in the current lifecycle; `externallyPaid` is the legacy, unverified figure and is never written any more.
+       */
+      verifiedPaid: Prisma.Decimal
       status: $Enums.ContractUnpaidObligationStatus
       createdAt: Date
       resolvedAt: Date | null
@@ -10569,6 +10713,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     transaction<T extends PaymentTransactionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransactionDefaultArgs<ExtArgs>>): Prisma__PaymentTransactionClient<$Result.GetResult<Prisma.$PaymentTransactionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     events<T extends ContractUnpaidObligation$eventsArgs<ExtArgs> = {}>(args?: Subset<T, ContractUnpaidObligation$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractUnpaidObligationEventPayload<ExtArgs>, T, "findMany"> | Null>
+    payments<T extends ContractUnpaidObligation$paymentsArgs<ExtArgs> = {}>(args?: Subset<T, ContractUnpaidObligation$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10608,6 +10753,7 @@ export namespace Prisma {
     readonly paid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly unpaid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly externallyPaid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
+    readonly verifiedPaid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly status: FieldRef<"ContractUnpaidObligation", 'ContractUnpaidObligationStatus'>
     readonly createdAt: FieldRef<"ContractUnpaidObligation", 'DateTime'>
     readonly resolvedAt: FieldRef<"ContractUnpaidObligation", 'DateTime'>
@@ -10949,6 +11095,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ContractUnpaidObligationEventScalarFieldEnum | ContractUnpaidObligationEventScalarFieldEnum[]
+  }
+
+  /**
+   * ContractUnpaidObligation.payments
+   */
+  export type ContractUnpaidObligation$paymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    where?: ContractUnpaidObligationPaymentWhereInput
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithRelationInput | ContractUnpaidObligationPaymentOrderByWithRelationInput[]
+    cursor?: ContractUnpaidObligationPaymentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ContractUnpaidObligationPaymentScalarFieldEnum | ContractUnpaidObligationPaymentScalarFieldEnum[]
   }
 
   /**
@@ -12040,6 +12206,13 @@ export namespace Prisma {
     paidOn: Date | null
     approvedBy: string | null
     unpaidAfter: Decimal | null
+    paymentId: string | null
+    paymentSource: string | null
+    recipient: string | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    verifiedBy: string | null
     createdAt: Date | null
   }
 
@@ -12059,6 +12232,13 @@ export namespace Prisma {
     paidOn: Date | null
     approvedBy: string | null
     unpaidAfter: Decimal | null
+    paymentId: string | null
+    paymentSource: string | null
+    recipient: string | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    verifiedBy: string | null
     createdAt: Date | null
   }
 
@@ -12078,6 +12258,13 @@ export namespace Prisma {
     paidOn: number
     approvedBy: number
     unpaidAfter: number
+    paymentId: number
+    paymentSource: number
+    recipient: number
+    evidenceRef: number
+    evidenceHash: number
+    bankStatementId: number
+    verifiedBy: number
     createdAt: number
     _all: number
   }
@@ -12111,6 +12298,13 @@ export namespace Prisma {
     paidOn?: true
     approvedBy?: true
     unpaidAfter?: true
+    paymentId?: true
+    paymentSource?: true
+    recipient?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    verifiedBy?: true
     createdAt?: true
   }
 
@@ -12130,6 +12324,13 @@ export namespace Prisma {
     paidOn?: true
     approvedBy?: true
     unpaidAfter?: true
+    paymentId?: true
+    paymentSource?: true
+    recipient?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    verifiedBy?: true
     createdAt?: true
   }
 
@@ -12149,6 +12350,13 @@ export namespace Prisma {
     paidOn?: true
     approvedBy?: true
     unpaidAfter?: true
+    paymentId?: true
+    paymentSource?: true
+    recipient?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    verifiedBy?: true
     createdAt?: true
     _all?: true
   }
@@ -12255,6 +12463,13 @@ export namespace Prisma {
     paidOn: Date | null
     approvedBy: string | null
     unpaidAfter: Decimal | null
+    paymentId: string | null
+    paymentSource: string | null
+    recipient: string | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    verifiedBy: string | null
     createdAt: Date
     _count: ContractUnpaidObligationEventCountAggregateOutputType | null
     _avg: ContractUnpaidObligationEventAvgAggregateOutputType | null
@@ -12293,6 +12508,13 @@ export namespace Prisma {
     paidOn?: boolean
     approvedBy?: boolean
     unpaidAfter?: boolean
+    paymentId?: boolean
+    paymentSource?: boolean
+    recipient?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    verifiedBy?: boolean
     createdAt?: boolean
     obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
@@ -12313,6 +12535,13 @@ export namespace Prisma {
     paidOn?: boolean
     approvedBy?: boolean
     unpaidAfter?: boolean
+    paymentId?: boolean
+    paymentSource?: boolean
+    recipient?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    verifiedBy?: boolean
     createdAt?: boolean
     obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
@@ -12333,6 +12562,13 @@ export namespace Prisma {
     paidOn?: boolean
     approvedBy?: boolean
     unpaidAfter?: boolean
+    paymentId?: boolean
+    paymentSource?: boolean
+    recipient?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    verifiedBy?: boolean
     createdAt?: boolean
   }
 
@@ -12371,6 +12607,17 @@ export namespace Prisma {
       paidOn: Date | null
       approvedBy: string | null
       unpaidAfter: Prisma.Decimal | null
+      /**
+       * Payment lifecycle events (APPROVE_PAYMENT .. CANCEL_APPROVAL): the payment record, its manual source, the recipient
+       * (taken from the ledger), the evidence pointers and who verified it.
+       */
+      paymentId: string | null
+      paymentSource: string | null
+      recipient: string | null
+      evidenceRef: string | null
+      evidenceHash: string | null
+      bankStatementId: string | null
+      verifiedBy: string | null
       createdAt: Date
     }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
     composites: {}
@@ -12781,6 +13028,13 @@ export namespace Prisma {
     readonly paidOn: FieldRef<"ContractUnpaidObligationEvent", 'DateTime'>
     readonly approvedBy: FieldRef<"ContractUnpaidObligationEvent", 'String'>
     readonly unpaidAfter: FieldRef<"ContractUnpaidObligationEvent", 'Decimal'>
+    readonly paymentId: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly paymentSource: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly recipient: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly evidenceRef: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly evidenceHash: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly bankStatementId: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly verifiedBy: FieldRef<"ContractUnpaidObligationEvent", 'String'>
     readonly createdAt: FieldRef<"ContractUnpaidObligationEvent", 'DateTime'>
   }
     
@@ -13111,6 +13365,1197 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ContractUnpaidObligationEventInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ContractUnpaidObligationPayment
+   */
+
+  export type AggregateContractUnpaidObligationPayment = {
+    _count: ContractUnpaidObligationPaymentCountAggregateOutputType | null
+    _avg: ContractUnpaidObligationPaymentAvgAggregateOutputType | null
+    _sum: ContractUnpaidObligationPaymentSumAggregateOutputType | null
+    _min: ContractUnpaidObligationPaymentMinAggregateOutputType | null
+    _max: ContractUnpaidObligationPaymentMaxAggregateOutputType | null
+  }
+
+  export type ContractUnpaidObligationPaymentAvgAggregateOutputType = {
+    amount: Decimal | null
+    paidAmount: Decimal | null
+  }
+
+  export type ContractUnpaidObligationPaymentSumAggregateOutputType = {
+    amount: Decimal | null
+    paidAmount: Decimal | null
+  }
+
+  export type ContractUnpaidObligationPaymentMinAggregateOutputType = {
+    id: string | null
+    obligationId: string | null
+    approvalRef: string | null
+    status: $Enums.ContractUnpaidObligationPaymentStatus | null
+    amount: Decimal | null
+    paymentSource: string | null
+    recipientParty: string | null
+    recipientId: string | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    recordedBy: string | null
+    recordedAt: Date | null
+    verifiedBy: string | null
+    verifiedAt: Date | null
+    cancelledBy: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentMaxAggregateOutputType = {
+    id: string | null
+    obligationId: string | null
+    approvalRef: string | null
+    status: $Enums.ContractUnpaidObligationPaymentStatus | null
+    amount: Decimal | null
+    paymentSource: string | null
+    recipientParty: string | null
+    recipientId: string | null
+    approvedBy: string | null
+    approvedAt: Date | null
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    recordedBy: string | null
+    recordedAt: Date | null
+    verifiedBy: string | null
+    verifiedAt: Date | null
+    cancelledBy: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentCountAggregateOutputType = {
+    id: number
+    obligationId: number
+    approvalRef: number
+    status: number
+    amount: number
+    paymentSource: number
+    recipientParty: number
+    recipientId: number
+    approvedBy: number
+    approvedAt: number
+    paidAmount: number
+    transferReference: number
+    paidOn: number
+    evidenceRef: number
+    evidenceHash: number
+    bankStatementId: number
+    recordedBy: number
+    recordedAt: number
+    verifiedBy: number
+    verifiedAt: number
+    cancelledBy: number
+    cancelledAt: number
+    cancelReason: number
+    _all: number
+  }
+
+
+  export type ContractUnpaidObligationPaymentAvgAggregateInputType = {
+    amount?: true
+    paidAmount?: true
+  }
+
+  export type ContractUnpaidObligationPaymentSumAggregateInputType = {
+    amount?: true
+    paidAmount?: true
+  }
+
+  export type ContractUnpaidObligationPaymentMinAggregateInputType = {
+    id?: true
+    obligationId?: true
+    approvalRef?: true
+    status?: true
+    amount?: true
+    paymentSource?: true
+    recipientParty?: true
+    recipientId?: true
+    approvedBy?: true
+    approvedAt?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    recordedBy?: true
+    recordedAt?: true
+    verifiedBy?: true
+    verifiedAt?: true
+    cancelledBy?: true
+    cancelledAt?: true
+    cancelReason?: true
+  }
+
+  export type ContractUnpaidObligationPaymentMaxAggregateInputType = {
+    id?: true
+    obligationId?: true
+    approvalRef?: true
+    status?: true
+    amount?: true
+    paymentSource?: true
+    recipientParty?: true
+    recipientId?: true
+    approvedBy?: true
+    approvedAt?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    recordedBy?: true
+    recordedAt?: true
+    verifiedBy?: true
+    verifiedAt?: true
+    cancelledBy?: true
+    cancelledAt?: true
+    cancelReason?: true
+  }
+
+  export type ContractUnpaidObligationPaymentCountAggregateInputType = {
+    id?: true
+    obligationId?: true
+    approvalRef?: true
+    status?: true
+    amount?: true
+    paymentSource?: true
+    recipientParty?: true
+    recipientId?: true
+    approvedBy?: true
+    approvedAt?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    evidenceRef?: true
+    evidenceHash?: true
+    bankStatementId?: true
+    recordedBy?: true
+    recordedAt?: true
+    verifiedBy?: true
+    verifiedAt?: true
+    cancelledBy?: true
+    cancelledAt?: true
+    cancelReason?: true
+    _all?: true
+  }
+
+  export type ContractUnpaidObligationPaymentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ContractUnpaidObligationPayment to aggregate.
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContractUnpaidObligationPayments to fetch.
+     */
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithRelationInput | ContractUnpaidObligationPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ContractUnpaidObligationPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContractUnpaidObligationPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContractUnpaidObligationPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ContractUnpaidObligationPayments
+    **/
+    _count?: true | ContractUnpaidObligationPaymentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ContractUnpaidObligationPaymentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ContractUnpaidObligationPaymentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ContractUnpaidObligationPaymentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ContractUnpaidObligationPaymentMaxAggregateInputType
+  }
+
+  export type GetContractUnpaidObligationPaymentAggregateType<T extends ContractUnpaidObligationPaymentAggregateArgs> = {
+        [P in keyof T & keyof AggregateContractUnpaidObligationPayment]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateContractUnpaidObligationPayment[P]>
+      : GetScalarType<T[P], AggregateContractUnpaidObligationPayment[P]>
+  }
+
+
+
+
+  export type ContractUnpaidObligationPaymentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ContractUnpaidObligationPaymentWhereInput
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithAggregationInput | ContractUnpaidObligationPaymentOrderByWithAggregationInput[]
+    by: ContractUnpaidObligationPaymentScalarFieldEnum[] | ContractUnpaidObligationPaymentScalarFieldEnum
+    having?: ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ContractUnpaidObligationPaymentCountAggregateInputType | true
+    _avg?: ContractUnpaidObligationPaymentAvgAggregateInputType
+    _sum?: ContractUnpaidObligationPaymentSumAggregateInputType
+    _min?: ContractUnpaidObligationPaymentMinAggregateInputType
+    _max?: ContractUnpaidObligationPaymentMaxAggregateInputType
+  }
+
+  export type ContractUnpaidObligationPaymentGroupByOutputType = {
+    id: string
+    obligationId: string
+    approvalRef: string
+    status: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal
+    paymentSource: string
+    recipientParty: string
+    recipientId: string | null
+    approvedBy: string
+    approvedAt: Date
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    evidenceRef: string | null
+    evidenceHash: string | null
+    bankStatementId: string | null
+    recordedBy: string | null
+    recordedAt: Date | null
+    verifiedBy: string | null
+    verifiedAt: Date | null
+    cancelledBy: string | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+    _count: ContractUnpaidObligationPaymentCountAggregateOutputType | null
+    _avg: ContractUnpaidObligationPaymentAvgAggregateOutputType | null
+    _sum: ContractUnpaidObligationPaymentSumAggregateOutputType | null
+    _min: ContractUnpaidObligationPaymentMinAggregateOutputType | null
+    _max: ContractUnpaidObligationPaymentMaxAggregateOutputType | null
+  }
+
+  type GetContractUnpaidObligationPaymentGroupByPayload<T extends ContractUnpaidObligationPaymentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ContractUnpaidObligationPaymentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ContractUnpaidObligationPaymentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ContractUnpaidObligationPaymentGroupByOutputType[P]>
+            : GetScalarType<T[P], ContractUnpaidObligationPaymentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ContractUnpaidObligationPaymentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    obligationId?: boolean
+    approvalRef?: boolean
+    status?: boolean
+    amount?: boolean
+    paymentSource?: boolean
+    recipientParty?: boolean
+    recipientId?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    recordedBy?: boolean
+    recordedAt?: boolean
+    verifiedBy?: boolean
+    verifiedAt?: boolean
+    cancelledBy?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+    obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["contractUnpaidObligationPayment"]>
+
+  export type ContractUnpaidObligationPaymentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    obligationId?: boolean
+    approvalRef?: boolean
+    status?: boolean
+    amount?: boolean
+    paymentSource?: boolean
+    recipientParty?: boolean
+    recipientId?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    recordedBy?: boolean
+    recordedAt?: boolean
+    verifiedBy?: boolean
+    verifiedAt?: boolean
+    cancelledBy?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+    obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["contractUnpaidObligationPayment"]>
+
+  export type ContractUnpaidObligationPaymentSelectScalar = {
+    id?: boolean
+    obligationId?: boolean
+    approvalRef?: boolean
+    status?: boolean
+    amount?: boolean
+    paymentSource?: boolean
+    recipientParty?: boolean
+    recipientId?: boolean
+    approvedBy?: boolean
+    approvedAt?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    evidenceRef?: boolean
+    evidenceHash?: boolean
+    bankStatementId?: boolean
+    recordedBy?: boolean
+    recordedAt?: boolean
+    verifiedBy?: boolean
+    verifiedAt?: boolean
+    cancelledBy?: boolean
+    cancelledAt?: boolean
+    cancelReason?: boolean
+  }
+
+  export type ContractUnpaidObligationPaymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
+  }
+  export type ContractUnpaidObligationPaymentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
+  }
+
+  export type $ContractUnpaidObligationPaymentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ContractUnpaidObligationPayment"
+    objects: {
+      obligation: Prisma.$ContractUnpaidObligationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      obligationId: string
+      approvalRef: string
+      status: $Enums.ContractUnpaidObligationPaymentStatus
+      amount: Prisma.Decimal
+      paymentSource: string
+      recipientParty: string
+      recipientId: string | null
+      approvedBy: string
+      approvedAt: Date
+      /**
+       * Evidence (recorded by `recordedBy` AFTER the payment was made outside): what was paid, the transfer reference, the day,
+       * and a pointer to the proof (file reference / sha256 / bank statement id). NOT proof by itself - `verifiedBy` must confirm it.
+       */
+      paidAmount: Prisma.Decimal | null
+      transferReference: string | null
+      paidOn: Date | null
+      evidenceRef: string | null
+      evidenceHash: string | null
+      bankStatementId: string | null
+      recordedBy: string | null
+      recordedAt: Date | null
+      verifiedBy: string | null
+      verifiedAt: Date | null
+      cancelledBy: string | null
+      cancelledAt: Date | null
+      cancelReason: string | null
+    }, ExtArgs["result"]["contractUnpaidObligationPayment"]>
+    composites: {}
+  }
+
+  type ContractUnpaidObligationPaymentGetPayload<S extends boolean | null | undefined | ContractUnpaidObligationPaymentDefaultArgs> = $Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload, S>
+
+  type ContractUnpaidObligationPaymentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ContractUnpaidObligationPaymentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ContractUnpaidObligationPaymentCountAggregateInputType | true
+    }
+
+  export interface ContractUnpaidObligationPaymentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ContractUnpaidObligationPayment'], meta: { name: 'ContractUnpaidObligationPayment' } }
+    /**
+     * Find zero or one ContractUnpaidObligationPayment that matches the filter.
+     * @param {ContractUnpaidObligationPaymentFindUniqueArgs} args - Arguments to find a ContractUnpaidObligationPayment
+     * @example
+     * // Get one ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ContractUnpaidObligationPaymentFindUniqueArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentFindUniqueArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ContractUnpaidObligationPayment that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ContractUnpaidObligationPaymentFindUniqueOrThrowArgs} args - Arguments to find a ContractUnpaidObligationPayment
+     * @example
+     * // Get one ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ContractUnpaidObligationPaymentFindUniqueOrThrowArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ContractUnpaidObligationPayment that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentFindFirstArgs} args - Arguments to find a ContractUnpaidObligationPayment
+     * @example
+     * // Get one ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ContractUnpaidObligationPaymentFindFirstArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentFindFirstArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ContractUnpaidObligationPayment that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentFindFirstOrThrowArgs} args - Arguments to find a ContractUnpaidObligationPayment
+     * @example
+     * // Get one ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ContractUnpaidObligationPaymentFindFirstOrThrowArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentFindFirstOrThrowArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ContractUnpaidObligationPayments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ContractUnpaidObligationPayments
+     * const contractUnpaidObligationPayments = await prisma.contractUnpaidObligationPayment.findMany()
+     * 
+     * // Get first 10 ContractUnpaidObligationPayments
+     * const contractUnpaidObligationPayments = await prisma.contractUnpaidObligationPayment.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const contractUnpaidObligationPaymentWithIdOnly = await prisma.contractUnpaidObligationPayment.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ContractUnpaidObligationPaymentFindManyArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ContractUnpaidObligationPayment.
+     * @param {ContractUnpaidObligationPaymentCreateArgs} args - Arguments to create a ContractUnpaidObligationPayment.
+     * @example
+     * // Create one ContractUnpaidObligationPayment
+     * const ContractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.create({
+     *   data: {
+     *     // ... data to create a ContractUnpaidObligationPayment
+     *   }
+     * })
+     * 
+     */
+    create<T extends ContractUnpaidObligationPaymentCreateArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentCreateArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ContractUnpaidObligationPayments.
+     * @param {ContractUnpaidObligationPaymentCreateManyArgs} args - Arguments to create many ContractUnpaidObligationPayments.
+     * @example
+     * // Create many ContractUnpaidObligationPayments
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ContractUnpaidObligationPaymentCreateManyArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ContractUnpaidObligationPayments and returns the data saved in the database.
+     * @param {ContractUnpaidObligationPaymentCreateManyAndReturnArgs} args - Arguments to create many ContractUnpaidObligationPayments.
+     * @example
+     * // Create many ContractUnpaidObligationPayments
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ContractUnpaidObligationPayments and only return the `id`
+     * const contractUnpaidObligationPaymentWithIdOnly = await prisma.contractUnpaidObligationPayment.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ContractUnpaidObligationPaymentCreateManyAndReturnArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ContractUnpaidObligationPayment.
+     * @param {ContractUnpaidObligationPaymentDeleteArgs} args - Arguments to delete one ContractUnpaidObligationPayment.
+     * @example
+     * // Delete one ContractUnpaidObligationPayment
+     * const ContractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.delete({
+     *   where: {
+     *     // ... filter to delete one ContractUnpaidObligationPayment
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ContractUnpaidObligationPaymentDeleteArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentDeleteArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ContractUnpaidObligationPayment.
+     * @param {ContractUnpaidObligationPaymentUpdateArgs} args - Arguments to update one ContractUnpaidObligationPayment.
+     * @example
+     * // Update one ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ContractUnpaidObligationPaymentUpdateArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentUpdateArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ContractUnpaidObligationPayments.
+     * @param {ContractUnpaidObligationPaymentDeleteManyArgs} args - Arguments to filter ContractUnpaidObligationPayments to delete.
+     * @example
+     * // Delete a few ContractUnpaidObligationPayments
+     * const { count } = await prisma.contractUnpaidObligationPayment.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ContractUnpaidObligationPaymentDeleteManyArgs>(args?: SelectSubset<T, ContractUnpaidObligationPaymentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ContractUnpaidObligationPayments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ContractUnpaidObligationPayments
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ContractUnpaidObligationPaymentUpdateManyArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ContractUnpaidObligationPayment.
+     * @param {ContractUnpaidObligationPaymentUpsertArgs} args - Arguments to update or create a ContractUnpaidObligationPayment.
+     * @example
+     * // Update or create a ContractUnpaidObligationPayment
+     * const contractUnpaidObligationPayment = await prisma.contractUnpaidObligationPayment.upsert({
+     *   create: {
+     *     // ... data to create a ContractUnpaidObligationPayment
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ContractUnpaidObligationPayment we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ContractUnpaidObligationPaymentUpsertArgs>(args: SelectSubset<T, ContractUnpaidObligationPaymentUpsertArgs<ExtArgs>>): Prisma__ContractUnpaidObligationPaymentClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPaymentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ContractUnpaidObligationPayments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentCountArgs} args - Arguments to filter ContractUnpaidObligationPayments to count.
+     * @example
+     * // Count the number of ContractUnpaidObligationPayments
+     * const count = await prisma.contractUnpaidObligationPayment.count({
+     *   where: {
+     *     // ... the filter for the ContractUnpaidObligationPayments we want to count
+     *   }
+     * })
+    **/
+    count<T extends ContractUnpaidObligationPaymentCountArgs>(
+      args?: Subset<T, ContractUnpaidObligationPaymentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ContractUnpaidObligationPaymentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ContractUnpaidObligationPayment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ContractUnpaidObligationPaymentAggregateArgs>(args: Subset<T, ContractUnpaidObligationPaymentAggregateArgs>): Prisma.PrismaPromise<GetContractUnpaidObligationPaymentAggregateType<T>>
+
+    /**
+     * Group by ContractUnpaidObligationPayment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUnpaidObligationPaymentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ContractUnpaidObligationPaymentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ContractUnpaidObligationPaymentGroupByArgs['orderBy'] }
+        : { orderBy?: ContractUnpaidObligationPaymentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ContractUnpaidObligationPaymentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetContractUnpaidObligationPaymentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ContractUnpaidObligationPayment model
+   */
+  readonly fields: ContractUnpaidObligationPaymentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ContractUnpaidObligationPayment.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ContractUnpaidObligationPaymentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    obligation<T extends ContractUnpaidObligationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractUnpaidObligationDefaultArgs<ExtArgs>>): Prisma__ContractUnpaidObligationClient<$Result.GetResult<Prisma.$ContractUnpaidObligationPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ContractUnpaidObligationPayment model
+   */ 
+  interface ContractUnpaidObligationPaymentFieldRefs {
+    readonly id: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly obligationId: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly approvalRef: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly status: FieldRef<"ContractUnpaidObligationPayment", 'ContractUnpaidObligationPaymentStatus'>
+    readonly amount: FieldRef<"ContractUnpaidObligationPayment", 'Decimal'>
+    readonly paymentSource: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly recipientParty: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly recipientId: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly approvedBy: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly approvedAt: FieldRef<"ContractUnpaidObligationPayment", 'DateTime'>
+    readonly paidAmount: FieldRef<"ContractUnpaidObligationPayment", 'Decimal'>
+    readonly transferReference: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly paidOn: FieldRef<"ContractUnpaidObligationPayment", 'DateTime'>
+    readonly evidenceRef: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly evidenceHash: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly bankStatementId: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly recordedBy: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly recordedAt: FieldRef<"ContractUnpaidObligationPayment", 'DateTime'>
+    readonly verifiedBy: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly verifiedAt: FieldRef<"ContractUnpaidObligationPayment", 'DateTime'>
+    readonly cancelledBy: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+    readonly cancelledAt: FieldRef<"ContractUnpaidObligationPayment", 'DateTime'>
+    readonly cancelReason: FieldRef<"ContractUnpaidObligationPayment", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ContractUnpaidObligationPayment findUnique
+   */
+  export type ContractUnpaidObligationPaymentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which ContractUnpaidObligationPayment to fetch.
+     */
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment findUniqueOrThrow
+   */
+  export type ContractUnpaidObligationPaymentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which ContractUnpaidObligationPayment to fetch.
+     */
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment findFirst
+   */
+  export type ContractUnpaidObligationPaymentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which ContractUnpaidObligationPayment to fetch.
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContractUnpaidObligationPayments to fetch.
+     */
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithRelationInput | ContractUnpaidObligationPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ContractUnpaidObligationPayments.
+     */
+    cursor?: ContractUnpaidObligationPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContractUnpaidObligationPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContractUnpaidObligationPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ContractUnpaidObligationPayments.
+     */
+    distinct?: ContractUnpaidObligationPaymentScalarFieldEnum | ContractUnpaidObligationPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * ContractUnpaidObligationPayment findFirstOrThrow
+   */
+  export type ContractUnpaidObligationPaymentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which ContractUnpaidObligationPayment to fetch.
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContractUnpaidObligationPayments to fetch.
+     */
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithRelationInput | ContractUnpaidObligationPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ContractUnpaidObligationPayments.
+     */
+    cursor?: ContractUnpaidObligationPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContractUnpaidObligationPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContractUnpaidObligationPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ContractUnpaidObligationPayments.
+     */
+    distinct?: ContractUnpaidObligationPaymentScalarFieldEnum | ContractUnpaidObligationPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * ContractUnpaidObligationPayment findMany
+   */
+  export type ContractUnpaidObligationPaymentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which ContractUnpaidObligationPayments to fetch.
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContractUnpaidObligationPayments to fetch.
+     */
+    orderBy?: ContractUnpaidObligationPaymentOrderByWithRelationInput | ContractUnpaidObligationPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ContractUnpaidObligationPayments.
+     */
+    cursor?: ContractUnpaidObligationPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContractUnpaidObligationPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContractUnpaidObligationPayments.
+     */
+    skip?: number
+    distinct?: ContractUnpaidObligationPaymentScalarFieldEnum | ContractUnpaidObligationPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * ContractUnpaidObligationPayment create
+   */
+  export type ContractUnpaidObligationPaymentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ContractUnpaidObligationPayment.
+     */
+    data: XOR<ContractUnpaidObligationPaymentCreateInput, ContractUnpaidObligationPaymentUncheckedCreateInput>
+  }
+
+  /**
+   * ContractUnpaidObligationPayment createMany
+   */
+  export type ContractUnpaidObligationPaymentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ContractUnpaidObligationPayments.
+     */
+    data: ContractUnpaidObligationPaymentCreateManyInput | ContractUnpaidObligationPaymentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ContractUnpaidObligationPayment createManyAndReturn
+   */
+  export type ContractUnpaidObligationPaymentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ContractUnpaidObligationPayments.
+     */
+    data: ContractUnpaidObligationPaymentCreateManyInput | ContractUnpaidObligationPaymentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ContractUnpaidObligationPayment update
+   */
+  export type ContractUnpaidObligationPaymentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ContractUnpaidObligationPayment.
+     */
+    data: XOR<ContractUnpaidObligationPaymentUpdateInput, ContractUnpaidObligationPaymentUncheckedUpdateInput>
+    /**
+     * Choose, which ContractUnpaidObligationPayment to update.
+     */
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment updateMany
+   */
+  export type ContractUnpaidObligationPaymentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ContractUnpaidObligationPayments.
+     */
+    data: XOR<ContractUnpaidObligationPaymentUpdateManyMutationInput, ContractUnpaidObligationPaymentUncheckedUpdateManyInput>
+    /**
+     * Filter which ContractUnpaidObligationPayments to update
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment upsert
+   */
+  export type ContractUnpaidObligationPaymentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ContractUnpaidObligationPayment to update in case it exists.
+     */
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+    /**
+     * In case the ContractUnpaidObligationPayment found by the `where` argument doesn't exist, create a new ContractUnpaidObligationPayment with this data.
+     */
+    create: XOR<ContractUnpaidObligationPaymentCreateInput, ContractUnpaidObligationPaymentUncheckedCreateInput>
+    /**
+     * In case the ContractUnpaidObligationPayment was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ContractUnpaidObligationPaymentUpdateInput, ContractUnpaidObligationPaymentUncheckedUpdateInput>
+  }
+
+  /**
+   * ContractUnpaidObligationPayment delete
+   */
+  export type ContractUnpaidObligationPaymentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
+    /**
+     * Filter which ContractUnpaidObligationPayment to delete.
+     */
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment deleteMany
+   */
+  export type ContractUnpaidObligationPaymentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ContractUnpaidObligationPayments to delete
+     */
+    where?: ContractUnpaidObligationPaymentWhereInput
+  }
+
+  /**
+   * ContractUnpaidObligationPayment without action
+   */
+  export type ContractUnpaidObligationPaymentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractUnpaidObligationPayment
+     */
+    select?: ContractUnpaidObligationPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractUnpaidObligationPaymentInclude<ExtArgs> | null
   }
 
 
@@ -14240,6 +15685,7 @@ export namespace Prisma {
     paid: 'paid',
     unpaid: 'unpaid',
     externallyPaid: 'externallyPaid',
+    verifiedPaid: 'verifiedPaid',
     status: 'status',
     createdAt: 'createdAt',
     resolvedAt: 'resolvedAt',
@@ -14284,10 +15730,46 @@ export namespace Prisma {
     paidOn: 'paidOn',
     approvedBy: 'approvedBy',
     unpaidAfter: 'unpaidAfter',
+    paymentId: 'paymentId',
+    paymentSource: 'paymentSource',
+    recipient: 'recipient',
+    evidenceRef: 'evidenceRef',
+    evidenceHash: 'evidenceHash',
+    bankStatementId: 'bankStatementId',
+    verifiedBy: 'verifiedBy',
     createdAt: 'createdAt'
   };
 
   export type ContractUnpaidObligationEventScalarFieldEnum = (typeof ContractUnpaidObligationEventScalarFieldEnum)[keyof typeof ContractUnpaidObligationEventScalarFieldEnum]
+
+
+  export const ContractUnpaidObligationPaymentScalarFieldEnum: {
+    id: 'id',
+    obligationId: 'obligationId',
+    approvalRef: 'approvalRef',
+    status: 'status',
+    amount: 'amount',
+    paymentSource: 'paymentSource',
+    recipientParty: 'recipientParty',
+    recipientId: 'recipientId',
+    approvedBy: 'approvedBy',
+    approvedAt: 'approvedAt',
+    paidAmount: 'paidAmount',
+    transferReference: 'transferReference',
+    paidOn: 'paidOn',
+    evidenceRef: 'evidenceRef',
+    evidenceHash: 'evidenceHash',
+    bankStatementId: 'bankStatementId',
+    recordedBy: 'recordedBy',
+    recordedAt: 'recordedAt',
+    verifiedBy: 'verifiedBy',
+    verifiedAt: 'verifiedAt',
+    cancelledBy: 'cancelledBy',
+    cancelledAt: 'cancelledAt',
+    cancelReason: 'cancelReason'
+  };
+
+  export type ContractUnpaidObligationPaymentScalarFieldEnum = (typeof ContractUnpaidObligationPaymentScalarFieldEnum)[keyof typeof ContractUnpaidObligationPaymentScalarFieldEnum]
 
 
   export const PaymentWebhookEventScalarFieldEnum: {
@@ -14642,6 +16124,20 @@ export namespace Prisma {
    * Reference to a field of type 'ContractUnpaidObligationEventAction[]'
    */
   export type ListEnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractUnpaidObligationEventAction[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractUnpaidObligationPaymentStatus'
+   */
+  export type EnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractUnpaidObligationPaymentStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractUnpaidObligationPaymentStatus[]'
+   */
+  export type ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractUnpaidObligationPaymentStatus[]'>
     
 
 
@@ -15423,6 +16919,7 @@ export namespace Prisma {
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15431,6 +16928,7 @@ export namespace Prisma {
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
+    payments?: ContractUnpaidObligationPaymentListRelationFilter
   }
 
   export type ContractUnpaidObligationOrderByWithRelationInput = {
@@ -15444,6 +16942,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -15452,6 +16951,7 @@ export namespace Prisma {
     reason?: SortOrderInput | SortOrder
     transaction?: PaymentTransactionOrderByWithRelationInput
     events?: ContractUnpaidObligationEventOrderByRelationAggregateInput
+    payments?: ContractUnpaidObligationPaymentOrderByRelationAggregateInput
   }
 
   export type ContractUnpaidObligationWhereUniqueInput = Prisma.AtLeast<{
@@ -15468,6 +16968,7 @@ export namespace Prisma {
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15476,6 +16977,7 @@ export namespace Prisma {
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
     transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
     events?: ContractUnpaidObligationEventListRelationFilter
+    payments?: ContractUnpaidObligationPaymentListRelationFilter
   }, "id" | "key">
 
   export type ContractUnpaidObligationOrderByWithAggregationInput = {
@@ -15489,6 +16991,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -15516,6 +17019,7 @@ export namespace Prisma {
     paid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusWithAggregatesFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeWithAggregatesFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15630,6 +17134,13 @@ export namespace Prisma {
     paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
     approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    paymentId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paymentSource?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    recipient?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
     obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
   }
@@ -15650,6 +17161,13 @@ export namespace Prisma {
     paidOn?: SortOrderInput | SortOrder
     approvedBy?: SortOrderInput | SortOrder
     unpaidAfter?: SortOrderInput | SortOrder
+    paymentId?: SortOrderInput | SortOrder
+    paymentSource?: SortOrderInput | SortOrder
+    recipient?: SortOrderInput | SortOrder
+    evidenceRef?: SortOrderInput | SortOrder
+    evidenceHash?: SortOrderInput | SortOrder
+    bankStatementId?: SortOrderInput | SortOrder
+    verifiedBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     obligation?: ContractUnpaidObligationOrderByWithRelationInput
   }
@@ -15673,6 +17191,13 @@ export namespace Prisma {
     paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
     approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    paymentId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paymentSource?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    recipient?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
     obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
   }, "id" | "idempotencyKey">
@@ -15693,6 +17218,13 @@ export namespace Prisma {
     paidOn?: SortOrderInput | SortOrder
     approvedBy?: SortOrderInput | SortOrder
     unpaidAfter?: SortOrderInput | SortOrder
+    paymentId?: SortOrderInput | SortOrder
+    paymentSource?: SortOrderInput | SortOrder
+    recipient?: SortOrderInput | SortOrder
+    evidenceRef?: SortOrderInput | SortOrder
+    evidenceHash?: SortOrderInput | SortOrder
+    bankStatementId?: SortOrderInput | SortOrder
+    verifiedBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ContractUnpaidObligationEventCountOrderByAggregateInput
     _avg?: ContractUnpaidObligationEventAvgOrderByAggregateInput
@@ -15720,7 +17252,162 @@ export namespace Prisma {
     paidOn?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Date | string | null
     approvedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
     unpaidAfter?: DecimalNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    paymentId?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    paymentSource?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    recipient?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceRef?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceHash?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    bankStatementId?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    verifiedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Date | string
+  }
+
+  export type ContractUnpaidObligationPaymentWhereInput = {
+    AND?: ContractUnpaidObligationPaymentWhereInput | ContractUnpaidObligationPaymentWhereInput[]
+    OR?: ContractUnpaidObligationPaymentWhereInput[]
+    NOT?: ContractUnpaidObligationPaymentWhereInput | ContractUnpaidObligationPaymentWhereInput[]
+    id?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    obligationId?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvalRef?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    status?: EnumContractUnpaidObligationPaymentStatusFilter<"ContractUnpaidObligationPayment"> | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientParty?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    approvedBy?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvedAt?: DateTimeFilter<"ContractUnpaidObligationPayment"> | Date | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    verifiedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelledBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelReason?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
+  }
+
+  export type ContractUnpaidObligationPaymentOrderByWithRelationInput = {
+    id?: SortOrder
+    obligationId?: SortOrder
+    approvalRef?: SortOrder
+    status?: SortOrder
+    amount?: SortOrder
+    paymentSource?: SortOrder
+    recipientParty?: SortOrder
+    recipientId?: SortOrderInput | SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    paidAmount?: SortOrderInput | SortOrder
+    transferReference?: SortOrderInput | SortOrder
+    paidOn?: SortOrderInput | SortOrder
+    evidenceRef?: SortOrderInput | SortOrder
+    evidenceHash?: SortOrderInput | SortOrder
+    bankStatementId?: SortOrderInput | SortOrder
+    recordedBy?: SortOrderInput | SortOrder
+    recordedAt?: SortOrderInput | SortOrder
+    verifiedBy?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    cancelReason?: SortOrderInput | SortOrder
+    obligation?: ContractUnpaidObligationOrderByWithRelationInput
+  }
+
+  export type ContractUnpaidObligationPaymentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    obligationId_approvalRef?: ContractUnpaidObligationPaymentObligationIdApprovalRefCompoundUniqueInput
+    AND?: ContractUnpaidObligationPaymentWhereInput | ContractUnpaidObligationPaymentWhereInput[]
+    OR?: ContractUnpaidObligationPaymentWhereInput[]
+    NOT?: ContractUnpaidObligationPaymentWhereInput | ContractUnpaidObligationPaymentWhereInput[]
+    obligationId?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvalRef?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    status?: EnumContractUnpaidObligationPaymentStatusFilter<"ContractUnpaidObligationPayment"> | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientParty?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    approvedBy?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvedAt?: DateTimeFilter<"ContractUnpaidObligationPayment"> | Date | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    verifiedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelledBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelReason?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
+  }, "id" | "obligationId_approvalRef">
+
+  export type ContractUnpaidObligationPaymentOrderByWithAggregationInput = {
+    id?: SortOrder
+    obligationId?: SortOrder
+    approvalRef?: SortOrder
+    status?: SortOrder
+    amount?: SortOrder
+    paymentSource?: SortOrder
+    recipientParty?: SortOrder
+    recipientId?: SortOrderInput | SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    paidAmount?: SortOrderInput | SortOrder
+    transferReference?: SortOrderInput | SortOrder
+    paidOn?: SortOrderInput | SortOrder
+    evidenceRef?: SortOrderInput | SortOrder
+    evidenceHash?: SortOrderInput | SortOrder
+    bankStatementId?: SortOrderInput | SortOrder
+    recordedBy?: SortOrderInput | SortOrder
+    recordedAt?: SortOrderInput | SortOrder
+    verifiedBy?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    cancelReason?: SortOrderInput | SortOrder
+    _count?: ContractUnpaidObligationPaymentCountOrderByAggregateInput
+    _avg?: ContractUnpaidObligationPaymentAvgOrderByAggregateInput
+    _max?: ContractUnpaidObligationPaymentMaxOrderByAggregateInput
+    _min?: ContractUnpaidObligationPaymentMinOrderByAggregateInput
+    _sum?: ContractUnpaidObligationPaymentSumOrderByAggregateInput
+  }
+
+  export type ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput = {
+    AND?: ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput | ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput[]
+    OR?: ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput[]
+    NOT?: ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput | ContractUnpaidObligationPaymentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    obligationId?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    approvalRef?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    status?: EnumContractUnpaidObligationPaymentStatusWithAggregatesFilter<"ContractUnpaidObligationPayment"> | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    recipientParty?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    recipientId?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    approvedBy?: StringWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string
+    approvedAt?: DateTimeWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Date | string
+    paidAmount?: DecimalNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    paidOn?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    evidenceRef?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    evidenceHash?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    bankStatementId?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    verifiedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelledBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
+    cancelledAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelReason?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationPayment"> | string | null
   }
 
   export type PaymentWebhookEventWhereInput = {
@@ -16696,6 +18383,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16704,6 +18392,7 @@ export namespace Prisma {
     reason?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
+    payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationUncheckedCreateInput = {
@@ -16717,6 +18406,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16724,6 +18414,7 @@ export namespace Prisma {
     resolvedNote?: string | null
     reason?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
+    payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationUpdateInput = {
@@ -16736,6 +18427,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16744,6 +18436,7 @@ export namespace Prisma {
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
+    payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
   }
 
   export type ContractUnpaidObligationUncheckedUpdateInput = {
@@ -16757,6 +18450,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16764,6 +18458,7 @@ export namespace Prisma {
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
+    payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
   }
 
   export type ContractUnpaidObligationCreateManyInput = {
@@ -16777,6 +18472,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16795,6 +18491,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16814,6 +18511,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16934,6 +18632,13 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
     obligation: ContractUnpaidObligationCreateNestedOneWithoutEventsInput
   }
@@ -16954,6 +18659,13 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
   }
 
@@ -16972,6 +18684,13 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     obligation?: ContractUnpaidObligationUpdateOneRequiredWithoutEventsNestedInput
   }
@@ -16992,6 +18711,13 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17011,6 +18737,13 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
   }
 
@@ -17029,6 +18762,13 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17048,7 +18788,195 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContractUnpaidObligationPaymentCreateInput = {
+    id?: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+    obligation: ContractUnpaidObligationCreateNestedOneWithoutPaymentsInput
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedCreateInput = {
+    id?: string
+    obligationId: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+    obligation?: ContractUnpaidObligationUpdateOneRequiredWithoutPaymentsNestedInput
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    obligationId?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ContractUnpaidObligationPaymentCreateManyInput = {
+    id?: string
+    obligationId: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    obligationId?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PaymentWebhookEventCreateInput = {
@@ -18129,7 +20057,17 @@ export namespace Prisma {
     none?: ContractUnpaidObligationEventWhereInput
   }
 
+  export type ContractUnpaidObligationPaymentListRelationFilter = {
+    every?: ContractUnpaidObligationPaymentWhereInput
+    some?: ContractUnpaidObligationPaymentWhereInput
+    none?: ContractUnpaidObligationPaymentWhereInput
+  }
+
   export type ContractUnpaidObligationEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ContractUnpaidObligationPaymentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -18144,6 +20082,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -18157,6 +20096,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
   }
 
   export type ContractUnpaidObligationMaxOrderByAggregateInput = {
@@ -18170,6 +20110,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -18189,6 +20130,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -18202,6 +20144,7 @@ export namespace Prisma {
     paid?: SortOrder
     unpaid?: SortOrder
     externallyPaid?: SortOrder
+    verifiedPaid?: SortOrder
   }
 
   export type EnumContractUnpaidObligationKindWithAggregatesFilter<$PrismaModel = never> = {
@@ -18331,6 +20274,13 @@ export namespace Prisma {
     paidOn?: SortOrder
     approvedBy?: SortOrder
     unpaidAfter?: SortOrder
+    paymentId?: SortOrder
+    paymentSource?: SortOrder
+    recipient?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    verifiedBy?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -18356,6 +20306,13 @@ export namespace Prisma {
     paidOn?: SortOrder
     approvedBy?: SortOrder
     unpaidAfter?: SortOrder
+    paymentId?: SortOrder
+    paymentSource?: SortOrder
+    recipient?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    verifiedBy?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -18375,6 +20332,13 @@ export namespace Prisma {
     paidOn?: SortOrder
     approvedBy?: SortOrder
     unpaidAfter?: SortOrder
+    paymentId?: SortOrder
+    paymentSource?: SortOrder
+    recipient?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    verifiedBy?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -18408,6 +20372,116 @@ export namespace Prisma {
     _sum?: NestedDecimalNullableFilter<$PrismaModel>
     _min?: NestedDecimalNullableFilter<$PrismaModel>
     _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type EnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractUnpaidObligationPaymentStatus | EnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel> | $Enums.ContractUnpaidObligationPaymentStatus
+  }
+
+  export type ContractUnpaidObligationPaymentObligationIdApprovalRefCompoundUniqueInput = {
+    obligationId: string
+    approvalRef: string
+  }
+
+  export type ContractUnpaidObligationPaymentCountOrderByAggregateInput = {
+    id?: SortOrder
+    obligationId?: SortOrder
+    approvalRef?: SortOrder
+    status?: SortOrder
+    amount?: SortOrder
+    paymentSource?: SortOrder
+    recipientParty?: SortOrder
+    recipientId?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    recordedBy?: SortOrder
+    recordedAt?: SortOrder
+    verifiedBy?: SortOrder
+    verifiedAt?: SortOrder
+    cancelledBy?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+  }
+
+  export type ContractUnpaidObligationPaymentAvgOrderByAggregateInput = {
+    amount?: SortOrder
+    paidAmount?: SortOrder
+  }
+
+  export type ContractUnpaidObligationPaymentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    obligationId?: SortOrder
+    approvalRef?: SortOrder
+    status?: SortOrder
+    amount?: SortOrder
+    paymentSource?: SortOrder
+    recipientParty?: SortOrder
+    recipientId?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    recordedBy?: SortOrder
+    recordedAt?: SortOrder
+    verifiedBy?: SortOrder
+    verifiedAt?: SortOrder
+    cancelledBy?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+  }
+
+  export type ContractUnpaidObligationPaymentMinOrderByAggregateInput = {
+    id?: SortOrder
+    obligationId?: SortOrder
+    approvalRef?: SortOrder
+    status?: SortOrder
+    amount?: SortOrder
+    paymentSource?: SortOrder
+    recipientParty?: SortOrder
+    recipientId?: SortOrder
+    approvedBy?: SortOrder
+    approvedAt?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    evidenceRef?: SortOrder
+    evidenceHash?: SortOrder
+    bankStatementId?: SortOrder
+    recordedBy?: SortOrder
+    recordedAt?: SortOrder
+    verifiedBy?: SortOrder
+    verifiedAt?: SortOrder
+    cancelledBy?: SortOrder
+    cancelledAt?: SortOrder
+    cancelReason?: SortOrder
+  }
+
+  export type ContractUnpaidObligationPaymentSumOrderByAggregateInput = {
+    amount?: SortOrder
+    paidAmount?: SortOrder
+  }
+
+  export type EnumContractUnpaidObligationPaymentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractUnpaidObligationPaymentStatus | EnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractUnpaidObligationPaymentStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContractUnpaidObligationPaymentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel>
+    _max?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel>
   }
 
   export type PaymentWebhookEventProviderProviderEventIdCompoundUniqueInput = {
@@ -18858,11 +20932,25 @@ export namespace Prisma {
     connect?: ContractUnpaidObligationEventWhereUniqueInput | ContractUnpaidObligationEventWhereUniqueInput[]
   }
 
+  export type ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput = {
+    create?: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationPaymentCreateWithoutObligationInput[] | ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput[]
+    connectOrCreate?: ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput | ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput[]
+    createMany?: ContractUnpaidObligationPaymentCreateManyObligationInputEnvelope
+    connect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+  }
+
   export type ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput = {
     create?: XOR<ContractUnpaidObligationEventCreateWithoutObligationInput, ContractUnpaidObligationEventUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationEventCreateWithoutObligationInput[] | ContractUnpaidObligationEventUncheckedCreateWithoutObligationInput[]
     connectOrCreate?: ContractUnpaidObligationEventCreateOrConnectWithoutObligationInput | ContractUnpaidObligationEventCreateOrConnectWithoutObligationInput[]
     createMany?: ContractUnpaidObligationEventCreateManyObligationInputEnvelope
     connect?: ContractUnpaidObligationEventWhereUniqueInput | ContractUnpaidObligationEventWhereUniqueInput[]
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput = {
+    create?: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationPaymentCreateWithoutObligationInput[] | ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput[]
+    connectOrCreate?: ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput | ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput[]
+    createMany?: ContractUnpaidObligationPaymentCreateManyObligationInputEnvelope
+    connect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
   }
 
   export type EnumContractUnpaidObligationKindFieldUpdateOperationsInput = {
@@ -18895,6 +20983,20 @@ export namespace Prisma {
     deleteMany?: ContractUnpaidObligationEventScalarWhereInput | ContractUnpaidObligationEventScalarWhereInput[]
   }
 
+  export type ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput = {
+    create?: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationPaymentCreateWithoutObligationInput[] | ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput[]
+    connectOrCreate?: ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput | ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput[]
+    upsert?: ContractUnpaidObligationPaymentUpsertWithWhereUniqueWithoutObligationInput | ContractUnpaidObligationPaymentUpsertWithWhereUniqueWithoutObligationInput[]
+    createMany?: ContractUnpaidObligationPaymentCreateManyObligationInputEnvelope
+    set?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    disconnect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    delete?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    connect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    update?: ContractUnpaidObligationPaymentUpdateWithWhereUniqueWithoutObligationInput | ContractUnpaidObligationPaymentUpdateWithWhereUniqueWithoutObligationInput[]
+    updateMany?: ContractUnpaidObligationPaymentUpdateManyWithWhereWithoutObligationInput | ContractUnpaidObligationPaymentUpdateManyWithWhereWithoutObligationInput[]
+    deleteMany?: ContractUnpaidObligationPaymentScalarWhereInput | ContractUnpaidObligationPaymentScalarWhereInput[]
+  }
+
   export type ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput = {
     create?: XOR<ContractUnpaidObligationEventCreateWithoutObligationInput, ContractUnpaidObligationEventUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationEventCreateWithoutObligationInput[] | ContractUnpaidObligationEventUncheckedCreateWithoutObligationInput[]
     connectOrCreate?: ContractUnpaidObligationEventCreateOrConnectWithoutObligationInput | ContractUnpaidObligationEventCreateOrConnectWithoutObligationInput[]
@@ -18907,6 +21009,20 @@ export namespace Prisma {
     update?: ContractUnpaidObligationEventUpdateWithWhereUniqueWithoutObligationInput | ContractUnpaidObligationEventUpdateWithWhereUniqueWithoutObligationInput[]
     updateMany?: ContractUnpaidObligationEventUpdateManyWithWhereWithoutObligationInput | ContractUnpaidObligationEventUpdateManyWithWhereWithoutObligationInput[]
     deleteMany?: ContractUnpaidObligationEventScalarWhereInput | ContractUnpaidObligationEventScalarWhereInput[]
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput = {
+    create?: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput> | ContractUnpaidObligationPaymentCreateWithoutObligationInput[] | ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput[]
+    connectOrCreate?: ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput | ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput[]
+    upsert?: ContractUnpaidObligationPaymentUpsertWithWhereUniqueWithoutObligationInput | ContractUnpaidObligationPaymentUpsertWithWhereUniqueWithoutObligationInput[]
+    createMany?: ContractUnpaidObligationPaymentCreateManyObligationInputEnvelope
+    set?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    disconnect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    delete?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    connect?: ContractUnpaidObligationPaymentWhereUniqueInput | ContractUnpaidObligationPaymentWhereUniqueInput[]
+    update?: ContractUnpaidObligationPaymentUpdateWithWhereUniqueWithoutObligationInput | ContractUnpaidObligationPaymentUpdateWithWhereUniqueWithoutObligationInput[]
+    updateMany?: ContractUnpaidObligationPaymentUpdateManyWithWhereWithoutObligationInput | ContractUnpaidObligationPaymentUpdateManyWithWhereWithoutObligationInput[]
+    deleteMany?: ContractUnpaidObligationPaymentScalarWhereInput | ContractUnpaidObligationPaymentScalarWhereInput[]
   }
 
   export type PartnerReceivableCreateNestedOneWithoutEventsInput = {
@@ -18951,6 +21067,24 @@ export namespace Prisma {
     upsert?: ContractUnpaidObligationUpsertWithoutEventsInput
     connect?: ContractUnpaidObligationWhereUniqueInput
     update?: XOR<XOR<ContractUnpaidObligationUpdateToOneWithWhereWithoutEventsInput, ContractUnpaidObligationUpdateWithoutEventsInput>, ContractUnpaidObligationUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type ContractUnpaidObligationCreateNestedOneWithoutPaymentsInput = {
+    create?: XOR<ContractUnpaidObligationCreateWithoutPaymentsInput, ContractUnpaidObligationUncheckedCreateWithoutPaymentsInput>
+    connectOrCreate?: ContractUnpaidObligationCreateOrConnectWithoutPaymentsInput
+    connect?: ContractUnpaidObligationWhereUniqueInput
+  }
+
+  export type EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ContractUnpaidObligationPaymentStatus
+  }
+
+  export type ContractUnpaidObligationUpdateOneRequiredWithoutPaymentsNestedInput = {
+    create?: XOR<ContractUnpaidObligationCreateWithoutPaymentsInput, ContractUnpaidObligationUncheckedCreateWithoutPaymentsInput>
+    connectOrCreate?: ContractUnpaidObligationCreateOrConnectWithoutPaymentsInput
+    upsert?: ContractUnpaidObligationUpsertWithoutPaymentsInput
+    connect?: ContractUnpaidObligationWhereUniqueInput
+    update?: XOR<XOR<ContractUnpaidObligationUpdateToOneWithWhereWithoutPaymentsInput, ContractUnpaidObligationUpdateWithoutPaymentsInput>, ContractUnpaidObligationUncheckedUpdateWithoutPaymentsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -19484,6 +21618,23 @@ export namespace Prisma {
     _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractUnpaidObligationPaymentStatus | EnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel> | $Enums.ContractUnpaidObligationPaymentStatus
+  }
+
+  export type NestedEnumContractUnpaidObligationPaymentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractUnpaidObligationPaymentStatus | EnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractUnpaidObligationPaymentStatus[] | ListEnumContractUnpaidObligationPaymentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractUnpaidObligationPaymentStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContractUnpaidObligationPaymentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel>
+    _max?: NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel>
+  }
+
   export type WalletLedgerEntryCreateWithoutWalletInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
@@ -20008,6 +22159,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20015,6 +22167,7 @@ export namespace Prisma {
     resolvedNote?: string | null
     reason?: string | null
     events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
+    payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationUncheckedCreateWithoutTransactionInput = {
@@ -20027,6 +22180,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20034,6 +22188,7 @@ export namespace Prisma {
     resolvedNote?: string | null
     reason?: string | null
     events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
+    payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationCreateOrConnectWithoutTransactionInput = {
@@ -20125,6 +22280,7 @@ export namespace Prisma {
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -20460,6 +22616,13 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
   }
 
@@ -20478,6 +22641,13 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
   }
 
@@ -20488,6 +22658,66 @@ export namespace Prisma {
 
   export type ContractUnpaidObligationEventCreateManyObligationInputEnvelope = {
     data: ContractUnpaidObligationEventCreateManyObligationInput | ContractUnpaidObligationEventCreateManyObligationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ContractUnpaidObligationPaymentCreateWithoutObligationInput = {
+    id?: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput = {
+    id?: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
+  }
+
+  export type ContractUnpaidObligationPaymentCreateOrConnectWithoutObligationInput = {
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+    create: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput>
+  }
+
+  export type ContractUnpaidObligationPaymentCreateManyObligationInputEnvelope = {
+    data: ContractUnpaidObligationPaymentCreateManyObligationInput | ContractUnpaidObligationPaymentCreateManyObligationInput[]
     skipDuplicates?: boolean
   }
 
@@ -20611,7 +22841,59 @@ export namespace Prisma {
     paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
     approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    paymentId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paymentSource?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    recipient?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
+  }
+
+  export type ContractUnpaidObligationPaymentUpsertWithWhereUniqueWithoutObligationInput = {
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+    update: XOR<ContractUnpaidObligationPaymentUpdateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedUpdateWithoutObligationInput>
+    create: XOR<ContractUnpaidObligationPaymentCreateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedCreateWithoutObligationInput>
+  }
+
+  export type ContractUnpaidObligationPaymentUpdateWithWhereUniqueWithoutObligationInput = {
+    where: ContractUnpaidObligationPaymentWhereUniqueInput
+    data: XOR<ContractUnpaidObligationPaymentUpdateWithoutObligationInput, ContractUnpaidObligationPaymentUncheckedUpdateWithoutObligationInput>
+  }
+
+  export type ContractUnpaidObligationPaymentUpdateManyWithWhereWithoutObligationInput = {
+    where: ContractUnpaidObligationPaymentScalarWhereInput
+    data: XOR<ContractUnpaidObligationPaymentUpdateManyMutationInput, ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationInput>
+  }
+
+  export type ContractUnpaidObligationPaymentScalarWhereInput = {
+    AND?: ContractUnpaidObligationPaymentScalarWhereInput | ContractUnpaidObligationPaymentScalarWhereInput[]
+    OR?: ContractUnpaidObligationPaymentScalarWhereInput[]
+    NOT?: ContractUnpaidObligationPaymentScalarWhereInput | ContractUnpaidObligationPaymentScalarWhereInput[]
+    id?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    obligationId?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvalRef?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    status?: EnumContractUnpaidObligationPaymentStatusFilter<"ContractUnpaidObligationPayment"> | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientParty?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    recipientId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    approvedBy?: StringFilter<"ContractUnpaidObligationPayment"> | string
+    approvedAt?: DateTimeFilter<"ContractUnpaidObligationPayment"> | Date | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationPayment"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    evidenceRef?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    evidenceHash?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    bankStatementId?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    recordedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    verifiedBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    verifiedAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelledBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+    cancelledAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
+    cancelReason?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
   }
 
   export type PartnerReceivableCreateWithoutEventsInput = {
@@ -20732,6 +23014,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20739,6 +23022,7 @@ export namespace Prisma {
     resolvedNote?: string | null
     reason?: string | null
     transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
+    payments?: ContractUnpaidObligationPaymentCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationUncheckedCreateWithoutEventsInput = {
@@ -20752,12 +23036,14 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolvedNote?: string | null
     reason?: string | null
+    payments?: ContractUnpaidObligationPaymentUncheckedCreateNestedManyWithoutObligationInput
   }
 
   export type ContractUnpaidObligationCreateOrConnectWithoutEventsInput = {
@@ -20786,6 +23072,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20793,6 +23080,7 @@ export namespace Prisma {
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
+    payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
   }
 
   export type ContractUnpaidObligationUncheckedUpdateWithoutEventsInput = {
@@ -20806,12 +23094,114 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+    payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
+  }
+
+  export type ContractUnpaidObligationCreateWithoutPaymentsInput = {
+    id?: string
+    key: string
+    contractRef?: string | null
+    kind: $Enums.ContractUnpaidObligationKind
+    party: string
+    owed: Decimal | DecimalJsLike | number | string
+    paid: Decimal | DecimalJsLike | number | string
+    unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.ContractUnpaidObligationStatus
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolvedNote?: string | null
+    reason?: string | null
+    transaction: PaymentTransactionCreateNestedOneWithoutUnpaidObligationsInput
+    events?: ContractUnpaidObligationEventCreateNestedManyWithoutObligationInput
+  }
+
+  export type ContractUnpaidObligationUncheckedCreateWithoutPaymentsInput = {
+    id?: string
+    key: string
+    transactionId: string
+    contractRef?: string | null
+    kind: $Enums.ContractUnpaidObligationKind
+    party: string
+    owed: Decimal | DecimalJsLike | number | string
+    paid: Decimal | DecimalJsLike | number | string
+    unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.ContractUnpaidObligationStatus
+    createdAt?: Date | string
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolvedNote?: string | null
+    reason?: string | null
+    events?: ContractUnpaidObligationEventUncheckedCreateNestedManyWithoutObligationInput
+  }
+
+  export type ContractUnpaidObligationCreateOrConnectWithoutPaymentsInput = {
+    where: ContractUnpaidObligationWhereUniqueInput
+    create: XOR<ContractUnpaidObligationCreateWithoutPaymentsInput, ContractUnpaidObligationUncheckedCreateWithoutPaymentsInput>
+  }
+
+  export type ContractUnpaidObligationUpsertWithoutPaymentsInput = {
+    update: XOR<ContractUnpaidObligationUpdateWithoutPaymentsInput, ContractUnpaidObligationUncheckedUpdateWithoutPaymentsInput>
+    create: XOR<ContractUnpaidObligationCreateWithoutPaymentsInput, ContractUnpaidObligationUncheckedCreateWithoutPaymentsInput>
+    where?: ContractUnpaidObligationWhereInput
+  }
+
+  export type ContractUnpaidObligationUpdateToOneWithWhereWithoutPaymentsInput = {
+    where?: ContractUnpaidObligationWhereInput
+    data: XOR<ContractUnpaidObligationUpdateWithoutPaymentsInput, ContractUnpaidObligationUncheckedUpdateWithoutPaymentsInput>
+  }
+
+  export type ContractUnpaidObligationUpdateWithoutPaymentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    contractRef?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: EnumContractUnpaidObligationKindFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationKind
+    party?: StringFieldUpdateOperationsInput | string
+    owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    transaction?: PaymentTransactionUpdateOneRequiredWithoutUnpaidObligationsNestedInput
+    events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
+  }
+
+  export type ContractUnpaidObligationUncheckedUpdateWithoutPaymentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    contractRef?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: EnumContractUnpaidObligationKindFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationKind
+    party?: StringFieldUpdateOperationsInput | string
+    owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
   }
 
   export type WalletLedgerEntryCreateManyWalletInput = {
@@ -20961,6 +23351,7 @@ export namespace Prisma {
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
     externallyPaid?: Decimal | DecimalJsLike | number | string
+    verifiedPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -21054,6 +23445,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21061,6 +23453,7 @@ export namespace Prisma {
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUpdateManyWithoutObligationNestedInput
+    payments?: ContractUnpaidObligationPaymentUpdateManyWithoutObligationNestedInput
   }
 
   export type ContractUnpaidObligationUncheckedUpdateWithoutTransactionInput = {
@@ -21073,6 +23466,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21080,6 +23474,7 @@ export namespace Prisma {
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     events?: ContractUnpaidObligationEventUncheckedUpdateManyWithoutObligationNestedInput
+    payments?: ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationNestedInput
   }
 
   export type ContractUnpaidObligationUncheckedUpdateManyWithoutTransactionInput = {
@@ -21092,6 +23487,7 @@ export namespace Prisma {
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21167,7 +23563,39 @@ export namespace Prisma {
     paidOn?: Date | string | null
     approvedBy?: string | null
     unpaidAfter?: Decimal | DecimalJsLike | number | string | null
+    paymentId?: string | null
+    paymentSource?: string | null
+    recipient?: string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    verifiedBy?: string | null
     createdAt?: Date | string
+  }
+
+  export type ContractUnpaidObligationPaymentCreateManyObligationInput = {
+    id?: string
+    approvalRef: string
+    status?: $Enums.ContractUnpaidObligationPaymentStatus
+    amount: Decimal | DecimalJsLike | number | string
+    paymentSource: string
+    recipientParty: string
+    recipientId?: string | null
+    approvedBy: string
+    approvedAt?: Date | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    evidenceRef?: string | null
+    evidenceHash?: string | null
+    bankStatementId?: string | null
+    recordedBy?: string | null
+    recordedAt?: Date | string | null
+    verifiedBy?: string | null
+    verifiedAt?: Date | string | null
+    cancelledBy?: string | null
+    cancelledAt?: Date | string | null
+    cancelReason?: string | null
   }
 
   export type ContractUnpaidObligationEventUpdateWithoutObligationInput = {
@@ -21185,6 +23613,13 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -21203,6 +23638,13 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -21221,7 +23663,89 @@ export namespace Prisma {
     paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentSource?: NullableStringFieldUpdateOperationsInput | string | null
+    recipient?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContractUnpaidObligationPaymentUpdateWithoutObligationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedUpdateWithoutObligationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ContractUnpaidObligationPaymentUncheckedUpdateManyWithoutObligationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractUnpaidObligationPaymentStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationPaymentStatus
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paymentSource?: StringFieldUpdateOperationsInput | string
+    recipientParty?: StringFieldUpdateOperationsInput | string
+    recipientId?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    evidenceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    evidenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    bankStatementId?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
 
@@ -21285,6 +23809,10 @@ export namespace Prisma {
      * @deprecated Use ContractUnpaidObligationEventDefaultArgs instead
      */
     export type ContractUnpaidObligationEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractUnpaidObligationEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ContractUnpaidObligationPaymentDefaultArgs instead
+     */
+    export type ContractUnpaidObligationPaymentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractUnpaidObligationPaymentDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PaymentWebhookEventDefaultArgs instead
      */

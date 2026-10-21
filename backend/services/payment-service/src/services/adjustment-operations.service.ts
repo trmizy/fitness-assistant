@@ -69,7 +69,7 @@ type ReceivableRow = {
   suspendedAt: Date | null;
 };
 
-function requireText(name: string, v: string, min: number): string {
+export function requireText(name: string, v: string, min: number): string {
   const t = (v ?? '').trim();
   if (t.length < min) throw new AdjustmentError('INVALID_INPUT', `${name} is required (at least ${min} characters).`);
   return t;
@@ -278,12 +278,14 @@ export async function adjustReceivable(input: ReceivableAdjustInput): Promise<Ad
 // Statuses (ContractUnpaidObligationStatus):
 //   OPEN             recorded, nobody has looked at it yet
 //   UNDER_REVIEW     an operator/owner is looking at it (REVIEW / RELEASE_REVIEW move it back and forth; no evidence needed)
-//   PAID_EXTERNALLY  the client was paid OUTSIDE this ledger; needs evidence (payObligationExternally)
+//   APPROVED_FOR_PAYMENT / AWAITING_EVIDENCE / PAID_VERIFIED  the verified manual-payment lifecycle (obligation-payment-lifecycle.service.ts)
+//   RESOLVED_OTHER   settled by another method; the reason is mandatory
 //   WAIVED           the owner decided it is not pursued; the client is NOT paid
-//   RESOLVED         LEGACY "handled elsewhere" (kept so old rows and the old command still work; prefer PAID_EXTERNALLY with evidence)
+//   PAID_EXTERNALLY  LEGACY (first cut): "evidence recorded, NOT verified". No operation writes it any more; never upgraded.
+//   RESOLVED         LEGACY "handled elsewhere" (kept so old rows and the old command still work; prefer RESOLVED_OTHER)
 // None of these operations credits a wallet, writes a ledger row, or creates a PT debt / PartnerReceivable.
 
-export type ObligationAction = 'RESOLVE' | 'WAIVE' | 'REVIEW' | 'RELEASE_REVIEW';
+export type ObligationAction = 'RESOLVE' | 'RESOLVE_OTHER' | 'WAIVE' | 'REVIEW' | 'RELEASE_REVIEW';
 
 export interface ObligationAdjustInput {
   obligationId: string;
@@ -292,7 +294,8 @@ export interface ObligationAdjustInput {
   /** CAS: the payment transaction id of the obligation. */
   expectedTransactionId: string;
   /**
-   * RESOLVE = legacy "handled outside this tool" (say how in the note); WAIVE = the owner decided it is not pursued;
+   * RESOLVE_OTHER = settled by another method, the reason (note, at least 10 characters) is mandatory; RESOLVE = LEGACY
+   * "handled outside this tool" (status RESOLVED, kept for old callers); WAIVE = the owner decided it is not pursued;
    * REVIEW = OPEN -> UNDER_REVIEW; RELEASE_REVIEW = UNDER_REVIEW -> OPEN.
    */
   action: ObligationAction;
@@ -302,16 +305,22 @@ export interface ObligationAdjustInput {
   dryRun: boolean;
 }
 
-const ACTION_RULES: Record<ObligationAction, { from: Array<'OPEN' | 'UNDER_REVIEW'>; to: 'RESOLVED' | 'WAIVED' | 'UNDER_REVIEW' | 'OPEN'; terminal: boolean }> = {
-  RESOLVE: { from: ['OPEN', 'UNDER_REVIEW'], to: 'RESOLVED', terminal: true },
-  WAIVE: { from: ['OPEN', 'UNDER_REVIEW'], to: 'WAIVED', terminal: true },
-  REVIEW: { from: ['OPEN'], to: 'UNDER_REVIEW', terminal: false },
-  RELEASE_REVIEW: { from: ['UNDER_REVIEW'], to: 'OPEN', terminal: false },
+// Only OPEN / UNDER_REVIEW rows can be decided here: a row with a payment in flight (APPROVED_FOR_PAYMENT / AWAITING_EVIDENCE)
+// must first be verified or cancelled (obligation-payment-lifecycle.service.ts), so it can never be waived or closed under it.
+const ACTION_RULES: Record<
+  ObligationAction,
+  { from: Array<'OPEN' | 'UNDER_REVIEW'>; to: 'RESOLVED' | 'RESOLVED_OTHER' | 'WAIVED' | 'UNDER_REVIEW' | 'OPEN'; terminal: boolean; minNote: number }
+> = {
+  RESOLVE: { from: ['OPEN', 'UNDER_REVIEW'], to: 'RESOLVED', terminal: true, minNote: 5 },
+  RESOLVE_OTHER: { from: ['OPEN', 'UNDER_REVIEW'], to: 'RESOLVED_OTHER', terminal: true, minNote: 10 },
+  WAIVE: { from: ['OPEN', 'UNDER_REVIEW'], to: 'WAIVED', terminal: true, minNote: 5 },
+  REVIEW: { from: ['OPEN'], to: 'UNDER_REVIEW', terminal: false, minNote: 5 },
+  RELEASE_REVIEW: { from: ['UNDER_REVIEW'], to: 'OPEN', terminal: false, minNote: 5 },
 };
 
 type ObligationReadDb = Pick<typeof prisma, 'contractUnpaidObligation'>;
 
-async function readObligationForCas(db: ObligationReadDb, obligationId: string, expectedUnpaid: string, expectedTransactionId: string) {
+export async function readObligationForCas(db: ObligationReadDb, obligationId: string, expectedUnpaid: string, expectedTransactionId: string) {
   const o = await db.contractUnpaidObligation.findUnique({ where: { id: obligationId } });
   if (!o) throw new AdjustmentError('NOT_FOUND', 'No such obligation.');
   let expected: Prisma.Decimal;
@@ -327,11 +336,11 @@ async function readObligationForCas(db: ObligationReadDb, obligationId: string, 
 }
 
 export async function adjustObligation(input: ObligationAdjustInput): Promise<AdjustmentResult> {
-  const note = requireText('note', input.note, 5);
-  const actor = requireText('actor', input.actor, 2);
-  const approvalRef = requireText('approvalRef', input.approvalRef, 2);
   const rule = ACTION_RULES[input.action];
   if (!rule) throw new AdjustmentError('INVALID_INPUT', `Unknown obligation action ${String(input.action)}.`);
+  const note = requireText(input.action === 'RESOLVE_OTHER' ? 'reason' : 'note', input.note, rule.minNote);
+  const actor = requireText('actor', input.actor, 2);
+  const approvalRef = requireText('approvalRef', input.approvalRef, 2);
   const key = `OBLIGATION_${input.action}:${input.obligationId}:${approvalRef}`;
   const toStatus = rule.to;
 
@@ -413,159 +422,11 @@ export async function adjustObligation(input: ObligationAdjustInput): Promise<Ad
   }
 }
 
-// ───────────────────────────────────────────────────────────── paid externally (with evidence) ──
-
-export interface ObligationPayExternalInput {
-  obligationId: string;
-  /** CAS: the `unpaid` amount shown to / approved by the owner. */
-  expectedUnpaid: string;
-  /** CAS: the payment transaction id of the obligation. */
-  expectedTransactionId: string;
-  /** EVIDENCE: what was paid to the client outside the ledger (0 < amount <= unpaid). Equal to unpaid closes it; less is a partial payment. */
-  paidAmount: string;
-  /** EVIDENCE: the bank / transfer / payout reference. */
-  transferReference: string;
-  /** EVIDENCE: the day it was paid (YYYY-MM-DD or ISO), not in the future. */
-  paidOn: string;
-  /** EVIDENCE: who approved the payout, and under which approval / minute number. */
-  approvedBy: string;
-  approvalRef: string;
-  /** Who typed it in (defaults to the approver). */
-  recordedBy?: string;
-  note: string;
-  dryRun: boolean;
-}
+// ───────────────────────────────────────────────────────────── paid outside the ledger ──
+//
+// "Paid" is no longer a status an operator can set with a typed-in reference. The FH-8 first cut (`payObligationExternally`,
+// status PAID_EXTERNALLY) is REMOVED: the lifecycle approve -> submit evidence -> verify (four-eyes) lives in
+// obligation-payment-lifecycle.service.ts. Rows the first cut already wrote stay PAID_EXTERNALLY = "evidence recorded, NOT
+// verified" and are never upgraded.
 
 export const MAX_FUTURE_PAID_ON_MS = 24 * 3600_000;
-
-function parsePaidOn(raw: string, now: Date): Date {
-  const t = (raw ?? '').trim();
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(t) ? new Date(`${t}T00:00:00.000Z`) : new Date(t);
-  if (!t || Number.isNaN(d.getTime())) throw new AdjustmentError('INVALID_INPUT', 'paidOn is not a valid date (use YYYY-MM-DD).');
-  if (d.getTime() > now.getTime() + MAX_FUTURE_PAID_ON_MS) throw new AdjustmentError('INVALID_INPUT', 'paidOn is in the future.');
-  return d;
-}
-
-/**
- * Record that the client was paid OUTSIDE this ledger. Moves no money: no wallet / ledger entry / ledger operation row is
- * written and no PartnerReceivable is created. The evidence lives on the append-only event.
- *   paidAmount == unpaid -> PAID_EXTERNALLY (unpaid 0, resolvedAt set)
- *   paidAmount <  unpaid -> partial: unpaid reduced, status UNCHANGED (stays OPEN / UNDER_REVIEW), still listed as open
- *   paidAmount >  unpaid -> refused (AMOUNT_EXCEEDS_UNPAID)
- * Idempotent per approval reference (key OBLIGATION_PAY_EXTERNALLY:<id>:<approvalRef>): a retry replays; the same reference with a
- * different amount / transfer reference is refused (APPROVAL_REF_REUSED).
- */
-export async function payObligationExternally(input: ObligationPayExternalInput, now: Date = new Date()): Promise<AdjustmentResult> {
-  const note = requireText('note', input.note, 5);
-  const approvedBy = requireText('approvedBy', input.approvedBy, 2);
-  const approvalRef = requireText('approvalRef', input.approvalRef, 2);
-  const transferReference = requireText('transferReference', input.transferReference, 4);
-  if (transferReference.length > 80) throw new AdjustmentError('INVALID_INPUT', 'transferReference is too long (max 80 characters).');
-  const recordedBy = requireText('recordedBy', input.recordedBy ?? approvedBy, 2);
-  let paidAmount: Prisma.Decimal;
-  try {
-    paidAmount = D(input.paidAmount);
-  } catch {
-    throw new AdjustmentError('INVALID_INPUT', 'paidAmount is not a number.');
-  }
-  if (paidAmount.lessThanOrEqualTo(0)) throw new AdjustmentError('INVALID_INPUT', 'paidAmount must be greater than 0.');
-  if (paidAmount.decimalPlaces() > 2) throw new AdjustmentError('INVALID_INPUT', 'paidAmount has more than 2 decimals.');
-  const paidOn = parsePaidOn(input.paidOn, now);
-  const key = `OBLIGATION_PAY_EXTERNALLY:${input.obligationId}:${approvalRef}`;
-
-  const replay = async (db: Pick<typeof prisma, 'contractUnpaidObligationEvent'>): Promise<AdjustmentResult | null> => {
-    const ev = await db.contractUnpaidObligationEvent.findUnique({ where: { idempotencyKey: key } });
-    if (!ev) return null;
-    if (!ev.paidAmount || !D(ev.paidAmount).equals(paidAmount) || ev.transferReference !== transferReference) {
-      throw new AdjustmentError('APPROVAL_REF_REUSED', 'This approval reference was already used for a different payment. Nothing changed.');
-    }
-    return {
-      outcome: 'REPLAYED',
-      key,
-      before: { status: ev.fromStatus, unpaid: money(ev.unpaid) },
-      after: { status: ev.toStatus, unpaid: money(ev.unpaidAfter ?? 0), paidAmount: money(ev.paidAmount) },
-      eventId: ev.id,
-    };
-  };
-
-  const plan = async (db: ObligationReadDb & Pick<typeof prisma, 'contractUnpaidObligationEvent'>) => {
-    const o = await readObligationForCas(db, input.obligationId, input.expectedUnpaid, input.expectedTransactionId);
-    if (o.status !== 'OPEN' && o.status !== 'UNDER_REVIEW') {
-      throw new AdjustmentError('NOT_OPEN', `Obligation is ${o.status}; only OPEN or UNDER_REVIEW can be marked paid. Nothing to do.`);
-    }
-    const unpaid = D(o.unpaid);
-    if (paidAmount.greaterThan(unpaid)) {
-      throw new AdjustmentError('AMOUNT_EXCEEDS_UNPAID', `Paid amount ${money(paidAmount)} exceeds the unpaid ${money(unpaid)}. Nothing changed.`);
-    }
-    const unpaidAfter = unpaid.minus(paidAmount);
-    const full = unpaidAfter.isZero();
-    const toStatus = full ? ('PAID_EXTERNALLY' as const) : o.status;
-    const seenBefore = await db.contractUnpaidObligationEvent.count({ where: { transferReference, NOT: { idempotencyKey: key } } });
-    return { o, unpaid, unpaidAfter, full, toStatus, seenBefore };
-  };
-
-  const describe = (p: Awaited<ReturnType<typeof plan>>) => ({
-    before: { status: p.o.status, unpaid: money(p.unpaid), externallyPaid: money(p.o.externallyPaid) },
-    after: {
-      status: p.toStatus,
-      unpaid: money(p.unpaidAfter),
-      externallyPaid: money(D(p.o.externallyPaid).plus(paidAmount)),
-      paidAmount: money(paidAmount),
-      partial: !p.full,
-      ...(p.seenBefore > 0 ? { warning: `transfer reference already recorded on ${p.seenBefore} other event(s)` } : {}),
-    },
-  });
-
-  if (input.dryRun) {
-    const done = await replay(prisma);
-    if (done) return done;
-    const p = await plan(prisma);
-    return { outcome: 'DRY_RUN', key, ...describe(p) };
-  }
-
-  try {
-    return await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw`SELECT id FROM contract_unpaid_obligations WHERE id = ${input.obligationId} FOR UPDATE`;
-        const done = await replay(tx);
-        if (done) return done;
-        const p = await plan(tx);
-        const moved = await tx.contractUnpaidObligation.updateMany({
-          where: { id: p.o.id, status: p.o.status, unpaid: p.o.unpaid, externallyPaid: p.o.externallyPaid },
-          data: {
-            unpaid: p.unpaidAfter,
-            externallyPaid: D(p.o.externallyPaid).plus(paidAmount),
-            ...(p.full ? { status: 'PAID_EXTERNALLY' as const, resolvedAt: now, resolvedBy: recordedBy, resolvedNote: note } : {}),
-          },
-        });
-        if (moved.count !== 1) throw new AdjustmentError('CONCURRENT_CHANGE', 'The obligation changed while adjusting. Nothing changed.');
-        const ev = await tx.contractUnpaidObligationEvent.create({
-          data: {
-            obligationId: p.o.id,
-            action: 'PAY_EXTERNALLY',
-            note,
-            actor: recordedBy,
-            approvalRef,
-            idempotencyKey: key,
-            fromStatus: p.o.status,
-            toStatus: p.toStatus,
-            unpaid: p.o.unpaid,
-            paidAmount,
-            transferReference,
-            paidOn,
-            approvedBy,
-            unpaidAfter: p.unpaidAfter,
-          },
-        });
-        return { outcome: 'APPLIED' as const, key, ...describe(p), eventId: ev.id };
-      },
-      { timeout: 20_000, maxWait: 10_000 },
-    );
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      const done = await replay(prisma);
-      if (done) return done;
-    }
-    throw e;
-  }
-}

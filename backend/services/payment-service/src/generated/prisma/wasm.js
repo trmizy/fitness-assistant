@@ -257,6 +257,7 @@ exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
   paid: 'paid',
   unpaid: 'unpaid',
   externallyPaid: 'externallyPaid',
+  verifiedPaid: 'verifiedPaid',
   status: 'status',
   createdAt: 'createdAt',
   resolvedAt: 'resolvedAt',
@@ -295,7 +296,40 @@ exports.Prisma.ContractUnpaidObligationEventScalarFieldEnum = {
   paidOn: 'paidOn',
   approvedBy: 'approvedBy',
   unpaidAfter: 'unpaidAfter',
+  paymentId: 'paymentId',
+  paymentSource: 'paymentSource',
+  recipient: 'recipient',
+  evidenceRef: 'evidenceRef',
+  evidenceHash: 'evidenceHash',
+  bankStatementId: 'bankStatementId',
+  verifiedBy: 'verifiedBy',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.ContractUnpaidObligationPaymentScalarFieldEnum = {
+  id: 'id',
+  obligationId: 'obligationId',
+  approvalRef: 'approvalRef',
+  status: 'status',
+  amount: 'amount',
+  paymentSource: 'paymentSource',
+  recipientParty: 'recipientParty',
+  recipientId: 'recipientId',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  paidAmount: 'paidAmount',
+  transferReference: 'transferReference',
+  paidOn: 'paidOn',
+  evidenceRef: 'evidenceRef',
+  evidenceHash: 'evidenceHash',
+  bankStatementId: 'bankStatementId',
+  recordedBy: 'recordedBy',
+  recordedAt: 'recordedAt',
+  verifiedBy: 'verifiedBy',
+  verifiedAt: 'verifiedAt',
+  cancelledBy: 'cancelledBy',
+  cancelledAt: 'cancelledAt',
+  cancelReason: 'cancelReason'
 };
 
 exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
@@ -439,7 +473,11 @@ exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligation
   RESOLVED: 'RESOLVED',
   WAIVED: 'WAIVED',
   UNDER_REVIEW: 'UNDER_REVIEW',
-  PAID_EXTERNALLY: 'PAID_EXTERNALLY'
+  PAID_EXTERNALLY: 'PAID_EXTERNALLY',
+  APPROVED_FOR_PAYMENT: 'APPROVED_FOR_PAYMENT',
+  AWAITING_EVIDENCE: 'AWAITING_EVIDENCE',
+  PAID_VERIFIED: 'PAID_VERIFIED',
+  RESOLVED_OTHER: 'RESOLVED_OTHER'
 };
 
 exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventAction = {
@@ -453,7 +491,19 @@ exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidOblig
   WAIVE: 'WAIVE',
   REVIEW: 'REVIEW',
   RELEASE_REVIEW: 'RELEASE_REVIEW',
-  PAY_EXTERNALLY: 'PAY_EXTERNALLY'
+  PAY_EXTERNALLY: 'PAY_EXTERNALLY',
+  APPROVE_PAYMENT: 'APPROVE_PAYMENT',
+  SUBMIT_EVIDENCE: 'SUBMIT_EVIDENCE',
+  VERIFY_PAYMENT: 'VERIFY_PAYMENT',
+  CANCEL_APPROVAL: 'CANCEL_APPROVAL',
+  RESOLVE_OTHER: 'RESOLVE_OTHER'
+};
+
+exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {
+  APPROVED: 'APPROVED',
+  EVIDENCE_SUBMITTED: 'EVIDENCE_SUBMITTED',
+  VERIFIED: 'VERIFIED',
+  CANCELLED: 'CANCELLED'
 };
 
 exports.Prisma.ModelName = {
@@ -467,6 +517,7 @@ exports.Prisma.ModelName = {
   ContractUnpaidObligation: 'ContractUnpaidObligation',
   PartnerReceivableEvent: 'PartnerReceivableEvent',
   ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
+  ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

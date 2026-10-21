@@ -57,11 +57,40 @@ export interface ObligationEventRow {
   approvedBy: string | null;
   approvalRef: string;
   note: string;
-  /** PAY_EXTERNALLY evidence (null for other actions). */
+  /** Payment evidence (PAY_EXTERNALLY legacy, APPROVE_PAYMENT .. VERIFY_PAYMENT); null for other actions. */
   paidAmount: string | null;
   transferReference: string | null;
   paidOn: string | null;
   unpaidAfter: string | null;
+  /** Manual payment source (MANUAL_BANK_TRANSFER ...), recipient (party + first 8 characters of the client id), proof pointers, verifier. */
+  paymentSource: string | null;
+  recipient: string | null;
+  evidenceRef: string | null;
+  /** First 12 hex characters of the sha256. */
+  evidenceHash: string | null;
+  bankStatementId: string | null;
+  verifiedBy: string | null;
+}
+
+/** The ONE payment in flight on an obligation (APPROVED_FOR_PAYMENT or AWAITING_EVIDENCE). */
+export interface PendingPaymentRow {
+  approvalRef: string;
+  /** APPROVED = approved, not yet paid/recorded; EVIDENCE_SUBMITTED = evidence recorded, NOT verified. */
+  status: string;
+  approvedAmount: string;
+  paymentSource: string;
+  recipientParty: string;
+  recipient: string | null;
+  approvedBy: string;
+  approvedAt: string;
+  recordedBy: string | null;
+  recordedAt: string | null;
+  recordedAmount: string | null;
+  transferReference: string | null;
+  paidOn: string | null;
+  evidenceRef: string | null;
+  evidenceHash: string | null;
+  bankStatementId: string | null;
 }
 
 export interface UnpaidObligationRow {
@@ -81,8 +110,15 @@ export interface UnpaidObligationRow {
   sessionId: string | null;
   /** Why the obligation exists, in words (D77 sets it; null on rows FH-1 wrote). Cut to 120 characters. */
   reason: string | null;
-  /** Total paid to the client OUTSIDE the ledger so far (evidence in `history`). */
+  /**
+   * LEGACY first-cut figure: recorded as paid outside the ledger WITHOUT verification. Never written any more;
+   * old PAID_EXTERNALLY rows keep it and are not upgraded.
+   */
   externallyPaid: string;
+  /** Paid outside the ledger AND verified by a second person (sum of VERIFIED payments); this is what reduced `unpaid`. */
+  verifiedPaid: string;
+  /** The payment in flight (APPROVED_FOR_PAYMENT / AWAITING_EVIDENCE), else null. */
+  pendingPayment: PendingPaymentRow | null;
   /** Append-only audit trail, oldest first (last 10). */
   history: ObligationEventRow[];
   createdAt: string;
@@ -143,8 +179,19 @@ export interface ObligationsReport {
       open: { count: number; unpaid: string };
       /** Someone is looking at it (still unpaid). */
       underReview: { count: number; unpaid: string };
-      /** Paid to the client outside the ledger, with evidence. `amount` = everything paid externally, incl. partial payments on rows still open. */
+      /** Approved for payment (amount agreed, nothing recorded as paid yet). `unpaid` is still owed. */
+      approvedForPayment: { count: number; unpaid: string };
+      /** Paid outside and evidence recorded, waiting for a DIFFERENT person to verify it. `unpaid` is still owed until verified. */
+      awaitingEvidence: { count: number; unpaid: string };
+      /** Fully paid and VERIFIED. `amount` = everything verified so far, incl. partial verified payments on rows back to OPEN. */
+      paidVerified: { count: number; amount: string };
+      /**
+       * LEGACY: evidence recorded WITHOUT verification (first cut). NOT proof of payment; never upgraded. `amount` = everything
+       * recorded that way, incl. partial recordings on rows still open.
+       */
       paidExternally: { count: number; amount: string };
+      /** Settled by another method (reason on the event). Not "paid". */
+      resolvedOther: { count: number };
       /** The owner decided not to pursue it; `unpaid` is what was forgiven. The client was NOT paid. */
       waived: { count: number; unpaid: string };
       /** LEGACY "handled elsewhere" without evidence. */
@@ -173,7 +220,9 @@ export interface ObligationsReport {
   receivables: ReceivableRow[];
   /** Still to be paid: OPEN and UNDER_REVIEW rows (a partially paid row stays here with its reduced `unpaid`). */
   unpaidObligations: UnpaidObligationRow[];
-  /** Closed ones, newest first: PAID_EXTERNALLY / WAIVED / RESOLVED(legacy), each with its history. */
+  /** A payment is in flight: APPROVED_FOR_PAYMENT / AWAITING_EVIDENCE (still unpaid until verified), each with its pending payment and history. */
+  inFlightObligations: UnpaidObligationRow[];
+  /** Closed ones, newest first: PAID_VERIFIED / PAID_EXTERNALLY (legacy, unverified) / WAIVED / RESOLVED_OTHER / RESOLVED (legacy), each with its history. */
   closedObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   /**
@@ -195,6 +244,7 @@ export interface ObligationsReport {
     walletMismatches: boolean;
     receivables: boolean;
     unpaidObligations: boolean;
+    inFlightObligations: boolean;
     closedObligations: boolean;
     paidNotActivated: boolean;
     targetUnverified: boolean;
@@ -223,6 +273,7 @@ export function clampStaleMinutes(raw: unknown): number {
 
 const money = (v: unknown) => new Prisma.Decimal(String(v ?? 0)).toFixed(2);
 const short = (v: string | null | undefined) => (v ? v.slice(0, 8) : null);
+const hash12 = (v: string | null | undefined) => (v ? v.slice(0, 12) : null);
 const cut = (v: string | null | undefined, n = 120) => (v ? (v.length > n ? `${v.slice(0, n)}...` : v) : '');
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 
@@ -273,13 +324,13 @@ export async function buildObligationsReport(
         limit,
       );
 
-      const obSummary = await tx.$queryRawUnsafe<{ status: string; c: number; unpaid: string; ext: string }[]>(
+      const obSummary = await tx.$queryRawUnsafe<{ status: string; c: number; unpaid: string; ext: string; ver: string }[]>(
         `SELECT status::text AS status, count(*)::int AS c, coalesce(sum(unpaid),0)::text AS unpaid,
-                coalesce(sum(externally_paid),0)::text AS ext
+                coalesce(sum(externally_paid),0)::text AS ext, coalesce(sum(verified_paid),0)::text AS ver
            FROM contract_unpaid_obligations GROUP BY 1`,
       );
       const OB_COLS = `o.id, o.key, o.kind::text AS kind, o.party, o.status::text AS status, o.owed::text AS owed, o.paid::text AS paid,
-                o.unpaid::text AS unpaid, o.externally_paid::text AS externally_paid, o.transaction_id, o.reason, o.created_at, o.resolved_at,
+                o.unpaid::text AS unpaid, o.externally_paid::text AS externally_paid, o.verified_paid::text AS verified_paid, o.transaction_id, o.reason, o.created_at, o.resolved_at,
                 CASE WHEN t.related_entity_type::text = 'PT_CONTRACT' THEN t.related_entity_id END AS contract_id`;
       const obRows = await tx.$queryRawUnsafe<any[]>(
         `SELECT ${OB_COLS}
@@ -289,20 +340,38 @@ export async function buildObligationsReport(
           ORDER BY o.created_at ASC, o.id LIMIT $1`,
         limit,
       );
+      const inFlightRows = await tx.$queryRawUnsafe<any[]>(
+        `SELECT ${OB_COLS}
+           FROM contract_unpaid_obligations o
+           LEFT JOIN payment_transactions t ON t.id = o.transaction_id
+          WHERE o.status IN ('APPROVED_FOR_PAYMENT','AWAITING_EVIDENCE')
+          ORDER BY o.created_at ASC, o.id LIMIT $1`,
+        limit,
+      );
       const closedRows = await tx.$queryRawUnsafe<any[]>(
         `SELECT ${OB_COLS}
            FROM contract_unpaid_obligations o
            LEFT JOIN payment_transactions t ON t.id = o.transaction_id
-          WHERE o.status IN ('PAID_EXTERNALLY','WAIVED','RESOLVED')
+          WHERE o.status IN ('PAID_VERIFIED','PAID_EXTERNALLY','WAIVED','RESOLVED','RESOLVED_OTHER')
           ORDER BY o.resolved_at DESC NULLS LAST, o.id LIMIT $1`,
         limit,
       );
-      const obIds = [...obRows, ...closedRows].map((r) => r.id as string);
+      const obIds = [...obRows, ...inFlightRows, ...closedRows].map((r) => r.id as string);
+      const pendingRows = inFlightRows.length
+        ? await tx.$queryRawUnsafe<any[]>(
+            `SELECT obligation_id, approval_ref, status::text AS status, amount::text AS amount, payment_source, recipient_party, recipient_id,
+                    approved_by, approved_at, recorded_by, recorded_at, paid_amount::text AS paid_amount, transfer_reference, paid_on,
+                    evidence_ref, evidence_hash, bank_statement_id
+               FROM contract_unpaid_obligation_payments
+              WHERE status IN ('APPROVED','EVIDENCE_SUBMITTED') AND obligation_id = ANY($1::text[])`,
+            inFlightRows.map((r) => r.id as string),
+          )
+        : [];
       const eventRows = obIds.length
         ? await tx.$queryRawUnsafe<any[]>(
             `SELECT obligation_id, created_at, action::text AS action, from_status::text AS from_status, to_status::text AS to_status,
                     actor, approved_by, approval_ref, note, paid_amount::text AS paid_amount, transfer_reference, paid_on,
-                    unpaid_after::text AS unpaid_after
+                    unpaid_after::text AS unpaid_after, payment_source, recipient, evidence_ref, evidence_hash, bank_statement_id, verified_by
                FROM contract_unpaid_obligation_events WHERE obligation_id = ANY($1::text[])
               ORDER BY created_at ASC, id`,
             obIds,
@@ -329,7 +398,7 @@ export async function buildObligationsReport(
         limit,
       );
 
-      return { negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, closedRows, eventRows, staleCount, staleRows };
+      return { negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, inFlightRows, pendingRows, closedRows, eventRows, staleCount, staleRows };
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30_000, maxWait: 10_000 },
   );
@@ -362,9 +431,39 @@ export async function buildObligationsReport(
   const ob = (status: string) => core.obSummary.find((r) => r.status === status);
   const recCount = (rec('ACTIVE')?.c ?? 0) + (rec('SUSPENDED')?.c ?? 0);
   const obOpen = ob('OPEN')?.c ?? 0;
-  const obClosedCount = (ob('PAID_EXTERNALLY')?.c ?? 0) + (ob('WAIVED')?.c ?? 0) + (ob('RESOLVED')?.c ?? 0);
+  const obClosedCount =
+    (ob('PAID_VERIFIED')?.c ?? 0) + (ob('PAID_EXTERNALLY')?.c ?? 0) + (ob('WAIVED')?.c ?? 0) + (ob('RESOLVED')?.c ?? 0) + (ob('RESOLVED_OTHER')?.c ?? 0);
   const obOpenListCount = obOpen + (ob('UNDER_REVIEW')?.c ?? 0);
+  const obInFlightCount = (ob('APPROVED_FOR_PAYMENT')?.c ?? 0) + (ob('AWAITING_EVIDENCE')?.c ?? 0);
   const totalExternallyPaid = core.obSummary.reduce((a, r) => a.plus(new Prisma.Decimal(r.ext ?? 0)), new Prisma.Decimal(0));
+  const totalVerifiedPaid = core.obSummary.reduce((a, r) => a.plus(new Prisma.Decimal(r.ver ?? 0)), new Prisma.Decimal(0));
+  const pendingByObligation = new Map<string, PendingPaymentRow>();
+  for (const p of core.pendingRows) {
+    pendingByObligation.set(p.obligation_id, {
+      approvalRef: cut(p.approval_ref, 40),
+      status: p.status,
+      approvedAmount: money(p.amount),
+      paymentSource: p.payment_source,
+      recipientParty: p.recipient_party,
+      recipient: short(p.recipient_id),
+      approvedBy: cut(p.approved_by, 40),
+      approvedAt: iso(p.approved_at) as string,
+      recordedBy: p.recorded_by ? cut(p.recorded_by, 40) : null,
+      recordedAt: iso(p.recorded_at),
+      recordedAmount: p.paid_amount === null || p.paid_amount === undefined ? null : money(p.paid_amount),
+      transferReference: p.transfer_reference ? cut(p.transfer_reference, 80) : null,
+      paidOn: iso(p.paid_on),
+      evidenceRef: p.evidence_ref ? cut(p.evidence_ref, 120) : null,
+      evidenceHash: hash12(p.evidence_hash),
+      bankStatementId: p.bank_statement_id ? cut(p.bank_statement_id, 80) : null,
+    });
+  }
+  /** `CLIENT:<id>` -> `CLIENT:<first 8 characters>`: the report never carries a full personal id. */
+  const shortRecipient = (v: unknown): string | null => {
+    if (!v) return null;
+    const [party, id] = String(v).split(':');
+    return id ? `${party}:${short(id)}` : party;
+  };
   const historyByObligation = new Map<string, ObligationEventRow[]>();
   for (const e of core.eventRows) {
     const list = historyByObligation.get(e.obligation_id) ?? [];
@@ -381,6 +480,12 @@ export async function buildObligationsReport(
       transferReference: e.transfer_reference ? cut(e.transfer_reference, 80) : null,
       paidOn: iso(e.paid_on),
       unpaidAfter: e.unpaid_after === null || e.unpaid_after === undefined ? null : money(e.unpaid_after),
+      paymentSource: e.payment_source ?? null,
+      recipient: shortRecipient(e.recipient),
+      evidenceRef: e.evidence_ref ? cut(e.evidence_ref, 120) : null,
+      evidenceHash: hash12(e.evidence_hash),
+      bankStatementId: e.bank_statement_id ? cut(e.bank_statement_id, 80) : null,
+      verifiedBy: e.verified_by ? cut(e.verified_by, 40) : null,
     });
     historyByObligation.set(e.obligation_id, list);
   }
@@ -398,6 +503,8 @@ export async function buildObligationsReport(
     sessionId: sessionIdOfKey(r.key),
     reason: r.reason ? cut(r.reason) : null,
     externallyPaid: money(r.externally_paid),
+    verifiedPaid: money(r.verified_paid),
+    pendingPayment: pendingByObligation.get(r.id) ?? null,
     history: (historyByObligation.get(r.id) ?? []).slice(-10),
     createdAt: iso(r.created_at) as string,
     resolvedAt: iso(r.resolved_at),
@@ -417,7 +524,11 @@ export async function buildObligationsReport(
       unpaidObligations: {
         open: { count: obOpen, unpaid: money(ob('OPEN')?.unpaid) },
         underReview: { count: ob('UNDER_REVIEW')?.c ?? 0, unpaid: money(ob('UNDER_REVIEW')?.unpaid) },
+        approvedForPayment: { count: ob('APPROVED_FOR_PAYMENT')?.c ?? 0, unpaid: money(ob('APPROVED_FOR_PAYMENT')?.unpaid) },
+        awaitingEvidence: { count: ob('AWAITING_EVIDENCE')?.c ?? 0, unpaid: money(ob('AWAITING_EVIDENCE')?.unpaid) },
+        paidVerified: { count: ob('PAID_VERIFIED')?.c ?? 0, amount: totalVerifiedPaid.toFixed(2) },
         paidExternally: { count: ob('PAID_EXTERNALLY')?.c ?? 0, amount: totalExternallyPaid.toFixed(2) },
+        resolvedOther: { count: ob('RESOLVED_OTHER')?.c ?? 0 },
         waived: { count: ob('WAIVED')?.c ?? 0, unpaid: money(ob('WAIVED')?.unpaid) },
         resolved: { count: ob('RESOLVED')?.c ?? 0 },
       },
@@ -452,6 +563,7 @@ export async function buildObligationsReport(
       suspensionRef: r.suspension_ref ?? null,
     })),
     unpaidObligations: core.obRows.map(toObligation),
+    inFlightObligations: core.inFlightRows.map(toObligation),
     closedObligations: core.closedRows.map(toObligation),
     paidNotActivated: core.staleRows.map((r) => ({
       transactionId: r.id,
@@ -471,6 +583,7 @@ export async function buildObligationsReport(
       walletMismatches: core.mism.total > core.mism.rows.length,
       receivables: recCount > core.recRows.length,
       unpaidObligations: obOpenListCount > core.obRows.length,
+      inFlightObligations: obInFlightCount > core.inFlightRows.length,
       closedObligations: obClosedCount > core.closedRows.length,
       paidNotActivated: core.staleCount > core.staleRows.length,
       targetUnverified: candidatesAll.length > candidates.length,

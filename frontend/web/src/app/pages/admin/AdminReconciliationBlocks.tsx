@@ -28,15 +28,18 @@ import {
   formatAge,
   formatDateTimeVi,
   formatObligationEvent,
+  formatPendingPayment,
   normalizeObligationsReport,
   normalizeSessionsReport,
   obligationKindLabel,
   obligationStatusLabel,
+  obligationTone,
   partyLabel,
   productLookupNote,
   productOutcomeLabel,
   productTargetStatusLabel,
   purposeLabel,
+  rowsWithStatus,
   settlementKindLabel,
   settlementStatusLabel,
   shortId,
@@ -242,15 +245,30 @@ function History({ events }: { events: ObligationEventRow[] | undefined }) {
     </details>
   );
 }
+const TONE_CLASS: Record<string, string> = {
+  verified: "text-green-400",
+  unverified: "text-amber-400 font-semibold",
+  pending: "text-sky-300",
+  open: "text-zinc-200",
+  closed: "text-zinc-300",
+};
+const StatusText = ({ status }: { status: string }) => <span className={TONE_CLASS[obligationTone(status)]}>{obligationStatusLabel(status)}</span>;
+
+// Còn thiếu / đang mở
 const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
-  { header: "Tình trạng", cell: (r) => obligationStatusLabel(r.status) },
+  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} /> },
   { header: "Phải trả cho", cell: (r) => partyLabel(r.party) },
   { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   { header: "Đã trả / phải trả", cell: (r) => `${money(r.paid)} / ${money(r.owed)}`, right: true },
   {
-    header: "Đã trả ngoài hệ thống",
-    cell: (r) => (toAmount(r.externallyPaid) ? <span className="text-green-400">{money(r.externallyPaid)}</span> : "—"),
+    header: "Đã trả và được xác minh",
+    cell: (r) => (toAmount(r.verifiedPaid) ? <span className="text-green-400">{money(r.verifiedPaid)}</span> : "—"),
+    right: true,
+  },
+  {
+    header: "Ghi nhận cũ, chưa xác minh",
+    cell: (r) => (toAmount(r.externallyPaid) ? <span className="text-amber-400">{money(r.externallyPaid)} (chưa xác minh)</span> : "—"),
     right: true,
   },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
@@ -259,21 +277,45 @@ const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
   { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
 ];
-const closedObligationCols: Column<UnpaidObligationRow>[] = [
+// Đã phê duyệt chi / đang chờ chứng từ: vẫn còn thiếu, kèm khoản chi đang chờ
+const inFlightCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Tình trạng", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   {
-    header: "Kết quả",
-    cell: (r) => (
-      <span className={r.status === "PAID_EXTERNALLY" ? "text-green-400" : r.status === "WAIVED" ? "text-amber-400" : "text-zinc-300"}>
-        {obligationStatusLabel(r.status)}
-      </span>
-    ),
+    header: "Khoản chi đang chờ",
+    cell: (r) => (r.pendingPayment ? <span className="break-words">{formatPendingPayment(r.pendingPayment, money)}</span> : "—"),
   },
-  {
-    header: "Số tiền",
-    cell: (r) => (r.status === "PAID_EXTERNALLY" ? `Đã trả ${money(r.externallyPaid)}` : r.status === "WAIVED" ? `Bỏ qua ${money(r.unpaid)}` : money(r.owed)),
-    right: true,
-  },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+// Đã thanh toán được xác minh
+const verifiedCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Đã trả và được xác minh", cell: (r) => <span className="text-green-400 font-semibold">{money(r.verifiedPaid)}</span>, right: true },
+  { header: "Phải trả", cell: (r) => money(r.owed), right: true },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+// BẢN GHI CŨ: chứng từ tự nhập, chưa xác minh
+const unverifiedCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Ghi nhận đã trả (CHƯA xác minh)", cell: (r) => <span className="text-amber-400">{money(r.externallyPaid)}</span>, right: true },
+  { header: "Đã xác minh", cell: (r) => money(r.verifiedPaid), right: true },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Ghi nhận lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+// Không truy đòi / giải quyết cách khác / bản ghi cũ: khách KHÔNG được ghi nhận là đã trả
+const closedNotPaidCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Kết quả", cell: (r) => <StatusText status={r.status} /> },
+  { header: "Số tiền không trả", cell: (r) => money(r.unpaid), right: true },
+  { header: "Lý do", cell: (r) => r.history?.length ? (r.history[r.history.length - 1].note || "—") : "—" },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
   { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
   { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
@@ -406,49 +448,132 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         </div>
         <Rows rows={r.receivables} columns={receivableCols} rowKey={(x) => x.id} />
       </Block>
+      <GroupTitle>Nghĩa vụ chưa thanh toán — mỗi trạng thái một nhóm</GroupTitle>
+      <p data-testid="recon-obligations-note" className="text-[11px] text-zinc-500">
+        Số tiền nền tảng còn phải trả cho khách mà chính hợp đồng đó không đủ tiền để chi (không phải nợ của PT). Hệ thống không tự chi. Việc trả được làm
+        ngoài hệ thống và chỉ được tính là ĐÃ THANH TOÁN khi chứng từ được một người khác xác minh; mã chuyển khoản tự nhập chưa phải bằng chứng.
+      </p>
       <Block
-        testId="recon-obligations"
-        title="Nghĩa vụ chưa thanh toán"
-        hint="Số tiền nền tảng còn phải trả mà chính hợp đồng đó không đủ tiền để chi. Đây không phải nợ của PT. Việc trả cho khách được thực hiện ngoài hệ thống và chỉ được ghi nhận ở đây khi có bằng chứng."
-        count={s.unpaidObligations.open.count + s.unpaidObligations.underReview.count}
+        testId="recon-obligations-open"
+        title="Đang mở"
+        hint="Đã ghi nhận, chưa ai phê duyệt chi."
+        count={s.unpaidObligations.open.count}
         tone="watch"
         truncated={r.truncated.unpaidObligations}
         emptyText="Không có nghĩa vụ nào đang mở."
       >
         <p data-testid="recon-obligations-summary" className="text-xs text-zinc-400 mb-2">
-          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(addAmounts(s.unpaidObligations.open.unpaid, s.unpaidObligations.underReview.unpaid))}</span>
-          {" "}· chưa xử lý {s.unpaidObligations.open.count} · đang xem xét {s.unpaidObligations.underReview.count}
+          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.open.unpaid)}</span>
         </p>
-        <Rows rows={r.unpaidObligations} columns={obligationCols} rowKey={(x) => x.id} />
+        <Rows rows={rowsWithStatus(r.unpaidObligations, "OPEN")} columns={obligationCols} rowKey={(x) => x.id} />
       </Block>
       <Block
-        testId="recon-obligations-closed"
-        title="Nghĩa vụ đã đóng"
-        hint="Đã trả cho khách ngoài hệ thống (có mã chuyển khoản, ngày trả, người duyệt) hoặc chủ sở hữu quyết định không truy đòi (khách không được trả). Bản ghi cũ 'đã xử lý' chưa có bằng chứng."
-        count={s.unpaidObligations.paidExternally.count + s.unpaidObligations.waived.count + s.unpaidObligations.resolved.count}
+        testId="recon-obligations-under-review"
+        title="Đang xem xét"
+        hint="Có người đang xem xét; chưa phê duyệt chi."
+        count={s.unpaidObligations.underReview.count}
+        tone="watch"
+        truncated={r.truncated.unpaidObligations}
+        emptyText="Không có nghĩa vụ nào đang xem xét."
+      >
+        <p className="text-xs text-zinc-400 mb-2">
+          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.underReview.unpaid)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.unpaidObligations, "UNDER_REVIEW")} columns={obligationCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-approved"
+        title="Đã phê duyệt chi"
+        hint="Người có thẩm quyền đã duyệt số tiền và nguồn chi; chưa có chứng từ. Vẫn CHƯA trả."
+        count={s.unpaidObligations.approvedForPayment.count}
+        tone="watch"
+        truncated={r.truncated.inFlightObligations}
+        emptyText="Không có khoản nào đang chờ chi."
+      >
+        <p className="text-xs text-zinc-400 mb-2">
+          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.approvedForPayment.unpaid)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.inFlightObligations, "APPROVED_FOR_PAYMENT")} columns={inFlightCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-awaiting"
+        title="Đang chờ chứng từ"
+        hint="Đã trả ngoài hệ thống và đã nộp chứng từ, đang chờ MỘT NGƯỜI KHÁC xác minh. Chưa xác minh thì chưa tính là đã trả."
+        count={s.unpaidObligations.awaitingEvidence.count}
+        tone="watch"
+        truncated={r.truncated.inFlightObligations}
+        emptyText="Không có khoản nào đang chờ xác minh chứng từ."
+      >
+        <p className="text-xs text-zinc-400 mb-2">
+          Vẫn còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.awaitingEvidence.unpaid)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.inFlightObligations, "AWAITING_EVIDENCE")} columns={inFlightCols} rowKey={(x) => x.id} />
+      </Block>
+
+      <GroupTitle>Nghĩa vụ đã đóng — mỗi kết quả một nhóm</GroupTitle>
+      <Block
+        testId="recon-obligations-paid-verified"
+        title="Đã thanh toán được xác minh"
+        hint="Đã phê duyệt, đã trả ngoài hệ thống và chứng từ đã được một người khác xác minh. Đây là nhóm DUY NHẤT được tính là đã trả."
+        count={s.unpaidObligations.paidVerified.count}
         tone="neutral"
         truncated={r.truncated.closedObligations}
-        emptyText="Chưa có nghĩa vụ nào được đóng."
+        emptyText="Chưa có khoản nào được thanh toán và xác minh."
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
-          <div data-testid="recon-obligations-paid-externally">
-            <div className="text-zinc-500">Đã trả ngoài hệ thống</div>
-            <div className="text-zinc-200 font-semibold">
-              {s.unpaidObligations.paidExternally.count} khoản · tổng đã trả {money(s.unpaidObligations.paidExternally.amount)}
-            </div>
-          </div>
-          <div data-testid="recon-obligations-waived">
-            <div className="text-zinc-500">Không truy đòi</div>
-            <div className="text-zinc-200 font-semibold">
-              {s.unpaidObligations.waived.count} khoản · bỏ qua {money(s.unpaidObligations.waived.unpaid)}
-            </div>
-          </div>
-          <div data-testid="recon-obligations-legacy">
-            <div className="text-zinc-500">Bản ghi cũ (đã xử lý)</div>
-            <div className="text-zinc-200 font-semibold">{s.unpaidObligations.resolved.count} khoản</div>
-          </div>
-        </div>
-        <Rows rows={r.closedObligations} columns={closedObligationCols} rowKey={(x) => x.id} />
+        <p className="text-xs text-zinc-400 mb-2">
+          Tổng đã trả và được xác minh (gồm các lần trả một phần): <span className="text-green-400 font-semibold">{money(s.unpaidObligations.paidVerified.amount)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.closedObligations, "PAID_VERIFIED")} columns={verifiedCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-unverified"
+        title="Đã ghi nhận chứng từ — CHƯA xác minh (bản ghi cũ)"
+        hint="Ghi nhận theo cách cũ: chỉ có mã chuyển khoản tự nhập, chưa ai kiểm tra. KHÔNG phải bằng chứng đã trả và không được tự nâng thành đã xác minh."
+        count={s.unpaidObligations.paidExternally.count}
+        tone="watch"
+        truncated={r.truncated.closedObligations}
+        emptyText="Không có bản ghi cũ nào chưa xác minh."
+      >
+        <p className="text-xs text-amber-400 mb-2">
+          Tổng đã ghi nhận nhưng CHƯA xác minh: <span className="font-semibold">{money(s.unpaidObligations.paidExternally.amount)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.closedObligations, "PAID_EXTERNALLY")} columns={unverifiedCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-waived"
+        title="Không truy đòi"
+        hint="Chủ sở hữu quyết định không truy đòi; khách KHÔNG được trả."
+        count={s.unpaidObligations.waived.count}
+        tone="neutral"
+        truncated={r.truncated.closedObligations}
+        emptyText="Chưa có khoản nào bị bỏ qua."
+      >
+        <p className="text-xs text-zinc-400 mb-2">
+          Tổng bỏ qua: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.waived.unpaid)}</span>
+        </p>
+        <Rows rows={rowsWithStatus(r.closedObligations, "WAIVED")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-resolved-other"
+        title="Đã giải quyết bằng phương thức khác"
+        hint="Được giải quyết không qua chi trả có xác minh (lý do ghi ở lịch sử). Không tính là đã trả."
+        count={s.unpaidObligations.resolvedOther.count}
+        tone="neutral"
+        truncated={r.truncated.closedObligations}
+        emptyText="Chưa có khoản nào được giải quyết bằng phương thức khác."
+      >
+        <Rows rows={rowsWithStatus(r.closedObligations, "RESOLVED_OTHER")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-legacy"
+        title="Bản ghi cũ (đã xử lý)"
+        hint="Đánh dấu 'đã xử lý' theo cách cũ, không có bằng chứng."
+        count={s.unpaidObligations.resolved.count}
+        tone="neutral"
+        truncated={r.truncated.closedObligations}
+        emptyText="Không có bản ghi cũ."
+      >
+        <Rows rows={rowsWithStatus(r.closedObligations, "RESOLVED")} columns={closedNotPaidCols} rowKey={(x) => x.id} />
       </Block>
 
       <GroupTitle>Thanh toán chưa hoàn tất</GroupTitle>

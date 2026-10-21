@@ -344,14 +344,25 @@ enum ContractUnpaidObligationKind {
   OVER_RELEASED
 }
 
-/// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it; PAID_EXTERNALLY = the client was paid OUTSIDE this ledger,
-/// with evidence (see ContractUnpaidObligationEvent); WAIVED = the owner decided not to pursue; RESOLVED = legacy "handled elsewhere".
+/// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it.
+/// Payment lifecycle (FH-8, owner decision: nothing is "paid" without VERIFIED evidence, by a second person):
+///   APPROVED_FOR_PAYMENT = an authorised approver approved paying an exact amount from a manual (outside-the-ledger) source;
+///   AWAITING_EVIDENCE    = the payment was made outside and evidence was recorded; waiting for a DIFFERENT person to verify it;
+///   PAID_VERIFIED        = the evidence was verified against the approval and the whole obligation is covered (terminal);
+///                          a PARTIAL verified payment returns the row to OPEN with a smaller `unpaid` and `verifiedPaid` > 0.
+/// WAIVED = the owner decided not to pursue (the client is NOT paid); RESOLVED_OTHER = settled by another method, reason mandatory.
+/// LEGACY: PAID_EXTERNALLY = "evidence recorded, NOT verified" (written by the FH-8 first cut before verification existed; never
+/// auto-upgraded, no new row can enter it); RESOLVED = legacy "handled elsewhere".
 enum ContractUnpaidObligationStatus {
   OPEN
   RESOLVED
   WAIVED
   UNDER_REVIEW
   PAID_EXTERNALLY
+  APPROVED_FOR_PAYMENT
+  AWAITING_EVIDENCE
+  PAID_VERIFIED
+  RESOLVED_OTHER
 }
 
 /// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
@@ -374,6 +385,9 @@ model ContractUnpaidObligation {
   unpaid         Decimal                        @db.Decimal(14, 2)
   /// FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
   externallyPaid Decimal                        @default(0) @map("externally_paid") @db.Decimal(14, 2)
+  /// FH-8: total paid outside the ledger AND VERIFIED by a second person (sum of VERIFIED payments). Only this reduces `unpaid`
+  /// in the current lifecycle; `externallyPaid` is the legacy, unverified figure and is never written any more.
+  verifiedPaid   Decimal                        @default(0) @map("verified_paid") @db.Decimal(14, 2)
   status         ContractUnpaidObligationStatus @default(OPEN)
   createdAt      DateTime                       @default(now()) @map("created_at")
   resolvedAt     DateTime?                      @map("resolved_at")
@@ -382,8 +396,9 @@ model ContractUnpaidObligation {
   /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
   reason         String?
 
-  transaction PaymentTransaction              @relation(fields: [transactionId], references: [id])
+  transaction PaymentTransaction                @relation(fields: [transactionId], references: [id])
   events      ContractUnpaidObligationEvent[]
+  payments    ContractUnpaidObligationPayment[]
 
   @@index([status])
   @@index([transactionId])
@@ -424,6 +439,11 @@ enum ContractUnpaidObligationEventAction {
   REVIEW
   RELEASE_REVIEW
   PAY_EXTERNALLY
+  APPROVE_PAYMENT
+  SUBMIT_EVIDENCE
+  VERIFY_PAYMENT
+  CANCEL_APPROVAL
+  RESOLVE_OTHER
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
@@ -447,12 +467,67 @@ model ContractUnpaidObligationEvent {
   paidOn            DateTime?                           @map("paid_on")
   approvedBy        String?                             @map("approved_by")
   unpaidAfter       Decimal?                            @map("unpaid_after") @db.Decimal(14, 2)
+  /// Payment lifecycle events (APPROVE_PAYMENT .. CANCEL_APPROVAL): the payment record, its manual source, the recipient
+  /// (taken from the ledger), the evidence pointers and who verified it.
+  paymentId         String?                             @map("payment_id")
+  paymentSource     String?                             @map("payment_source")
+  recipient         String?
+  evidenceRef       String?                             @map("evidence_ref")
+  evidenceHash      String?                             @map("evidence_hash")
+  bankStatementId   String?                             @map("bank_statement_id")
+  verifiedBy        String?                             @map("verified_by")
   createdAt         DateTime                            @default(now()) @map("created_at")
 
   obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
 
   @@index([obligationId])
   @@map("contract_unpaid_obligation_events")
+}
+
+enum ContractUnpaidObligationPaymentStatus {
+  APPROVED
+  EVIDENCE_SUBMITTED
+  VERIFIED
+  CANCELLED
+}
+
+/// FH-8. ONE manual (outside-the-ledger) payment of an unpaid obligation: approved -> evidence submitted -> verified (or cancelled).
+/// At most ONE open (APPROVED / EVIDENCE_SUBMITTED) row per obligation (partial unique index in the migration), so the sum of
+/// VERIFIED payments can never exceed what was owed. Recipient comes from the ledger (the obligation's party; for a CLIENT
+/// obligation the payer of the payment transaction), never from input. Moves no money: no wallet / ledger / receivable row.
+/// DELETE is rejected and the identity columns are immutable (trigger in the migration); the event table keeps the full history.
+model ContractUnpaidObligationPayment {
+  id                String                                @id @default(uuid())
+  obligationId      String                                @map("obligation_id")
+  approvalRef       String                                @map("approval_ref")
+  status            ContractUnpaidObligationPaymentStatus @default(APPROVED)
+  amount            Decimal                               @db.Decimal(14, 2)
+  paymentSource     String                                @map("payment_source")
+  recipientParty    String                                @map("recipient_party")
+  recipientId       String?                               @map("recipient_id")
+  approvedBy        String                                @map("approved_by")
+  approvedAt        DateTime                              @default(now()) @map("approved_at")
+  /// Evidence (recorded by `recordedBy` AFTER the payment was made outside): what was paid, the transfer reference, the day,
+  /// and a pointer to the proof (file reference / sha256 / bank statement id). NOT proof by itself - `verifiedBy` must confirm it.
+  paidAmount        Decimal?                              @map("paid_amount") @db.Decimal(14, 2)
+  transferReference String?                               @map("transfer_reference")
+  paidOn            DateTime?                             @map("paid_on")
+  evidenceRef       String?                               @map("evidence_ref")
+  evidenceHash      String?                               @map("evidence_hash")
+  bankStatementId   String?                               @map("bank_statement_id")
+  recordedBy        String?                               @map("recorded_by")
+  recordedAt        DateTime?                             @map("recorded_at")
+  verifiedBy        String?                               @map("verified_by")
+  verifiedAt        DateTime?                             @map("verified_at")
+  cancelledBy       String?                               @map("cancelled_by")
+  cancelledAt       DateTime?                             @map("cancelled_at")
+  cancelReason      String?                               @map("cancel_reason")
+
+  obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
+
+  @@unique([obligationId, approvalRef])
+  @@index([obligationId])
+  @@map("contract_unpaid_obligation_payments")
 }
 
 model PaymentWebhookEvent {

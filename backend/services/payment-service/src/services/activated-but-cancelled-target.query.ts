@@ -163,7 +163,8 @@ async function scanCandidates(lookupTargetStatus: TargetStatusLookup | null, opt
     }
 
     const open = await prisma.contractUnpaidObligation.findMany({
-      where: { transactionId: { in: ids }, status: 'OPEN' },
+      // still owed to the client: open, under review, or a payment approved / recorded but not yet VERIFIED
+      where: { transactionId: { in: ids }, status: { in: ['OPEN', 'UNDER_REVIEW', 'APPROVED_FOR_PAYMENT', 'AWAITING_EVIDENCE'] } },
       select: { unpaid: true },
     });
     const openUnpaid = open.reduce((a, o) => a.plus(new Prisma.Decimal(o.unpaid)), new Prisma.Decimal(0));

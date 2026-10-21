@@ -18,7 +18,7 @@ export async function seedBacklog() {
   const D = (v: string | number) => new Prisma.Decimal(v);
 
   await prisma.$executeRawUnsafe(
-    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, partner_receivable_events, contract_unpaid_obligation_events, contract_unpaid_obligations, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE',
+    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, partner_receivable_events, contract_unpaid_obligation_events, contract_unpaid_obligation_payments, contract_unpaid_obligations, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE',
   );
 
   const rates = { platformRate: D('0.10'), ptRate: D('0.90'), gymRate: D('0') };
@@ -95,7 +95,7 @@ export async function seedBacklog() {
 export async function tableCounts(prisma: { $queryRawUnsafe: (q: string) => Promise<any> }) {
   const tables = [
     'wallets', 'wallet_ledger_entries', 'payment_transactions', 'partner_receivables', 'partner_receivable_events',
-    'contract_unpaid_obligations', 'contract_unpaid_obligation_events', 'ledger_operations', 'platform_commissions',
+    'contract_unpaid_obligations', 'contract_unpaid_obligation_events', 'contract_unpaid_obligation_payments', 'ledger_operations', 'platform_commissions',
   ];
   const out: Record<string, string> = {};
   for (const t of tables) {

@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  PAYMENT_SOURCE_LABEL,
   OBLIGATION_ACTION_LABEL,
   OBLIGATION_KIND_LABEL,
   OBLIGATION_STATUS_LABEL,
@@ -20,11 +21,15 @@ import {
   countAttention,
   formatAge,
   formatObligationEvent,
+  formatPendingPayment,
   normalizeObligationsReport,
   normalizeSessionsReport,
   obligationActionLabel,
   obligationKindLabel,
   obligationStatusLabel,
+  obligationTone,
+  paymentSourceLabel,
+  rowsWithStatus,
   partyLabel,
   productLookupNote,
   productOutcomeLabel,
@@ -253,9 +258,9 @@ describe("FH-4 product payments: groups, labels, attention", () => {
 
   it("labels cover every outcome / status the server sends and speak Vietnamese", () => {
     for (const k of ["CANCELLED_PAID", "REFUND_COMPLETED", "REFUND_SHORT"]) assert.ok(PRODUCT_OUTCOME_LABEL[k], k);
-    for (const k of ["OPEN", "UNDER_REVIEW", "PAID_EXTERNALLY", "WAIVED", "RESOLVED"]) assert.ok(OBLIGATION_STATUS_LABEL[k], k);
-    for (const k of ["REVIEW", "RELEASE_REVIEW", "PAY_EXTERNALLY", "WAIVE", "RESOLVE"]) assert.ok(OBLIGATION_ACTION_LABEL[k], k);
-    assert.equal(obligationStatusLabel("PAID_EXTERNALLY"), "Đã trả ngoài hệ thống");
+    for (const k of ["OPEN", "UNDER_REVIEW", "APPROVED_FOR_PAYMENT", "AWAITING_EVIDENCE", "PAID_VERIFIED", "PAID_EXTERNALLY", "WAIVED", "RESOLVED_OTHER", "RESOLVED"]) assert.ok(OBLIGATION_STATUS_LABEL[k], k);
+    for (const k of ["REVIEW", "RELEASE_REVIEW", "APPROVE_PAYMENT", "SUBMIT_EVIDENCE", "VERIFY_PAYMENT", "CANCEL_APPROVAL", "PAY_EXTERNALLY", "RESOLVE_OTHER", "WAIVE", "RESOLVE"]) assert.ok(OBLIGATION_ACTION_LABEL[k], k);
+    assert.equal(obligationStatusLabel("PAID_EXTERNALLY"), "Đã ghi nhận chứng từ — chưa xác minh");
     assert.equal(obligationStatusLabel("WAIVED"), "Không truy đòi");
     assert.equal(obligationStatusLabel("SOMETHING_NEW"), "Chưa rõ", "unknown code never shown raw");
     assert.equal(productOutcomeLabel(undefined), "Chưa rõ");
@@ -317,5 +322,138 @@ describe("FH-8 obligation history", () => {
     const u = r.summary.unpaidObligations;
     assert.deepEqual([u.open.count, u.underReview.count, u.paidExternally.count, u.waived.count, u.resolved.count], [1, 1, 2, 3, 4]);
     assert.deepEqual([u.paidExternally.amount, u.waived.unpaid], ["300", "70"]);
+  });
+});
+
+describe("FH-8 verified payment lifecycle: separate groups, unverified is never shown as paid", () => {
+  const base = paymentFixture().data.summary;
+  const z = { negativeSubledgers: { count: 0, unbackedTotal: "0" }, walletMismatches: { count: 0, nonEscrowCount: 0 }, paidNotActivated: 0, receivables: { active: { count: 0, outstanding: "0" }, suspended: { count: 0, outstanding: "0" } } };
+  const ob = (over: Record<string, unknown>) => ({
+    open: { count: 0, unpaid: "0" }, underReview: { count: 0, unpaid: "0" }, approvedForPayment: { count: 0, unpaid: "0" }, awaitingEvidence: { count: 0, unpaid: "0" },
+    paidVerified: { count: 0, amount: "0" }, paidExternally: { count: 0, amount: "0" }, waived: { count: 0, unpaid: "0" }, resolvedOther: { count: 0 }, resolved: { count: 0 }, ...over,
+  });
+  const pending = (over: Record<string, unknown> = {}) => ({
+    approvalRef: "AP-1", status: "APPROVED", approvedAmount: "250000.00", paymentSource: "MANUAL_BANK_TRANSFER", recipientParty: "CLIENT", recipient: "client-a",
+    approvedBy: "owner-test", approvedAt: "2026-10-20T03:00:00.000Z", recordedBy: null, recordedAt: null, recordedAmount: null, transferReference: null, paidOn: null,
+    evidenceRef: null, evidenceHash: null, bankStatementId: null, ...over,
+  });
+
+  it("every status has its own Vietnamese label; the unverified label says so and differs from the verified one", () => {
+    const labels = Object.values(OBLIGATION_STATUS_LABEL);
+    assert.equal(new Set(labels).size, labels.length, "no two states share a label");
+    assert.equal(obligationStatusLabel("OPEN"), "Đang mở");
+    assert.equal(obligationStatusLabel("APPROVED_FOR_PAYMENT"), "Đã phê duyệt chi");
+    assert.equal(obligationStatusLabel("AWAITING_EVIDENCE"), "Đang chờ chứng từ");
+    assert.equal(obligationStatusLabel("PAID_VERIFIED"), "Đã thanh toán được xác minh");
+    assert.equal(obligationStatusLabel("RESOLVED_OTHER"), "Đã giải quyết bằng phương thức khác");
+    assert.match(obligationStatusLabel("PAID_EXTERNALLY"), /chưa xác minh/);
+    assert.doesNotMatch(obligationStatusLabel("PAID_VERIFIED"), /chưa/);
+    assert.doesNotMatch(obligationStatusLabel("PAID_EXTERNALLY"), /^Đã thanh toán/, "the legacy state never reads as paid");
+  });
+
+  it("tone: only PAID_VERIFIED is verified; legacy PAID_EXTERNALLY is its own unverified tone; in-flight is pending", () => {
+    assert.equal(obligationTone("PAID_VERIFIED"), "verified");
+    assert.equal(obligationTone("PAID_EXTERNALLY"), "unverified");
+    assert.equal(obligationTone("APPROVED_FOR_PAYMENT"), "pending");
+    assert.equal(obligationTone("AWAITING_EVIDENCE"), "pending");
+    assert.equal(obligationTone("OPEN"), "open");
+    assert.equal(obligationTone("UNDER_REVIEW"), "open");
+    for (const k of ["WAIVED", "RESOLVED_OTHER", "RESOLVED", "WHATEVER", undefined, null]) assert.equal(obligationTone(k as any), "closed");
+  });
+
+  it("payment sources are manual only and have Vietnamese labels", () => {
+    assert.deepEqual(Object.keys(PAYMENT_SOURCE_LABEL).sort(), ["MANUAL_BANK_TRANSFER", "MANUAL_CASH", "MANUAL_E_WALLET_TRANSFER"]);
+    assert.equal(paymentSourceLabel("MANUAL_BANK_TRANSFER"), "Chuyển khoản ngân hàng (thủ công)");
+    assert.equal(paymentSourceLabel("WALLET"), "Nguồn khác", "unknown source never shown raw");
+  });
+
+  it("rowsWithStatus splits one list into per-state groups", () => {
+    const rows = [{ id: "a", status: "APPROVED_FOR_PAYMENT" }, { id: "b", status: "AWAITING_EVIDENCE" }, { id: "c", status: "APPROVED_FOR_PAYMENT" }] as any;
+    assert.deepEqual(rowsWithStatus(rows, "APPROVED_FOR_PAYMENT").map((r) => r.id), ["a", "c"]);
+    assert.deepEqual(rowsWithStatus(rows, "AWAITING_EVIDENCE").map((r) => r.id), ["b"]);
+    assert.deepEqual(rowsWithStatus(rows, "PAID_VERIFIED"), []);
+  });
+
+  it("normalise keeps every group the server sends: in-flight rows with their pending payment, verified totals, legacy totals separate", () => {
+    const r = normalizeObligationsReport(
+      paymentFixture({
+        summary: {
+          ...base,
+          unpaidObligations: ob({
+            approvedForPayment: { count: 1, unpaid: "250000.00" }, awaitingEvidence: { count: 2, unpaid: "500000.00" },
+            paidVerified: { count: 3, amount: "900000.00" }, paidExternally: { count: 4, amount: "1000000.00" }, resolvedOther: { count: 5 },
+          }),
+        },
+        inFlightObligations: [{ id: "i1", status: "AWAITING_EVIDENCE", pendingPayment: pending({ status: "EVIDENCE_SUBMITTED", recordedBy: "clerk-test" }) }],
+        closedObligations: [{ id: "c1", status: "PAID_VERIFIED", verifiedPaid: "250000.00" }, { id: "c2", status: "PAID_EXTERNALLY", externallyPaid: "250000.00" }],
+        truncated: { inFlightObligations: true },
+      }),
+    )!;
+    const u = r.summary.unpaidObligations;
+    assert.deepEqual([u.approvedForPayment.count, u.awaitingEvidence.count, u.paidVerified.count, u.paidExternally.count, u.resolvedOther.count], [1, 2, 3, 4, 5]);
+    assert.deepEqual([u.paidVerified.amount, u.paidExternally.amount], ["900000.00", "1000000.00"], "verified and unverified totals are different numbers");
+    assert.equal(r.inFlightObligations[0].pendingPayment!.status, "EVIDENCE_SUBMITTED");
+    assert.equal(r.inFlightObligations[0].verifiedPaid, "0.00");
+    assert.equal(r.closedObligations[0].verifiedPaid, "250000.00");
+    assert.equal(r.closedObligations[1].verifiedPaid, "0.00", "a legacy row is never shown as verified");
+    assert.equal(r.closedObligations[1].externallyPaid, "250000.00");
+    assert.equal(r.truncated.inFlightObligations, true);
+  });
+
+  it("an older payment-service build (no lifecycle fields) still normalises to empty groups and zero totals", () => {
+    const r = normalizeObligationsReport({ data: { summary: {}, unpaidObligations: [{ id: "o", status: "OPEN" }] } })!;
+    const u = r.summary.unpaidObligations;
+    assert.deepEqual([u.approvedForPayment.count, u.awaitingEvidence.count, u.paidVerified.count, u.resolvedOther.count], [0, 0, 0, 0]);
+    assert.equal(u.paidVerified.amount, "0");
+    assert.deepEqual(r.inFlightObligations, []);
+    assert.equal(r.unpaidObligations[0].verifiedPaid, "0.00");
+    assert.equal(r.unpaidObligations[0].pendingPayment, null);
+    assert.equal(r.truncated.inFlightObligations, false);
+  });
+
+  it("attention: approved and awaiting-evidence are still unpaid (watch); verified, legacy unverified, waived and resolved-other are not counted", () => {
+    const closedOnly = normalizeObligationsReport(
+      paymentFixture({ summary: { ...base, ...z, unpaidObligations: ob({ paidVerified: { count: 3, amount: "9" }, paidExternally: { count: 4, amount: "9" }, waived: { count: 2, unpaid: "9" }, resolvedOther: { count: 5 }, resolved: { count: 1 } }) } }),
+    )!;
+    assert.deepEqual(countAttention(closedOnly, null), { critical: 0, watch: 0 });
+    const inFlight = normalizeObligationsReport(
+      paymentFixture({ summary: { ...base, ...z, unpaidObligations: ob({ approvedForPayment: { count: 1, unpaid: "10" }, awaitingEvidence: { count: 2, unpaid: "20" } }) } }),
+    )!;
+    assert.deepEqual(countAttention(inFlight, null), { critical: 0, watch: 3 });
+  });
+
+  it("a pending payment line says what was approved and, once evidence is in, that it is NOT verified yet", () => {
+    const a = formatPendingPayment(pending() as any, fmt);
+    for (const part of ["Duyệt chi 250000.00đ", "Chuyển khoản ngân hàng (thủ công)", "người nhận client-a", "owner-test phê duyệt AP-1", "chưa có chứng từ"]) assert.ok(a.includes(part), `${part} in: ${a}`);
+    const e = formatPendingPayment(pending({ status: "EVIDENCE_SUBMITTED", recordedBy: "clerk-test", recordedAmount: "250000.00", transferReference: "FT-1" }) as any, fmt);
+    for (const part of ["clerk-test đã nộp chứng từ 250000.00đ", "mã FT-1", "CHƯA xác minh", "chờ người khác kiểm tra"]) assert.ok(e.includes(part), `${part} in: ${e}`);
+  });
+
+  const ev = (over: Record<string, unknown> = {}) => ({
+    at: "2026-10-20T03:00:00.000Z", action: "APPROVE_PAYMENT", fromStatus: "OPEN", toStatus: "APPROVED_FOR_PAYMENT", actor: "owner-test", approvedBy: "owner-test", approvalRef: "AP-1",
+    note: "", paidAmount: "250000.00", transferReference: null, paidOn: null, unpaidAfter: "250000.00", paymentSource: "MANUAL_BANK_TRANSFER", recipient: "CLIENT:client-a",
+    evidenceRef: null, evidenceHash: null, bankStatementId: null, verifiedBy: null, ...over,
+  });
+
+  it("history lines: approve shows source and recipient; submit says unverified; verify says who verified and what is left", () => {
+    const approve = formatObligationEvent(ev() as any, fmt);
+    for (const part of ["Phê duyệt chi", "250000.00đ", "Chuyển khoản ngân hàng (thủ công)", "người nhận CLIENT:client-a", "owner-test · phê duyệt AP-1"]) assert.ok(approve.includes(part), `${part} in: ${approve}`);
+    const submit = formatObligationEvent(
+      ev({ action: "SUBMIT_EVIDENCE", actor: "clerk-test", transferReference: "FT-1", paidOn: "2026-10-19T00:00:00.000Z", evidenceRef: "evidence/ft1.pdf", evidenceHash: "aaaaaaaaaaaa", bankStatementId: "STMT-1" }) as any,
+      fmt,
+    );
+    for (const part of ["Nộp chứng từ thanh toán (chưa xác minh)", "mã chuyển khoản FT-1", "chứng từ evidence/ft1.pdf", "sao kê STMT-1", "mã băm aaaaaaaaaaaa…", "clerk-test nộp chứng từ — chưa xác minh"]) assert.ok(submit.includes(part), `${part} in: ${submit}`);
+    const verify = formatObligationEvent(ev({ action: "VERIFY_PAYMENT", actor: "auditor-test", verifiedBy: "auditor-test", transferReference: "FT-1", unpaidAfter: "0.00" }) as any, fmt);
+    for (const part of ["Xác minh thanh toán", "còn thiếu 0.00đ", "auditor-test đã xác minh"]) assert.ok(verify.includes(part), `${part} in: ${verify}`);
+    assert.ok(!verify.includes("chưa xác minh"));
+    const legacy = formatObligationEvent(ev({ action: "PAY_EXTERNALLY", paymentSource: null, recipient: null }) as any, fmt);
+    assert.ok(legacy.includes("chưa xác minh"), legacy);
+    const cancel = formatObligationEvent(ev({ action: "CANCEL_APPROVAL", note: "" }) as any, fmt);
+    assert.ok(cancel.includes("Hủy phê duyệt chi"));
+  });
+
+  it("history lines from an older server (no lifecycle fields) do not crash", () => {
+    const line = formatObligationEvent({ at: "2026-10-20T03:00:00.000Z", action: "REVIEW", fromStatus: "OPEN", toStatus: "UNDER_REVIEW", actor: "ops", approvedBy: null, approvalRef: "R", note: "", paidAmount: null, transferReference: null, paidOn: null, unpaidAfter: null } as any, fmt);
+    assert.ok(line.includes("Chuyển sang xem xét"));
   });
 });

@@ -60,11 +60,38 @@ export interface ObligationEventRow {
   approvedBy: string | null;
   approvalRef: string;
   note: string;
-  /** Bằng chứng khi ghi nhận "đã trả ngoài hệ thống" (null ở các thao tác khác). */
+  /** Chứng từ thanh toán (null ở các thao tác không liên quan đến thanh toán). */
   paidAmount: string | null;
   transferReference: string | null;
   paidOn: string | null;
   unpaidAfter: string | null;
+  /** Vòng đời chi trả đã xác minh (máy chủ cũ không gửi các trường này). */
+  paymentSource?: string | null;
+  recipient?: string | null;
+  evidenceRef?: string | null;
+  evidenceHash?: string | null;
+  bankStatementId?: string | null;
+  verifiedBy?: string | null;
+}
+/** Khoản chi đang chờ (đã phê duyệt hoặc đã nộp chứng từ nhưng CHƯA xác minh). */
+export interface PendingPaymentRow {
+  approvalRef: string;
+  /** APPROVED = mới phê duyệt; EVIDENCE_SUBMITTED = đã nộp chứng từ, chưa ai xác minh. */
+  status: "APPROVED" | "EVIDENCE_SUBMITTED" | string;
+  approvedAmount: string;
+  paymentSource: string;
+  recipientParty: string;
+  recipient: string | null;
+  approvedBy: string;
+  approvedAt: string;
+  recordedBy: string | null;
+  recordedAt: string | null;
+  recordedAmount: string | null;
+  transferReference: string | null;
+  paidOn: string | null;
+  evidenceRef: string | null;
+  evidenceHash: string | null;
+  bankStatementId: string | null;
 }
 export interface UnpaidObligationRow {
   id: string;
@@ -83,6 +110,10 @@ export interface UnpaidObligationRow {
   reason?: string | null;
   /** Tổng đã trả cho khách NGOÀI hệ thống và lịch sử thao tác (absent on older payment-service builds). */
   externallyPaid?: string;
+  /** Đã trả ngoài hệ thống VÀ được người thứ hai xác minh (chỉ khoản này mới làm giảm "còn thiếu"). */
+  verifiedPaid?: string;
+  /** Khoản chi đang chờ (đã phê duyệt / chờ chứng từ), nếu có. */
+  pendingPayment?: PendingPaymentRow | null;
   history?: ObligationEventRow[];
   createdAt: string;
   resolvedAt?: string | null;
@@ -137,8 +168,18 @@ export interface ObligationsReport {
     unpaidObligations: {
       open: { count: number; unpaid: string };
       underReview: { count: number; unpaid: string };
+      /** Đã phê duyệt chi — vẫn CHƯA trả. */
+      approvedForPayment: { count: number; unpaid: string };
+      /** Đã trả ngoài và nộp chứng từ, đang chờ người khác xác minh — vẫn chưa tính là đã trả. */
+      awaitingEvidence: { count: number; unpaid: string };
+      /** Đã thanh toán được xác minh. `amount` gồm cả các lần trả một phần đã xác minh. */
+      paidVerified: { count: number; amount: string };
+      /** BẢN GHI CŨ: đã ghi nhận chứng từ nhưng CHƯA xác minh (không phải bằng chứng đã trả). */
       paidExternally: { count: number; amount: string };
       waived: { count: number; unpaid: string };
+      /** Đã giải quyết bằng phương thức khác (có lý do). */
+      resolvedOther: { count: number };
+      /** Bản ghi cũ "đã xử lý". */
       resolved: { count: number };
     };
     paidNotActivated: number;
@@ -151,7 +192,9 @@ export interface ObligationsReport {
   walletMismatches: WalletMismatchRow[];
   receivables: ReceivableRow[];
   unpaidObligations: UnpaidObligationRow[];
-  /** Đã đóng (trả ngoài hệ thống / không truy đòi / bản ghi cũ), kèm lịch sử. */
+  /** Đang có khoản chi: đã phê duyệt chi / đang chờ chứng từ (vẫn còn thiếu cho đến khi được xác minh). */
+  inFlightObligations: UnpaidObligationRow[];
+  /** Đã đóng (đã thanh toán được xác minh / bản ghi chưa xác minh / không truy đòi / giải quyết cách khác / bản ghi cũ), kèm lịch sử. */
   closedObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   targetUnverified: { status: string; candidates: TargetUnverifiedCandidate[] };
@@ -163,6 +206,7 @@ export interface ObligationsReport {
     | "walletMismatches"
     | "receivables"
     | "unpaidObligations"
+    | "inFlightObligations"
     | "closedObligations"
     | "paidNotActivated"
     | "targetUnverified"
@@ -250,23 +294,82 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
 };
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
 
+/**
+ * Vòng đời: Đang mở -> Đã phê duyệt chi -> Đang chờ chứng từ -> Đã thanh toán được xác minh. Chỉ "được xác minh" mới là đã trả.
+ * PAID_EXTERNALLY là bản ghi cũ (chứng từ tự nhập, chưa ai xác minh) nên nhãn nói rõ "CHƯA xác minh".
+ */
 export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
-  OPEN: "Đã ghi nhận, chưa trả",
+  OPEN: "Đang mở",
   UNDER_REVIEW: "Đang xem xét",
-  PAID_EXTERNALLY: "Đã trả ngoài hệ thống",
+  APPROVED_FOR_PAYMENT: "Đã phê duyệt chi",
+  AWAITING_EVIDENCE: "Đang chờ chứng từ",
+  PAID_VERIFIED: "Đã thanh toán được xác minh",
+  PAID_EXTERNALLY: "Đã ghi nhận chứng từ — chưa xác minh",
   WAIVED: "Không truy đòi",
+  RESOLVED_OTHER: "Đã giải quyết bằng phương thức khác",
   RESOLVED: "Đã xử lý (bản ghi cũ)",
 };
 export const obligationStatusLabel = (s: string | null | undefined) => lookup(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");
 
 export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
   REVIEW: "Chuyển sang xem xét",
-  RELEASE_REVIEW: "Trả về chưa xử lý",
-  PAY_EXTERNALLY: "Ghi nhận đã trả ngoài hệ thống",
+  RELEASE_REVIEW: "Trả về đang mở",
+  APPROVE_PAYMENT: "Phê duyệt chi",
+  SUBMIT_EVIDENCE: "Nộp chứng từ thanh toán (chưa xác minh)",
+  VERIFY_PAYMENT: "Xác minh thanh toán",
+  CANCEL_APPROVAL: "Hủy phê duyệt chi",
+  PAY_EXTERNALLY: "Ghi nhận đã trả ngoài hệ thống (cách cũ, chưa xác minh)",
+  RESOLVE_OTHER: "Giải quyết bằng phương thức khác",
   WAIVE: "Quyết định không truy đòi",
   RESOLVE: "Đánh dấu đã xử lý (cách cũ)",
 };
 export const obligationActionLabel = (a: string | null | undefined) => lookup(OBLIGATION_ACTION_LABEL, a, "Thao tác khác");
+
+/** Nguồn chi: chỉ các cách thủ công NGOÀI hệ thống (không có ví, sổ cái hay doanh thu nền tảng). */
+export const PAYMENT_SOURCE_LABEL: Record<string, string> = {
+  MANUAL_BANK_TRANSFER: "Chuyển khoản ngân hàng (thủ công)",
+  MANUAL_E_WALLET_TRANSFER: "Chuyển ví điện tử (thủ công)",
+  MANUAL_CASH: "Tiền mặt",
+};
+export const paymentSourceLabel = (s: string | null | undefined) => lookup(PAYMENT_SOURCE_LABEL, s, "Nguồn khác");
+
+/**
+ * Nhóm hiển thị của một trạng thái nghĩa vụ. `verified` là nhóm DUY NHẤT được coi là đã trả; `unverified` là bản ghi cũ
+ * tự nhập chứng từ (không phải bằng chứng); `pending` là đã phê duyệt / chờ chứng từ (vẫn còn thiếu).
+ */
+export type ObligationTone = "open" | "pending" | "verified" | "unverified" | "closed";
+export function obligationTone(status: string | null | undefined): ObligationTone {
+  switch (status) {
+    case "PAID_VERIFIED":
+      return "verified";
+    case "PAID_EXTERNALLY":
+      return "unverified";
+    case "APPROVED_FOR_PAYMENT":
+    case "AWAITING_EVIDENCE":
+      return "pending";
+    case "OPEN":
+    case "UNDER_REVIEW":
+      return "open";
+    default:
+      return "closed";
+  }
+}
+
+/** Các dòng trong danh sách có đúng trạng thái này (mỗi trạng thái hiện thành một nhóm riêng). */
+export const rowsWithStatus = (rows: UnpaidObligationRow[], status: string): UnpaidObligationRow[] => rows.filter((r) => r.status === status);
+
+/** Một khoản chi đang chờ -> câu tiếng Việt: số tiền duyệt, nguồn, người nhận, người duyệt; nếu đã nộp chứng từ thì nói rõ CHƯA xác minh. */
+export function formatPendingPayment(p: PendingPaymentRow, fmtMoney: (v: string | number | null | undefined) => string): string {
+  const parts = [`Duyệt chi ${fmtMoney(p.approvedAmount)}`, paymentSourceLabel(p.paymentSource)];
+  if (p.recipient) parts.push(`người nhận ${p.recipient}`);
+  parts.push(`${p.approvedBy} phê duyệt ${p.approvalRef}`);
+  if (p.status === "EVIDENCE_SUBMITTED") {
+    parts.push(`${p.recordedBy ?? "—"} đã nộp chứng từ${p.recordedAmount ? ` ${fmtMoney(p.recordedAmount)}` : ""}${p.transferReference ? ` · mã ${p.transferReference}` : ""} — CHƯA xác minh, chờ người khác kiểm tra`);
+  } else {
+    parts.push("chưa có chứng từ");
+  }
+  return parts.join(" · ");
+}
 
 export const PRODUCT_OUTCOME_LABEL: Record<string, string> = {
   CANCELLED_PAID: "Đã hủy nhưng tiền vẫn bị giữ",
@@ -298,7 +401,15 @@ export function formatObligationEvent(e: ObligationEventRow, fmtMoney: (v: strin
   if (e.paidAmount !== null && e.paidAmount !== undefined) parts.push(fmtMoney(e.paidAmount));
   if (e.transferReference) parts.push(`mã chuyển khoản ${e.transferReference}`);
   if (e.paidOn) parts.push(`ngày trả ${formatDateTimeVi(e.paidOn).split(" ")[0]}`);
-  if (e.unpaidAfter !== null && e.unpaidAfter !== undefined && e.action === "PAY_EXTERNALLY") parts.push(`còn thiếu ${fmtMoney(e.unpaidAfter)}`);
+  if (e.paymentSource) parts.push(paymentSourceLabel(e.paymentSource));
+  if (e.recipient) parts.push(`người nhận ${e.recipient}`);
+  if (e.evidenceRef) parts.push(`chứng từ ${e.evidenceRef}`);
+  if (e.bankStatementId) parts.push(`sao kê ${e.bankStatementId}`);
+  if (e.evidenceHash) parts.push(`mã băm ${e.evidenceHash}…`);
+  if (e.unpaidAfter !== null && e.unpaidAfter !== undefined && (e.action === "PAY_EXTERNALLY" || e.action === "VERIFY_PAYMENT")) parts.push(`còn thiếu ${fmtMoney(e.unpaidAfter)}`);
+  if (e.action === "VERIFY_PAYMENT" && e.verifiedBy) parts.push(`${e.verifiedBy} đã xác minh`);
+  else if (e.action === "SUBMIT_EVIDENCE") parts.push(`${e.actor} nộp chứng từ — chưa xác minh`);
+  else if (e.action === "PAY_EXTERNALLY") parts.push("chưa xác minh");
   parts.push(`${e.approvedBy ?? e.actor} · phê duyệt ${e.approvalRef}`);
   return parts.join(" · ");
 }
@@ -419,6 +530,8 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0
 const withHistory = (r: UnpaidObligationRow): UnpaidObligationRow => ({
   ...r,
   externallyPaid: r.externallyPaid ?? "0.00",
+  verifiedPaid: r.verifiedPaid ?? "0.00",
+  pendingPayment: r.pendingPayment ?? null,
   history: arr<ObligationEventRow>(r.history),
 });
 
@@ -442,8 +555,12 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
       unpaidObligations: {
         open: { count: num(s.unpaidObligations?.open?.count), unpaid: String(s.unpaidObligations?.open?.unpaid ?? "0") },
         underReview: { count: num(s.unpaidObligations?.underReview?.count), unpaid: String(s.unpaidObligations?.underReview?.unpaid ?? "0") },
+        approvedForPayment: { count: num(s.unpaidObligations?.approvedForPayment?.count), unpaid: String(s.unpaidObligations?.approvedForPayment?.unpaid ?? "0") },
+        awaitingEvidence: { count: num(s.unpaidObligations?.awaitingEvidence?.count), unpaid: String(s.unpaidObligations?.awaitingEvidence?.unpaid ?? "0") },
+        paidVerified: { count: num(s.unpaidObligations?.paidVerified?.count), amount: String(s.unpaidObligations?.paidVerified?.amount ?? "0") },
         paidExternally: { count: num(s.unpaidObligations?.paidExternally?.count), amount: String(s.unpaidObligations?.paidExternally?.amount ?? "0") },
         waived: { count: num(s.unpaidObligations?.waived?.count), unpaid: String(s.unpaidObligations?.waived?.unpaid ?? "0") },
+        resolvedOther: { count: num(s.unpaidObligations?.resolvedOther?.count) },
         resolved: { count: num(s.unpaidObligations?.resolved?.count) },
       },
       paidNotActivated: num(s.paidNotActivated),
@@ -462,6 +579,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
     walletMismatches: arr(data.walletMismatches),
     receivables: arr(data.receivables),
     unpaidObligations: arr<UnpaidObligationRow>(data.unpaidObligations).map(withHistory),
+    inFlightObligations: arr<UnpaidObligationRow>(data.inFlightObligations).map(withHistory),
     closedObligations: arr<UnpaidObligationRow>(data.closedObligations).map(withHistory),
     paidNotActivated: arr(data.paidNotActivated),
     targetUnverified: { status: String(data.targetUnverified?.status ?? ""), candidates: arr(data.targetUnverified?.candidates) },
@@ -473,6 +591,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
       walletMismatches: Boolean(t.walletMismatches),
       receivables: Boolean(t.receivables),
       unpaidObligations: Boolean(t.unpaidObligations),
+      inFlightObligations: Boolean(t.inFlightObligations),
       closedObligations: Boolean(t.closedObligations),
       paidNotActivated: Boolean(t.paidNotActivated),
       targetUnverified: Boolean(t.targetUnverified),
@@ -510,8 +629,16 @@ export function countAttention(payment: ObligationsReport | null, sessions: Sess
     const s = payment.summary;
     // Đã hủy mà khách đã trả và tiền vẫn bị giữ = cảnh báo thật (dịch vụ sở hữu xác nhận). "Chưa xác minh" và "còn hiệu lực" là thông tin, cố ý không đếm.
     critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated + s.productPayments.cancelledPaid;
-    // "Đã trả ngoài hệ thống", "không truy đòi" và bản ghi cũ đã đóng nên không đếm; "đang xem xét" vẫn là việc còn mở. Hoàn chưa đủ cần theo dõi.
-    watch += s.receivables.active.count + s.receivables.suspended.count + s.unpaidObligations.open.count + s.unpaidObligations.underReview.count + s.productPayments.refundShort;
+    // Đã thanh toán được xác minh, không truy đòi, giải quyết cách khác, bản ghi cũ đã đóng nên không đếm; "đang xem xét", "đã phê duyệt chi"
+    // và "đang chờ chứng từ" vẫn còn thiếu tiền cho khách nên là việc còn mở. Hoàn chưa đủ cần theo dõi.
+    watch +=
+      s.receivables.active.count +
+      s.receivables.suspended.count +
+      s.unpaidObligations.open.count +
+      s.unpaidObligations.underReview.count +
+      s.unpaidObligations.approvedForPayment.count +
+      s.unpaidObligations.awaitingEvidence.count +
+      s.productPayments.refundShort;
   }
   if (sessions) {
     critical += sessions.needsAttention.items.length + sessions.endedWithoutSettledEnding.items.length;
