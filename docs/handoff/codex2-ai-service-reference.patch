@@ -1,0 +1,241 @@
+diff --git a/backend/services/ai-service/src/__tests__/personalized-service.test.ts b/backend/services/ai-service/src/__tests__/personalized-service.test.ts
+index c141375c..56a84707 100644
+--- a/backend/services/ai-service/src/__tests__/personalized-service.test.ts
++++ b/backend/services/ai-service/src/__tests__/personalized-service.test.ts
+@@ -670,6 +670,23 @@ test("cancelOrder: allowed while INTAKE_PENDING (PT has not started) — refunds
+   stubPaymentSuccess();
+ });
+ 
++test("[REGRESSION D48] cancelOrder: records the amount the ledger actually paid, not the full price, if the order's own money could not cover it", async () => {
++  const sellerId = `pt-${randomUUID()}`;
++  const service = await createTestService(sellerId);
++  const buyerId = `buyer-${randomUUID()}`;
++  const order = await purchaseAndActivate(service.id, buyerId);
++
++  personalizedServiceDeps.refundOrder = async () => ({
++    refund: "70000.00", clawedBack: { pt: "63000.00", platform: "7000.00" }, shortfall: "30000.00",
++    owed: "100000.00", paid: "70000.00", unpaid: "30000.00", obligationId: "obl-c",
++  });
++  const cancelled = await personalizedServiceService.cancelOrder(order.id, buyerId, "changed my mind");
++  assert.equal(cancelled.status, "CANCELLED");
++  assert.equal(cancelled.cumulativeRefundedAmount, 70000);
++
++  stubPaymentSuccess();
++});
++
+ test("cancelOrder: allowed while PENDING_PAYMENT — pure status flip, no refund call (nothing was ever charged)", async () => {
+   const sellerId = `pt-${randomUUID()}`;
+   const service = await createTestService(sellerId);
+@@ -1037,6 +1054,78 @@ test("refund: a partial APPROVE keeps the order out of REFUNDED and restores its
+   }
+ });
+ 
++test("[REGRESSION D48] refund: a full APPROVE the ledger could only partly pay is NOT recorded as a full refund - the order carries what was actually paid and says the rest is being reconciled", async () => {
++  const sellerId = `pt-${randomUUID()}`;
++  const { order, buyerId } = await deliverToDraft(sellerId); // DRAFT_DELIVERED, price 100000
++  await personalizedServiceService.requestRefund(order.id, buyerId, "PT unresponsive");
++
++  personalizedServiceDeps.refundOrder = async (params) => ({
++    refund: "40000.00",
++    clawedBack: { pt: "36000.00", platform: "4000.00" },
++    shortfall: "60000.00",
++    owed: params.refundAmount.toFixed(2),
++    paid: "40000.00",
++    unpaid: "60000.00",
++    obligationId: "obl-1",
++  });
++  try {
++    const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
++      decision: "APPROVE", refundAmount: 100000, note: "Full refund approved",
++    });
++    assert.equal(resolved.status, "DRAFT_DELIVERED", "not REFUNDED: 60.000 has not been paid");
++    assert.equal(resolved.cumulativeRefundedAmount, 40000, "the amount the ledger actually paid, not the requested 100.000");
++    assert.equal(resolved.refundDecision, "APPROVED_PARTIAL");
++    assert.equal(resolved.refundedAt, null);
++    assert.ok(resolved.refundResolutionNote?.includes("Đã hoàn 40.000đ; 60.000đ còn lại đang được đối soát"), resolved.refundResolutionNote ?? "");
++    assert.ok(resolved.refundResolutionNote?.includes("obl-1"));
++  } finally {
++    stubPaymentSuccess();
++  }
++});
++
++test("[REGRESSION D48] refund: nothing paid at all (order already accepted and released) leaves the order un-refunded with the whole amount reconciling", async () => {
++  const sellerId = `pt-${randomUUID()}`;
++  const { order, buyerId } = await deliverToDraft(sellerId);
++  await personalizedServiceService.requestRefund(order.id, buyerId, "after acceptance");
++
++  personalizedServiceDeps.refundOrder = async (params) => ({
++    refund: "0.00", clawedBack: { pt: "0.00", platform: "0.00" }, shortfall: params.refundAmount.toFixed(2),
++    owed: params.refundAmount.toFixed(2), paid: "0.00", unpaid: params.refundAmount.toFixed(2), obligationId: "obl-2",
++  });
++  try {
++    const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
++      decision: "APPROVE", refundAmount: 100000, note: "approved",
++    });
++    assert.notEqual(resolved.status, "REFUNDED");
++    assert.equal(resolved.cumulativeRefundedAmount, 0);
++    assert.equal(resolved.refundedAt, null);
++    assert.ok(resolved.refundResolutionNote?.includes("Đã hoàn 0đ; 100.000đ còn lại đang được đối soát"), resolved.refundResolutionNote ?? "");
++  } finally {
++    stubPaymentSuccess();
++  }
++});
++
++test("refund: a result stored before payment-service returned paid/unpaid is read as fully paid (replay of an old idempotency key)", async () => {
++  const sellerId = `pt-${randomUUID()}`;
++  const { order, buyerId } = await deliverToDraft(sellerId);
++  await personalizedServiceService.requestRefund(order.id, buyerId, "old key replay");
++
++  personalizedServiceDeps.refundOrder = async (params) => ({
++    refund: params.refundAmount.toFixed(2), clawedBack: { pt: "90000.00", platform: "10000.00" }, shortfall: "0.00",
++  });
++  try {
++    const resolved = await personalizedServiceService.adminResolveRefund(order.id, `admin-${randomUUID()}`, {
++      decision: "APPROVE", refundAmount: 100000, note: "old shape",
++    });
++    assert.equal(resolved.status, "REFUNDED");
++    assert.equal(resolved.cumulativeRefundedAmount, 100000);
++    assert.ok(resolved.refundResolutionNote?.includes("Đã hoàn 100.000đ"));
++    assert.ok(!resolved.refundResolutionNote?.includes("đối soát"));
++  } finally {
++    stubPaymentSuccess();
++  }
++});
++
+ test("refund: cannot approve an amount exceeding the refundable ceiling (double-refund protection across two separate approvals)", async () => {
+   const sellerId = `pt-${randomUUID()}`;
+   const { order, buyerId } = await deliverToDraft(sellerId);
+diff --git a/backend/services/ai-service/src/clients/payment.client.ts b/backend/services/ai-service/src/clients/payment.client.ts
+index f406c2b0..011340d2 100644
+--- a/backend/services/ai-service/src/clients/payment.client.ts
++++ b/backend/services/ai-service/src/clients/payment.client.ts
+@@ -36,9 +36,19 @@ export interface OrderReleaseResult {
+ }
+ 
+ export interface OrderRefundResult {
++  /** What the client was actually credited (== paid). */
+   refund: string;
+   clawedBack: { pt: string; platform: string };
+   shortfall: string;
++  /**
++   * D48 / DQ-3: asked / actually paid out of the order's own money / not paid (an OPEN obligation in
++   * payment-service). Absent only on a result stored before payment-service started returning them, in
++   * which case the whole refund was paid (`refund`) and nothing is unpaid.
++   */
++  owed?: string;
++  paid?: string;
++  unpaid?: string;
++  obligationId?: string;
+ }
+ 
+ export class PaymentClientError extends Error {
+@@ -145,9 +155,10 @@ export const paymentClient = {
+     return data.data as OrderReleaseResult;
+   },
+ 
+-  /** P0 cluster C4/C5 — hands the client back refundAmount, pulling from pending first, then
+-   * clawing back from available (falling back to a PartnerReceivable debt against the PT if
+-   * even that comes up short — the client is always made whole). */
++  /** P0 cluster C4/C5, D48/DQ-3 — hands the client back refundAmount out of the ORDER'S OWN pending
++   * money only. When that is not enough the client is credited exactly what it could fund (`paid`) and the
++   * rest (`unpaid`) becomes an OPEN obligation in payment-service: no pooled balance is drawn, nothing is
++   * fronted, no PT debt is booked. */
+   async refundOrder(params: {
+     transactionId: string;
+     refundAmount: number;
+diff --git a/backend/services/ai-service/src/services/personalized-service.service.ts b/backend/services/ai-service/src/services/personalized-service.service.ts
+index 1b908892..7b9e174b 100644
+--- a/backend/services/ai-service/src/services/personalized-service.service.ts
++++ b/backend/services/ai-service/src/services/personalized-service.service.ts
+@@ -67,6 +67,24 @@ export const personalizedServiceDeps = {
+   refundOrder: paymentClient.refundOrder,
+ };
+ 
++/**
++ * What a payment-service refund ACTUALLY paid the client, and what is still unpaid (D48/DQ-3).
++ * payment-service refunds an order out of the order's own pending money only; the part it could not fund is an OPEN
++ * obligation it reconciles separately. A result stored before it returned owed/paid/unpaid paid `refund` in full.
++ */
++export function refundOutcome(result: { refund: string; paid?: string; unpaid?: string }) {
++  const paid = Number(result.paid ?? result.refund);
++  const unpaid = Number(result.unpaid ?? 0);
++  return { paid, unpaid };
++}
++
++const vnd = (n: number) => `${Math.round(n).toLocaleString("vi-VN")}đ`;
++
++/** Words for the resolution note: never claims a full refund when part of it is still unpaid. */
++export function refundOutcomeNote(paid: number, unpaid: number): string {
++  return unpaid > 0.005 ? `Đã hoàn ${vnd(paid)}; ${vnd(unpaid)} còn lại đang được đối soát` : `Đã hoàn ${vnd(paid)}`;
++}
++
+ /** The only states a dispute may be opened from - see openDispute. */
+ export const DISPUTABLE_ORDER_STATUSES = [
+   "INTAKE_SUBMITTED",
+@@ -773,8 +791,12 @@ export const personalizedServiceService = {
+       );
+     }
+ 
++    // What the client really got back (D48/DQ-3). A paid order that has not been accepted still holds its
++    // money in pending, so this is the full price; if it ever is not, the order is still cancelled but is not
++    // recorded as fully refunded.
++    let refundedAmount = order.priceAtPurchase;
+     if (order.paymentTransactionId) {
+-      await personalizedServiceDeps.refundOrder({
++      const cancelRefund = await personalizedServiceDeps.refundOrder({
+         transactionId: order.paymentTransactionId,
+         refundAmount: order.priceAtPurchase,
+         platformRate: order.platformRateSnapshot.toFixed(4),
+@@ -782,6 +804,7 @@ export const personalizedServiceService = {
+         label: `Personalized service order ${order.id} cancelled before work started`,
+         idempotencyKey: `PERSONALIZED_REFUND:${order.id}:${order.priceAtPurchase.toFixed(2)}`,
+       });
++      refundedAmount = refundOutcome(cancelRefund).paid;
+     }
+ 
+     return prisma.personalizedServiceOrder.update({
+@@ -790,7 +813,7 @@ export const personalizedServiceService = {
+         status: "CANCELLED",
+         cancelledAt: new Date(),
+         cancelReason: reason,
+-        cumulativeRefundedAmount: order.priceAtPurchase,
++        cumulativeRefundedAmount: refundedAmount,
+       },
+     });
+   },
+@@ -919,11 +942,11 @@ export const personalizedServiceService = {
+     // mistake) is treated as a new attempt, not silently blocked forever.
+     const idempotencyKey = `PERSONALIZED_REFUND:${orderId}:${refundAmount.toFixed(2)}`;
+ 
+-    // P0 cluster C5 — refundOrder (not the old generic refundTransaction) pulls first from
+-    // whatever the PT/platform still hold in PENDING, then claws back from AVAILABLE, then —
+-    // only if the PT has already withdrawn past what remains — books the shortfall as a
+-    // PartnerReceivable debt against them. The client is always made whole regardless of
+-    // where the money currently sits.
++    // P0 cluster C5, D48/DQ-3 — refundOrder funds the refund ONLY from what this order still holds in
++    // pending at the PT/platform. It no longer claws back pooled AVAILABLE, fronts anything or books a PT
++    // debt: the client is credited exactly `paid`, and any `unpaid` part is an OPEN obligation that
++    // payment-service keeps for the admin's reconciliation. The order is therefore marked with the amount
++    // the ledger ACTUALLY paid, never the requested one.
+     let result;
+     try {
+       result = await personalizedServiceDeps.refundOrder({
+@@ -941,7 +964,8 @@ export const personalizedServiceService = {
+       throw err;
+     }
+ 
+-    const newCumulative = order.cumulativeRefundedAmount + refundAmount;
++    const { paid, unpaid } = refundOutcome(result);
++    const newCumulative = order.cumulativeRefundedAmount + paid;
+     const isFullyRefunded = newCumulative >= order.priceAtPurchase - 0.01;
+ 
+     return prisma.personalizedServiceOrder.update({
+@@ -953,7 +977,7 @@ export const personalizedServiceService = {
+         refundDecision: isFullyRefunded ? "APPROVED_FULL" : "APPROVED_PARTIAL",
+         refundResolvedBy: adminUserId,
+         refundResolvedAt: new Date(),
+-        refundResolutionNote: `${input.note} (refund ${result.refund}, clawed back pt=${result.clawedBack.pt} platform=${result.clawedBack.platform}${Number(result.shortfall) > 0 ? `, platform shortfall ${result.shortfall} — needs manual attention` : ""})`,
++        refundResolutionNote: `${input.note} (${refundOutcomeNote(paid, unpaid)}; requested ${refundAmount}, clawed back pt=${result.clawedBack.pt} platform=${result.clawedBack.platform}${unpaid > 0.005 ? `, obligation ${result.obligationId ?? "recorded"} OPEN` : ""})`,
+       },
+     });
+   },

@@ -57,3 +57,19 @@ Khuyến nghị của nhóm hiện tại: A ngay, B sau. Câu cần partner/ch�
 - Codex #3 (`openDispute` chỉ từ trạng thái hợp lệ) đã được nhóm hiện tại sửa trong ai-service ở commit `86dec221` trước khi phân công lại — partner nên rà và tiếp quản.
 - FH-5 (`activateAfterPayment` trả 409 NOT_ACTIVATABLE, `cancelOrder` ghi có điều kiện) đã sửa ở `2259f4c2` — partner tiếp quản.
 - FH-4 cần một route nội bộ chỉ đọc trạng thái đơn cá nhân hóa trong ai-service (đặc tả sẽ gửi kèm khi có).
+
+## 7. Codex #2 — phần ai-service (SHARED INTEGRATION, partner làm)
+
+payment-service đã sửa ở `4d9dbacf`: `POST /internal/personalized-service/refund` chỉ dùng tiền của chính đơn; giữ các trường cũ (`refund`, `clawedBack`, `shortfall`) và THÊM `owed`, `paid`, `unpaid`, `obligationId` (khi `unpaid > 0`). `refund == paid`; `owed` = số yêu cầu. Khóa idempotency cũ phát lại kết quả cũ (không có `paid`) → coi như `paid = refund`, `unpaid = 0`.
+
+Cần sửa trong `ai-service/src/services/personalized-service.service.ts` (`adminResolveRefund`):
+- `:944` `newCumulative` phải cộng `paid`, không cộng số yêu cầu; `:945` `isFullyRefunded` tính lại theo đó.
+- `:950-953` chỉ đặt `REFUNDED` / `APPROVED_FULL` khi `unpaid = 0`.
+- `:956` ghi chú: "Đã hoàn Xđ; Yđ còn lại đang được đối soát" khi `unpaid > 0`.
+- `:937` trần hoàn: tính cả phần OPEN chưa trả để admin không tạo nghĩa vụ trùng.
+- `clients/payment.client.ts` (~:38): thêm các trường mới (tùy chọn).
+- `:793` `cancelOrder` dùng giá mua (rủi ro thấp: chỉ hoàn đơn chưa giải ngân).
+
+Bản sửa tham khảo (có kiểm thử, đã chạy xanh trên DB test rồi gỡ ra theo phân công): `docs/handoff/codex2-ai-service-reference.patch`.
+
+**Điều kiện chặn tiền thật:** cho tới khi ai-service cập nhật, admin hoàn một đơn đã giải ngân sẽ cộng ví khách ít hơn (hoặc 0) nhưng đơn vẫn hiện "đã hoàn đủ". Sổ cái đúng (nghĩa vụ OPEN có trong trang Đối soát) nhưng thông tin cho khách sai → không dùng luồng hoàn đơn cá nhân hóa ở môi trường thật trước khi partner sửa.
