@@ -18,12 +18,21 @@ import type { ClientMembershipLookup } from "../clients/gym.client";
  *      contract would end (10 days left vs a 60-day contract -> blocked; 60 vs 60 -> allowed;
  *      longer -> allowed). Nothing is bought, renewed or paid automatically.
  *
- *   3. OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN (owner rule, Codex #6) - the contract has NO fixed duration
- *      (the package has validityDays null) and the membership has an end date. An open-ended contract can outlive any
- *      expiring membership, so coverage cannot be proven: refused (409). A membership with NO end date (unlimited) still
- *      passes, and contracts with a validityDays keep rule 2. The picker keeps reporting reason
- *      MEMBERSHIP_DOES_NOT_COVER_CONTRACT for this case (the only reason the shipped clients render) and adds
- *      `detailCode` with the specific one.
+ *   0. GYM_CONTRACT_REQUIRES_FIXED_DURATION (owner rule, Codex #6, decided final) - a PT contract linked to a gym MUST have a fixed
+ *      duration at signing. A package with no validityDays (null, 0 or negative) can never be a gym contract: refused (409) before
+ *      any membership is looked at, and `validityDays = null` never means "covers forever" - not even for an unlimited membership.
+ *      An UNLIMITED membership (no end date) still covers any fixed-duration contract (rule 2 passes). Contracts without a gym are
+ *      not affected. The picker reports this as `reason: GYM_CONTRACT_REQUIRES_FIXED_DURATION` with canRequest false (the shipped
+ *      clients already render an unknown reason with their generic "cannot register here" copy).
+ *
+ * Boundary of rule 2 (the day semantics): membership and contract lengths are compared in WHOLE DAYS, the days left on the membership
+ * rounded UP. Vietnam (Asia/Ho_Chi_Minh, UTC+7) has no daylight saving, so a local calendar day is exactly 24 h and "days" here are
+ * 24 h units, the same as the activation arithmetic (startDate + validityDays * 24 h). Consequences, pinned by tests:
+ *   - membership end == projected contract end                 -> covers (60 vs 60);
+ *   - membership end 1 ms before the contract end              -> still covers (it still has 60 days left, rounded up: the few minutes
+ *     between buying the membership and sending the request must not turn "60 vs 60" into a refusal);
+ *   - membership with exactly validityDays - 1 days left       -> refused; one ms more                  -> covers;
+ *   - membership with no end date                              -> covers.
  *
  * Not decided, therefore NOT enforced here (see S_p3_3.md): a membership visit limit vs the contract's session count.
  */
@@ -31,20 +40,23 @@ import type { ClientMembershipLookup } from "../clients/gym.client";
 export const MEMBERSHIP_REQUIRED = "MEMBERSHIP_REQUIRED";
 export const MEMBERSHIP_DOES_NOT_COVER_CONTRACT = "MEMBERSHIP_DOES_NOT_COVER_CONTRACT";
 
-export const OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN = "OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN";
+export const GYM_CONTRACT_REQUIRES_FIXED_DURATION = "GYM_CONTRACT_REQUIRES_FIXED_DURATION";
 
 export type MembershipIneligibleReason =
   | typeof MEMBERSHIP_REQUIRED
   | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT
-  | typeof OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN;
+  | typeof GYM_CONTRACT_REQUIRES_FIXED_DURATION;
 
 /** What `GET /contracts/gym-options` carries per gym. Computed here only. */
 export interface GymContractEligibility {
   canRequest: boolean;
-  /** One of the two reasons the shipped clients know; the open-ended refusal is reported as DOES_NOT_COVER (see `detailCode`). */
-  reason: typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT | null;
-  /** Present only for the open-ended refusal: the specific code the request itself answers with. */
-  detailCode?: typeof OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN;
+  /** The same code the request itself answers with. A client that does not know a reason still blocks the branch (generic copy). */
+  reason: MembershipIneligibleReason | null;
+}
+
+/** A gym contract needs a real, positive, whole number of days. null / undefined / 0 / negative / fractional never qualify. */
+export function hasFixedDuration(validityDays: number | null | undefined): validityDays is number {
+  return typeof validityDays === "number" && Number.isInteger(validityDays) && validityDays > 0;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -123,6 +135,11 @@ export function evaluateMembershipForContract(input: {
   const { lookup, gymId, validityDays, now } = input;
   const brandId = lookup?.brandId ?? input.brandId ?? null;
 
+  // Rule 0 first: it is a property of the package, not of the member, and no membership can change it.
+  if (!hasFixedDuration(validityDays)) {
+    return { ok: false, code: GYM_CONTRACT_REQUIRES_FIXED_DURATION, details: { gymId, brandId } };
+  }
+
   const candidates = lookup?.hasActiveMembership
     ? ((lookup.memberships && lookup.memberships.length > 0 ? lookup.memberships : lookup.membership ? [lookup.membership] : []) as NonNullable<
         ClientMembershipLookup["membership"]
@@ -138,16 +155,7 @@ export function evaluateMembershipForContract(input: {
   for (const c of candidates) if (endMs(c.endDate) > endMs(best.endDate)) best = c;
 
   const contractEnd = projectedContractEnd(now, validityDays);
-  // Open-ended contract (validityDays null): only a membership with NO end date is proven to cover it.
-  const openEnded = validityDays == null;
-  if (openEnded && best.endDate != null) {
-    return {
-      ok: false,
-      code: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
-      details: { gymId, brandId, membershipEndDate: best.endDate, contractEndDate: null },
-    };
-  }
-  const covers = openEnded || daysLeft(best.endDate, now) >= validityDays!;
+  const covers = daysLeft(best.endDate, now) >= validityDays;
   if (!covers) {
     return {
       ok: false,
@@ -170,9 +178,6 @@ export function evaluateMembershipForContract(input: {
 
 export function toGymContractEligibility(result: MembershipEligibility): GymContractEligibility {
   if (result.ok) return { canRequest: true, reason: null };
-  if (result.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN) {
-    return { canRequest: false, reason: MEMBERSHIP_DOES_NOT_COVER_CONTRACT, detailCode: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN };
-  }
   return { canRequest: false, reason: result.code };
 }
 
@@ -180,10 +185,56 @@ function codedErr(message: string, status: number, code: string, details?: Recor
   return Object.assign(new Error(message), { status, code, ...(details ? { details } : {}) });
 }
 
+/** Who is being told: the wording differs, the verdict never does. */
+export type MembershipGateAudience = "CLIENT" | "PT";
+
+function throwRefusal(result: MembershipEligibilityRefused, audience: MembershipGateAudience): never {
+  if (result.code === MEMBERSHIP_REQUIRED) {
+    throw codedErr(
+      audience === "PT"
+        ? "Học viên hiện không còn gói hội viên còn hiệu lực tại thương hiệu phòng gym này nên chưa thể chấp nhận hợp đồng."
+        : "Bạn cần có gói hội viên còn hiệu lực tại thương hiệu phòng gym này để tập với PT tại đây",
+      422,
+      MEMBERSHIP_REQUIRED,
+      result.details,
+    );
+  }
+  if (result.code === GYM_CONTRACT_REQUIRES_FIXED_DURATION) {
+    throw codedErr(
+      audience === "PT"
+        ? "Hợp đồng qua phòng gym phải có thời hạn cố định, nhưng gói của yêu cầu này chưa khai báo số ngày hiệu lực nên chưa thể chấp nhận. Hãy từ chối yêu cầu, thêm thời hạn cho gói rồi nhờ học viên gửi lại."
+        : "Hợp đồng PT tại phòng gym phải có thời hạn cố định, nhưng gói PT này chưa có thời hạn. Hãy chọn gói PT có thời hạn cụ thể, hoặc tập không qua phòng gym.",
+      409,
+      GYM_CONTRACT_REQUIRES_FIXED_DURATION,
+      result.details,
+    );
+  }
+  throw codedErr(
+    audience === "PT"
+      ? "Gói hội viên của học viên hết hạn trước khi hợp đồng PT kết thúc nên chưa thể chấp nhận hợp đồng."
+      : "Gói hội viên của bạn hết hạn trước khi hợp đồng PT kết thúc — hãy gia hạn hoặc mua gói dài hơn",
+    422,
+    MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
+    result.details,
+  );
+}
+
+async function lookupMembership(clientUserId: string, gymId: string): Promise<ClientMembershipLookup | null> {
+  try {
+    return await gymClient.getClientMembershipAtGym(clientUserId, gymId);
+  } catch (e) {
+    if (e instanceof GymServiceUnavailableError) {
+      // Same shape as requestContract's other gym-service outage (503, no code). Fail closed: never "no membership", never "fine".
+      throw Object.assign(new Error("Không thể xác nhận gói hội viên của bạn lúc này, vui lòng thử lại"), { status: 503 });
+    }
+    throw e;
+  }
+}
+
 /**
  * requestContract's gate: ask gym-service (fail closed - unreachable -> 503, never "no membership"
- * and never "fine"), decide with the shared function, refuse with 422 + code. Returns the membership
- * to snapshot on the contract.
+ * and never "fine"), decide with the shared function, refuse with the coded error (422 membership, 409 fixed duration).
+ * Returns the membership to snapshot on the contract.
  */
 export async function assertClientMayRequestGymContract(input: {
   clientUserId: string;
@@ -192,16 +243,8 @@ export async function assertClientMayRequestGymContract(input: {
   validityDays: number | null | undefined;
   now?: Date;
 }): Promise<{ membershipId: string }> {
-  let lookup: ClientMembershipLookup | null;
-  try {
-    lookup = await gymClient.getClientMembershipAtGym(input.clientUserId, input.gymId);
-  } catch (e) {
-    if (e instanceof GymServiceUnavailableError) {
-      // Same shape as requestContract's other gym-service outage (503, no code).
-      throw Object.assign(new Error("Không thể xác nhận gói hội viên của bạn lúc này, vui lòng thử lại"), { status: 503 });
-    }
-    throw e;
-  }
+  // A package without a fixed duration is refused before gym-service is even asked: nothing it could answer changes the verdict.
+  const lookup = hasFixedDuration(input.validityDays) ? await lookupMembership(input.clientUserId, input.gymId) : null;
   const result = evaluateMembershipForContract({
     lookup,
     gymId: input.gymId,
@@ -210,26 +253,28 @@ export async function assertClientMayRequestGymContract(input: {
     now: input.now ?? new Date(),
   });
   if (result.ok) return { membershipId: result.membershipId };
-  if (result.code === MEMBERSHIP_REQUIRED) {
-    throw codedErr(
-      "Bạn cần có gói hội viên còn hiệu lực tại thương hiệu phòng gym này để tập với PT tại đây",
-      422,
-      MEMBERSHIP_REQUIRED,
-      result.details,
-    );
-  }
-  if (result.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN) {
-    throw codedErr(
-      "Gói PT này không có thời hạn cố định, còn gói hội viên của bạn sẽ hết hạn nên không thể đảm bảo bạn được tập tại phòng gym suốt thời gian hợp đồng — hãy chọn gói PT có thời hạn cụ thể, hoặc dùng gói hội viên không giới hạn thời gian",
-      409,
-      OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
-      result.details,
-    );
-  }
-  throw codedErr(
-    "Gói hội viên của bạn hết hạn trước khi hợp đồng PT kết thúc — hãy gia hạn hoặc mua gói dài hơn",
-    422,
-    MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
-    result.details,
-  );
+  return throwRefusal(result, "CLIENT");
+}
+
+/**
+ * The same verdict, re-asked on an EXISTING contract at the two points where a decision is still open: the PT accepting it and the
+ * client paying it (the money has not moved yet at either). A contract without a gym is not asked. The duration comes from the
+ * contract's own frozen `validityDays` (the package snapshot), so a later edit of the package cannot loosen or tighten it, and the
+ * membership must cover `now + validityDays` - the earliest the contract could start counting. Refusals leave the contract untouched.
+ */
+export async function assertGymContractStillCovered(
+  contract: { gymId: string | null; clientUserId: string; gymBrandId: string | null; validityDays: number | null },
+  audience: MembershipGateAudience,
+  now: Date = new Date(),
+): Promise<void> {
+  if (!contract.gymId) return;
+  const lookup = hasFixedDuration(contract.validityDays) ? await lookupMembership(contract.clientUserId, contract.gymId) : null;
+  const result = evaluateMembershipForContract({
+    lookup,
+    gymId: contract.gymId,
+    brandId: contract.gymBrandId,
+    validityDays: contract.validityDays,
+    now,
+  });
+  if (!result.ok) throwRefusal(result, audience);
 }

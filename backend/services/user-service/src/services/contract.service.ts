@@ -27,7 +27,7 @@ import { completeContractRecordingEnding, recordTerminationAttemptFailed, releas
 import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
 import { ptTermsService } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
-import { assertClientMayRequestGymContract } from "./contract-gym-membership.service";
+import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
@@ -77,10 +77,11 @@ export const CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES = (() => {
   return Number.isFinite(n) && n > 0 ? n : 60;
 })();
 
-/** D13 (owner decision pending): CHECKOUT_EXTENSION_ONCE=true -> a contract's payment deadline is extended by a checkout AT MOST ONCE.
- * Default OFF (today's unlimited extension). Only the exact string "true" turns it on; read on every call so tests and ops can flip it. */
+/** D13 (owner decision APPROVED): a contract's payment deadline is extended by a checkout AT MOST ONCE (one 60-minute extension per contract).
+ * ON by default. Only an explicit `false` (CHECKOUT_EXTENSION_ONCE=false, trimmed, case-insensitive) turns it off - an emergency switch that
+ * restores the old unlimited extension and is warned about every time it is used. Read on every call so tests and ops can flip it. */
 export function checkoutExtensionOnce(): boolean {
-  return process.env.CHECKOUT_EXTENSION_ONCE === "true";
+  return (process.env.CHECKOUT_EXTENSION_ONCE ?? "").trim().toLowerCase() !== "false";
 }
 
 /** Giá trị `paymentDueAt` cho một hợp đồng vừa vào PENDING_PAYMENT lúc `from`. Mọi đường đi vào
@@ -702,6 +703,18 @@ export const contractService = {
         );
       }
 
+      if (data.gymId) {
+        // Codex #6 on the LOCKED row (the pre-check above read the package earlier): a package edited to "no duration" in between, or to a
+        // longer one than the membership was checked against, must not slip into a gym contract. Nothing has been written yet.
+        if (!hasFixedDuration(locked.validityDays)) {
+          throw Object.assign(
+            new Error("Hợp đồng PT tại phòng gym phải có thời hạn cố định, nhưng gói PT này chưa có thời hạn. Hãy chọn gói PT có thời hạn cụ thể, hoặc tập không qua phòng gym."),
+            { status: 409, code: GYM_CONTRACT_REQUIRES_FIXED_DURATION },
+          );
+        }
+        if (pkg.validityDays != null && locked.validityDays > pkg.validityDays) throw packageChangedError(locked);
+      }
+
       const snapshot = buildPackageSnapshot(locked);
       return contractRepository.create(
         {
@@ -830,8 +843,10 @@ export const contractService = {
     // read by this check (they are past PENDING_REVIEW), so they keep running on the terms they were accepted under.
     await assertPtTermsForNewContract(contract);
 
-    // 0. Gym-tied: the partnership may have been closed/terminated since the request was made.
+    // 0. Gym-tied: the partnership may have been closed/terminated since the request was made, and the client's membership
+    //    may have ended or been cancelled (Codex #6: a gym contract needs a fixed duration the membership covers).
     await assertGymStillAcceptsContract(contract);
+    await assertGymContractStillCovered(contract, "PT");
 
     // 1. Fetch real emails + names (fail-fast: e-sign requires real emails)
     //    Codex #4: the same lookup tells us whether either account is deactivated; an auth-service outage is a 503 and
@@ -1794,6 +1809,8 @@ export const contractService = {
     // Gym-tied: re-check the partnership BEFORE any money can move (the checkout below is the
     // first point at which the client's money is touched).
     await assertGymStillAcceptsContract(contract);
+    // Codex #6: and the membership must still cover the whole fixed-duration contract (nothing is charged on a refusal).
+    await assertGymContractStillCovered(contract, "CLIENT");
 
     // Each attempt gets its own key: an abandoned checkout must not block a fresh one, and
     // the gateway itself dedupes a genuine double-submit by transaction id.
@@ -1830,6 +1847,12 @@ export const contractService = {
       try {
         const extendTo = new Date(Date.now() + CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES * 60 * 1000);
         const once = checkoutExtensionOnce();
+        if (!once) {
+          logger.warn(
+            { contractId: contract.id },
+            "pay: CHECKOUT_EXTENSION_ONCE=false - the one-extension-per-contract rule (D13) is DISABLED, the payment deadline can be extended again and again",
+          );
+        }
         const { count } = await contractRepository.extendPaymentDueAt(contract.id, extendTo, { once });
         if (once && count === 0 && contract.paymentDueAt.getTime() < extendTo.getTime()) {
           logger.info({ contractId: contract.id }, "pay: payment deadline NOT extended again (CHECKOUT_EXTENSION_ONCE: one extension per contract)");

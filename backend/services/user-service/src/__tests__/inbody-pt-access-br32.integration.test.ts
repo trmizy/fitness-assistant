@@ -8,20 +8,19 @@ import { authServiceClient } from "../clients/auth-service.client";
 import { inbodyService } from "../services/inbody.service";
 
 /**
- * Audit finding #9 (owner's preferred option, shipped behind a flag) - which contract states let a PT read a client's InBody
- * history through user-service (GET /inbody/client/:clientUserId -> inbodyService.getClientHistory).
- *
- *   INBODY_PT_ACCESS_ACTIVE_ONLY (default TRUE in code): the PT may read ONLY while a contract between them is ACTIVE.
- *     COMPLETED / CANCELLED / EXPIRED / REJECTED / never-paid contracts, another PT, and "no relationship" are all 403.
- *   INBODY_PT_ACCESS_ACTIVE_ONLY=false: BR-32 as it was written (ACTIVE or COMPLETED) - the rollback switch.
- * The client always reads their own history. No InBody data is ever deleted or changed by any of this (asserted below).
- * There is no client-granted-access / consent model in user-service (nothing in prisma/schema.prisma): none is built here.
+ * Audit finding #9 (owner decision APPROVED, final) - a PT reads a client's InBody history through user-service
+ * (GET /inbody/client/:clientUserId -> inbodyService.getClientHistory) ONLY while a contract between them is ACTIVE.
+ * COMPLETED / CANCELLED / EXPIRED / REJECTED / never-paid contracts, another PT and "no relationship" are all 403.
+ * This is UNCONDITIONAL: the BR-32 fallback (ACTIVE or COMPLETED) and its INBODY_PT_ACCESS_ACTIVE_ONLY switch are gone, so the old
+ * variable is inert (asserted below). The client always reads their own history. No InBody data is ever deleted or changed by any of
+ * this (asserted below). There is no client-granted-access / consent model in user-service: none is built here.
  *
  * Evidence: BACKEND INTEGRATION on an isolated `*_test` database (service function and the REAL Express app over HTTP;
  * auth-service is a TEST FIXTURE: token -> identity table at the authServiceClient boundary). fitness-service's own PT
  * surface (coach.service.ts getClientProgress) was already ACTIVE-only and is not touched.
  */
 
+// The retired switch. Tests set it to every value to prove it no longer changes anything.
 const FLAG = "INBODY_PT_ACCESS_ACTIVE_ONLY";
 const createdContracts: string[] = [];
 const createdClients: string[] = [];
@@ -78,7 +77,7 @@ dbTest.after(async () => {
 
 const forbidden = (e: any) => e?.status === 403;
 
-dbTest("default (flag unset): PT may read the client's InBody history while the contract is ACTIVE", async () => {
+dbTest("PT may read the client's InBody history while the contract is ACTIVE", async () => {
   const pt = randomUUID();
   const client = randomUUID();
   await seedInBody(client);
@@ -89,7 +88,7 @@ dbTest("default (flag unset): PT may read the client's InBody history while the 
   });
 });
 
-dbTest("default (flag unset): COMPLETED, CANCELLED, EXPIRED, REJECTED and every never-active state are 403 - nothing is deleted", async () => {
+dbTest("COMPLETED, CANCELLED, EXPIRED, REJECTED and every never-active state are 403 - nothing is deleted", async () => {
   const pt = randomUUID();
   const client = randomUUID();
   await seedInBody(client);
@@ -123,7 +122,7 @@ dbTest("a PT with no contract with THIS client is 403, even when they have an AC
   await withFlag("false", () => assert.rejects(() => inbodyService.getClientHistory(ptB, client), forbidden));
 });
 
-dbTest("the client always reads their own history (no contract needed, flag either way)", async () => {
+dbTest("the client always reads their own history (no contract needed)", async () => {
   const client = randomUUID();
   await seedInBody(client, 3);
   for (const v of [undefined, "true", "false"]) {
@@ -131,30 +130,28 @@ dbTest("the client always reads their own history (no contract needed, flag eith
   }
 });
 
-dbTest("INBODY_PT_ACCESS_ACTIVE_ONLY=false restores BR-32: COMPLETED is readable again, CANCELLED/EXPIRED/REJECTED/pending are still 403", async () => {
+dbTest("the retired INBODY_PT_ACCESS_ACTIVE_ONLY variable is inert: with it set to false (or anything) COMPLETED / CANCELLED / EXPIRED / REJECTED / pending are STILL 403", async () => {
   const pt = randomUUID();
   const done = randomUUID();
   await seedInBody(done);
   await seed(pt, done, ContractStatus.COMPLETED);
-  await withFlag("false", async () => assert.equal((await inbodyService.getClientHistory(pt, done)).length, 2));
-  await withFlag(undefined, () => assert.rejects(() => inbodyService.getClientHistory(pt, done), forbidden));
+  for (const v of ["false", "FALSE", "true", "", "0", undefined]) {
+    await withFlag(v, () => assert.rejects(() => inbodyService.getClientHistory(pt, done), forbidden, `COMPLETED with value ${JSON.stringify(v)} must stay 403`));
+  }
   for (const status of [ContractStatus.CANCELLED, ContractStatus.EXPIRED, ContractStatus.REJECTED, ContractStatus.PENDING_PAYMENT]) {
     const c = randomUUID();
     await seedInBody(c, 1);
     await seed(pt, c, status);
     await withFlag("false", () => assert.rejects(() => inbodyService.getClientHistory(pt, c), forbidden, String(status)));
   }
+  assert.equal(await prisma.inBodyEntry.count({ where: { userId: done } }), 2, "nothing was deleted");
 });
 
-dbTest("the flag is read on every call (no restart needed to roll back) and only the exact value 'false' relaxes it", async () => {
-  const pt = randomUUID();
-  const client = randomUUID();
-  await seedInBody(client);
-  await seed(pt, client, ContractStatus.COMPLETED);
-  for (const v of ["true", "", "0", "FALSE ", "no"]) {
-    await withFlag(v, () => assert.rejects(() => inbodyService.getClientHistory(pt, client), forbidden, `value ${JSON.stringify(v)} must stay strict`));
-  }
-  await withFlag("false", async () => assert.equal((await inbodyService.getClientHistory(pt, client)).length, 2));
+dbTest("the BR-32 fallback code is gone: no flag helper in the service, no ACTIVE-or-COMPLETED lookup in the repository", async () => {
+  const { contractRepository } = await import("../repositories/contract.repository");
+  assert.equal((inbodyService as any).inbodyPtAccessActiveOnly, undefined);
+  assert.equal(("inbodyPtAccessActiveOnly" in (await import("../services/inbody.service"))), false);
+  assert.equal((contractRepository as any).findActiveOrCompletedByPair, undefined);
 });
 
 async function get(p: string, token: string) {
@@ -163,7 +160,7 @@ async function get(p: string, token: string) {
   return { status: res.status, body: text ? JSON.parse(text) : null };
 }
 
-dbTest("REAL HTTP GET /inbody/client/:id: ACTIVE 200; COMPLETED 403 (default) and 200 with the flag off; other PT 403; client reads /inbody", async () => {
+dbTest("REAL HTTP GET /inbody/client/:id: ACTIVE 200; COMPLETED 403 (also with the retired flag set to false); other PT 403; client reads /inbody", async () => {
   const pt = randomUUID();
   const other = randomUUID();
   const active = randomUUID();
@@ -189,6 +186,7 @@ dbTest("REAL HTTP GET /inbody/client/:id: ACTIVE 200; COMPLETED 403 (default) an
     assert.equal(own.body.length, 2);
   });
   await withFlag("false", async () => {
-    assert.equal((await get(`/inbody/client/${done}`, ptTok)).status, 200);
+    assert.equal((await get(`/inbody/client/${done}`, ptTok)).status, 403, "the retired flag changes nothing");
+    assert.equal((await get(`/inbody/client/${active}`, ptTok)).status, 200);
   });
 });

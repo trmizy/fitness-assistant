@@ -21,8 +21,8 @@ import { auditRepository } from "../repositories/audit.repository";
 export const SYSTEM_ACTOR = "SYSTEM";
 
 /**
- * IP and user-agent. The IP is the client's, as derived by clientIpMiddleware (X-Forwarded-For honoured only on requests that came
- * through the gateway); without that middleware (a bare Request) it is the socket peer, as before.
+ * IP and user-agent. The IP is the client's, as derived by clientIpMiddleware (the gateway's x-client-ip stamp, else X-Forwarded-For,
+ * honoured only on requests that came through the gateway); without that middleware (a bare Request) it is the socket peer, as before.
  */
 export function auditMeta(req: Request) {
   const derived = (req as Request & { clientIp?: string | null }).clientIp;
@@ -54,8 +54,11 @@ export const auditService = {
     try {
       await auditRepository.create(entry);
     } catch (err) {
+      // The entry is logged WITHOUT ipAddress / userAgent: they are personal data on a 12-month retention clock and must not
+      // outlive it in the log stream. Everything else needed to replay the write is kept.
+      const { ipAddress: _ip, userAgent: _ua, ...loggable } = entry;
       logger.error(
-        { err, entry },
+        { err, entry: loggable },
         "[Audit] failed to write audit entry — the audited action still went through",
       );
     }

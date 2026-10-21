@@ -16,7 +16,7 @@ import { clientHeaderOf } from "../services/client-compat.service";
 import {
   MEMBERSHIP_REQUIRED,
   MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
-  OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
+  GYM_CONTRACT_REQUIRES_FIXED_DURATION,
 } from "../services/contract-gym-membership.service";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
@@ -70,7 +70,7 @@ export const contractController = {
         // and flat, so a client may read either.
         ...(((error.status === 422 &&
           (error.code === MEMBERSHIP_REQUIRED || error.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT)) ||
-          (error.status === 409 && error.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN)) &&
+          (error.status === 409 && error.code === GYM_CONTRACT_REQUIRES_FIXED_DURATION)) &&
         error.details
           ? { details: error.details, ...error.details }
           : {}),

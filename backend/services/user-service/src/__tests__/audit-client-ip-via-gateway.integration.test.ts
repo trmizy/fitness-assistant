@@ -131,3 +131,58 @@ dbTest("clientIpFrom: pure decision table", () => {
   assert.equal(clientIpFrom({ viaGateway: true, forwardedFor: "1.1.1.1", hops: 1, peer: undefined }), "1.1.1.1");
   assert.equal(clientIpFrom({ viaGateway: false, forwardedFor: "1.1.1.1", hops: 1, peer: undefined }), null);
 });
+
+// ── the gateway's own stamp (x-client-ip) ────────────────────────────────────────────────────────────────────────────────────────────
+
+dbTest("REAL HTTP: through the gateway, a valid x-client-ip (the gateway's stamp) WINS over X-Forwarded-For; an invalid stamp falls back to X-Forwarded-For", async () => {
+  assert.equal((await recordedIp({ ...viaGateway, "x-client-ip": "203.0.113.50", "x-forwarded-for": "6.6.6.6, 198.51.100.9" })).ip, "203.0.113.50");
+  assert.equal((await recordedIp({ ...viaGateway, "x-client-ip": "::ffff:192.0.2.77" })).ip, "192.0.2.77", "IPv4-mapped stamp is normalised");
+  assert.equal((await recordedIp({ ...viaGateway, "x-client-ip": "2001:db8::5" })).ip, "2001:db8::5");
+  assert.equal((await recordedIp({ ...viaGateway, "x-client-ip": "not-an-ip", "x-forwarded-for": "6.6.6.6, 198.51.100.9" })).ip, "198.51.100.9", "garbage stamp -> the previous rule");
+  assert.equal((await recordedIp({ ...viaGateway, "x-client-ip": "", "x-forwarded-for": "198.51.100.9" })).ip, "198.51.100.9");
+  assert.ok(isLoopback((await recordedIp({ ...viaGateway, "x-client-ip": "not-an-ip" })).ip), "garbage stamp and nothing else -> the socket peer");
+});
+
+dbTest("REAL HTTP: a request WITHOUT the gateway secret can never choose its IP through x-client-ip either (no secret, wrong secret)", async () => {
+  for (const headers of [
+    { "x-client-ip": "6.6.6.6" },
+    { "x-client-ip": "6.6.6.6", "x-gateway-secret": "not-the-secret" },
+    { "x-client-ip": "6.6.6.6", "x-forwarded-for": "7.7.7.7" },
+  ] as Record<string, string>[]) {
+    const r = await recordedIp(headers);
+    assert.ok(isLoopback(r.ip), `socket peer expected, got ${r.ip} for ${JSON.stringify(headers)}`);
+  }
+});
+
+dbTest("clientIpFrom with the stamp: pure decision table", () => {
+  const peer = "10.1.2.3";
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: "1.1.1.1", forwardedFor: "9.9.9.9, 2.2.2.2", hops: 1, peer }), "1.1.1.1");
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: ["1.1.1.1", "5.5.5.5"], forwardedFor: undefined, hops: 1, peer }), "1.1.1.1", "the first value only");
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: " 1.1.1.1 ", forwardedFor: undefined, hops: 1, peer }), "1.1.1.1");
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: "bad", forwardedFor: "2.2.2.2", hops: 1, peer }), "2.2.2.2");
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: "", forwardedFor: undefined, hops: 1, peer }), peer);
+  assert.equal(clientIpFrom({ viaGateway: false, stamped: "1.1.1.1", forwardedFor: "2.2.2.2", hops: 1, peer }), peer, "not via the gateway -> never");
+  assert.equal(clientIpFrom({ viaGateway: true, stamped: "1.1.1.1", forwardedFor: undefined, hops: 0, peer }), "1.1.1.1", "the stamp does not depend on the hop count");
+});
+
+dbTest("IP and user agent are never returned to the PT: the terms endpoints answer without them (GET terms, POST accept, and again after accepting)", async () => {
+  const userId = randomUUID();
+  users.push(userId);
+  const token = `tok-${userId}`;
+  identities.set(token, userId);
+  const headers = { "content-type": "application/json", authorization: `Bearer ${token}`, "user-agent": "g9-private-agent/1.0", ...viaGateway, "x-client-ip": "203.0.113.99" };
+  const accept = await fetch(`${base}/pt-applications/terms/accept`, { method: "POST", headers, body: JSON.stringify({ version: PT_TERMS_VERSION }) });
+  assert.equal(accept.status, 200);
+  const again = await fetch(`${base}/pt-applications/terms/accept`, { method: "POST", headers, body: JSON.stringify({ version: PT_TERMS_VERSION }) });
+  const get = await fetch(`${base}/pt-applications/terms`, { headers });
+  for (const res of [accept, again, get]) {
+    const text = await res.text();
+    assert.equal(res.status, 200);
+    assert.equal(text.includes("203.0.113.99"), false, "the IP is not in the body");
+    assert.equal(text.includes("g9-private-agent"), false, "the user agent is not in the body");
+    assert.equal(/ip_?address|user_?agent|legalHold/i.test(text), false, "no such field is even named");
+  }
+  const stored = await prisma.ptTermsAcceptance.findFirstOrThrow({ where: { userId } });
+  assert.equal(stored.ipAddress, "203.0.113.99", "the evidence IS stored (admin-only access) - only the PT-facing answers hide it");
+  assert.equal(stored.userAgent, "g9-private-agent/1.0");
+});

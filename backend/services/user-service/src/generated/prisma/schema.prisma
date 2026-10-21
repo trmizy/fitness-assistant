@@ -670,8 +670,8 @@ model Contract {
   // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
   // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
   paymentDueAt              DateTime?      @map("payment_due_at")
-  // D13: set by the first checkout-driven extension that really moved paymentDueAt. Read only when CHECKOUT_EXTENSION_ONCE=true
-  // (one extension per contract); recorded either way so turning the rule on later does not forget extensions already used.
+  // D13 (APPROVED): set by the first checkout-driven extension that really moved paymentDueAt. Enforced unless CHECKOUT_EXTENSION_ONCE=false
+  // (one extension per contract); recorded either way so switching the rule off and on again does not forget extensions already used.
   paymentDeadlineExtendedAt DateTime?      @map("payment_deadline_extended_at")
 
   // ── PT holdback (rule decided by the product owner; OFF until the terms-acceptance feature exists) ──
@@ -1163,18 +1163,23 @@ enum AuditEntityType {
 }
 
 model AuditLog {
-  id          String          @id @default(uuid())
+  id             String          @id @default(uuid())
   /// Who performed the action. Not an FK — see the note above.
-  actorUserId String          @map("actor_user_id")
+  actorUserId    String          @map("actor_user_id")
   /// Verb in SCREAMING_SNAKE, e.g. CONTRACT_ACCEPTED, SESSION_RESCHEDULE_ACCEPTED.
-  action      String
-  entityType  AuditEntityType @map("entity_type")
-  entityId    String          @map("entity_id")
+  action         String
+  entityType     AuditEntityType @map("entity_type")
+  entityId       String          @map("entity_id")
   /// Before/after values and any context worth keeping. Shape varies by action.
-  metadata    Json?
-  ipAddress   String?         @map("ip_address")
-  userAgent   String?         @map("user_agent")
-  createdAt   DateTime        @default(now()) @map("created_at")
+  metadata       Json?
+  /// IP and browser of the request. PERSONAL DATA: kept 12 months, then both are set to NULL by the retention sweep
+  /// (services/ip-ua-retention.service.ts); the row itself is never deleted. Never returned by a public/PT/client DTO, never logged.
+  ipAddress      String?         @map("ip_address")
+  userAgent      String?         @map("user_agent")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  /// Legal hold: while this is in the future the retention sweep leaves ip_address/user_agent of this row alone. NULL = no hold.
+  /// Written by admin tooling only (scripts/ip-ua-legal-hold.ts) - there is no public API that sets it.
+  legalHoldUntil DateTime?       @map("legal_hold_until") @db.Timestamptz(3)
 
   // Reading the history of one contract or session is the query this table exists for.
   @@index([entityType, entityId, createdAt])
@@ -1622,13 +1627,22 @@ model ClientCompatEvent {
 /// applicant ticked the box when submitting) or RECONFIRM (an existing PT confirmed from the banner). No FK on
 /// purpose - same cross-service-id pattern as AuditLog.actorUserId.
 model PtTermsAcceptance {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  version    String
-  source     String
-  acceptedAt DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  version        String
+  source         String
+  acceptedAt     DateTime  @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  /// PERSONAL DATA, evidence that this PT confirmed the terms and fraud prevention. Kept 12 months, then both columns are set to NULL by
+  /// the retention sweep (services/ip-ua-retention.service.ts); the acceptance row itself stays. Admin-only: never in a PT/client DTO, never logged.
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  /// Legal hold: while in the future the retention sweep keeps ip_address/user_agent. NULL = no hold. Admin tooling only
+  /// (scripts/ip-ua-legal-hold.ts), no public API sets it.
+  legalHoldUntil DateTime? @map("legal_hold_until") @db.Timestamptz(3)
+
+  // Raw-SQL partial indexes (migration 20261021160000_ip_ua_retention_legal_hold; Prisma cannot express them, same arrangement as
+  // contracts_one_live_per_pair): pt_terms_acceptances_ip_retention_idx ON (accepted_at) WHERE ip_address IS NOT NULL OR user_agent IS NOT NULL,
+  // and the matching audit_logs_ip_retention_idx ON (created_at).
 
   @@unique([userId, version])
   @@map("pt_terms_acceptances")

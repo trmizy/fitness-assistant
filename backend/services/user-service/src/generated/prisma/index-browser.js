@@ -541,7 +541,8 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   metadata: 'metadata',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  legalHoldUntil: 'legalHoldUntil'
 };
 
 exports.Prisma.SessionSettlementScalarFieldEnum = {
@@ -719,7 +720,8 @@ exports.Prisma.PtTermsAcceptanceScalarFieldEnum = {
   source: 'source',
   acceptedAt: 'acceptedAt',
   ipAddress: 'ipAddress',
-  userAgent: 'userAgent'
+  userAgent: 'userAgent',
+  legalHoldUntil: 'legalHoldUntil'
 };
 
 exports.Prisma.SortOrder = {

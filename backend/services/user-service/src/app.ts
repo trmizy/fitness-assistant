@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { isLambdaRuntime } from "./utils/runtime.util";
 import { clientIpMiddleware } from "./middleware/client-ip.middleware";
+import { requestLogSerializers } from "./utils/request-log-serializers";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
 import ptApplicationRoutes from "./routes/pt_application.routes";
@@ -39,7 +40,14 @@ app.use(
 // Must run before any auth middleware, which deletes x-gateway-secret.
 app.use(clientIpMiddleware);
 app.use(express.json());
-app.use(pinoHttp({ logger }));
+// The default request serializer logs every header (user-agent, x-forwarded-for, x-client-ip) and the socket's remoteAddress:
+// personal data that must not sit in the logs past its 12-month retention. Log only what is needed to follow a request.
+app.use(
+  pinoHttp({
+    logger,
+    serializers: requestLogSerializers,
+  }),
+);
 app.use(metricsMiddleware());
 
 // Ensure upload directories exist — local/Docker only. Skipped entirely on Lambda rather than

@@ -46,6 +46,12 @@ function installGym(collab: Collab) {
       if (collab === "UNAVAILABLE") throw new GymServiceUnavailableError(new Error("ECONNREFUSED"));
       return collab === null ? null : { collaborationId: "agr-1", ...collab, brandId: "brand-a", agreementScope: "BRAND" };
     }),
+    // Codex #6: pay re-asks about the client's membership (an unlimited one here, so it always covers the 90-day contract)
+    patch(gymClient, "getClientMembershipAtGym", async () => ({
+      hasActiveMembership: true,
+      brandId: "brand-a",
+      membership: { membershipId: "mem-x", planName: "Plan", purchaseGymId: "gym-a1", startDate: null, endDate: null },
+    })),
     patch(paymentClient, "checkout", async (params: any) => {
       calls.checkout.push(params);
       return { transactionId: randomUUID(), status: "PENDING", redirectUrl: null, qrCodeUrl: null, provider: "MOCK" };

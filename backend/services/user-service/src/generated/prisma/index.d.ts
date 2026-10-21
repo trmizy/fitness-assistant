@@ -25811,6 +25811,7 @@ export namespace Prisma {
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
+    legalHoldUntil: Date | null
   }
 
   export type AuditLogMaxAggregateOutputType = {
@@ -25822,6 +25823,7 @@ export namespace Prisma {
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
+    legalHoldUntil: Date | null
   }
 
   export type AuditLogCountAggregateOutputType = {
@@ -25834,6 +25836,7 @@ export namespace Prisma {
     ipAddress: number
     userAgent: number
     createdAt: number
+    legalHoldUntil: number
     _all: number
   }
 
@@ -25847,6 +25850,7 @@ export namespace Prisma {
     ipAddress?: true
     userAgent?: true
     createdAt?: true
+    legalHoldUntil?: true
   }
 
   export type AuditLogMaxAggregateInputType = {
@@ -25858,6 +25862,7 @@ export namespace Prisma {
     ipAddress?: true
     userAgent?: true
     createdAt?: true
+    legalHoldUntil?: true
   }
 
   export type AuditLogCountAggregateInputType = {
@@ -25870,6 +25875,7 @@ export namespace Prisma {
     ipAddress?: true
     userAgent?: true
     createdAt?: true
+    legalHoldUntil?: true
     _all?: true
   }
 
@@ -25955,6 +25961,7 @@ export namespace Prisma {
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date
+    legalHoldUntil: Date | null
     _count: AuditLogCountAggregateOutputType | null
     _min: AuditLogMinAggregateOutputType | null
     _max: AuditLogMaxAggregateOutputType | null
@@ -25984,6 +25991,7 @@ export namespace Prisma {
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
+    legalHoldUntil?: boolean
   }, ExtArgs["result"]["auditLog"]>
 
   export type AuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -25996,6 +26004,7 @@ export namespace Prisma {
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
+    legalHoldUntil?: boolean
   }, ExtArgs["result"]["auditLog"]>
 
   export type AuditLogSelectScalar = {
@@ -26008,6 +26017,7 @@ export namespace Prisma {
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
+    legalHoldUntil?: boolean
   }
 
 
@@ -26030,9 +26040,18 @@ export namespace Prisma {
        * Before/after values and any context worth keeping. Shape varies by action.
        */
       metadata: Prisma.JsonValue | null
+      /**
+       * IP and browser of the request. PERSONAL DATA: kept 12 months, then both are set to NULL by the retention sweep
+       * (services/ip-ua-retention.service.ts); the row itself is never deleted. Never returned by a public/PT/client DTO, never logged.
+       */
       ipAddress: string | null
       userAgent: string | null
       createdAt: Date
+      /**
+       * Legal hold: while this is in the future the retention sweep leaves ip_address/user_agent of this row alone. NULL = no hold.
+       * Written by admin tooling only (scripts/ip-ua-legal-hold.ts) - there is no public API that sets it.
+       */
+      legalHoldUntil: Date | null
     }, ExtArgs["result"]["auditLog"]>
     composites: {}
   }
@@ -26435,6 +26454,7 @@ export namespace Prisma {
     readonly ipAddress: FieldRef<"AuditLog", 'String'>
     readonly userAgent: FieldRef<"AuditLog", 'String'>
     readonly createdAt: FieldRef<"AuditLog", 'DateTime'>
+    readonly legalHoldUntil: FieldRef<"AuditLog", 'DateTime'>
   }
     
 
@@ -37317,6 +37337,7 @@ export namespace Prisma {
     acceptedAt: Date | null
     ipAddress: string | null
     userAgent: string | null
+    legalHoldUntil: Date | null
   }
 
   export type PtTermsAcceptanceMaxAggregateOutputType = {
@@ -37327,6 +37348,7 @@ export namespace Prisma {
     acceptedAt: Date | null
     ipAddress: string | null
     userAgent: string | null
+    legalHoldUntil: Date | null
   }
 
   export type PtTermsAcceptanceCountAggregateOutputType = {
@@ -37337,6 +37359,7 @@ export namespace Prisma {
     acceptedAt: number
     ipAddress: number
     userAgent: number
+    legalHoldUntil: number
     _all: number
   }
 
@@ -37349,6 +37372,7 @@ export namespace Prisma {
     acceptedAt?: true
     ipAddress?: true
     userAgent?: true
+    legalHoldUntil?: true
   }
 
   export type PtTermsAcceptanceMaxAggregateInputType = {
@@ -37359,6 +37383,7 @@ export namespace Prisma {
     acceptedAt?: true
     ipAddress?: true
     userAgent?: true
+    legalHoldUntil?: true
   }
 
   export type PtTermsAcceptanceCountAggregateInputType = {
@@ -37369,6 +37394,7 @@ export namespace Prisma {
     acceptedAt?: true
     ipAddress?: true
     userAgent?: true
+    legalHoldUntil?: true
     _all?: true
   }
 
@@ -37452,6 +37478,7 @@ export namespace Prisma {
     acceptedAt: Date
     ipAddress: string | null
     userAgent: string | null
+    legalHoldUntil: Date | null
     _count: PtTermsAcceptanceCountAggregateOutputType | null
     _min: PtTermsAcceptanceMinAggregateOutputType | null
     _max: PtTermsAcceptanceMaxAggregateOutputType | null
@@ -37479,6 +37506,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     ipAddress?: boolean
     userAgent?: boolean
+    legalHoldUntil?: boolean
   }, ExtArgs["result"]["ptTermsAcceptance"]>
 
   export type PtTermsAcceptanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -37489,6 +37517,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     ipAddress?: boolean
     userAgent?: boolean
+    legalHoldUntil?: boolean
   }, ExtArgs["result"]["ptTermsAcceptance"]>
 
   export type PtTermsAcceptanceSelectScalar = {
@@ -37499,6 +37528,7 @@ export namespace Prisma {
     acceptedAt?: boolean
     ipAddress?: boolean
     userAgent?: boolean
+    legalHoldUntil?: boolean
   }
 
 
@@ -37511,8 +37541,17 @@ export namespace Prisma {
       version: string
       source: string
       acceptedAt: Date
+      /**
+       * PERSONAL DATA, evidence that this PT confirmed the terms and fraud prevention. Kept 12 months, then both columns are set to NULL by
+       * the retention sweep (services/ip-ua-retention.service.ts); the acceptance row itself stays. Admin-only: never in a PT/client DTO, never logged.
+       */
       ipAddress: string | null
       userAgent: string | null
+      /**
+       * Legal hold: while in the future the retention sweep keeps ip_address/user_agent. NULL = no hold. Admin tooling only
+       * (scripts/ip-ua-legal-hold.ts), no public API sets it.
+       */
+      legalHoldUntil: Date | null
     }, ExtArgs["result"]["ptTermsAcceptance"]>
     composites: {}
   }
@@ -37913,6 +37952,7 @@ export namespace Prisma {
     readonly acceptedAt: FieldRef<"PtTermsAcceptance", 'DateTime'>
     readonly ipAddress: FieldRef<"PtTermsAcceptance", 'String'>
     readonly userAgent: FieldRef<"PtTermsAcceptance", 'String'>
+    readonly legalHoldUntil: FieldRef<"PtTermsAcceptance", 'DateTime'>
   }
     
 
@@ -38691,7 +38731,8 @@ export namespace Prisma {
     metadata: 'metadata',
     ipAddress: 'ipAddress',
     userAgent: 'userAgent',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    legalHoldUntil: 'legalHoldUntil'
   };
 
   export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
@@ -38902,7 +38943,8 @@ export namespace Prisma {
     source: 'source',
     acceptedAt: 'acceptedAt',
     ipAddress: 'ipAddress',
-    userAgent: 'userAgent'
+    userAgent: 'userAgent',
+    legalHoldUntil: 'legalHoldUntil'
   };
 
   export type PtTermsAcceptanceScalarFieldEnum = (typeof PtTermsAcceptanceScalarFieldEnum)[keyof typeof PtTermsAcceptanceScalarFieldEnum]
@@ -41910,6 +41952,7 @@ export namespace Prisma {
     ipAddress?: StringNullableFilter<"AuditLog"> | string | null
     userAgent?: StringNullableFilter<"AuditLog"> | string | null
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
+    legalHoldUntil?: DateTimeNullableFilter<"AuditLog"> | Date | string | null
   }
 
   export type AuditLogOrderByWithRelationInput = {
@@ -41922,6 +41965,7 @@ export namespace Prisma {
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    legalHoldUntil?: SortOrderInput | SortOrder
   }
 
   export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
@@ -41937,6 +41981,7 @@ export namespace Prisma {
     ipAddress?: StringNullableFilter<"AuditLog"> | string | null
     userAgent?: StringNullableFilter<"AuditLog"> | string | null
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
+    legalHoldUntil?: DateTimeNullableFilter<"AuditLog"> | Date | string | null
   }, "id">
 
   export type AuditLogOrderByWithAggregationInput = {
@@ -41949,6 +41994,7 @@ export namespace Prisma {
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    legalHoldUntil?: SortOrderInput | SortOrder
     _count?: AuditLogCountOrderByAggregateInput
     _max?: AuditLogMaxOrderByAggregateInput
     _min?: AuditLogMinOrderByAggregateInput
@@ -41967,6 +42013,7 @@ export namespace Prisma {
     ipAddress?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
+    legalHoldUntil?: DateTimeNullableWithAggregatesFilter<"AuditLog"> | Date | string | null
   }
 
   export type SessionSettlementWhereInput = {
@@ -42979,6 +43026,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFilter<"PtTermsAcceptance"> | Date | string
     ipAddress?: StringNullableFilter<"PtTermsAcceptance"> | string | null
     userAgent?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+    legalHoldUntil?: DateTimeNullableFilter<"PtTermsAcceptance"> | Date | string | null
   }
 
   export type PtTermsAcceptanceOrderByWithRelationInput = {
@@ -42989,6 +43037,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
+    legalHoldUntil?: SortOrderInput | SortOrder
   }
 
   export type PtTermsAcceptanceWhereUniqueInput = Prisma.AtLeast<{
@@ -43003,6 +43052,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFilter<"PtTermsAcceptance"> | Date | string
     ipAddress?: StringNullableFilter<"PtTermsAcceptance"> | string | null
     userAgent?: StringNullableFilter<"PtTermsAcceptance"> | string | null
+    legalHoldUntil?: DateTimeNullableFilter<"PtTermsAcceptance"> | Date | string | null
   }, "id" | "userId_version">
 
   export type PtTermsAcceptanceOrderByWithAggregationInput = {
@@ -43013,6 +43063,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
+    legalHoldUntil?: SortOrderInput | SortOrder
     _count?: PtTermsAcceptanceCountOrderByAggregateInput
     _max?: PtTermsAcceptanceMaxOrderByAggregateInput
     _min?: PtTermsAcceptanceMinOrderByAggregateInput
@@ -43029,6 +43080,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeWithAggregatesFilter<"PtTermsAcceptance"> | Date | string
     ipAddress?: StringNullableWithAggregatesFilter<"PtTermsAcceptance"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"PtTermsAcceptance"> | string | null
+    legalHoldUntil?: DateTimeNullableWithAggregatesFilter<"PtTermsAcceptance"> | Date | string | null
   }
 
   export type UserProfileCreateInput = {
@@ -45977,6 +46029,7 @@ export namespace Prisma {
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
+    legalHoldUntil?: Date | string | null
   }
 
   export type AuditLogUncheckedCreateInput = {
@@ -45989,6 +46042,7 @@ export namespace Prisma {
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
+    legalHoldUntil?: Date | string | null
   }
 
   export type AuditLogUpdateInput = {
@@ -46001,6 +46055,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AuditLogUncheckedUpdateInput = {
@@ -46013,6 +46068,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AuditLogCreateManyInput = {
@@ -46025,6 +46081,7 @@ export namespace Prisma {
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
+    legalHoldUntil?: Date | string | null
   }
 
   export type AuditLogUpdateManyMutationInput = {
@@ -46037,6 +46094,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AuditLogUncheckedUpdateManyInput = {
@@ -46049,6 +46107,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SessionSettlementCreateInput = {
@@ -47232,6 +47291,7 @@ export namespace Prisma {
     acceptedAt?: Date | string
     ipAddress?: string | null
     userAgent?: string | null
+    legalHoldUntil?: Date | string | null
   }
 
   export type PtTermsAcceptanceUncheckedCreateInput = {
@@ -47242,6 +47302,7 @@ export namespace Prisma {
     acceptedAt?: Date | string
     ipAddress?: string | null
     userAgent?: string | null
+    legalHoldUntil?: Date | string | null
   }
 
   export type PtTermsAcceptanceUpdateInput = {
@@ -47252,6 +47313,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PtTermsAcceptanceUncheckedUpdateInput = {
@@ -47262,6 +47324,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PtTermsAcceptanceCreateManyInput = {
@@ -47272,6 +47335,7 @@ export namespace Prisma {
     acceptedAt?: Date | string
     ipAddress?: string | null
     userAgent?: string | null
+    legalHoldUntil?: Date | string | null
   }
 
   export type PtTermsAcceptanceUpdateManyMutationInput = {
@@ -47282,6 +47346,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PtTermsAcceptanceUncheckedUpdateManyInput = {
@@ -47292,6 +47357,7 @@ export namespace Prisma {
     acceptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    legalHoldUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -49640,6 +49706,7 @@ export namespace Prisma {
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type AuditLogMaxOrderByAggregateInput = {
@@ -49651,6 +49718,7 @@ export namespace Prisma {
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type AuditLogMinOrderByAggregateInput = {
@@ -49662,6 +49730,7 @@ export namespace Prisma {
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type EnumAuditEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -50528,6 +50597,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type PtTermsAcceptanceMaxOrderByAggregateInput = {
@@ -50538,6 +50608,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type PtTermsAcceptanceMinOrderByAggregateInput = {
@@ -50548,6 +50619,7 @@ export namespace Prisma {
     acceptedAt?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
+    legalHoldUntil?: SortOrder
   }
 
   export type UserProfileCreatesafetyScreeningFlagsInput = {

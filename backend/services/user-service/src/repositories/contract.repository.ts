@@ -135,16 +135,6 @@ export const contractRepository = {
   findByPaymentTransactionId: (paymentTransactionId: string, db: Db = prisma) =>
     db.contract.findFirst({ where: { paymentTransactionId } }),
 
-  /** Find ACTIVE or COMPLETED contract between PT and client (BR-32) */
-  findActiveOrCompletedByPair: (ptUserId: string, clientUserId: string) =>
-    prisma.contract.findFirst({
-      where: {
-        ptUserId,
-        clientUserId,
-        status: { in: [ContractStatus.ACTIVE, ContractStatus.COMPLETED] },
-      },
-    }),
-
   /** Check if any PT-Client contract relationship exists between two users in either direction (BR-29) */
   findRelationshipByPair: (userAId: string, userBId: string) =>
     prisma.contract.findFirst({
@@ -259,7 +249,7 @@ export const contractRepository = {
    * that has none (NULL does not match `lt`). Racing the sweep, exactly one wins.
    *
    * D13: every extension that really moves the deadline stamps payment_deadline_extended_at. With `{ once: true }`
-   * (CHECKOUT_EXTENSION_ONCE) the same statement also requires that column to be NULL, so a contract is extended AT MOST ONCE
+   * (the default; only CHECKOUT_EXTENSION_ONCE=false drops it) the same statement also requires that column to be NULL, so a contract is extended AT MOST ONCE
    * and two simultaneous callers cannot both win - the database arbitrates, not the caller.
    */
   extendPaymentDueAt: (id: string, to: Date, opts: { once?: boolean } = {}) =>

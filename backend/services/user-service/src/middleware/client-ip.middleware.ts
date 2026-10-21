@@ -10,8 +10,13 @@ import { isAcceptedServiceSecret } from "./serviceSecret.middleware";
  * address of its own peer. With the gateway behind ONE trusted front proxy (the same assumption as the gateway's own
  * `app.set("trust proxy", 1)`), the rightmost entry of that header is the address that proxy saw: the client.
  *
+ * The gateway now stamps the address itself: it computes the client IP with its own `trust proxy` setting (`req.ip`), deletes any
+ * client-supplied `x-client-ip` and sets `x-client-ip` on every proxied request (gateway/src/app.ts). On a request that carries the
+ * gateway secret a valid `x-client-ip` WINS over everything below; the X-Forwarded-For arithmetic is only the fallback for a gateway that
+ * does not stamp it yet (older deploy) or a stamp that is not a valid IP.
+ *
  * What is trusted, and what is not:
- *   - X-Forwarded-For is read ONLY when the request carries the gateway's shared secret (`x-gateway-secret`, stamped by the gateway
+ *   - `x-client-ip` and X-Forwarded-For are read ONLY when the request carries the gateway's shared secret (`x-gateway-secret`, stamped by the gateway
  *     on every request after deleting any client-supplied copy). A caller that reaches user-service directly, or with a wrong
  *     secret, can never choose its IP: it gets the socket peer, exactly as `req.ip` gave before.
  *   - Only the entry GATEWAY_FRONT_PROXY_HOPS places from the right is used (default 1; entries further left are client-controlled
@@ -19,13 +24,15 @@ import { isAcceptedServiceSecret } from "./serviceSecret.middleware";
  *     0 means "the gateway is reached directly": the header is ignored.
  *   - The secret is checked HERE, before the auth middleware, because authMiddleware deletes x-gateway-secret from the request once
  *     the token is verified.
- * Limit (gateway-owned, not fixable in this service): if the gateway itself is reached with no front proxy, the header it forwards
- * is whatever the client sent. Setting `xfwd: true` on its proxies (or stamping its own x-client-ip) closes that; see the report.
+ * Limit of the FALLBACK only (gateway-owned): if the gateway itself is reached with no front proxy, the X-Forwarded-For it forwards
+ * is whatever the client sent. The gateway's own x-client-ip stamp closes that, which is why it is preferred.
  * Unchanged when the request does not come through the gateway (AWS Lambda/API Gateway, direct calls, tests).
  */
 
 export interface ClientIpInput {
   viaGateway: boolean;
+  /** The gateway's own stamp (`x-client-ip`); only looked at when viaGateway. */
+  stamped?: string | string[] | undefined;
   forwardedFor: string | string[] | undefined;
   hops: number;
   peer: string | null | undefined;
@@ -38,6 +45,11 @@ function normalise(ip: string): string {
 /** Pure decision, exported for the tests. */
 export function clientIpFrom(input: ClientIpInput): string | null {
   const peer = input.peer ?? null;
+  if (input.viaGateway && input.stamped !== undefined) {
+    const raw = Array.isArray(input.stamped) ? input.stamped[0] : input.stamped;
+    const stamped = typeof raw === "string" ? raw.trim() : "";
+    if (stamped && net.isIP(stamped)) return normalise(stamped);
+  }
   if (!input.viaGateway || !input.forwardedFor || !Number.isInteger(input.hops) || input.hops < 1) return peer;
   const joined = Array.isArray(input.forwardedFor) ? input.forwardedFor.join(",") : input.forwardedFor;
   const entries = joined.split(",").map((s) => s.trim());
@@ -57,6 +69,7 @@ export function clientIpMiddleware(req: Request, _res: Response, next: NextFunct
   const value = Array.isArray(secret) ? secret[0] : secret;
   (req as Request & { clientIp?: string | null }).clientIp = clientIpFrom({
     viaGateway: isAcceptedServiceSecret(value),
+    stamped: req.headers["x-client-ip"],
     forwardedFor: req.headers["x-forwarded-for"],
     hops: frontProxyHops(),
     peer: req.ip || req.socket.remoteAddress,

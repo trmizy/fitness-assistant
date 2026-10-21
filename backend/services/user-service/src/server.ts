@@ -10,6 +10,7 @@ import { startSessionSettlementSweepJob } from "./services/session-settlement-sw
 import { startContractExpirySweepJob } from "./services/contract-expiry-sweep.service";
 import { startRoomCloseResolutionJob } from "./services/room-close-resolution.service";
 import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
+import { startIpUaRetentionSweepJob } from "./services/ip-ua-retention.service";
 import { installGracefulShutdown } from "./lifecycle";
 
 const PORT = process.env.PORT || 3004;
@@ -37,6 +38,9 @@ const server = app.listen(PORT, () => {
   // Listing management: dead photo-upload intents, orphaned STAGED physique photos, long-retired photos
   // — see pt-listing-sweep.service.ts.
   stopJobs.push(startPtListingSweepJob());
+  // Personal data: clears ip_address / user_agent on PT-terms acceptances and audit rows older than 12 months (never deletes a row,
+  // skips rows under legal hold) - see ip-ua-retention.service.ts.
+  stopJobs.push(startIpUaRetentionSweepJob());
 });
 
 // SIGTERM / SIGINT: stop the ticks, stop accepting, let the requests and sweeps that are running FINISH (bounded by

@@ -50,7 +50,7 @@ test("a confirmation of the draft id does not match any other id (draft rows can
   assert.equal(isDraftTermsVersionId("2026-10-pt-v1"), false);
 });
 
-test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4", () => {
+test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4 text, still in draft-5", () => {
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "sessions");
   assert.ok(clause, "clause 3 exists");
   assert.match(clause.title, /^3\./);
@@ -61,11 +61,12 @@ test("Điều 3 says an online session is recorded by the system when the room c
   assert.equal(PT_TERMS_IS_DRAFT, true);
 });
 
-test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (earlier drafts had other text, so their ids must not be reused)", () => {
+test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 added the privacy notice, clause 10) (earlier drafts had other text, so their ids must not be reused)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-2");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-3");
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-4");
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-4");
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-5");
   assert.equal(PT_TERMS_IS_DRAFT, true);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
@@ -96,6 +97,31 @@ test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (earlier d
   assert.match(text, /Sau khi buổi được xác nhận, bạn nhận phần còn lại của buổi đó/);
   assert.match(text, /các buổi khác không bị ảnh hưởng/);
   assert.match(clause.title, /vào phòng học muộn/);
-  assert.equal(PT_TERMS_SECTIONS.length, 9);
-  assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."]);
+  assert.equal(PT_TERMS_SECTIONS.length, 10);
+  assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10"]);
+});
+
+test("draft-5: clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-5");
+  assert.equal(PT_TERMS_IS_DRAFT, true, "still a draft: the notice does not make the terms official");
+  const clause = PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice");
+  assert.ok(clause, "clause 10 exists");
+  assert.equal(PT_TERMS_SECTIONS[PT_TERMS_SECTIONS.length - 1], clause, "it is the LAST section, so no earlier clause number moves");
+  assert.match(clause.title, /^10\. Thông báo về dữ liệu cá nhân/);
+  const text = clause.body.join(" ");
+  assert.match(text, /địa chỉ IP và loại trình duyệt/); // the data
+  assert.match(text, /chứng minh bạn đã đồng ý điều khoản và phòng chống gian lận/); // the purpose
+  assert.match(text, /không dùng hai thông tin này cho mục đích khác/);
+  assert.match(text, /chỉ quản trị viên Gymini/); // who sees it
+  assert.match(text, /12 tháng/); // retention
+  assert.match(text, /xóa địa chỉ IP và loại trình duyệt khỏi bản ghi/);
+  assert.match(text, /bản ghi cho biết bạn đã đồng ý phiên bản nào, vào lúc nào vẫn được giữ lại/); // the row is not deleted
+  assert.match(text, /tranh chấp hoặc yêu cầu pháp lý/); // the legal-hold exception
+  assert.match(text, /Quyền của bạn/); // rights
+  assert.doesNotMatch(text, /tuân thủ|đúng luật|hợp pháp/, "no compliance claim in the text");
+  // the shape the web and mobile screens render generically (title + paragraphs): no new field is needed
+  const served = publicPtTerms().sections.find((x) => x.id === "privacy-notice");
+  assert.deepEqual(Object.keys(served!).sort(), ["body", "id", "title"]);
+  assert.ok(served!.body.length >= 4 && served!.body.every((p) => typeof p === "string" && p.length > 0));
+  assert.equal(JSON.stringify(publicPtTerms()).includes("PtTermsAcceptance"), false, "the server-side source note is never served");
 });

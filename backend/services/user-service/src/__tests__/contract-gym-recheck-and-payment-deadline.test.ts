@@ -52,7 +52,20 @@ function contractRow(overrides: Record<string, unknown> = {}) {
     ptRate: new Prisma.Decimal("0.7000"),
     gymRate: new Prisma.Decimal("0.2000"),
     paymentDueAt: new Date(Date.now() + 60 * 60 * 1000),
+    // Codex #6: a gym contract carries a fixed duration (frozen from the package) and the brand its membership was checked at
+    validityDays: 60,
+    gymBrandId: "brand-1",
     ...overrides,
+  };
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+/** gym-service's answer for the client's membership at the gym: unlimited by default (no end date), so the existing tests are unaffected. */
+function membershipLookup(endDate: string | null = null) {
+  return {
+    hasActiveMembership: true,
+    brandId: "brand-1",
+    membership: { membershipId: "mem-1", planName: "Plan", purchaseGymId: "gym-1", startDate: null, endDate },
   };
 }
 
@@ -62,8 +75,9 @@ const MATCHING = { collaborationId: "col-1", platformRate: "0.1", ptRate: "0.70"
 function world(opts: {
   contract: Record<string, unknown>;
   collab?: unknown; // object | null | "UNAVAILABLE"
+  membership?: unknown; // lookup object | null | "UNAVAILABLE" (default: an unlimited active membership)
 }) {
-  const calls = { gym: 0, checkout: 0, claim: 0, extend: [] as Date[] };
+  const calls = { gym: 0, membership: 0, checkout: 0, claim: 0, extend: [] as Date[] };
   const restores = [
     patch(contractRepository, "findById", async () => opts.contract as any),
     patch(contractRepository, "updateWhereStatus", async () => {
@@ -74,6 +88,11 @@ function world(opts: {
       calls.gym++;
       if (opts.collab === "UNAVAILABLE") throw new GymServiceUnavailableError(new Error("ECONNREFUSED"));
       return opts.collab as any;
+    }),
+    patch(gymClient, "getClientMembershipAtGym", async () => {
+      calls.membership++;
+      if (opts.membership === "UNAVAILABLE") throw new GymServiceUnavailableError(new Error("ECONNREFUSED"));
+      return (opts.membership === undefined ? membershipLookup() : opts.membership) as any;
     }),
     patch(paymentClient, "checkout", async () => {
       calls.checkout++;
@@ -333,6 +352,136 @@ test("accept: contract WITHOUT gymId never calls gym-service", async () => {
       (e: any) => e.status === 500, // stubbed auth lookup, i.e. it got PAST the gym step
     );
     assert.equal(w.calls.gym, 0);
+  } finally {
+    w.restore();
+  }
+});
+
+// ─────────────────────── Codex #6: fixed duration + membership coverage, re-asked at accept and pay ───────────────────────
+
+test("pay: a gym contract with NO fixed duration (legacy open-ended row) -> 409 GYM_CONTRACT_REQUIRES_FIXED_DURATION before any membership lookup or checkout", async () => {
+  for (const validityDays of [null, 0]) {
+    const w = world({ contract: contractRow({ validityDays }), collab: MATCHING });
+    try {
+      await assert.rejects(
+        () => contractService.pay("c1", "client-1"),
+        (e: any) => e.status === 409 && e.code === "GYM_CONTRACT_REQUIRES_FIXED_DURATION" && /thời hạn cố định/.test(e.message) && !/Học viên/.test(e.message),
+        String(validityDays),
+      );
+      assert.equal(w.calls.membership, 0, "the verdict does not depend on the membership");
+      assert.equal(w.calls.checkout, 0, "no money may move");
+    } finally {
+      w.restore();
+    }
+  }
+});
+
+test("pay: the membership ended / was cancelled since the request -> 422 MEMBERSHIP_REQUIRED, no checkout", async () => {
+  const w = world({ contract: contractRow(), collab: MATCHING, membership: { hasActiveMembership: false, brandId: "brand-1", membership: null } });
+  try {
+    await assert.rejects(() => contractService.pay("c1", "client-1"), (e: any) => e.status === 422 && e.code === "MEMBERSHIP_REQUIRED");
+    assert.equal(w.calls.checkout, 0);
+  } finally {
+    w.restore();
+  }
+});
+
+test("pay: the membership ends before the contract would (10 days left vs 60) -> 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT, no checkout; enough days -> checkout proceeds", async () => {
+  const short = world({ contract: contractRow(), collab: MATCHING, membership: membershipLookup(new Date(Date.now() + 10 * DAY).toISOString()) });
+  try {
+    await assert.rejects(
+      () => contractService.pay("c1", "client-1"),
+      (e: any) => e.status === 422 && e.code === "MEMBERSHIP_DOES_NOT_COVER_CONTRACT" && !/Học viên/.test(e.message),
+    );
+    assert.equal(short.calls.checkout, 0);
+  } finally {
+    short.restore();
+  }
+  const enough = world({ contract: contractRow(), collab: MATCHING, membership: membershipLookup(new Date(Date.now() + 61 * DAY).toISOString()) });
+  try {
+    await contractService.pay("c1", "client-1");
+    assert.equal(enough.calls.checkout, 1);
+  } finally {
+    enough.restore();
+  }
+});
+
+test("pay: an UNLIMITED membership (no end date) covers the fixed-duration contract; gym-service membership lookup down -> 503, no checkout", async () => {
+  const ok = world({ contract: contractRow(), collab: MATCHING });
+  try {
+    await contractService.pay("c1", "client-1");
+    assert.equal(ok.calls.membership, 1);
+    assert.equal(ok.calls.checkout, 1);
+  } finally {
+    ok.restore();
+  }
+  const down = world({ contract: contractRow(), collab: MATCHING, membership: "UNAVAILABLE" });
+  try {
+    await assert.rejects(() => contractService.pay("c1", "client-1"), (e: any) => e.status === 503 && e.code === undefined);
+    assert.equal(down.calls.checkout, 0);
+  } finally {
+    down.restore();
+  }
+});
+
+test("pay: a contract WITHOUT a gym never asks about a membership, even with validityDays null (non-gym contracts unchanged)", async () => {
+  const w = world({ contract: contractRow({ gymId: null, gymBrandId: null, validityDays: null }), collab: null });
+  try {
+    await contractService.pay("c1", "client-1");
+    assert.equal(w.calls.gym, 0);
+    assert.equal(w.calls.membership, 0);
+    assert.equal(w.calls.checkout, 1);
+  } finally {
+    w.restore();
+  }
+});
+
+test("accept: a gym contract with NO fixed duration -> 409 GYM_CONTRACT_REQUIRES_FIXED_DURATION worded for the PT, contract not claimed", async () => {
+  const w = world({ contract: pendingReview({ validityDays: null }), collab: MATCHING });
+  try {
+    await assert.rejects(
+      () => contractService.acceptContract("c1", "pt-1"),
+      (e: any) => e.status === 409 && e.code === "GYM_CONTRACT_REQUIRES_FIXED_DURATION" && /từ chối yêu cầu/.test(e.message),
+    );
+    assert.equal(w.calls.claim, 0, "status must stay PENDING_REVIEW");
+    assert.equal(w.calls.membership, 0);
+  } finally {
+    w.restore();
+  }
+});
+
+test("accept: the client's membership is gone / too short -> 422 (worded for the PT), contract not claimed; covered -> passes the gate", async () => {
+  const gone = world({ contract: pendingReview(), collab: MATCHING, membership: { hasActiveMembership: false, brandId: "brand-1", membership: null } });
+  try {
+    await assert.rejects(
+      () => contractService.acceptContract("c1", "pt-1"),
+      (e: any) => e.status === 422 && e.code === "MEMBERSHIP_REQUIRED" && /Học viên/.test(e.message),
+    );
+    assert.equal(gone.calls.claim, 0);
+  } finally {
+    gone.restore();
+  }
+  const short = world({ contract: pendingReview(), collab: MATCHING, membership: membershipLookup(new Date(Date.now() + 5 * DAY).toISOString()) });
+  try {
+    await assert.rejects(() => contractService.acceptContract("c1", "pt-1"), (e: any) => e.status === 422 && e.code === "MEMBERSHIP_DOES_NOT_COVER_CONTRACT");
+    assert.equal(short.calls.claim, 0);
+  } finally {
+    short.restore();
+  }
+  const covered = world({ contract: pendingReview(), collab: MATCHING });
+  try {
+    await assert.rejects(() => contractService.acceptContract("c1", "pt-1"), (e: any) => e.status === 500); // stops at the stubbed auth lookup, i.e. PAST the gym gates
+    assert.equal(covered.calls.membership, 1);
+  } finally {
+    covered.restore();
+  }
+});
+
+test("accept: a contract WITHOUT a gym never asks about a membership", async () => {
+  const w = world({ contract: pendingReview({ gymId: null, gymBrandId: null, validityDays: null }), collab: null });
+  try {
+    await assert.rejects(() => contractService.acceptContract("c1", "pt-1"), (e: any) => e.status === 500);
+    assert.equal(w.calls.membership, 0);
   } finally {
     w.restore();
   }

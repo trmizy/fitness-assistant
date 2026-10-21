@@ -19,7 +19,7 @@
  * running production service cannot be taken down by it.
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-4";
+export const PT_TERMS_VERSION = "2026-10-pt-draft-5";
 export const PT_TERMS_IS_DRAFT = true;
 
 /** A version id that marks a draft text. */
@@ -159,6 +159,19 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
       "Khi Gymini thay đổi điều khoản này, bạn sẽ được yêu cầu xác nhận lại trước khi chấp nhận hợp đồng mới. Thay đổi chỉ áp dụng cho hợp đồng bạn chấp nhận sau khi đã đồng ý; hợp đồng đã ký hoặc đang chạy giữ nguyên.",
     ],
     source: "D25 (this feature): acceptContract gate PT_TERMS_NOT_ACCEPTED",
+  },
+  {
+    id: "privacy-notice",
+    title: "10. Thông báo về dữ liệu cá nhân khi bạn đồng ý điều khoản",
+    body: [
+      "Khi bạn bấm đồng ý điều khoản này, Gymini ghi lại địa chỉ IP và loại trình duyệt (hoặc ứng dụng) bạn đang dùng, cùng thời điểm và phiên bản điều khoản bạn đã đồng ý.",
+      "Mục đích: chứng minh bạn đã đồng ý điều khoản và phòng chống gian lận. Gymini không dùng hai thông tin này cho mục đích khác.",
+      "Ai xem được: chỉ quản trị viên Gymini. Địa chỉ IP và loại trình duyệt của bạn không hiển thị cho khách hàng hay cho PT khác.",
+      "Thời gian lưu: 12 tháng kể từ khi bạn đồng ý. Sau đó Gymini xóa địa chỉ IP và loại trình duyệt khỏi bản ghi; bản ghi cho biết bạn đã đồng ý phiên bản nào, vào lúc nào vẫn được giữ lại. Ngoại lệ: nếu đang có tranh chấp hoặc yêu cầu pháp lý cần dùng đến hai thông tin này, Gymini giữ lại cho đến khi vụ việc được giải quyết rồi mới xóa.",
+      "Quyền của bạn: bạn có thể hỏi Gymini những thông tin nào đang được lưu về bạn và yêu cầu xem, chỉnh sửa hoặc xóa khi không còn cần cho các mục đích trên, trừ khi thông tin đang phải giữ vì tranh chấp. Hãy liên hệ bộ phận hỗ trợ của Gymini để gửi yêu cầu.",
+    ],
+    source:
+      "pt-terms.service accept (ip_address / user_agent on PtTermsAcceptance, from clientIpMiddleware + User-Agent); ip-ua-retention.service (IP_UA_RETENTION_MONTHS = 12, rows under legal_hold_until are skipped); admin-only access, never in a PT/client DTO or a log line. Owner decision: 12 months, subject to privacy/legal review (this draft text is not a compliance claim)",
   },
 ];
 

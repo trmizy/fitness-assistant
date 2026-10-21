@@ -47,26 +47,19 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
   }
 }
 
-/** INBODY_PT_ACCESS_ACTIVE_ONLY: default ON. Only the exact string "false" turns it off. */
-export function inbodyPtAccessActiveOnly(): boolean {
-  return process.env.INBODY_PT_ACCESS_ACTIVE_ONLY !== "false";
-}
-
 export const inbodyService = {
   async getHistory(userId: string) {
     return inbodyRepository.findByUserId(userId);
   },
 
-  // BR-32 as tightened by audit finding #9: a PT reads a client's InBody history only while a contract between them is ACTIVE.
-  // INBODY_PT_ACCESS_ACTIVE_ONLY (default true; only the exact value "false" relaxes it) - "false" restores BR-32 as written
-  // (ACTIVE or COMPLETED) for a rollback. Read on every call. There is no client-granted access model; none exists to consult.
-  // Applying this to real data needs the owner's confirmation (a PT who relied on COMPLETED access loses it).
+  // BR-32 as tightened by audit finding #9 (owner decision, final): a PT reads a client's InBody history ONLY while a contract between
+  // them is ACTIVE. Unconditional - there is no flag and no fallback to COMPLETED. COMPLETED / CANCELLED / EXPIRED / REJECTED / never-paid
+  // contracts, another PT and "no relationship" are all 403. The client's own read (getHistory) is untouched and no InBody row is ever
+  // deleted by this rule. There is no client-granted access model; none exists to consult.
   async getClientHistory(ptUserId: string, clientUserId: string) {
     // A restricted PT does not read clients' body data (coaching access is paused with the contract).
     await assertPtMayAct(ptUserId);
-    const contract = inbodyPtAccessActiveOnly()
-      ? await contractRepository.findActivePtClientPair(ptUserId, clientUserId)
-      : await contractRepository.findActiveOrCompletedByPair(ptUserId, clientUserId);
+    const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
     if (!contract) {
       throw err("No active coaching relationship with this client", 403);
     }
