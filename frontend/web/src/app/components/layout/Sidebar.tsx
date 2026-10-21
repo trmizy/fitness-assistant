@@ -89,8 +89,15 @@ const gymOwnerNavFull = [
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
   { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
   { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations", ownerOnly: true },
-  { label: "Người quản lý", icon: GyminiUsersIcon, to: "/gym-owner/managers", ownerOnly: true },
+  { label: "Nhân sự", icon: GyminiUsersIcon, to: "/gym-owner/managers", ownerOnly: true },
 ];
+
+/**
+ * D15 — lễ tân và kế toán là hai vai trò hẹp: mỗi vai trò chỉ một trang chủ riêng (Quầy lễ tân / Tài chính),
+ * không có Dashboard, Quản lý gói, Cộng tác hay Nhân sự. Danh sách này chỉ để ẩn menu; quyền thật do gym-service.
+ */
+const receptionistNav = [{ label: "Quầy lễ tân", icon: GyminiGymIcon, to: "/gym-owner/front-desk" }];
+const accountantNav = [{ label: "Tài chính", icon: GyminiMoneyIcon, to: "/gym-owner/finance" }];
 
 // PT accounts can still use the unified client service hub for their own
 // contracts, gym memberships and bookings without duplicating nav entries.
@@ -237,8 +244,18 @@ export function Sidebar() {
     queryFn: () => gymService.getOnboardingStatus(),
     enabled: role === "gym_owner",
   });
-  const isManagerAccount = partnerRoleQuery.data?.role === "MANAGER";
-  const gymOwnerNav = isManagerAccount ? gymOwnerNavFull.filter((item) => !item.ownerOnly) : gymOwnerNavFull;
+  const partnerRole = partnerRoleQuery.data?.role as string | undefined;
+  // Chưa biết vai trò (đang tải / lỗi) → không hiện menu nào thay vì mặc định menu của chủ (fail-closed).
+  const gymOwnerNav =
+    partnerRole === "OWNER"
+      ? gymOwnerNavFull
+      : partnerRole === "MANAGER"
+        ? gymOwnerNavFull.filter((item) => !item.ownerOnly)
+        : partnerRole === "RECEPTIONIST"
+          ? receptionistNav
+          : partnerRole === "ACCOUNTANT"
+            ? accountantNav
+            : [];
 
   const handleLogout = () => {
     logout();

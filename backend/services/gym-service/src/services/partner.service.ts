@@ -1,6 +1,7 @@
 import { logger } from '@gym-coach/shared';
 import { partnerRepository } from '../repositories/partner.repository';
 import { withCompatWriter } from '../repositories/compat-writer';
+import { isInvitableStaffRole, roleRequiresBranchScope, type InvitableStaffRole } from './partner-permissions';
 import type {
   GymPartnerKind,
   GymPartnerStatus,
@@ -176,21 +177,42 @@ export const partnerService = {
    * chủ gym có thể gán quản lý vào chi nhánh của người khác chỉ bằng cách đoán id.
    */
   async inviteManager(partnerId: string, ownerId: string, data: { email: string; scopedGymIds: string[] }, invitedBy: string) {
-    if (!Array.isArray(data.scopedGymIds) || data.scopedGymIds.length === 0) {
-      throw err('Phải chọn ít nhất một chi nhánh cho người quản lý', 400);
+    return this.inviteStaff(partnerId, ownerId, { ...data, role: 'MANAGER' }, invitedBy);
+  },
+
+  /**
+   * D15 — chủ sở hữu mời MỘT TRONG BA vai trò nội bộ (quản lý, lễ tân, kế toán). Không mời được OWNER (chỉ chuyển
+   * quyền) và không có vai trò ngoài danh mục: mặc định từ chối.
+   *   MANAGER / RECEPTIONIST : bắt buộc ≥ 1 chi nhánh.
+   *   ACCOUNTANT             : chi nhánh tuỳ chọn — để trống = kế toán cả thương hiệu, có chọn = chỉ các chi nhánh đó.
+   * Mọi chi nhánh được gán phải là chi nhánh CHỦ SỞ HỮU NÀY sở hữu (không gán chéo sang đối tác khác).
+   */
+  async inviteStaff(
+    partnerId: string,
+    ownerId: string,
+    data: { email: string; role: InvitableStaffRole | string; scopedGymIds?: string[] },
+    invitedBy: string,
+  ) {
+    if (!isInvitableStaffRole(data.role)) {
+      throw err('Vai trò không hợp lệ — chỉ mời được quản lý, lễ tân hoặc kế toán', 400);
+    }
+    const role = data.role;
+    const scopedGymIds = Array.isArray(data.scopedGymIds) ? [...new Set(data.scopedGymIds)] : [];
+    if (roleRequiresBranchScope(role) && scopedGymIds.length === 0) {
+      throw err(role === 'MANAGER' ? 'Phải chọn ít nhất một chi nhánh cho người quản lý' : 'Phải chọn ít nhất một chi nhánh cho lễ tân', 400);
     }
     const { gymRepository } = await import('../repositories/gym.repository');
     const owned = await gymRepository.findByOwner(ownerId);
     const ownedIds = new Set(owned.map((g) => g.id));
-    const invalid = data.scopedGymIds.filter((id) => !ownedIds.has(id));
+    const invalid = scopedGymIds.filter((id) => !ownedIds.has(id));
     if (invalid.length > 0) throw err('Có chi nhánh không thuộc quyền quản lý của bạn', 403);
 
     const { partnerInvitationService } = await import('./partner-invitation.service');
     return partnerInvitationService.createInvitation({
       partnerId,
       email: data.email,
-      role: 'MANAGER',
-      scopedGymIds: data.scopedGymIds,
+      role,
+      scopedGymIds,
       createdBy: invitedBy,
     });
   },
@@ -334,6 +356,8 @@ export const partnerService = {
     if (target.partnerId !== partnerId) throw err('Tài khoản này không thuộc đối tác đã chọn', 403);
     if (target.status !== 'ACTIVE') throw err('Chỉ chuyển quyền cho tài khoản đang hoạt động', 409);
     if (target.id === currentOwner.id) throw err('Tài khoản này đã là chủ sở hữu', 409);
+    // D15: chỉ một QUẢN LÝ mới được nâng lên chủ sở hữu; lễ tân/kế toán là vai trò hẹp hơn, không đi tắt lên OWNER.
+    if (target.role !== 'MANAGER') throw err('Chỉ chuyển quyền sở hữu cho tài khoản quản lý', 409);
 
     const inheritedScope = target.scopedGymIds.length > 0 ? target.scopedGymIds : [];
     if (inheritedScope.length === 0) {

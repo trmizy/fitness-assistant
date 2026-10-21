@@ -26,8 +26,9 @@ function expectedAllowed(s: AccessSubject): boolean {
   if (s.verificationStatus !== 'VERIFIED') return false;
   if (!s.onboardingCompletedAt) return false;
   if (s.partnerStatus === 'ACTIVE') return true;
-  // Tạm khoá chỉ khoá OWNER (đăng nhập bị vô hiệu ở auth-service); MANAGER vẫn vận hành như tài liệu.
-  if (s.partnerStatus === 'SUSPENDED') return s.role === 'MANAGER';
+  // Tạm khoá chỉ khoá OWNER (đăng nhập bị vô hiệu ở auth-service) và ACCOUNTANT (dữ liệu tiền, D15); MANAGER và
+  // RECEPTIONIST vẫn vận hành (hội viên còn hạn vẫn cần được phục vụ).
+  if (s.partnerStatus === 'SUSPENDED') return s.role === 'MANAGER' || s.role === 'RECEPTIONIST';
   return false;
 }
 
@@ -69,10 +70,10 @@ test('ma trận: GymPartnerStatus × PartnerVerificationStatus × PartnerAccount
       }
     }
   }
-  assert.equal(cases, 5 * 5 * 3 * 2 * 2);
-  // Đúng 2 tổ hợp được phép: ACTIVE+VERIFIED+account ACTIVE+onboarding xong (OWNER và MANAGER) và
-  // SUSPENDED+VERIFIED+account ACTIVE+onboarding xong (chỉ MANAGER) → 3.
-  assert.equal(allowedCount, 3);
+  assert.equal(cases, 5 * 5 * 3 * 2 * 4);
+  // ACTIVE+VERIFIED+account ACTIVE+onboarding xong: cả 4 vai trò (OWNER, MANAGER, RECEPTIONIST, ACCOUNTANT) và
+  // SUSPENDED+VERIFIED+account ACTIVE+onboarding xong: chỉ MANAGER và RECEPTIONIST → 6.
+  assert.equal(allowedCount, 6);
 });
 
 test('mã từ chối đúng từng trường hợp (frontend dựa vào chúng để điều hướng)', () => {

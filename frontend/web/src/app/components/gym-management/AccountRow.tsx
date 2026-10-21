@@ -6,7 +6,7 @@ import { getAccountStatusMeta } from "./statusConfig";
 export interface AccountRowProps {
   name: string;
   email?: string;
-  role: "OWNER" | "MANAGER";
+  role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
   status: string;
   /** Branch names this MANAGER is scoped to — omitted/empty for an OWNER (all branches). */
   scopedBranchNames?: string[];
@@ -31,7 +31,7 @@ export function AccountRow({ name, email, role, status, scopedBranchNames, actio
           <StatusBadge label={statusMeta.label} tone={statusMeta.tone} icon={statusMeta.icon} />
         </div>
         {email && <p className="text-xs text-zinc-500 mt-0.5 truncate">{email}</p>}
-        {role === "MANAGER" && (
+        {role !== "OWNER" && (
           <p className="text-xs text-zinc-500 mt-0.5">
             Phạm vi: {scopedBranchNames && scopedBranchNames.length > 0 ? scopedBranchNames.join(", ") : "—"}
           </p>

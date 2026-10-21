@@ -102,6 +102,8 @@ const AddBranchWizardPage = lazy(() => import("./pages/gym-owner/AddBranchWizard
 const GymPlansPage = lazy(() => import("./pages/gym-owner/GymPlansPage").then((m) => ({ default: m.GymPlansPage })));
 const GymCollaborationsPage = lazy(() => import("./pages/gym-owner/GymCollaborationsPage").then((m) => ({ default: m.GymCollaborationsPage })));
 const ManageManagersPage = lazy(() => import("./pages/gym-owner/ManageManagersPage").then((m) => ({ default: m.ManageManagersPage })));
+const FrontDeskPage = lazy(() => import("./pages/gym-owner/FrontDeskPage").then((m) => ({ default: m.FrontDeskPage })));
+const GymFinancePage = lazy(() => import("./pages/gym-owner/GymFinancePage").then((m) => ({ default: m.GymFinancePage })));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
@@ -126,6 +128,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { RequireRole } from "./components/RequireRole";
 import { RequireOnboarding } from "./components/RequireOnboarding";
+import { RequireStaffFeature } from "./components/RequireStaffFeature";
 import { RequirePartnerApplicant, RequireApprovedPartner } from "./components/RequirePartnerApplicant";
 import { RootRedirect } from "./components/RootRedirect";
 import { CallProvider } from "./context/CallContext";
@@ -306,15 +309,19 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
+          // D15 — mỗi trang khai báo vai trò nội bộ được vào (RequireStaffFeature); lễ tân/kế toán được đẩy về
+          // trang chủ riêng. Chỉ là chặn UX — backend gym-service là cổng thật.
           { index: true, element: <Navigate to="/gym-owner/dashboard" replace /> },
-          { path: "dashboard", Component: GymOwnerDashboard },
-          { path: "gyms", Component: MyGymsPage },
-          { path: "gyms/wizard/:id?", Component: AddBranchWizardPage },
-          { path: "gyms/:id", Component: GymManagePage },
-          { path: "plans", Component: GymPlansPage },
-          { path: "collaborations", Component: GymCollaborationsPage },
-          { path: "managers", Component: ManageManagersPage },
-          { path: "profile", Component: GymOwnerProfilePage },
+          { path: "dashboard", element: <RequireStaffFeature feature="dashboard"><GymOwnerDashboard /></RequireStaffFeature> },
+          { path: "gyms", element: <RequireStaffFeature feature="gyms"><MyGymsPage /></RequireStaffFeature> },
+          { path: "gyms/wizard/:id?", element: <RequireStaffFeature feature="gymWizard"><AddBranchWizardPage /></RequireStaffFeature> },
+          { path: "gyms/:id", element: <RequireStaffFeature feature="gymManage"><GymManagePage /></RequireStaffFeature> },
+          { path: "plans", element: <RequireStaffFeature feature="plans"><GymPlansPage /></RequireStaffFeature> },
+          { path: "collaborations", element: <RequireStaffFeature feature="collaborations"><GymCollaborationsPage /></RequireStaffFeature> },
+          { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
+          { path: "front-desk", element: <RequireStaffFeature feature="frontDesk"><FrontDeskPage /></RequireStaffFeature> },
+          { path: "finance", element: <RequireStaffFeature feature="finance"><GymFinancePage /></RequireStaffFeature> },
+          { path: "profile", element: <RequireStaffFeature feature="profile"><GymOwnerProfilePage /></RequireStaffFeature> },
         ],
       },
 

@@ -373,10 +373,16 @@ enum GymPartnerKind {
   INDIVIDUAL
 }
 
-/// Hai cấp, không hơn. Ranh giới một câu: **tiền và người thì chỉ chủ sở hữu**.
+/// Vai trò cố định trên danh mục quyền (services/partner-permissions.ts), mặc định TỪ CHỐI.
+/// Ranh giới một câu: **tiền và người thì chỉ chủ sở hữu** — hai vai trò thêm sau (D15) đều hẹp hơn MANAGER:
+///   RECEPTIONIST = lễ tân, chỉ việc quầy (QR check-in, hạn hội viên), không thấy tiền;
+///   ACCOUNTANT   = kế toán, CHỈ ĐỌC dữ liệu tài chính, không ghi gì.
+/// Hoãn: Facility Staff và vai trò tuỳ chỉnh.
 enum PartnerAccountRole {
   OWNER
   MANAGER
+  RECEPTIONIST
+  ACCOUNTANT
 }
 
 enum PartnerAccountStatus {

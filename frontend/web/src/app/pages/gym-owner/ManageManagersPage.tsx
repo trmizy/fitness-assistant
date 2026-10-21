@@ -12,8 +12,32 @@ import {
 } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 
+/** Nhãn ngắn + mô tả quyền cho từng vai trò mời được (D15). Quyền thật nằm ở gym-service/partner-permissions.ts. */
+type StaffRole = "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
+const STAFF_ROLES: Record<StaffRole, { label: string; chip: string; needsBranch: boolean; blurb: string }> = {
+  MANAGER: {
+    label: "Quản lý chi nhánh",
+    chip: "Quản lý",
+    needsBranch: true,
+    blurb: "Vận hành chi nhánh được gán: hội viên, check-in, tạm đóng/mở lại. KHÔNG xem ví, KHÔNG mời người, KHÔNG sửa thương hiệu hay gói.",
+  },
+  RECEPTIONIST: {
+    label: "Lễ tân",
+    chip: "Lễ tân",
+    needsBranch: true,
+    blurb: "Chỉ việc quầy ở chi nhánh được gán: mã QR check-in, hạn thẻ hội viên, xem thông tin chi nhánh. KHÔNG thấy doanh thu, giá, ví hay cộng tác PT.",
+  },
+  ACCOUNTANT: {
+    label: "Kế toán (chỉ xem)",
+    chip: "Kế toán",
+    needsBranch: false,
+    blurb: "Chỉ ĐỌC dữ liệu tài chính: doanh số, ví, lịch sử rút tiền, xuất CSV. Không sửa, không duyệt, không rút tiền. Bỏ trống chi nhánh = cả thương hiệu.",
+  },
+};
+const roleChip = (role: string) => STAFF_ROLES[role as StaffRole]?.chip ?? role;
+
 /**
- * Phase 3 mục 3.2 — chủ sở hữu tự mời/thu hồi quản lý chi nhánh, không cần admin.
+ * Phase 3 mục 3.2 + D15 — chủ sở hữu tự mời/thu hồi nhân sự (quản lý, lễ tân, kế toán), không cần admin.
  */
 export function ManageManagersPage() {
   const queryClient = useQueryClient();
@@ -32,7 +56,7 @@ export function ManageManagersPage() {
 
   const revokeMutation = useMutation({
     mutationFn: (accountId: string) => gymService.revokePartnerAccount(accountId, "Thu hồi bởi chủ sở hữu"),
-    onSuccess: () => { toast.success("Đã thu hồi quản lý"); invalidate(); },
+    onSuccess: () => { toast.success("Đã thu hồi tài khoản"); invalidate(); },
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể thu hồi"),
   });
   const resendMutation = useMutation({
@@ -48,8 +72,8 @@ export function ManageManagersPage() {
     onSuccess: () => { toast.success("Đã thu hồi thư mời"); invalidate(); },
   });
 
-  const managers = (accountsQuery.data ?? []).filter((a: any) => a.role === "MANAGER" && a.status === "ACTIVE");
-  const pendingInvitations = (invitationsQuery.data ?? []).filter((i: any) => i.status === "PENDING" && i.role === "MANAGER");
+  const managers = (accountsQuery.data ?? []).filter((a: any) => a.role !== "OWNER" && a.status === "ACTIVE");
+  const pendingInvitations = (invitationsQuery.data ?? []).filter((i: any) => i.status === "PENDING" && i.role !== "OWNER");
   const gymsById = new Map((gymsQuery.data ?? []).map((g: any) => [g.id, g]));
 
   return (
@@ -57,9 +81,9 @@ export function ManageManagersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Users className="w-5 h-5 text-green-400" /> Người quản lý
+            <Users className="w-5 h-5 text-green-400" /> Nhân sự
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Mời người vận hành chi nhánh giúp bạn — mỗi người một tài khoản đăng nhập riêng.</p>
+          <p className="text-zinc-500 text-sm mt-0.5">Mời quản lý, lễ tân hoặc kế toán — mỗi người một tài khoản đăng nhập riêng, chỉ làm được đúng việc của vai trò.</p>
         </div>
         <button onClick={() => setShowInvite(true)} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap">
           <Plus className="w-4 h-4" /> Mời
@@ -71,7 +95,7 @@ export function ManageManagersPage() {
       ) : managers.length === 0 && pendingInvitations.length === 0 ? (
         <div className="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl py-16 text-center">
           <Users className="w-10 h-10 text-zinc-800 mx-auto mb-3" />
-          <p className="text-zinc-600 text-sm">Chưa có người quản lý nào.</p>
+          <p className="text-zinc-600 text-sm">Chưa có nhân sự nào.</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -81,11 +105,12 @@ export function ManageManagersPage() {
                 <div>
                   <p className="text-sm font-semibold text-zinc-200">
                     {a.identity?.firstName ?? ""} {a.identity?.lastName ?? ""}
-                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">Quản lý</span>
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400" data-testid="staff-role-chip">{roleChip(a.role)}</span>
                   </p>
                   <p className="text-xs text-zinc-500 mt-0.5">{a.identity?.email}</p>
                   <p className="text-[11px] text-zinc-600 mt-1">
-                    {(a.scopedGymIds ?? []).map((gid: string) => (gymsById.get(gid) as any)?.name ?? gid).join(", ") || "Chưa gán chi nhánh"}
+                    {(a.scopedGymIds ?? []).map((gid: string) => (gymsById.get(gid) as any)?.name ?? gid).join(", ") ||
+                      (a.role === "ACCOUNTANT" ? "Tất cả chi nhánh" : "Chưa gán chi nhánh")}
                   </p>
                 </div>
                 <div className="relative flex-shrink-0">
@@ -113,7 +138,7 @@ export function ManageManagersPage() {
               <div key={inv.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm text-zinc-300">{inv.email} <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">Quản lý</span></p>
+                    <p className="text-sm text-zinc-300">{inv.email} <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">{roleChip(inv.role)}</span></p>
                     <p className={`text-[11px] mt-1 ${isOld ? "text-amber-400" : "text-zinc-600"}`}>
                       Đã mời {Math.floor((Date.now() - new Date(inv.createdAt).getTime()) / 86_400_000)} ngày trước
                     </p>
@@ -158,10 +183,12 @@ export function ManageManagersPage() {
 
 function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose: () => void; onCreated: (data: any) => void }) {
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<StaffRole>("MANAGER");
   const [scopedGymIds, setScopedGymIds] = useState<string[]>([]);
+  const roleInfo = STAFF_ROLES[role];
 
   const inviteMutation = useMutation({
-    mutationFn: () => gymService.inviteManager({ email: email.trim(), scopedGymIds }),
+    mutationFn: () => gymService.inviteManager({ email: email.trim(), role, scopedGymIds }),
     onSuccess: (data: any) => {
       onCreated({ email: email.trim(), inviteLink: data.inviteLink, emailSent: data.emailSent });
       onClose();
@@ -175,15 +202,33 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-200">Mời người quản lý</h3>
+          <h3 className="text-sm font-bold text-zinc-200">Mời nhân sự</h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
         </div>
         <div>
-          <label className="text-xs text-zinc-500 mb-1.5 block">Email *</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="quanly@example.com" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
+          <label className="text-xs text-zinc-500 mb-1.5 block">Vai trò *</label>
+          <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Vai trò">
+            {(Object.keys(STAFF_ROLES) as StaffRole[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                role="radio"
+                aria-checked={role === r}
+                data-testid={`invite-role-${r}`}
+                onClick={() => setRole(r)}
+                className={`px-2 py-2 rounded-lg text-xs font-semibold border ${role === r ? "bg-green-500/10 border-green-500/40 text-green-400" : "border-zinc-700 text-zinc-400"}`}
+              >
+                {STAFF_ROLES[r].chip}
+              </button>
+            ))}
+          </div>
         </div>
         <div>
-          <label className="text-xs text-zinc-500 mb-1.5 block">Quản lý chi nhánh nào? *</label>
+          <label className="text-xs text-zinc-500 mb-1.5 block">Email *</label>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nhanvien@example.com" className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600" />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 mb-1.5 block">{roleInfo.needsBranch ? "Chi nhánh phụ trách *" : "Chi nhánh được xem (bỏ trống = tất cả)"}</label>
           <div className="space-y-1.5">
             {gyms.map((g) => (
               <label key={g.id} className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
@@ -195,14 +240,13 @@ function InviteManagerModal({ gyms, onClose, onCreated }: { gyms: any[]; onClose
         </div>
         <p className="text-[11px] text-zinc-600 flex items-start gap-1.5">
           <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          Người quản lý xem và vận hành được chi nhánh được gán, nhưng KHÔNG xem được ví,
-          KHÔNG mời thêm người, và KHÔNG sửa được thương hiệu.
+          {roleInfo.blurb}
         </p>
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Huỷ</button>
           <button
             onClick={() => inviteMutation.mutate()}
-            disabled={!email.trim() || scopedGymIds.length === 0 || inviteMutation.isPending}
+            disabled={!email.trim() || (roleInfo.needsBranch && scopedGymIds.length === 0) || inviteMutation.isPending}
             className="flex-1 py-2 text-xs font-bold bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black rounded-lg"
           >
             {inviteMutation.isPending ? "Đang gửi..." : "Gửi lời mời"}

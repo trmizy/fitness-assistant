@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { logger } from '@gym-coach/shared';
 import { partnerRepository } from '../repositories/partner.repository';
 import type { PartnerAccountRole } from '../generated/prisma';
+import { roleRequiresBranchScope } from './partner-permissions';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -46,8 +47,8 @@ export const partnerInvitationService = {
     const scopedGymIds = params.scopedGymIds ?? [];
     // Cùng bất biến với GymPartnerAccount (CHECK constraint ở CSDL): một quản lý không
     // được gán chi nhánh nào là tài khoản đăng nhập được mà chẳng làm được gì.
-    if (params.role === 'MANAGER' && scopedGymIds.length === 0) {
-      throw err('Người quản lý phải được gán ít nhất một chi nhánh', 400);
+    if (roleRequiresBranchScope(params.role) && scopedGymIds.length === 0) {
+      throw err('Tài khoản quản lý/lễ tân phải được gán ít nhất một chi nhánh', 400);
     }
     // Mời thêm OWNER thứ hai là vô nghĩa: bất biến "đúng một OWNER đang hoạt động" sẽ
     // chặn lúc chấp nhận, tức là người được mời bấm vào link rồi mới báo lỗi.

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { partnerService, type PartnerContext } from '../services/partner.service';
+import { canAccessGym, hasAnyPermission, type PartnerPermission } from '../services/partner-permissions';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -109,3 +110,52 @@ export function requireGymScope(paramName = 'gymId') {
 export function principalId(req: Request): string {
   return req.partner?.principalUserId ?? req.user!.userId;
 }
+
+/**
+ * D15 — cổng quyền theo DANH MỤC (partner-permissions.ts), mặc định từ chối.
+ *
+ * `permissions` là "một trong" (any-of): route dùng chung giữa nhiều vai trò với phần dữ liệu khác nhau
+ * (vd danh sách hội viên: chủ/quản lý thấy đủ, lễ tân thấy hạn, kế toán thấy doanh số) liệt kê các quyền, và
+ * controller chọn cách hiển thị theo quyền CAO NHẤT mà vai trò có (staff-views.ts).
+ *
+ * `gymParam`: tên tham số route chứa id chi nhánh → kiểm phạm vi (canAccessGym). Vẫn phải để service gọi
+ * gymService.getOwnedGym để chứng minh chi nhánh thuộc ĐÚNG đối tác này; tầng này chỉ trả lời câu hỏi phạm vi.
+ *
+ * Middleware gắn nhãn `.permissions` để kiểm thử duyệt cây route và chứng minh KHÔNG route nào thiếu cổng.
+ */
+export function requirePermission(permission: PartnerPermission | readonly PartnerPermission[], opts: { gymParam?: string } = {}) {
+  const wanted: readonly PartnerPermission[] = Array.isArray(permission) ? permission : [permission as PartnerPermission];
+  const guard = (req: Request, res: Response, next: NextFunction): void => {
+    const ctx = req.partner;
+    if (!ctx) {
+      res.status(500).json({ success: false, error: { code: 'PARTNER_CONTEXT_MISSING', message: 'resolvePartnerContext chưa chạy' } });
+      return;
+    }
+    if (!hasAnyPermission(ctx.role, wanted)) {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: ctx.role === 'MANAGER' || ctx.role === 'OWNER' ? 'OWNER_ROLE_REQUIRED' : 'PERMISSION_DENIED',
+          message: 'Vai trò của bạn không có quyền dùng chức năng này',
+        },
+      });
+      return;
+    }
+    if (opts.gymParam) {
+      const gymId = req.params[opts.gymParam];
+      if (!gymId || !canAccessGym(ctx, gymId)) {
+        res.status(403).json({
+          success: false,
+          error: { code: 'GYM_OUT_OF_SCOPE', message: 'Bạn không được phân công chi nhánh này' },
+        });
+        return;
+      }
+    }
+    next();
+  };
+  (guard as unknown as { permissions: readonly PartnerPermission[] }).permissions = wanted;
+  return guard;
+}
+
+// requirePartnerOwner cũng là một cổng quyền có nhãn ("chỉ OWNER") — để cây route kiểm thử nhận ra nó.
+(requirePartnerOwner as unknown as { permissions: readonly string[] }).permissions = ['owner.only'];

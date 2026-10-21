@@ -22,7 +22,7 @@ import type {
  * file này không biên dịch được cho tới khi có người quyết định giá trị đó được phép làm gì.
  *
  * SUSPENDED / TERMINATED mã hoá đúng hệ quả hiện hành (GYM_PARTNER_SUSPENSION_CONSEQUENCES.md),
- * không đổi nghiệp vụ: tạm khoá chỉ khoá đăng nhập của OWNER, MANAGER vẫn làm việc; chấm dứt thì
+ * không đổi nghiệp vụ: tạm khoá chỉ khoá OWNER và ACCOUNTANT (dữ liệu tiền), MANAGER/RECEPTIONIST vẫn làm việc; chấm dứt thì
  * mọi tài khoản đã bị thu hồi.
  */
 
@@ -78,9 +78,17 @@ export function evaluateOperationalAccess(subject: AccessSubject): OperationalDe
     case 'ACTIVE':
       break;
     case 'SUSPENDED':
-      // Chỉ OWNER bị khoá; MANAGER giữ phạm vi vận hành như trước (hội viên, check-in).
-      if (subject.role === 'OWNER') {
-        return deny('PARTNER_SUSPENDED', 'Đối tác đang bị tạm khoá');
+      // Tạm khoá = "ngừng bán gói mới + đóng băng rút tiền" để điều tra: chủ sở hữu và KẾ TOÁN (chỉ đọc dữ
+      // liệu tiền) bị khoá; MANAGER và LỄ TÂN giữ phạm vi vận hành (hội viên còn hạn vẫn cần được phục vụ).
+      switch (subject.role) {
+        case 'OWNER':
+        case 'ACCOUNTANT':
+          return deny('PARTNER_SUSPENDED', 'Đối tác đang bị tạm khoá');
+        case 'MANAGER':
+        case 'RECEPTIONIST':
+          break;
+        default:
+          return assertNever(subject.role);
       }
       break;
     case 'TERMINATED':

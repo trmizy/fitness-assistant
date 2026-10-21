@@ -142,14 +142,15 @@ async function tryApply(c: Client, sql: string): Promise<string | null> {
 test.before(async () => {
   if (skip) return;
   assert.ok(NEW_DIR, 'migration *_amenity_catalog_listing_revisions not found');
-  assert.ok(dirs.indexOf(NEW_DIR) === dirs.length - 1, 'the new migration must be the newest one (timestamp rule)');
+  // D15 compat hunk: this used to demand that the amenity migration is the NEWEST one, which made every later (unrelated,
+  // additive) migration fail it. The legacy-shaped database is simply "every migration OLDER than the new one".
   await dropDb(PRE_DB);
   await dropDb(RUN_DB);
   await admin((c) => c.query(`CREATE DATABASE "${PRE_DB}"`));
   const c = await connectTo(PRE_DB);
   try {
     for (const dir of dirs) {
-      if (dir === NEW_DIR) continue;
+      if (dir >= NEW_DIR) continue;
       await c.query(fs.readFileSync(path.join(MIGRATIONS_DIR, dir, 'migration.sql'), 'utf8'));
     }
     await c.query(FIXTURES);

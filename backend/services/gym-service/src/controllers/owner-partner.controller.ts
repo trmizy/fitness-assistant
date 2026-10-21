@@ -5,6 +5,12 @@ import { partnerRepository } from '../repositories/partner.repository';
 import { authClient } from '../clients/auth.client';
 import { principalId } from '../middleware/partner-context.middleware';
 
+const ROLE_EMAIL_LABEL: Record<string, string> = {
+  MANAGER: 'quản lý chi nhánh',
+  RECEPTIONIST: 'lễ tân',
+  ACCOUNTANT: 'kế toán (chỉ xem)',
+};
+
 function fail(res: Response, e: any) {
   res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
 }
@@ -49,8 +55,8 @@ export const ownerPartnerController = {
       if (!target || target.partnerId !== req.partner!.partnerId) {
         throw Object.assign(new Error('Không tìm thấy tài khoản trong đối tác của bạn'), { status: 404 });
       }
-      if (target.role !== 'MANAGER') {
-        throw Object.assign(new Error('Chỉ thu hồi được tài khoản quản lý — chuyển quyền sở hữu trước nếu cần đổi chủ'), { status: 403 });
+      if (target.role === 'OWNER') {
+        throw Object.assign(new Error('Không thu hồi được tài khoản chủ sở hữu — chuyển quyền sở hữu trước nếu cần đổi chủ'), { status: 403 });
       }
       const account = await partnerService.revokeAccount(target.id, principalId(req), req.body?.reason);
       await authClient.revokeSessions(account.userId).catch(() => null);
@@ -67,18 +73,20 @@ export const ownerPartnerController = {
 
   async inviteManager(req: Request, res: Response) {
     try {
-      const { email, scopedGymIds } = req.body ?? {};
-      const { invitation, rawToken } = await partnerService.inviteManager(
+      // `role` mặc định MANAGER để client cũ (chỉ gửi email + scopedGymIds) chạy y như trước.
+      const { email, scopedGymIds, role = 'MANAGER' } = req.body ?? {};
+      const { invitation, rawToken } = await partnerService.inviteStaff(
         req.partner!.partnerId!,
         principalId(req),
-        { email, scopedGymIds },
+        { email, role, scopedGymIds },
         principalId(req),
       );
       const link = `${appBaseUrl(req)}/partner/invite/${rawToken}`;
+      const label = ROLE_EMAIL_LABEL[invitation.role] ?? 'thành viên';
       const emailed = await authClient.sendEmail({
         to: invitation.email,
-        subject: 'Lời mời quản lý chi nhánh phòng tập',
-        text: `Bạn được mời làm quản lý chi nhánh. Mở liên kết sau để tự đặt mật khẩu:\n\n${link}\n\nHiệu lực đến ${invitation.expiresAt.toLocaleString('vi-VN')}.`,
+        subject: `Lời mời làm ${label} phòng tập`,
+        text: `Bạn được mời làm ${label}. Mở liên kết sau để tự đặt mật khẩu:\n\n${link}\n\nHiệu lực đến ${invitation.expiresAt.toLocaleString('vi-VN')}.`,
       });
       res.status(201).json({ success: true, data: { invitation, inviteLink: link, emailSent: emailed } });
     } catch (e: any) {

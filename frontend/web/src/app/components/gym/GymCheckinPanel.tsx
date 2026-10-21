@@ -26,7 +26,7 @@ const timeAgo = (iso: string) =>
  * needs no scanner hardware and no camera permission — and the member's identity comes
  * from their logged-in session rather than from anything encoded in this image.
  */
-export function GymCheckinPanel({ gymId }: { gymId: string }) {
+export function GymCheckinPanel({ gymId, showPtCheckins = true }: { gymId: string; showPtCheckins?: boolean }) {
   const { user } = useApp();
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
@@ -51,6 +51,8 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
   // it never feeds a member count and carries no client identity (gym-service guarantees that).
   const { data: ptCheckins = [], isError: ptCheckinsError } = useQuery({
     queryKey: ["gym-pt-checkins", user?.id ?? "guest", gymId],
+    // D15: lễ tân không có quyền xem lượt vào của PT (server trả 403) → không gọi, không hiện khối này.
+    enabled: showPtCheckins,
     refetchInterval: 10000,
     queryFn: async () => normalizeOwnerPtCheckins(await gymService.listPtCheckins(gymId)),
   });
@@ -133,6 +135,7 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
         </div>
       </div>
 
+      {showPtCheckins && (
       <div className="border-t border-zinc-800/60 pt-4">
         <div className="text-[11px] text-zinc-600 uppercase tracking-wide mb-2">
           Huấn luyện viên đã check-in
@@ -158,6 +161,7 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Blown up so a phone can read it from across the desk. */}
       {fullscreen && dataUrl && (

@@ -3,6 +3,7 @@ import { logger } from '@gym-coach/shared';
 import { checkinService } from '../services/checkin.service';
 import { ptCheckinService } from '../services/pt-checkin.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { checkinsFor } from '../services/staff-views';
 
 // Typed check-in outcomes → HTTP status; the UI shows a friendly message per code.
 const CODE_STATUS: Record<string, number> = {
@@ -90,7 +91,7 @@ export const checkinController = {
     try {
       const ownerId = principalId(req);
       const list = await checkinService.listForGym(req.params.gymId, ownerId);
-      res.json({ success: true, data: list });
+      res.json({ success: true, data: req.partner ? checkinsFor(req.partner.role, list) : list });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

@@ -878,7 +878,9 @@ exports.PartnerBusinessScale = exports.$Enums.PartnerBusinessScale = {
 
 exports.PartnerAccountRole = exports.$Enums.PartnerAccountRole = {
   OWNER: 'OWNER',
-  MANAGER: 'MANAGER'
+  MANAGER: 'MANAGER',
+  RECEPTIONIST: 'RECEPTIONIST',
+  ACCOUNTANT: 'ACCOUNTANT'
 };
 
 exports.PartnerAccountStatus = exports.$Enums.PartnerAccountStatus = {

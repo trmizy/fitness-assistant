@@ -209,7 +209,7 @@ export function MyGymsPage() {
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const isOwner = onboardingStatus?.role !== "MANAGER";
+  const isOwner = (onboardingStatus?.role ?? "OWNER") === "OWNER";
 
   const isLoading = gymsLoading || brandsLoading;
   const needsBrandSetup = !isLoading && brands.length === 0;

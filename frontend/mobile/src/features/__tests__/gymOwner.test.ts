@@ -30,6 +30,7 @@ import {
   isApplicant,
   isBrandOwner,
   isManagerAccount,
+  staffRoleOf,
   memberLabel,
   membershipMix,
   needsBrandFirst,
@@ -109,6 +110,8 @@ describe("access state gate", () => {
   it("only a MANAGER loses the brand controls — anything else is treated as the owner", () => {
     assert.equal(isBrandOwner({ role: "OWNER" }), true);
     assert.equal(isBrandOwner({ role: "MANAGER" }), false);
+    assert.equal(isBrandOwner({ role: "RECEPTIONIST" }), false);
+    assert.equal(isBrandOwner({ role: "ACCOUNTANT" }), false);
     // Status not loaded yet: web shows the owner controls, and the server refuses a manager
     // anyway — so the default must match web rather than hiding a real owner's own buttons.
     assert.equal(isBrandOwner(undefined), true);
@@ -116,6 +119,10 @@ describe("access state gate", () => {
 
   it("isManagerAccount is only true once the status says MANAGER (owner-only money/collab surfaces)", () => {
     assert.equal(isManagerAccount({ role: "MANAGER" }), true);
+    assert.equal(isManagerAccount({ role: "RECEPTIONIST" }), true);
+    assert.equal(isManagerAccount({ role: "ACCOUNTANT" }), true);
+    assert.equal(staffRoleOf({ role: "ACCOUNTANT" }), "ACCOUNTANT");
+    assert.equal(staffRoleOf({ role: "FACILITY_STAFF" }), null);
     assert.equal(isManagerAccount({ role: "OWNER" }), false);
     assert.equal(isManagerAccount(undefined), false);
   });

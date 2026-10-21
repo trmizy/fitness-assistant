@@ -118,7 +118,9 @@ export function accessStateText(state: PartnerAccessState | null | undefined) {
  * controls are hidden rather than shown and then 403'd (GYM_MANAGEMENT master spec §61).
  */
 export function isBrandOwner(onboardingStatus: unknown): boolean {
-  return (onboardingStatus as any)?.role !== "MANAGER";
+  const role = (onboardingStatus as any)?.role;
+  // D15: only the OWNER names the brand / adds a branch — manager, receptionist and accountant all lose the controls.
+  return role == null || role === "OWNER";
 }
 
 /**
@@ -127,7 +129,15 @@ export function isBrandOwner(onboardingStatus: unknown): boolean {
  * them from a manager's nav): hide them instead of showing a load error.
  */
 export function isManagerAccount(onboardingStatus: unknown): boolean {
-  return (onboardingStatus as any)?.role === "MANAGER";
+  const role = (onboardingStatus as any)?.role;
+  // D15: receptionist and accountant are narrower than a manager, so they hide at least the same owner-only surfaces.
+  return role === "MANAGER" || role === "RECEPTIONIST" || role === "ACCOUNTANT";
+}
+
+/** D15 narrow roles — they get a reduced workspace tab bar (see app/gym-owner/_layout.tsx). */
+export function staffRoleOf(onboardingStatus: unknown): "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT" | null {
+  const role = (onboardingStatus as any)?.role;
+  return role === "OWNER" || role === "MANAGER" || role === "RECEPTIONIST" || role === "ACCOUNTANT" ? role : null;
 }
 
 // ── Branches ───────────────────────────────────────────────────────────────────────────────

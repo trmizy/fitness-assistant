@@ -6,6 +6,8 @@ import { LISTING_REVIEW_REQUIRED, sendListingReviewRequired } from '../services/
 import { ListingError, MIN_ADMIN_REASON_LENGTH } from '../services/gym-listing.schemas';
 import { sendListingError } from './gym-listing.controller';
 import { listingCompatOf } from '../services/legacy-compat.service';
+import { filterByScope } from '../services/partner-permissions';
+import { branchInfoFor } from '../services/staff-views';
 
 export const gymController = {
   async listPublic(_req: Request, res: Response) {
@@ -41,20 +43,19 @@ export const gymController = {
   async listOwned(req: Request, res: Response) {
     const ownerId = principalId(req);
     const gyms = await gymService.listOwned(ownerId);
-    // Người quản lý chỉ thấy chi nhánh được phân công. Lọc ở đây chứ không ở truy vấn vì
-    // gymService.listOwned là đường dùng chung với chủ sở hữu (và với cả tầng nội bộ) —
-    // phạm vi là chuyện của người gọi, không phải của kho dữ liệu.
+    // Mọi vai trò khác chủ sở hữu chỉ thấy chi nhánh trong phạm vi (kế toán để trống = cả thương hiệu). Lọc ở
+    // đây chứ không ở truy vấn vì gymService.listOwned là đường dùng chung với chủ sở hữu (và với cả tầng nội
+    // bộ) — phạm vi là chuyện của người gọi, không phải của kho dữ liệu. Lễ tân/kế toán nhận bản rút gọn.
     const ctx = req.partner;
-    const visible =
-      ctx && ctx.role === 'MANAGER' ? gyms.filter((g: { id: string }) => ctx.scopedGymIds.includes(g.id)) : gyms;
-    res.json({ success: true, data: visible });
+    const visible = ctx ? filterByScope(ctx, gyms) : gyms;
+    res.json({ success: true, data: ctx ? visible.map((g: any) => branchInfoFor(ctx.role, g)) : visible });
   },
 
   async getOwnedById(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
       const gym = await gymService.getOwnedGym(req.params.id, ownerId);
-      res.json({ success: true, data: gym });
+      res.json({ success: true, data: req.partner ? branchInfoFor(req.partner.role, gym) : gym });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

@@ -5815,7 +5815,8 @@ export const gymService = {
     const { data } = await api.get('/owner/partner-invitations');
     return data?.data ?? data;
   },
-  inviteManager: async (payload: { email: string; scopedGymIds: string[] }) => {
+  // D15: `role` MANAGER (mặc định, như client cũ) | RECEPTIONIST | ACCOUNTANT. Kế toán có thể để trống chi nhánh = cả thương hiệu.
+  inviteManager: async (payload: { email: string; scopedGymIds?: string[]; role?: 'MANAGER' | 'RECEPTIONIST' | 'ACCOUNTANT' }) => {
     const { data } = await api.post('/owner/partner-invitations', payload);
     return data?.data ?? data;
   },

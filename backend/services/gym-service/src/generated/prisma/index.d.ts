@@ -520,7 +520,9 @@ export type PartnerBusinessScale = (typeof PartnerBusinessScale)[keyof typeof Pa
 
 export const PartnerAccountRole: {
   OWNER: 'OWNER',
-  MANAGER: 'MANAGER'
+  MANAGER: 'MANAGER',
+  RECEPTIONIST: 'RECEPTIONIST',
+  ACCOUNTANT: 'ACCOUNTANT'
 };
 
 export type PartnerAccountRole = (typeof PartnerAccountRole)[keyof typeof PartnerAccountRole]
