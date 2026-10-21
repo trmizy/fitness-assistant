@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef } from "react";
-import { AppState, Platform } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, Linking, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { router, usePathname, useRootNavigationState } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
 import { notificationService } from "../../services/api";
 import { notificationsKey, unreadCountKey } from "../notifications/useNotifications";
+import { Preferences } from "../../services/storage";
 import { registerPushToken } from "./pushDevice";
+import { decidePushPermission, PUSH_ASKED_KEY } from "./pushPermission";
 import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen, type PushData } from "./pushRouting";
 
 /** Must match ANDROID_CHANNEL_ID in user-service push.service.ts. */
@@ -56,6 +58,26 @@ export function PushManager() {
     signedInUserId = userId;
   }, [userId]);
 
+  // Was the app cold-started by a deep link (e.g. the payment return)? null = not known yet.
+  const [launchedByLink, setLaunchedByLink] = useState<boolean | null>(null);
+  const landingPath = useRef<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    Linking.getInitialURL()
+      .then((url) => alive && setLaunchedByLink(!!url))
+      .catch(() => alive && setLaunchedByLink(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  // The first real screen after the splash redirect — where a deep link landed the user.
+  if (landingPath.current === null && navigationReady) landingPath.current = pathname;
+  const onDeepLinkLanding = launchedByLink === true && pathname === landingPath.current;
+
+  // Permission still to be asked (never asked, askable) but not allowed on the current screen yet.
+  const [promptPending, setPromptPending] = useState(false);
+  const prompting = useRef(false);
+
   // Register this phone for the signed-in account.
   useEffect(() => {
     if (!userId || Platform.OS !== "android") return;
@@ -67,10 +89,22 @@ export function PushManager() {
           importance: Notifications.AndroidImportance.HIGH,
         });
         const current = await Notifications.getPermissionsAsync();
-        const granted = current.granted || (current.canAskAgain && (await Notifications.requestPermissionsAsync()).granted);
-        if (!granted || cancelled) return;
-        const { data } = await Notifications.getDevicePushTokenAsync();
-        if (!cancelled && typeof data === "string") await registerPushToken(data);
+        const asked = (await Preferences.get({ key: PUSH_ASKED_KEY })).value != null;
+        if (cancelled) return;
+        const decision = decidePushPermission({
+          granted: current.granted,
+          canAskAgain: current.canAskAgain,
+          askedBefore: asked,
+          pathname: "",
+          onDeepLinkLanding: false,
+        });
+        if (decision === "register") {
+          const { data } = await Notifications.getDevicePushTokenAsync();
+          if (!cancelled && typeof data === "string") await registerPushToken(data);
+        } else if (decision === "defer") {
+          // askable and never asked — the dialog waits for a normal screen (effect below)
+          setPromptPending(true);
+        }
       } catch (err) {
         // No Google Play services, no network, FCM hiccup — push is a nudge, never a blocker.
         console.warn("[push] registration skipped", err);
@@ -81,9 +115,40 @@ export function PushManager() {
     });
     return () => {
       cancelled = true;
+      setPromptPending(false);
       rotation.remove();
     };
   }, [userId]);
+
+  // Ask at most once per install, and only on a normal screen: never over the payment result or on
+  // the screen a deep link cold-started us on (the dialog used to stack on top of the result on every
+  // cold start). The flag is saved BEFORE the dialog so a crash/kill mid-dialog cannot make it loop.
+  useEffect(() => {
+    if (!userId || !promptPending || launchedByLink === null || prompting.current) return;
+    const decision = decidePushPermission({
+      granted: false,
+      canAskAgain: true,
+      askedBefore: false,
+      pathname,
+      onDeepLinkLanding,
+    });
+    if (decision !== "prompt") return;
+    prompting.current = true;
+    setPromptPending(false);
+    void (async () => {
+      try {
+        await Preferences.set({ key: PUSH_ASKED_KEY, value: String(Date.now()) });
+        const result = await Notifications.requestPermissionsAsync();
+        if (!result.granted) return;
+        const { data } = await Notifications.getDevicePushTokenAsync();
+        if (typeof data === "string") await registerPushToken(data);
+      } catch (err) {
+        console.warn("[push] permission request skipped", err);
+      } finally {
+        prompting.current = false;
+      }
+    })();
+  }, [userId, promptPending, launchedByLink, pathname, onDeepLinkLanding]);
 
   const openPendingTap = useCallback(() => {
     const data = pendingTap.current;
