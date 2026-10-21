@@ -16,6 +16,8 @@ import { notificationService } from "../services/notification.service";
 import { patch } from "./pt-restriction.test-helpers";
 import { startApp, tokenFor, type App } from "./pt-contract-scope.test-helpers";
 import { cleanupListingPts, makePackage, makePublicPt } from "./pt-listing.test-helpers";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 const MESSAGE = "Thay đổi này cần gửi duyệt. Hãy cập nhật ứng dụng để dùng mục Tin đăng.";
 

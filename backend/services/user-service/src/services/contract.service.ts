@@ -77,6 +77,12 @@ export const CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES = (() => {
   return Number.isFinite(n) && n > 0 ? n : 60;
 })();
 
+/** D13 (owner decision pending): CHECKOUT_EXTENSION_ONCE=true -> a contract's payment deadline is extended by a checkout AT MOST ONCE.
+ * Default OFF (today's unlimited extension). Only the exact string "true" turns it on; read on every call so tests and ops can flip it. */
+export function checkoutExtensionOnce(): boolean {
+  return process.env.CHECKOUT_EXTENSION_ONCE === "true";
+}
+
 /** Giá trị `paymentDueAt` cho một hợp đồng vừa vào PENDING_PAYMENT lúc `from`. Mọi đường đi vào
  * PENDING_PAYMENT (PT chấp nhận, webhook ký xong, admin bỏ qua e-sign) phải đặt cột này. */
 export function computePaymentDueAt(from: Date = new Date()): Date {
@@ -420,6 +426,71 @@ async function isUserActive(userId: string): Promise<boolean> {
   }
 }
 
+/** Account-status codes on the contract paths (Codex #4). */
+export const ACCOUNT_STATUS_UNAVAILABLE = "ACCOUNT_STATUS_UNAVAILABLE";
+export const ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE";
+
+function accountStatusUnavailable() {
+  return codedErr(
+    "Chưa xác minh được trạng thái tài khoản lúc này, vui lòng thử lại sau ít phút",
+    503,
+    ACCOUNT_STATUS_UNAVAILABLE,
+  );
+}
+function accountInactive() {
+  return codedErr(
+    "Không thể tạo hoặc chấp nhận hợp đồng vì một trong hai tài khoản hiện không hoạt động",
+    403,
+    ACCOUNT_INACTIVE,
+  );
+}
+
+/**
+ * Codex #4 - both parties of a NEW contract must be active accounts, asked of auth-service, and the answer must be an answer:
+ * unreachable / timeout / 5xx / rejected service secret -> 503 ACCOUNT_STATUS_UNAVAILABLE (never "assume active"); a deactivated
+ * (banned) account -> 403 ACCOUNT_INACTIVE. Called before anything is written. Deliberately NOT used by createMarketplaceContract:
+ * that runs after the order is paid, and refusing there would strand the money.
+ */
+async function assertContractPartiesActive(userIds: string[]): Promise<void> {
+  let results: boolean[];
+  try {
+    results = await Promise.all(userIds.map((id) => isUserActive(id)));
+  } catch (e) {
+    if (e instanceof AuthServiceUnavailableError) throw accountStatusUnavailable();
+    throw e;
+  }
+  if (results.some((active) => active === false)) throw accountInactive();
+}
+
+/**
+ * auth-service's record of an account (e-mail, name, isActive) for acceptContract, which needs the e-mails anyway - one lookup
+ * per party, so the active check and the e-mail come from the same answer. STRICT, unlike getUserInfo: an outage is a 503 (the
+ * lookup used to collapse into null and surface as a misleading 500 "account not found"); only "auth-service has no such user"
+ * (404) returns null.
+ */
+async function getUserInfoStrict(userId: string): Promise<{
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  isActive: boolean;
+} | null> {
+  try {
+    const { data } = await authServiceClient.internalGet(`/auth/internal/users/${userId}`, { timeoutMs: 3000 });
+    const u = data?.user;
+    if (!u?.email) return null;
+    return {
+      email: u.email,
+      firstName: u.firstName ?? null,
+      lastName: u.lastName ?? null,
+      isActive: typeof u.isActive === "boolean" ? u.isActive : true, // pre-migration: no column yet
+    };
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null;
+    logger.warn({ status: e?.response?.status, code: e?.code }, "getUserInfoStrict: auth-service lookup failed - failing closed");
+    throw accountStatusUnavailable();
+  }
+}
+
 export const contractService = {
   // ── Client requests a contract with a PT ─────────────────────────
   //
@@ -604,6 +675,9 @@ export const contractService = {
     //    carries the NEW ones - never new terms with an old version (or the reverse). The slow checks above
     //    (availability, gym collaboration, membership) deliberately stay outside; only the version check and the
     //    snapshot live in here.
+    // Codex #4: both accounts must be active, and auth-service must actually have said so. Nothing has been written yet.
+    await assertContractPartiesActive([clientUserId, data.ptUserId]);
+
     const ptHoldbackRate = await resolvePtHoldbackRate(data.ptUserId);
     const contract = await prisma.$transaction(async (tx) => {
       // BR-27 race guard. The pre-check at step 5 is a fast refusal, not a guarantee: two concurrent requests
@@ -760,10 +834,13 @@ export const contractService = {
     await assertGymStillAcceptsContract(contract);
 
     // 1. Fetch real emails + names (fail-fast: e-sign requires real emails)
+    //    Codex #4: the same lookup tells us whether either account is deactivated; an auth-service outage is a 503 and
+    //    nothing has been claimed or written yet.
     const [ptInfo, clientInfo] = await Promise.all([
-      getUserInfo(ptUserId),
-      getUserInfo(contract.clientUserId),
+      getUserInfoStrict(ptUserId),
+      getUserInfoStrict(contract.clientUserId),
     ]);
+    if (ptInfo?.isActive === false || clientInfo?.isActive === false) throw accountInactive();
     if (!ptInfo?.email)
       throw err("PT account not found or email unavailable", 500);
     if (!clientInfo?.email)
@@ -1752,7 +1829,11 @@ export const contractService = {
     if (contract.paymentDueAt) {
       try {
         const extendTo = new Date(Date.now() + CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES * 60 * 1000);
-        await contractRepository.extendPaymentDueAt(contract.id, extendTo);
+        const once = checkoutExtensionOnce();
+        const { count } = await contractRepository.extendPaymentDueAt(contract.id, extendTo, { once });
+        if (once && count === 0 && contract.paymentDueAt.getTime() < extendTo.getTime()) {
+          logger.info({ contractId: contract.id }, "pay: payment deadline NOT extended again (CHECKOUT_EXTENSION_ONCE: one extension per contract)");
+        }
       } catch (e) {
         logger.error(
           { contractId: contract.id, err: (e as Error)?.message },

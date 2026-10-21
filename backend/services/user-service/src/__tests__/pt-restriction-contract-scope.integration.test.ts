@@ -45,6 +45,8 @@ import {
   tokenFor,
   type App,
 } from "./pt-contract-scope.test-helpers";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 let app: App;
 test.before(async () => {

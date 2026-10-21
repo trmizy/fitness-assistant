@@ -18,7 +18,10 @@ import {
   projectedContractEnd,
   MEMBERSHIP_REQUIRED,
   MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
+  OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
 } from "../services/contract-gym-membership.service";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 /**
  * Phase 3 / slice P3.3 (owner decision D67): requestContract refuses a gym contract unless the
@@ -269,11 +272,39 @@ dbTest("membership without an end date never ends: covers any contract length", 
   });
 });
 
-dbTest("contract with no expiry (package validityDays null): any active membership is enough - coverage is not invented", async () => {
+dbTest("[Codex #6] open-ended contract (package validityDays null) + an EXPIRING membership: refused 409 OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN, no contract row", async () => {
   const m = mem({ endDate: iso(Date.now() + 2 * DAY) });
+  await inWorld({ memberships: [m], validityDays: null }, async (w) => {
+    await assert.rejects(
+      () => request(w, "gym-a1"),
+      (e: any) =>
+        e.status === 409 &&
+        e.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN &&
+        /không có thời hạn cố định/.test(e.message) &&
+        e.details.gymId === "gym-a1" &&
+        e.details.membershipEndDate === m.endDate &&
+        e.details.contractEndDate === null,
+    );
+    assert.equal(await prisma.contract.count({ where: { ptUserId: w.ptUserId, clientUserId: w.clientUserId } }), 0, "nothing written");
+  });
+});
+
+dbTest("[Codex #6] open-ended contract + an UNLIMITED membership (no end date): allowed, membership snapshotted", async () => {
+  const m = mem({ endDate: null });
   await inWorld({ memberships: [m], validityDays: null }, async (w) => {
     const c = await request(w, "gym-a1");
     assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).gymMembershipId, m.id);
+  });
+});
+
+dbTest("[Codex #6] open-ended contract: even a very long expiring membership does not prove coverage (refused); a time-limited contract still passes", async () => {
+  const long = mem({ endDate: iso(Date.now() + 3650 * DAY) });
+  await inWorld({ memberships: [long], validityDays: null }, async (w) => {
+    await assert.rejects(() => request(w, "gym-a1"), (e: any) => e.status === 409 && e.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN);
+  });
+  await inWorld({ memberships: [long], validityDays: 90 }, async (w) => {
+    const c = await request(w, "gym-a1");
+    assert.ok(c.id);
   });
 });
 
@@ -362,7 +393,7 @@ interface MatrixCase {
   memberships: () => FakeMembership[];
   validityDays?: number | null;
   gymId: string;
-  expect: "ok" | typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT;
+  expect: "ok" | typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT | typeof OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN;
 }
 const MATRIX: MatrixCase[] = [
   { name: "no membership", memberships: () => [], gymId: "gym-a1", expect: MEMBERSHIP_REQUIRED },
@@ -375,7 +406,8 @@ const MATRIX: MatrixCase[] = [
   { name: "longer", memberships: () => [mem({ endDate: iso(Date.now() + 90 * DAY) })], gymId: "gym-a1", expect: "ok" },
   { name: "sibling branch", memberships: () => [mem({ purchaseGymId: "gym-a1" })], gymId: "gym-a2", expect: "ok" },
   { name: "no end date", memberships: () => [mem({ endDate: null })], gymId: "gym-a1", expect: "ok" },
-  { name: "contract without expiry", memberships: () => [mem({ endDate: iso(Date.now() + 2 * DAY) })], validityDays: null, gymId: "gym-a1", expect: "ok" },
+  { name: "open-ended contract, expiring membership", memberships: () => [mem({ endDate: iso(Date.now() + 2 * DAY) })], validityDays: null, gymId: "gym-a1", expect: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN },
+  { name: "open-ended contract, unlimited membership", memberships: () => [mem({ endDate: null })], validityDays: null, gymId: "gym-a1", expect: "ok" },
   {
     name: "short newest + long older",
     memberships: () => [mem({ endDate: iso(Date.now() + 10 * DAY), purchaseGymId: "gym-a2" }), mem({ endDate: iso(Date.now() + 100 * DAY) })],
@@ -400,11 +432,14 @@ dbTest("gym-options eligibility equals the requestContract outcome for every cas
         outcome = e.code ?? `HTTP_${e.status}`;
       }
       assert.equal(outcome, c.expect, `${c.name}: requestContract`);
-      assert.deepEqual(
-        opt.eligibility,
-        c.expect === "ok" ? { canRequest: true, reason: null } : { canRequest: false, reason: c.expect },
-        `${c.name}: eligibility`,
-      );
+      // The picker reports the open-ended refusal under the reason the shipped clients render (DOES_NOT_COVER) + the specific detailCode.
+      const expectedEligibility =
+        c.expect === "ok"
+          ? { canRequest: true, reason: null }
+          : c.expect === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN
+            ? { canRequest: false, reason: MEMBERSHIP_DOES_NOT_COVER_CONTRACT, detailCode: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN }
+            : { canRequest: false, reason: c.expect };
+      assert.deepEqual(opt.eligibility, expectedEligibility, `${c.name}: eligibility`);
       assert.equal(opt.eligibility.canRequest, outcome === "ok", `${c.name}: canRequest == request succeeded`);
     });
   }
@@ -430,7 +465,11 @@ nodeTest("evaluateMembershipForContract: injected clock - the day boundary and t
   assert.equal(verdict(at(61), 60).ok, true, "longer -> allowed");
   assert.equal(verdict(null, 60).ok, true, "no end date -> allowed");
   assert.equal(verdict("not-a-date", 60).ok, false, "unreadable end date -> cannot prove coverage -> blocked");
-  assert.equal(verdict(at(1), null).ok, true, "contract with no expiry -> any active membership");
+  assert.equal(verdict(at(1), null).ok, false, "open-ended contract + expiring membership -> not proven -> refused (Codex #6)");
+  const openEnded = verdict(at(1), null);
+  assert.ok(!openEnded.ok && openEnded.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN && openEnded.details.contractEndDate === null);
+  assert.equal(verdict(null, null).ok, true, "open-ended contract + unlimited membership -> allowed");
+  assert.equal(verdict("not-a-date", null).ok, false, "open-ended contract + unreadable end date -> not unlimited -> refused");
   const short = verdict(at(10), 60);
   assert.ok(!short.ok && short.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT);
   assert.equal(!short.ok && short.details.contractEndDate, iso(now.getTime() + 60 * DAY));

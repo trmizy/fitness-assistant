@@ -257,16 +257,21 @@ export const contractRepository = {
    * PENDING_PAYMENT, unpaid and its current deadline is EARLIER than `to` — so it can never pull a
    * deadline back, never revives a CANCELLED contract, and never gives a deadline to a legacy row
    * that has none (NULL does not match `lt`). Racing the sweep, exactly one wins.
+   *
+   * D13: every extension that really moves the deadline stamps payment_deadline_extended_at. With `{ once: true }`
+   * (CHECKOUT_EXTENSION_ONCE) the same statement also requires that column to be NULL, so a contract is extended AT MOST ONCE
+   * and two simultaneous callers cannot both win - the database arbitrates, not the caller.
    */
-  extendPaymentDueAt: (id: string, to: Date) =>
+  extendPaymentDueAt: (id: string, to: Date, opts: { once?: boolean } = {}) =>
     prisma.contract.updateMany({
       where: {
         id,
         status: ContractStatus.PENDING_PAYMENT,
         paymentTransactionId: null,
         paymentDueAt: { lt: to },
+        ...(opts.once ? { paymentDeadlineExtendedAt: null } : {}),
       },
-      data: { paymentDueAt: to },
+      data: { paymentDueAt: to, paymentDeadlineExtendedAt: new Date() },
     }),
 
   /**

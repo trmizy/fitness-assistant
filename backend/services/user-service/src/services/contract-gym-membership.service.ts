@@ -18,19 +18,33 @@ import type { ClientMembershipLookup } from "../clients/gym.client";
  *      contract would end (10 days left vs a 60-day contract -> blocked; 60 vs 60 -> allowed;
  *      longer -> allowed). Nothing is bought, renewed or paid automatically.
  *
- * Not decided, therefore NOT enforced here (see S_p3_3.md): a membership visit limit vs the
- * contract's session count; a contract with no expiry (validityDays null).
+ *   3. OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN (owner rule, Codex #6) - the contract has NO fixed duration
+ *      (the package has validityDays null) and the membership has an end date. An open-ended contract can outlive any
+ *      expiring membership, so coverage cannot be proven: refused (409). A membership with NO end date (unlimited) still
+ *      passes, and contracts with a validityDays keep rule 2. The picker keeps reporting reason
+ *      MEMBERSHIP_DOES_NOT_COVER_CONTRACT for this case (the only reason the shipped clients render) and adds
+ *      `detailCode` with the specific one.
+ *
+ * Not decided, therefore NOT enforced here (see S_p3_3.md): a membership visit limit vs the contract's session count.
  */
 
 export const MEMBERSHIP_REQUIRED = "MEMBERSHIP_REQUIRED";
 export const MEMBERSHIP_DOES_NOT_COVER_CONTRACT = "MEMBERSHIP_DOES_NOT_COVER_CONTRACT";
 
-export type MembershipIneligibleReason = typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT;
+export const OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN = "OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN";
+
+export type MembershipIneligibleReason =
+  | typeof MEMBERSHIP_REQUIRED
+  | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT
+  | typeof OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN;
 
 /** What `GET /contracts/gym-options` carries per gym. Computed here only. */
 export interface GymContractEligibility {
   canRequest: boolean;
-  reason: MembershipIneligibleReason | null;
+  /** One of the two reasons the shipped clients know; the open-ended refusal is reported as DOES_NOT_COVER (see `detailCode`). */
+  reason: typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT | null;
+  /** Present only for the open-ended refusal: the specific code the request itself answers with. */
+  detailCode?: typeof OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -124,7 +138,16 @@ export function evaluateMembershipForContract(input: {
   for (const c of candidates) if (endMs(c.endDate) > endMs(best.endDate)) best = c;
 
   const contractEnd = projectedContractEnd(now, validityDays);
-  const covers = validityDays == null || daysLeft(best.endDate, now) >= validityDays;
+  // Open-ended contract (validityDays null): only a membership with NO end date is proven to cover it.
+  const openEnded = validityDays == null;
+  if (openEnded && best.endDate != null) {
+    return {
+      ok: false,
+      code: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
+      details: { gymId, brandId, membershipEndDate: best.endDate, contractEndDate: null },
+    };
+  }
+  const covers = openEnded || daysLeft(best.endDate, now) >= validityDays!;
   if (!covers) {
     return {
       ok: false,
@@ -146,7 +169,11 @@ export function evaluateMembershipForContract(input: {
 }
 
 export function toGymContractEligibility(result: MembershipEligibility): GymContractEligibility {
-  return result.ok ? { canRequest: true, reason: null } : { canRequest: false, reason: result.code };
+  if (result.ok) return { canRequest: true, reason: null };
+  if (result.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN) {
+    return { canRequest: false, reason: MEMBERSHIP_DOES_NOT_COVER_CONTRACT, detailCode: OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN };
+  }
+  return { canRequest: false, reason: result.code };
 }
 
 function codedErr(message: string, status: number, code: string, details?: Record<string, unknown>) {
@@ -188,6 +215,14 @@ export async function assertClientMayRequestGymContract(input: {
       "Bạn cần có gói hội viên còn hiệu lực tại thương hiệu phòng gym này để tập với PT tại đây",
       422,
       MEMBERSHIP_REQUIRED,
+      result.details,
+    );
+  }
+  if (result.code === OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN) {
+    throw codedErr(
+      "Gói PT này không có thời hạn cố định, còn gói hội viên của bạn sẽ hết hạn nên không thể đảm bảo bạn được tập tại phòng gym suốt thời gian hợp đồng — hãy chọn gói PT có thời hạn cụ thể, hoặc dùng gói hội viên không giới hạn thời gian",
+      409,
+      OPEN_ENDED_CONTRACT_MEMBERSHIP_UNPROVEN,
       result.details,
     );
   }

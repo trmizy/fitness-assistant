@@ -55,7 +55,8 @@ test("suspension: the PT and EVERY client with an ACTIVE paid contract are told,
   const clientB = randomUUID();
   const clientC = randomUUID();
   const B = await makeContract(pt, { clientUserId: clientB, packageName: "Gói B" });
-  const B2 = await makeContract(pt, { clientUserId: clientB, packageName: "Gói B2" }); // same client, second contract → second notice
+  // same client, second contract → second notice. BR-27 (unique index) allows only one live non-marketplace contract per pair, so the second is a paid marketplace (personalised-service) contract
+  const B2 = await makeContract(pt, { clientUserId: clientB, packageName: "Gói B2", source: "MARKETPLACE" });
   const C = await makeContract(pt, { clientUserId: clientC, packageName: "Gói C" }); // no upcoming session at all
   const pending = await makeContract(pt, { status: "PENDING_PAYMENT", paymentTransactionId: null, startDate: null, endDate: null });
   const unpaid = await makeContract(pt, { paymentTransactionId: null });

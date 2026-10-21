@@ -18,6 +18,8 @@ import { availabilityService } from "../services/availability.service";
 import { notificationService } from "../services/notification.service";
 import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
 import { stubSessionSettlements } from "./session-settlement-memory.stub";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 // pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
 stubPtRestrictionReads();

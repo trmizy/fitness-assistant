@@ -574,9 +574,12 @@ test("the contract reads carry canExitWithoutPenalty from the same central rule 
   const otherPt = await makePt();
   const client = randomUUID();
   const live = await makeContract(pt, { clientUserId: client });
-  const unpaid = await makeContract(pt, { clientUserId: client, paymentTransactionId: null });
+  // BR-27 (one live contract per PT-client pair, enforced by a unique index): the unpaid contract of the same PT belongs to ANOTHER client
+  const client2 = randomUUID();
+  const unpaid = await makeContract(pt, { clientUserId: client2, paymentTransactionId: null });
   const free = await makeContract(otherPt, { clientUserId: client });
   const tok = tokenFor(client);
+  const tok2 = tokenFor(client2);
   const s = stubs();
   const restoreBreakdown = patch(paymentClient, "moneyBreakdown", async () => ({ remaining: "5000000.00", refundIfCancelledNow: "4500000.00" }));
   try {
@@ -588,7 +591,8 @@ test("the contract reads carry canExitWithoutPenalty from the same central rule 
     const byId = new Map<string, any>(list.body.map((x: any) => [x.id, x]));
     assert.equal(byId.get(live.id).effectiveStatus, "PAUSED_BY_ADMIN");
     assert.equal(byId.get(live.id).canExitWithoutPenalty, true);
-    assert.equal(byId.get(unpaid.id).canExitWithoutPenalty, false);
+    const list2 = await call("GET", `/contracts/client`, tok2);
+    assert.equal(list2.body.find((x: any) => x.id === unpaid.id).canExitWithoutPenalty, false);
     assert.equal(byId.get(free.id).canExitWithoutPenalty, false);
     assert.equal((await call("GET", `/contracts/${live.id}`, tok)).body.canExitWithoutPenalty, true);
     const breakdown = await call("GET", `/contracts/${live.id}/money-breakdown`, tok);

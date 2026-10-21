@@ -7,6 +7,8 @@ import { ptServicePackageRepository } from "../repositories/pt_service_package.r
 import { availabilityService } from "../services/availability.service";
 import { notificationService } from "../services/notification.service";
 import { contractService } from "../services/contract.service";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 /**
  * BR-27 - one live PT-client contract per pair (audit finding #1).

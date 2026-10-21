@@ -303,6 +303,7 @@ exports.Prisma.ContractScalarFieldEnum = {
   source: 'source',
   paymentTransactionId: 'paymentTransactionId',
   paymentDueAt: 'paymentDueAt',
+  paymentDeadlineExtendedAt: 'paymentDeadlineExtendedAt',
   ptHoldbackRate: 'ptHoldbackRate',
   holdbackReleasedAt: 'holdbackReleasedAt',
   platformRate: 'platformRate',

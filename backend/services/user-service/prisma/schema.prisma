@@ -670,6 +670,9 @@ model Contract {
   // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
   // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
   paymentDueAt         DateTime?      @map("payment_due_at")
+  // D13: set by the first checkout-driven extension that really moved paymentDueAt. Read only when CHECKOUT_EXTENSION_ONCE=true
+  // (one extension per contract); recorded either way so turning the rule on later does not forget extensions already used.
+  paymentDeadlineExtendedAt DateTime? @map("payment_deadline_extended_at")
 
   // ── PT holdback (rule decided by the product owner; OFF until the terms-acceptance feature exists) ──
   // Snapshot, like the three rates above: the share of `price` whose first earnings the PT does

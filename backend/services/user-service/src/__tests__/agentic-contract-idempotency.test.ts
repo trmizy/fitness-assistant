@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { agenticFitnessService } from "../services/agentic-fitness.service";
 import { prisma } from "../repositories/profile.repository";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 /**
  * DB-backed idempotency evidence for PT contract automation — named a

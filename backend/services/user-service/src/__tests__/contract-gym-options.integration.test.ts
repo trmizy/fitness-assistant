@@ -14,6 +14,8 @@ import { authServiceClient } from "../clients/auth-service.client";
 import { contractService } from "../services/contract.service";
 import { contractGymOptionsService } from "../services/contract-gym-options.service";
 import contractRoutes from "../routes/contract.routes";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 /**
  * Phase 3 / slice P3.4 - GET /contracts/gym-options.
@@ -82,7 +84,7 @@ function install(w: World): () => void {
       id === w.packageId
         ? {
             id: w.packageId, ptUserId: w.ptUserId, name: "Goi 10 buoi", sessionCount: 10, price: new Prisma.Decimal("5000000"),
-            sessionMode: w.sessionMode ?? SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null,
+            sessionMode: w.sessionMode ?? SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: 30, /* Codex #6: a gym contract needs a fixed duration unless the membership is unlimited */
             isActive: w.packageActive ?? true, archivedAt: null,
           }
         : null,

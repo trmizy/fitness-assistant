@@ -86,8 +86,9 @@ function world(opts: {
     // D25 gate: this suite is about the gym gate, so the PT is stubbed as having confirmed the current PT terms (the gate itself is tested in pt-terms-acceptance.integration.test.ts).
     patch(ptTermsService, "assertAcceptedCurrent", async () => undefined),
     // accept: stop right after the gym gate — no real auth-service / PDF in a stubbed test.
+    // (a 404 = "auth-service has no such user": the flow ends in 500 account-not-found. An outage would now be 503, fail-closed.)
     patch(authServiceClient, "internalGet", async () => {
-      throw new Error("no auth-service in this test");
+      throw Object.assign(new Error("no such user in this test"), { response: { status: 404, data: {} } });
     }),
   ];
   return { calls, restore: () => restores.reverse().forEach((r) => r()) };

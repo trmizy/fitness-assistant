@@ -10,6 +10,8 @@ import { availabilityService } from "../services/availability.service";
 import { notificationService } from "../services/notification.service";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { contractService } from "../services/contract.service";
+import { installAccountsActive } from "./auth-accounts-active.test-helper";
+installAccountsActive(); // Codex #4: requestContract asks auth-service, fail-closed
 
 /**
  * Phase 3 / slice P3.2 - the PT-gym agreement behind a contract's rates is snapshotted on the
@@ -41,7 +43,7 @@ async function requestWith(opts: { gymId?: string; collab?: unknown; sessionMode
   const restores = [
     patch(ptServicePackageRepository, "findById", async () => ({
       id: packageId, ptUserId, name: "Goi 10 buoi", sessionCount: 10, price: new Prisma.Decimal("5000000"),
-      sessionMode: opts.sessionMode ?? SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: null,
+      sessionMode: opts.sessionMode ?? SessionMode.OFFLINE, sessionDurationMinutes: 60, validityDays: 30, /* Codex #6: a gym contract needs a fixed duration unless the membership is unlimited */
       isActive: true, archivedAt: null,
     })),
     // Listing Management: requestContract re-reads the package FOR SHARE inside its transaction.

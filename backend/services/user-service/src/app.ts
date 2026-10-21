@@ -5,6 +5,7 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { isLambdaRuntime } from "./utils/runtime.util";
+import { clientIpMiddleware } from "./middleware/client-ip.middleware";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
 import ptApplicationRoutes from "./routes/pt_application.routes";
@@ -34,6 +35,9 @@ app.use(
 // gateway's proxy, and a no-args cors() was overriding the gateway's own
 // origin-scoped CORS header with an invalid wildcard-plus-credentials
 // combination once http-proxy-middleware forwarded it through.
+// Client IP for the audit trail: read from X-Forwarded-For only on requests that carry the gateway secret (see the middleware).
+// Must run before any auth middleware, which deletes x-gateway-secret.
+app.use(clientIpMiddleware);
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(metricsMiddleware());

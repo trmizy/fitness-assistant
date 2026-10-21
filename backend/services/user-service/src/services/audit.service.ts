@@ -20,10 +20,14 @@ import { auditRepository } from "../repositories/audit.repository";
  */
 export const SYSTEM_ACTOR = "SYSTEM";
 
-/** IP and user-agent, pulled the same way auth-service's auditMeta does. */
+/**
+ * IP and user-agent. The IP is the client's, as derived by clientIpMiddleware (X-Forwarded-For honoured only on requests that came
+ * through the gateway); without that middleware (a bare Request) it is the socket peer, as before.
+ */
 export function auditMeta(req: Request) {
+  const derived = (req as Request & { clientIp?: string | null }).clientIp;
   return {
-    ipAddress: req.ip || req.socket.remoteAddress || null,
+    ipAddress: derived || req.ip || req.socket.remoteAddress || null,
     userAgent: req.get("user-agent") || null,
   };
 }
