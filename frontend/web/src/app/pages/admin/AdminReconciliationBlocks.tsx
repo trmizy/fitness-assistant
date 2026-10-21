@@ -9,8 +9,10 @@ import {
   EndedWithoutSettledEndingItem,
   NegativeSubledgerRow,
   NegativeWalletRow,
+  ObligationEventRow,
   ObligationsReport,
   PaidNotActivatedRow,
+  ProductPaymentRow,
   ReceivableRow,
   SessionsReconciliationReport,
   SettlementAttentionItem,
@@ -25,10 +27,15 @@ import {
   disputeTypeLabel,
   formatAge,
   formatDateTimeVi,
+  formatObligationEvent,
   normalizeObligationsReport,
   normalizeSessionsReport,
   obligationKindLabel,
+  obligationStatusLabel,
   partyLabel,
+  productLookupNote,
+  productOutcomeLabel,
+  productTargetStatusLabel,
   purposeLabel,
   settlementKindLabel,
   settlementStatusLabel,
@@ -48,6 +55,7 @@ const money = (v: string | number | null | undefined) => {
   const n = toAmount(v);
   return n === null ? "—" : formatVND(n);
 };
+const addAmounts = (...vs: Array<string | number | null | undefined>) => vs.reduce<number>((a, v) => a + (toAmount(v) ?? 0), 0);
 
 // ───────────────────────────────────────────────────────────── khung dùng chung ──
 interface Column<T> {
@@ -217,15 +225,68 @@ const receivableCols: Column<ReceivableRow>[] = [
   { header: "Lý do", cell: (r) => r.reason || "—" },
   { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
 ];
+/** Lịch sử thao tác của một nghĩa vụ (chỉ đọc, thu gọn sẵn để thẻ ở màn hình hẹp không dài). */
+function History({ events }: { events: ObligationEventRow[] | undefined }) {
+  if (!events || events.length === 0) return <span className="text-zinc-600">—</span>;
+  return (
+    <details data-testid="recon-obligation-history" className="text-left">
+      <summary className="cursor-pointer text-zinc-400">{events.length} lần ghi nhận</summary>
+      <ul className="mt-1 space-y-1 text-[11px] text-zinc-400">
+        {events.map((e, i) => (
+          <li key={`${e.at}-${i}`} className="break-words">
+            {formatObligationEvent(e, money)}
+            {e.note ? ` — ${e.note}` : ""}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 const obligationCols: Column<UnpaidObligationRow>[] = [
   { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  { header: "Tình trạng", cell: (r) => obligationStatusLabel(r.status) },
   { header: "Phải trả cho", cell: (r) => partyLabel(r.party) },
   { header: "Còn thiếu", cell: (r) => <span className="font-semibold">{money(r.unpaid)}</span>, right: true },
   { header: "Đã trả / phải trả", cell: (r) => `${money(r.paid)} / ${money(r.owed)}`, right: true },
+  {
+    header: "Đã trả ngoài hệ thống",
+    cell: (r) => (toAmount(r.externallyPaid) ? <span className="text-green-400">{money(r.externallyPaid)}</span> : "—"),
+    right: true,
+  },
   { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
   { header: "Buổi", cell: (r) => shortId(r.sessionId) },
   { header: "Lý do", cell: (r) => r.reason || "—" },
   { header: "Phát sinh", cell: (r) => formatDateTimeVi(r.createdAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+const closedObligationCols: Column<UnpaidObligationRow>[] = [
+  { header: "Loại", cell: (r) => obligationKindLabel(r.kind) },
+  {
+    header: "Kết quả",
+    cell: (r) => (
+      <span className={r.status === "PAID_EXTERNALLY" ? "text-green-400" : r.status === "WAIVED" ? "text-amber-400" : "text-zinc-300"}>
+        {obligationStatusLabel(r.status)}
+      </span>
+    ),
+  },
+  {
+    header: "Số tiền",
+    cell: (r) => (r.status === "PAID_EXTERNALLY" ? `Đã trả ${money(r.externallyPaid)}` : r.status === "WAIVED" ? `Bỏ qua ${money(r.unpaid)}` : money(r.owed)),
+    right: true,
+  },
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.contract) },
+  { header: "Đóng lúc", cell: (r) => formatDateTimeVi(r.resolvedAt) },
+  { header: "Lịch sử", cell: (r) => <History events={r.history} /> },
+];
+const productCols: Column<ProductPaymentRow>[] = [
+  { header: "Loại giao dịch", cell: (r) => purposeLabel(r.targetType) },
+  { header: "Kết quả", cell: (r) => productOutcomeLabel(r.outcome) },
+  { header: "Ở dịch vụ sở hữu", cell: (r) => productTargetStatusLabel(r.targetStatus) },
+  { header: "Số tiền khách đã trả", cell: (r) => money(r.amount), right: true },
+  { header: "Đã hoàn cho khách", cell: (r) => money(r.refundedToClient), right: true },
+  { header: "Còn thiếu", cell: (r) => (toAmount(r.refundShortBy) ? <span className="text-amber-400 font-semibold">{money(r.refundShortBy)}</span> : "—"), right: true },
+  { header: "Tiền còn giữ ở đối tác", cell: (r) => money(r.partnerPendingRemaining), right: true },
+  { header: "Giao dịch", cell: (r) => shortId(r.transactionId) },
 ];
 const paidNotActivatedCols: Column<PaidNotActivatedRow>[] = [
   { header: "Loại giao dịch", cell: (r) => purposeLabel(r.purpose) },
@@ -348,17 +409,46 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
       <Block
         testId="recon-obligations"
         title="Nghĩa vụ chưa thanh toán"
-        hint="Số tiền nền tảng còn phải trả mà chính hợp đồng đó không đủ tiền để chi. Đây không phải nợ của PT."
-        count={s.unpaidObligations.open.count}
+        hint="Số tiền nền tảng còn phải trả mà chính hợp đồng đó không đủ tiền để chi. Đây không phải nợ của PT. Việc trả cho khách được thực hiện ngoài hệ thống và chỉ được ghi nhận ở đây khi có bằng chứng."
+        count={s.unpaidObligations.open.count + s.unpaidObligations.underReview.count}
         tone="watch"
         truncated={r.truncated.unpaidObligations}
         emptyText="Không có nghĩa vụ nào đang mở."
       >
-        <p className="text-xs text-zinc-400 mb-2">
-          Tổng còn thiếu: <span className="text-zinc-200 font-semibold">{money(s.unpaidObligations.open.unpaid)}</span> · đã xử lý{" "}
-          {s.unpaidObligations.resolved.count + s.unpaidObligations.waived.count} khoản
+        <p data-testid="recon-obligations-summary" className="text-xs text-zinc-400 mb-2">
+          Còn thiếu: <span className="text-zinc-200 font-semibold">{money(addAmounts(s.unpaidObligations.open.unpaid, s.unpaidObligations.underReview.unpaid))}</span>
+          {" "}· chưa xử lý {s.unpaidObligations.open.count} · đang xem xét {s.unpaidObligations.underReview.count}
         </p>
         <Rows rows={r.unpaidObligations} columns={obligationCols} rowKey={(x) => x.id} />
+      </Block>
+      <Block
+        testId="recon-obligations-closed"
+        title="Nghĩa vụ đã đóng"
+        hint="Đã trả cho khách ngoài hệ thống (có mã chuyển khoản, ngày trả, người duyệt) hoặc chủ sở hữu quyết định không truy đòi (khách không được trả). Bản ghi cũ 'đã xử lý' chưa có bằng chứng."
+        count={s.unpaidObligations.paidExternally.count + s.unpaidObligations.waived.count + s.unpaidObligations.resolved.count}
+        tone="neutral"
+        truncated={r.truncated.closedObligations}
+        emptyText="Chưa có nghĩa vụ nào được đóng."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
+          <div data-testid="recon-obligations-paid-externally">
+            <div className="text-zinc-500">Đã trả ngoài hệ thống</div>
+            <div className="text-zinc-200 font-semibold">
+              {s.unpaidObligations.paidExternally.count} khoản · tổng đã trả {money(s.unpaidObligations.paidExternally.amount)}
+            </div>
+          </div>
+          <div data-testid="recon-obligations-waived">
+            <div className="text-zinc-500">Không truy đòi</div>
+            <div className="text-zinc-200 font-semibold">
+              {s.unpaidObligations.waived.count} khoản · bỏ qua {money(s.unpaidObligations.waived.unpaid)}
+            </div>
+          </div>
+          <div data-testid="recon-obligations-legacy">
+            <div className="text-zinc-500">Bản ghi cũ (đã xử lý)</div>
+            <div className="text-zinc-200 font-semibold">{s.unpaidObligations.resolved.count} khoản</div>
+          </div>
+        </div>
+        <Rows rows={r.closedObligations} columns={closedObligationCols} rowKey={(x) => x.id} />
       </Block>
 
       <GroupTitle>Thanh toán chưa hoàn tất</GroupTitle>
@@ -373,10 +463,38 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
       >
         <Rows rows={r.paidNotActivated} columns={paidNotActivatedCols} rowKey={(x) => x.transactionId} />
       </Block>
+      <p data-testid="recon-product-active-valid" className="text-[11px] text-zinc-500">
+        Đã kiểm tra với dịch vụ sở hữu: {s.productPayments.activeValid} gói/đơn còn hiệu lực (bình thường, không phải vấn đề).
+      </p>
+      <Block
+        testId="recon-cancelled-paid"
+        title="Gói/đơn đã hủy nhưng khách đã trả"
+        hint="Dịch vụ sở hữu xác nhận gói/đơn đã hủy, nhưng tiền khách trả vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn."
+        count={s.productPayments.cancelledPaid}
+        tone="critical"
+        truncated={r.truncated.cancelledPaid}
+        emptyText="Không có gói/đơn nào đã hủy mà tiền vẫn bị giữ."
+      >
+        <Rows rows={r.cancelledPaid} columns={productCols} rowKey={(x) => x.transactionId} />
+      </Block>
+      <Block
+        testId="recon-refund-outcomes"
+        title="Hoàn tiền của gói/đơn đã hủy"
+        hint="Gói/đơn đã hủy và khách đã được hoàn một phần hoặc toàn bộ. 'Hoàn chưa đủ' là số khách nhận ít hơn số đáng được hoàn."
+        count={s.productPayments.refundCompleted + s.productPayments.refundShort}
+        tone={s.productPayments.refundShort > 0 ? "watch" : "neutral"}
+        truncated={r.truncated.refundOutcomes}
+        emptyText="Chưa có gói/đơn đã hủy nào có hoàn tiền."
+      >
+        <p className="text-xs text-zinc-400 mb-2">
+          Đã hoàn đủ {s.productPayments.refundCompleted} · hoàn chưa đủ {s.productPayments.refundShort}
+        </p>
+        <Rows rows={r.refundOutcomes} columns={productCols} rowKey={(x) => x.transactionId} />
+      </Block>
       <Block
         testId="recon-target-unverified"
         title="Chưa xác minh trạng thái"
-        hint="Thanh toán gói tập/dịch vụ đã kích hoạt mà tiền vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn. Phần lớn là bình thường (gói/đơn đang chạy). Hệ thống chưa kiểm tra được trạng thái gói/đơn ở dịch vụ sở hữu nên không kết luận là đã hủy."
+        hint={`Thanh toán gói tập/dịch vụ đã kích hoạt mà tiền vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn. Phần lớn là bình thường (gói/đơn đang chạy). ${productLookupNote(s.productPayments)}`}
         count={s.targetUnverified.candidates}
         tone="neutral"
         truncated={r.truncated.targetUnverified}

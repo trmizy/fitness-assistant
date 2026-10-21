@@ -11,28 +11,36 @@ import { prisma } from '../repositories/prisma';
  * admin reconciliation report (FH-4).
  *
  * payment-service owns no order/membership status, so the caller supplies `lookupTargetStatus` (the report wires it
- * to the owning services).
+ * to read-only internal routes on gym-service / ai-service: target-status.client.ts).
+ *
+ * Outcomes per PAID + ACTIVATED product payment:
+ *   - owner says the target is alive (ACTIVE, EXPIRED, ...)              -> counted as `activeValid`, never listed;
+ *   - owner says CANCELLED/REFUNDED, money still held, client unrefunded -> `cancelled` (the warning);
+ *   - owner says CANCELLED/REFUNDED and the client was refunded          -> `refundCompleted` (refund >= expected) or
+ *                                                                           `refundShort` (joined with the ledger and any OPEN obligation);
+ *   - lookup failed / timed out / owner has no such row / no lookup      -> `unverified` (pending verification, neutral).
  *
  * FH-4 accuracy rule: money still sitting in PENDING says NOTHING about the target's status (a normal ACTIVE membership
  * or order keeps its money in PENDING until release), so CANCELLED is never inferred from the ledger. A row is only
- * ever classified CANCELLED when `lookupTargetStatus` returns exactly 'CANCELLED'; a lookup that returns null / throws
- * is "unverified" (`classifyActivatedProductPayments().unverified`), a status other than CANCELLED drops the row.
- * No read-only status API exists on gym-service / ai-service today, so the admin report passes no lookup and lists every
- * row as unverified (neutral), not as a suspected cancellation.
+ * ever classified CANCELLED when `lookupTargetStatus` returns CANCELLED (or REFUNDED for an order); a lookup that returns
+ * null / throws is "unverified"; any other status is "alive". Passing no lookup lists every row as unverified.
  *
- * A row is a candidate only if ALL hold, so a legitimate cancel-after-activation (which refunds or forfeits through its own
- * ledger operation) is not mistaken for the defect:
- *   - transaction is PAID + ACTIVATED, purpose/entity is one of the two products, not itself a REFUND, carries no
- *     `unactivatedRefund` marker and has no REFUND child;
- *   - (CANCELLED list only) the owning service reports the target CANCELLED;
- *   - the transaction still has money sitting in non-client PENDING buckets (credits - debits > 0) and the client
- *     has received no refund credit for it.
+ * A legitimate cancel-after-activation (which refunds or forfeits through its own ledger operation) is not mistaken
+ * for the defect: a transaction that is itself a REFUND, carries an `unactivatedRefund` marker, or (unverified group
+ * only) already has a REFUND child is skipped.
  */
-export type TargetStatusLookup = (txn: {
-  id: string;
-  relatedEntityType: string;
-  relatedEntityId: string;
-}) => Promise<string | null>;
+export type TargetRef = { id: string; relatedEntityType: string; relatedEntityId: string };
+
+/**
+ * `prime` (optional) lets a lookup fetch every candidate in a few batched calls before the per-row loop;
+ * `ownerRefundedAmount` (optional) exposes what the owning service says was refunded (personalized orders only).
+ */
+export type TargetStatusLookup = ((txn: TargetRef) => Promise<string | null>) & {
+  prime?: (txns: TargetRef[]) => Promise<void>;
+  ownerRefundedAmount?: (txn: TargetRef) => number | null;
+};
+
+export type ProductPaymentOutcome = 'CANCELLED_PAID' | 'UNVERIFIED' | 'REFUND_COMPLETED' | 'REFUND_SHORT';
 
 export interface ActivatedButCancelledRow {
   transactionId: string;
@@ -41,20 +49,31 @@ export interface ActivatedButCancelledRow {
   payerId: string;
   amount: string;
   targetStatus: string;
+  outcome: ProductPaymentOutcome;
   /** Still held in partners' PENDING buckets on behalf of this transaction. */
   partnerPendingRemaining: string;
-  /** Refund credits the client has already received for this transaction (expected 0.00). */
+  /** Refund credits the client has received for this transaction (ledger; 0.00 for the warning group). */
   clientRefundCredited: string;
+  /** What the owning service says was refunded (personalized orders only), else null. */
+  ownerRefundedAmount: string | null;
+  /** What the client should have got back minus what the ledger shows (refund-short rows), else 0.00. */
+  refundShortBy: string;
+  /** OPEN unpaid obligations recorded against this transaction. */
+  openObligationUnpaid: string;
 }
 
 const PRODUCTS = ['PERSONALIZED_SERVICE_PURCHASE', 'GYM_MEMBERSHIP'] as const;
+/** Owner statuses meaning "this target no longer exists as a live product". */
+const TERMINATED = new Set(['CANCELLED', 'REFUNDED']);
+const CENT = new Prisma.Decimal('0.01');
 
-type Outcome = 'CANCELLED' | 'UNVERIFIED';
+interface Scan {
+  found: Array<{ outcome: ProductPaymentOutcome; row: ActivatedButCancelledRow }>;
+  /** Candidates the owning service confirmed alive: not a problem, only counted. */
+  activeValid: number;
+}
 
-async function scanCandidates(
-  lookupTargetStatus: TargetStatusLookup | null,
-  opts: { limit?: number },
-): Promise<Array<{ outcome: Outcome; row: ActivatedButCancelledRow }>> {
+async function scanCandidates(lookupTargetStatus: TargetStatusLookup | null, opts: { limit?: number }): Promise<Scan> {
   const candidates = await prisma.paymentTransaction.findMany({
     where: {
       status: 'PAID',
@@ -67,31 +86,45 @@ async function scanCandidates(
     take: opts.limit ?? 1000,
   });
 
-  const found: Array<{ outcome: Outcome; row: ActivatedButCancelledRow }> = [];
-  for (const txn of candidates) {
-    if ((txn.metadata as Record<string, unknown> | null)?.unactivatedRefund) continue;
+  const usable = candidates.filter((t) => !(t.metadata as Record<string, unknown> | null)?.unactivatedRefund);
+  const ref = (t: (typeof usable)[number]): TargetRef => ({
+    id: t.id,
+    relatedEntityType: String(t.relatedEntityType),
+    relatedEntityId: t.relatedEntityId as string,
+  });
+  if (lookupTargetStatus?.prime) {
+    try {
+      await lookupTargetStatus.prime(usable.map(ref));
+    } catch {
+      // a failed prime leaves every row unresolved -> pending verification below
+    }
+  }
 
+  const found: Scan['found'] = [];
+  let activeValid = 0;
+  for (const txn of usable) {
     let targetStatus: string | null = null;
     if (lookupTargetStatus) {
       try {
-        targetStatus = await lookupTargetStatus({
-          id: txn.id,
-          relatedEntityType: String(txn.relatedEntityType),
-          relatedEntityId: txn.relatedEntityId as string,
-        });
+        targetStatus = await lookupTargetStatus(ref(txn));
       } catch {
         targetStatus = null;
       }
     }
-    // The owning service answered with a status that is not CANCELLED (ACTIVE, EXPIRED, ...): not a candidate at all.
-    if (targetStatus !== null && targetStatus !== undefined && targetStatus !== 'CANCELLED') continue;
-    const outcome: Outcome = targetStatus === 'CANCELLED' ? 'CANCELLED' : 'UNVERIFIED';
+    const known = targetStatus !== null && targetStatus !== undefined;
+    const terminated = known && TERMINATED.has(targetStatus as string);
+    // The owning service answered with a live status (ACTIVE, EXPIRED, ...): not a problem, only counted.
+    if (known && !terminated) {
+      activeValid += 1;
+      continue;
+    }
 
-    const refundChild = await prisma.paymentTransaction.count({ where: { refundOfTransactionId: txn.id } });
-    if (refundChild > 0) continue;
+    const children = await prisma.paymentTransaction.findMany({ where: { refundOfTransactionId: txn.id }, select: { id: true } });
+    if (!terminated && children.length > 0) continue; // unverified: a legitimate refund path, as before
+    const ids = [txn.id, ...children.map((c) => c.id)];
 
     const entries = await prisma.walletLedgerEntry.findMany({
-      where: { transactionId: txn.id },
+      where: { transactionId: { in: ids } },
       include: { wallet: { select: { ownerType: true } } },
     });
     let partnerPending = new Prisma.Decimal(0);
@@ -104,7 +137,36 @@ async function scanCandidates(
         clientRefund = clientRefund.plus(amt);
       }
     }
-    if (partnerPending.lessThanOrEqualTo(0) || clientRefund.greaterThan(0)) continue;
+
+    const amount = new Prisma.Decimal(txn.amount);
+    let outcome: ProductPaymentOutcome;
+    let shortBy = new Prisma.Decimal(0);
+    let ownerRefunded: number | null = null;
+    if (terminated) {
+      ownerRefunded = lookupTargetStatus?.ownerRefundedAmount?.(ref(txn)) ?? null;
+      if (clientRefund.lessThanOrEqualTo(0)) {
+        if (partnerPending.lessThanOrEqualTo(0)) continue; // released to the partners with no refund: a self-cancel, not this defect
+        outcome = 'CANCELLED_PAID';
+      } else {
+        // The refund the client should have got: what the owner says it refunded (orders), else the whole payment.
+        const expected = ownerRefunded !== null && ownerRefunded > 0 ? new Prisma.Decimal(ownerRefunded) : amount;
+        if (clientRefund.plus(CENT).greaterThanOrEqualTo(expected)) {
+          outcome = 'REFUND_COMPLETED';
+        } else {
+          outcome = 'REFUND_SHORT';
+          shortBy = expected.minus(clientRefund);
+        }
+      }
+    } else {
+      if (partnerPending.lessThanOrEqualTo(0) || clientRefund.greaterThan(0)) continue;
+      outcome = 'UNVERIFIED';
+    }
+
+    const open = await prisma.contractUnpaidObligation.findMany({
+      where: { transactionId: { in: ids }, status: 'OPEN' },
+      select: { unpaid: true },
+    });
+    const openUnpaid = open.reduce((a, o) => a.plus(new Prisma.Decimal(o.unpaid)), new Prisma.Decimal(0));
 
     found.push({
       outcome,
@@ -113,14 +175,18 @@ async function scanCandidates(
         relatedEntityType: String(txn.relatedEntityType),
         relatedEntityId: txn.relatedEntityId as string,
         payerId: txn.payerId,
-        amount: new Prisma.Decimal(txn.amount).toFixed(2),
-        targetStatus: outcome === 'CANCELLED' ? 'CANCELLED' : 'UNVERIFIED',
+        amount: amount.toFixed(2),
+        targetStatus: terminated ? (targetStatus as string) : 'UNVERIFIED',
+        outcome,
         partnerPendingRemaining: partnerPending.toFixed(2),
         clientRefundCredited: clientRefund.toFixed(2),
+        ownerRefundedAmount: ownerRefunded === null ? null : new Prisma.Decimal(ownerRefunded).toFixed(2),
+        refundShortBy: shortBy.toFixed(2),
+        openObligationUnpaid: openUnpaid.toFixed(2),
       },
     });
   }
-  return found;
+  return { found, activeValid };
 }
 
 /** Rows whose owning service reported the target CANCELLED (and whose money is still held, no client refund). */
@@ -128,20 +194,33 @@ export async function findActivatedButCancelledTargets(
   lookupTargetStatus: TargetStatusLookup,
   opts: { limit?: number } = {},
 ): Promise<ActivatedButCancelledRow[]> {
-  return (await scanCandidates(lookupTargetStatus, opts)).filter((x) => x.outcome === 'CANCELLED').map((x) => x.row);
+  return (await scanCandidates(lookupTargetStatus, opts)).found.filter((x) => x.outcome === 'CANCELLED_PAID').map((x) => x.row);
 }
 
-/**
- * `cancelled`: the owning service said CANCELLED. `unverified`: the status could not be determined (lookup returned
- * null / threw / was not available) - a neutral "not checked yet" list, NEVER a cancellation warning.
- */
+export interface ProductPaymentClassification {
+  /** Owner confirmed cancelled, money still held, client not refunded: the warning. */
+  cancelled: ActivatedButCancelledRow[];
+  /** Status could not be determined (lookup failed / timed out / unavailable): neutral "pending verification". */
+  unverified: ActivatedButCancelledRow[];
+  /** Owner confirmed cancelled and the client was refunded as expected. */
+  refundCompleted: ActivatedButCancelledRow[];
+  /** Owner confirmed cancelled and the client was refunded less than expected. */
+  refundShort: ActivatedButCancelledRow[];
+  /** Owner confirmed the target is alive: counted, never listed. */
+  activeValid: number;
+}
+
 export async function classifyActivatedProductPayments(
   lookupTargetStatus: TargetStatusLookup | null,
   opts: { limit?: number } = {},
-): Promise<{ cancelled: ActivatedButCancelledRow[]; unverified: ActivatedButCancelledRow[] }> {
-  const all = await scanCandidates(lookupTargetStatus, opts);
+): Promise<ProductPaymentClassification> {
+  const { found, activeValid } = await scanCandidates(lookupTargetStatus, opts);
+  const pick = (o: ProductPaymentOutcome) => found.filter((x) => x.outcome === o).map((x) => x.row);
   return {
-    cancelled: all.filter((x) => x.outcome === 'CANCELLED').map((x) => x.row),
-    unverified: all.filter((x) => x.outcome === 'UNVERIFIED').map((x) => x.row),
+    cancelled: pick('CANCELLED_PAID'),
+    unverified: pick('UNVERIFIED'),
+    refundCompleted: pick('REFUND_COMPLETED'),
+    refundShort: pick('REFUND_SHORT'),
+    activeValid,
   };
 }

@@ -344,10 +344,14 @@ enum ContractUnpaidObligationKind {
   OVER_RELEASED
 }
 
+/// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it; PAID_EXTERNALLY = the client was paid OUTSIDE this ledger,
+/// with evidence (see ContractUnpaidObligationEvent); WAIVED = the owner decided not to pursue; RESOLVED = legacy "handled elsewhere".
 enum ContractUnpaidObligationStatus {
   OPEN
   RESOLVED
   WAIVED
+  UNDER_REVIEW
+  PAID_EXTERNALLY
 }
 
 /// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
@@ -356,25 +360,27 @@ enum ContractUnpaidObligationStatus {
 /// the PT's pooled balance is not touched. Written in the same DB transaction as the ledger rows,
 /// keyed by the idempotency key of the operation, so a retry can never create a second one.
 model ContractUnpaidObligation {
-  id            String                         @id @default(uuid())
+  id             String                         @id @default(uuid())
   /// Idempotency key of the operation (OVER_RELEASED rows add `#OVER_RELEASED:<party>`).
-  key           String                         @unique
-  transactionId String                         @map("transaction_id")
+  key            String                         @unique
+  transactionId  String                         @map("transaction_id")
   /// Contract reference the caller labelled the operation with (the ledger label).
-  contractRef   String?                        @map("contract_ref")
-  kind          ContractUnpaidObligationKind
+  contractRef    String?                        @map("contract_ref")
+  kind           ContractUnpaidObligationKind
   /// Who the obligation is owed to: CLIENT, or the over-released party (PT | GYM | PLATFORM).
-  party         String
-  owed          Decimal                        @db.Decimal(14, 2)
-  paid          Decimal                        @db.Decimal(14, 2)
-  unpaid        Decimal                        @db.Decimal(14, 2)
-  status        ContractUnpaidObligationStatus @default(OPEN)
-  createdAt     DateTime                       @default(now()) @map("created_at")
-  resolvedAt    DateTime?                      @map("resolved_at")
-  resolvedBy    String?                        @map("resolved_by")
-  resolvedNote  String?                        @map("resolved_note")
+  party          String
+  owed           Decimal                        @db.Decimal(14, 2)
+  paid           Decimal                        @db.Decimal(14, 2)
+  unpaid         Decimal                        @db.Decimal(14, 2)
+  /// FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
+  externallyPaid Decimal                        @default(0) @map("externally_paid") @db.Decimal(14, 2)
+  status         ContractUnpaidObligationStatus @default(OPEN)
+  createdAt      DateTime                       @default(now()) @map("created_at")
+  resolvedAt     DateTime?                      @map("resolved_at")
+  resolvedBy     String?                        @map("resolved_by")
+  resolvedNote   String?                        @map("resolved_note")
   /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
-  reason        String?
+  reason         String?
 
   transaction PaymentTransaction              @relation(fields: [transactionId], references: [id])
   events      ContractUnpaidObligationEvent[]
@@ -415,23 +421,33 @@ model PartnerReceivableEvent {
 enum ContractUnpaidObligationEventAction {
   RESOLVE
   WAIVE
+  REVIEW
+  RELEASE_REVIEW
+  PAY_EXTERNALLY
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
 /// it moves no money.
 model ContractUnpaidObligationEvent {
-  id             String                              @id @default(uuid())
-  obligationId   String                              @map("obligation_id")
-  action         ContractUnpaidObligationEventAction
-  note           String
-  actor          String
-  approvalRef    String                              @map("approval_ref")
-  idempotencyKey String                              @unique @map("idempotency_key")
-  fromStatus     ContractUnpaidObligationStatus      @map("from_status")
-  toStatus       ContractUnpaidObligationStatus      @map("to_status")
+  id                String                              @id @default(uuid())
+  obligationId      String                              @map("obligation_id")
+  action            ContractUnpaidObligationEventAction
+  note              String
+  actor             String
+  approvalRef       String                              @map("approval_ref")
+  idempotencyKey    String                              @unique @map("idempotency_key")
+  fromStatus        ContractUnpaidObligationStatus      @map("from_status")
+  toStatus          ContractUnpaidObligationStatus      @map("to_status")
   /// Unpaid amount at the time of the change (the CAS value the owner approved).
-  unpaid         Decimal                             @db.Decimal(14, 2)
-  createdAt      DateTime                            @default(now()) @map("created_at")
+  unpaid            Decimal                             @db.Decimal(14, 2)
+  /// PAY_EXTERNALLY evidence (null for the other actions): what was paid, the bank/transfer reference, the date it was paid,
+  /// who approved it, and what stays unpaid afterwards.
+  paidAmount        Decimal?                            @map("paid_amount") @db.Decimal(14, 2)
+  transferReference String?                             @map("transfer_reference")
+  paidOn            DateTime?                           @map("paid_on")
+  approvedBy        String?                             @map("approved_by")
+  unpaidAfter       Decimal?                            @map("unpaid_after") @db.Decimal(14, 2)
+  createdAt         DateTime                            @default(now()) @map("created_at")
 
   obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
 

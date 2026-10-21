@@ -344,10 +344,14 @@ enum ContractUnpaidObligationKind {
   OVER_RELEASED
 }
 
+/// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it; PAID_EXTERNALLY = the client was paid OUTSIDE this ledger,
+/// with evidence (see ContractUnpaidObligationEvent); WAIVED = the owner decided not to pursue; RESOLVED = legacy "handled elsewhere".
 enum ContractUnpaidObligationStatus {
   OPEN
   RESOLVED
   WAIVED
+  UNDER_REVIEW
+  PAID_EXTERNALLY
 }
 
 /// FH-1 (D48 / N7). What a PT-fault step on ONE contract could not pay out of that contract's own
@@ -368,6 +372,8 @@ model ContractUnpaidObligation {
   owed          Decimal                        @db.Decimal(14, 2)
   paid          Decimal                        @db.Decimal(14, 2)
   unpaid        Decimal                        @db.Decimal(14, 2)
+  /// FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
+  externallyPaid Decimal                       @default(0) @db.Decimal(14, 2) @map("externally_paid")
   status        ContractUnpaidObligationStatus @default(OPEN)
   createdAt     DateTime                       @default(now()) @map("created_at")
   resolvedAt    DateTime?                      @map("resolved_at")
@@ -415,6 +421,9 @@ model PartnerReceivableEvent {
 enum ContractUnpaidObligationEventAction {
   RESOLVE
   WAIVE
+  REVIEW
+  RELEASE_REVIEW
+  PAY_EXTERNALLY
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
@@ -431,6 +440,13 @@ model ContractUnpaidObligationEvent {
   toStatus       ContractUnpaidObligationStatus      @map("to_status")
   /// Unpaid amount at the time of the change (the CAS value the owner approved).
   unpaid         Decimal                             @db.Decimal(14, 2)
+  /// PAY_EXTERNALLY evidence (null for the other actions): what was paid, the bank/transfer reference, the date it was paid,
+  /// who approved it, and what stays unpaid afterwards.
+  paidAmount        Decimal?                         @map("paid_amount") @db.Decimal(14, 2)
+  transferReference String?                          @map("transfer_reference")
+  paidOn            DateTime?                        @map("paid_on")
+  approvedBy        String?                          @map("approved_by")
+  unpaidAfter       Decimal?                         @map("unpaid_after") @db.Decimal(14, 2)
   createdAt      DateTime                            @default(now()) @map("created_at")
 
   obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)

@@ -9,7 +9,7 @@
  *     not grant approval, it records that the operator holds it. The approval reference is stored on every event.
  *  3. There is no HTTP route for these writes.
  */
-import { adjustObligation, adjustReceivable, AdjustmentError, AdjustmentResult } from './adjustment-operations.service';
+import { adjustObligation, adjustReceivable, payObligationExternally, AdjustmentError, AdjustmentResult } from './adjustment-operations.service';
 
 /** Database name of a Postgres URL ("" when missing/unparsable). Same rule as the test-db guard: judge the NAME, not the whole URL. */
 export function databaseNameOf(url: string | undefined): string {
@@ -28,6 +28,9 @@ export const OPERATIONS = [
   'receivable-waive',
   'obligation-resolve',
   'obligation-waive',
+  'obligation-review',
+  'obligation-release-review',
+  'obligation-pay-external',
 ] as const;
 export type Operation = (typeof OPERATIONS)[number];
 
@@ -42,26 +45,37 @@ export interface CliOptions {
   reason: string;
   approvedBy: string;
   approvalRef: string;
+  /** obligation-pay-external evidence. */
+  transferRef: string | null;
+  paidAmount: string | null;
+  paidOn: string | null;
+  recordedBy: string | null;
 }
 
 export const USAGE = `FH-8 adjustment tool (dry-run unless --apply)
 
-  --op=receivable-suspend|receivable-resume|receivable-waive|obligation-resolve|obligation-waive
+  --op=receivable-suspend|receivable-resume|receivable-waive|obligation-review|obligation-release-review|obligation-pay-external|obligation-waive|obligation-resolve
   --id=<receivable or obligation id>
   --expected-amount=<amount you approved>        (receivable: amount; obligation: unpaid)
   --expected-transaction-id=<payment txn id | NONE>
   --amount=<amount to waive>                      (receivable-waive only)
   --reason="<why>"  (obligation: the note; say how it was handled)
   --approved-by=<who>  --approval-ref=<approval/minute number>
+  obligation-pay-external only (EVIDENCE, all required): --transfer-ref=<bank/payout reference> --paid-amount=<amount paid> --paid-on=<YYYY-MM-DD>
+                      (--approved-by is the approver, --approval-ref the approval; optional --recorded-by=<who typed it>)
   --apply                                          write (default is dry-run)
   --i-have-owner-approval=<group>                  required for any database whose name does not end with _test
 
-What the obligation operations mean (an obligation is money the ledger owes a CLIENT and could not pay out of the contract's own money):
-  obligation-resolve  RESOLVED = handled OUTSIDE the ledger, WITH a reference. This tool moves no money: if the client has to be paid
-                      (e.g. an unperformed D77 late-arrival compensation), an authorised person pays them by their own approved route
-                      first, then records it here - put the reference (payout / ticket / minute number) in --reason and --approval-ref.
-  obligation-waive    WAIVED = the owner decided the obligation is not pursued. The client is NOT paid.
-Both leave the obligation, its owed/paid/unpaid figures and an audit event on record; nothing is deleted.
+What the obligation operations mean (an obligation is money the ledger owes a CLIENT and could not pay out of the contract's own money).
+This tool NEVER moves money: no wallet credit, no ledger row, no PT debt.
+  obligation-review          OPEN -> UNDER_REVIEW (someone is looking at it).   obligation-release-review: back to OPEN.
+  obligation-pay-external    PAID_EXTERNALLY = an authorised person paid the client OUTSIDE the ledger; record the evidence. Compare-and-set on
+                             the unpaid amount. --paid-amount equal to the unpaid closes it; LESS records a partial payment: unpaid is reduced and
+                             the status stays OPEN (UNDER_REVIEW stays UNDER_REVIEW). More than unpaid is refused. A retry of the same
+                             --approval-ref is a no-op; reusing it for a different payment is refused.
+  obligation-waive           WAIVED = the owner decided the obligation is not pursued. The client is NOT paid.
+  obligation-resolve         RESOLVED = LEGACY "handled elsewhere" (no evidence fields); prefer obligation-pay-external.
+Every operation leaves the obligation, its owed/paid/unpaid figures and an append-only audit event on record; nothing is deleted.
 
 DATABASE_URL selects the database. Real data needs the owner's approval per group.`;
 
@@ -80,7 +94,7 @@ export function parseArgs(argv: string[]): CliOptions {
   };
   const op = need('op') as Operation;
   if (!OPERATIONS.includes(op)) throw new AdjustmentError('USAGE', `Unknown --op=${op}.`);
-  const allowed = new Set(['op', 'id', 'apply', 'i-have-owner-approval', 'expected-amount', 'expected-transaction-id', 'amount', 'reason', 'approved-by', 'approval-ref']);
+  const allowed = new Set(['op', 'id', 'apply', 'i-have-owner-approval', 'expected-amount', 'expected-transaction-id', 'amount', 'reason', 'approved-by', 'approval-ref', 'transfer-ref', 'paid-amount', 'paid-on', 'recorded-by']);
   for (const k of flags.keys()) if (!allowed.has(k)) throw new AdjustmentError('USAGE', `Unknown flag --${k}.`);
   const group = flags.get('i-have-owner-approval');
   return {
@@ -94,6 +108,10 @@ export function parseArgs(argv: string[]): CliOptions {
     reason: need('reason'),
     approvedBy: need('approved-by'),
     approvalRef: need('approval-ref'),
+    transferRef: op === 'obligation-pay-external' ? need('transfer-ref') : null,
+    paidAmount: op === 'obligation-pay-external' ? need('paid-amount') : null,
+    paidOn: op === 'obligation-pay-external' ? need('paid-on') : null,
+    recordedBy: flags.get('recorded-by') && flags.get('recorded-by') !== 'true' ? (flags.get('recorded-by') as string) : null,
   };
 }
 
@@ -139,12 +157,27 @@ export async function runCli(argv: string[], env: NodeJS.ProcessEnv, log: (line:
         approvalRef: opts.approvalRef,
         dryRun,
       });
+    } else if (opts.op === 'obligation-pay-external') {
+      result = await payObligationExternally({
+        obligationId: opts.id,
+        expectedUnpaid: opts.expectedAmount,
+        expectedTransactionId: opts.expectedTransactionId,
+        paidAmount: opts.paidAmount as string,
+        transferReference: opts.transferRef as string,
+        paidOn: opts.paidOn as string,
+        approvedBy: opts.approvedBy,
+        approvalRef: opts.approvalRef,
+        recordedBy: opts.recordedBy ?? undefined,
+        note: opts.reason,
+        dryRun,
+      });
     } else {
       result = await adjustObligation({
         obligationId: opts.id,
         expectedUnpaid: opts.expectedAmount,
         expectedTransactionId: opts.expectedTransactionId,
-        action: opts.op === 'obligation-resolve' ? 'RESOLVE' : 'WAIVE',
+        action:
+          opts.op === 'obligation-resolve' ? 'RESOLVE' : opts.op === 'obligation-review' ? 'REVIEW' : opts.op === 'obligation-release-review' ? 'RELEASE_REVIEW' : 'WAIVE',
         note: opts.reason,
         actor: opts.approvedBy,
         approvalRef: opts.approvalRef,

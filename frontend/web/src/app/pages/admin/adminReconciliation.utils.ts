@@ -50,6 +50,22 @@ export interface ReceivableRow {
   suspendedAt: string | null;
   suspensionRef: string | null;
 }
+/** Một dòng lịch sử (chỉ thêm, không sửa) của một nghĩa vụ: ai làm gì, theo phê duyệt nào, bằng chứng nào. */
+export interface ObligationEventRow {
+  at: string;
+  action: string;
+  fromStatus: string;
+  toStatus: string;
+  actor: string;
+  approvedBy: string | null;
+  approvalRef: string;
+  note: string;
+  /** Bằng chứng khi ghi nhận "đã trả ngoài hệ thống" (null ở các thao tác khác). */
+  paidAmount: string | null;
+  transferReference: string | null;
+  paidOn: string | null;
+  unpaidAfter: string | null;
+}
 export interface UnpaidObligationRow {
   id: string;
   kind: string;
@@ -65,7 +81,11 @@ export interface UnpaidObligationRow {
   sessionId?: string | null;
   /** Why the obligation exists, in words (D77 sets it; absent / null on older rows). */
   reason?: string | null;
+  /** Tổng đã trả cho khách NGOÀI hệ thống và lịch sử thao tác (absent on older payment-service builds). */
+  externallyPaid?: string;
+  history?: ObligationEventRow[];
   createdAt: string;
+  resolvedAt?: string | null;
 }
 export interface PaidNotActivatedRow {
   transactionId: string;
@@ -82,6 +102,30 @@ export interface TargetUnverifiedCandidate {
   amount: string;
   partnerPendingRemaining: string;
 }
+/** Gói tập / đơn đã được dịch vụ sở hữu xác nhận là đã hủy (cảnh báo hoặc kết quả hoàn tiền). */
+export interface ProductPaymentRow {
+  transactionId: string;
+  targetType: string;
+  targetId: string;
+  targetStatus: string;
+  outcome: "CANCELLED_PAID" | "REFUND_COMPLETED" | "REFUND_SHORT" | string;
+  amount: string;
+  partnerPendingRemaining: string;
+  refundedToClient: string;
+  ownerRefundedAmount: string | null;
+  refundShortBy: string;
+  openObligationUnpaid: string;
+}
+export type ProductLookupState = "OK" | "PARTIAL" | "UNAVAILABLE" | "NOT_CHECKED";
+export interface ProductPaymentsSummary {
+  lookup: ProductLookupState;
+  activeValid: number;
+  cancelledPaid: number;
+  pendingVerification: number;
+  refundCompleted: number;
+  refundShort: number;
+}
+
 export interface ObligationsReport {
   generatedAt: string;
   params: { limit: number; staleMinutes: number };
@@ -90,26 +134,40 @@ export interface ObligationsReport {
     negativeSubledgers: { count: number; unbackedTotal: string };
     walletMismatches: { count: number; nonEscrowCount: number };
     receivables: { active: { count: number; outstanding: string }; suspended: { count: number; outstanding: string } };
-    unpaidObligations: { open: { count: number; unpaid: string }; resolved: { count: number }; waived: { count: number } };
+    unpaidObligations: {
+      open: { count: number; unpaid: string };
+      underReview: { count: number; unpaid: string };
+      paidExternally: { count: number; amount: string };
+      waived: { count: number; unpaid: string };
+      resolved: { count: number };
+    };
     paidNotActivated: number;
     /** Neutral group (not a warning, not counted by countAttention). */
     targetUnverified: { status: string; candidates: number };
+    productPayments: ProductPaymentsSummary;
   };
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
   walletMismatches: WalletMismatchRow[];
   receivables: ReceivableRow[];
   unpaidObligations: UnpaidObligationRow[];
+  /** Đã đóng (trả ngoài hệ thống / không truy đòi / bản ghi cũ), kèm lịch sử. */
+  closedObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   targetUnverified: { status: string; candidates: TargetUnverifiedCandidate[] };
+  cancelledPaid: ProductPaymentRow[];
+  refundOutcomes: ProductPaymentRow[];
   truncated: Record<
     | "negativeWallets"
     | "negativeSubledgers"
     | "walletMismatches"
     | "receivables"
     | "unpaidObligations"
+    | "closedObligations"
     | "paidNotActivated"
-    | "targetUnverified",
+    | "targetUnverified"
+    | "cancelledPaid"
+    | "refundOutcomes",
     boolean
   >;
 }
@@ -191,6 +249,59 @@ export const OBLIGATION_KIND_LABEL: Record<string, string> = {
   OVER_RELEASED: "Đã giải ngân vượt mức",
 };
 export const obligationKindLabel = (k: string | null | undefined) => lookup(OBLIGATION_KIND_LABEL, k, "Nghĩa vụ khác");
+
+export const OBLIGATION_STATUS_LABEL: Record<string, string> = {
+  OPEN: "Đã ghi nhận, chưa trả",
+  UNDER_REVIEW: "Đang xem xét",
+  PAID_EXTERNALLY: "Đã trả ngoài hệ thống",
+  WAIVED: "Không truy đòi",
+  RESOLVED: "Đã xử lý (bản ghi cũ)",
+};
+export const obligationStatusLabel = (s: string | null | undefined) => lookup(OBLIGATION_STATUS_LABEL, s, "Chưa rõ");
+
+export const OBLIGATION_ACTION_LABEL: Record<string, string> = {
+  REVIEW: "Chuyển sang xem xét",
+  RELEASE_REVIEW: "Trả về chưa xử lý",
+  PAY_EXTERNALLY: "Ghi nhận đã trả ngoài hệ thống",
+  WAIVE: "Quyết định không truy đòi",
+  RESOLVE: "Đánh dấu đã xử lý (cách cũ)",
+};
+export const obligationActionLabel = (a: string | null | undefined) => lookup(OBLIGATION_ACTION_LABEL, a, "Thao tác khác");
+
+export const PRODUCT_OUTCOME_LABEL: Record<string, string> = {
+  CANCELLED_PAID: "Đã hủy nhưng tiền vẫn bị giữ",
+  REFUND_COMPLETED: "Đã hoàn đủ",
+  REFUND_SHORT: "Hoàn chưa đủ",
+};
+export const productOutcomeLabel = (o: string | null | undefined) => lookup(PRODUCT_OUTCOME_LABEL, o, "Chưa rõ");
+
+export const PRODUCT_TARGET_STATUS_LABEL: Record<string, string> = { CANCELLED: "Đã hủy", REFUNDED: "Đã hoàn tiền" };
+export const productTargetStatusLabel = (s: string | null | undefined) => lookup(PRODUCT_TARGET_STATUS_LABEL, s, "Chưa rõ");
+
+/** Câu giải thích kết quả kiểm tra trạng thái gói/đơn ở dịch vụ sở hữu (hiện cạnh nhóm "Chưa xác minh"). */
+export function productLookupNote(p: ProductPaymentsSummary | null | undefined): string {
+  switch (p?.lookup) {
+    case "OK":
+      return "Đã kiểm tra trạng thái ở dịch vụ sở hữu; không còn giao dịch nào chờ xác minh.";
+    case "PARTIAL":
+      return "Một số giao dịch chưa kiểm tra được (dịch vụ không phản hồi kịp hoặc chưa hỗ trợ kiểm tra); các giao dịch đó nằm trong danh sách dưới đây.";
+    case "UNAVAILABLE":
+      return "Chưa kiểm tra được trạng thái ở dịch vụ sở hữu (không phản hồi kịp). Danh sách dưới đây chưa kết luận gì về việc đã hủy.";
+    default:
+      return "Hệ thống chưa kiểm tra trạng thái gói/đơn ở dịch vụ sở hữu nên không kết luận là đã hủy.";
+  }
+}
+
+/** Một dòng lịch sử nghĩa vụ -> câu tiếng Việt cho admin ("12/10/2026 · Ghi nhận đã trả ngoài hệ thống · 100.000 đ · mã chuyển khoản ..."). */
+export function formatObligationEvent(e: ObligationEventRow, fmtMoney: (v: string | number | null | undefined) => string): string {
+  const parts = [formatDateTimeVi(e.at), obligationActionLabel(e.action)];
+  if (e.paidAmount !== null && e.paidAmount !== undefined) parts.push(fmtMoney(e.paidAmount));
+  if (e.transferReference) parts.push(`mã chuyển khoản ${e.transferReference}`);
+  if (e.paidOn) parts.push(`ngày trả ${formatDateTimeVi(e.paidOn).split(" ")[0]}`);
+  if (e.unpaidAfter !== null && e.unpaidAfter !== undefined && e.action === "PAY_EXTERNALLY") parts.push(`còn thiếu ${fmtMoney(e.unpaidAfter)}`);
+  parts.push(`${e.approvedBy ?? e.actor} · phê duyệt ${e.approvalRef}`);
+  return parts.join(" · ");
+}
 
 export const PURPOSE_LABEL: Record<string, string> = {
   PT_CONTRACT: "Hợp đồng PT",
@@ -305,6 +416,12 @@ const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 const group = <T>(v: any): Group<T> => ({ items: arr<T>(v?.items), truncated: Boolean(v?.truncated) });
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
+const withHistory = (r: UnpaidObligationRow): UnpaidObligationRow => ({
+  ...r,
+  externallyPaid: r.externallyPaid ?? "0.00",
+  history: arr<ObligationEventRow>(r.history),
+});
+
 /** Phản hồi payment-service có bọc `{success, data}`; chấp nhận cả dạng đã bóc. Trả null nếu không dùng được. */
 export function normalizeObligationsReport(raw: unknown): ObligationsReport | null {
   const data: any = (raw as any)?.data ?? raw;
@@ -324,27 +441,43 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
       },
       unpaidObligations: {
         open: { count: num(s.unpaidObligations?.open?.count), unpaid: String(s.unpaidObligations?.open?.unpaid ?? "0") },
+        underReview: { count: num(s.unpaidObligations?.underReview?.count), unpaid: String(s.unpaidObligations?.underReview?.unpaid ?? "0") },
+        paidExternally: { count: num(s.unpaidObligations?.paidExternally?.count), amount: String(s.unpaidObligations?.paidExternally?.amount ?? "0") },
+        waived: { count: num(s.unpaidObligations?.waived?.count), unpaid: String(s.unpaidObligations?.waived?.unpaid ?? "0") },
         resolved: { count: num(s.unpaidObligations?.resolved?.count) },
-        waived: { count: num(s.unpaidObligations?.waived?.count) },
       },
       paidNotActivated: num(s.paidNotActivated),
       targetUnverified: { status: String(s.targetUnverified?.status ?? ""), candidates: num(s.targetUnverified?.candidates) },
+      productPayments: {
+        lookup: (["OK", "PARTIAL", "UNAVAILABLE"].includes(s.productPayments?.lookup) ? s.productPayments.lookup : "NOT_CHECKED") as ProductLookupState,
+        activeValid: num(s.productPayments?.activeValid),
+        cancelledPaid: num(s.productPayments?.cancelledPaid),
+        pendingVerification: num(s.productPayments?.pendingVerification),
+        refundCompleted: num(s.productPayments?.refundCompleted),
+        refundShort: num(s.productPayments?.refundShort),
+      },
     },
     negativeWallets: arr(data.negativeWallets),
     negativeSubledgers: arr(data.negativeSubledgers),
     walletMismatches: arr(data.walletMismatches),
     receivables: arr(data.receivables),
-    unpaidObligations: arr(data.unpaidObligations),
+    unpaidObligations: arr<UnpaidObligationRow>(data.unpaidObligations).map(withHistory),
+    closedObligations: arr<UnpaidObligationRow>(data.closedObligations).map(withHistory),
     paidNotActivated: arr(data.paidNotActivated),
     targetUnverified: { status: String(data.targetUnverified?.status ?? ""), candidates: arr(data.targetUnverified?.candidates) },
+    cancelledPaid: arr(data.cancelledPaid),
+    refundOutcomes: arr(data.refundOutcomes),
     truncated: {
       negativeWallets: Boolean(t.negativeWallets),
       negativeSubledgers: Boolean(t.negativeSubledgers),
       walletMismatches: Boolean(t.walletMismatches),
       receivables: Boolean(t.receivables),
       unpaidObligations: Boolean(t.unpaidObligations),
+      closedObligations: Boolean(t.closedObligations),
       paidNotActivated: Boolean(t.paidNotActivated),
       targetUnverified: Boolean(t.targetUnverified),
+      cancelledPaid: Boolean(t.cancelledPaid),
+      refundOutcomes: Boolean(t.refundOutcomes),
     },
   };
 }
@@ -375,8 +508,10 @@ export function countAttention(payment: ObligationsReport | null, sessions: Sess
   let watch = 0;
   if (payment) {
     const s = payment.summary;
-    critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated;
-    watch += s.receivables.active.count + s.receivables.suspended.count + s.unpaidObligations.open.count; // targetUnverified is information, deliberately not counted
+    // Đã hủy mà khách đã trả và tiền vẫn bị giữ = cảnh báo thật (dịch vụ sở hữu xác nhận). "Chưa xác minh" và "còn hiệu lực" là thông tin, cố ý không đếm.
+    critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated + s.productPayments.cancelledPaid;
+    // "Đã trả ngoài hệ thống", "không truy đòi" và bản ghi cũ đã đóng nên không đếm; "đang xem xét" vẫn là việc còn mở. Hoàn chưa đủ cần theo dõi.
+    watch += s.receivables.active.count + s.receivables.suspended.count + s.unpaidObligations.open.count + s.unpaidObligations.underReview.count + s.productPayments.refundShort;
   }
   if (sessions) {
     critical += sessions.needsAttention.items.length + sessions.endedWithoutSettledEnding.items.length;

@@ -249,7 +249,9 @@ export type ContractUnpaidObligationKind = (typeof ContractUnpaidObligationKind)
 export const ContractUnpaidObligationStatus: {
   OPEN: 'OPEN',
   RESOLVED: 'RESOLVED',
-  WAIVED: 'WAIVED'
+  WAIVED: 'WAIVED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PAID_EXTERNALLY: 'PAID_EXTERNALLY'
 };
 
 export type ContractUnpaidObligationStatus = (typeof ContractUnpaidObligationStatus)[keyof typeof ContractUnpaidObligationStatus]
@@ -266,7 +268,10 @@ export type PartnerReceivableEventAction = (typeof PartnerReceivableEventAction)
 
 export const ContractUnpaidObligationEventAction: {
   RESOLVE: 'RESOLVE',
-  WAIVE: 'WAIVE'
+  WAIVE: 'WAIVE',
+  REVIEW: 'REVIEW',
+  RELEASE_REVIEW: 'RELEASE_REVIEW',
+  PAY_EXTERNALLY: 'PAY_EXTERNALLY'
 };
 
 export type ContractUnpaidObligationEventAction = (typeof ContractUnpaidObligationEventAction)[keyof typeof ContractUnpaidObligationEventAction]
@@ -9825,12 +9830,14 @@ export namespace Prisma {
     owed: Decimal | null
     paid: Decimal | null
     unpaid: Decimal | null
+    externallyPaid: Decimal | null
   }
 
   export type ContractUnpaidObligationSumAggregateOutputType = {
     owed: Decimal | null
     paid: Decimal | null
     unpaid: Decimal | null
+    externallyPaid: Decimal | null
   }
 
   export type ContractUnpaidObligationMinAggregateOutputType = {
@@ -9843,6 +9850,7 @@ export namespace Prisma {
     owed: Decimal | null
     paid: Decimal | null
     unpaid: Decimal | null
+    externallyPaid: Decimal | null
     status: $Enums.ContractUnpaidObligationStatus | null
     createdAt: Date | null
     resolvedAt: Date | null
@@ -9861,6 +9869,7 @@ export namespace Prisma {
     owed: Decimal | null
     paid: Decimal | null
     unpaid: Decimal | null
+    externallyPaid: Decimal | null
     status: $Enums.ContractUnpaidObligationStatus | null
     createdAt: Date | null
     resolvedAt: Date | null
@@ -9879,6 +9888,7 @@ export namespace Prisma {
     owed: number
     paid: number
     unpaid: number
+    externallyPaid: number
     status: number
     createdAt: number
     resolvedAt: number
@@ -9893,12 +9903,14 @@ export namespace Prisma {
     owed?: true
     paid?: true
     unpaid?: true
+    externallyPaid?: true
   }
 
   export type ContractUnpaidObligationSumAggregateInputType = {
     owed?: true
     paid?: true
     unpaid?: true
+    externallyPaid?: true
   }
 
   export type ContractUnpaidObligationMinAggregateInputType = {
@@ -9911,6 +9923,7 @@ export namespace Prisma {
     owed?: true
     paid?: true
     unpaid?: true
+    externallyPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -9929,6 +9942,7 @@ export namespace Prisma {
     owed?: true
     paid?: true
     unpaid?: true
+    externallyPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -9947,6 +9961,7 @@ export namespace Prisma {
     owed?: true
     paid?: true
     unpaid?: true
+    externallyPaid?: true
     status?: true
     createdAt?: true
     resolvedAt?: true
@@ -10052,6 +10067,7 @@ export namespace Prisma {
     owed: Decimal
     paid: Decimal
     unpaid: Decimal
+    externallyPaid: Decimal
     status: $Enums.ContractUnpaidObligationStatus
     createdAt: Date
     resolvedAt: Date | null
@@ -10089,6 +10105,7 @@ export namespace Prisma {
     owed?: boolean
     paid?: boolean
     unpaid?: boolean
+    externallyPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10110,6 +10127,7 @@ export namespace Prisma {
     owed?: boolean
     paid?: boolean
     unpaid?: boolean
+    externallyPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10129,6 +10147,7 @@ export namespace Prisma {
     owed?: boolean
     paid?: boolean
     unpaid?: boolean
+    externallyPaid?: boolean
     status?: boolean
     createdAt?: boolean
     resolvedAt?: boolean
@@ -10171,6 +10190,10 @@ export namespace Prisma {
       owed: Prisma.Decimal
       paid: Prisma.Decimal
       unpaid: Prisma.Decimal
+      /**
+       * FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
+       */
+      externallyPaid: Prisma.Decimal
       status: $Enums.ContractUnpaidObligationStatus
       createdAt: Date
       resolvedAt: Date | null
@@ -10584,6 +10607,7 @@ export namespace Prisma {
     readonly owed: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly paid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly unpaid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
+    readonly externallyPaid: FieldRef<"ContractUnpaidObligation", 'Decimal'>
     readonly status: FieldRef<"ContractUnpaidObligation", 'ContractUnpaidObligationStatus'>
     readonly createdAt: FieldRef<"ContractUnpaidObligation", 'DateTime'>
     readonly resolvedAt: FieldRef<"ContractUnpaidObligation", 'DateTime'>
@@ -11990,10 +12014,14 @@ export namespace Prisma {
 
   export type ContractUnpaidObligationEventAvgAggregateOutputType = {
     unpaid: Decimal | null
+    paidAmount: Decimal | null
+    unpaidAfter: Decimal | null
   }
 
   export type ContractUnpaidObligationEventSumAggregateOutputType = {
     unpaid: Decimal | null
+    paidAmount: Decimal | null
+    unpaidAfter: Decimal | null
   }
 
   export type ContractUnpaidObligationEventMinAggregateOutputType = {
@@ -12007,6 +12035,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus | null
     toStatus: $Enums.ContractUnpaidObligationStatus | null
     unpaid: Decimal | null
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    approvedBy: string | null
+    unpaidAfter: Decimal | null
     createdAt: Date | null
   }
 
@@ -12021,6 +12054,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus | null
     toStatus: $Enums.ContractUnpaidObligationStatus | null
     unpaid: Decimal | null
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    approvedBy: string | null
+    unpaidAfter: Decimal | null
     createdAt: Date | null
   }
 
@@ -12035,6 +12073,11 @@ export namespace Prisma {
     fromStatus: number
     toStatus: number
     unpaid: number
+    paidAmount: number
+    transferReference: number
+    paidOn: number
+    approvedBy: number
+    unpaidAfter: number
     createdAt: number
     _all: number
   }
@@ -12042,10 +12085,14 @@ export namespace Prisma {
 
   export type ContractUnpaidObligationEventAvgAggregateInputType = {
     unpaid?: true
+    paidAmount?: true
+    unpaidAfter?: true
   }
 
   export type ContractUnpaidObligationEventSumAggregateInputType = {
     unpaid?: true
+    paidAmount?: true
+    unpaidAfter?: true
   }
 
   export type ContractUnpaidObligationEventMinAggregateInputType = {
@@ -12059,6 +12106,11 @@ export namespace Prisma {
     fromStatus?: true
     toStatus?: true
     unpaid?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    approvedBy?: true
+    unpaidAfter?: true
     createdAt?: true
   }
 
@@ -12073,6 +12125,11 @@ export namespace Prisma {
     fromStatus?: true
     toStatus?: true
     unpaid?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    approvedBy?: true
+    unpaidAfter?: true
     createdAt?: true
   }
 
@@ -12087,6 +12144,11 @@ export namespace Prisma {
     fromStatus?: true
     toStatus?: true
     unpaid?: true
+    paidAmount?: true
+    transferReference?: true
+    paidOn?: true
+    approvedBy?: true
+    unpaidAfter?: true
     createdAt?: true
     _all?: true
   }
@@ -12188,6 +12250,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal
+    paidAmount: Decimal | null
+    transferReference: string | null
+    paidOn: Date | null
+    approvedBy: string | null
+    unpaidAfter: Decimal | null
     createdAt: Date
     _count: ContractUnpaidObligationEventCountAggregateOutputType | null
     _avg: ContractUnpaidObligationEventAvgAggregateOutputType | null
@@ -12221,6 +12288,11 @@ export namespace Prisma {
     fromStatus?: boolean
     toStatus?: boolean
     unpaid?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    approvedBy?: boolean
+    unpaidAfter?: boolean
     createdAt?: boolean
     obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
@@ -12236,6 +12308,11 @@ export namespace Prisma {
     fromStatus?: boolean
     toStatus?: boolean
     unpaid?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    approvedBy?: boolean
+    unpaidAfter?: boolean
     createdAt?: boolean
     obligation?: boolean | ContractUnpaidObligationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
@@ -12251,6 +12328,11 @@ export namespace Prisma {
     fromStatus?: boolean
     toStatus?: boolean
     unpaid?: boolean
+    paidAmount?: boolean
+    transferReference?: boolean
+    paidOn?: boolean
+    approvedBy?: boolean
+    unpaidAfter?: boolean
     createdAt?: boolean
   }
 
@@ -12280,6 +12362,15 @@ export namespace Prisma {
        * Unpaid amount at the time of the change (the CAS value the owner approved).
        */
       unpaid: Prisma.Decimal
+      /**
+       * PAY_EXTERNALLY evidence (null for the other actions): what was paid, the bank/transfer reference, the date it was paid,
+       * who approved it, and what stays unpaid afterwards.
+       */
+      paidAmount: Prisma.Decimal | null
+      transferReference: string | null
+      paidOn: Date | null
+      approvedBy: string | null
+      unpaidAfter: Prisma.Decimal | null
       createdAt: Date
     }, ExtArgs["result"]["contractUnpaidObligationEvent"]>
     composites: {}
@@ -12685,6 +12776,11 @@ export namespace Prisma {
     readonly fromStatus: FieldRef<"ContractUnpaidObligationEvent", 'ContractUnpaidObligationStatus'>
     readonly toStatus: FieldRef<"ContractUnpaidObligationEvent", 'ContractUnpaidObligationStatus'>
     readonly unpaid: FieldRef<"ContractUnpaidObligationEvent", 'Decimal'>
+    readonly paidAmount: FieldRef<"ContractUnpaidObligationEvent", 'Decimal'>
+    readonly transferReference: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly paidOn: FieldRef<"ContractUnpaidObligationEvent", 'DateTime'>
+    readonly approvedBy: FieldRef<"ContractUnpaidObligationEvent", 'String'>
+    readonly unpaidAfter: FieldRef<"ContractUnpaidObligationEvent", 'Decimal'>
     readonly createdAt: FieldRef<"ContractUnpaidObligationEvent", 'DateTime'>
   }
     
@@ -14143,6 +14239,7 @@ export namespace Prisma {
     owed: 'owed',
     paid: 'paid',
     unpaid: 'unpaid',
+    externallyPaid: 'externallyPaid',
     status: 'status',
     createdAt: 'createdAt',
     resolvedAt: 'resolvedAt',
@@ -14182,6 +14279,11 @@ export namespace Prisma {
     fromStatus: 'fromStatus',
     toStatus: 'toStatus',
     unpaid: 'unpaid',
+    paidAmount: 'paidAmount',
+    transferReference: 'transferReference',
+    paidOn: 'paidOn',
+    approvedBy: 'approvedBy',
+    unpaidAfter: 'unpaidAfter',
     createdAt: 'createdAt'
   };
 
@@ -15320,6 +15422,7 @@ export namespace Prisma {
     owed?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15340,6 +15443,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -15363,6 +15467,7 @@ export namespace Prisma {
     owed?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15383,6 +15488,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrderInput | SortOrder
@@ -15409,6 +15515,7 @@ export namespace Prisma {
     owed?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     paid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusWithAggregatesFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeWithAggregatesFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -15518,6 +15625,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
+    approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
     obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
   }
@@ -15533,6 +15645,11 @@ export namespace Prisma {
     fromStatus?: SortOrder
     toStatus?: SortOrder
     unpaid?: SortOrder
+    paidAmount?: SortOrderInput | SortOrder
+    transferReference?: SortOrderInput | SortOrder
+    paidOn?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    unpaidAfter?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     obligation?: ContractUnpaidObligationOrderByWithRelationInput
   }
@@ -15551,6 +15668,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
+    approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
     obligation?: XOR<ContractUnpaidObligationRelationFilter, ContractUnpaidObligationWhereInput>
   }, "id" | "idempotencyKey">
@@ -15566,6 +15688,11 @@ export namespace Prisma {
     fromStatus?: SortOrder
     toStatus?: SortOrder
     unpaid?: SortOrder
+    paidAmount?: SortOrderInput | SortOrder
+    transferReference?: SortOrderInput | SortOrder
+    paidOn?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    unpaidAfter?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ContractUnpaidObligationEventCountOrderByAggregateInput
     _avg?: ContractUnpaidObligationEventAvgOrderByAggregateInput
@@ -15588,6 +15715,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusWithAggregatesFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusWithAggregatesFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string
+    paidAmount?: DecimalNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    paidOn?: DateTimeNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Date | string | null
+    approvedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | string | null
+    unpaidAfter?: DecimalNullableWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ContractUnpaidObligationEvent"> | Date | string
   }
 
@@ -16563,6 +16695,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16583,6 +16716,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16601,6 +16735,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16621,6 +16756,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16640,6 +16776,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -16657,6 +16794,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16675,6 +16813,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16790,6 +16929,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     obligation: ContractUnpaidObligationCreateNestedOneWithoutEventsInput
   }
@@ -16805,6 +16949,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
   }
 
@@ -16818,6 +16967,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     obligation?: ContractUnpaidObligationUpdateOneRequiredWithoutEventsNestedInput
   }
@@ -16833,6 +16987,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16847,6 +17006,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
   }
 
@@ -16860,6 +17024,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16874,6 +17043,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17969,6 +18143,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -17981,6 +18156,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
   }
 
   export type ContractUnpaidObligationMaxOrderByAggregateInput = {
@@ -17993,6 +18169,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -18011,6 +18188,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     resolvedAt?: SortOrder
@@ -18023,6 +18201,7 @@ export namespace Prisma {
     owed?: SortOrder
     paid?: SortOrder
     unpaid?: SortOrder
+    externallyPaid?: SortOrder
   }
 
   export type EnumContractUnpaidObligationKindWithAggregatesFilter<$PrismaModel = never> = {
@@ -18120,6 +18299,17 @@ export namespace Prisma {
     not?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel> | $Enums.ContractUnpaidObligationEventAction
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type ContractUnpaidObligationRelationFilter = {
     is?: ContractUnpaidObligationWhereInput
     isNot?: ContractUnpaidObligationWhereInput
@@ -18136,11 +18326,18 @@ export namespace Prisma {
     fromStatus?: SortOrder
     toStatus?: SortOrder
     unpaid?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    approvedBy?: SortOrder
+    unpaidAfter?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ContractUnpaidObligationEventAvgOrderByAggregateInput = {
     unpaid?: SortOrder
+    paidAmount?: SortOrder
+    unpaidAfter?: SortOrder
   }
 
   export type ContractUnpaidObligationEventMaxOrderByAggregateInput = {
@@ -18154,6 +18351,11 @@ export namespace Prisma {
     fromStatus?: SortOrder
     toStatus?: SortOrder
     unpaid?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    approvedBy?: SortOrder
+    unpaidAfter?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -18168,11 +18370,18 @@ export namespace Prisma {
     fromStatus?: SortOrder
     toStatus?: SortOrder
     unpaid?: SortOrder
+    paidAmount?: SortOrder
+    transferReference?: SortOrder
+    paidOn?: SortOrder
+    approvedBy?: SortOrder
+    unpaidAfter?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ContractUnpaidObligationEventSumOrderByAggregateInput = {
     unpaid?: SortOrder
+    paidAmount?: SortOrder
+    unpaidAfter?: SortOrder
   }
 
   export type EnumContractUnpaidObligationEventActionWithAggregatesFilter<$PrismaModel = never> = {
@@ -18183,6 +18392,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
     _max?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type PaymentWebhookEventProviderProviderEventIdCompoundUniqueInput = {
@@ -18712,6 +18937,14 @@ export namespace Prisma {
     set?: $Enums.ContractUnpaidObligationEventAction
   }
 
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
   export type ContractUnpaidObligationUpdateOneRequiredWithoutEventsNestedInput = {
     create?: XOR<ContractUnpaidObligationCreateWithoutEventsInput, ContractUnpaidObligationUncheckedCreateWithoutEventsInput>
     connectOrCreate?: ContractUnpaidObligationCreateOrConnectWithoutEventsInput
@@ -19214,6 +19447,17 @@ export namespace Prisma {
     not?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel> | $Enums.ContractUnpaidObligationEventAction
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type NestedEnumContractUnpaidObligationEventActionWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractUnpaidObligationEventAction | EnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
     in?: $Enums.ContractUnpaidObligationEventAction[] | ListEnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
@@ -19222,6 +19466,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
     _max?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type WalletLedgerEntryCreateWithoutWalletInput = {
@@ -19747,6 +20007,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -19765,6 +20026,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -19862,6 +20124,7 @@ export namespace Prisma {
     owed?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     paid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFilter<"ContractUnpaidObligation"> | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligation"> | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFilter<"ContractUnpaidObligation"> | Date | string
     resolvedAt?: DateTimeNullableFilter<"ContractUnpaidObligation"> | Date | string | null
@@ -20192,6 +20455,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
   }
 
@@ -20205,6 +20473,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
   }
 
@@ -20333,6 +20606,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFilter<"ContractUnpaidObligationEvent"> | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string
+    paidAmount?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
+    transferReference?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    paidOn?: DateTimeNullableFilter<"ContractUnpaidObligationEvent"> | Date | string | null
+    approvedBy?: StringNullableFilter<"ContractUnpaidObligationEvent"> | string | null
+    unpaidAfter?: DecimalNullableFilter<"ContractUnpaidObligationEvent"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFilter<"ContractUnpaidObligationEvent"> | Date | string
   }
 
@@ -20453,6 +20731,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20472,6 +20751,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20505,6 +20785,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20524,6 +20805,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20678,6 +20960,7 @@ export namespace Prisma {
     owed: Decimal | DecimalJsLike | number | string
     paid: Decimal | DecimalJsLike | number | string
     unpaid: Decimal | DecimalJsLike | number | string
+    externallyPaid?: Decimal | DecimalJsLike | number | string
     status?: $Enums.ContractUnpaidObligationStatus
     createdAt?: Date | string
     resolvedAt?: Date | string | null
@@ -20770,6 +21053,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20788,6 +21072,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20806,6 +21091,7 @@ export namespace Prisma {
     owed?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    externallyPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20876,6 +21162,11 @@ export namespace Prisma {
     fromStatus: $Enums.ContractUnpaidObligationStatus
     toStatus: $Enums.ContractUnpaidObligationStatus
     unpaid: Decimal | DecimalJsLike | number | string
+    paidAmount?: Decimal | DecimalJsLike | number | string | null
+    transferReference?: string | null
+    paidOn?: Date | string | null
+    approvedBy?: string | null
+    unpaidAfter?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
   }
 
@@ -20889,6 +21180,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20902,6 +21198,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20915,6 +21216,11 @@ export namespace Prisma {
     fromStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     toStatus?: EnumContractUnpaidObligationStatusFieldUpdateOperationsInput | $Enums.ContractUnpaidObligationStatus
     unpaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    transferReference?: NullableStringFieldUpdateOperationsInput | string | null
+    paidOn?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    unpaidAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

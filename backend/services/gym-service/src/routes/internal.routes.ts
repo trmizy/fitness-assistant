@@ -4,6 +4,7 @@ import { internalController } from '../controllers/internal.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
 import internalMembershipRoutes from './internal-memberships.routes';
+import internalStatusRoutes from './internal-status.routes';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
@@ -19,5 +20,7 @@ router.get('/collaborations/active', asyncHandler(collaborationController.intern
 
 // Phase 3 / P3.1 - read-only membership lookups (new file, secret-protected by the router.use above).
 router.use(internalMembershipRoutes);
+// FH-4 - read-only status facts (new file, secret-protected by the router.use above).
+router.use(internalStatusRoutes);
 
 export default router;

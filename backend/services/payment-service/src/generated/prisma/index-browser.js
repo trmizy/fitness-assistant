@@ -256,6 +256,7 @@ exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
   owed: 'owed',
   paid: 'paid',
   unpaid: 'unpaid',
+  externallyPaid: 'externallyPaid',
   status: 'status',
   createdAt: 'createdAt',
   resolvedAt: 'resolvedAt',
@@ -289,6 +290,11 @@ exports.Prisma.ContractUnpaidObligationEventScalarFieldEnum = {
   fromStatus: 'fromStatus',
   toStatus: 'toStatus',
   unpaid: 'unpaid',
+  paidAmount: 'paidAmount',
+  transferReference: 'transferReference',
+  paidOn: 'paidOn',
+  approvedBy: 'approvedBy',
+  unpaidAfter: 'unpaidAfter',
   createdAt: 'createdAt'
 };
 
@@ -431,7 +437,9 @@ exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKi
 exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {
   OPEN: 'OPEN',
   RESOLVED: 'RESOLVED',
-  WAIVED: 'WAIVED'
+  WAIVED: 'WAIVED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PAID_EXTERNALLY: 'PAID_EXTERNALLY'
 };
 
 exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventAction = {
@@ -442,7 +450,10 @@ exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventActi
 
 exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidObligationEventAction = {
   RESOLVE: 'RESOLVE',
-  WAIVE: 'WAIVE'
+  WAIVE: 'WAIVE',
+  REVIEW: 'REVIEW',
+  RELEASE_REVIEW: 'RELEASE_REVIEW',
+  PAY_EXTERNALLY: 'PAY_EXTERNALLY'
 };
 
 exports.Prisma.ModelName = {

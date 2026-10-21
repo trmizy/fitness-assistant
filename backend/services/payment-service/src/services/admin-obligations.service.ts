@@ -17,7 +17,13 @@ import {
   type NegativeWalletRow,
   type WalletLedgerMismatchRow,
 } from './ledger-state-checks';
-import { classifyActivatedProductPayments } from './activated-but-cancelled-target.query';
+import {
+  classifyActivatedProductPayments,
+  type ActivatedButCancelledRow,
+  type ProductPaymentOutcome,
+  type TargetStatusLookup,
+} from './activated-but-cancelled-target.query';
+import { createTargetStatusLookup } from '../clients/target-status.client';
 
 export const OBLIGATIONS_DEFAULT_LIMIT = 50;
 export const OBLIGATIONS_MAX_LIMIT = 200;
@@ -41,6 +47,23 @@ export interface ReceivableRow {
   suspensionRef: string | null;
 }
 
+/** One entry of an obligation's append-only history (who did what, with which approval / evidence). Names are operators, never clients. */
+export interface ObligationEventRow {
+  at: string;
+  action: string;
+  fromStatus: string;
+  toStatus: string;
+  actor: string;
+  approvedBy: string | null;
+  approvalRef: string;
+  note: string;
+  /** PAY_EXTERNALLY evidence (null for other actions). */
+  paidAmount: string | null;
+  transferReference: string | null;
+  paidOn: string | null;
+  unpaidAfter: string | null;
+}
+
 export interface UnpaidObligationRow {
   id: string;
   kind: string;
@@ -58,6 +81,10 @@ export interface UnpaidObligationRow {
   sessionId: string | null;
   /** Why the obligation exists, in words (D77 sets it; null on rows FH-1 wrote). Cut to 120 characters. */
   reason: string | null;
+  /** Total paid to the client OUTSIDE the ledger so far (evidence in `history`). */
+  externallyPaid: string;
+  /** Append-only audit trail, oldest first (last 10). */
+  history: ObligationEventRow[];
   createdAt: string;
   resolvedAt: string | null;
 }
@@ -79,6 +106,28 @@ export interface TargetUnverifiedCandidate {
   partnerPendingRemaining: string;
 }
 
+/**
+ * A product payment (gym membership / personalized order) whose owning service CONFIRMED the target is cancelled
+ * (warning or refund outcome). No payer id, no names.
+ */
+export interface ProductPaymentRow {
+  transactionId: string;
+  targetType: string;
+  targetId: string;
+  /** What the owning service reported (CANCELLED / REFUNDED). */
+  targetStatus: string;
+  outcome: ProductPaymentOutcome;
+  amount: string;
+  partnerPendingRemaining: string;
+  refundedToClient: string;
+  ownerRefundedAmount: string | null;
+  refundShortBy: string;
+  openObligationUnpaid: string;
+}
+
+/** NOT_CHECKED: no lookup configured. OK: every candidate answered. PARTIAL: some did not. UNAVAILABLE: none did. */
+export type ProductLookupState = 'OK' | 'PARTIAL' | 'UNAVAILABLE' | 'NOT_CHECKED';
+
 export interface ObligationsReport {
   generatedAt: string;
   params: { limit: number; staleMinutes: number };
@@ -92,35 +141,65 @@ export interface ObligationsReport {
     };
     unpaidObligations: {
       open: { count: number; unpaid: string };
+      /** Someone is looking at it (still unpaid). */
+      underReview: { count: number; unpaid: string };
+      /** Paid to the client outside the ledger, with evidence. `amount` = everything paid externally, incl. partial payments on rows still open. */
+      paidExternally: { count: number; amount: string };
+      /** The owner decided not to pursue it; `unpaid` is what was forgiven. The client was NOT paid. */
+      waived: { count: number; unpaid: string };
+      /** LEGACY "handled elsewhere" without evidence. */
       resolved: { count: number };
-      waived: { count: number };
     };
     paidNotActivated: number;
     /** Neutral, NOT a warning and not counted as needing attention: see `targetUnverified`. */
     targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED'; candidates: number };
+    /**
+     * FH-4: what the owning services said about every PAID + ACTIVATED product payment.
+     * activeValid = confirmed alive (never a problem); cancelledPaid = confirmed cancelled, money held, not refunded (warning);
+     * pendingVerification = could not be verified (neutral); refundCompleted / refundShort = confirmed cancelled and refunded.
+     */
+    productPayments: {
+      lookup: ProductLookupState;
+      activeValid: number;
+      cancelledPaid: number;
+      pendingVerification: number;
+      refundCompleted: number;
+      refundShort: number;
+    };
   };
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
   walletMismatches: WalletLedgerMismatchRow[];
   receivables: ReceivableRow[];
+  /** Still to be paid: OPEN and UNDER_REVIEW rows (a partially paid row stays here with its reduced `unpaid`). */
   unpaidObligations: UnpaidObligationRow[];
+  /** Closed ones, newest first: PAID_EXTERNALLY / WAIVED / RESOLVED(legacy), each with its history. */
+  closedObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   /**
    * "Chưa xác minh trạng thái": PAID + ACTIVATED product payments (gym membership / personalized-service order) whose
    * money is still in partners' PENDING and that the client was never refunded for. For a normal ACTIVE membership or
    * order that is EXACTLY the expected state, so this group is NEVER a cancellation warning: payment-service owns no
-   * order / membership status and no read-only status API exists on gym-service / ai-service, so CANCELLED is not
-   * (and must not be) inferred here. Rows are only candidates for a manual look.
+   * order / membership status, so CANCELLED is not (and must not be) inferred from the ledger. Since FH-4 the owning
+   * services are asked (read-only status routes); rows land here only when that lookup failed / timed out / the owner
+   * has no such row ("pending verification"). Confirmed-alive rows are only counted (`summary.productPayments.activeValid`).
    */
   targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED'; candidates: TargetUnverifiedCandidate[] };
+  /** Confirmed cancelled by the owning service, money still held, client not refunded. */
+  cancelledPaid: ProductPaymentRow[];
+  /** Confirmed cancelled and refunded: `outcome` is REFUND_COMPLETED or REFUND_SHORT. */
+  refundOutcomes: ProductPaymentRow[];
   truncated: {
     negativeWallets: boolean;
     negativeSubledgers: boolean;
     walletMismatches: boolean;
     receivables: boolean;
     unpaidObligations: boolean;
+    closedObligations: boolean;
     paidNotActivated: boolean;
     targetUnverified: boolean;
+    cancelledPaid: boolean;
+    refundOutcomes: boolean;
   };
 }
 
@@ -147,8 +226,22 @@ const short = (v: string | null | undefined) => (v ? v.slice(0, 8) : null);
 const cut = (v: string | null | undefined, n = 120) => (v ? (v.length > n ? `${v.slice(0, n)}...` : v) : '');
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v ? String(v) : null);
 
+const toProductRow = (c: ActivatedButCancelledRow): ProductPaymentRow => ({
+  transactionId: c.transactionId,
+  targetType: c.relatedEntityType,
+  targetId: c.relatedEntityId,
+  targetStatus: c.targetStatus,
+  outcome: c.outcome,
+  amount: c.amount,
+  partnerPendingRemaining: c.partnerPendingRemaining,
+  refundedToClient: c.clientRefundCredited,
+  ownerRefundedAmount: c.ownerRefundedAmount,
+  refundShortBy: c.refundShortBy,
+  openObligationUnpaid: c.openObligationUnpaid,
+});
+
 export async function buildObligationsReport(
-  opts: { limit?: number; staleMinutes?: number } = {},
+  opts: { limit?: number; staleMinutes?: number; lookupTargetStatus?: TargetStatusLookup | null } = {},
 ): Promise<ObligationsReport> {
   const limit = opts.limit ?? OBLIGATIONS_DEFAULT_LIMIT;
   const staleMinutes = opts.staleMinutes ?? OBLIGATIONS_DEFAULT_STALE_MINUTES;
@@ -180,20 +273,41 @@ export async function buildObligationsReport(
         limit,
       );
 
-      const obSummary = await tx.$queryRawUnsafe<{ status: string; c: number; unpaid: string }[]>(
-        `SELECT status::text AS status, count(*)::int AS c, coalesce(sum(unpaid),0)::text AS unpaid
+      const obSummary = await tx.$queryRawUnsafe<{ status: string; c: number; unpaid: string; ext: string }[]>(
+        `SELECT status::text AS status, count(*)::int AS c, coalesce(sum(unpaid),0)::text AS unpaid,
+                coalesce(sum(externally_paid),0)::text AS ext
            FROM contract_unpaid_obligations GROUP BY 1`,
       );
+      const OB_COLS = `o.id, o.key, o.kind::text AS kind, o.party, o.status::text AS status, o.owed::text AS owed, o.paid::text AS paid,
+                o.unpaid::text AS unpaid, o.externally_paid::text AS externally_paid, o.transaction_id, o.reason, o.created_at, o.resolved_at,
+                CASE WHEN t.related_entity_type::text = 'PT_CONTRACT' THEN t.related_entity_id END AS contract_id`;
       const obRows = await tx.$queryRawUnsafe<any[]>(
-        `SELECT o.id, o.key, o.kind::text AS kind, o.party, o.status::text AS status, o.owed::text AS owed, o.paid::text AS paid,
-                o.unpaid::text AS unpaid, o.transaction_id, o.reason, o.created_at, o.resolved_at,
-                CASE WHEN t.related_entity_type::text = 'PT_CONTRACT' THEN t.related_entity_id END AS contract_id
+        `SELECT ${OB_COLS}
            FROM contract_unpaid_obligations o
            LEFT JOIN payment_transactions t ON t.id = o.transaction_id
-          WHERE o.status = 'OPEN'
+          WHERE o.status IN ('OPEN','UNDER_REVIEW')
           ORDER BY o.created_at ASC, o.id LIMIT $1`,
         limit,
       );
+      const closedRows = await tx.$queryRawUnsafe<any[]>(
+        `SELECT ${OB_COLS}
+           FROM contract_unpaid_obligations o
+           LEFT JOIN payment_transactions t ON t.id = o.transaction_id
+          WHERE o.status IN ('PAID_EXTERNALLY','WAIVED','RESOLVED')
+          ORDER BY o.resolved_at DESC NULLS LAST, o.id LIMIT $1`,
+        limit,
+      );
+      const obIds = [...obRows, ...closedRows].map((r) => r.id as string);
+      const eventRows = obIds.length
+        ? await tx.$queryRawUnsafe<any[]>(
+            `SELECT obligation_id, created_at, action::text AS action, from_status::text AS from_status, to_status::text AS to_status,
+                    actor, approved_by, approval_ref, note, paid_amount::text AS paid_amount, transfer_reference, paid_on,
+                    unpaid_after::text AS unpaid_after
+               FROM contract_unpaid_obligation_events WHERE obligation_id = ANY($1::text[])
+              ORDER BY created_at ASC, id`,
+            obIds,
+          )
+        : [];
 
       const staleCount =
         (
@@ -215,25 +329,79 @@ export async function buildObligationsReport(
         limit,
       );
 
-      return { negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, staleCount, staleRows };
+      return { negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, closedRows, eventRows, staleCount, staleRows };
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30_000, maxWait: 10_000 },
   );
 
-  // No owning-service lookup exists (gym-service / ai-service expose no read-only membership/order status by id), so
-  // every row is "unverified"; CANCELLED is never inferred from money still in PENDING. SELECTs only.
-  const { unverified: candidatesAll } = await classifyActivatedProductPayments(null, { limit: 500 });
+  // The owning services (gym-service / ai-service) answer read-only status questions (target-status.client.ts). A lookup that
+  // fails or times out leaves its rows in "pending verification"; CANCELLED is never inferred from money still in PENDING.
+  // `opts.lookupTargetStatus === null` skips the lookup entirely (every row is then unverified / NOT_CHECKED). SELECTs only.
+  const lookup = opts.lookupTargetStatus === undefined ? createTargetStatusLookup() : opts.lookupTargetStatus;
+  const cls = await classifyActivatedProductPayments(lookup, { limit: 500 });
+  const candidatesAll = cls.unverified;
   const candidates: TargetUnverifiedCandidate[] = candidatesAll.slice(0, limit).map((c) => ({
     transactionId: c.transactionId,
     targetType: c.relatedEntityType,
     amount: c.amount,
     partnerPendingRemaining: c.partnerPendingRemaining,
   }));
+  const cancelledAll = cls.cancelled.map(toProductRow);
+  const refundsAll = [...cls.refundShort, ...cls.refundCompleted].map(toProductRow);
+  const resolved = cls.activeValid + cls.cancelled.length + cls.refundCompleted.length + cls.refundShort.length;
+  // `unverified` omits rows that need no attention (e.g. nothing held), so this state is a best signal, not a count of failures.
+  const lookupState: ProductLookupState = !lookup
+    ? 'NOT_CHECKED'
+    : candidatesAll.length === 0
+      ? 'OK'
+      : resolved === 0
+        ? 'UNAVAILABLE'
+        : 'PARTIAL';
 
   const rec = (state: string) => core.recSummary.find((r) => r.state === state);
   const ob = (status: string) => core.obSummary.find((r) => r.status === status);
   const recCount = (rec('ACTIVE')?.c ?? 0) + (rec('SUSPENDED')?.c ?? 0);
   const obOpen = ob('OPEN')?.c ?? 0;
+  const obClosedCount = (ob('PAID_EXTERNALLY')?.c ?? 0) + (ob('WAIVED')?.c ?? 0) + (ob('RESOLVED')?.c ?? 0);
+  const obOpenListCount = obOpen + (ob('UNDER_REVIEW')?.c ?? 0);
+  const totalExternallyPaid = core.obSummary.reduce((a, r) => a.plus(new Prisma.Decimal(r.ext ?? 0)), new Prisma.Decimal(0));
+  const historyByObligation = new Map<string, ObligationEventRow[]>();
+  for (const e of core.eventRows) {
+    const list = historyByObligation.get(e.obligation_id) ?? [];
+    list.push({
+      at: iso(e.created_at) as string,
+      action: e.action,
+      fromStatus: e.from_status,
+      toStatus: e.to_status,
+      actor: cut(e.actor, 40),
+      approvedBy: e.approved_by ? cut(e.approved_by, 40) : null,
+      approvalRef: cut(e.approval_ref, 40),
+      note: cut(e.note),
+      paidAmount: e.paid_amount === null || e.paid_amount === undefined ? null : money(e.paid_amount),
+      transferReference: e.transfer_reference ? cut(e.transfer_reference, 80) : null,
+      paidOn: iso(e.paid_on),
+      unpaidAfter: e.unpaid_after === null || e.unpaid_after === undefined ? null : money(e.unpaid_after),
+    });
+    historyByObligation.set(e.obligation_id, list);
+  }
+  const toObligation = (r: any): UnpaidObligationRow => ({
+    id: r.id,
+    kind: r.kind,
+    party: r.party,
+    status: r.status,
+    owed: money(r.owed),
+    paid: money(r.paid),
+    unpaid: money(r.unpaid),
+    transactionId: r.transaction_id,
+    contract: short(r.contract_id),
+    contractId: r.contract_id ?? null,
+    sessionId: sessionIdOfKey(r.key),
+    reason: r.reason ? cut(r.reason) : null,
+    externallyPaid: money(r.externally_paid),
+    history: (historyByObligation.get(r.id) ?? []).slice(-10),
+    createdAt: iso(r.created_at) as string,
+    resolvedAt: iso(r.resolved_at),
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -248,11 +416,21 @@ export async function buildObligationsReport(
       },
       unpaidObligations: {
         open: { count: obOpen, unpaid: money(ob('OPEN')?.unpaid) },
+        underReview: { count: ob('UNDER_REVIEW')?.c ?? 0, unpaid: money(ob('UNDER_REVIEW')?.unpaid) },
+        paidExternally: { count: ob('PAID_EXTERNALLY')?.c ?? 0, amount: totalExternallyPaid.toFixed(2) },
+        waived: { count: ob('WAIVED')?.c ?? 0, unpaid: money(ob('WAIVED')?.unpaid) },
         resolved: { count: ob('RESOLVED')?.c ?? 0 },
-        waived: { count: ob('WAIVED')?.c ?? 0 },
       },
       paidNotActivated: core.staleCount,
       targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED', candidates: candidatesAll.length },
+      productPayments: {
+        lookup: lookupState,
+        activeValid: cls.activeValid,
+        cancelledPaid: cancelledAll.length,
+        pendingVerification: candidatesAll.length,
+        refundCompleted: cls.refundCompleted.length,
+        refundShort: cls.refundShort.length,
+      },
     },
     negativeWallets: core.negWallets.rows,
     negativeSubledgers: core.negSub.rows,
@@ -273,22 +451,8 @@ export async function buildObligationsReport(
       suspendedAt: iso(r.suspended_at),
       suspensionRef: r.suspension_ref ?? null,
     })),
-    unpaidObligations: core.obRows.map((r) => ({
-      id: r.id,
-      kind: r.kind,
-      party: r.party,
-      status: r.status,
-      owed: money(r.owed),
-      paid: money(r.paid),
-      unpaid: money(r.unpaid),
-      transactionId: r.transaction_id,
-      contract: short(r.contract_id),
-      contractId: r.contract_id ?? null,
-      sessionId: sessionIdOfKey(r.key),
-      reason: r.reason ? cut(r.reason) : null,
-      createdAt: iso(r.created_at) as string,
-      resolvedAt: iso(r.resolved_at),
-    })),
+    unpaidObligations: core.obRows.map(toObligation),
+    closedObligations: core.closedRows.map(toObligation),
     paidNotActivated: core.staleRows.map((r) => ({
       transactionId: r.id,
       purpose: r.purpose,
@@ -299,14 +463,19 @@ export async function buildObligationsReport(
       retryCount: Number(r.activation_retry_count ?? 0),
     })),
     targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED', candidates },
+    cancelledPaid: cancelledAll.slice(0, limit),
+    refundOutcomes: refundsAll.slice(0, limit),
     truncated: {
       negativeWallets: core.negWallets.total > core.negWallets.rows.length,
       negativeSubledgers: core.negSub.total > core.negSub.rows.length,
       walletMismatches: core.mism.total > core.mism.rows.length,
       receivables: recCount > core.recRows.length,
-      unpaidObligations: obOpen > core.obRows.length,
+      unpaidObligations: obOpenListCount > core.obRows.length,
+      closedObligations: obClosedCount > core.closedRows.length,
       paidNotActivated: core.staleCount > core.staleRows.length,
       targetUnverified: candidatesAll.length > candidates.length,
+      cancelledPaid: cancelledAll.length > limit,
+      refundOutcomes: refundsAll.length > limit,
     },
   };
 }
