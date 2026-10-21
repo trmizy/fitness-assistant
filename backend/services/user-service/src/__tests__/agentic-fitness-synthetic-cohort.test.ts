@@ -45,6 +45,14 @@ async function seedRequestingClient(userId: string) {
   });
 }
 
+/** Precondition, not a product assertion: this suite reads a cohort that only `npm run dev:seed-agentic-demo` creates
+ * (ENABLE_AGENTIC_DEMO=true). On a fresh *_test database (every migrate-deploy / template-clone DB) there is none, so the
+ * tests are SKIPPED with that reason instead of failing the whole run. Seeded databases still run and assert fully. */
+async function syntheticCohortIsSeeded(): Promise<boolean> {
+  return (await prisma.userProfile.count({ where: { isPT: true, dataOrigin: "SYNTHETIC", specialties: { has: "Giảm mỡ" } } })) > 0;
+}
+const NOT_SEEDED = "synthetic agentic cohort not seeded in this *_test database - run `ENABLE_AGENTIC_DEMO=true npm run dev:seed-agentic-demo` against it first";
+
 const DAY_NUMBERS: Record<string, number> = { MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 7 };
 
 /** Finds a real seeded WEIGHT_LOSS PT with an active service package and
@@ -62,7 +70,8 @@ async function findGuaranteedMatchableDays(): Promise<number[]> {
   return [...new Set(availability.map((a) => DAY_NUMBERS[a.dayOfWeek]))].slice(0, 2);
 }
 
-test("agenticFitnessService.candidates(): the synthetic ESTABLISHED_STRONG cohort produces a non-empty historical summary for at least one WEIGHT_LOSS candidate", async () => {
+test("agenticFitnessService.candidates(): the synthetic ESTABLISHED_STRONG cohort produces a non-empty historical summary for at least one WEIGHT_LOSS candidate", async (t) => {
+  if (!(await syntheticCohortIsSeeded())) return t.skip(NOT_SEEDED);
   const requesterId = "test-requester-synthetic-cohort";
   await seedRequestingClient(requesterId);
   const days = await findGuaranteedMatchableDays();
@@ -86,7 +95,8 @@ test("agenticFitnessService.candidates(): the synthetic ESTABLISHED_STRONG cohor
   }
 });
 
-test("agenticFitnessService.candidates(): scorePT ranks a candidate with real historical evidence differently from a cold-start candidate on the same shortlist", async () => {
+test("agenticFitnessService.candidates(): scorePT ranks a candidate with real historical evidence differently from a cold-start candidate on the same shortlist", async (t) => {
+  if (!(await syntheticCohortIsSeeded())) return t.skip(NOT_SEEDED);
   const requesterId = "test-requester-synthetic-cohort-scoring";
   await seedRequestingClient(requesterId);
   const days = await findGuaranteedMatchableDays();

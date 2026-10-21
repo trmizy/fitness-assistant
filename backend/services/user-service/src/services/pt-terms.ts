@@ -19,7 +19,7 @@
  * running production service cannot be taken down by it.
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-3";
+export const PT_TERMS_VERSION = "2026-10-pt-draft-4";
 export const PT_TERMS_IS_DRAFT = true;
 
 /** A version id that marks a draft text. */
@@ -90,12 +90,12 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     id: "sessions",
     title: "3. Buổi tập: báo hoàn thành, xác nhận và khiếu nại",
     body: [
-      "Sau khi buổi tập kết thúc, bạn báo hoàn thành buổi đó. Khách xác nhận, hoặc khiếu nại nếu buổi tập không diễn ra đúng.",
+      "Sau khi buổi tập kết thúc, bạn báo hoàn thành buổi đó. Với buổi học trực tuyến, hệ thống tự ghi nhận khi phòng học đóng. Khách xác nhận, hoặc khiếu nại nếu buổi tập không diễn ra đúng.",
       "Nếu khách không phản hồi trong 3 ngày, hệ thống tự xác nhận buổi tập và chuyển tiền buổi đó cho các bên.",
       "Buổi bị khiếu nại được giữ lại cho đến khi quản trị viên Gymini xem xét và quyết định; tiền của buổi đó chưa được chuyển trong thời gian này.",
     ],
     source:
-      "booking.service completeSession / confirmSession / disputeSession, AUTO_CONFIRM_DAYS=3, session-settlement (money-flow §3)",
+      "booking.service completeSession / confirmSession / disputeSession, AUTO_CONFIRM_DAYS=3, session-settlement (money-flow §3); room-close-resolution.service cases 3-5 (an ONLINE session still CONFIRMED when the room closes is moved to PENDING_CLIENT_CONFIRMATION by the system without the PT reporting)",
   },
   {
     id: "client-cancel",

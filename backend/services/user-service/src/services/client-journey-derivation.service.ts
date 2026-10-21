@@ -188,7 +188,10 @@ export async function deriveForCompletedContract(contractId: string): Promise<
     // level, never two rows, regardless of timing.
     await prisma.clientJourney.upsert({
       where: { contractId: contract.id },
-      update: {},
+      // A NON-empty `update` is required: with `update: {}` Prisma 5.22 cannot use its native
+      // INSERT .. ON CONFLICT upsert and falls back to find-then-create, which loses the race with
+      // P2002 (swallowed below as "derivation_error"). Re-assigning the same unique key is a no-op.
+      update: { contractId: contract.id },
       create: {
         userId: contract.clientUserId,
         ptId: contract.ptUserId,

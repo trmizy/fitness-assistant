@@ -83,6 +83,14 @@ export interface Wallet {
 }
 const ZERO_WALLET: Wallet = { a: 0, p: 0, l: 0 };
 
+/** A gym-tied contract's snapshot (decimal strings, platform + PT + gym = 1). */
+export interface GymTerms {
+  gymId: string;
+  platformRate: string;
+  ptRate: string;
+  gymRate: string;
+}
+
 export interface HarnessOptions {
   /**
    * Phase 3 / P3.7: also spawn a REAL gym-service (`node --import tsx src/server.ts`, its real Express app and real
@@ -490,7 +498,7 @@ ${gymLog.slice(-30).join("")}`);
    * settles the ledger and calls user-service /internal/contracts/:id/activate-after-payment, which calls payment-service
    * back to verify the transaction (all real HTTP). Afterwards the contract is ACTIVE and carries the transaction id.
    */
-  async function startCheckout(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string } = {}) {
+  async function startCheckout(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms } = {}) {
     const price = over.price ?? 5_000_000;
     const row = await prisma.contract.create({
       data: {
@@ -505,7 +513,9 @@ ${gymLog.slice(-30).join("")}`);
         sessionDurationMinutes: 60,
         startDate: new Date(Date.now() - 10 * DAY),
         endDate: new Date(Date.now() + 60 * DAY),
-        // rates are the schema defaults: platform 0.10 / PT 0.90 / gym 0; holdback 0 (off)
+        // rates are the schema defaults (platform 0.10 / PT 0.90 / gym 0; holdback 0 = off) unless `over.gym` makes it a gym contract
+        // (TEST FIXTURE: the caller must also make gymClient.getActiveCollaboration answer these same rates - pay() re-checks them).
+        ...(over.gym ? { gymId: over.gym.gymId, platformRate: over.gym.platformRate, ptRate: over.gym.ptRate, gymRate: over.gym.gymRate } : {}),
       },
     });
     created.contracts.push(row.id);
@@ -513,7 +523,7 @@ ${gymLog.slice(-30).join("")}`);
     return { row, price, txnId: paid.payment.transactionId as string };
   }
 
-  async function paidContract(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string } = {}) {
+  async function paidContract(ptUserId: string, over: { price?: number; totalSessions?: number; packageName?: string; clientUserId?: string; gym?: GymTerms } = {}) {
     const { row, price, txnId } = await startCheckout(ptUserId, over);
     const ipn = await gatewayIpn(txnId, price);
     if (ipn.RspCode !== "00") throw new Error(`gateway IPN refused: ${JSON.stringify(ipn)}`);

@@ -50,10 +50,22 @@ test("a confirmation of the draft id does not match any other id (draft rows can
   assert.equal(isDraftTermsVersionId("2026-10-pt-v1"), false);
 });
 
+test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4", () => {
+  const clause = PT_TERMS_SECTIONS.find((s) => s.id === "sessions");
+  assert.ok(clause, "clause 3 exists");
+  assert.match(clause.title, /^3\./);
+  const first = clause.body[0];
+  assert.match(first, /Sau khi buổi tập kết thúc, bạn báo hoàn thành buổi đó\. Với buổi học trực tuyến, hệ thống tự ghi nhận khi phòng học đóng\./);
+  // the rest of the clause is unchanged
+  assert.match(clause.body.join(" "), /Nếu khách không phản hồi trong 3 ngày, hệ thống tự xác nhận/);
+  assert.equal(PT_TERMS_IS_DRAFT, true);
+});
+
 test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (earlier drafts had other text, so their ids must not be reused)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-2");
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-3");
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-3");
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-4");
   assert.equal(PT_TERMS_IS_DRAFT, true);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
