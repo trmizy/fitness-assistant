@@ -935,7 +935,7 @@ async function heldOrder(m: Mods, o: { id: string; pt: string; price: number }):
   };
 }
 
-test('refunding an order that was already accepted claws back the PT’s earnings, not the pending of the PT’s contract', skipOpts, async () => {
+test('refunding an order that was already accepted draws neither the PT’s pooled earnings nor the pending of the PT’s contract — the unpaid part is an OPEN obligation (D48)', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const B = await paidContract(m, { id: 'B', pt: PT, sessions: 10 });
@@ -951,17 +951,18 @@ test('refunding an order that was already accepted claws back the PT’s earning
     label: 'Order O admin refund', idempotencyKey: 'PERSONALIZED_REFUND:O:500000.00',
   });
 
-  // The order's own pending is gone — it was released on acceptance — so the documented path
-  // applies: claw back from AVAILABLE. Taking it from PENDING would be taking it from B.
-  assert.deepEqual(await rowsOf(m, 'Order O admin refund'), [
-    `PT ${PT} DEBIT AVAILABLE 450000.00 | Order O admin refund — refund clawed back from available`,
-    'REVENUE DEBIT AVAILABLE 50000.00 | Order O admin refund — refund clawed back from available',
-    'CLIENT buyer-O CREDIT AVAILABLE 500000.00 | Order O admin refund — refund',
-  ].sort());
-  assert.deepEqual(refund, { refund: '500000.00', clawedBack: { pt: '450000.00', platform: '50000.00' }, shortfall: '0.00' });
-  assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '900000.00', available: '450000.00', locked: '0.00' }, 'B’s pending is whole');
-  assert.deepEqual(await bucketsOf(m, 'PLATFORM', 'REVENUE'), { pending: '100000.00', available: '50000.00', locked: '0.00' });
+  // The order's own pending is gone — it was released on acceptance. Neither the PT's pooled AVAILABLE (D48/DQ-3) nor
+  // B's pending may fund the refund: nothing moves, the whole amount is the client's OPEN obligation.
+  assert.deepEqual(await rowsOf(m, 'Order O admin refund'), []);
+  assert.deepEqual(refund, {
+    refund: '0.00', clawedBack: { pt: '0.00', platform: '0.00' }, shortfall: '500000.00',
+    owed: '500000.00', paid: '0.00', unpaid: '500000.00', obligationId: refund.obligationId,
+  });
+  assert.ok(refund.obligationId);
+  assert.deepEqual(await bucketsOf(m, 'PT', PT), { pending: '900000.00', available: '900000.00', locked: '0.00' }, 'B’s pending is whole, the earnings too');
+  assert.deepEqual(await bucketsOf(m, 'PLATFORM', 'REVENUE'), { pending: '100000.00', available: '100000.00', locked: '0.00' });
   assert.equal(await ledgerPending(m, 'PT', PT, B.txnId), '900000.00');
+  assert.equal(await m.prisma.partnerReceivable.count(), 0);
   await assertBooksSound(m, 'order refunded after acceptance');
 });
 

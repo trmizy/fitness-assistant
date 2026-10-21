@@ -344,7 +344,7 @@ test('releasing the same membership twice does not pay out twice', skipOpts, asy
 
 // ── Clawback beyond what the PT still holds ──────────────────────────────────
 
-test('a clawback the PT cannot cover raises a receivable and still funds the refund', skipOpts, async () => {
+test('a clawback the PT cannot cover (commission already matured) is an OPEN incident - no pooled draw, no receivable (D48/DQ-3)', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await seedPaidMembership(m, 1_000_000);
@@ -354,13 +354,13 @@ test('a clawback the PT cannot cover raises a receivable and still funds the ref
     idempotencyKey: `MEMBERSHIP_REFERRAL:${'shortfall referral'}`,
   });
 
-  // Drain the PT's pending by releasing it to available, then spend it out of the system by
-  // clawing back more than remains.
+  // Release the PT's pending to available (the commission matured), then ask for a clawback.
   await m.membership.releaseMembershipPending({
     transactionId: f.txnId, gymId: f.gymId, clientId: f.clientId, ptUserId: f.ptUserId,
     refundToClient: new m.Prisma.Decimal(0), label: 'release before clawback',
     idempotencyKey: `MEMBERSHIP_RELEASE:${'release before clawback'}`,
   });
+  const before = await balances(m, f);
 
   const claw = await m.membership.clawbackMembershipReferral({
     transactionId: f.txnId, gymId: f.gymId, ptUserId: f.ptUserId,
@@ -368,7 +368,12 @@ test('a clawback the PT cannot cover raises a receivable and still funds the ref
     idempotencyKey: `REFERRAL_CLAWBACK:${'clawback after release'}`,
   });
 
-  assert.equal(claw.recovered, '100000.00', 'reclaimed from the PT available bucket');
+  assert.equal(claw.recovered, '0.00', "the PT's pooled AVAILABLE is not a source for this membership's clawback");
+  assert.equal(claw.shortfall, '100000.00');
+  assert.deepEqual([claw.owed, claw.paid, claw.unpaid], ['100000.00', '0.00', '100000.00']);
+  assert.ok(claw.obligationId);
+  assert.equal((await balances(m, f)).ptAvailable, before.ptAvailable, 'PT AVAILABLE untouched');
+  assert.equal(await m.prisma.partnerReceivable.count(), 0, 'no PT debt');
   const report = await m.reconcile.assertInvariant('clawback after release');
   assert.equal(report.negativeWallets.length, 0, 'no wallet went negative');
 });

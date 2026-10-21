@@ -2,7 +2,8 @@ import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
 import { pendingForTransaction, walletService, type LedgerOps } from './wallet.service';
-import { coverShortfall, recoverReceivables } from './contract-ledger.service';
+import { coverShortfall, recordObligation, recoverReceivables } from './contract-ledger.service';
+import { ledgerStrictOwnFunds } from './contract-request-guard';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 
 /**
@@ -99,8 +100,16 @@ export async function settleMembershipReferral(params: {
 }
 
 export interface ClawbackResult {
+  /** What was actually reclaimed from the referring PT's pending money for THIS membership. */
   recovered: string;
+  /** What could not be reclaimed (== `unpaid`). */
   shortfall: string;
+  /** D48 / DQ-3: what the clawback asked for, what was reclaimed, and the rest. Absent on a zero-amount no-op. */
+  owed?: string;
+  paid?: string;
+  unpaid?: string;
+  /** Present only when `unpaid > 0` (strict mode): the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
+  obligationId?: string;
 }
 
 /**
@@ -110,11 +119,16 @@ export interface ClawbackResult {
  *
  * PENDING scoped to THIS membership's transactionId is reclaimed first — that's where the
  * commission being clawed back actually lives if it hasn't matured yet, and draining it keeps
- * this transaction's own pending ledger consistent with the price the client paid. Only the
- * shortfall (the commission already matured to AVAILABLE before this refund happened) falls
- * back to the PT's pooled AVAILABLE bucket.
+ * this transaction's own pending ledger consistent with the price the client paid.
  *
- * This used to run AVAILABLE-first, pooled across every referral the PT has ever earned (the
+ * D48/DQ-3: nothing outside this membership's own pending is ever drawn. If the commission already
+ * matured to AVAILABLE (and may have been withdrawn), the part that cannot be reclaimed is NOT taken from the
+ * PT's pooled AVAILABLE (earnings of other work), NOT fronted by the platform and NOT booked as a
+ * PartnerReceivable: it is a durable, idempotent OPEN `OVER_RELEASED` incident (party PT) in
+ * contract_unpaid_obligations for the admin, and `recovered`/`shortfall` report exactly what moved.
+ * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old pooled AVAILABLE draw + receivable.
+ *
+ * History: this used to run AVAILABLE-first, pooled across every referral the PT has ever earned (the
  * same precedent compensateNoShow uses for a PT-contract no-show charge) — reasonable for a
  * no-show charge, which is a fresh debt with no transaction of its own to scope to, but wrong
  * here: when a PT holds AVAILABLE balance from an unrelated, already-settled referral (e.g. an
@@ -157,7 +171,12 @@ export async function clawbackMembershipReferral(params: {
       outstanding = outstanding.minus(fromPending);
     }
 
-    if (outstanding.greaterThan(0)) {
+    // LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): fall back to the PT's pooled
+    // AVAILABLE. In the default strict mode (D48 / DQ-3) nothing outside THIS membership's own pending
+    // is ever touched: a commission that already matured and was withdrawn is not clawed back from
+    // the PT's other earnings.
+    const strict = ledgerStrictOwnFunds();
+    if (!strict && outstanding.greaterThan(0)) {
       const availHeld = ops.balance(ptWallet.id, 'AVAILABLE');
       const fromAvail = availHeld.lessThan(outstanding) ? availHeld : outstanding;
       if (fromAvail.greaterThan(0)) {
@@ -172,23 +191,48 @@ export async function clawbackMembershipReferral(params: {
     }
 
     const shortfall = outstanding;
+    let obligationId: string | undefined;
     if (shortfall.greaterThan(0)) {
-      // Section 3.9's rule again: the PT could not fully fund the clawback. Record it as a
-      // debt rather than leaving the gym's refund source short — the client still gets made
-      // whole out of what membership-release can find, and the PT owes the rest.
-      await ops.tx.partnerReceivable.create({
-        data: {
-          partnerType: 'PT',
-          partnerId: ptUserId,
-          amount: shortfall,
-          reason: `Referral clawback shortfall (${label})`,
+      if (strict) {
+        // The PT's commission for this membership already matured (and may have been withdrawn), so
+        // the part of it this refund should have reclaimed is no longer in this membership's pending.
+        // That is an over-release, not a PT debt: an OPEN incident for the admin (same kind and party
+        // convention as a contract termination that finds a party over-released). No
+        // PartnerReceivable, no pooled draw, nothing fronted - the gym's refund source simply stays
+        // short by this amount and the release step refunds from what the membership still holds.
+        obligationId = await recordObligation(ops, {
+          key: `${idempotencyKey}#OVER_RELEASED:PT`,
           transactionId,
-        },
-      });
-      logger.warn(`[MembershipLedger] PT ${ptUserId} owes ${shortfall.toString()} — referral clawback shortfall (${label})`);
+          contractRef: label,
+          kind: 'OVER_RELEASED',
+          party: 'PT',
+          owed: amount,
+          paid: recovered,
+          reason: `Referral clawback: the commission was already released to PT ${ptUserId}; this membership's own pending could not reclaim it`,
+        });
+      } else {
+        // LEGACY: record the PT's debt as before.
+        await ops.tx.partnerReceivable.create({
+          data: {
+            partnerType: 'PT',
+            partnerId: ptUserId,
+            amount: shortfall,
+            reason: `Referral clawback shortfall (${label})`,
+            transactionId,
+          },
+        });
+        logger.warn(`[MembershipLedger] PT ${ptUserId} owes ${shortfall.toString()} — referral clawback shortfall (${label})`);
+      }
     }
 
-    return { recovered: recovered.toFixed(2), shortfall: shortfall.toFixed(2) };
+    return {
+      recovered: recovered.toFixed(2),
+      shortfall: shortfall.toFixed(2),
+      owed: amount.toFixed(2),
+      paid: recovered.toFixed(2),
+      unpaid: shortfall.toFixed(2),
+      ...(obligationId ? { obligationId } : {}),
+    };
     }),
   );
 }

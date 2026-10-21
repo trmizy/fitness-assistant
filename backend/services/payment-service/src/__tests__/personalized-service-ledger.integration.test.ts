@@ -1,6 +1,6 @@
 /**
- * Cụm C3 (ký quỹ) + C4 (hoàn tiền khi huỷ trước khi PT bắt đầu) + C5 (thu hồi khi PT đã rút
- * tiền) — chứng minh bằng sổ cái thật rằng escrow của Personalized Service hoạt động đúng.
+ * Cụm C3 (ký quỹ) + C4 (hoàn tiền khi huỷ trước khi PT bắt đầu) + C5 (hoàn sau khi PT đã nhận/rút; D48: nghĩa vụ OPEN,
+ * không rút ví gộp) — chứng minh bằng sổ cái thật rằng escrow của Personalized Service hoạt động đúng.
  *
  * "hold" không có hàm riêng ở đây — nó CHÍNH LÀ settleContractPayment (đã có, dùng chung cho
  * mọi purpose gateway-checkout) — xem doc comment đầu personalized-service-ledger.service.ts.
@@ -55,7 +55,7 @@ async function resetLedger(m: Mods) {
   // otherwise replay the first run's cached result instead of touching freshly-truncated
   // wallets.
   await m.prisma.$executeRawUnsafe(
-    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE',
+    'TRUNCATE wallet_ledger_entries, platform_commissions, partner_receivables, contract_unpaid_obligations, payment_transactions, wallets, ledger_operations RESTART IDENTITY CASCADE',
   );
 }
 
@@ -196,7 +196,7 @@ test('refundOrder (C4): huỷ trước khi PT bắt đầu — chưa release gì
   await m.reconcile.assertInvariant('C4 full refund before work starts');
 });
 
-test('refundOrder (C5): admin hoàn tiền SAU khi đã accept (đã release) — thu hồi lại từ available của PT', skipOpts, async () => {
+test('refundOrder (C5, D48): admin hoàn tiền SAU khi đã accept (đã release) — KHÔNG rút ví gộp của PT/nền tảng, phần chưa trả thành nghĩa vụ OPEN', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await seedHeldOrder(m, { price: 2_000_000, platformRate: '0.10' });
@@ -209,7 +209,8 @@ test('refundOrder (C5): admin hoàn tiền SAU khi đã accept (đã release) �
     idempotencyKey: `PERSONALIZED_RELEASE:${f.orderId}`,
   });
 
-  // Quản trị viên duyệt hoàn 50% sau khi khiếu nại — PT đã có đủ 1.800.000 khả dụng để bị thu hồi phần của mình.
+  // Quản trị viên duyệt hoàn 50% sau khi khiếu nại. Tiền của đơn đã release sang available (gộp) — D48/DQ-3: chỉ pending
+  // của chính đơn này được dùng để hoàn; pending đã hết nên khách chưa nhận gì tự động, phần còn lại là nghĩa vụ OPEN.
   const refundAmount = new m.Prisma.Decimal('1000000');
   const result = await m.ledger.refundOrder({
     transactionId: f.txnId,
@@ -220,20 +221,24 @@ test('refundOrder (C5): admin hoàn tiền SAU khi đã accept (đã release) �
     idempotencyKey: `PERSONALIZED_REFUND:${f.orderId}:${refundAmount.toFixed(2)}`,
   });
 
-  assert.equal(result.refund, '1000000.00');
-  assert.equal(result.clawedBack.pt, '900000.00');
-  assert.equal(result.clawedBack.platform, '100000.00');
-  assert.equal(result.shortfall, '0.00');
+  assert.equal(result.refund, '0.00');
+  assert.deepEqual(result.clawedBack, { pt: '0.00', platform: '0.00' });
+  assert.equal(result.owed, '1000000.00');
+  assert.equal(result.paid, '0.00');
+  assert.equal(result.unpaid, '1000000.00');
+  assert.equal(result.shortfall, '1000000.00');
+  assert.ok(result.obligationId, 'có nghĩa vụ OPEN để quản trị viên xử lý');
 
   const final = await balances(m, f);
-  assert.equal(final.ptAvailable, '900000.00', '1.800.000 đã nhận trừ 900.000 bị thu hồi');
-  assert.equal(final.platformAvailable, '100000.00', '200.000 hoa hồng trừ 100.000 bị thu hồi');
-  assert.equal(final.clientAvailable, '1000000.00');
+  assert.equal(final.ptAvailable, '1800000.00', 'available gộp của PT không bị rút');
+  assert.equal(final.platformAvailable, '200000.00', 'available của nền tảng không bị rút');
+  assert.equal(final.clientAvailable, '0.00');
+  assert.equal(await m.prisma.partnerReceivable.count(), 0);
 
   await m.reconcile.assertInvariant('C5 partial refund after acceptance');
 });
 
-test('refundOrder (C5): PT đã rút hết tiền — thu hồi thiếu hụt được ghi nợ PartnerReceivable, khách vẫn nhận đủ', skipOpts, async () => {
+test('refundOrder (C5, D48): PT đã rút hết tiền — không ghi nợ PartnerReceivable, không ứng trước; khoản chưa hoàn là nghĩa vụ OPEN', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await seedHeldOrder(m, { price: 1_000_000, platformRate: '0.10' });
@@ -255,9 +260,7 @@ test('refundOrder (C5): PT đã rút hết tiền — thu hồi thiếu hụt đ
     await ops.debit(escrowWallet.id, new m.Prisma.Decimal('900000'), 'cash left the platform via withdrawal');
   });
 
-  // Doanh thu nền tảng trong đời thực là tích luỹ từ RẤT NHIỀU giao dịch khác, không chỉ một
-  // giao dịch này — mô phỏng bằng cách cộng thêm hoa hồng "từ các giao dịch khác" (kèm escrow
-  // tương ứng) đủ để nền tảng có khả năng đứng ra ứng trước khoản 900.000 còn thiếu.
+  // Nền tảng CÓ doanh thu từ các giao dịch khác (đủ để "ứng") — D48: vẫn không được dùng.
   const revenueWallet = await m.wallet.getRevenueWallet();
   await m.wallet.withWallets([revenueWallet.id, escrowWallet.id], f.txnId, async (ops) => {
     await ops.credit(revenueWallet.id, new m.Prisma.Decimal('2000000'), 'seed — hoa hồng tích luỹ từ các giao dịch khác');
@@ -274,17 +277,19 @@ test('refundOrder (C5): PT đã rút hết tiền — thu hồi thiếu hụt đ
     idempotencyKey: `PERSONALIZED_REFUND:${f.orderId}:${refundAmount.toFixed(2)}`,
   });
 
-  assert.equal(result.refund, '1000000.00');
-  assert.equal(result.clawedBack.pt, '900000.00', 'toàn bộ 900.000 phần PT được ghi nhận là đã "thu hồi" — dù thật ra là nợ, không phải tiền mặt lấy lại được');
-  assert.equal(result.shortfall, '0.00', 'nền tảng đứng ra ứng trước, không phải nợ treo lơ lửng');
+  assert.deepEqual([result.owed, result.paid, result.unpaid], ['1000000.00', '0.00', '1000000.00']);
+  assert.equal(result.refund, '0.00');
 
-  const receivables = await m.prisma.partnerReceivable.findMany({ where: { partnerType: 'PT', partnerId: f.parties.ptUserId } });
-  assert.equal(receivables.length, 1);
-  assert.equal(new m.Prisma.Decimal(receivables[0].amount).toFixed(2), '900000.00');
+  assert.equal(await m.prisma.partnerReceivable.count({ where: { partnerType: 'PT', partnerId: f.parties.ptUserId } }), 0, 'không còn ghi nợ PT');
+  const obligations = await m.prisma.contractUnpaidObligation.findMany({ where: { transactionId: f.txnId } });
+  assert.equal(obligations.length, 1);
+  assert.equal(obligations[0].kind, 'REFUND_SHORT');
+  assert.equal(obligations[0].status, 'OPEN');
 
   const final = await balances(m, f);
-  assert.equal(final.clientAvailable, '1000000.00', 'khách vẫn nhận đủ 100% dù PT đã rút sạch tiền trước đó');
+  assert.equal(final.clientAvailable, '0.00', 'nền tảng không ứng tiền của mình cho khách');
   assert.equal(final.ptAvailable, '0.00');
+  assert.equal(final.platformAvailable, '2100000.00', 'doanh thu nền tảng (100.000 từ đơn + 2.000.000 khác) nguyên vẹn');
 
-  await m.reconcile.assertInvariant('C5 refund after PT withdrew — receivable covers the gap');
+  await m.reconcile.assertInvariant('C5 refund after PT withdrew — OPEN obligation, nothing fronted');
 });

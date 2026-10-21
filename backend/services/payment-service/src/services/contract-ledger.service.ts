@@ -105,7 +105,7 @@ export async function ownPending(ops: LedgerOps, walletId: string, transactionId
 
 // ── FH-1: unpaid obligations (D48 / N7) ──────────────────────────────────────
 
-type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED';
+export type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEASED';
 
 /**
  * Writes the durable record of what a PT-fault step could not pay out of THE CONTRACT'S OWN money.
@@ -117,7 +117,7 @@ type ObligationKind = 'NO_SHOW' | 'LATE_ARRIVAL' | 'REFUND_SHORT' | 'OVER_RELEAS
  * create a second row (the UNIQUE key is the backstop). `key` is the operation's idempotency key;
  * a second row of the same operation (OVER_RELEASED) appends `#<kind>:<party>`.
  */
-async function recordObligation(
+export async function recordObligation(
   ops: LedgerOps,
   o: {
     key: string;

@@ -3,7 +3,8 @@ import { Prisma } from '../generated/prisma';
 import { walletService } from './wallet.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { splitThreeWays, ZERO } from './contract-money';
-import { coverShortfall, ownPending, recoverReceivables } from './contract-ledger.service';
+import { coverShortfall, ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
+import { ledgerStrictOwnFunds } from './contract-request-guard';
 
 /**
  * P0 cluster C3 — escrow for Personalized PT Service orders (ai-service).
@@ -113,27 +114,36 @@ export async function releaseOrder(params: {
 }
 
 export interface RefundResult {
+  /** What the client was actually credited (== `paid`). */
   refund: string;
   clawedBack: { pt: string; platform: string };
+  /** Same number as `unpaid` (kept for callers that read the older field). */
   shortfall: string;
+  /** D48 / DQ-3: what the refund asked for, what this order's own money could fund, and the rest. */
+  owed: string;
+  paid: string;
+  unpaid: string;
+  /** Present only when `unpaid > 0`: the OPEN REFUND_SHORT row in contract_unpaid_obligations. */
+  obligationId?: string;
 }
 
 /**
- * Hands the client back `refundAmount`.
+ * Hands the client back `refundAmount`, funded ONLY by this order's own money (D48 / DQ-1 S, DQ-3).
  *
- * Pulls first from whatever the PT and platform still hold in PENDING for this order — the
- * common case: cancelled or refunded before acceptance, when nothing has been released yet
- * (P0 cluster C4). If that is not enough — the order was already accepted and its money
- * released to AVAILABLE, or an earlier partial refund already drained pending (C5) — claws
- * back the rest from AVAILABLE. If even that falls short (the PT has already withdrawn),
- * the platform fronts it and books a PartnerReceivable against the PT via coverShortfall,
- * exactly like a PT-contract termination shortfall — the client is always made whole; the
- * PT's debt is recovered out of their future earnings via recoverReceivables (releaseOrder,
- * above). A shortfall on the PLATFORM's own share has nowhere further to go (the platform
- * cannot owe itself) and is reported back as `shortfall` — an operational alarm, not
- * something this function can resolve on its own.
+ * The PT's and the platform's share of the refund is taken from what each still holds in PENDING
+ * for this order (ownPending). Nothing else is ever touched: not the PT's or the platform's pooled
+ * AVAILABLE balance (which holds their other work), and the platform does not front the gap or book
+ * a PartnerReceivable. The client is credited exactly what was drawn (`paid`). When the order's own
+ * money is not enough - typically it was already accepted and released, so its pending is gone - the
+ * difference (`unpaid`) becomes a durable, idempotent OPEN REFUND_SHORT obligation to the client in
+ * contract_unpaid_obligations, written in the same DB transaction as the ledger rows, for the admin
+ * to settle through the audited obligation tooling.
  *
  * Escrow does not move: the cash never left the platform, only whose claim on it changed.
+ *
+ * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old behaviour: pending, then
+ * pooled AVAILABLE, then the platform fronts the PT's remainder via coverShortfall + PartnerReceivable,
+ * and the client is credited in full.
  */
 export async function refundOrder(params: {
   transactionId: string;
@@ -141,7 +151,7 @@ export async function refundOrder(params: {
   rates: OrderRates;
   parties: OrderParties;
   label: string;
-  /** Business key `PERSONALIZED_REFUND:<orderId>:<refundAmount>` — amount-scoped (not just
+  /** Business key `PERSONALIZED_REFUND:<orderId>:<refundAmount>` - amount-scoped (not just
    * `<orderId>`) because, like the pre-existing generic-refund path this replaces, an order
    * can be partially refunded more than once (adminResolveRefund's ceiling-tracked partial
    * approvals). A stable per-order key would make every refund after the first a no-op
@@ -155,8 +165,9 @@ export async function refundOrder(params: {
 
   return walletService.withWallets(wallets.all, transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, async () => {
+      const strict = ledgerStrictOwnFunds();
       const clawedBack = { pt: ZERO, platform: ZERO };
-      let shortfall = ZERO;
+      let platformShortfall = ZERO; // legacy only: the platform cannot owe itself
 
       const clawback = async (
         walletId: string,
@@ -167,8 +178,8 @@ export async function refundOrder(params: {
         if (amount.lessThanOrEqualTo(0)) return;
         let remaining = amount;
 
-        // Likewise only this order's own pending: a refund taken from the pool would be paid
-        // out of the PT's other contracts and orders.
+        // Only this order's own pending: a refund taken from the pool would be paid out of the
+        // PT's other contracts and orders.
         const pending = await ownPending(ops, walletId, transactionId);
         const fromPending = pending.lessThan(remaining) ? pending : remaining;
         if (fromPending.greaterThan(0)) {
@@ -176,8 +187,10 @@ export async function refundOrder(params: {
           clawedBack[key] = clawedBack[key].plus(fromPending);
           remaining = remaining.minus(fromPending);
         }
-        if (remaining.lessThanOrEqualTo(0)) return;
+        // Strict (default): stop here. The rest is the client's unpaid obligation, recorded below.
+        if (strict || remaining.lessThanOrEqualTo(0)) return;
 
+        // LEGACY (LEDGER_STRICT_OWN_FUNDS=false): pooled AVAILABLE, then platform fronting.
         const available = ops.balance(walletId, 'AVAILABLE');
         const fromAvailable = available.lessThan(remaining) ? available : remaining;
         if (fromAvailable.greaterThan(0)) {
@@ -196,23 +209,47 @@ export async function refundOrder(params: {
           });
           clawedBack[key] = clawedBack[key].plus(remaining);
         } else {
-          shortfall = shortfall.plus(remaining);
+          platformShortfall = platformShortfall.plus(remaining);
         }
       };
 
       await clawback(wallets.ptId, shares.pt, 'pt', { partnerType: 'PT', partnerId: parties.ptUserId });
       await clawback(wallets.revenueId, shares.platform, 'platform');
 
-      await ops.credit(wallets.clientId, refundAmount, `${label} — refund`);
+      const drawn = clawedBack.pt.plus(clawedBack.platform);
+      // Strict: the client gets exactly what the order's own money funded. Legacy: made whole
+      // regardless (the platform-share gap is only logged), as before D48.
+      const paid = strict ? drawn : refundAmount;
+      if (paid.greaterThan(0)) {
+        await ops.credit(wallets.clientId, paid, `${label} — refund`);
+      }
+      const unpaid = refundAmount.minus(paid);
 
-      if (shortfall.greaterThan(0)) {
-        logger.error(`[PersonalizedServiceLedger] ${label}: platform revenue itself came up ${shortfall.toString()} short covering a refund — needs manual attention`);
+      let obligationId: string | undefined;
+      if (unpaid.greaterThan(0)) {
+        obligationId = await recordObligation(ops, {
+          key: idempotencyKey,
+          transactionId,
+          contractRef: label,
+          kind: 'REFUND_SHORT',
+          party: 'CLIENT',
+          owed: refundAmount,
+          paid,
+          reason: "Personalized-service refund: the order's own pending money could not fund the full amount",
+        });
+      }
+      if (!strict && platformShortfall.greaterThan(0)) {
+        logger.error(`[PersonalizedServiceLedger] ${label}: platform revenue itself came up ${platformShortfall.toString()} short covering a refund - needs manual attention`);
       }
 
       return {
-        refund: refundAmount.toFixed(2),
+        refund: paid.toFixed(2),
         clawedBack: { pt: clawedBack.pt.toFixed(2), platform: clawedBack.platform.toFixed(2) },
-        shortfall: shortfall.toFixed(2),
+        shortfall: (strict ? unpaid : platformShortfall).toFixed(2),
+        owed: refundAmount.toFixed(2),
+        paid: paid.toFixed(2),
+        unpaid: unpaid.toFixed(2),
+        ...(obligationId ? { obligationId } : {}),
       };
     }),
   );

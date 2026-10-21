@@ -1072,9 +1072,10 @@ const personalizedRefundSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
-// POST /internal/personalized-service/refund — hands the client back refundAmount, pulling
-// from whatever is still PENDING first, then clawing back from AVAILABLE, then (only for the
-// PT's share) falling back to a PartnerReceivable if even that comes up short.
+// POST /internal/personalized-service/refund — hands the client back refundAmount out of THIS
+// order's own pending money only (D48/DQ-3). The client is credited exactly `paid`; any `unpaid`
+// part is an OPEN REFUND_SHORT obligation. No pooled AVAILABLE draw, no platform fronting, no
+// PartnerReceivable.
 router.post('/personalized-service/refund', async (req: Request, res: Response) => {
   const parsed = personalizedRefundSchema.safeParse(req.body);
   if (!parsed.success) {
