@@ -17,7 +17,7 @@ import {
   type NegativeWalletRow,
   type WalletLedgerMismatchRow,
 } from './ledger-state-checks';
-import { findActivatedButCancelledTargets } from './activated-but-cancelled-target.query';
+import { classifyActivatedProductPayments } from './activated-but-cancelled-target.query';
 
 export const OBLIGATIONS_DEFAULT_LIMIT = 50;
 export const OBLIGATIONS_MAX_LIMIT = 200;
@@ -72,7 +72,7 @@ export interface PaidNotActivatedRow {
   retryCount: number;
 }
 
-export interface ActivatedButCancelledCandidate {
+export interface TargetUnverifiedCandidate {
   transactionId: string;
   targetType: string;
   amount: string;
@@ -96,7 +96,8 @@ export interface ObligationsReport {
       waived: { count: number };
     };
     paidNotActivated: number;
-    activatedButCancelled: { status: 'NEEDS_TARGET_LOOKUP'; candidates: number };
+    /** Neutral, NOT a warning and not counted as needing attention: see `targetUnverified`. */
+    targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED'; candidates: number };
   };
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
@@ -105,11 +106,13 @@ export interface ObligationsReport {
   unpaidObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
   /**
-   * Candidate rows only: PAID + ACTIVATED product payments whose money is still sitting in partners' PENDING and that
-   * the client was never refunded for. payment-service owns no order / membership status, so whether the target is
-   * really CANCELLED is NOT checked here ("needs target lookup", FH-8 / V2).
+   * "Chưa xác minh trạng thái": PAID + ACTIVATED product payments (gym membership / personalized-service order) whose
+   * money is still in partners' PENDING and that the client was never refunded for. For a normal ACTIVE membership or
+   * order that is EXACTLY the expected state, so this group is NEVER a cancellation warning: payment-service owns no
+   * order / membership status and no read-only status API exists on gym-service / ai-service, so CANCELLED is not
+   * (and must not be) inferred here. Rows are only candidates for a manual look.
    */
-  activatedButCancelled: { status: 'NEEDS_TARGET_LOOKUP'; candidates: ActivatedButCancelledCandidate[] };
+  targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED'; candidates: TargetUnverifiedCandidate[] };
   truncated: {
     negativeWallets: boolean;
     negativeSubledgers: boolean;
@@ -117,7 +120,7 @@ export interface ObligationsReport {
     receivables: boolean;
     unpaidObligations: boolean;
     paidNotActivated: boolean;
-    activatedButCancelled: boolean;
+    targetUnverified: boolean;
   };
 }
 
@@ -217,9 +220,10 @@ export async function buildObligationsReport(
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30_000, maxWait: 10_000 },
   );
 
-  // Candidates only: the target's status belongs to other services and is not looked up here. SELECTs only.
-  const candidatesAll = await findActivatedButCancelledTargets(async () => 'CANCELLED', { limit: 500 });
-  const candidates: ActivatedButCancelledCandidate[] = candidatesAll.slice(0, limit).map((c) => ({
+  // No owning-service lookup exists (gym-service / ai-service expose no read-only membership/order status by id), so
+  // every row is "unverified"; CANCELLED is never inferred from money still in PENDING. SELECTs only.
+  const { unverified: candidatesAll } = await classifyActivatedProductPayments(null, { limit: 500 });
+  const candidates: TargetUnverifiedCandidate[] = candidatesAll.slice(0, limit).map((c) => ({
     transactionId: c.transactionId,
     targetType: c.relatedEntityType,
     amount: c.amount,
@@ -248,7 +252,7 @@ export async function buildObligationsReport(
         waived: { count: ob('WAIVED')?.c ?? 0 },
       },
       paidNotActivated: core.staleCount,
-      activatedButCancelled: { status: 'NEEDS_TARGET_LOOKUP', candidates: candidatesAll.length },
+      targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED', candidates: candidatesAll.length },
     },
     negativeWallets: core.negWallets.rows,
     negativeSubledgers: core.negSub.rows,
@@ -294,7 +298,7 @@ export async function buildObligationsReport(
       ageMinutes: r.paid_at ? Math.max(0, Math.floor((now.getTime() - new Date(r.paid_at).getTime()) / 60000)) : 0,
       retryCount: Number(r.activation_retry_count ?? 0),
     })),
-    activatedButCancelled: { status: 'NEEDS_TARGET_LOOKUP', candidates },
+    targetUnverified: { status: 'TARGET_STATUS_UNVERIFIED', candidates },
     truncated: {
       negativeWallets: core.negWallets.total > core.negWallets.rows.length,
       negativeSubledgers: core.negSub.total > core.negSub.rows.length,
@@ -302,7 +306,7 @@ export async function buildObligationsReport(
       receivables: recCount > core.recRows.length,
       unpaidObligations: obOpen > core.obRows.length,
       paidNotActivated: core.staleCount > core.staleRows.length,
-      activatedButCancelled: candidatesAll.length > candidates.length,
+      targetUnverified: candidatesAll.length > candidates.length,
     },
   };
 }

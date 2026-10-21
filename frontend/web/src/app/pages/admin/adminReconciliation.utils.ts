@@ -76,7 +76,7 @@ export interface PaidNotActivatedRow {
   ageMinutes: number;
   retryCount: number;
 }
-export interface ActivatedButCancelledCandidate {
+export interface TargetUnverifiedCandidate {
   transactionId: string;
   targetType: string;
   amount: string;
@@ -92,7 +92,8 @@ export interface ObligationsReport {
     receivables: { active: { count: number; outstanding: string }; suspended: { count: number; outstanding: string } };
     unpaidObligations: { open: { count: number; unpaid: string }; resolved: { count: number }; waived: { count: number } };
     paidNotActivated: number;
-    activatedButCancelled: { status: string; candidates: number };
+    /** Neutral group (not a warning, not counted by countAttention). */
+    targetUnverified: { status: string; candidates: number };
   };
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
@@ -100,7 +101,7 @@ export interface ObligationsReport {
   receivables: ReceivableRow[];
   unpaidObligations: UnpaidObligationRow[];
   paidNotActivated: PaidNotActivatedRow[];
-  activatedButCancelled: { status: string; candidates: ActivatedButCancelledCandidate[] };
+  targetUnverified: { status: string; candidates: TargetUnverifiedCandidate[] };
   truncated: Record<
     | "negativeWallets"
     | "negativeSubledgers"
@@ -108,7 +109,7 @@ export interface ObligationsReport {
     | "receivables"
     | "unpaidObligations"
     | "paidNotActivated"
-    | "activatedButCancelled",
+    | "targetUnverified",
     boolean
   >;
 }
@@ -327,7 +328,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
         waived: { count: num(s.unpaidObligations?.waived?.count) },
       },
       paidNotActivated: num(s.paidNotActivated),
-      activatedButCancelled: { status: String(s.activatedButCancelled?.status ?? ""), candidates: num(s.activatedButCancelled?.candidates) },
+      targetUnverified: { status: String(s.targetUnverified?.status ?? ""), candidates: num(s.targetUnverified?.candidates) },
     },
     negativeWallets: arr(data.negativeWallets),
     negativeSubledgers: arr(data.negativeSubledgers),
@@ -335,7 +336,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
     receivables: arr(data.receivables),
     unpaidObligations: arr(data.unpaidObligations),
     paidNotActivated: arr(data.paidNotActivated),
-    activatedButCancelled: { status: String(data.activatedButCancelled?.status ?? ""), candidates: arr(data.activatedButCancelled?.candidates) },
+    targetUnverified: { status: String(data.targetUnverified?.status ?? ""), candidates: arr(data.targetUnverified?.candidates) },
     truncated: {
       negativeWallets: Boolean(t.negativeWallets),
       negativeSubledgers: Boolean(t.negativeSubledgers),
@@ -343,7 +344,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
       receivables: Boolean(t.receivables),
       unpaidObligations: Boolean(t.unpaidObligations),
       paidNotActivated: Boolean(t.paidNotActivated),
-      activatedButCancelled: Boolean(t.activatedButCancelled),
+      targetUnverified: Boolean(t.targetUnverified),
     },
   };
 }
@@ -375,7 +376,7 @@ export function countAttention(payment: ObligationsReport | null, sessions: Sess
   if (payment) {
     const s = payment.summary;
     critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated;
-    watch += s.receivables.active.count + s.receivables.suspended.count + s.unpaidObligations.open.count + s.activatedButCancelled.candidates;
+    watch += s.receivables.active.count + s.receivables.suspended.count + s.unpaidObligations.open.count; // targetUnverified is information, deliberately not counted
   }
   if (sessions) {
     critical += sessions.needsAttention.items.length + sessions.endedWithoutSettledEnding.items.length;

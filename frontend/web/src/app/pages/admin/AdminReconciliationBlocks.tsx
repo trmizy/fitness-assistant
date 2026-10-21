@@ -4,7 +4,7 @@ import { ArrowsClockwiseIcon as RefreshCw, CheckCircleIcon as CheckCircle2, Circ
 import { adminService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import {
-  ActivatedButCancelledCandidate,
+  TargetUnverifiedCandidate,
   DisputeItem,
   EndedWithoutSettledEndingItem,
   NegativeSubledgerRow,
@@ -120,8 +120,8 @@ function Block({
   title: string;
   hint?: string;
   count: number;
-  /** critical: đỏ khi count>0 · watch: vàng khi count>0 */
-  tone: "critical" | "watch";
+  /** critical: đỏ khi count>0 · watch: vàng khi count>0 · neutral: xám (thông tin, không phải cảnh báo) */
+  tone: "critical" | "watch" | "neutral";
   truncated?: boolean;
   emptyText: string;
   children?: ReactNode;
@@ -131,7 +131,9 @@ function Block({
     ? "bg-green-500/10 text-green-400"
     : tone === "critical"
       ? "bg-red-500/10 text-red-400"
-      : "bg-amber-500/10 text-amber-400";
+      : tone === "neutral"
+        ? "bg-zinc-500/10 text-zinc-300"
+        : "bg-amber-500/10 text-amber-400";
   return (
     <section data-testid={testId} className="rounded-xl border border-zinc-800/60 bg-zinc-900 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -232,7 +234,7 @@ const paidNotActivatedCols: Column<PaidNotActivatedRow>[] = [
   { header: "Đã trả cách đây", cell: (r) => formatAge(r.ageMinutes), right: true },
   { header: "Giao dịch", cell: (r) => shortId(r.transactionId) },
 ];
-const candidateCols: Column<ActivatedButCancelledCandidate>[] = [
+const candidateCols: Column<TargetUnverifiedCandidate>[] = [
   { header: "Loại giao dịch", cell: (r) => purposeLabel(r.targetType) },
   { header: "Số tiền", cell: (r) => money(r.amount), right: true },
   { header: "Tiền còn giữ ở đối tác", cell: (r) => money(r.partnerPendingRemaining), right: true },
@@ -372,15 +374,15 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         <Rows rows={r.paidNotActivated} columns={paidNotActivatedCols} rowKey={(x) => x.transactionId} />
       </Block>
       <Block
-        testId="recon-activated-cancelled"
-        title="Có thể đã hủy nhưng tiền vẫn giữ"
-        hint="Đơn/gói đã kích hoạt mà đối tác vẫn đang giữ tiền và khách chưa được hoàn. Hệ thống chưa tự kiểm tra đơn/gói có thật sự đã hủy hay chưa — cần đối chiếu thủ công."
-        count={s.activatedButCancelled.candidates}
-        tone="watch"
-        truncated={r.truncated.activatedButCancelled}
+        testId="recon-target-unverified"
+        title="Chưa xác minh trạng thái"
+        hint="Thanh toán gói tập/dịch vụ đã kích hoạt mà tiền vẫn nằm ở trạng thái chờ của đối tác và khách chưa được hoàn. Phần lớn là bình thường (gói/đơn đang chạy). Hệ thống chưa kiểm tra được trạng thái gói/đơn ở dịch vụ sở hữu nên không kết luận là đã hủy."
+        count={s.targetUnverified.candidates}
+        tone="neutral"
+        truncated={r.truncated.targetUnverified}
         emptyText="Không có giao dịch nào cần đối chiếu."
       >
-        <Rows rows={r.activatedButCancelled.candidates} columns={candidateCols} rowKey={(x) => x.transactionId} />
+        <Rows rows={r.targetUnverified.candidates} columns={candidateCols} rowKey={(x) => x.transactionId} />
       </Block>
     </>
   );

@@ -374,3 +374,33 @@ test('NO_SHOW record-only: visible in the admin report with the real contract an
   assert.deepEqual(await moneyState(m), money0);
   await assertBooksSound(m, 'no-show waive');
 });
+
+test('NO_SHOW record-only: FH-8 RESOLVE is audited and moves no money; RESOLVED is record-keeping (not "paid"), leaves the open list and cannot be re-decided', skipOpts, async () => {
+  const m = await load();
+  await reset(m);
+  const A = await paidContract(m, 'A');
+  const rec = await recordNs(m, A, 's1');
+  const money0 = await moneyState(m);
+  const ops0 = await m.prisma.ledgerOperation.count();
+  const r = await m.adjust.adjustObligation({
+    obligationId: rec.obligationId!, expectedUnpaid: '250000.00', expectedTransactionId: A.txnId, action: 'RESOLVE',
+    note: 'paid outside the ledger, payout ref BT-NS-1', actor: 'owner-test', approvalRef: 'APR-NS-R', dryRun: false,
+  });
+  assert.equal(r.outcome, 'APPLIED');
+  const row = await m.prisma.contractUnpaidObligation.findUniqueOrThrow({ where: { id: rec.obligationId! } });
+  assert.equal(row.status, 'RESOLVED');
+  assert.equal(row.paid.toFixed(2), '0.00', 'RESOLVED never marks the obligation paid');
+  assert.equal(row.unpaid.toFixed(2), '250000.00');
+  const ev = await m.prisma.contractUnpaidObligationEvent.findMany({ where: { obligationId: rec.obligationId! } });
+  assert.deepEqual(ev.map((e) => [e.action, e.fromStatus, e.toStatus, e.actor, e.approvalRef]), [['RESOLVE', 'OPEN', 'RESOLVED', 'owner-test', 'APR-NS-R']]);
+  assert.deepEqual(await moneyState(m), money0, 'no money moved');
+  assert.equal(await m.prisma.ledgerOperation.count(), ops0, 'no ledger operation written');
+  const report = await m.report.buildObligationsReport({ limit: 50 });
+  assert.equal(report.unpaidObligations.some((o) => o.id === rec.obligationId), false);
+  assert.equal(report.summary.unpaidObligations.resolved.count, 1);
+  await assert.rejects(
+    m.adjust.adjustObligation({ obligationId: rec.obligationId!, expectedUnpaid: '250000.00', expectedTransactionId: A.txnId, action: 'WAIVE', note: 'changed my mind', actor: 'owner-test', approvalRef: 'APR-NS-W', dryRun: false }),
+    /already RESOLVED/,
+  );
+  await assertBooksSound(m, 'no-show resolve');
+});

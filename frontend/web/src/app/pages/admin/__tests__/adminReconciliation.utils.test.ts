@@ -39,7 +39,7 @@ const paymentFixture = (over: Record<string, unknown> = {}) => ({
       receivables: { active: { count: 2, outstanding: "100000.00" }, suspended: { count: 1, outstanding: "20000.00" } },
       unpaidObligations: { open: { count: 2, unpaid: "500000.00" }, resolved: { count: 3 }, waived: { count: 1 } },
       paidNotActivated: 1,
-      activatedButCancelled: { status: "NEEDS_TARGET_LOOKUP", candidates: 1 },
+      targetUnverified: { status: "TARGET_STATUS_UNVERIFIED", candidates: 4 },
     },
     negativeWallets: [],
     negativeSubledgers: [{ ownerType: "PT", owner: "pt-fhf", transactionId: "t", transactionShortId: "t", net: "-50000.00", entries: 3, firstEntry: null, lastEntry: null }],
@@ -47,7 +47,7 @@ const paymentFixture = (over: Record<string, unknown> = {}) => ({
     receivables: [],
     unpaidObligations: [],
     paidNotActivated: [],
-    activatedButCancelled: { status: "NEEDS_TARGET_LOOKUP", candidates: [] },
+    targetUnverified: { status: "TARGET_STATUS_UNVERIFIED", candidates: [] },
     truncated: { receivables: true },
     ...over,
   },
@@ -123,7 +123,7 @@ describe("normalizers", () => {
     const r = normalizeObligationsReport({ data: { summary: { receivables: {} } } });
     assert.ok(r);
     assert.deepEqual(r!.receivables, []);
-    assert.deepEqual(r!.activatedButCancelled.candidates, []);
+    assert.deepEqual(r!.targetUnverified.candidates, []);
     assert.equal(r!.truncated.receivables, false);
     assert.equal(r!.summary.unpaidObligations.open.count, 0);
   });
@@ -149,18 +149,26 @@ describe("countAttention", () => {
     const p = normalizeObligationsReport(paymentFixture());
     const s = normalizeSessionsReport(sessionsFixture());
     // critical: subledger 1 + non-escrow mismatch 1 + paid-not-activated 1 + needsAttention 1 + endedWithoutSettled 2
-    // watch: receivables 2+1 + open obligations 2 + candidates 1 + endingsUnconfirmed 0 + disputes 1
-    assert.deepEqual(countAttention(p, s), { critical: 6, watch: 7 });
+    // watch: receivables 2+1 + open obligations 2 + endingsUnconfirmed 0 + disputes 1
+    assert.deepEqual(countAttention(p, s), { critical: 6, watch: 6 });
+    // 'Chưa xác minh trạng thái' (4 unverified rows in the fixture) is information: it must not inflate either number.
   });
   it("uses the server's exact counts, not the length of a truncated list", () => {
     const p = normalizeObligationsReport(paymentFixture())!;
     assert.equal(p.receivables.length, 0);
-    assert.equal(countAttention(p, null).watch, 3 + 2 + 1);
+    assert.equal(countAttention(p, null).watch, 3 + 2);
   });
   it("a clean ledger is all zeros, and an unavailable source counts as nothing (the page shows its own error)", () => {
     assert.deepEqual(countAttention(null, null), { critical: 0, watch: 0 });
     const clean = normalizeObligationsReport({ data: { summary: {} } });
     assert.deepEqual(countAttention(clean, normalizeSessionsReport({ needsAttention: {} })), { critical: 0, watch: 0 });
+  });
+  it("'Chưa xác minh trạng thái' rows are neutral information: they never add to critical or watch", () => {
+    const base = paymentFixture().data.summary;
+    const none = normalizeObligationsReport(paymentFixture({ summary: { ...base, targetUnverified: { status: "TARGET_STATUS_UNVERIFIED", candidates: 0 } } }))!;
+    const many = normalizeObligationsReport(paymentFixture({ summary: { ...base, targetUnverified: { status: "TARGET_STATUS_UNVERIFIED", candidates: 40 } } }))!;
+    assert.equal(many.summary.targetUnverified.candidates, 40);
+    assert.deepEqual(countAttention(many, null), countAttention(none, null));
   });
   it("a mismatch on the ESCROW row alone is information, not a defect", () => {
     const p = normalizeObligationsReport(

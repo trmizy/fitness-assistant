@@ -394,5 +394,20 @@ test('historic rows: ACTIVATED transaction whose target is CANCELLED is DETECTED
 
   // A throwing lookup means "unknown": skipped, never listed, never an exception.
   assert.deepEqual(await m.query.findActivatedButCancelledTargets(async () => { throw new Error('service down'); }), []);
+
+  // FH-4 accuracy: classification. ACTIVE (hist-healthy: PAID + money still in PENDING, exactly like a normal membership)
+  // is NEITHER under the cancel warning NOR unverified; real CANCELLED is detected; unknown / failing lookup -> unverified.
+  const cls = await m.query.classifyActivatedProductPayments(async (t) => status[t.relatedEntityId]);
+  assert.deepEqual(cls.cancelled.map((r) => r.relatedEntityId).sort(), ['hist-mem', 'hist-order']);
+  assert.ok(![...cls.cancelled, ...cls.unverified].some((r) => r.relatedEntityId === 'hist-healthy'), 'ACTIVE target never listed');
+  assert.deepEqual(cls.unverified.map((r) => r.relatedEntityId), ['hist-unknown']);
+  assert.equal(cls.unverified[0].targetStatus, 'UNVERIFIED');
+  const failing = await m.query.classifyActivatedProductPayments(async () => { throw new Error('service down'); });
+  assert.deepEqual(failing.cancelled, [], 'a failing lookup never produces a cancellation warning');
+  assert.deepEqual(failing.unverified.map((r) => r.relatedEntityId).sort(), ['hist-healthy', 'hist-mem', 'hist-order', 'hist-unknown']);
+  // No lookup at all (what the admin report does today): nothing is ever "cancelled".
+  const noLookup = await m.query.classifyActivatedProductPayments(null);
+  assert.deepEqual(noLookup.cancelled, []);
+  assert.equal(noLookup.unverified.length, 4);
   assert.equal(await snapshot(), before, 'read-only: no wallet, transaction or ledger row changed');
 });

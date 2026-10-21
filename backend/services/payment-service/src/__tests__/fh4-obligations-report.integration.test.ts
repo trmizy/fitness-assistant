@@ -119,11 +119,16 @@ test('200 for ADMIN: every block is present, counts match the seeded ledger, and
   const wide = (await (await get('?staleMinutes=1', 'admin')).json()) as any;
   assert.equal(wide.data.summary.paidNotActivated, 2, 'a 1-minute threshold also lists the fresh one');
 
-  // activated-but-cancelled: candidates only, honestly labelled
-  assert.equal(d.activatedButCancelled.status, 'NEEDS_TARGET_LOOKUP');
-  assert.equal(d.activatedButCancelled.candidates.length, 1);
-  assert.equal(d.activatedButCancelled.candidates[0].transactionId, seeded.mem.id);
-  assert.equal(d.activatedButCancelled.candidates[0].partnerPendingRemaining, '450000.00');
+  // FH-4 accuracy: money still in PENDING never implies CANCELLED. The group is the neutral "unverified" one
+  // (the seeded membership is a normal PAID + ACTIVATED one) and the old cancellation-warning key is gone.
+  assert.equal(d.activatedButCancelled, undefined);
+  assert.equal(d.summary.activatedButCancelled, undefined);
+  assert.equal(d.truncated.activatedButCancelled, undefined);
+  assert.equal(d.targetUnverified.status, 'TARGET_STATUS_UNVERIFIED');
+  assert.equal(d.summary.targetUnverified.status, 'TARGET_STATUS_UNVERIFIED');
+  assert.equal(d.targetUnverified.candidates.length, 1);
+  assert.equal(d.targetUnverified.candidates[0].transactionId, seeded.mem.id);
+  assert.equal(d.targetUnverified.candidates[0].partnerPendingRemaining, '450000.00');
 
   // no PII / no long ids of people: partner ids are cut to 8 characters, no payer ids anywhere
   const text = JSON.stringify(d);
