@@ -2,7 +2,7 @@ import { logger } from '@gym-coach/shared';
 import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
 import { pendingForTransaction, walletService, type LedgerOps } from './wallet.service';
-import { coverShortfall, recordObligation, recoverReceivables } from './contract-ledger.service';
+import { coverShortfall, ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
 import { ledgerStrictOwnFunds } from './contract-request-guard';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 
@@ -42,8 +42,16 @@ export async function pendingRemainingForTxn(ops: LedgerOps, walletId: string, t
 }
 
 export interface ReferralSettleResult {
+  /** Strict mode: exactly what moved out of THIS membership's gym pending into the PT's pending. Legacy: moved + platform-fronted. */
   moved: string;
+  /** Strict mode: the commission the membership's own pending could not fund (== `unpaid`). Legacy: the platform-fronted part. */
   shortfall: string;
+  /** D48 / DQ-1 S: the commission requested, what was moved, and the rest. Absent on a zero-amount no-op. */
+  owed?: string;
+  paid?: string;
+  unpaid?: string;
+  /** Present only when `unpaid > 0` (strict mode): the OPEN OVER_RELEASED row in contract_unpaid_obligations. */
+  obligationId?: string;
 }
 
 /**
@@ -53,6 +61,14 @@ export interface ReferralSettleResult {
  * "one implementation of the formula" rule the PT-contract side follows, except this formula
  * is a plain multiply-and-round gym-service already owns (see plan §2.5), not a three-way
  * split requiring contract-money.ts's reconciliation machinery.
+ *
+ * D48 / DQ-1 S (own funds only): only what THIS membership's gym pending holds is moved. If it holds
+ * less than the commission, the PT is NOT credited the difference out of thin air, the platform does
+ * NOT front it (no `coverShortfall`) and no PartnerReceivable is created against the gym: the unpaid
+ * commission is a durable, idempotent OPEN `OVER_RELEASED` row (party PT, same kind/party/key-suffix
+ * convention as `clawbackMembershipReferral`) in contract_unpaid_obligations for the admin. REFUND_SHORT
+ * is not used: it means "owed to the client", and this is a PT commission, i.e. an admin incident.
+ * LEDGER_STRICT_OWN_FUNDS=false (emergency rollback only) restores the old platform fronting.
  */
 export async function settleMembershipReferral(params: {
   transactionId: string;
@@ -75,16 +91,46 @@ export async function settleMembershipReferral(params: {
 
   return walletService.withWallets([gymWallet.id, ptWallet.id, revenueWallet.id], transactionId, (ops) =>
     withIdempotentLedgerOp(ops, idempotencyKey, async () => {
-      const gymPendingForTxn = await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
+      const strict = ledgerStrictOwnFunds();
+      // Strict: this membership's own pending, also capped by what the pooled bucket really holds
+      // (never push the gym wallet negative). Legacy: unchanged.
+      const gymPendingForTxn = strict
+        ? await ownPending(ops, gymWallet.id, transactionId)
+        : await pendingRemainingForTxn(ops, gymWallet.id, transactionId);
       const moving = gymPendingForTxn.lessThan(amount) ? gymPendingForTxn : amount;
       if (moving.greaterThan(0)) {
         await ops.debit(gymWallet.id, moving, `${label} — referral commission`, 'PENDING');
         await ops.credit(ptWallet.id, moving, `${label} — referral commission`, 'PENDING');
       }
-      // Should not happen — referral commission is always a slice of the gym's own settlement
-      // share — but if it does, the platform fronts the gap rather than shorting the PT, and
-      // books the debt against the gym whose commitment this was.
       const shortfall = amount.minus(moving);
+      if (strict) {
+        // Should not happen — the commission is always a slice of the gym's own settlement share — but
+        // if this membership's pending is short, nothing outside it is touched. The PT's unpaid
+        // commission is an OPEN incident for the admin, not a debt of the gym and not fronted money.
+        let obligationId: string | undefined;
+        if (shortfall.greaterThan(0)) {
+          obligationId = await recordObligation(ops, {
+            key: `${idempotencyKey}#OVER_RELEASED:PT`,
+            transactionId,
+            contractRef: label,
+            kind: 'OVER_RELEASED',
+            party: 'PT',
+            owed: amount,
+            paid: moving,
+            reason: `Referral commission: this membership's own gym pending could not fund the commission owed to PT ${ptUserId}`,
+          });
+        }
+        return {
+          moved: moving.toFixed(2),
+          shortfall: shortfall.toFixed(2),
+          owed: amount.toFixed(2),
+          paid: moving.toFixed(2),
+          unpaid: shortfall.toFixed(2),
+          ...(obligationId ? { obligationId } : {}),
+        };
+      }
+      // LEGACY (LEDGER_STRICT_OWN_FUNDS=false, emergency rollback only): the platform fronts the gap
+      // rather than shorting the PT, and books the debt against the gym whose commitment this was.
       if (shortfall.greaterThan(0)) {
         await coverShortfall(ops, revenueWallet.id, shortfall, {
           partnerType: 'GYM',

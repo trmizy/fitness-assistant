@@ -695,7 +695,8 @@ for (const reason of ['CLIENT_CANCELLED', 'PT_BANNED', 'EXPIRED', 'COMPLETED'] a
       transactionId: M.txnId, gymId: GYM, ptUserId: PT, amount: new m.Prisma.Decimal(100_000),
       label: 'Membership M referral', idempotencyKey: 'MEMBERSHIP_REFERRAL:M',
     });
-    assert.deepEqual(referral, { moved: '100000.00', shortfall: '0.00' });
+    // Old fields kept; D48 adds owed/paid/unpaid (no obligationId when the commission is fully funded).
+    assert.deepEqual(referral, { moved: '100000.00', shortfall: '0.00', owed: '100000.00', paid: '100000.00', unpaid: '0.00' });
 
     // Contract A: the same PT at the same gym, 55/35/10, one of four sessions delivered.
     const A = await paidContract(m, { id: 'A', pt: PT, gym: GYM });
