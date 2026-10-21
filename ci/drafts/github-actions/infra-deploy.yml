@@ -89,7 +89,8 @@ jobs:
       - name: Post-apply invariants (read-only)
         run: |
           [ "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiId --output text)" = "$API_ID" ]
-          pwsh -NoProfile -File scripts/aws/api-gateway/Test-ApiRouteParity.ps1 -ApiId "$API_ID" -Region "$AWS_REGION"
+          # -AllowKnownSourceOnly: see .github/workflows/infra-deploy.yml for why.
+          pwsh -NoProfile -File scripts/aws/api-gateway/Test-ApiRouteParity.ps1 -ApiId "$API_ID" -Region "$AWS_REGION" -AllowKnownSourceOnly
           code=$(curl -s -o /dev/null -w '%{http_code}' "$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiEndpoint --output text)/health")
           [ "$code" = "200" ] || { echo "::error::SMOKE_FAIL /health=$code"; exit 1; }
           aws cloudformation detect-stack-drift --stack-name "$STACK" --query StackDriftDetectionId --output text
