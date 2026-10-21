@@ -7,18 +7,8 @@ import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 import { EmptyState, ErrorState } from "../../components/dashboard/DashboardStates";
 import { PARTNER_ROLE_LABEL } from "../../utils/gymStaffRole";
 import { useStaffRole } from "../../hooks/useStaffRole";
-import type { Gym, GymMembershipContractStatus } from "../../types";
-
-/** Hàng hội viên lễ tân nhận được từ server (rút gọn: không giá, không mã giao dịch — gym-service/staff-views.ts). */
-type FrontDeskMembership = {
-  id: string;
-  clientId: string;
-  status: GymMembershipContractStatus;
-  startDate?: string | null;
-  endDate?: string | null;
-  totalVisits?: number | null;
-  usedVisits: number;
-};
+import { filterByName, normalizeFrontDeskToday, presenceOf, type FrontDeskToday } from "../../utils/frontDeskToday";
+import type { Gym } from "../../types";
 
 const OPERATIONAL_LABEL: Record<string, { text: string; cls: string }> = {
   OPEN: { text: "Đang mở cửa", cls: "text-green-400 bg-green-500/10 border-green-500/20" },
@@ -26,24 +16,16 @@ const OPERATIONAL_LABEL: Record<string, { text: string; cls: string }> = {
   PERMANENTLY_CLOSED: { text: "Đã đóng cửa", cls: "text-red-400 bg-red-500/10 border-red-500/20" },
 };
 
-function validity(m: FrontDeskMembership, now = Date.now()): { label: string; cls: string; ok: boolean } {
-  if (m.status === "ACTIVE") {
-    const end = m.endDate ? new Date(m.endDate).getTime() : null;
-    if (end !== null && end < now) return { label: "Hết hạn", cls: "bg-zinc-700/50 text-zinc-400", ok: false };
-    if (m.totalVisits != null && m.usedVisits >= m.totalVisits) return { label: "Hết lượt", cls: "bg-amber-500/10 text-amber-400", ok: false };
-    return { label: "Còn hạn", cls: "bg-green-500/10 text-green-400", ok: true };
-  }
-  if (m.status === "EXPIRED") return { label: "Hết hạn", cls: "bg-zinc-700/50 text-zinc-400", ok: false };
-  if (m.status === "CANCELLED") return { label: "Đã huỷ", cls: "bg-zinc-700/50 text-zinc-400", ok: false };
-  return { label: "Chờ thanh toán", cls: "bg-amber-500/10 text-amber-400", ok: false };
-}
-
-const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("vi-VN") : "—");
+const PRESENCE_CLS = {
+  CHECKED_IN: "bg-green-500/10 text-green-400",
+  BOOKED: "bg-amber-500/10 text-amber-400",
+} as const;
 
 /**
- * D15 — trang chủ của LỄ TÂN: chỉ việc quầy. Chi nhánh được gán (chỉ xem), mã QR check-in + lượt vào gần đây, và
- * "thẻ này còn dùng được không" (hạn/lượt). KHÔNG có doanh thu, ví, giá gói, cộng tác PT hay nhân sự — server
- * không trả những thứ đó cho vai trò này (staff-views.ts), trang chỉ không có chỗ để hiện.
+ * D15 / D15b — trang chủ của LỄ TÂN: chỉ việc quầy. Chi nhánh được gán (chỉ xem), mã QR check-in, PT đã check-in hôm nay
+ * và "khách hôm nay" (đã vào hoặc có lịch tập tại chi nhánh — CHỈ tên hiển thị). KHÔNG có danh sách hội viên, SĐT,
+ * e-mail, InBody, doanh thu, ví, giá gói, cộng tác PT hay nhân sự — server không trả những thứ đó cho vai trò này
+ * (staff-views.ts), trang chỉ không có chỗ để hiện. Lễ tân cũng không check-in hộ: hội viên/PT tự quét QR.
  */
 export function FrontDeskPage() {
   const { user } = useApp();
@@ -59,29 +41,22 @@ export function FrontDeskPage() {
   }, [gyms, gymId]);
   const gym = gyms.find((g) => g.id === gymId);
 
-  const membershipsQuery = useQuery<FrontDeskMembership[]>({
-    queryKey: ["frontdesk-memberships", uid, gymId],
-    queryFn: () => gymService.listOwnedMemberships(gymId),
+  const todayQuery = useQuery<FrontDeskToday>({
+    queryKey: ["frontdesk-today", uid, gymId],
+    queryFn: async () => normalizeFrontDeskToday(await gymService.getFrontDeskToday(gymId)),
     enabled: !!gymId,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
   });
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (membershipsQuery.data ?? [])
-      .filter((m) => m.status !== "PENDING_PAYMENT")
-      .filter((m) => !q || m.clientId.toLowerCase().includes(q))
-      .sort((a, b) => Number(validity(b).ok) - Number(validity(a).ok))
-      .slice(0, 100);
-  }, [membershipsQuery.data, search]);
+  const rows = useMemo(() => filterByName(todayQuery.data?.clients ?? [], search), [todayQuery.data, search]);
 
   const op = OPERATIONAL_LABEL[(gym as any)?.operationalStatus ?? "OPEN"] ?? OPERATIONAL_LABEL.OPEN;
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5" data-testid="front-desk-page">
+    <div className="p-4 md:p-6 max-w-3xl w-full min-w-0 mx-auto space-y-5" data-testid="front-desk-page">
       <div>
         <h1 className="text-zinc-100 text-xl font-bold">Quầy lễ tân</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">{role ? PARTNER_ROLE_LABEL[role] : ""} · QR check-in và hạn thẻ hội viên</p>
+        <p className="text-zinc-500 text-sm mt-0.5">{role ? PARTNER_ROLE_LABEL[role] : ""} · QR check-in và khách hôm nay</p>
       </div>
 
       {gymsQuery.isLoading ? (
@@ -118,46 +93,51 @@ export function FrontDeskPage() {
             </div>
           )}
 
-          {gymId && <GymCheckinPanel gymId={gymId} showPtCheckins={role === "OWNER" || role === "MANAGER"} />}
+          {gymId && <GymCheckinPanel gymId={gymId} ptCheckinsMode="today" />}
 
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 space-y-3" data-testid="front-desk-members">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-bold text-zinc-200">Hạn thẻ hội viên</h2>
-              <span className="text-[11px] text-zinc-600">{membershipsQuery.data?.length ?? 0} thẻ</span>
+              <h2 className="text-sm font-bold text-zinc-200">Khách hôm nay</h2>
+              <span className="text-[11px] text-zinc-600">{todayQuery.data?.clients.length ?? 0} người</span>
             </div>
+            <p className="text-[11px] text-zinc-600">Người đã check-in hoặc có lịch tập tại chi nhánh này hôm nay.</p>
             <div className="relative">
               <Search className="w-4 h-4 text-zinc-600 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo mã khách (vd: 1a2b3c4d)"
+                placeholder="Tìm theo tên"
+                aria-label="Tìm khách theo tên"
                 className="w-full pl-9 pr-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600"
               />
             </div>
-            {membershipsQuery.isLoading ? (
+            {todayQuery.isLoading ? (
               <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-            ) : membershipsQuery.isError ? (
-              <ErrorState message="Không tải được danh sách hội viên." />
+            ) : todayQuery.isError ? (
+              <ErrorState message="Không tải được danh sách khách hôm nay." />
             ) : rows.length === 0 ? (
-              <EmptyState icon={Search} title="Không có thẻ phù hợp" hint="Thử bỏ bớt từ khoá tìm kiếm." />
+              <EmptyState
+                icon={Search}
+                title={search.trim() ? "Không có khách phù hợp" : "Hôm nay chưa có khách"}
+                hint={search.trim() ? "Thử bỏ bớt từ khoá tìm kiếm." : "Khách sẽ hiện ở đây khi họ check-in hoặc có lịch tập tại chi nhánh."}
+              />
             ) : (
               <ul className="space-y-1.5">
-                {rows.map((m) => {
-                  const v = validity(m);
+                {rows.map((c, i) => {
+                  const p = presenceOf(c);
                   return (
-                    <li key={m.id} className="flex items-center justify-between gap-3 bg-zinc-800/40 rounded-lg px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-sm text-zinc-200 truncate">Khách #{m.clientId.slice(0, 8)}</p>
-                        <p className="text-[11px] text-zinc-500">
-                          Hết hạn {fmtDate(m.endDate)} ·{" "}
-                          {m.totalVisits != null ? `còn ${Math.max(0, m.totalVisits - m.usedVisits)}/${m.totalVisits} lượt` : "không giới hạn lượt"}
-                        </p>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${v.cls}`}>{v.label}</span>
+                    <li key={`${i}-${c.displayName}`} className="flex items-center justify-between gap-3 bg-zinc-800/40 rounded-lg px-3 py-2">
+                      <p className="text-sm text-zinc-200 truncate min-w-0">{c.displayName}</p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${PRESENCE_CLS[p.kind]}`}>{p.label}</span>
                     </li>
                   );
                 })}
               </ul>
+            )}
+            {todayQuery.data && !todayQuery.data.bookingsAvailable && (
+              <p className="text-[11px] text-amber-400/80" data-testid="bookings-unavailable">
+                Chưa tải được lịch tập hôm nay — danh sách chỉ gồm người đã check-in.
+              </p>
             )}
           </div>
         </>

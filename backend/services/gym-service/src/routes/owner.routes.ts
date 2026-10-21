@@ -17,6 +17,7 @@ import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { checkinController } from '../controllers/checkin.controller';
+import { financeController } from '../controllers/finance.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { paymentClient } from '../clients/payment.client';
 import { gymService } from '../services/gym.service';
@@ -152,6 +153,10 @@ router.get('/gyms/:gymId/wallet', requirePermission('finance.wallet.view', { gym
   }
 }));
 
+// D15b: kế toán đọc TỔNG hoa hồng PT theo kỳ (không theo PT, không tỷ lệ). Đặt dưới /brands vì gateway chỉ proxy các
+// prefix /owner/* khai báo tường minh. Thương hiệu phải thuộc đối tác; phạm vi chi nhánh lọc trong controller.
+router.get('/brands/:brandId/pt-commission', requirePermission('finance.ptCommission.view'), asyncHandler(financeController.ptCommission));
+
 // Plans are brand-scoped now (one owner, one brand — see GymMembershipPlan's schema doc
 // comment): a plan is sold by the brand, works at every branch, so these hang off /brands/:id
 // rather than any one gym.
@@ -162,14 +167,19 @@ router.post('/brands/:brandId/plans', requirePartnerOwner, validateBody(planCrea
 router.get('/brands/:brandId/plans', requirePermission('plan.view'), asyncHandler(planController.listOwned));
 router.patch('/brands/:brandId/plans/:planId', requirePartnerOwner, validateBody(planUpdateSchema), asyncHandler(planController.update));
 
-// Một route, ba cách nhìn theo vai trò (staff-views.ts): đủ (chủ/quản lý), hạn & lượt (lễ tân), doanh số (kế toán).
-router.get('/gyms/:gymId/memberships', requirePermission(['membership.full', 'membership.validity', 'membership.sales'], { gymParam: 'gymId' }), asyncHandler(membershipController.listForOwner));
+// Một route, hai cách nhìn theo vai trò (staff-views.ts): đủ (chủ/quản lý), doanh số không clientId (kế toán).
+// Lễ tân KHÔNG có danh sách hội viên (D15b) - chỉ có /front-desk/today bên dưới.
+router.get('/gyms/:gymId/memberships', requirePermission(['membership.full', 'membership.sales'], { gymParam: 'gymId' }), asyncHandler(membershipController.listForOwner));
 
 // Phase 4 — the gym displays this QR at the desk; members scan it to check themselves in.
 router.get('/gyms/:gymId/checkin-qr', requirePermission('checkin.qr', { gymParam: 'gymId' }), asyncHandler(checkinController.getGymQr));
 router.get('/gyms/:gymId/checkins', requirePermission('checkin.list', { gymParam: 'gymId' }), asyncHandler(checkinController.listForGym));
 // Phase 2 / P2.2 — PT entries at this branch (separate from member visits; never shows clients).
 router.get('/gyms/:gymId/pt-checkins', requirePermission('ptCheckin.list', { gymParam: 'gymId' }), asyncHandler(checkinController.listPtForGym));
+// D15b - lễ tân: CHỈ ĐỌC, chỉ chi nhánh được gán (gymParam). PT đã check-in hôm nay; khách có lịch/check-in hôm nay
+// (chỉ tên hiển thị). Không có route GHI nào cho lễ tân: check-in luôn do hội viên/PT tự quét QR.
+router.get('/gyms/:gymId/pt-checkins/today', requirePermission('ptCheckin.today', { gymParam: 'gymId' }), asyncHandler(checkinController.ptCheckinsToday));
+router.get('/gyms/:gymId/front-desk/today', requirePermission('frontDesk.clients', { gymParam: 'gymId' }), asyncHandler(checkinController.frontDeskToday));
 
 // Mời PT về đầu quân cho chi nhánh là việc "người" → chỉ chủ sở hữu, cùng nhóm với đàm
 // phán cộng tác PT bên dưới.

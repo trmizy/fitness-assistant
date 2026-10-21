@@ -13,12 +13,17 @@
  *     khoản bị che);
  *   • quản lý nhân sự: chỉ OWNER mời / thu hồi / chuyển quyền; ràng buộc phạm vi theo vai trò;
  *   • cây route: KHÔNG route nào dưới cổng vận hành thiếu cổng quyền (default-deny chứng minh bằng cấu trúc).
+ *
+ * D15b (5 quyết định đã chốt): kế toán không có danh tính hội viên, thấy TỔNG hoa hồng PT theo kỳ (không theo PT);
+ * lễ tân không check-in hộ, không có danh sách hội viên, chỉ thấy tên khách hôm nay + PT đã check-in hôm nay ở chi
+ * nhánh được gán. auth-service giả trả tên + e-mail + SĐT "bí mật" để chứng minh chúng không lọt ra payload.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { randomUUID } from 'crypto';
 import express from 'express';
+import { localDayWindow } from '../utils/local-day';
 
 const SERVICE_SECRET = 'test_internal_service_secret_32_chars_minimum';
 process.env.INTERNAL_SERVICE_SECRET = SERVICE_SECRET;
@@ -30,7 +35,7 @@ const id = {
   ownerA: randomUUID(), managerA: randomUUID(), recepA1: randomUUID(), recepA2: randomUUID(),
   acctAll: randomUUID(), acctA1: randomUUID(),
   ownerB: randomUUID(), recepB: randomUUID(), acctB: randomUUID(),
-  clientX: randomUUID(), clientY: randomUUID(), pt: randomUUID(),
+  clientX: randomUUID(), clientY: randomUUID(), pt: randomUUID(), pt2: randomUUID(), clientZ: randomUUID(),
 };
 const USERS: Record<string, { id: string; role: string; email: string }> = Object.fromEntries(
   Object.entries({
@@ -44,11 +49,12 @@ USERS['tok-customer'] = { id: id.clientX, role: 'CUSTOMER', email: 'c@staff.test
 const gym = { a1: randomUUID(), a2: randomUUID(), b1: randomUUID() };
 const brand = { a: randomUUID(), b: randomUUID() };
 const plan = { a: randomUUID() };
-const mem = { a1: randomUUID(), a2: randomUUID() };
+const mem = { a1: randomUUID(), a2: randomUUID(), a2b: randomUUID() };
 const partnerIds: string[] = [];
 
 let authServer: http.Server;
 let payServer: http.Server;
+let userServer: http.Server;
 let appServer: http.Server;
 let base = '';
 let prisma: typeof import('../repositories/prisma').prisma;
@@ -80,7 +86,9 @@ test.before(async () => {
         return res.end(JSON.stringify({ ok: true }));
       }
       if (req.url?.startsWith('/auth/internal/users/')) {
-        return res.end(JSON.stringify({ user: { id: 'x', email: 'x@y.z', firstName: 'X', lastName: 'Y', role: 'GYM_OWNER', isActive: true } }));
+        // Tên + e-mail + SĐT: chỉ TÊN được phép tới lễ tân (xem test field allow-list).
+        const uid = decodeURIComponent(req.url.split('/').pop() || '');
+        return res.end(JSON.stringify({ user: { id: uid, email: `secret-${uid.slice(0, 8)}@mail.test`, phone: '0988777666', firstName: 'Ten', lastName: uid.slice(0, 4), role: 'GYM_OWNER', isActive: true } }));
       }
       if (req.url === '/auth/internal/partner-auth/create-invited-account') {
         const b = JSON.parse(Buffer.concat(chunks).toString() || '{}');
@@ -104,6 +112,19 @@ test.before(async () => {
   });
   await new Promise<void>((r) => payServer.listen(0, '127.0.0.1', r));
   process.env.PAYMENT_SERVICE_URL = `http://127.0.0.1:${(payServer.address() as { port: number }).port}`;
+
+  // user-service giả: chỉ route khách-có-lịch-tại-chi-nhánh. a1 → clientZ có lịch; a2 → lỗi 500 (bookingsAvailable=false).
+  userServer = http.createServer((req, res) => {
+    const m = /^\/internal\/gyms\/([^/]+)\/booked-clients/.exec(req.url || '');
+    if (m && decodeURIComponent(m[1]) === gym.a1) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ gymId: gym.a1, clients: [{ clientUserId: id.clientZ, startAt: new Date().toISOString() }] }));
+    }
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'down' }));
+  });
+  await new Promise<void>((r) => userServer.listen(0, '127.0.0.1', r));
+  process.env.USER_SERVICE_URL = `http://127.0.0.1:${(userServer.address() as { port: number }).port}`;
 
   prisma = (await import('../repositories/prisma')).prisma;
 
@@ -152,9 +173,31 @@ test.before(async () => {
     data: [
       { id: mem.a1, gymId: gym.a1, planId: plan.a, clientId: id.clientX, status: 'ACTIVE', paymentTxnId: 'TXN-A1', startDate: new Date(now - 864e5), endDate: new Date(now + 20 * 864e5), priceAtPurchase: 700000, durationDaysSnapshot: 30, usedVisits: 3, payoutReleasedAt: new Date() },
       { id: mem.a2, gymId: gym.a2, planId: plan.a, clientId: id.clientY, status: 'ACTIVE', paymentTxnId: 'TXN-A2', startDate: new Date(now - 864e5), endDate: new Date(now + 20 * 864e5), priceAtPurchase: 700000, durationDaysSnapshot: 30 },
+      { id: mem.a2b, gymId: gym.a2, planId: plan.a, clientId: id.clientZ, status: 'PENDING_PAYMENT', paymentTxnId: 'TXN-A2B', priceAtPurchase: 700000, durationDaysSnapshot: 30 },
+    ],
+  });
+  // Hoa hồng giới thiệu (PT id.pt, tỷ lệ 0.1234 — hai thứ này KHÔNG được xuất hiện ở payload kế toán):
+  //   a1: 70.000 đã chi (thẻ đã payoutReleasedAt)
+  //   a2: 30.000 dự kiến (PENDING, thẻ chưa thanh toán xong)
+  //   a2: 25.000 RELEASED (thẻ chưa giải phóng) - thu hồi 5.000 → 20.000 đã ghi nhận
+  await prisma.gymMembershipReferral.createMany({
+    data: [
+      { membershipContractId: mem.a1, gymId: gym.a1, referrerPtUserId: id.pt, rate: 0.1234, amount: 70000, status: 'RELEASED', releasedAt: new Date() },
+      { membershipContractId: mem.a2b, gymId: gym.a2, referrerPtUserId: id.pt, rate: 0.1234, amount: 30000, status: 'PENDING' },
+      { membershipContractId: mem.a2, gymId: gym.a2, referrerPtUserId: id.pt, rate: 0.1234, amount: 25000, clawedBack: 5000, status: 'RELEASED', releasedAt: new Date() },
     ],
   });
   await prisma.gymCheckIn.create({ data: { membershipId: mem.a1, gymId: gym.a1, clientId: id.clientX, checkedInBy: id.clientX } });
+  // PT đã check-in: a1 hôm nay (id.pt) + hôm qua (id.pt2, không được hiện), a2 hôm nay (id.pt2, không được hiện ở a1).
+  const todayD = new Date(`${localDayWindow().localDate}T00:00:00.000Z`);
+  const yesterdayD = new Date(todayD.getTime() - 864e5);
+  await prisma.gymPtCheckIn.createMany({
+    data: [
+      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 3, qualifyingSessionIds: ['s-1'], contractIds: ['c-1'] },
+      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt2, localDate: yesterdayD, firstScanAt: new Date(now - 864e5), lastScanAt: new Date(now - 864e5), scanCount: 1, qualifyingSessionIds: ['s-2'], contractIds: ['c-2'] },
+      { gymId: gym.a2, brandId: brand.a, ptUserId: id.pt2, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 1, qualifyingSessionIds: ['s-3'], contractIds: ['c-3'] },
+    ],
+  });
   await prisma.gymPtCollaboration.create({
     data: { gymId: gym.a1, ptUserId: id.pt, proposedPtRate: 0.6, proposedGymRate: 0.3, platformRate: 0.1, status: 'ACCEPTED', proposedBy: 'GYM', expiresAt: new Date(now + 7 * 864e5), acceptedAt: new Date() },
   });
@@ -177,6 +220,8 @@ test.after(async () => {
   if (!prisma) return;
   const gymIds = Object.values(gym);
   await prisma.gymCheckIn.deleteMany({ where: { gymId: { in: gymIds } } });
+  await prisma.gymPtCheckIn.deleteMany({ where: { gymId: { in: gymIds } } });
+  await prisma.gymMembershipReferral.deleteMany({ where: { gymId: { in: gymIds } } });
   await prisma.gymMembershipContract.deleteMany({ where: { gymId: { in: gymIds } } });
   await prisma.gymMembershipPlan.deleteMany({ where: { brandId: { in: Object.values(brand) } } });
   await prisma.gymPtCollaboration.deleteMany({ where: { gymId: { in: gymIds } } });
@@ -185,7 +230,7 @@ test.after(async () => {
   await prisma.partnerInvitation.deleteMany({ where: { partnerId: { in: partnerIds } } });
   await prisma.gymPartner.deleteMany({ where: { id: { in: partnerIds } } });
   await prisma.$disconnect();
-  for (const s of [authServer, payServer, appServer]) await new Promise<void>((r) => s.close(() => r()));
+  for (const s of [authServer, payServer, userServer, appServer]) await new Promise<void>((r) => s.close(() => r()));
 });
 
 async function call(token: string | null, method: string, path: string, body?: unknown) {
@@ -214,12 +259,17 @@ const matrix: Row[] = [
   { name: 'ví a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/wallet`, allow: [O, AA] },
   { name: 'lịch sử rút tiền a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/withdrawals`, allow: [O, AA, A1] },
   { name: 'gói của thương hiệu', method: 'GET', path: () => `/owner/brands/${brand.a}/plans`, allow: [O, M, AA, A1] },
-  { name: 'hội viên a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/memberships`, allow: [O, M, R1, AA, A1] },
-  { name: 'hội viên a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/memberships`, allow: [O, R2, AA] },
+  { name: 'hội viên a1 (lễ tân KHÔNG có danh sách hội viên)', method: 'GET', path: () => `/owner/gyms/${gym.a1}/memberships`, allow: [O, M, AA, A1] },
+  { name: 'hội viên a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/memberships`, allow: [O, AA] },
   { name: 'QR check-in a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/checkin-qr`, allow: [O, M, R1] },
   { name: 'QR check-in a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/checkin-qr`, allow: [O, R2] },
   { name: 'lịch sử check-in a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/checkins`, allow: [O, M, R1] },
   { name: 'check-in PT a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/pt-checkins`, allow: [O, M] },
+  { name: 'PT đã check-in HÔM NAY a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/pt-checkins/today`, allow: [O, M, R1] },
+  { name: 'PT đã check-in HÔM NAY a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/pt-checkins/today`, allow: [O, R2] },
+  { name: 'khách hôm nay a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/front-desk/today`, allow: [O, M, R1] },
+  { name: 'khách hôm nay a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/front-desk/today`, allow: [O, R2] },
+  { name: 'tổng hoa hồng PT (kế toán + chủ)', method: 'GET', path: () => `/owner/brands/${brand.a}/pt-commission`, allow: [O, AA, A1] },
   { name: 'tạm đóng cửa a1 (không lý do → 400 nếu qua cổng)', method: 'PATCH', path: () => `/owner/gyms/${gym.a1}/operational-status`, body: { operationalStatus: 'OPEN' }, allow: [O, M] },
   { name: 'trạng thái onboarding của chính mình', method: 'GET', path: () => '/owner/onboarding/status', allow: [O, M, R1, R2, AA, A1] },
 ];
@@ -297,19 +347,12 @@ integrationTest('đóng cửa: MANAGER tạm đóng/mở lại được, vĩnh v
 });
 
 // ── 3. Hình dạng dữ liệu theo vai trò ────────────────────────────────────────────────────────────────────────
-integrationTest('LỄ TÂN thấy hạn/lượt của hội viên nhưng KHÔNG thấy giá, mã giao dịch, chia tiền', async () => {
+integrationTest('D15b · LỄ TÂN KHÔNG có danh sách hội viên: 403 cả với chi nhánh trong phạm vi, không dữ liệu nào đi kèm', async () => {
   const r = await call(R1, 'GET', `/owner/gyms/${gym.a1}/memberships`);
-  assert.equal(r.status, 200);
-  assert.equal(r.body.data.length, 1);
-  const row = r.body.data[0];
-  assert.equal(row.status, 'ACTIVE');
-  assert.ok(row.endDate && row.usedVisits === 3);
-  for (const k of ['priceAtPurchase', 'paymentTxnId', 'payoutReleasedAt', 'multiGymWarned', 'refundClawbackDone', 'durationDaysSnapshot']) {
-    assert.equal(k in row, false, `lễ tân không được thấy ${k}`);
-  }
+  assert.equal(r.status, 403);
+  assert.equal(r.body.error.code, 'PERMISSION_DENIED');
   const text = JSON.stringify(r.body);
-  assert.equal(text.includes('700000'), false);
-  assert.equal(text.includes('TXN-A1'), false);
+  for (const leak of [id.clientX, '700000', 'TXN-A1']) assert.equal(text.includes(leak), false, leak);
 });
 
 integrationTest('KẾ TOÁN thấy doanh số (giá, mã giao dịch) nhưng KHÔNG thấy clientId / lượt tập; CHỦ thấy đủ', async () => {
@@ -373,11 +416,179 @@ integrationTest('QR check-in: lễ tân trong phạm vi lấy được QR hợp 
   assert.equal('checkedInBy' in log.body.data[0], false);
 });
 
+integrationTest('D15b · KẾ TOÁN: doanh số có mã giao dịch / gói / giá / ngày / trạng thái nhưng KHÔNG có danh tính hội viên dưới bất kỳ trường nào', async () => {
+  for (const tok of [AA, A1]) {
+    const r = await call(tok, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+    assert.equal(r.status, 200);
+    const text = JSON.stringify(r.body);
+    for (const leak of [id.clientX, id.clientY, id.clientZ, 'clientId', 'secret-', '@mail.test', '0988777666']) assert.equal(text.includes(leak), false, `${tok} thấy ${leak}`);
+    for (const row of r.body.data) {
+      for (const k of ['id', 'gymId', 'planId', 'status', 'paymentTxnId', 'priceAtPurchase', 'createdAt']) assert.ok(k in row, `${tok} phải thấy ${k}`);
+    }
+  }
+  // Kế toán cũng không có đường nào khác tới danh tính: check-in, khách hôm nay, PT, cộng tác, nhân sự.
+  for (const p of [`/owner/gyms/${gym.a1}/checkins`, `/owner/gyms/${gym.a1}/front-desk/today`, `/owner/gyms/${gym.a1}/pt-checkins`, `/owner/gyms/${gym.a1}/pt-checkins/today`, '/owner/collaborations', '/me/collaborations', '/owner/partner-accounts']) {
+    for (const tok of [AA, A1]) assert.equal((await call(tok, 'GET', p)).status, 403, `${tok} ${p}`);
+  }
+});
+
+integrationTest('D15b · KẾ TOÁN thấy TỔNG hoa hồng PT theo kỳ: dự kiến / đã ghi nhận / đã chi tách riêng, KHÔNG có PT, tỷ lệ hay điều khoản cộng tác', async () => {
+  const r = await call(AA, 'GET', `/owner/brands/${brand.a}/pt-commission`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const d = r.body.data;
+  assert.equal(d.branchCount, 2);
+  assert.equal(d.totals.paid, '70000.00', 'a1: thẻ đã giải phóng → đã chi');
+  assert.equal(d.totals.recorded, '20000.00', 'a2: RELEASED 25.000 - thu hồi 5.000, thẻ chưa giải phóng');
+  assert.equal(d.totals.expected, '30000.00', 'a2: PENDING');
+  assert.equal(d.totals.clawedBack, '5000.00');
+  assert.equal(d.totals.referralCount, 3);
+  assert.ok(Array.isArray(d.byMonth) && d.byMonth.length >= 1);
+  assert.ok(d.definitions.expected && d.definitions.recorded && d.definitions.paid, 'định nghĩa từng con số đi kèm');
+  const text = JSON.stringify(r.body);
+  for (const leak of [id.pt, id.pt2, '0.1234', 'referrer', 'proposedPtRate', 'proposedGymRate', 'platformRate', '"rate"']) {
+    assert.equal(text.includes(leak), false, `payload hoa hồng lộ ${leak}`);
+  }
+  // Chủ sở hữu thấy cùng con số tổng (cùng một nguồn).
+  assert.equal((await call(O, 'GET', `/owner/brands/${brand.a}/pt-commission`)).body.data.totals.paid, '70000.00');
+});
+
+integrationTest('D15b · tổng hoa hồng PT theo PHẠM VI: kế toán gán a1 chỉ thấy a1; thu hẹp ra ngoài phạm vi → 403; khoảng thời gian sai → 400', async () => {
+  const a1only = (await call(A1, 'GET', `/owner/brands/${brand.a}/pt-commission`)).body.data;
+  assert.equal(a1only.branchCount, 1);
+  assert.equal(a1only.totals.paid, '70000.00');
+  assert.equal(a1only.totals.expected, '0.00');
+  assert.equal(a1only.totals.recorded, '0.00');
+  const out = await call(A1, 'GET', `/owner/brands/${brand.a}/pt-commission?gymId=${gym.a2}`);
+  assert.equal(out.status, 403);
+  assert.equal(out.body.error.code, 'GYM_OUT_OF_SCOPE');
+  assert.equal(out.body.data, undefined);
+  const narrowed = await call(AA, 'GET', `/owner/brands/${brand.a}/pt-commission?gymId=${gym.a2}`);
+  assert.equal(narrowed.status, 200);
+  assert.equal(narrowed.body.data.totals.paid, '0.00');
+  assert.equal(narrowed.body.data.totals.expected, '30000.00');
+  // Ngoài kỳ → 0; sai định dạng / đảo ngược → 400.
+  const empty = await call(AA, 'GET', `/owner/brands/${brand.a}/pt-commission?from=2020-01-01&to=2020-02-01`);
+  assert.equal(empty.body.data.totals.referralCount, 0);
+  assert.equal((await call(AA, 'GET', `/owner/brands/${brand.a}/pt-commission?from=abc`)).status, 400);
+  assert.equal((await call(AA, 'GET', `/owner/brands/${brand.a}/pt-commission?from=2026-10-05&to=2026-10-01`)).status, 400);
+  // Đối tác KHÁC: kế toán B không thấy dữ liệu của A, kể cả khi chỉ đích danh chi nhánh của A.
+  assert.equal((await call(AB, 'GET', `/owner/brands/${brand.a}/pt-commission?gymId=${gym.a1}`)).status, 403);
+  const b = await call(AB, 'GET', `/owner/brands/${brand.b}/pt-commission`);
+  assert.equal(b.status, 200);
+  assert.equal(b.body.data.totals.referralCount, 0);
+  assert.equal((await call(OB, 'GET', `/owner/brands/${brand.a}/pt-commission?gymId=${gym.a1}`)).status, 403);
+  assert.equal((await call(AB, 'GET', `/owner/brands/${brand.a}/pt-commission`)).status, 403, 'kế toán B không đọc được thương hiệu A');
+});
+
+integrationTest('D15b · LỄ TÂN: lịch sử check-in chỉ có TÊN hiển thị + giờ — không clientId / membershipId / người quét / e-mail / SĐT', async () => {
+  const log = await call(R1, 'GET', `/owner/gyms/${gym.a1}/checkins`);
+  assert.equal(log.status, 200);
+  assert.equal(log.body.data.length, 1);
+  const row = log.body.data[0];
+  assert.deepEqual(Object.keys(row).sort(), ['clientName', 'createdAt', 'gymId', 'id']);
+  assert.equal(row.clientName, `Ten ${id.clientX.slice(0, 4)}`);
+  const text = JSON.stringify(log.body);
+  for (const leak of [id.clientX, mem.a1, 'secret-', '@mail.test', '0988777666']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
+  // Chủ vẫn thấy nguyên trạng (clientId) - D15b chỉ rút gọn cho lễ tân.
+  assert.equal((await call(O, 'GET', `/owner/gyms/${gym.a1}/checkins`)).body.data[0].clientId, id.clientX);
+});
+
+integrationTest('D15b · LỄ TÂN: khách hôm nay = người đã check-in HOẶC có lịch tập tại chi nhánh; chỉ tên hiển thị, không phải danh sách hội viên', async () => {
+  const r = await call(R1, 'GET', `/owner/gyms/${gym.a1}/front-desk/today`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.data.bookingsAvailable, true);
+  const rows = r.body.data.clients;
+  const names = rows.map((c: any) => c.displayName).sort();
+  assert.deepEqual(names, [`Ten ${id.clientX.slice(0, 4)}`, `Ten ${id.clientZ.slice(0, 4)}`].sort(), 'chỉ clientX (check-in) và clientZ (lịch hẹn); clientY có thẻ nhưng không có mặt → không hiện');
+  const x = rows.find((c: any) => c.displayName.endsWith(id.clientX.slice(0, 4)));
+  const z = rows.find((c: any) => c.displayName.endsWith(id.clientZ.slice(0, 4)));
+  assert.ok(x.checkedInAt && !x.bookedAt);
+  assert.ok(z.bookedAt && !z.checkedInAt);
+  for (const row of rows) assert.deepEqual(Object.keys(row).sort(), ['bookedAt', 'checkedInAt', 'displayName']);
+  const text = JSON.stringify(r.body).toLowerCase();
+  for (const leak of [id.clientX, id.clientY, id.clientZ, 'clientid', 'secret-', '@mail.test', '0988777666', 'phone', 'email', 'inbody', 'health', 'priceatpurchase', 'txn-']) {
+    assert.equal(text.includes(leak.toLowerCase()), false, `lộ ${leak}`);
+  }
+});
+
+integrationTest('D15b · khách hôm nay: user-service lỗi → vẫn trả danh sách check-in kèm bookingsAvailable=false (không sập quầy)', async () => {
+  const r = await call(R2, 'GET', `/owner/gyms/${gym.a2}/front-desk/today`);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.bookingsAvailable, false);
+  assert.deepEqual(r.body.data.clients, []);
+});
+
+integrationTest('D15b · LỄ TÂN: PT đã check-in HÔM NAY chỉ ở chi nhánh được gán — tên + giờ, không ptUserId / số buổi / hợp đồng; không lộ hôm qua hay chi nhánh khác', async () => {
+  const r = await call(R1, 'GET', `/owner/gyms/${gym.a1}/pt-checkins/today`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.data.pts.length, 1, 'chỉ id.pt hôm nay ở a1');
+  assert.deepEqual(Object.keys(r.body.data.pts[0]).sort(), ['firstScanAt', 'id', 'lastScanAt', 'ptName']);
+  assert.equal(r.body.data.pts[0].ptName, `Ten ${id.pt.slice(0, 4)}`);
+  const text = JSON.stringify(r.body);
+  for (const leak of [id.pt, id.pt2, 'scanCount', 'qualifying', 'contract', 'secret-', '@mail.test', 's-1', 'c-1']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
+  // Chi nhánh khác trong CÙNG đối tác: lễ tân a1 → 403; lễ tân a2 chỉ thấy PT của a2.
+  assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/pt-checkins/today`)).status, 403);
+  assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/front-desk/today`)).status, 403);
+  const a2 = await call(R2, 'GET', `/owner/gyms/${gym.a2}/pt-checkins/today`);
+  assert.deepEqual(a2.body.data.pts.map((p: any) => p.ptName), [`Ten ${id.pt2.slice(0, 4)}`]);
+  // Đối tác khác: lễ tân B không đọc được a1.
+  assert.equal((await call(RB, 'GET', `/owner/gyms/${gym.a1}/pt-checkins/today`)).status, 403);
+  assert.equal((await call(RB, 'GET', `/owner/gyms/${gym.a1}/front-desk/today`)).status, 403);
+});
+
+integrationTest('D15b · LỄ TÂN KHÔNG check-in hộ hội viên hay PT: mọi đường ghi bị từ chối / không tồn tại, không có dòng check-in nào được tạo', async () => {
+  const before = { member: await prisma.gymCheckIn.count({ where: { gymId: gym.a1 } }), pt: await prisma.gymPtCheckIn.count({ where: { gymId: gym.a1 } }) };
+  const qr = (await call(R1, 'GET', `/owner/gyms/${gym.a1}/checkin-qr`)).body.data.token;
+  const attempts: Array<[string, string, unknown?]> = [
+    ['POST', `/owner/gyms/${gym.a1}/checkins`, { clientId: id.clientY }],
+    ['POST', `/owner/gyms/${gym.a1}/pt-checkins`, { ptUserId: id.pt }],
+    ['POST', `/owner/gyms/${gym.a1}/front-desk/check-in`, { clientId: id.clientY }],
+    ['PUT', `/owner/gyms/${gym.a1}/front-desk/today`, {}],
+    ['DELETE', `/owner/gyms/${gym.a1}/checkins`],
+    ['POST', '/me/gym-checkins', { token: qr }], // đường của hội viên: lễ tân (GYM_OWNER) không dùng được
+    ['POST', '/me/pt-gym-checkins', { token: qr }], // đường của PT
+  ];
+  for (const [method, path, body] of attempts) {
+    for (const tok of [R1, AA]) {
+      const r = await call(tok, method, path, body);
+      assert.ok(r.status === 403 || r.status === 404 || r.status === 405, `${tok} ${method} ${path} → ${r.status}`);
+    }
+  }
+  assert.equal(await prisma.gymCheckIn.count({ where: { gymId: gym.a1 } }), before.member);
+  assert.equal(await prisma.gymPtCheckIn.count({ where: { gymId: gym.a1 } }), before.pt);
+});
+
+integrationTest('D15b · tài khoản bị THU HỒI mất ngay các đường mới (lễ tân: khách/PT hôm nay; kế toán: hoa hồng)', async () => {
+  const partner = await prisma.gymPartnerAccount.findFirstOrThrow({ where: { userId: id.ownerA } });
+  const mk = async (tok: string, role: any, scoped: string[]) => {
+    const uid = randomUUID();
+    USERS[tok] = { id: uid, role: 'GYM_OWNER', email: `${tok}@staff.test` };
+    return prisma.gymPartnerAccount.create({
+      data: { partnerId: partner.partnerId, userId: uid, role, scopedGymIds: scoped, status: 'ACTIVE', activatedAt: new Date(), onboardingCompletedAt: new Date() },
+    });
+  };
+  const rec = await mk('tok-temp-r2', 'RECEPTIONIST', [gym.a1]);
+  const acc = await mk('tok-temp-a2', 'ACCOUNTANT', []);
+  const probes: Array<[string, string]> = [
+    ['tok-temp-r2', `/owner/gyms/${gym.a1}/front-desk/today`],
+    ['tok-temp-r2', `/owner/gyms/${gym.a1}/pt-checkins/today`],
+    ['tok-temp-a2', `/owner/brands/${brand.a}/pt-commission`],
+  ];
+  for (const [tok, path] of probes) assert.equal((await call(tok, 'GET', path)).status, 200, `${tok} ${path} trước khi thu hồi`);
+  for (const a of [rec, acc]) assert.equal((await call(O, 'DELETE', `/owner/partner-accounts/${a.id}`, { reason: 'nghỉ việc' })).status, 200);
+  for (const [tok, path] of probes) {
+    const r = await call(tok, 'GET', path);
+    assert.equal(r.status, 403, `${tok} ${path} sau khi thu hồi`);
+    assert.equal(r.body?.data, undefined);
+  }
+});
+
 // ── 4. Phạm vi chi nhánh & ranh giới đối tác ────────────────────────────────────────────────────────────────
 integrationTest('ĐỐI TÁC KHÁC: lễ tân/kế toán của B không đọc được bất cứ thứ gì của A (kể cả kế toán cả-thương-hiệu của B)', async () => {
   const paths = [
     `/owner/gyms/${gym.a1}`, `/owner/gyms/${gym.a1}/memberships`, `/owner/gyms/${gym.a1}/checkin-qr`, `/owner/gyms/${gym.a1}/checkins`,
     `/owner/gyms/${gym.a1}/wallet`, `/owner/gyms/${gym.a1}/withdrawals`, `/owner/brands/${brand.a}`, `/owner/brands/${brand.a}/plans`,
+    `/owner/gyms/${gym.a1}/pt-checkins/today`, `/owner/gyms/${gym.a1}/front-desk/today`,
   ];
   for (const tok of [RB, AB, OB]) {
     for (const p of paths) {

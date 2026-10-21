@@ -5732,6 +5732,21 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
     return data?.data ?? data;
   },
+  // D15b — lễ tân (và chủ/quản lý): PT đã check-in HÔM NAY tại đúng chi nhánh này (tên + giờ), chỉ đọc.
+  listPtCheckinsToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins/today`);
+    return data?.data ?? data;
+  },
+  // D15b — khách có lịch / đã check-in tại chi nhánh HÔM NAY (chỉ tên hiển thị), chỉ đọc.
+  getFrontDeskToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
+    return data?.data ?? data;
+  },
+  // D15b — kế toán/chủ: TỔNG hoa hồng PT theo kỳ trong phạm vi (không theo PT, không tỷ lệ).
+  getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });
+    return data?.data ?? data;
+  },
   listMyCheckins: async () => {
     const { data } = await api.get(`/me/gym-checkins`);
     return data?.data ?? data;

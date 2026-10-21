@@ -704,11 +704,13 @@ export interface CheckinResult {
 
 export interface GymCheckIn {
   id: string;
-  membershipId: string;
   gymId: string;
-  clientId: string;
-  checkedInBy: string;
   createdAt: string;
+  // Chủ/quản lý nhận đủ; lễ tân (D15b) chỉ nhận `clientName` (tên hiển thị) — server không gửi các trường định danh.
+  membershipId?: string;
+  clientId?: string;
+  checkedInBy?: string;
+  clientName?: string;
 }
 
 export interface GymReview {

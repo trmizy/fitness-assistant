@@ -11,11 +11,15 @@ import { pushService } from "../services/push.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { PtRestrictionError, getActiveRestriction, ptRestrictionService } from "../services/pt-restriction.service";
 import { parsePtGymSessionsQuery, ptGymSessionsService } from "../services/pt-gym-sessions.service";
+import gymBookedClientsRoutes from "./internal-gym-booked-clients.routes";
 
 const router = Router();
 
 // All routes under /internal are protected by service-secret. Not exposed to public via the gateway.
 router.use(serviceSecretMiddleware);
+
+// D15: lễ tân xem khách có lịch tập PT tại chi nhánh (chỉ id khách, chỉ đọc) - route nằm ở file riêng.
+router.use("/gyms", gymBookedClientsRoutes);
 
 /**
  * Parses the lock command auth-service relays. `seq` is auth-service's durable per-command number

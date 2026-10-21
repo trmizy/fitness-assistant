@@ -72,6 +72,38 @@ export const userClient = {
   },
 
   /**
+   * D15 (lễ tân) - client ids that have a face-to-face PT session booked at this branch in [from, to). READ-ONLY and
+   * best-effort by design: unlike getPtGymSessions this is a convenience list for the front desk, so any failure is
+   * reported as `available: false` (the caller still shows check-ins) rather than thrown. Ids only - names are resolved
+   * by gym-service from auth-service, never taken from here.
+   */
+  async getGymBookedClients(params: { gymId: string; from: Date; to: Date }): Promise<{ available: boolean; clients: Array<{ clientUserId: string; startAt: string }> }> {
+    const path = `/internal/gyms/${encodeURIComponent(params.gymId)}/booked-clients`;
+    const query = { from: params.from.toISOString(), to: params.to.toISOString() };
+    try {
+      let body: any;
+      if (process.env.USER_LAMBDA_NAME) {
+        const result = await withTimeout(
+          invokeHttpLambda({ functionName: process.env.USER_LAMBDA_NAME, method: 'GET', path, headers, queryStringParameters: query }),
+          PT_GYM_SESSIONS_TIMEOUT_MS,
+        );
+        throwForLambdaHttpError(result);
+        body = result.body;
+      } else {
+        body = (await axios.get(`${USER_SERVICE_URL}${path}`, { headers, params: query, timeout: PT_GYM_SESSIONS_TIMEOUT_MS })).data;
+      }
+      if (!body || !Array.isArray(body.clients)) throw new Error('malformed booked-clients response');
+      const clients = body.clients
+        .filter((c: any) => c && typeof c.clientUserId === 'string' && c.clientUserId)
+        .map((c: any) => ({ clientUserId: c.clientUserId as string, startAt: String(c.startAt) }));
+      return { available: true, clients };
+    } catch (e) {
+      logger.warn({ err: (e as Error).message, gymId: params.gymId }, '[gym-service] booked-clients lookup unavailable');
+      return { available: false, clients: [] };
+    }
+  },
+
+  /**
    * Phase 5 — số hợp đồng PT đang ACTIVE tại các chi nhánh này, cho màn xác nhận chấm dứt
    * hợp tác. Không quan trọng bằng số hội viên (tiền chính nằm ở đó), nên lỗi mạng ở đây
    * không được chặn cả màn hình — trả 0 kèm cảnh báo log thay vì ném lỗi lên trên.

@@ -4,6 +4,8 @@ import { checkinService } from '../services/checkin.service';
 import { ptCheckinService } from '../services/pt-checkin.service';
 import { principalId } from '../middleware/partner-context.middleware';
 import { checkinsFor } from '../services/staff-views';
+import { frontDeskService } from '../services/front-desk.service';
+import { resolveDisplayNames } from '../services/display-name.service';
 
 // Typed check-in outcomes → HTTP status; the UI shows a friendly message per code.
 const CODE_STATUS: Record<string, number> = {
@@ -91,7 +93,29 @@ export const checkinController = {
     try {
       const ownerId = principalId(req);
       const list = await checkinService.listForGym(req.params.gymId, ownerId);
-      res.json({ success: true, data: req.partner ? checkinsFor(req.partner.role, list) : list });
+      // Lễ tân chỉ nhận tên hiển thị (không clientId): tra tên ở đây, chỉ cho vai trò cần.
+      const names = req.partner?.role === 'RECEPTIONIST' ? await resolveDisplayNames(list.map((c) => c.clientId)) : undefined;
+      res.json({ success: true, data: req.partner ? checkinsFor(req.partner.role, list, names) : list });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
+
+  /** D15b: khách có lịch hẹn / đã check-in tại chi nhánh HÔM NAY - chỉ tên hiển thị. Chỉ đọc. */
+  async frontDeskToday(req: Request, res: Response) {
+    try {
+      const data = await frontDeskService.todayClients(req.params.gymId, principalId(req));
+      res.json({ success: true, data });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
+
+  /** D15b: PT đã check-in HÔM NAY tại chi nhánh (tên + giờ). Chỉ đọc. */
+  async ptCheckinsToday(req: Request, res: Response) {
+    try {
+      const data = await frontDeskService.ptCheckinsToday(req.params.gymId, principalId(req));
+      res.json({ success: true, data });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

@@ -18,14 +18,21 @@ import type { PartnerAccountRole } from '../generated/prisma';
  *   brand.view                       ✅      ✅        —              ✅ (lọc theo phạm vi)
  *   plan.view    (gói + giá)         ✅      ✅        —              ✅
  *   membership.full                  ✅      ✅        —              —
- *   membership.validity (hạn/lượt)   ✅      ✅        ✅             —
  *   membership.sales  (doanh số)     ✅      —         —              ✅ (không có clientId)
- *   checkin.qr / checkin.list        ✅      ✅        ✅             —
+ *   checkin.qr / checkin.list        ✅      ✅        ✅ (chỉ tên)    —
  *   ptCheckin.list                   ✅      ✅        —              —
+ *   ptCheckin.today (PT hôm nay)     ✅      ✅        ✅ (chi nhánh được gán) —
+ *   frontDesk.clients (khách hôm nay) ✅     ✅        ✅ (chỉ tên hiển thị)   —
+ *   finance.ptCommission.view        ✅      —         —              ✅ (CHỈ tổng, không theo PT)
  *   branch.status.temporary          ✅      ✅        —              —
  *   finance.wallet.view              ✅      —         —              ✅
  *   finance.withdrawals.view         ✅      —         —              ✅ (che số tài khoản)
  *   finance.export                   ✅      —         —              ✅ (xuất từ dữ liệu đã đọc được)
+ *
+ * Quyết định của chủ sở hữu (D15b, đã chốt): kế toán KHÔNG có danh tính hội viên (chỉ mã giao dịch / gói / giá /
+ * số tiền / ngày / trạng thái / hoàn tiền) và chỉ thấy TỔNG hoa hồng PT theo kỳ, không điều khoản cộng tác hay tỷ lệ
+ * từng PT; lễ tân KHÔNG check-in hộ (không có route ghi), KHÔNG có danh sách hội viên đầy đủ — chỉ tên hiển thị của
+ * khách có lịch hẹn/check-in tại chi nhánh hôm nay và danh sách PT đã check-in hôm nay tại chi nhánh được gán.
  *   mọi quyền GHI / người / hợp tác PT / đóng cửa vĩnh viễn → OWNER_ONLY, chỉ OWNER.
  */
 export const OWNER_ONLY_PERMISSIONS = [
@@ -44,15 +51,17 @@ export const SHARED_PERMISSIONS = [
   'brand.view',
   'plan.view',
   'membership.full',
-  'membership.validity',
   'membership.sales',
   'checkin.qr',
   'checkin.list',
   'ptCheckin.list',
+  'ptCheckin.today',
+  'frontDesk.clients',
   'branch.status.temporary',
   'finance.wallet.view',
   'finance.withdrawals.view',
   'finance.export',
+  'finance.ptCommission.view',
 ] as const;
 
 export type OwnerOnlyPermission = (typeof OWNER_ONLY_PERMISSIONS)[number];
@@ -68,17 +77,19 @@ const GRANTS: Record<PartnerAccountRole, ReadonlySet<PartnerPermission>> = {
     'brand.view',
     'plan.view',
     'membership.full',
-    'membership.validity',
     'checkin.qr',
     'checkin.list',
     'ptCheckin.list',
+    'ptCheckin.today',
+    'frontDesk.clients',
     'branch.status.temporary',
   ]),
   RECEPTIONIST: new Set<PartnerPermission>([
     'branch.view',
-    'membership.validity',
     'checkin.qr',
     'checkin.list',
+    'ptCheckin.today',
+    'frontDesk.clients',
   ]),
   ACCOUNTANT: new Set<PartnerPermission>([
     'branch.view',
@@ -88,6 +99,7 @@ const GRANTS: Record<PartnerAccountRole, ReadonlySet<PartnerPermission>> = {
     'finance.wallet.view',
     'finance.withdrawals.view',
     'finance.export',
+    'finance.ptCommission.view',
   ]),
 };
 

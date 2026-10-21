@@ -31,24 +31,18 @@ export function branchInfoFor(role: PartnerAccountRole, gym: Row): Row {
   return view;
 }
 
-/** Lễ tân: chỉ thứ cần để biết "thẻ này còn dùng được không" — KHÔNG giá, mã giao dịch, chia tiền, hoàn tiền. */
-const FRONT_DESK_MEMBERSHIP_FIELDS = [
-  'id', 'gymId', 'planId', 'clientId', 'status', 'startDate', 'endDate', 'totalVisits', 'usedVisits', 'createdAt',
-] as const;
-
 /** Kế toán: dữ liệu bán hàng/đối soát — KHÔNG có clientId (danh tính hội viên), không có lượt tập. */
 const SALES_MEMBERSHIP_FIELDS = [
   'id', 'gymId', 'planId', 'status', 'paymentTxnId', 'priceAtPurchase', 'durationDaysSnapshot',
   'startDate', 'endDate', 'payoutReleasedAt', 'createdAt', 'updatedAt',
 ] as const;
 
-export type MembershipView = 'FULL' | 'SALES' | 'FRONT_DESK';
+export type MembershipView = 'FULL' | 'SALES';
 
 /** Mức xem cao nhất vai trò có; null = không có quyền nào (route đã chặn trước, đây chỉ là lớp phòng thủ). */
 export function membershipViewFor(role: PartnerAccountRole): MembershipView | null {
   if (hasPermission(role, 'membership.full')) return 'FULL';
   if (hasPermission(role, 'membership.sales')) return 'SALES';
-  if (hasPermission(role, 'membership.validity')) return 'FRONT_DESK';
   return null;
 }
 
@@ -56,14 +50,51 @@ export function membershipsFor(role: PartnerAccountRole, rows: Row[]): Row[] {
   const view = membershipViewFor(role);
   if (view === 'FULL') return rows;
   if (view === 'SALES') return rows.map((r) => pick(r, SALES_MEMBERSHIP_FIELDS));
-  if (view === 'FRONT_DESK') return rows.map((r) => pick(r, FRONT_DESK_MEMBERSHIP_FIELDS));
   return [];
 }
 
-/** Lịch sử check-in tại quầy: lễ tân không cần biết ai là người quét mã nội bộ. */
-export function checkinsFor(role: PartnerAccountRole, rows: Row[]): Row[] {
+/**
+ * Lịch sử check-in tại quầy. Chủ/quản lý: nguyên trạng. Lễ tân (D15b): CHỈ tên hiển thị + giờ vào — không clientId,
+ * membershipId hay người quét; `clientName` do controller điền từ auth-service (xem client-display-name.service.ts).
+ * Mọi vai trò khác (kể cả kế toán) không có route này; ở đây trả [] làm lớp phòng thủ.
+ */
+export function checkinsFor(role: PartnerAccountRole, rows: Row[], names: ReadonlyMap<string, string> = new Map()): Row[] {
   if (role === 'OWNER' || role === 'MANAGER') return rows;
-  return rows.map((r) => pick(r, ['id', 'membershipId', 'gymId', 'clientId', 'createdAt']));
+  if (role !== 'RECEPTIONIST') return [];
+  return rows.map((r) => ({
+    id: r.id,
+    gymId: r.gymId,
+    createdAt: r.createdAt,
+    clientName: names.get(r.clientId) ?? FALLBACK_CLIENT_NAME,
+  }));
+}
+
+export const FALLBACK_CLIENT_NAME = 'Hội viên';
+export const FALLBACK_PT_NAME = 'Huấn luyện viên';
+
+/** Một dòng "khách hôm nay" của lễ tân: tên hiển thị + lý do có mặt trong danh sách — KHÔNG id, SĐT, email, thẻ, sức khoẻ. */
+export interface FrontDeskClientRow {
+  displayName: string;
+  checkedInAt: string | null;
+  bookedAt: string | null;
+}
+export const FRONT_DESK_CLIENT_FIELDS = ['displayName', 'checkedInAt', 'bookedAt'] as const;
+
+export function frontDeskClientView(row: Row): FrontDeskClientRow {
+  return pick(row, FRONT_DESK_CLIENT_FIELDS) as unknown as FrontDeskClientRow;
+}
+
+/** Một dòng "PT đã check-in hôm nay" của lễ tân: tên + giờ — không ptUserId, số buổi, hợp đồng, khách. */
+export interface PtTodayRow {
+  id: string;
+  ptName: string;
+  firstScanAt: string | Date;
+  lastScanAt: string | Date;
+}
+export const PT_TODAY_FIELDS = ['id', 'ptName', 'firstScanAt', 'lastScanAt'] as const;
+
+export function ptTodayView(row: Row): PtTodayRow {
+  return pick(row, PT_TODAY_FIELDS) as unknown as PtTodayRow;
 }
 
 /**
@@ -76,7 +107,12 @@ export function maskPayoutInfo(text: unknown): unknown {
   return text.replace(/\d{5,}/g, (m) => `${'•'.repeat(m.length - 4)}${m.slice(-4)}`);
 }
 
+const ACCOUNTANT_WITHDRAWAL_FIELDS = [
+  'id', 'amount', 'status', 'payoutInfo', 'bankReference', 'rejectionReason', 'paidAt', 'createdAt', 'updatedAt',
+] as const;
+
 export function withdrawalsFor(role: PartnerAccountRole, rows: Row[]): Row[] {
   if (role === 'OWNER') return rows;
-  return rows.map((r) => ({ ...r, payoutInfo: maskPayoutInfo(r.payoutInfo) }));
+  // Allow-list: không walletId / reviewedBy (id quản trị) / trường mới tự lộ ra cho kế toán.
+  return rows.map((r) => ({ ...pick(r, ACCOUNTANT_WITHDRAWAL_FIELDS), payoutInfo: maskPayoutInfo(r.payoutInfo) }));
 }

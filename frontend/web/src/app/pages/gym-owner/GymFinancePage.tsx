@@ -5,6 +5,7 @@ import {
   DownloadSimpleIcon as Download,
   LockSimpleIcon as Lock,
   ReceiptIcon as Receipt,
+  HandshakeIcon as Handshake,
   WalletIcon as WalletIc,
 } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
@@ -14,6 +15,10 @@ import { EmptyState, ErrorState } from "../../components/dashboard/DashboardStat
 import { PARTNER_ROLE_LABEL } from "../../utils/gymStaffRole";
 import { useStaffRole } from "../../hooks/useStaffRole";
 import { recognizedSales, salesCsv, withdrawalsCsv, type SalesRow, type WithdrawalRow } from "../../utils/financeExport";
+import {
+  COMMISSION_PRESET_LABEL, commissionCsv, commissionRangeFor, monthLabel, normalizePtCommission,
+  type CommissionPreset, type PtCommissionSummary,
+} from "../../utils/ptCommission";
 import type { Gym, Wallet } from "../../types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -45,16 +50,18 @@ function downloadCsv(filename: string, csv: string) {
 }
 
 /**
- * D15 — trang chủ của KẾ TOÁN: CHỈ ĐỌC dữ liệu tài chính của các chi nhánh trong phạm vi được giao (để trống =
- * cả thương hiệu). Doanh số bán thẻ, số dư ví, lịch sử rút tiền, xuất CSV. Không có nút ghi/duyệt/rút/hoàn
- * nào — và server cũng từ chối mọi route ghi cho vai trò này. Server đã bỏ danh tính hội viên khỏi doanh số
- * và che số tài khoản nhận tiền; trang không có nguồn dữ liệu nào khác.
+ * D15 / D15b — trang chủ của KẾ TOÁN: CHỈ ĐỌC dữ liệu tài chính của các chi nhánh trong phạm vi được giao (để trống =
+ * cả thương hiệu). Doanh số bán thẻ, số dư ví, lịch sử rút tiền, TỔNG hoa hồng PT theo kỳ, xuất CSV. Không có nút
+ * ghi/duyệt/rút/hoàn nào — và server cũng từ chối mọi route ghi cho vai trò này. Server đã bỏ danh tính hội viên khỏi
+ * doanh số, che số tài khoản nhận tiền, và hoa hồng chỉ ở dạng TỔNG (không theo PT, không tỷ lệ); trang không có nguồn
+ * dữ liệu nào khác.
  */
 export function GymFinancePage() {
   const { user } = useApp();
   const { role } = useStaffRole();
   const uid = user?.id ?? "guest";
   const [scope, setScope] = useState<string>("ALL");
+  const [preset, setPreset] = useState<CommissionPreset>("LAST_6");
 
   const gymsQuery = useQuery<Gym[]>({ queryKey: ["finance-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
   const gyms = useMemo(() => (gymsQuery.data ?? []).filter((g) => g.status !== "DRAFT"), [gymsQuery.data]);
@@ -87,6 +94,18 @@ export function GymFinancePage() {
     })),
   });
 
+  // Một chủ = một thương hiệu (xem GymMembershipPlan trong schema gym-service): tổng hoa hồng tính theo thương hiệu của chi nhánh.
+  const commissionBrandId = gyms.find((g) => g.brandId)?.brandId ?? "";
+  const commissionQuery = useQuery<PtCommissionSummary>({
+    queryKey: ["finance-pt-commission", uid, commissionBrandId, scope, preset],
+    enabled: !!commissionBrandId,
+    queryFn: async () =>
+      normalizePtCommission(
+        await gymService.getPtCommissionSummary(commissionBrandId, { ...commissionRangeFor(preset), ...(scope === "ALL" ? {} : { gymId: scope }) }),
+      ),
+  });
+  const commission = commissionQuery.data;
+
   const loading = [...salesQs, ...walletQs, ...withdrawalQs].some((q) => q.isLoading);
   const failed = [...salesQs, ...walletQs, ...withdrawalQs].some((q) => q.isError);
 
@@ -111,7 +130,7 @@ export function GymFinancePage() {
   const stamp = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5" data-testid="finance-page">
+    <div className="p-4 md:p-6 max-w-4xl w-full min-w-0 mx-auto space-y-5" data-testid="finance-page">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-zinc-100 text-xl font-bold">Tài chính</h1>
@@ -179,6 +198,73 @@ export function GymFinancePage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </section>
+
+          <section className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 space-y-3" data-testid="finance-commission">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-zinc-200 flex items-center gap-2"><Handshake className="w-4 h-4 text-green-400" /> Hoa hồng giới thiệu PT</h2>
+              <button
+                type="button"
+                disabled={!commission || commission.byMonth.length === 0}
+                onClick={() => commission && downloadCsv(`gymini-hoa-hong-pt-${stamp}.csv`, commissionCsv(commission))}
+                className="flex items-center gap-1.5 text-[11px] font-bold border border-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg disabled:opacity-40"
+              >
+                <Download className="w-3.5 h-3.5" /> Xuất CSV
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-600">Chỉ hiển thị tổng theo kỳ, không chi tiết từng PT.</p>
+            <select
+              aria-label="Kỳ hoa hồng"
+              value={preset}
+              onChange={(e) => setPreset(e.target.value as CommissionPreset)}
+              className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
+            >
+              {(Object.keys(COMMISSION_PRESET_LABEL) as CommissionPreset[]).map((k) => (
+                <option key={k} value={k}>{COMMISSION_PRESET_LABEL[k]}</option>
+              ))}
+            </select>
+            {commissionQuery.isLoading ? (
+              <p className="text-xs text-zinc-600">Đang tải…</p>
+            ) : commissionQuery.isError || !commission ? (
+              <ErrorState message="Không tải được hoa hồng PT." />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2" data-testid="commission-totals">
+                  <Kpi label="Dự kiến" value={formatVND(commission.totals.expected)} hint="Chưa chuyển cho PT" />
+                  <Kpi label="Đã ghi nhận" value={formatVND(commission.totals.recorded)} hint="Đã vào số dư chờ của PT" />
+                  <Kpi label="Đã chi" value={formatVND(commission.totals.paid)} hint="Đã sang số dư khả dụng của PT" />
+                </div>
+                {commission.totals.clawedBack > 0 && (
+                  <p className="text-[11px] text-zinc-500">Đã thu hồi do hoàn tiền thẻ: {formatVND(commission.totals.clawedBack)} (đã trừ khỏi các số trên).</p>
+                )}
+                {commission.byMonth.length === 0 ? (
+                  <p className="text-xs text-zinc-600">Chưa có hoa hồng giới thiệu trong kỳ này.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {commission.byMonth.map((m) => (
+                      <li key={m.month} className="bg-zinc-800/40 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm text-zinc-200">{monthLabel(m.month)}</p>
+                          <span className="text-[11px] text-zinc-500 whitespace-nowrap">{m.referralCount} hoa hồng</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 break-words">
+                          Dự kiến {formatVND(m.expected)} · ghi nhận {formatVND(m.recorded)} · đã chi {formatVND(m.paid)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <details className="text-[11px] text-zinc-600">
+                  <summary className="cursor-pointer select-none">Các con số được tính thế nào</summary>
+                  <ul className="mt-1.5 space-y-1 list-disc pl-4">
+                    <li><b className="text-zinc-400">Dự kiến:</b> {commission.definitions.expected}</li>
+                    <li><b className="text-zinc-400">Đã ghi nhận:</b> {commission.definitions.recorded}</li>
+                    <li><b className="text-zinc-400">Đã chi:</b> {commission.definitions.paid}</li>
+                    <li><b className="text-zinc-400">Kỳ:</b> {commission.definitions.period}</li>
+                  </ul>
+                </details>
+              </>
             )}
           </section>
 

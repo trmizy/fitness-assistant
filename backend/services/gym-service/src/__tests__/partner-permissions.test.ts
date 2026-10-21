@@ -8,7 +8,10 @@ import {
   ALL_PERMISSIONS, OWNER_ONLY_PERMISSIONS, canAccessGym, filterByScope, hasPermission, isInvitableStaffRole,
   permissionsOf, roleRequiresBranchScope, type PartnerPermission,
 } from '../services/partner-permissions';
-import { branchInfoFor, checkinsFor, maskPayoutInfo, membershipViewFor, membershipsFor, withdrawalsFor } from '../services/staff-views';
+import {
+  branchInfoFor, checkinsFor, frontDeskClientView, maskPayoutInfo, membershipViewFor, membershipsFor, ptTodayView, withdrawalsFor,
+} from '../services/staff-views';
+import { monthKeyVn, parseCommissionRange, summarizeCommission } from '../services/pt-commission-summary.service';
 import { evaluateOperationalAccess, type AccessSubject } from '../services/partner-access.policy';
 
 const ROLES = ['OWNER', 'MANAGER', 'RECEPTIONIST', 'ACCOUNTANT'] as const;
@@ -16,9 +19,9 @@ const ROLES = ['OWNER', 'MANAGER', 'RECEPTIONIST', 'ACCOUNTANT'] as const;
 // Ma trận mong đợi, viết tay độc lập với GRANTS để bắt hồi quy khi ai đó nới quyền.
 const EXPECT: Record<(typeof ROLES)[number], PartnerPermission[]> = {
   OWNER: [...ALL_PERMISSIONS],
-  MANAGER: ['branch.view', 'brand.view', 'plan.view', 'membership.full', 'membership.validity', 'checkin.qr', 'checkin.list', 'ptCheckin.list', 'branch.status.temporary'],
-  RECEPTIONIST: ['branch.view', 'membership.validity', 'checkin.qr', 'checkin.list'],
-  ACCOUNTANT: ['branch.view', 'brand.view', 'plan.view', 'membership.sales', 'finance.wallet.view', 'finance.withdrawals.view', 'finance.export'],
+  MANAGER: ['branch.view', 'brand.view', 'plan.view', 'membership.full', 'checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'branch.status.temporary'],
+  RECEPTIONIST: ['branch.view', 'checkin.qr', 'checkin.list', 'ptCheckin.today', 'frontDesk.clients'],
+  ACCOUNTANT: ['branch.view', 'brand.view', 'plan.view', 'membership.sales', 'finance.wallet.view', 'finance.withdrawals.view', 'finance.export', 'finance.ptCommission.view'],
 };
 
 test('ma trận quyền khớp đặc tả cho từng vai trò (mặc định từ chối mọi thứ không liệt kê)', () => {
@@ -35,12 +38,12 @@ test('quyền chỉ-chủ (ghi, nhân sự, cộng tác PT, rút tiền, đóng 
 });
 
 test('LỄ TÂN không có quyền tài chính / cộng tác / nhân sự / ghi; KẾ TOÁN không có quyền ghi nào', () => {
-  for (const p of ['finance.wallet.view', 'finance.withdrawals.view', 'finance.export', 'plan.view', 'brand.view', 'membership.sales', 'membership.full', 'ptCheckin.list', 'branch.status.temporary'] as const) {
+  for (const p of ['finance.wallet.view', 'finance.withdrawals.view', 'finance.export', 'finance.ptCommission.view', 'plan.view', 'brand.view', 'membership.sales', 'membership.full', 'ptCheckin.list', 'branch.status.temporary'] as const) {
     assert.equal(hasPermission('RECEPTIONIST', p), false, p);
   }
   const writes = ['branch.status.temporary', ...OWNER_ONLY_PERMISSIONS];
   for (const p of writes) assert.equal(hasPermission('ACCOUNTANT', p as PartnerPermission), false, p);
-  for (const p of ['checkin.qr', 'checkin.list', 'membership.validity', 'membership.full'] as const) assert.equal(hasPermission('ACCOUNTANT', p), false, p);
+  for (const p of ['checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'membership.full'] as const) assert.equal(hasPermission('ACCOUNTANT', p), false, p);
 });
 
 test('vai trò lạ / thiếu → từ chối (fail-closed)', () => {
@@ -77,14 +80,13 @@ const membership = {
   multiGymWarned: true, refundClawbackDone: false, createdAt: 'c', updatedAt: 'u', someFutureField: 'secret',
 };
 
-test('hội viên theo vai trò: chủ/quản lý đủ; lễ tân chỉ hạn+lượt; kế toán chỉ doanh số (không clientId); trường mới KHÔNG tự lộ', () => {
+test('hội viên theo vai trò: chủ/quản lý đủ; LỄ TÂN KHÔNG có danh sách hội viên; kế toán chỉ doanh số (không clientId); trường mới KHÔNG tự lộ', () => {
   assert.equal(membershipViewFor('OWNER'), 'FULL');
   assert.equal(membershipViewFor('MANAGER'), 'FULL');
-  assert.equal(membershipViewFor('RECEPTIONIST'), 'FRONT_DESK');
+  assert.equal(membershipViewFor('RECEPTIONIST'), null, 'D15b: lễ tân không xem danh sách hội viên');
   assert.equal(membershipViewFor('ACCOUNTANT'), 'SALES');
   assert.deepEqual(membershipsFor('OWNER', [membership])[0], membership);
-  const fd = membershipsFor('RECEPTIONIST', [membership])[0];
-  assert.deepEqual(Object.keys(fd).sort(), ['clientId', 'createdAt', 'endDate', 'gymId', 'id', 'planId', 'startDate', 'status', 'totalVisits', 'usedVisits']);
+  assert.deepEqual(membershipsFor('RECEPTIONIST', [membership]), []);
   const sales = membershipsFor('ACCOUNTANT', [membership])[0];
   assert.equal('clientId' in sales, false);
   assert.equal('usedVisits' in sales, false);
@@ -110,7 +112,75 @@ test('chi nhánh và check-in: lễ tân/kế toán nhận bản rút gọn; qu�
   assert.equal('changesRequestedBy' in v, false);
   assert.equal('logoKey' in v.brand, false);
   assert.equal('ownerId' in v.brand, false);
-  assert.equal('checkedInBy' in checkinsFor('RECEPTIONIST', [{ id: '1', membershipId: 'm', gymId: 'g', clientId: 'c', checkedInBy: 'u', createdAt: 'x' }])[0], false);
+  const raw = { id: '1', membershipId: 'm', gymId: 'g', clientId: 'c-secret', checkedInBy: 'u', createdAt: 'x' };
+  assert.deepEqual(checkinsFor('MANAGER', [raw])[0], raw);
+  // D15b: lễ tân chỉ nhận tên hiển thị + giờ - không clientId / membershipId / người quét.
+  const fd = checkinsFor('RECEPTIONIST', [raw], new Map([['c-secret', 'Nguyễn An']]))[0];
+  assert.deepEqual(Object.keys(fd).sort(), ['clientName', 'createdAt', 'gymId', 'id']);
+  assert.equal(fd.clientName, 'Nguyễn An');
+  assert.equal(JSON.stringify(fd).includes('c-secret'), false);
+  assert.equal(checkinsFor('RECEPTIONIST', [raw])[0].clientName, 'Hội viên', 'thiếu tên → nhãn trung tính, không lộ id');
+  assert.deepEqual(checkinsFor('ACCOUNTANT', [raw]), [], 'kế toán không có danh sách check-in');
+});
+
+test('D15b · khách hôm nay / PT hôm nay của lễ tân: danh sách trường cho phép, trường lạ (SĐT, e-mail, sức khoẻ, id) không lọt', () => {
+  const client: any = frontDeskClientView({
+    displayName: 'An', checkedInAt: 't1', bookedAt: null, clientId: 'c1', email: 'a@b.c', phone: '09', inbody: { bmr: 1 }, healthNotes: 'x', planName: 'P',
+  });
+  assert.deepEqual(Object.keys(client).sort(), ['bookedAt', 'checkedInAt', 'displayName']);
+  const pt: any = ptTodayView({
+    id: 'i', ptName: 'PT A', firstScanAt: 'a', lastScanAt: 'b', ptUserId: 'u1', scanCount: 3, contractIds: ['c'], qualifyingSessionIds: ['s'], email: 'p@x.y',
+  });
+  assert.deepEqual(Object.keys(pt).sort(), ['firstScanAt', 'id', 'lastScanAt', 'ptName']);
+});
+
+test('D15b · rút tiền cho kế toán: allow-list (không walletId/reviewedBy), số tài khoản bị che', () => {
+  const row = { id: 'w', walletId: 'wal', ownerId: 'g', amount: 5, status: 'PAID', payoutInfo: 'VCB 0123456789', bankReference: 'R', reviewedBy: 'admin-1', newField: 1, paidAt: 'p', createdAt: 'c', updatedAt: 'u' };
+  const v: any = withdrawalsFor('ACCOUNTANT', [row])[0];
+  assert.equal('walletId' in v || 'reviewedBy' in v || 'newField' in v, false);
+  assert.equal(v.bankReference, 'R');
+  assert.equal(v.payoutInfo.includes('0123456789'), false);
+  assert.equal((withdrawalsFor('OWNER', [row])[0] as any).reviewedBy, 'admin-1');
+});
+
+const D = (iso: string) => new Date(iso);
+const fact = (status: string, amount: number, clawedBack: number, createdAt: string, payoutReleasedAt: string | null, membershipStatus = 'ACTIVE') => ({
+  status, amount: String(amount), clawedBack: String(clawedBack), createdAt: D(createdAt), payoutReleasedAt: payoutReleasedAt ? D(payoutReleasedAt) : null, membershipStatus,
+});
+
+test('D15b · tổng hoa hồng PT: dự kiến / đã ghi nhận / đã chi tách đúng, trừ phần thu hồi, bỏ VOIDED và thẻ đã huỷ chưa chuyển', () => {
+  const r = summarizeCommission([
+    fact('PENDING', 100000, 0, '2026-10-02T03:00:00Z', null, 'PENDING_PAYMENT'),
+    fact('FAILED', 50000, 0, '2026-10-03T03:00:00Z', null),
+    fact('RELEASED', 200000, 0, '2026-10-04T03:00:00Z', null),
+    fact('RELEASED', 300000, 100000, '2026-09-30T20:00:00Z', '2026-10-20T00:00:00Z', 'EXPIRED'), // 03:00 VN ngày 1/10 → tháng 10
+    fact('RELEASED', 80000, 80000, '2026-09-15T03:00:00Z', '2026-09-20T00:00:00Z', 'CANCELLED'),
+    fact('VOIDED', 999999, 0, '2026-10-05T03:00:00Z', null),
+    fact('PENDING', 777777, 0, '2026-10-06T03:00:00Z', null, 'CANCELLED'),
+  ]);
+  assert.equal(r.totals.expected, '150000.00');
+  assert.equal(r.totals.recorded, '200000.00');
+  assert.equal(r.totals.paid, '200000.00');
+  assert.equal(r.totals.clawedBack, '180000.00');
+  assert.equal(r.totals.referralCount, 5);
+  assert.deepEqual(r.byMonth.map((m) => m.month), ['2026-09', '2026-10']);
+  assert.equal(r.byMonth[1].paid, '200000.00');
+  assert.equal(r.byMonth[0].referralCount, 1);
+  assert.equal(monthKeyVn(D('2026-09-30T20:00:00Z')), '2026-10');
+  // Không chiều theo PT / tỷ lệ trong kết quả.
+  assert.equal(/referrer|ptUserId|rate/i.test(JSON.stringify(r)), false);
+});
+
+test('D15b · khoảng thời gian tổng hợp: mặc định hợp lệ, sai định dạng / đảo ngược / quá 24 tháng bị từ chối', () => {
+  const now = D('2026-10-21T05:00:00Z');
+  const def = parseCommissionRange({}, now);
+  assert.equal(def.ok, true);
+  if (def.ok) assert.equal(def.from.toISOString(), '2026-04-30T17:00:00.000Z', '6 tháng gần nhất, đầu tháng 5 giờ VN');
+  const ok = parseCommissionRange({ from: '2026-10-01', to: '2026-10-31' }, now);
+  assert.equal(ok.ok && ok.to.toISOString(), '2026-10-31T17:00:00.000Z', 'to là LOẠI TRỪ: gồm cả ngày 31');
+  for (const bad of [{ from: 'x' }, { from: '2026-10-05', to: '2026-10-01' }, { from: '2020-01-01', to: '2026-10-01' }, { to: 5 }]) {
+    assert.equal(parseCommissionRange(bad as any, now).ok, false, JSON.stringify(bad));
+  }
 });
 
 const base: AccessSubject = {
