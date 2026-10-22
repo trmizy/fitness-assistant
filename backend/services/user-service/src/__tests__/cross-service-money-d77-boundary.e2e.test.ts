@@ -42,8 +42,16 @@ test.before(async () => {
   const { gymClient } = await import("../clients/gym.client");
   const original = gymClient.getActiveCollaboration;
   (gymClient as any).getActiveCollaboration = async () => ({ collaborationId: "agr-d77", ...RATES, brandId: null, agreementScope: null });
+  // Codex #6 (TEST FIXTURE): the gym contract has a fixed duration (60 days, set by the harness) and the client's membership at that gym covers it.
+  const originalMembership = gymClient.getClientMembershipAtGym;
+  (gymClient as any).getClientMembershipAtGym = async () => ({
+    hasActiveMembership: true,
+    brandId: null,
+    membership: { membershipId: "mem-d77", planName: "fixture", purchaseGymId: "gym", startDate: new Date(Date.now() - 86_400_000).toISOString(), endDate: new Date(Date.now() + 365 * 86_400_000).toISOString() },
+  });
   restoreGym = () => {
     (gymClient as any).getActiveCollaboration = original;
+    (gymClient as any).getClientMembershipAtGym = originalMembership;
   };
 });
 test.after(async () => {

@@ -117,7 +117,8 @@ test("the served text: one versioned source, every clause has a body, internal s
     assert.equal(s.source, undefined, "code/decision references are server-side notes, never served");
   }
   const everything = JSON.stringify(r.body);
-  assert.doesNotMatch(everything, /giữ lại 10%|holdback/i, "the 10% holdback is OFF and must not be presented as applying");
+  assert.doesNotMatch(everything, /holdback/i, "no internal term is served");
+  assert.match(everything, /chỉ áp dụng cho hợp đồng được tạo sau khi quy định này có hiệu lực/, "the holdback is described as non-retroactive: it never applies to a contract that already exists");
   assert.equal((await call("GET", "/pt-applications/terms", null)).status, 401);
   assert.equal((await call("POST", "/pt-applications/terms/accept", null, { version: PT_TERMS_VERSION })).status, 401);
 });

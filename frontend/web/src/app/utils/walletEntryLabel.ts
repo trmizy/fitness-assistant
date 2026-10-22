@@ -33,7 +33,7 @@ export const WALLET_ENTRY_LABEL: Record<string, string> = {
   PT_CHARGE_LATE_ARRIVAL: "Trừ phí PT đến muộn",
   HOLDBACK_KEPT: "Tạm giữ một phần thu nhập hợp đồng (của bạn, chưa rút được)",
   HOLDBACK_RELEASED: "Trả lại khoản tạm giữ vào số dư",
-  HOLDBACK_USED_FOR_COMPENSATION: "Dùng khoản tạm giữ để bồi thường khách của hợp đồng này"
+  HOLDBACK_USED_FOR_COMPENSATION: "Dùng khoản tạm giữ để bồi thường khách của hợp đồng này",
   CLAWBACK: "Thu hồi thu nhập đã nhận",
   REFERRAL_COMMISSION: "Hoa hồng giới thiệu",
   REFERRAL_CLAWBACK: "Thu hồi hoa hồng giới thiệu",

@@ -29,7 +29,7 @@ const row = (over: Partial<PtWalletContractRow> & { release?: Partial<PtWalletCo
   availableFromContract: "90000.00",
   compensationPaid: "0.00",
   ...over,
-  release: { state: "RUNNING", ended: false, heldDueToDispute: false, undecidedSessions: 0, openObligations: "0.00", ...(over.release ?? {}) },
+  release: { state: "RUNNING", ended: false, heldDueToDispute: false, undecidedSessions: 0, openObligations: "0.00", reserved: "0.00", pendingFaultReview: false, reviewBy: null, reviewOverdue: false, ...(over.release ?? {}) },
 });
 
 describe("holdbackNote", () => {
@@ -52,6 +52,13 @@ describe("holdbackNote", () => {
     assert.match(String(n), /2 buổi chưa được chốt/);
     assert.match(String(n), /một khoản của chính hợp đồng này chưa được xử lý xong/);
     assert.doesNotMatch(String(n), /OBLIGATION|OPEN|UNRESOLVED/i, "no internal terms");
+  });
+  it("a potential PT-fault amount waits for an admin: says nothing is paid before it is verified, with the review-by date", () => {
+    const n = String(holdbackNote(row({ release: { state: "WAITING_RECONCILIATION", ended: true, heldDueToDispute: true, pendingFaultReview: true, reserved: "70000.00", reviewBy: "2026-11-05T00:00:00.000Z" } })));
+    assert.match(n, /70\.000/);
+    assert.match(n, /chỉ dùng bồi thường cho khách nếu được xác minh là lỗi của bạn/);
+    assert.match(n, /Hạn xem xét/);
+    assert.doesNotMatch(n, /FAULT|REVIEW|UNCOMPUTABLE/, "no internal terms");
   });
   it("released: tells the PT it is back", () => {
     assert.match(String(holdbackNote(row({ held: "0.00", release: { state: "RELEASED", ended: true } }))), /đã được trả lại/);

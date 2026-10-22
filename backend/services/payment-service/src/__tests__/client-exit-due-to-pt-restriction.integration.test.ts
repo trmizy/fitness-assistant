@@ -388,7 +388,7 @@ test('pinned numbers: 5.000.000 / 10 sessions / h 0.10, 3 taught — 3.500.000 t
   assert.equal(s.heldBefore, '450000.00');
   assert.deepEqual((s.result as any).ptHoldback, {
     target: '450000.00', held: '450000.00', compensation: '0.00', returnedToPt: '450000.00', stillHeld: '0.00',
-    stillHeldFor: { openObligations: '0.00', unresolvedSessions: '0.00' },
+    reserves: [],
   });
   assert.equal(s.result.refund, '3500000.00');
   assert.equal(s.result.topUp.pt, '0.00', 'the pending top-up is nil: the whole hold came back through HOLDBACK');

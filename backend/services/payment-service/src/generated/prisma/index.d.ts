@@ -91,6 +91,16 @@ export type LedgerOperation = $Result.DefaultSelection<Prisma.$LedgerOperationPa
  */
 export type ContractUnpaidObligation = $Result.DefaultSelection<Prisma.$ContractUnpaidObligationPayload>
 /**
+ * Model PtHoldbackReview
+ * 
+ */
+export type PtHoldbackReview = $Result.DefaultSelection<Prisma.$PtHoldbackReviewPayload>
+/**
+ * Model PtHoldbackReviewEvent
+ * Append-only (the migration rejects UPDATE/DELETE): every decision on a review.
+ */
+export type PtHoldbackReviewEvent = $Result.DefaultSelection<Prisma.$PtHoldbackReviewEventPayload>
+/**
  * Model PartnerReceivableEvent
  * FH-8. Append-only audit trail of every adjustment made to a PartnerReceivable. Rows are only ever inserted:
  * the operation code never updates or deletes them. `idempotencyKey` makes a replayed operation a no-op.
@@ -271,6 +281,27 @@ export const ContractUnpaidObligationStatus: {
 export type ContractUnpaidObligationStatus = (typeof ContractUnpaidObligationStatus)[keyof typeof ContractUnpaidObligationStatus]
 
 
+export const PtHoldbackReviewKind: {
+  PT_FAULT: 'PT_FAULT',
+  OPEN_OBLIGATION: 'OPEN_OBLIGATION',
+  UNSECURED_DISPUTE: 'UNSECURED_DISPUTE',
+  UNCOMPUTABLE: 'UNCOMPUTABLE'
+};
+
+export type PtHoldbackReviewKind = (typeof PtHoldbackReviewKind)[keyof typeof PtHoldbackReviewKind]
+
+
+export const PtHoldbackReviewStatus: {
+  OPEN: 'OPEN',
+  SETTLED_VERIFIED: 'SETTLED_VERIFIED',
+  SETTLED_PARTIAL: 'SETTLED_PARTIAL',
+  NOT_VERIFIED: 'NOT_VERIFIED',
+  RELEASED_AUTO: 'RELEASED_AUTO'
+};
+
+export type PtHoldbackReviewStatus = (typeof PtHoldbackReviewStatus)[keyof typeof PtHoldbackReviewStatus]
+
+
 export const PartnerReceivableEventAction: {
   SUSPEND: 'SUSPEND',
   RESUME: 'RESUME',
@@ -362,6 +393,14 @@ export const ContractUnpaidObligationKind: typeof $Enums.ContractUnpaidObligatio
 export type ContractUnpaidObligationStatus = $Enums.ContractUnpaidObligationStatus
 
 export const ContractUnpaidObligationStatus: typeof $Enums.ContractUnpaidObligationStatus
+
+export type PtHoldbackReviewKind = $Enums.PtHoldbackReviewKind
+
+export const PtHoldbackReviewKind: typeof $Enums.PtHoldbackReviewKind
+
+export type PtHoldbackReviewStatus = $Enums.PtHoldbackReviewStatus
+
+export const PtHoldbackReviewStatus: typeof $Enums.PtHoldbackReviewStatus
 
 export type PartnerReceivableEventAction = $Enums.PartnerReceivableEventAction
 
@@ -577,6 +616,26 @@ export class PrismaClient<
     * ```
     */
   get contractUnpaidObligation(): Prisma.ContractUnpaidObligationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptHoldbackReview`: Exposes CRUD operations for the **PtHoldbackReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtHoldbackReviews
+    * const ptHoldbackReviews = await prisma.ptHoldbackReview.findMany()
+    * ```
+    */
+  get ptHoldbackReview(): Prisma.PtHoldbackReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ptHoldbackReviewEvent`: Exposes CRUD operations for the **PtHoldbackReviewEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PtHoldbackReviewEvents
+    * const ptHoldbackReviewEvents = await prisma.ptHoldbackReviewEvent.findMany()
+    * ```
+    */
+  get ptHoldbackReviewEvent(): Prisma.PtHoldbackReviewEventDelegate<ExtArgs>;
 
   /**
    * `prisma.partnerReceivableEvent`: Exposes CRUD operations for the **PartnerReceivableEvent** model.
@@ -1066,6 +1125,8 @@ export namespace Prisma {
     PartnerReceivable: 'PartnerReceivable',
     LedgerOperation: 'LedgerOperation',
     ContractUnpaidObligation: 'ContractUnpaidObligation',
+    PtHoldbackReview: 'PtHoldbackReview',
+    PtHoldbackReviewEvent: 'PtHoldbackReviewEvent',
     PartnerReceivableEvent: 'PartnerReceivableEvent',
     ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
     ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
@@ -1085,7 +1146,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "contractUnpaidObligationPayment" | "paymentWebhookEvent"
+      modelProps: "wallet" | "walletLedgerEntry" | "withdrawalRequest" | "paymentTransaction" | "platformCommission" | "partnerReceivable" | "ledgerOperation" | "contractUnpaidObligation" | "ptHoldbackReview" | "ptHoldbackReviewEvent" | "partnerReceivableEvent" | "contractUnpaidObligationEvent" | "contractUnpaidObligationPayment" | "paymentWebhookEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1649,6 +1710,146 @@ export namespace Prisma {
           }
         }
       }
+      PtHoldbackReview: {
+        payload: Prisma.$PtHoldbackReviewPayload<ExtArgs>
+        fields: Prisma.PtHoldbackReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtHoldbackReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtHoldbackReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.PtHoldbackReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtHoldbackReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          findMany: {
+            args: Prisma.PtHoldbackReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>[]
+          }
+          create: {
+            args: Prisma.PtHoldbackReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          createMany: {
+            args: Prisma.PtHoldbackReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtHoldbackReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.PtHoldbackReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          update: {
+            args: Prisma.PtHoldbackReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtHoldbackReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtHoldbackReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtHoldbackReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.PtHoldbackReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtHoldbackReview>
+          }
+          groupBy: {
+            args: Prisma.PtHoldbackReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtHoldbackReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtHoldbackReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<PtHoldbackReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      PtHoldbackReviewEvent: {
+        payload: Prisma.$PtHoldbackReviewEventPayload<ExtArgs>
+        fields: Prisma.PtHoldbackReviewEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PtHoldbackReviewEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PtHoldbackReviewEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          findFirst: {
+            args: Prisma.PtHoldbackReviewEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PtHoldbackReviewEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          findMany: {
+            args: Prisma.PtHoldbackReviewEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>[]
+          }
+          create: {
+            args: Prisma.PtHoldbackReviewEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          createMany: {
+            args: Prisma.PtHoldbackReviewEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PtHoldbackReviewEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>[]
+          }
+          delete: {
+            args: Prisma.PtHoldbackReviewEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          update: {
+            args: Prisma.PtHoldbackReviewEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.PtHoldbackReviewEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PtHoldbackReviewEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PtHoldbackReviewEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PtHoldbackReviewEventPayload>
+          }
+          aggregate: {
+            args: Prisma.PtHoldbackReviewEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePtHoldbackReviewEvent>
+          }
+          groupBy: {
+            args: Prisma.PtHoldbackReviewEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PtHoldbackReviewEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PtHoldbackReviewEventCountArgs<ExtArgs>
+            result: $Utils.Optional<PtHoldbackReviewEventCountAggregateOutputType> | number
+          }
+        }
+      }
       PartnerReceivableEvent: {
         payload: Prisma.$PartnerReceivableEventPayload<ExtArgs>
         fields: Prisma.PartnerReceivableEventFieldRefs
@@ -2133,12 +2334,14 @@ export namespace Prisma {
     commissions: number
     ledgerEntries: number
     unpaidObligations: number
+    ptHoldbackReviews: number
   }
 
   export type PaymentTransactionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     commissions?: boolean | PaymentTransactionCountOutputTypeCountCommissionsArgs
     ledgerEntries?: boolean | PaymentTransactionCountOutputTypeCountLedgerEntriesArgs
     unpaidObligations?: boolean | PaymentTransactionCountOutputTypeCountUnpaidObligationsArgs
+    ptHoldbackReviews?: boolean | PaymentTransactionCountOutputTypeCountPtHoldbackReviewsArgs
   }
 
   // Custom InputTypes
@@ -2171,6 +2374,13 @@ export namespace Prisma {
    */
   export type PaymentTransactionCountOutputTypeCountUnpaidObligationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ContractUnpaidObligationWhereInput
+  }
+
+  /**
+   * PaymentTransactionCountOutputType without action
+   */
+  export type PaymentTransactionCountOutputTypeCountPtHoldbackReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtHoldbackReviewWhereInput
   }
 
 
@@ -2242,6 +2452,37 @@ export namespace Prisma {
    */
   export type ContractUnpaidObligationCountOutputTypeCountPaymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ContractUnpaidObligationPaymentWhereInput
+  }
+
+
+  /**
+   * Count Type PtHoldbackReviewCountOutputType
+   */
+
+  export type PtHoldbackReviewCountOutputType = {
+    events: number
+  }
+
+  export type PtHoldbackReviewCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    events?: boolean | PtHoldbackReviewCountOutputTypeCountEventsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PtHoldbackReviewCountOutputType without action
+   */
+  export type PtHoldbackReviewCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewCountOutputType
+     */
+    select?: PtHoldbackReviewCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PtHoldbackReviewCountOutputType without action
+   */
+  export type PtHoldbackReviewCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtHoldbackReviewEventWhereInput
   }
 
 
@@ -5875,6 +6116,7 @@ export namespace Prisma {
     commissions?: boolean | PaymentTransaction$commissionsArgs<ExtArgs>
     ledgerEntries?: boolean | PaymentTransaction$ledgerEntriesArgs<ExtArgs>
     unpaidObligations?: boolean | PaymentTransaction$unpaidObligationsArgs<ExtArgs>
+    ptHoldbackReviews?: boolean | PaymentTransaction$ptHoldbackReviewsArgs<ExtArgs>
     _count?: boolean | PaymentTransactionCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["paymentTransaction"]>
 
@@ -5952,6 +6194,7 @@ export namespace Prisma {
     commissions?: boolean | PaymentTransaction$commissionsArgs<ExtArgs>
     ledgerEntries?: boolean | PaymentTransaction$ledgerEntriesArgs<ExtArgs>
     unpaidObligations?: boolean | PaymentTransaction$unpaidObligationsArgs<ExtArgs>
+    ptHoldbackReviews?: boolean | PaymentTransaction$ptHoldbackReviewsArgs<ExtArgs>
     _count?: boolean | PaymentTransactionCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PaymentTransactionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -5962,6 +6205,7 @@ export namespace Prisma {
       commissions: Prisma.$PlatformCommissionPayload<ExtArgs>[]
       ledgerEntries: Prisma.$WalletLedgerEntryPayload<ExtArgs>[]
       unpaidObligations: Prisma.$ContractUnpaidObligationPayload<ExtArgs>[]
+      ptHoldbackReviews: Prisma.$PtHoldbackReviewPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6363,6 +6607,7 @@ export namespace Prisma {
     commissions<T extends PaymentTransaction$commissionsArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransaction$commissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformCommissionPayload<ExtArgs>, T, "findMany"> | Null>
     ledgerEntries<T extends PaymentTransaction$ledgerEntriesArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransaction$ledgerEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WalletLedgerEntryPayload<ExtArgs>, T, "findMany"> | Null>
     unpaidObligations<T extends PaymentTransaction$unpaidObligationsArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransaction$unpaidObligationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractUnpaidObligationPayload<ExtArgs>, T, "findMany"> | Null>
+    ptHoldbackReviews<T extends PaymentTransaction$ptHoldbackReviewsArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransaction$ptHoldbackReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6795,6 +7040,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ContractUnpaidObligationScalarFieldEnum | ContractUnpaidObligationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentTransaction.ptHoldbackReviews
+   */
+  export type PaymentTransaction$ptHoldbackReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    where?: PtHoldbackReviewWhereInput
+    orderBy?: PtHoldbackReviewOrderByWithRelationInput | PtHoldbackReviewOrderByWithRelationInput[]
+    cursor?: PtHoldbackReviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtHoldbackReviewScalarFieldEnum | PtHoldbackReviewScalarFieldEnum[]
   }
 
   /**
@@ -11149,6 +11414,2270 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ContractUnpaidObligationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtHoldbackReview
+   */
+
+  export type AggregatePtHoldbackReview = {
+    _count: PtHoldbackReviewCountAggregateOutputType | null
+    _avg: PtHoldbackReviewAvgAggregateOutputType | null
+    _sum: PtHoldbackReviewSumAggregateOutputType | null
+    _min: PtHoldbackReviewMinAggregateOutputType | null
+    _max: PtHoldbackReviewMaxAggregateOutputType | null
+  }
+
+  export type PtHoldbackReviewAvgAggregateOutputType = {
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+  }
+
+  export type PtHoldbackReviewSumAggregateOutputType = {
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+  }
+
+  export type PtHoldbackReviewMinAggregateOutputType = {
+    id: string | null
+    key: string | null
+    transactionId: string | null
+    kind: $Enums.PtHoldbackReviewKind | null
+    status: $Enums.PtHoldbackReviewStatus | null
+    reserve: Decimal | null
+    reason: string | null
+    relatedRef: string | null
+    handler: string | null
+    reviewBy: Date | null
+    createdBy: string | null
+    createdAt: Date | null
+    decidedAt: Date | null
+    decidedBy: string | null
+    approvedBy: string | null
+    approvalRef: string | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+    note: string | null
+  }
+
+  export type PtHoldbackReviewMaxAggregateOutputType = {
+    id: string | null
+    key: string | null
+    transactionId: string | null
+    kind: $Enums.PtHoldbackReviewKind | null
+    status: $Enums.PtHoldbackReviewStatus | null
+    reserve: Decimal | null
+    reason: string | null
+    relatedRef: string | null
+    handler: string | null
+    reviewBy: Date | null
+    createdBy: string | null
+    createdAt: Date | null
+    decidedAt: Date | null
+    decidedBy: string | null
+    approvedBy: string | null
+    approvalRef: string | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+    note: string | null
+  }
+
+  export type PtHoldbackReviewCountAggregateOutputType = {
+    id: number
+    key: number
+    transactionId: number
+    kind: number
+    status: number
+    reserve: number
+    reason: number
+    relatedRef: number
+    handler: number
+    reviewBy: number
+    createdBy: number
+    createdAt: number
+    decidedAt: number
+    decidedBy: number
+    approvedBy: number
+    approvalRef: number
+    verifiedAmount: number
+    releasedToPt: number
+    note: number
+    _all: number
+  }
+
+
+  export type PtHoldbackReviewAvgAggregateInputType = {
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+  }
+
+  export type PtHoldbackReviewSumAggregateInputType = {
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+  }
+
+  export type PtHoldbackReviewMinAggregateInputType = {
+    id?: true
+    key?: true
+    transactionId?: true
+    kind?: true
+    status?: true
+    reserve?: true
+    reason?: true
+    relatedRef?: true
+    handler?: true
+    reviewBy?: true
+    createdBy?: true
+    createdAt?: true
+    decidedAt?: true
+    decidedBy?: true
+    approvedBy?: true
+    approvalRef?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+  }
+
+  export type PtHoldbackReviewMaxAggregateInputType = {
+    id?: true
+    key?: true
+    transactionId?: true
+    kind?: true
+    status?: true
+    reserve?: true
+    reason?: true
+    relatedRef?: true
+    handler?: true
+    reviewBy?: true
+    createdBy?: true
+    createdAt?: true
+    decidedAt?: true
+    decidedBy?: true
+    approvedBy?: true
+    approvalRef?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+  }
+
+  export type PtHoldbackReviewCountAggregateInputType = {
+    id?: true
+    key?: true
+    transactionId?: true
+    kind?: true
+    status?: true
+    reserve?: true
+    reason?: true
+    relatedRef?: true
+    handler?: true
+    reviewBy?: true
+    createdBy?: true
+    createdAt?: true
+    decidedAt?: true
+    decidedBy?: true
+    approvedBy?: true
+    approvalRef?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+    _all?: true
+  }
+
+  export type PtHoldbackReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtHoldbackReview to aggregate.
+     */
+    where?: PtHoldbackReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviews to fetch.
+     */
+    orderBy?: PtHoldbackReviewOrderByWithRelationInput | PtHoldbackReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtHoldbackReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtHoldbackReviews
+    **/
+    _count?: true | PtHoldbackReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtHoldbackReviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtHoldbackReviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtHoldbackReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtHoldbackReviewMaxAggregateInputType
+  }
+
+  export type GetPtHoldbackReviewAggregateType<T extends PtHoldbackReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtHoldbackReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtHoldbackReview[P]>
+      : GetScalarType<T[P], AggregatePtHoldbackReview[P]>
+  }
+
+
+
+
+  export type PtHoldbackReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtHoldbackReviewWhereInput
+    orderBy?: PtHoldbackReviewOrderByWithAggregationInput | PtHoldbackReviewOrderByWithAggregationInput[]
+    by: PtHoldbackReviewScalarFieldEnum[] | PtHoldbackReviewScalarFieldEnum
+    having?: PtHoldbackReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtHoldbackReviewCountAggregateInputType | true
+    _avg?: PtHoldbackReviewAvgAggregateInputType
+    _sum?: PtHoldbackReviewSumAggregateInputType
+    _min?: PtHoldbackReviewMinAggregateInputType
+    _max?: PtHoldbackReviewMaxAggregateInputType
+  }
+
+  export type PtHoldbackReviewGroupByOutputType = {
+    id: string
+    key: string
+    transactionId: string
+    kind: $Enums.PtHoldbackReviewKind
+    status: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal
+    reason: string
+    relatedRef: string | null
+    handler: string | null
+    reviewBy: Date
+    createdBy: string
+    createdAt: Date
+    decidedAt: Date | null
+    decidedBy: string | null
+    approvedBy: string | null
+    approvalRef: string | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+    note: string | null
+    _count: PtHoldbackReviewCountAggregateOutputType | null
+    _avg: PtHoldbackReviewAvgAggregateOutputType | null
+    _sum: PtHoldbackReviewSumAggregateOutputType | null
+    _min: PtHoldbackReviewMinAggregateOutputType | null
+    _max: PtHoldbackReviewMaxAggregateOutputType | null
+  }
+
+  type GetPtHoldbackReviewGroupByPayload<T extends PtHoldbackReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtHoldbackReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtHoldbackReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtHoldbackReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], PtHoldbackReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtHoldbackReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    key?: boolean
+    transactionId?: boolean
+    kind?: boolean
+    status?: boolean
+    reserve?: boolean
+    reason?: boolean
+    relatedRef?: boolean
+    handler?: boolean
+    reviewBy?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    decidedAt?: boolean
+    decidedBy?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+    transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
+    events?: boolean | PtHoldbackReview$eventsArgs<ExtArgs>
+    _count?: boolean | PtHoldbackReviewCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptHoldbackReview"]>
+
+  export type PtHoldbackReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    key?: boolean
+    transactionId?: boolean
+    kind?: boolean
+    status?: boolean
+    reserve?: boolean
+    reason?: boolean
+    relatedRef?: boolean
+    handler?: boolean
+    reviewBy?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    decidedAt?: boolean
+    decidedBy?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+    transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptHoldbackReview"]>
+
+  export type PtHoldbackReviewSelectScalar = {
+    id?: boolean
+    key?: boolean
+    transactionId?: boolean
+    kind?: boolean
+    status?: boolean
+    reserve?: boolean
+    reason?: boolean
+    relatedRef?: boolean
+    handler?: boolean
+    reviewBy?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    decidedAt?: boolean
+    decidedBy?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+  }
+
+  export type PtHoldbackReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
+    events?: boolean | PtHoldbackReview$eventsArgs<ExtArgs>
+    _count?: boolean | PtHoldbackReviewCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PtHoldbackReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transaction?: boolean | PaymentTransactionDefaultArgs<ExtArgs>
+  }
+
+  export type $PtHoldbackReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtHoldbackReview"
+    objects: {
+      transaction: Prisma.$PaymentTransactionPayload<ExtArgs>
+      events: Prisma.$PtHoldbackReviewEventPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * HBR:<transactionId>:<kind>[:<obligationId>] - one row per cause, created exactly once with the ending.
+       */
+      key: string
+      transactionId: string
+      kind: $Enums.PtHoldbackReviewKind
+      status: $Enums.PtHoldbackReviewStatus
+      /**
+       * What is kept in HOLDBACK for this cause (the PT-borne part only).
+       */
+      reserve: Prisma.Decimal
+      reason: string
+      /**
+       * The obligation id / the disputed sessions this reserve is about.
+       */
+      relatedRef: string | null
+      /**
+       * Who handles it (an admin queue name or person); null until assigned.
+       */
+      handler: string | null
+      reviewBy: Date
+      createdBy: string
+      createdAt: Date
+      decidedAt: Date | null
+      decidedBy: string | null
+      approvedBy: string | null
+      approvalRef: string | null
+      verifiedAmount: Prisma.Decimal | null
+      releasedToPt: Prisma.Decimal | null
+      note: string | null
+    }, ExtArgs["result"]["ptHoldbackReview"]>
+    composites: {}
+  }
+
+  type PtHoldbackReviewGetPayload<S extends boolean | null | undefined | PtHoldbackReviewDefaultArgs> = $Result.GetResult<Prisma.$PtHoldbackReviewPayload, S>
+
+  type PtHoldbackReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtHoldbackReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtHoldbackReviewCountAggregateInputType | true
+    }
+
+  export interface PtHoldbackReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtHoldbackReview'], meta: { name: 'PtHoldbackReview' } }
+    /**
+     * Find zero or one PtHoldbackReview that matches the filter.
+     * @param {PtHoldbackReviewFindUniqueArgs} args - Arguments to find a PtHoldbackReview
+     * @example
+     * // Get one PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtHoldbackReviewFindUniqueArgs>(args: SelectSubset<T, PtHoldbackReviewFindUniqueArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtHoldbackReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtHoldbackReviewFindUniqueOrThrowArgs} args - Arguments to find a PtHoldbackReview
+     * @example
+     * // Get one PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtHoldbackReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, PtHoldbackReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtHoldbackReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewFindFirstArgs} args - Arguments to find a PtHoldbackReview
+     * @example
+     * // Get one PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtHoldbackReviewFindFirstArgs>(args?: SelectSubset<T, PtHoldbackReviewFindFirstArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtHoldbackReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewFindFirstOrThrowArgs} args - Arguments to find a PtHoldbackReview
+     * @example
+     * // Get one PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtHoldbackReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, PtHoldbackReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtHoldbackReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtHoldbackReviews
+     * const ptHoldbackReviews = await prisma.ptHoldbackReview.findMany()
+     * 
+     * // Get first 10 PtHoldbackReviews
+     * const ptHoldbackReviews = await prisma.ptHoldbackReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptHoldbackReviewWithIdOnly = await prisma.ptHoldbackReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtHoldbackReviewFindManyArgs>(args?: SelectSubset<T, PtHoldbackReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtHoldbackReview.
+     * @param {PtHoldbackReviewCreateArgs} args - Arguments to create a PtHoldbackReview.
+     * @example
+     * // Create one PtHoldbackReview
+     * const PtHoldbackReview = await prisma.ptHoldbackReview.create({
+     *   data: {
+     *     // ... data to create a PtHoldbackReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtHoldbackReviewCreateArgs>(args: SelectSubset<T, PtHoldbackReviewCreateArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtHoldbackReviews.
+     * @param {PtHoldbackReviewCreateManyArgs} args - Arguments to create many PtHoldbackReviews.
+     * @example
+     * // Create many PtHoldbackReviews
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtHoldbackReviewCreateManyArgs>(args?: SelectSubset<T, PtHoldbackReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtHoldbackReviews and returns the data saved in the database.
+     * @param {PtHoldbackReviewCreateManyAndReturnArgs} args - Arguments to create many PtHoldbackReviews.
+     * @example
+     * // Create many PtHoldbackReviews
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtHoldbackReviews and only return the `id`
+     * const ptHoldbackReviewWithIdOnly = await prisma.ptHoldbackReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtHoldbackReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, PtHoldbackReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtHoldbackReview.
+     * @param {PtHoldbackReviewDeleteArgs} args - Arguments to delete one PtHoldbackReview.
+     * @example
+     * // Delete one PtHoldbackReview
+     * const PtHoldbackReview = await prisma.ptHoldbackReview.delete({
+     *   where: {
+     *     // ... filter to delete one PtHoldbackReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtHoldbackReviewDeleteArgs>(args: SelectSubset<T, PtHoldbackReviewDeleteArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtHoldbackReview.
+     * @param {PtHoldbackReviewUpdateArgs} args - Arguments to update one PtHoldbackReview.
+     * @example
+     * // Update one PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtHoldbackReviewUpdateArgs>(args: SelectSubset<T, PtHoldbackReviewUpdateArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtHoldbackReviews.
+     * @param {PtHoldbackReviewDeleteManyArgs} args - Arguments to filter PtHoldbackReviews to delete.
+     * @example
+     * // Delete a few PtHoldbackReviews
+     * const { count } = await prisma.ptHoldbackReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtHoldbackReviewDeleteManyArgs>(args?: SelectSubset<T, PtHoldbackReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtHoldbackReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtHoldbackReviews
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtHoldbackReviewUpdateManyArgs>(args: SelectSubset<T, PtHoldbackReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtHoldbackReview.
+     * @param {PtHoldbackReviewUpsertArgs} args - Arguments to update or create a PtHoldbackReview.
+     * @example
+     * // Update or create a PtHoldbackReview
+     * const ptHoldbackReview = await prisma.ptHoldbackReview.upsert({
+     *   create: {
+     *     // ... data to create a PtHoldbackReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtHoldbackReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtHoldbackReviewUpsertArgs>(args: SelectSubset<T, PtHoldbackReviewUpsertArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtHoldbackReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewCountArgs} args - Arguments to filter PtHoldbackReviews to count.
+     * @example
+     * // Count the number of PtHoldbackReviews
+     * const count = await prisma.ptHoldbackReview.count({
+     *   where: {
+     *     // ... the filter for the PtHoldbackReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtHoldbackReviewCountArgs>(
+      args?: Subset<T, PtHoldbackReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtHoldbackReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtHoldbackReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtHoldbackReviewAggregateArgs>(args: Subset<T, PtHoldbackReviewAggregateArgs>): Prisma.PrismaPromise<GetPtHoldbackReviewAggregateType<T>>
+
+    /**
+     * Group by PtHoldbackReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtHoldbackReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtHoldbackReviewGroupByArgs['orderBy'] }
+        : { orderBy?: PtHoldbackReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtHoldbackReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtHoldbackReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtHoldbackReview model
+   */
+  readonly fields: PtHoldbackReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtHoldbackReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtHoldbackReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    transaction<T extends PaymentTransactionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentTransactionDefaultArgs<ExtArgs>>): Prisma__PaymentTransactionClient<$Result.GetResult<Prisma.$PaymentTransactionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    events<T extends PtHoldbackReview$eventsArgs<ExtArgs> = {}>(args?: Subset<T, PtHoldbackReview$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtHoldbackReview model
+   */ 
+  interface PtHoldbackReviewFieldRefs {
+    readonly id: FieldRef<"PtHoldbackReview", 'String'>
+    readonly key: FieldRef<"PtHoldbackReview", 'String'>
+    readonly transactionId: FieldRef<"PtHoldbackReview", 'String'>
+    readonly kind: FieldRef<"PtHoldbackReview", 'PtHoldbackReviewKind'>
+    readonly status: FieldRef<"PtHoldbackReview", 'PtHoldbackReviewStatus'>
+    readonly reserve: FieldRef<"PtHoldbackReview", 'Decimal'>
+    readonly reason: FieldRef<"PtHoldbackReview", 'String'>
+    readonly relatedRef: FieldRef<"PtHoldbackReview", 'String'>
+    readonly handler: FieldRef<"PtHoldbackReview", 'String'>
+    readonly reviewBy: FieldRef<"PtHoldbackReview", 'DateTime'>
+    readonly createdBy: FieldRef<"PtHoldbackReview", 'String'>
+    readonly createdAt: FieldRef<"PtHoldbackReview", 'DateTime'>
+    readonly decidedAt: FieldRef<"PtHoldbackReview", 'DateTime'>
+    readonly decidedBy: FieldRef<"PtHoldbackReview", 'String'>
+    readonly approvedBy: FieldRef<"PtHoldbackReview", 'String'>
+    readonly approvalRef: FieldRef<"PtHoldbackReview", 'String'>
+    readonly verifiedAmount: FieldRef<"PtHoldbackReview", 'Decimal'>
+    readonly releasedToPt: FieldRef<"PtHoldbackReview", 'Decimal'>
+    readonly note: FieldRef<"PtHoldbackReview", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtHoldbackReview findUnique
+   */
+  export type PtHoldbackReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReview to fetch.
+     */
+    where: PtHoldbackReviewWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReview findUniqueOrThrow
+   */
+  export type PtHoldbackReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReview to fetch.
+     */
+    where: PtHoldbackReviewWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReview findFirst
+   */
+  export type PtHoldbackReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReview to fetch.
+     */
+    where?: PtHoldbackReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviews to fetch.
+     */
+    orderBy?: PtHoldbackReviewOrderByWithRelationInput | PtHoldbackReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtHoldbackReviews.
+     */
+    cursor?: PtHoldbackReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtHoldbackReviews.
+     */
+    distinct?: PtHoldbackReviewScalarFieldEnum | PtHoldbackReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReview findFirstOrThrow
+   */
+  export type PtHoldbackReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReview to fetch.
+     */
+    where?: PtHoldbackReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviews to fetch.
+     */
+    orderBy?: PtHoldbackReviewOrderByWithRelationInput | PtHoldbackReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtHoldbackReviews.
+     */
+    cursor?: PtHoldbackReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtHoldbackReviews.
+     */
+    distinct?: PtHoldbackReviewScalarFieldEnum | PtHoldbackReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReview findMany
+   */
+  export type PtHoldbackReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviews to fetch.
+     */
+    where?: PtHoldbackReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviews to fetch.
+     */
+    orderBy?: PtHoldbackReviewOrderByWithRelationInput | PtHoldbackReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtHoldbackReviews.
+     */
+    cursor?: PtHoldbackReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviews.
+     */
+    skip?: number
+    distinct?: PtHoldbackReviewScalarFieldEnum | PtHoldbackReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReview create
+   */
+  export type PtHoldbackReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtHoldbackReview.
+     */
+    data: XOR<PtHoldbackReviewCreateInput, PtHoldbackReviewUncheckedCreateInput>
+  }
+
+  /**
+   * PtHoldbackReview createMany
+   */
+  export type PtHoldbackReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtHoldbackReviews.
+     */
+    data: PtHoldbackReviewCreateManyInput | PtHoldbackReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtHoldbackReview createManyAndReturn
+   */
+  export type PtHoldbackReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtHoldbackReviews.
+     */
+    data: PtHoldbackReviewCreateManyInput | PtHoldbackReviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtHoldbackReview update
+   */
+  export type PtHoldbackReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtHoldbackReview.
+     */
+    data: XOR<PtHoldbackReviewUpdateInput, PtHoldbackReviewUncheckedUpdateInput>
+    /**
+     * Choose, which PtHoldbackReview to update.
+     */
+    where: PtHoldbackReviewWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReview updateMany
+   */
+  export type PtHoldbackReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtHoldbackReviews.
+     */
+    data: XOR<PtHoldbackReviewUpdateManyMutationInput, PtHoldbackReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which PtHoldbackReviews to update
+     */
+    where?: PtHoldbackReviewWhereInput
+  }
+
+  /**
+   * PtHoldbackReview upsert
+   */
+  export type PtHoldbackReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtHoldbackReview to update in case it exists.
+     */
+    where: PtHoldbackReviewWhereUniqueInput
+    /**
+     * In case the PtHoldbackReview found by the `where` argument doesn't exist, create a new PtHoldbackReview with this data.
+     */
+    create: XOR<PtHoldbackReviewCreateInput, PtHoldbackReviewUncheckedCreateInput>
+    /**
+     * In case the PtHoldbackReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtHoldbackReviewUpdateInput, PtHoldbackReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * PtHoldbackReview delete
+   */
+  export type PtHoldbackReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+    /**
+     * Filter which PtHoldbackReview to delete.
+     */
+    where: PtHoldbackReviewWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReview deleteMany
+   */
+  export type PtHoldbackReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtHoldbackReviews to delete
+     */
+    where?: PtHoldbackReviewWhereInput
+  }
+
+  /**
+   * PtHoldbackReview.events
+   */
+  export type PtHoldbackReview$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    where?: PtHoldbackReviewEventWhereInput
+    orderBy?: PtHoldbackReviewEventOrderByWithRelationInput | PtHoldbackReviewEventOrderByWithRelationInput[]
+    cursor?: PtHoldbackReviewEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PtHoldbackReviewEventScalarFieldEnum | PtHoldbackReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReview without action
+   */
+  export type PtHoldbackReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReview
+     */
+    select?: PtHoldbackReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PtHoldbackReviewEvent
+   */
+
+  export type AggregatePtHoldbackReviewEvent = {
+    _count: PtHoldbackReviewEventCountAggregateOutputType | null
+    _avg: PtHoldbackReviewEventAvgAggregateOutputType | null
+    _sum: PtHoldbackReviewEventSumAggregateOutputType | null
+    _min: PtHoldbackReviewEventMinAggregateOutputType | null
+    _max: PtHoldbackReviewEventMaxAggregateOutputType | null
+  }
+
+  export type PtHoldbackReviewEventAvgAggregateOutputType = {
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+  }
+
+  export type PtHoldbackReviewEventSumAggregateOutputType = {
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+  }
+
+  export type PtHoldbackReviewEventMinAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    action: string | null
+    actor: string | null
+    approvedBy: string | null
+    approvalRef: string | null
+    idempotencyKey: string | null
+    fromStatus: string | null
+    toStatus: string | null
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type PtHoldbackReviewEventMaxAggregateOutputType = {
+    id: string | null
+    reviewId: string | null
+    action: string | null
+    actor: string | null
+    approvedBy: string | null
+    approvalRef: string | null
+    idempotencyKey: string | null
+    fromStatus: string | null
+    toStatus: string | null
+    reserve: Decimal | null
+    verifiedAmount: Decimal | null
+    releasedToPt: Decimal | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type PtHoldbackReviewEventCountAggregateOutputType = {
+    id: number
+    reviewId: number
+    action: number
+    actor: number
+    approvedBy: number
+    approvalRef: number
+    idempotencyKey: number
+    fromStatus: number
+    toStatus: number
+    reserve: number
+    verifiedAmount: number
+    releasedToPt: number
+    note: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PtHoldbackReviewEventAvgAggregateInputType = {
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+  }
+
+  export type PtHoldbackReviewEventSumAggregateInputType = {
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+  }
+
+  export type PtHoldbackReviewEventMinAggregateInputType = {
+    id?: true
+    reviewId?: true
+    action?: true
+    actor?: true
+    approvedBy?: true
+    approvalRef?: true
+    idempotencyKey?: true
+    fromStatus?: true
+    toStatus?: true
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type PtHoldbackReviewEventMaxAggregateInputType = {
+    id?: true
+    reviewId?: true
+    action?: true
+    actor?: true
+    approvedBy?: true
+    approvalRef?: true
+    idempotencyKey?: true
+    fromStatus?: true
+    toStatus?: true
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type PtHoldbackReviewEventCountAggregateInputType = {
+    id?: true
+    reviewId?: true
+    action?: true
+    actor?: true
+    approvedBy?: true
+    approvalRef?: true
+    idempotencyKey?: true
+    fromStatus?: true
+    toStatus?: true
+    reserve?: true
+    verifiedAmount?: true
+    releasedToPt?: true
+    note?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PtHoldbackReviewEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtHoldbackReviewEvent to aggregate.
+     */
+    where?: PtHoldbackReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviewEvents to fetch.
+     */
+    orderBy?: PtHoldbackReviewEventOrderByWithRelationInput | PtHoldbackReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PtHoldbackReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PtHoldbackReviewEvents
+    **/
+    _count?: true | PtHoldbackReviewEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PtHoldbackReviewEventAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PtHoldbackReviewEventSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PtHoldbackReviewEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PtHoldbackReviewEventMaxAggregateInputType
+  }
+
+  export type GetPtHoldbackReviewEventAggregateType<T extends PtHoldbackReviewEventAggregateArgs> = {
+        [P in keyof T & keyof AggregatePtHoldbackReviewEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePtHoldbackReviewEvent[P]>
+      : GetScalarType<T[P], AggregatePtHoldbackReviewEvent[P]>
+  }
+
+
+
+
+  export type PtHoldbackReviewEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PtHoldbackReviewEventWhereInput
+    orderBy?: PtHoldbackReviewEventOrderByWithAggregationInput | PtHoldbackReviewEventOrderByWithAggregationInput[]
+    by: PtHoldbackReviewEventScalarFieldEnum[] | PtHoldbackReviewEventScalarFieldEnum
+    having?: PtHoldbackReviewEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PtHoldbackReviewEventCountAggregateInputType | true
+    _avg?: PtHoldbackReviewEventAvgAggregateInputType
+    _sum?: PtHoldbackReviewEventSumAggregateInputType
+    _min?: PtHoldbackReviewEventMinAggregateInputType
+    _max?: PtHoldbackReviewEventMaxAggregateInputType
+  }
+
+  export type PtHoldbackReviewEventGroupByOutputType = {
+    id: string
+    reviewId: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal
+    verifiedAmount: Decimal
+    releasedToPt: Decimal
+    note: string
+    createdAt: Date
+    _count: PtHoldbackReviewEventCountAggregateOutputType | null
+    _avg: PtHoldbackReviewEventAvgAggregateOutputType | null
+    _sum: PtHoldbackReviewEventSumAggregateOutputType | null
+    _min: PtHoldbackReviewEventMinAggregateOutputType | null
+    _max: PtHoldbackReviewEventMaxAggregateOutputType | null
+  }
+
+  type GetPtHoldbackReviewEventGroupByPayload<T extends PtHoldbackReviewEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PtHoldbackReviewEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PtHoldbackReviewEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PtHoldbackReviewEventGroupByOutputType[P]>
+            : GetScalarType<T[P], PtHoldbackReviewEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PtHoldbackReviewEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    action?: boolean
+    actor?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    idempotencyKey?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    reserve?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+    createdAt?: boolean
+    review?: boolean | PtHoldbackReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptHoldbackReviewEvent"]>
+
+  export type PtHoldbackReviewEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    reviewId?: boolean
+    action?: boolean
+    actor?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    idempotencyKey?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    reserve?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+    createdAt?: boolean
+    review?: boolean | PtHoldbackReviewDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ptHoldbackReviewEvent"]>
+
+  export type PtHoldbackReviewEventSelectScalar = {
+    id?: boolean
+    reviewId?: boolean
+    action?: boolean
+    actor?: boolean
+    approvedBy?: boolean
+    approvalRef?: boolean
+    idempotencyKey?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    reserve?: boolean
+    verifiedAmount?: boolean
+    releasedToPt?: boolean
+    note?: boolean
+    createdAt?: boolean
+  }
+
+  export type PtHoldbackReviewEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | PtHoldbackReviewDefaultArgs<ExtArgs>
+  }
+  export type PtHoldbackReviewEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    review?: boolean | PtHoldbackReviewDefaultArgs<ExtArgs>
+  }
+
+  export type $PtHoldbackReviewEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PtHoldbackReviewEvent"
+    objects: {
+      review: Prisma.$PtHoldbackReviewPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      reviewId: string
+      action: string
+      actor: string
+      approvedBy: string
+      approvalRef: string
+      idempotencyKey: string
+      fromStatus: string
+      toStatus: string
+      reserve: Prisma.Decimal
+      verifiedAmount: Prisma.Decimal
+      releasedToPt: Prisma.Decimal
+      note: string
+      createdAt: Date
+    }, ExtArgs["result"]["ptHoldbackReviewEvent"]>
+    composites: {}
+  }
+
+  type PtHoldbackReviewEventGetPayload<S extends boolean | null | undefined | PtHoldbackReviewEventDefaultArgs> = $Result.GetResult<Prisma.$PtHoldbackReviewEventPayload, S>
+
+  type PtHoldbackReviewEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PtHoldbackReviewEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PtHoldbackReviewEventCountAggregateInputType | true
+    }
+
+  export interface PtHoldbackReviewEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PtHoldbackReviewEvent'], meta: { name: 'PtHoldbackReviewEvent' } }
+    /**
+     * Find zero or one PtHoldbackReviewEvent that matches the filter.
+     * @param {PtHoldbackReviewEventFindUniqueArgs} args - Arguments to find a PtHoldbackReviewEvent
+     * @example
+     * // Get one PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PtHoldbackReviewEventFindUniqueArgs>(args: SelectSubset<T, PtHoldbackReviewEventFindUniqueArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PtHoldbackReviewEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PtHoldbackReviewEventFindUniqueOrThrowArgs} args - Arguments to find a PtHoldbackReviewEvent
+     * @example
+     * // Get one PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PtHoldbackReviewEventFindUniqueOrThrowArgs>(args: SelectSubset<T, PtHoldbackReviewEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PtHoldbackReviewEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventFindFirstArgs} args - Arguments to find a PtHoldbackReviewEvent
+     * @example
+     * // Get one PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PtHoldbackReviewEventFindFirstArgs>(args?: SelectSubset<T, PtHoldbackReviewEventFindFirstArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PtHoldbackReviewEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventFindFirstOrThrowArgs} args - Arguments to find a PtHoldbackReviewEvent
+     * @example
+     * // Get one PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PtHoldbackReviewEventFindFirstOrThrowArgs>(args?: SelectSubset<T, PtHoldbackReviewEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PtHoldbackReviewEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PtHoldbackReviewEvents
+     * const ptHoldbackReviewEvents = await prisma.ptHoldbackReviewEvent.findMany()
+     * 
+     * // Get first 10 PtHoldbackReviewEvents
+     * const ptHoldbackReviewEvents = await prisma.ptHoldbackReviewEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ptHoldbackReviewEventWithIdOnly = await prisma.ptHoldbackReviewEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PtHoldbackReviewEventFindManyArgs>(args?: SelectSubset<T, PtHoldbackReviewEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PtHoldbackReviewEvent.
+     * @param {PtHoldbackReviewEventCreateArgs} args - Arguments to create a PtHoldbackReviewEvent.
+     * @example
+     * // Create one PtHoldbackReviewEvent
+     * const PtHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.create({
+     *   data: {
+     *     // ... data to create a PtHoldbackReviewEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends PtHoldbackReviewEventCreateArgs>(args: SelectSubset<T, PtHoldbackReviewEventCreateArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PtHoldbackReviewEvents.
+     * @param {PtHoldbackReviewEventCreateManyArgs} args - Arguments to create many PtHoldbackReviewEvents.
+     * @example
+     * // Create many PtHoldbackReviewEvents
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PtHoldbackReviewEventCreateManyArgs>(args?: SelectSubset<T, PtHoldbackReviewEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PtHoldbackReviewEvents and returns the data saved in the database.
+     * @param {PtHoldbackReviewEventCreateManyAndReturnArgs} args - Arguments to create many PtHoldbackReviewEvents.
+     * @example
+     * // Create many PtHoldbackReviewEvents
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PtHoldbackReviewEvents and only return the `id`
+     * const ptHoldbackReviewEventWithIdOnly = await prisma.ptHoldbackReviewEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PtHoldbackReviewEventCreateManyAndReturnArgs>(args?: SelectSubset<T, PtHoldbackReviewEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PtHoldbackReviewEvent.
+     * @param {PtHoldbackReviewEventDeleteArgs} args - Arguments to delete one PtHoldbackReviewEvent.
+     * @example
+     * // Delete one PtHoldbackReviewEvent
+     * const PtHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.delete({
+     *   where: {
+     *     // ... filter to delete one PtHoldbackReviewEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PtHoldbackReviewEventDeleteArgs>(args: SelectSubset<T, PtHoldbackReviewEventDeleteArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PtHoldbackReviewEvent.
+     * @param {PtHoldbackReviewEventUpdateArgs} args - Arguments to update one PtHoldbackReviewEvent.
+     * @example
+     * // Update one PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PtHoldbackReviewEventUpdateArgs>(args: SelectSubset<T, PtHoldbackReviewEventUpdateArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PtHoldbackReviewEvents.
+     * @param {PtHoldbackReviewEventDeleteManyArgs} args - Arguments to filter PtHoldbackReviewEvents to delete.
+     * @example
+     * // Delete a few PtHoldbackReviewEvents
+     * const { count } = await prisma.ptHoldbackReviewEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PtHoldbackReviewEventDeleteManyArgs>(args?: SelectSubset<T, PtHoldbackReviewEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PtHoldbackReviewEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PtHoldbackReviewEvents
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PtHoldbackReviewEventUpdateManyArgs>(args: SelectSubset<T, PtHoldbackReviewEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PtHoldbackReviewEvent.
+     * @param {PtHoldbackReviewEventUpsertArgs} args - Arguments to update or create a PtHoldbackReviewEvent.
+     * @example
+     * // Update or create a PtHoldbackReviewEvent
+     * const ptHoldbackReviewEvent = await prisma.ptHoldbackReviewEvent.upsert({
+     *   create: {
+     *     // ... data to create a PtHoldbackReviewEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PtHoldbackReviewEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PtHoldbackReviewEventUpsertArgs>(args: SelectSubset<T, PtHoldbackReviewEventUpsertArgs<ExtArgs>>): Prisma__PtHoldbackReviewEventClient<$Result.GetResult<Prisma.$PtHoldbackReviewEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PtHoldbackReviewEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventCountArgs} args - Arguments to filter PtHoldbackReviewEvents to count.
+     * @example
+     * // Count the number of PtHoldbackReviewEvents
+     * const count = await prisma.ptHoldbackReviewEvent.count({
+     *   where: {
+     *     // ... the filter for the PtHoldbackReviewEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends PtHoldbackReviewEventCountArgs>(
+      args?: Subset<T, PtHoldbackReviewEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PtHoldbackReviewEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PtHoldbackReviewEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PtHoldbackReviewEventAggregateArgs>(args: Subset<T, PtHoldbackReviewEventAggregateArgs>): Prisma.PrismaPromise<GetPtHoldbackReviewEventAggregateType<T>>
+
+    /**
+     * Group by PtHoldbackReviewEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PtHoldbackReviewEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PtHoldbackReviewEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PtHoldbackReviewEventGroupByArgs['orderBy'] }
+        : { orderBy?: PtHoldbackReviewEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PtHoldbackReviewEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPtHoldbackReviewEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PtHoldbackReviewEvent model
+   */
+  readonly fields: PtHoldbackReviewEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PtHoldbackReviewEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PtHoldbackReviewEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    review<T extends PtHoldbackReviewDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PtHoldbackReviewDefaultArgs<ExtArgs>>): Prisma__PtHoldbackReviewClient<$Result.GetResult<Prisma.$PtHoldbackReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PtHoldbackReviewEvent model
+   */ 
+  interface PtHoldbackReviewEventFieldRefs {
+    readonly id: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly reviewId: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly action: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly actor: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly approvedBy: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly approvalRef: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly idempotencyKey: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly fromStatus: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly toStatus: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly reserve: FieldRef<"PtHoldbackReviewEvent", 'Decimal'>
+    readonly verifiedAmount: FieldRef<"PtHoldbackReviewEvent", 'Decimal'>
+    readonly releasedToPt: FieldRef<"PtHoldbackReviewEvent", 'Decimal'>
+    readonly note: FieldRef<"PtHoldbackReviewEvent", 'String'>
+    readonly createdAt: FieldRef<"PtHoldbackReviewEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PtHoldbackReviewEvent findUnique
+   */
+  export type PtHoldbackReviewEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviewEvent to fetch.
+     */
+    where: PtHoldbackReviewEventWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent findUniqueOrThrow
+   */
+  export type PtHoldbackReviewEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviewEvent to fetch.
+     */
+    where: PtHoldbackReviewEventWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent findFirst
+   */
+  export type PtHoldbackReviewEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviewEvent to fetch.
+     */
+    where?: PtHoldbackReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviewEvents to fetch.
+     */
+    orderBy?: PtHoldbackReviewEventOrderByWithRelationInput | PtHoldbackReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtHoldbackReviewEvents.
+     */
+    cursor?: PtHoldbackReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtHoldbackReviewEvents.
+     */
+    distinct?: PtHoldbackReviewEventScalarFieldEnum | PtHoldbackReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReviewEvent findFirstOrThrow
+   */
+  export type PtHoldbackReviewEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviewEvent to fetch.
+     */
+    where?: PtHoldbackReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviewEvents to fetch.
+     */
+    orderBy?: PtHoldbackReviewEventOrderByWithRelationInput | PtHoldbackReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PtHoldbackReviewEvents.
+     */
+    cursor?: PtHoldbackReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviewEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PtHoldbackReviewEvents.
+     */
+    distinct?: PtHoldbackReviewEventScalarFieldEnum | PtHoldbackReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReviewEvent findMany
+   */
+  export type PtHoldbackReviewEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter, which PtHoldbackReviewEvents to fetch.
+     */
+    where?: PtHoldbackReviewEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PtHoldbackReviewEvents to fetch.
+     */
+    orderBy?: PtHoldbackReviewEventOrderByWithRelationInput | PtHoldbackReviewEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PtHoldbackReviewEvents.
+     */
+    cursor?: PtHoldbackReviewEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PtHoldbackReviewEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PtHoldbackReviewEvents.
+     */
+    skip?: number
+    distinct?: PtHoldbackReviewEventScalarFieldEnum | PtHoldbackReviewEventScalarFieldEnum[]
+  }
+
+  /**
+   * PtHoldbackReviewEvent create
+   */
+  export type PtHoldbackReviewEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PtHoldbackReviewEvent.
+     */
+    data: XOR<PtHoldbackReviewEventCreateInput, PtHoldbackReviewEventUncheckedCreateInput>
+  }
+
+  /**
+   * PtHoldbackReviewEvent createMany
+   */
+  export type PtHoldbackReviewEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PtHoldbackReviewEvents.
+     */
+    data: PtHoldbackReviewEventCreateManyInput | PtHoldbackReviewEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PtHoldbackReviewEvent createManyAndReturn
+   */
+  export type PtHoldbackReviewEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PtHoldbackReviewEvents.
+     */
+    data: PtHoldbackReviewEventCreateManyInput | PtHoldbackReviewEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PtHoldbackReviewEvent update
+   */
+  export type PtHoldbackReviewEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PtHoldbackReviewEvent.
+     */
+    data: XOR<PtHoldbackReviewEventUpdateInput, PtHoldbackReviewEventUncheckedUpdateInput>
+    /**
+     * Choose, which PtHoldbackReviewEvent to update.
+     */
+    where: PtHoldbackReviewEventWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent updateMany
+   */
+  export type PtHoldbackReviewEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PtHoldbackReviewEvents.
+     */
+    data: XOR<PtHoldbackReviewEventUpdateManyMutationInput, PtHoldbackReviewEventUncheckedUpdateManyInput>
+    /**
+     * Filter which PtHoldbackReviewEvents to update
+     */
+    where?: PtHoldbackReviewEventWhereInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent upsert
+   */
+  export type PtHoldbackReviewEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PtHoldbackReviewEvent to update in case it exists.
+     */
+    where: PtHoldbackReviewEventWhereUniqueInput
+    /**
+     * In case the PtHoldbackReviewEvent found by the `where` argument doesn't exist, create a new PtHoldbackReviewEvent with this data.
+     */
+    create: XOR<PtHoldbackReviewEventCreateInput, PtHoldbackReviewEventUncheckedCreateInput>
+    /**
+     * In case the PtHoldbackReviewEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PtHoldbackReviewEventUpdateInput, PtHoldbackReviewEventUncheckedUpdateInput>
+  }
+
+  /**
+   * PtHoldbackReviewEvent delete
+   */
+  export type PtHoldbackReviewEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
+    /**
+     * Filter which PtHoldbackReviewEvent to delete.
+     */
+    where: PtHoldbackReviewEventWhereUniqueInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent deleteMany
+   */
+  export type PtHoldbackReviewEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PtHoldbackReviewEvents to delete
+     */
+    where?: PtHoldbackReviewEventWhereInput
+  }
+
+  /**
+   * PtHoldbackReviewEvent without action
+   */
+  export type PtHoldbackReviewEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PtHoldbackReviewEvent
+     */
+    select?: PtHoldbackReviewEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PtHoldbackReviewEventInclude<ExtArgs> | null
   }
 
 
@@ -15718,6 +18247,51 @@ export namespace Prisma {
   export type ContractUnpaidObligationScalarFieldEnum = (typeof ContractUnpaidObligationScalarFieldEnum)[keyof typeof ContractUnpaidObligationScalarFieldEnum]
 
 
+  export const PtHoldbackReviewScalarFieldEnum: {
+    id: 'id',
+    key: 'key',
+    transactionId: 'transactionId',
+    kind: 'kind',
+    status: 'status',
+    reserve: 'reserve',
+    reason: 'reason',
+    relatedRef: 'relatedRef',
+    handler: 'handler',
+    reviewBy: 'reviewBy',
+    createdBy: 'createdBy',
+    createdAt: 'createdAt',
+    decidedAt: 'decidedAt',
+    decidedBy: 'decidedBy',
+    approvedBy: 'approvedBy',
+    approvalRef: 'approvalRef',
+    verifiedAmount: 'verifiedAmount',
+    releasedToPt: 'releasedToPt',
+    note: 'note'
+  };
+
+  export type PtHoldbackReviewScalarFieldEnum = (typeof PtHoldbackReviewScalarFieldEnum)[keyof typeof PtHoldbackReviewScalarFieldEnum]
+
+
+  export const PtHoldbackReviewEventScalarFieldEnum: {
+    id: 'id',
+    reviewId: 'reviewId',
+    action: 'action',
+    actor: 'actor',
+    approvedBy: 'approvedBy',
+    approvalRef: 'approvalRef',
+    idempotencyKey: 'idempotencyKey',
+    fromStatus: 'fromStatus',
+    toStatus: 'toStatus',
+    reserve: 'reserve',
+    verifiedAmount: 'verifiedAmount',
+    releasedToPt: 'releasedToPt',
+    note: 'note',
+    createdAt: 'createdAt'
+  };
+
+  export type PtHoldbackReviewEventScalarFieldEnum = (typeof PtHoldbackReviewEventScalarFieldEnum)[keyof typeof PtHoldbackReviewEventScalarFieldEnum]
+
+
   export const PartnerReceivableEventScalarFieldEnum: {
     id: 'id',
     receivableId: 'receivableId',
@@ -16121,6 +18695,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'PtHoldbackReviewKind'
+   */
+  export type EnumPtHoldbackReviewKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtHoldbackReviewKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtHoldbackReviewKind[]'
+   */
+  export type ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtHoldbackReviewKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtHoldbackReviewStatus'
+   */
+  export type EnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtHoldbackReviewStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtHoldbackReviewStatus[]'
+   */
+  export type ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtHoldbackReviewStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PartnerReceivableEventAction'
    */
   export type EnumPartnerReceivableEventActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PartnerReceivableEventAction'>
@@ -16491,6 +19093,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionListRelationFilter
     ledgerEntries?: WalletLedgerEntryListRelationFilter
     unpaidObligations?: ContractUnpaidObligationListRelationFilter
+    ptHoldbackReviews?: PtHoldbackReviewListRelationFilter
   }
 
   export type PaymentTransactionOrderByWithRelationInput = {
@@ -16529,6 +19132,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionOrderByRelationAggregateInput
     ledgerEntries?: WalletLedgerEntryOrderByRelationAggregateInput
     unpaidObligations?: ContractUnpaidObligationOrderByRelationAggregateInput
+    ptHoldbackReviews?: PtHoldbackReviewOrderByRelationAggregateInput
   }
 
   export type PaymentTransactionWhereUniqueInput = Prisma.AtLeast<{
@@ -16570,6 +19174,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionListRelationFilter
     ledgerEntries?: WalletLedgerEntryListRelationFilter
     unpaidObligations?: ContractUnpaidObligationListRelationFilter
+    ptHoldbackReviews?: PtHoldbackReviewListRelationFilter
   }, "id" | "idempotencyKey">
 
   export type PaymentTransactionOrderByWithAggregationInput = {
@@ -17052,6 +19657,238 @@ export namespace Prisma {
     resolvedBy?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
     resolvedNote?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
     reason?: StringNullableWithAggregatesFilter<"ContractUnpaidObligation"> | string | null
+  }
+
+  export type PtHoldbackReviewWhereInput = {
+    AND?: PtHoldbackReviewWhereInput | PtHoldbackReviewWhereInput[]
+    OR?: PtHoldbackReviewWhereInput[]
+    NOT?: PtHoldbackReviewWhereInput | PtHoldbackReviewWhereInput[]
+    id?: StringFilter<"PtHoldbackReview"> | string
+    key?: StringFilter<"PtHoldbackReview"> | string
+    transactionId?: StringFilter<"PtHoldbackReview"> | string
+    kind?: EnumPtHoldbackReviewKindFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string
+    reason?: StringFilter<"PtHoldbackReview"> | string
+    relatedRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    handler?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    reviewBy?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    createdBy?: StringFilter<"PtHoldbackReview"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    decidedAt?: DateTimeNullableFilter<"PtHoldbackReview"> | Date | string | null
+    decidedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvalRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    verifiedAmount?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    note?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
+    events?: PtHoldbackReviewEventListRelationFilter
+  }
+
+  export type PtHoldbackReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    key?: SortOrder
+    transactionId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    reserve?: SortOrder
+    reason?: SortOrder
+    relatedRef?: SortOrderInput | SortOrder
+    handler?: SortOrderInput | SortOrder
+    reviewBy?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    decidedBy?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvalRef?: SortOrderInput | SortOrder
+    verifiedAmount?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    transaction?: PaymentTransactionOrderByWithRelationInput
+    events?: PtHoldbackReviewEventOrderByRelationAggregateInput
+  }
+
+  export type PtHoldbackReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    key?: string
+    AND?: PtHoldbackReviewWhereInput | PtHoldbackReviewWhereInput[]
+    OR?: PtHoldbackReviewWhereInput[]
+    NOT?: PtHoldbackReviewWhereInput | PtHoldbackReviewWhereInput[]
+    transactionId?: StringFilter<"PtHoldbackReview"> | string
+    kind?: EnumPtHoldbackReviewKindFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string
+    reason?: StringFilter<"PtHoldbackReview"> | string
+    relatedRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    handler?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    reviewBy?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    createdBy?: StringFilter<"PtHoldbackReview"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    decidedAt?: DateTimeNullableFilter<"PtHoldbackReview"> | Date | string | null
+    decidedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvalRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    verifiedAmount?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    note?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    transaction?: XOR<PaymentTransactionRelationFilter, PaymentTransactionWhereInput>
+    events?: PtHoldbackReviewEventListRelationFilter
+  }, "id" | "key">
+
+  export type PtHoldbackReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    key?: SortOrder
+    transactionId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    reserve?: SortOrder
+    reason?: SortOrder
+    relatedRef?: SortOrderInput | SortOrder
+    handler?: SortOrderInput | SortOrder
+    reviewBy?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    decidedBy?: SortOrderInput | SortOrder
+    approvedBy?: SortOrderInput | SortOrder
+    approvalRef?: SortOrderInput | SortOrder
+    verifiedAmount?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    _count?: PtHoldbackReviewCountOrderByAggregateInput
+    _avg?: PtHoldbackReviewAvgOrderByAggregateInput
+    _max?: PtHoldbackReviewMaxOrderByAggregateInput
+    _min?: PtHoldbackReviewMinOrderByAggregateInput
+    _sum?: PtHoldbackReviewSumOrderByAggregateInput
+  }
+
+  export type PtHoldbackReviewScalarWhereWithAggregatesInput = {
+    AND?: PtHoldbackReviewScalarWhereWithAggregatesInput | PtHoldbackReviewScalarWhereWithAggregatesInput[]
+    OR?: PtHoldbackReviewScalarWhereWithAggregatesInput[]
+    NOT?: PtHoldbackReviewScalarWhereWithAggregatesInput | PtHoldbackReviewScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtHoldbackReview"> | string
+    key?: StringWithAggregatesFilter<"PtHoldbackReview"> | string
+    transactionId?: StringWithAggregatesFilter<"PtHoldbackReview"> | string
+    kind?: EnumPtHoldbackReviewKindWithAggregatesFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusWithAggregatesFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalWithAggregatesFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string
+    reason?: StringWithAggregatesFilter<"PtHoldbackReview"> | string
+    relatedRef?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+    handler?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+    reviewBy?: DateTimeWithAggregatesFilter<"PtHoldbackReview"> | Date | string
+    createdBy?: StringWithAggregatesFilter<"PtHoldbackReview"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PtHoldbackReview"> | Date | string
+    decidedAt?: DateTimeNullableWithAggregatesFilter<"PtHoldbackReview"> | Date | string | null
+    decidedBy?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+    approvedBy?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+    approvalRef?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+    verifiedAmount?: DecimalNullableWithAggregatesFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: DecimalNullableWithAggregatesFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    note?: StringNullableWithAggregatesFilter<"PtHoldbackReview"> | string | null
+  }
+
+  export type PtHoldbackReviewEventWhereInput = {
+    AND?: PtHoldbackReviewEventWhereInput | PtHoldbackReviewEventWhereInput[]
+    OR?: PtHoldbackReviewEventWhereInput[]
+    NOT?: PtHoldbackReviewEventWhereInput | PtHoldbackReviewEventWhereInput[]
+    id?: StringFilter<"PtHoldbackReviewEvent"> | string
+    reviewId?: StringFilter<"PtHoldbackReviewEvent"> | string
+    action?: StringFilter<"PtHoldbackReviewEvent"> | string
+    actor?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvedBy?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvalRef?: StringFilter<"PtHoldbackReviewEvent"> | string
+    idempotencyKey?: StringFilter<"PtHoldbackReviewEvent"> | string
+    fromStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    toStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    reserve?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    note?: StringFilter<"PtHoldbackReviewEvent"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReviewEvent"> | Date | string
+    review?: XOR<PtHoldbackReviewRelationFilter, PtHoldbackReviewWhereInput>
+  }
+
+  export type PtHoldbackReviewEventOrderByWithRelationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    action?: SortOrder
+    actor?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    idempotencyKey?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    review?: PtHoldbackReviewOrderByWithRelationInput
+  }
+
+  export type PtHoldbackReviewEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: PtHoldbackReviewEventWhereInput | PtHoldbackReviewEventWhereInput[]
+    OR?: PtHoldbackReviewEventWhereInput[]
+    NOT?: PtHoldbackReviewEventWhereInput | PtHoldbackReviewEventWhereInput[]
+    reviewId?: StringFilter<"PtHoldbackReviewEvent"> | string
+    action?: StringFilter<"PtHoldbackReviewEvent"> | string
+    actor?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvedBy?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvalRef?: StringFilter<"PtHoldbackReviewEvent"> | string
+    fromStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    toStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    reserve?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    note?: StringFilter<"PtHoldbackReviewEvent"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReviewEvent"> | Date | string
+    review?: XOR<PtHoldbackReviewRelationFilter, PtHoldbackReviewWhereInput>
+  }, "id" | "idempotencyKey">
+
+  export type PtHoldbackReviewEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    action?: SortOrder
+    actor?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    idempotencyKey?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    _count?: PtHoldbackReviewEventCountOrderByAggregateInput
+    _avg?: PtHoldbackReviewEventAvgOrderByAggregateInput
+    _max?: PtHoldbackReviewEventMaxOrderByAggregateInput
+    _min?: PtHoldbackReviewEventMinOrderByAggregateInput
+    _sum?: PtHoldbackReviewEventSumOrderByAggregateInput
+  }
+
+  export type PtHoldbackReviewEventScalarWhereWithAggregatesInput = {
+    AND?: PtHoldbackReviewEventScalarWhereWithAggregatesInput | PtHoldbackReviewEventScalarWhereWithAggregatesInput[]
+    OR?: PtHoldbackReviewEventScalarWhereWithAggregatesInput[]
+    NOT?: PtHoldbackReviewEventScalarWhereWithAggregatesInput | PtHoldbackReviewEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    reviewId?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    action?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    actor?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    approvedBy?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    approvalRef?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    fromStatus?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    toStatus?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    reserve?: DecimalWithAggregatesFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalWithAggregatesFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalWithAggregatesFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    note?: StringWithAggregatesFilter<"PtHoldbackReviewEvent"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PtHoldbackReviewEvent"> | Date | string
   }
 
   export type PartnerReceivableEventWhereInput = {
@@ -17853,6 +20690,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionCreateNestedManyWithoutTransactionInput
     ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionUncheckedCreateInput = {
@@ -17891,6 +20729,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionUncheckedCreateNestedManyWithoutTransactionInput
     ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationUncheckedCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionUpdateInput = {
@@ -17929,6 +20768,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionUpdateManyWithoutTransactionNestedInput
     ledgerEntries?: WalletLedgerEntryUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUpdateManyWithoutTransactionNestedInput
   }
 
   export type PaymentTransactionUncheckedUpdateInput = {
@@ -17967,6 +20807,7 @@ export namespace Prisma {
     commissions?: PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput
     ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUncheckedUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedUpdateManyWithoutTransactionNestedInput
   }
 
   export type PaymentTransactionCreateManyInput = {
@@ -18551,6 +21392,281 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtHoldbackReviewCreateInput = {
+    id?: string
+    key: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+    transaction: PaymentTransactionCreateNestedOneWithoutPtHoldbackReviewsInput
+    events?: PtHoldbackReviewEventCreateNestedManyWithoutReviewInput
+  }
+
+  export type PtHoldbackReviewUncheckedCreateInput = {
+    id?: string
+    key: string
+    transactionId: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+    events?: PtHoldbackReviewEventUncheckedCreateNestedManyWithoutReviewInput
+  }
+
+  export type PtHoldbackReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    transaction?: PaymentTransactionUpdateOneRequiredWithoutPtHoldbackReviewsNestedInput
+    events?: PtHoldbackReviewEventUpdateManyWithoutReviewNestedInput
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: PtHoldbackReviewEventUncheckedUpdateManyWithoutReviewNestedInput
+  }
+
+  export type PtHoldbackReviewCreateManyInput = {
+    id?: string
+    key: string
+    transactionId: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+  }
+
+  export type PtHoldbackReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtHoldbackReviewEventCreateInput = {
+    id?: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+    review: PtHoldbackReviewCreateNestedOneWithoutEventsInput
+  }
+
+  export type PtHoldbackReviewEventUncheckedCreateInput = {
+    id?: string
+    reviewId: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+  }
+
+  export type PtHoldbackReviewEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: PtHoldbackReviewUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type PtHoldbackReviewEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtHoldbackReviewEventCreateManyInput = {
+    id?: string
+    reviewId: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+  }
+
+  export type PtHoldbackReviewEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtHoldbackReviewEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PartnerReceivableEventCreateInput = {
@@ -19607,11 +22723,21 @@ export namespace Prisma {
     none?: ContractUnpaidObligationWhereInput
   }
 
+  export type PtHoldbackReviewListRelationFilter = {
+    every?: PtHoldbackReviewWhereInput
+    some?: PtHoldbackReviewWhereInput
+    none?: PtHoldbackReviewWhereInput
+  }
+
   export type PlatformCommissionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type ContractUnpaidObligationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtHoldbackReviewOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -20205,6 +23331,223 @@ export namespace Prisma {
     _max?: NestedEnumContractUnpaidObligationStatusFilter<$PrismaModel>
   }
 
+  export type EnumPtHoldbackReviewKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewKind | EnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel> | $Enums.PtHoldbackReviewKind
+  }
+
+  export type EnumPtHoldbackReviewStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewStatus | EnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel> | $Enums.PtHoldbackReviewStatus
+  }
+
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type PtHoldbackReviewEventListRelationFilter = {
+    every?: PtHoldbackReviewEventWhereInput
+    some?: PtHoldbackReviewEventWhereInput
+    none?: PtHoldbackReviewEventWhereInput
+  }
+
+  export type PtHoldbackReviewEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PtHoldbackReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    transactionId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    reserve?: SortOrder
+    reason?: SortOrder
+    relatedRef?: SortOrder
+    handler?: SortOrder
+    reviewBy?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    decidedAt?: SortOrder
+    decidedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+  }
+
+  export type PtHoldbackReviewAvgOrderByAggregateInput = {
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+  }
+
+  export type PtHoldbackReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    transactionId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    reserve?: SortOrder
+    reason?: SortOrder
+    relatedRef?: SortOrder
+    handler?: SortOrder
+    reviewBy?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    decidedAt?: SortOrder
+    decidedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+  }
+
+  export type PtHoldbackReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    key?: SortOrder
+    transactionId?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    reserve?: SortOrder
+    reason?: SortOrder
+    relatedRef?: SortOrder
+    handler?: SortOrder
+    reviewBy?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    decidedAt?: SortOrder
+    decidedBy?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+  }
+
+  export type PtHoldbackReviewSumOrderByAggregateInput = {
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+  }
+
+  export type EnumPtHoldbackReviewKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewKind | EnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewKindWithAggregatesFilter<$PrismaModel> | $Enums.PtHoldbackReviewKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel>
+    _max?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel>
+  }
+
+  export type EnumPtHoldbackReviewStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewStatus | EnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtHoldbackReviewStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type PtHoldbackReviewRelationFilter = {
+    is?: PtHoldbackReviewWhereInput
+    isNot?: PtHoldbackReviewWhereInput
+  }
+
+  export type PtHoldbackReviewEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    action?: SortOrder
+    actor?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    idempotencyKey?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtHoldbackReviewEventAvgOrderByAggregateInput = {
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+  }
+
+  export type PtHoldbackReviewEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    action?: SortOrder
+    actor?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    idempotencyKey?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtHoldbackReviewEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    reviewId?: SortOrder
+    action?: SortOrder
+    actor?: SortOrder
+    approvedBy?: SortOrder
+    approvalRef?: SortOrder
+    idempotencyKey?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PtHoldbackReviewEventSumOrderByAggregateInput = {
+    reserve?: SortOrder
+    verifiedAmount?: SortOrder
+    releasedToPt?: SortOrder
+  }
+
   export type EnumPartnerReceivableEventActionFilter<$PrismaModel = never> = {
     equals?: $Enums.PartnerReceivableEventAction | EnumPartnerReceivableEventActionFieldRefInput<$PrismaModel>
     in?: $Enums.PartnerReceivableEventAction[] | ListEnumPartnerReceivableEventActionFieldRefInput<$PrismaModel>
@@ -20278,17 +23621,6 @@ export namespace Prisma {
     in?: $Enums.ContractUnpaidObligationEventAction[] | ListEnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
     notIn?: $Enums.ContractUnpaidObligationEventAction[] | ListEnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
     not?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel> | $Enums.ContractUnpaidObligationEventAction
-  }
-
-  export type DecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
   }
 
   export type ContractUnpaidObligationRelationFilter = {
@@ -20394,22 +23726,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
     _max?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
-  }
-
-  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type EnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel = never> = {
@@ -20760,6 +24076,13 @@ export namespace Prisma {
     connect?: ContractUnpaidObligationWhereUniqueInput | ContractUnpaidObligationWhereUniqueInput[]
   }
 
+  export type PtHoldbackReviewCreateNestedManyWithoutTransactionInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput> | PtHoldbackReviewCreateWithoutTransactionInput[] | PtHoldbackReviewUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutTransactionInput | PtHoldbackReviewCreateOrConnectWithoutTransactionInput[]
+    createMany?: PtHoldbackReviewCreateManyTransactionInputEnvelope
+    connect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+  }
+
   export type PlatformCommissionUncheckedCreateNestedManyWithoutTransactionInput = {
     create?: XOR<PlatformCommissionCreateWithoutTransactionInput, PlatformCommissionUncheckedCreateWithoutTransactionInput> | PlatformCommissionCreateWithoutTransactionInput[] | PlatformCommissionUncheckedCreateWithoutTransactionInput[]
     connectOrCreate?: PlatformCommissionCreateOrConnectWithoutTransactionInput | PlatformCommissionCreateOrConnectWithoutTransactionInput[]
@@ -20779,6 +24102,13 @@ export namespace Prisma {
     connectOrCreate?: ContractUnpaidObligationCreateOrConnectWithoutTransactionInput | ContractUnpaidObligationCreateOrConnectWithoutTransactionInput[]
     createMany?: ContractUnpaidObligationCreateManyTransactionInputEnvelope
     connect?: ContractUnpaidObligationWhereUniqueInput | ContractUnpaidObligationWhereUniqueInput[]
+  }
+
+  export type PtHoldbackReviewUncheckedCreateNestedManyWithoutTransactionInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput> | PtHoldbackReviewCreateWithoutTransactionInput[] | PtHoldbackReviewUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutTransactionInput | PtHoldbackReviewCreateOrConnectWithoutTransactionInput[]
+    createMany?: PtHoldbackReviewCreateManyTransactionInputEnvelope
+    connect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
   }
 
   export type EnumPurposeTypeFieldUpdateOperationsInput = {
@@ -20851,6 +24181,20 @@ export namespace Prisma {
     deleteMany?: ContractUnpaidObligationScalarWhereInput | ContractUnpaidObligationScalarWhereInput[]
   }
 
+  export type PtHoldbackReviewUpdateManyWithoutTransactionNestedInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput> | PtHoldbackReviewCreateWithoutTransactionInput[] | PtHoldbackReviewUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutTransactionInput | PtHoldbackReviewCreateOrConnectWithoutTransactionInput[]
+    upsert?: PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput | PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput[]
+    createMany?: PtHoldbackReviewCreateManyTransactionInputEnvelope
+    set?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    disconnect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    delete?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    connect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    update?: PtHoldbackReviewUpdateWithWhereUniqueWithoutTransactionInput | PtHoldbackReviewUpdateWithWhereUniqueWithoutTransactionInput[]
+    updateMany?: PtHoldbackReviewUpdateManyWithWhereWithoutTransactionInput | PtHoldbackReviewUpdateManyWithWhereWithoutTransactionInput[]
+    deleteMany?: PtHoldbackReviewScalarWhereInput | PtHoldbackReviewScalarWhereInput[]
+  }
+
   export type PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput = {
     create?: XOR<PlatformCommissionCreateWithoutTransactionInput, PlatformCommissionUncheckedCreateWithoutTransactionInput> | PlatformCommissionCreateWithoutTransactionInput[] | PlatformCommissionUncheckedCreateWithoutTransactionInput[]
     connectOrCreate?: PlatformCommissionCreateOrConnectWithoutTransactionInput | PlatformCommissionCreateOrConnectWithoutTransactionInput[]
@@ -20891,6 +24235,20 @@ export namespace Prisma {
     update?: ContractUnpaidObligationUpdateWithWhereUniqueWithoutTransactionInput | ContractUnpaidObligationUpdateWithWhereUniqueWithoutTransactionInput[]
     updateMany?: ContractUnpaidObligationUpdateManyWithWhereWithoutTransactionInput | ContractUnpaidObligationUpdateManyWithWhereWithoutTransactionInput[]
     deleteMany?: ContractUnpaidObligationScalarWhereInput | ContractUnpaidObligationScalarWhereInput[]
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateManyWithoutTransactionNestedInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput> | PtHoldbackReviewCreateWithoutTransactionInput[] | PtHoldbackReviewUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutTransactionInput | PtHoldbackReviewCreateOrConnectWithoutTransactionInput[]
+    upsert?: PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput | PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput[]
+    createMany?: PtHoldbackReviewCreateManyTransactionInputEnvelope
+    set?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    disconnect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    delete?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    connect?: PtHoldbackReviewWhereUniqueInput | PtHoldbackReviewWhereUniqueInput[]
+    update?: PtHoldbackReviewUpdateWithWhereUniqueWithoutTransactionInput | PtHoldbackReviewUpdateWithWhereUniqueWithoutTransactionInput[]
+    updateMany?: PtHoldbackReviewUpdateManyWithWhereWithoutTransactionInput | PtHoldbackReviewUpdateManyWithWhereWithoutTransactionInput[]
+    deleteMany?: PtHoldbackReviewScalarWhereInput | PtHoldbackReviewScalarWhereInput[]
   }
 
   export type PaymentTransactionCreateNestedOneWithoutCommissionsInput = {
@@ -21063,6 +24421,92 @@ export namespace Prisma {
     deleteMany?: ContractUnpaidObligationPaymentScalarWhereInput | ContractUnpaidObligationPaymentScalarWhereInput[]
   }
 
+  export type PaymentTransactionCreateNestedOneWithoutPtHoldbackReviewsInput = {
+    create?: XOR<PaymentTransactionCreateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedCreateWithoutPtHoldbackReviewsInput>
+    connectOrCreate?: PaymentTransactionCreateOrConnectWithoutPtHoldbackReviewsInput
+    connect?: PaymentTransactionWhereUniqueInput
+  }
+
+  export type PtHoldbackReviewEventCreateNestedManyWithoutReviewInput = {
+    create?: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput> | PtHoldbackReviewEventCreateWithoutReviewInput[] | PtHoldbackReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: PtHoldbackReviewEventCreateOrConnectWithoutReviewInput | PtHoldbackReviewEventCreateOrConnectWithoutReviewInput[]
+    createMany?: PtHoldbackReviewEventCreateManyReviewInputEnvelope
+    connect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+  }
+
+  export type PtHoldbackReviewEventUncheckedCreateNestedManyWithoutReviewInput = {
+    create?: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput> | PtHoldbackReviewEventCreateWithoutReviewInput[] | PtHoldbackReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: PtHoldbackReviewEventCreateOrConnectWithoutReviewInput | PtHoldbackReviewEventCreateOrConnectWithoutReviewInput[]
+    createMany?: PtHoldbackReviewEventCreateManyReviewInputEnvelope
+    connect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+  }
+
+  export type EnumPtHoldbackReviewKindFieldUpdateOperationsInput = {
+    set?: $Enums.PtHoldbackReviewKind
+  }
+
+  export type EnumPtHoldbackReviewStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtHoldbackReviewStatus
+  }
+
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type PaymentTransactionUpdateOneRequiredWithoutPtHoldbackReviewsNestedInput = {
+    create?: XOR<PaymentTransactionCreateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedCreateWithoutPtHoldbackReviewsInput>
+    connectOrCreate?: PaymentTransactionCreateOrConnectWithoutPtHoldbackReviewsInput
+    upsert?: PaymentTransactionUpsertWithoutPtHoldbackReviewsInput
+    connect?: PaymentTransactionWhereUniqueInput
+    update?: XOR<XOR<PaymentTransactionUpdateToOneWithWhereWithoutPtHoldbackReviewsInput, PaymentTransactionUpdateWithoutPtHoldbackReviewsInput>, PaymentTransactionUncheckedUpdateWithoutPtHoldbackReviewsInput>
+  }
+
+  export type PtHoldbackReviewEventUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput> | PtHoldbackReviewEventCreateWithoutReviewInput[] | PtHoldbackReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: PtHoldbackReviewEventCreateOrConnectWithoutReviewInput | PtHoldbackReviewEventCreateOrConnectWithoutReviewInput[]
+    upsert?: PtHoldbackReviewEventUpsertWithWhereUniqueWithoutReviewInput | PtHoldbackReviewEventUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: PtHoldbackReviewEventCreateManyReviewInputEnvelope
+    set?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    disconnect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    delete?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    connect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    update?: PtHoldbackReviewEventUpdateWithWhereUniqueWithoutReviewInput | PtHoldbackReviewEventUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: PtHoldbackReviewEventUpdateManyWithWhereWithoutReviewInput | PtHoldbackReviewEventUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: PtHoldbackReviewEventScalarWhereInput | PtHoldbackReviewEventScalarWhereInput[]
+  }
+
+  export type PtHoldbackReviewEventUncheckedUpdateManyWithoutReviewNestedInput = {
+    create?: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput> | PtHoldbackReviewEventCreateWithoutReviewInput[] | PtHoldbackReviewEventUncheckedCreateWithoutReviewInput[]
+    connectOrCreate?: PtHoldbackReviewEventCreateOrConnectWithoutReviewInput | PtHoldbackReviewEventCreateOrConnectWithoutReviewInput[]
+    upsert?: PtHoldbackReviewEventUpsertWithWhereUniqueWithoutReviewInput | PtHoldbackReviewEventUpsertWithWhereUniqueWithoutReviewInput[]
+    createMany?: PtHoldbackReviewEventCreateManyReviewInputEnvelope
+    set?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    disconnect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    delete?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    connect?: PtHoldbackReviewEventWhereUniqueInput | PtHoldbackReviewEventWhereUniqueInput[]
+    update?: PtHoldbackReviewEventUpdateWithWhereUniqueWithoutReviewInput | PtHoldbackReviewEventUpdateWithWhereUniqueWithoutReviewInput[]
+    updateMany?: PtHoldbackReviewEventUpdateManyWithWhereWithoutReviewInput | PtHoldbackReviewEventUpdateManyWithWhereWithoutReviewInput[]
+    deleteMany?: PtHoldbackReviewEventScalarWhereInput | PtHoldbackReviewEventScalarWhereInput[]
+  }
+
+  export type PtHoldbackReviewCreateNestedOneWithoutEventsInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutEventsInput, PtHoldbackReviewUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutEventsInput
+    connect?: PtHoldbackReviewWhereUniqueInput
+  }
+
+  export type PtHoldbackReviewUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<PtHoldbackReviewCreateWithoutEventsInput, PtHoldbackReviewUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: PtHoldbackReviewCreateOrConnectWithoutEventsInput
+    upsert?: PtHoldbackReviewUpsertWithoutEventsInput
+    connect?: PtHoldbackReviewWhereUniqueInput
+    update?: XOR<XOR<PtHoldbackReviewUpdateToOneWithWhereWithoutEventsInput, PtHoldbackReviewUpdateWithoutEventsInput>, PtHoldbackReviewUncheckedUpdateWithoutEventsInput>
+  }
+
   export type PartnerReceivableCreateNestedOneWithoutEventsInput = {
     create?: XOR<PartnerReceivableCreateWithoutEventsInput, PartnerReceivableUncheckedCreateWithoutEventsInput>
     connectOrCreate?: PartnerReceivableCreateOrConnectWithoutEventsInput
@@ -21089,14 +24533,6 @@ export namespace Prisma {
 
   export type EnumContractUnpaidObligationEventActionFieldUpdateOperationsInput = {
     set?: $Enums.ContractUnpaidObligationEventAction
-  }
-
-  export type NullableDecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string | null
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
   }
 
   export type ContractUnpaidObligationUpdateOneRequiredWithoutEventsNestedInput = {
@@ -21595,6 +25031,67 @@ export namespace Prisma {
     _max?: NestedEnumContractUnpaidObligationStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumPtHoldbackReviewKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewKind | EnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel> | $Enums.PtHoldbackReviewKind
+  }
+
+  export type NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewStatus | EnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel> | $Enums.PtHoldbackReviewStatus
+  }
+
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedEnumPtHoldbackReviewKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewKind | EnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewKind[] | ListEnumPtHoldbackReviewKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewKindWithAggregatesFilter<$PrismaModel> | $Enums.PtHoldbackReviewKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel>
+    _max?: NestedEnumPtHoldbackReviewKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtHoldbackReviewStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtHoldbackReviewStatus | EnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PtHoldbackReviewStatus[] | ListEnumPtHoldbackReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPtHoldbackReviewStatusWithAggregatesFilter<$PrismaModel> | $Enums.PtHoldbackReviewStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel>
+    _max?: NestedEnumPtHoldbackReviewStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumPartnerReceivableEventActionFilter<$PrismaModel = never> = {
     equals?: $Enums.PartnerReceivableEventAction | EnumPartnerReceivableEventActionFieldRefInput<$PrismaModel>
     in?: $Enums.PartnerReceivableEventAction[] | ListEnumPartnerReceivableEventActionFieldRefInput<$PrismaModel>
@@ -21619,17 +25116,6 @@ export namespace Prisma {
     not?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel> | $Enums.ContractUnpaidObligationEventAction
   }
 
-  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type NestedEnumContractUnpaidObligationEventActionWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractUnpaidObligationEventAction | EnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
     in?: $Enums.ContractUnpaidObligationEventAction[] | ListEnumContractUnpaidObligationEventActionFieldRefInput<$PrismaModel>
@@ -21638,22 +25124,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
     _max?: NestedEnumContractUnpaidObligationEventActionFilter<$PrismaModel>
-  }
-
-  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumContractUnpaidObligationPaymentStatusFilter<$PrismaModel = never> = {
@@ -21885,6 +25355,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     commissions?: PlatformCommissionCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionUncheckedCreateWithoutLedgerEntriesInput = {
@@ -21922,6 +25393,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     commissions?: PlatformCommissionUncheckedCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationUncheckedCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionCreateOrConnectWithoutLedgerEntriesInput = {
@@ -22014,6 +25486,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     commissions?: PlatformCommissionUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUpdateManyWithoutTransactionNestedInput
   }
 
   export type PaymentTransactionUncheckedUpdateWithoutLedgerEntriesInput = {
@@ -22051,6 +25524,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     commissions?: PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUncheckedUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedUpdateManyWithoutTransactionNestedInput
   }
 
   export type WalletCreateWithoutWithdrawalRequestsInput = {
@@ -22247,6 +25721,60 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type PtHoldbackReviewCreateWithoutTransactionInput = {
+    id?: string
+    key: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+    events?: PtHoldbackReviewEventCreateNestedManyWithoutReviewInput
+  }
+
+  export type PtHoldbackReviewUncheckedCreateWithoutTransactionInput = {
+    id?: string
+    key: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+    events?: PtHoldbackReviewEventUncheckedCreateNestedManyWithoutReviewInput
+  }
+
+  export type PtHoldbackReviewCreateOrConnectWithoutTransactionInput = {
+    where: PtHoldbackReviewWhereUniqueInput
+    create: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput>
+  }
+
+  export type PtHoldbackReviewCreateManyTransactionInputEnvelope = {
+    data: PtHoldbackReviewCreateManyTransactionInput | PtHoldbackReviewCreateManyTransactionInput[]
+    skipDuplicates?: boolean
+  }
+
   export type PlatformCommissionUpsertWithWhereUniqueWithoutTransactionInput = {
     where: PlatformCommissionWhereUniqueInput
     update: XOR<PlatformCommissionUpdateWithoutTransactionInput, PlatformCommissionUncheckedUpdateWithoutTransactionInput>
@@ -22335,6 +25863,47 @@ export namespace Prisma {
     reason?: StringNullableFilter<"ContractUnpaidObligation"> | string | null
   }
 
+  export type PtHoldbackReviewUpsertWithWhereUniqueWithoutTransactionInput = {
+    where: PtHoldbackReviewWhereUniqueInput
+    update: XOR<PtHoldbackReviewUpdateWithoutTransactionInput, PtHoldbackReviewUncheckedUpdateWithoutTransactionInput>
+    create: XOR<PtHoldbackReviewCreateWithoutTransactionInput, PtHoldbackReviewUncheckedCreateWithoutTransactionInput>
+  }
+
+  export type PtHoldbackReviewUpdateWithWhereUniqueWithoutTransactionInput = {
+    where: PtHoldbackReviewWhereUniqueInput
+    data: XOR<PtHoldbackReviewUpdateWithoutTransactionInput, PtHoldbackReviewUncheckedUpdateWithoutTransactionInput>
+  }
+
+  export type PtHoldbackReviewUpdateManyWithWhereWithoutTransactionInput = {
+    where: PtHoldbackReviewScalarWhereInput
+    data: XOR<PtHoldbackReviewUpdateManyMutationInput, PtHoldbackReviewUncheckedUpdateManyWithoutTransactionInput>
+  }
+
+  export type PtHoldbackReviewScalarWhereInput = {
+    AND?: PtHoldbackReviewScalarWhereInput | PtHoldbackReviewScalarWhereInput[]
+    OR?: PtHoldbackReviewScalarWhereInput[]
+    NOT?: PtHoldbackReviewScalarWhereInput | PtHoldbackReviewScalarWhereInput[]
+    id?: StringFilter<"PtHoldbackReview"> | string
+    key?: StringFilter<"PtHoldbackReview"> | string
+    transactionId?: StringFilter<"PtHoldbackReview"> | string
+    kind?: EnumPtHoldbackReviewKindFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFilter<"PtHoldbackReview"> | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string
+    reason?: StringFilter<"PtHoldbackReview"> | string
+    relatedRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    handler?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    reviewBy?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    createdBy?: StringFilter<"PtHoldbackReview"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReview"> | Date | string
+    decidedAt?: DateTimeNullableFilter<"PtHoldbackReview"> | Date | string | null
+    decidedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvedBy?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    approvalRef?: StringNullableFilter<"PtHoldbackReview"> | string | null
+    verifiedAmount?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: DecimalNullableFilter<"PtHoldbackReview"> | Decimal | DecimalJsLike | number | string | null
+    note?: StringNullableFilter<"PtHoldbackReview"> | string | null
+  }
+
   export type PaymentTransactionCreateWithoutCommissionsInput = {
     id?: string
     payerId: string
@@ -22370,6 +25939,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionUncheckedCreateWithoutCommissionsInput = {
@@ -22407,6 +25977,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
     unpaidObligations?: ContractUnpaidObligationUncheckedCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionCreateOrConnectWithoutCommissionsInput = {
@@ -22460,6 +26031,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ledgerEntries?: WalletLedgerEntryUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUpdateManyWithoutTransactionNestedInput
   }
 
   export type PaymentTransactionUncheckedUpdateWithoutCommissionsInput = {
@@ -22497,6 +26069,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
     unpaidObligations?: ContractUnpaidObligationUncheckedUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedUpdateManyWithoutTransactionNestedInput
   }
 
   export type PartnerReceivableEventCreateWithoutReceivableInput = {
@@ -22603,6 +26176,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     commissions?: PlatformCommissionCreateNestedManyWithoutTransactionInput
     ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionUncheckedCreateWithoutUnpaidObligationsInput = {
@@ -22640,6 +26214,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     commissions?: PlatformCommissionUncheckedCreateNestedManyWithoutTransactionInput
     ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedCreateNestedManyWithoutTransactionInput
   }
 
   export type PaymentTransactionCreateOrConnectWithoutUnpaidObligationsInput = {
@@ -22813,6 +26388,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     commissions?: PlatformCommissionUpdateManyWithoutTransactionNestedInput
     ledgerEntries?: WalletLedgerEntryUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUpdateManyWithoutTransactionNestedInput
   }
 
   export type PaymentTransactionUncheckedUpdateWithoutUnpaidObligationsInput = {
@@ -22850,6 +26426,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     commissions?: PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput
     ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
+    ptHoldbackReviews?: PtHoldbackReviewUncheckedUpdateManyWithoutTransactionNestedInput
   }
 
   export type ContractUnpaidObligationEventUpsertWithWhereUniqueWithoutObligationInput = {
@@ -22940,6 +26517,356 @@ export namespace Prisma {
     cancelledBy?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
     cancelledAt?: DateTimeNullableFilter<"ContractUnpaidObligationPayment"> | Date | string | null
     cancelReason?: StringNullableFilter<"ContractUnpaidObligationPayment"> | string | null
+  }
+
+  export type PaymentTransactionCreateWithoutPtHoldbackReviewsInput = {
+    id?: string
+    payerId: string
+    purpose: $Enums.PurposeType
+    gymId?: string | null
+    ptId?: string | null
+    membershipId?: string | null
+    ptContractId?: string | null
+    amount: Decimal | DecimalJsLike | number | string
+    currency?: string
+    status?: $Enums.PaymentStatus
+    provider?: $Enums.PaymentProviderType
+    providerTransactionId?: string | null
+    paymentMethod?: string | null
+    idempotencyKey: string
+    requestFingerprint?: string | null
+    extraData?: string | null
+    paidAt?: Date | string | null
+    failedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    payerWalletId?: string | null
+    receiverWalletId?: string | null
+    relatedEntityType?: $Enums.RelatedEntityType | null
+    relatedEntityId?: string | null
+    activationStatus?: $Enums.ActivationStatus
+    activationRetryCount?: number
+    lastActivationRetryAt?: Date | string | null
+    initiatedBy?: string | null
+    sourceService?: string | null
+    refundOfTransactionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    commissions?: PlatformCommissionCreateNestedManyWithoutTransactionInput
+    ledgerEntries?: WalletLedgerEntryCreateNestedManyWithoutTransactionInput
+    unpaidObligations?: ContractUnpaidObligationCreateNestedManyWithoutTransactionInput
+  }
+
+  export type PaymentTransactionUncheckedCreateWithoutPtHoldbackReviewsInput = {
+    id?: string
+    payerId: string
+    purpose: $Enums.PurposeType
+    gymId?: string | null
+    ptId?: string | null
+    membershipId?: string | null
+    ptContractId?: string | null
+    amount: Decimal | DecimalJsLike | number | string
+    currency?: string
+    status?: $Enums.PaymentStatus
+    provider?: $Enums.PaymentProviderType
+    providerTransactionId?: string | null
+    paymentMethod?: string | null
+    idempotencyKey: string
+    requestFingerprint?: string | null
+    extraData?: string | null
+    paidAt?: Date | string | null
+    failedAt?: Date | string | null
+    refundedAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    payerWalletId?: string | null
+    receiverWalletId?: string | null
+    relatedEntityType?: $Enums.RelatedEntityType | null
+    relatedEntityId?: string | null
+    activationStatus?: $Enums.ActivationStatus
+    activationRetryCount?: number
+    lastActivationRetryAt?: Date | string | null
+    initiatedBy?: string | null
+    sourceService?: string | null
+    refundOfTransactionId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    commissions?: PlatformCommissionUncheckedCreateNestedManyWithoutTransactionInput
+    ledgerEntries?: WalletLedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
+    unpaidObligations?: ContractUnpaidObligationUncheckedCreateNestedManyWithoutTransactionInput
+  }
+
+  export type PaymentTransactionCreateOrConnectWithoutPtHoldbackReviewsInput = {
+    where: PaymentTransactionWhereUniqueInput
+    create: XOR<PaymentTransactionCreateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedCreateWithoutPtHoldbackReviewsInput>
+  }
+
+  export type PtHoldbackReviewEventCreateWithoutReviewInput = {
+    id?: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+  }
+
+  export type PtHoldbackReviewEventUncheckedCreateWithoutReviewInput = {
+    id?: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+  }
+
+  export type PtHoldbackReviewEventCreateOrConnectWithoutReviewInput = {
+    where: PtHoldbackReviewEventWhereUniqueInput
+    create: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput>
+  }
+
+  export type PtHoldbackReviewEventCreateManyReviewInputEnvelope = {
+    data: PtHoldbackReviewEventCreateManyReviewInput | PtHoldbackReviewEventCreateManyReviewInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PaymentTransactionUpsertWithoutPtHoldbackReviewsInput = {
+    update: XOR<PaymentTransactionUpdateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedUpdateWithoutPtHoldbackReviewsInput>
+    create: XOR<PaymentTransactionCreateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedCreateWithoutPtHoldbackReviewsInput>
+    where?: PaymentTransactionWhereInput
+  }
+
+  export type PaymentTransactionUpdateToOneWithWhereWithoutPtHoldbackReviewsInput = {
+    where?: PaymentTransactionWhereInput
+    data: XOR<PaymentTransactionUpdateWithoutPtHoldbackReviewsInput, PaymentTransactionUncheckedUpdateWithoutPtHoldbackReviewsInput>
+  }
+
+  export type PaymentTransactionUpdateWithoutPtHoldbackReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    payerId?: StringFieldUpdateOperationsInput | string
+    purpose?: EnumPurposeTypeFieldUpdateOperationsInput | $Enums.PurposeType
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptContractId?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
+    provider?: EnumPaymentProviderTypeFieldUpdateOperationsInput | $Enums.PaymentProviderType
+    providerTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: NullableStringFieldUpdateOperationsInput | string | null
+    extraData?: NullableStringFieldUpdateOperationsInput | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    payerWalletId?: NullableStringFieldUpdateOperationsInput | string | null
+    receiverWalletId?: NullableStringFieldUpdateOperationsInput | string | null
+    relatedEntityType?: NullableEnumRelatedEntityTypeFieldUpdateOperationsInput | $Enums.RelatedEntityType | null
+    relatedEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    activationStatus?: EnumActivationStatusFieldUpdateOperationsInput | $Enums.ActivationStatus
+    activationRetryCount?: IntFieldUpdateOperationsInput | number
+    lastActivationRetryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    initiatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceService?: NullableStringFieldUpdateOperationsInput | string | null
+    refundOfTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    commissions?: PlatformCommissionUpdateManyWithoutTransactionNestedInput
+    ledgerEntries?: WalletLedgerEntryUpdateManyWithoutTransactionNestedInput
+    unpaidObligations?: ContractUnpaidObligationUpdateManyWithoutTransactionNestedInput
+  }
+
+  export type PaymentTransactionUncheckedUpdateWithoutPtHoldbackReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    payerId?: StringFieldUpdateOperationsInput | string
+    purpose?: EnumPurposeTypeFieldUpdateOperationsInput | $Enums.PurposeType
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptId?: NullableStringFieldUpdateOperationsInput | string | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptContractId?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
+    provider?: EnumPaymentProviderTypeFieldUpdateOperationsInput | $Enums.PaymentProviderType
+    providerTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: NullableStringFieldUpdateOperationsInput | string | null
+    extraData?: NullableStringFieldUpdateOperationsInput | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refundedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    payerWalletId?: NullableStringFieldUpdateOperationsInput | string | null
+    receiverWalletId?: NullableStringFieldUpdateOperationsInput | string | null
+    relatedEntityType?: NullableEnumRelatedEntityTypeFieldUpdateOperationsInput | $Enums.RelatedEntityType | null
+    relatedEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    activationStatus?: EnumActivationStatusFieldUpdateOperationsInput | $Enums.ActivationStatus
+    activationRetryCount?: IntFieldUpdateOperationsInput | number
+    lastActivationRetryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    initiatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceService?: NullableStringFieldUpdateOperationsInput | string | null
+    refundOfTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    commissions?: PlatformCommissionUncheckedUpdateManyWithoutTransactionNestedInput
+    ledgerEntries?: WalletLedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
+    unpaidObligations?: ContractUnpaidObligationUncheckedUpdateManyWithoutTransactionNestedInput
+  }
+
+  export type PtHoldbackReviewEventUpsertWithWhereUniqueWithoutReviewInput = {
+    where: PtHoldbackReviewEventWhereUniqueInput
+    update: XOR<PtHoldbackReviewEventUpdateWithoutReviewInput, PtHoldbackReviewEventUncheckedUpdateWithoutReviewInput>
+    create: XOR<PtHoldbackReviewEventCreateWithoutReviewInput, PtHoldbackReviewEventUncheckedCreateWithoutReviewInput>
+  }
+
+  export type PtHoldbackReviewEventUpdateWithWhereUniqueWithoutReviewInput = {
+    where: PtHoldbackReviewEventWhereUniqueInput
+    data: XOR<PtHoldbackReviewEventUpdateWithoutReviewInput, PtHoldbackReviewEventUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type PtHoldbackReviewEventUpdateManyWithWhereWithoutReviewInput = {
+    where: PtHoldbackReviewEventScalarWhereInput
+    data: XOR<PtHoldbackReviewEventUpdateManyMutationInput, PtHoldbackReviewEventUncheckedUpdateManyWithoutReviewInput>
+  }
+
+  export type PtHoldbackReviewEventScalarWhereInput = {
+    AND?: PtHoldbackReviewEventScalarWhereInput | PtHoldbackReviewEventScalarWhereInput[]
+    OR?: PtHoldbackReviewEventScalarWhereInput[]
+    NOT?: PtHoldbackReviewEventScalarWhereInput | PtHoldbackReviewEventScalarWhereInput[]
+    id?: StringFilter<"PtHoldbackReviewEvent"> | string
+    reviewId?: StringFilter<"PtHoldbackReviewEvent"> | string
+    action?: StringFilter<"PtHoldbackReviewEvent"> | string
+    actor?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvedBy?: StringFilter<"PtHoldbackReviewEvent"> | string
+    approvalRef?: StringFilter<"PtHoldbackReviewEvent"> | string
+    idempotencyKey?: StringFilter<"PtHoldbackReviewEvent"> | string
+    fromStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    toStatus?: StringFilter<"PtHoldbackReviewEvent"> | string
+    reserve?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFilter<"PtHoldbackReviewEvent"> | Decimal | DecimalJsLike | number | string
+    note?: StringFilter<"PtHoldbackReviewEvent"> | string
+    createdAt?: DateTimeFilter<"PtHoldbackReviewEvent"> | Date | string
+  }
+
+  export type PtHoldbackReviewCreateWithoutEventsInput = {
+    id?: string
+    key: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+    transaction: PaymentTransactionCreateNestedOneWithoutPtHoldbackReviewsInput
+  }
+
+  export type PtHoldbackReviewUncheckedCreateWithoutEventsInput = {
+    id?: string
+    key: string
+    transactionId: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+  }
+
+  export type PtHoldbackReviewCreateOrConnectWithoutEventsInput = {
+    where: PtHoldbackReviewWhereUniqueInput
+    create: XOR<PtHoldbackReviewCreateWithoutEventsInput, PtHoldbackReviewUncheckedCreateWithoutEventsInput>
+  }
+
+  export type PtHoldbackReviewUpsertWithoutEventsInput = {
+    update: XOR<PtHoldbackReviewUpdateWithoutEventsInput, PtHoldbackReviewUncheckedUpdateWithoutEventsInput>
+    create: XOR<PtHoldbackReviewCreateWithoutEventsInput, PtHoldbackReviewUncheckedCreateWithoutEventsInput>
+    where?: PtHoldbackReviewWhereInput
+  }
+
+  export type PtHoldbackReviewUpdateToOneWithWhereWithoutEventsInput = {
+    where?: PtHoldbackReviewWhereInput
+    data: XOR<PtHoldbackReviewUpdateWithoutEventsInput, PtHoldbackReviewUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type PtHoldbackReviewUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    transaction?: PaymentTransactionUpdateOneRequiredWithoutPtHoldbackReviewsNestedInput
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PartnerReceivableCreateWithoutEventsInput = {
@@ -23406,6 +27333,27 @@ export namespace Prisma {
     reason?: string | null
   }
 
+  export type PtHoldbackReviewCreateManyTransactionInput = {
+    id?: string
+    key: string
+    kind: $Enums.PtHoldbackReviewKind
+    status?: $Enums.PtHoldbackReviewStatus
+    reserve: Decimal | DecimalJsLike | number | string
+    reason: string
+    relatedRef?: string | null
+    handler?: string | null
+    reviewBy: Date | string
+    createdBy?: string
+    createdAt?: Date | string
+    decidedAt?: Date | string | null
+    decidedBy?: string | null
+    approvedBy?: string | null
+    approvalRef?: string | null
+    verifiedAmount?: Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string | null
+    note?: string | null
+  }
+
   export type PlatformCommissionUpdateWithoutTransactionInput = {
     id?: StringFieldUpdateOperationsInput | string
     partnerType?: EnumPartnerTypeFieldUpdateOperationsInput | $Enums.PartnerType
@@ -23540,6 +27488,71 @@ export namespace Prisma {
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolvedNote?: NullableStringFieldUpdateOperationsInput | string | null
     reason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type PtHoldbackReviewUpdateWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: PtHoldbackReviewEventUpdateManyWithoutReviewNestedInput
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    events?: PtHoldbackReviewEventUncheckedUpdateManyWithoutReviewNestedInput
+  }
+
+  export type PtHoldbackReviewUncheckedUpdateManyWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPtHoldbackReviewKindFieldUpdateOperationsInput | $Enums.PtHoldbackReviewKind
+    status?: EnumPtHoldbackReviewStatusFieldUpdateOperationsInput | $Enums.PtHoldbackReviewStatus
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    reason?: StringFieldUpdateOperationsInput | string
+    relatedRef?: NullableStringFieldUpdateOperationsInput | string | null
+    handler?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewBy?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    approvalRef?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    releasedToPt?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PartnerReceivableEventCreateManyReceivableInput = {
@@ -23794,6 +27807,70 @@ export namespace Prisma {
     cancelReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type PtHoldbackReviewEventCreateManyReviewInput = {
+    id?: string
+    action: string
+    actor: string
+    approvedBy: string
+    approvalRef: string
+    idempotencyKey: string
+    fromStatus: string
+    toStatus: string
+    reserve: Decimal | DecimalJsLike | number | string
+    verifiedAmount: Decimal | DecimalJsLike | number | string
+    releasedToPt: Decimal | DecimalJsLike | number | string
+    note: string
+    createdAt?: Date | string
+  }
+
+  export type PtHoldbackReviewEventUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtHoldbackReviewEventUncheckedUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PtHoldbackReviewEventUncheckedUpdateManyWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    actor?: StringFieldUpdateOperationsInput | string
+    approvedBy?: StringFieldUpdateOperationsInput | string
+    approvalRef?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    fromStatus?: StringFieldUpdateOperationsInput | string
+    toStatus?: StringFieldUpdateOperationsInput | string
+    reserve?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    verifiedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    note?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -23815,6 +27892,10 @@ export namespace Prisma {
      * @deprecated Use ContractUnpaidObligationCountOutputTypeDefaultArgs instead
      */
     export type ContractUnpaidObligationCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractUnpaidObligationCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtHoldbackReviewCountOutputTypeDefaultArgs instead
+     */
+    export type PtHoldbackReviewCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtHoldbackReviewCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use WalletDefaultArgs instead
      */
@@ -23847,6 +27928,14 @@ export namespace Prisma {
      * @deprecated Use ContractUnpaidObligationDefaultArgs instead
      */
     export type ContractUnpaidObligationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractUnpaidObligationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtHoldbackReviewDefaultArgs instead
+     */
+    export type PtHoldbackReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtHoldbackReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PtHoldbackReviewEventDefaultArgs instead
+     */
+    export type PtHoldbackReviewEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PtHoldbackReviewEventDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PartnerReceivableEventDefaultArgs instead
      */

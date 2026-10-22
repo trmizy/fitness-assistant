@@ -50,6 +50,7 @@ export type ContractOpKind =
   | 'TERMINATE'
   | 'RESOLVE_UNRESOLVED'
   | 'RELEASE_HOLDBACK'
+  | 'HOLDBACK_REVIEW'
   | 'UNACTIVATED_REFUND';
 
 interface PartiesLike {

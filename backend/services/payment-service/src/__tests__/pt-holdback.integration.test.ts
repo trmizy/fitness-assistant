@@ -4,6 +4,11 @@
  *
  *   evidence label: BACKEND INTEGRATION (real ledger code against the isolated *_test database).
  *
+ * OWNER DECISION (final): NOTHING is paid to the client out of the hold automatically. A PT-cancelled / repeated-no-show ending keeps the potential
+ * PT-fault amount as a RESERVE (and a durable review item); an authorised admin decides (holdback-review.service): VERIFIED pays exactly the verified
+ * PT-borne part to the client out of THIS contract's HOLDBACK, the rest goes back to the PT; NOT_VERIFIED releases it all. The fault tests below
+ * therefore assert the reserve at the ending and the money after the admin's VERIFIED decision (same numbers as before the decision rule).
+ *
  * Ported from the first (pending-label) design when the owner fixed the final rules; the structure and the assertions are the same,
  * the numbers follow the new rule:
  *   1. H = h x (the PT's EXPECTED INCOME on the contract, from its frozen rates) - not h x price;
@@ -40,6 +45,7 @@ type Mods = {
   reconcile: typeof import('../services/reconcile.service');
   wallet: (typeof import('../services/wallet.service'))['walletService'];
   withdrawals: (typeof import('../repositories/withdrawal.repository'))['withdrawalRepository'];
+  review: typeof import('../services/holdback-review.service');
 };
 
 let mods: Mods | undefined;
@@ -52,6 +58,7 @@ async function load(): Promise<Mods> {
       reconcile: await import('../services/reconcile.service'),
       wallet: (await import('../services/wallet.service')).walletService,
       withdrawals: (await import('../repositories/withdrawal.repository')).withdrawalRepository,
+      review: await import('../services/holdback-review.service'),
     };
   }
   return mods;
@@ -317,6 +324,16 @@ async function scenario(m: Mods, o: {
 
 const dec = (m: Mods, v: string) => new m.Prisma.Decimal(v);
 
+/** The admin's decision (two different people, an approval reference) on the open review of one contract. */
+let approvalSeq = 0;
+async function decide(m: Mods, f: Fixture, decision: 'VERIFIED' | 'NOT_VERIFIED', verifiedAmount?: string, kind = 'PT_FAULT') {
+  const rv = await m.prisma.ptHoldbackReview.findFirstOrThrow({ where: { transactionId: f.txnId, kind: kind as any, status: 'OPEN' } });
+  return m.review.decideHoldbackReview({
+    reviewId: rv.id, expectedReserve: rv.reserve.toFixed(2), expectedTransactionId: f.txnId, decision, verifiedAmount: decision === 'VERIFIED' ? (verifiedAmount ?? rv.reserve.toFixed(0)) : undefined,
+    note: 'checked the evidence of this contract', actor: 'admin-a', approvedBy: 'admin-b', approvalRef: `AP-${++approvalSeq}`, dryRun: false,
+  });
+}
+
 // ── 1. The collection schedule ───────────────────────────────────────────────
 
 for (const ptRate of ['0.90', '0.50'] as const) {
@@ -483,7 +500,7 @@ const FAULT_EXPECTATIONS: Record<'0.90' | '0.50', Record<number, { held: string;
 for (const ptRate of ['0.90', '0.50'] as const) {
   for (const taught of [0, 1, 3]) {
     const reason: Reason = 'PT_CANCELLED';
-    test(`${reason}, PT ${ptRate}, after ${taught} session(s): compensation = min(10% × remaining, held), carved out of the held amount only`, skipOpts, async () => {
+    test(`${reason}, PT ${ptRate}, after ${taught} session(s): nothing is paid at the ending - the potential amount min(10% × remaining, held) is RESERVED; after the admin VERIFIES it, the client gets exactly it out of the hold and the rest returns to the PT`, skipOpts, async () => {
       const m = await load();
       const legacy = await scenario(m, { taught, reason, ptRate });
       const held = await scenario(m, { h: '0.10', taught, reason, ptRate });
@@ -492,43 +509,49 @@ for (const ptRate of ['0.90', '0.50'] as const) {
       const ph = (held.result as any).ptHoldback;
       assert.equal(held.heldBefore, exp.held, 'what was really held when the PT left');
       assert.equal(ph?.held ?? '0.00', exp.held);
-      assert.equal(ph?.compensation ?? '0.00', exp.comp, 'compensation');
-      assert.equal(ph?.returnedToPt ?? '0.00', exp.back, 'what the held amount returns to the PT');
+      assert.equal(ph?.compensation ?? '0.00', '0.00', 'NOTHING is paid to the client out of the hold at the ending');
+      assert.equal(ph?.stillHeld ?? '0.00', exp.comp, 'the potential PT-fault amount stays held as a reserve');
+      assert.equal(ph?.returnedToPt ?? '0.00', exp.back, 'the rest of the hold is released to the PT at once');
       assert.equal(held.result.refund, legacy.result.refund, 'the client still gets the normal refund, unchanged');
-
-      // The client gets the compensation on top; the PT gets exactly that much less; nobody else moves.
-      assert.equal(dec(m, held.after.clientAvailable).minus(legacy.after.clientAvailable).toFixed(2), exp.comp, 'client: + compensation');
-      assert.equal(dec(m, legacy.after.ptAvailable).minus(held.after.ptAvailable).toFixed(2), exp.comp, 'PT: − compensation, relative to a contract with no holdback');
-      assert.equal(held.after.platformRevenue, legacy.after.platformRevenue, 'the platform neither pays nor gains');
+      assert.equal(held.after.clientAvailable, legacy.after.clientAvailable, 'and nothing more before the decision');
+      assert.equal(held.after.ptHoldback, exp.comp, 'the reserve is in the PT wallet HOLDBACK');
+      assert.equal(held.after.platformRevenue, legacy.after.platformRevenue);
       assert.equal(held.after.escrow, legacy.after.escrow, 'escrow untouched');
-      assert.equal(held.after.ptPending, '0.00');
-      assert.equal(held.after.ptHoldback, '0.00');
+      if (dec(m, exp.comp).isZero()) {
+        assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: held.txnId } }), 0, 'nothing reserved, no review');
+        return;
+      }
+      const review = await m.prisma.ptHoldbackReview.findFirstOrThrow({ where: { transactionId: held.txnId } });
+      assert.equal(review.kind, 'PT_FAULT');
+      assert.equal(review.status, 'OPEN');
+      assert.equal(review.reserve.toFixed(2), exp.comp);
+      assert.ok(review.reviewBy.getTime() > Date.now() + 13 * 24 * 3600 * 1000, 'a review-by deadline (14 days) is set');
+      assert.equal(review.createdBy, 'SYSTEM');
 
-      // The PT's final total: what was released along the way + what the held amount gives back.
+      // The admin VERIFIES the whole reserve: the client is paid exactly it, from THIS contract's hold.
+      const d = await decide(m, held.f, 'VERIFIED');
+      assert.equal(d.paidToClient, exp.comp);
+      assert.equal(d.releasedToPt, '0.00');
+      const after = await balances(m, held.f);
+      assert.equal(dec(m, after.clientAvailable).minus(legacy.after.clientAvailable).toFixed(2), exp.comp, 'client: + compensation');
+      assert.equal(dec(m, legacy.after.ptAvailable).minus(after.ptAvailable).toFixed(2), exp.comp, 'PT: − compensation, relative to a contract with no holdback');
+      assert.equal(after.platformRevenue, legacy.after.platformRevenue, 'the platform neither pays nor gains');
+      assert.equal(after.ptHoldback, '0.00');
+      assert.equal(after.ptPending, '0.00');
       const share = ptRate === '0.90' ? 450_000 : 250_000;
       const released = Math.max(0, share * taught - share);
-      assert.equal(held.after.ptAvailable, dec(m, String(released)).plus(exp.back).toFixed(2), 'PT final available = released + returned');
+      assert.equal(after.ptAvailable, dec(m, String(released)).plus(exp.back).toFixed(2), 'PT final available = released + returned');
 
-      const lines = await postings(m, held.txnId);
+      const lines = await postings(m, held.txnId, 'holdback review');
       const clientLines = lines.filter((l) => /^CLIENT CREDIT/.test(l) && /compensation/i.test(l));
-      const holdDebits = lines.filter((l) => /^PT DEBIT HOLDBACK/.test(l) && /compensation/i.test(l));
-      if (dec(m, exp.comp).isZero()) {
-        assert.deepEqual(clientLines, [], 'nothing held → no compensation row at all');
-        assert.deepEqual(holdDebits, []);
-      } else {
-        assert.deepEqual(clientLines, [
-          `CLIENT CREDIT AVAILABLE ${exp.comp} | ${held.f.contractId} termination — compensation for the PT's cancellation (from the PT's held-back earnings)`,
-        ], 'one separate, clearly-described credit to the client');
-        assert.deepEqual(holdDebits, [`PT DEBIT HOLDBACK ${exp.comp} | ${held.f.contractId} termination — PT holdback used for compensation (PT_CANCELLED)`], 'funded by exactly one debit of the contract’s own HOLDBACK');
-        // Counts as withdrawable: the withdrawal code matches on the word "compensation".
-        const clientWallet = await m.wallet.getOrCreateWallet('CLIENT', held.f.parties.clientUserId);
-        assert.equal(
-          (await m.withdrawals.sumRefundSourcedCredits(clientWallet.id)).toFixed(2),
-          held.after.clientAvailable,
-          'refund + compensation are both withdrawable',
-        );
-      }
-      console.log(`TABLE|fault|reason=${reason}|ptRate=${ptRate}|taught=${taught}|held=${exp.held}|compensation=${exp.comp}|returnedToPt=${exp.back}|topUpPt=${held.result.topUp.pt}|ptAvailableFinal=${held.after.ptAvailable}|clientTotal=${held.after.clientAvailable}`);
+      assert.equal(clientLines.length, 1, 'one separate, clearly-described credit to the client');
+      assert.match(clientLines[0], new RegExp(`^CLIENT CREDIT AVAILABLE ${exp.comp.replace('.', '\\.')} \\| .*compensation for the PT's responsibility \\(from the PT's held-back earnings\\)$`));
+      assert.equal(lines.filter((l) => /^PT DEBIT HOLDBACK/.test(l) && /used for compensation/.test(l)).length, 1, 'funded by exactly one debit of the contract’s own HOLDBACK');
+      // Counts as withdrawable: the withdrawal code matches on the word "compensation".
+      const clientWallet = await m.wallet.getOrCreateWallet('CLIENT', held.f.parties.clientUserId);
+      assert.equal((await m.withdrawals.sumRefundSourcedCredits(clientWallet.id)).toFixed(2), after.clientAvailable, 'refund + compensation are both withdrawable');
+      await assertBooksReconcile(m, `${reason} ${ptRate} ${taught} decided`);
+      console.log(`TABLE|fault|reason=${reason}|ptRate=${ptRate}|taught=${taught}|held=${exp.held}|reserve=${exp.comp}|returnedAtEnd=${exp.back}|paidAfterVerified=${d.paidToClient}|ptAvailableFinal=${after.ptAvailable}|clientTotal=${after.clientAvailable}`);
     });
   }
 }
@@ -545,7 +568,7 @@ test('PT_BANNED is NOT a fault reason any more: a ban never compensates the clie
 });
 
 for (const ptRate of ['0.90', '0.50'] as const) {
-  test(`PT_REPEATED_NO_SHOW, PT ${ptRate}: 3 taught then 3 no-shows costs the PT the same as cancelling after 3 — base is remaining + already-compensated`, skipOpts, async () => {
+  test(`PT_REPEATED_NO_SHOW, PT ${ptRate}: 3 taught then 3 no-shows reserves the same potential amount as cancelling after 3 (base = remaining + already-compensated); nothing is paid until the admin verifies it`, skipOpts, async () => {
     const m = await load();
     const cancel = await scenario(m, { h: '0.10', taught: 3, reason: 'PT_CANCELLED', ptRate });
     const legacyNs = await scenario(m, { taught: 3, noShows: 3, reason: 'PT_REPEATED_NO_SHOW', ptRate });
@@ -556,20 +579,20 @@ for (const ptRate of ['0.90', '0.50'] as const) {
     const back = ptRate === '0.90' ? '100000.00' : '0.00';
     const ph = (ns.result as any).ptHoldback;
     assert.equal(ns.heldBefore, held, 'the no-show charges came out of the sessions never delivered, not out of the held amount');
-    assert.equal(ph.compensation, comp, 'remaining 2.000.000 + compensated 1.500.000 = 3.500.000 → 10% = 350.000, capped by what is held');
-    assert.equal(ph.compensation, (cancel.result as any).ptHoldback.compensation, 'never cheaper to stop turning up than to cancel');
+    assert.equal(ph.compensation, '0.00', 'nothing is paid at the ending');
+    assert.equal(ph.stillHeld, comp, 'remaining 2.000.000 + compensated 1.500.000 = 3.500.000 → 10% = 350.000, capped by what is held');
+    assert.equal(ph.stillHeld, (cancel.result as any).ptHoldback.stillHeld, 'never cheaper to stop turning up than to cancel');
     assert.equal(ph.returnedToPt, back);
     assert.equal(ns.result.refund, '2000000.00', 'the refund is the remaining value only — the compensated sessions were already paid back');
+    assert.equal(ns.after.clientAvailable, legacyNs.after.clientAvailable);
 
-    // Relative to the same story with no holdback: client + comp, PT − comp, nobody else.
-    assert.equal(dec(m, ns.after.clientAvailable).minus(legacyNs.after.clientAvailable).toFixed(2), comp);
-    assert.equal(dec(m, legacyNs.after.ptAvailable).minus(ns.after.ptAvailable).toFixed(2), comp);
-    assert.equal(ns.after.platformRevenue, legacyNs.after.platformRevenue);
-    const lines = (await postings(m, ns.txnId)).filter((l) => /^CLIENT CREDIT/.test(l) && /compensation/i.test(l));
-    assert.deepEqual(lines, [
-      `CLIENT CREDIT AVAILABLE ${comp} | ${ns.f.contractId} termination — compensation for the PT's repeated no-shows (from the PT's held-back earnings)`,
-    ]);
-    console.log(`TABLE|norshow|ptRate=${ptRate}|taught=3|noShows=3|held=${ns.heldBefore}|compensation=${ph.compensation}|returnedToPt=${ph.returnedToPt}|ptAvailableFinal=${ns.after.ptAvailable}`);
+    const d = await decide(m, ns.f, 'VERIFIED');
+    assert.equal(d.paidToClient, comp);
+    const after = await balances(m, ns.f);
+    assert.equal(dec(m, after.clientAvailable).minus(legacyNs.after.clientAvailable).toFixed(2), comp);
+    assert.equal(dec(m, legacyNs.after.ptAvailable).minus(after.ptAvailable).toFixed(2), comp);
+    assert.equal(after.platformRevenue, legacyNs.after.platformRevenue);
+    console.log(`TABLE|norshow|ptRate=${ptRate}|taught=3|noShows=3|held=${ns.heldBefore}|reserve=${ph.stillHeld}|returnedAtEnd=${ph.returnedToPt}|paidAfterVerified=${d.paidToClient}|ptAvailableFinal=${after.ptAvailable}`);
   });
 }
 
@@ -579,7 +602,8 @@ test('PT no-shows eating every undelivered session leave the held amount intact 
   assert.equal(r.heldBefore, '450000.00');
   assert.equal(r.beforeEnd.ptPending, '0.00', 'the no-show charges drained the contract’s pending…');
   assert.equal(r.beforeEnd.ptHoldback, '450000.00', '…and could not touch the held money, which sits in its own bucket');
-  assert.equal((r.result as any).ptHoldback.compensation, '350000.00', 'base = 0 remaining + 7 × 500.000 compensated');
+  assert.equal((r.result as any).ptHoldback.compensation, '0.00');
+  assert.equal((r.result as any).ptHoldback.stillHeld, '350000.00', 'base = 0 remaining + 7 × 500.000 compensated → 10% = 350.000 reserved');
   assert.equal((r.result as any).ptHoldback.returnedToPt, '100000.00');
   assert.equal(r.result.refund, '0.00', 'every undelivered session was already paid back');
 });
@@ -601,7 +625,7 @@ test('the held money cannot be shrunk by anything that draws on pending: a no-sh
   await assertBooksReconcile(m, 'held is not pending');
 });
 
-test('money locked for an approved withdrawal and the PT’s available balance are never touched by the compensation', skipOpts, async () => {
+test('money locked for an approved withdrawal and the PT’s available balance are never touched by the reserve or the verified payment', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
@@ -617,10 +641,14 @@ test('money locked for an approved withdrawal and the PT’s available balance a
   assert.equal(before.ptLocked, '800000.00');
 
   const { result } = await terminate(m, f, 'PT_CANCELLED');
-  assert.equal((result as any).ptHoldback.compensation, '350000.00');
+  assert.equal((result as any).ptHoldback.stillHeld, '350000.00');
+  const mid = await balances(m, f);
+  assert.equal(mid.ptLocked, '800000.00', 'the approved withdrawal is intact');
+  assert.equal(mid.ptAvailable, dec(m, before.ptAvailable).plus('100000').toFixed(2), 'available only GAINED the 100.000 of the hold that is not at risk');
+  await decide(m, f, 'VERIFIED');
   const after = await balances(m, f);
-  assert.equal(after.ptLocked, '800000.00', 'the approved withdrawal is intact');
-  assert.equal(after.ptAvailable, dec(m, before.ptAvailable).plus('100000').toFixed(2), 'available only GAINED the unused 100.000 of the hold');
+  assert.equal(after.ptLocked, '800000.00', 'and the verified payment did not touch it either');
+  assert.equal(after.ptAvailable, mid.ptAvailable, 'nor the available balance: it came out of the contract’s hold');
   await assertBooksReconcile(m, 'locked balance respected');
 });
 
@@ -638,35 +666,40 @@ test('never platform money: with REVENUE empty, a PT quitting before the first s
   await assertBooksReconcile(m, 'quit before first session');
 });
 
-test('a contract with a gym share: the gym and the platform keep exactly what they earned; the PT alone funds the compensation', skipOpts, async () => {
+test('a contract with a gym share: the gym and the platform keep exactly what they earned; the PT alone funds the (verified) compensation', skipOpts, async () => {
   const m = await load();
   const legacy = await scenario(m, { price: 1_000_000, sessions: 10, taught: 2, reason: 'PT_CANCELLED', withGym: true });
   const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 10, taught: 2, reason: 'PT_CANCELLED', withGym: true });
-  // PT s = 55.000, H = 10% × 550.000 = 55.000: after 2 sessions held 55.000, released 55.000. Ceiling = 10% × 800.000 = 80.000 → capped by held.
-  assert.equal((held.result as any).ptHoldback.compensation, '55000.00');
-  assert.equal(held.after.gymAvailable, legacy.after.gymAvailable, 'gym unchanged');
-  assert.equal(held.after.gymPending, legacy.after.gymPending);
-  assert.equal(held.after.platformRevenue, legacy.after.platformRevenue, 'platform unchanged');
-  assert.equal(dec(m, held.after.clientAvailable).minus(legacy.after.clientAvailable).toFixed(2), '55000.00');
-  assert.equal(dec(m, legacy.after.ptAvailable).minus(held.after.ptAvailable).toFixed(2), '55000.00');
-  const sum = dec(m, held.after.clientAvailable).plus(held.after.ptAvailable).plus(held.after.gymAvailable).plus(held.after.platformRevenue);
+  // PT s = 55.000, H = 10% × 550.000 = 55.000: after 2 sessions held 55.000, released 55.000. Ceiling = 10% × 800.000 = 80.000 → reserve capped by held.
+  assert.equal((held.result as any).ptHoldback.stillHeld, '55000.00');
+  assert.equal((held.result as any).ptHoldback.compensation, '0.00');
+  await decide(m, held.f, 'VERIFIED');
+  const after = await balances(m, held.f);
+  assert.equal(after.gymAvailable, legacy.after.gymAvailable, 'gym unchanged');
+  assert.equal(after.gymPending, legacy.after.gymPending);
+  assert.equal(after.platformRevenue, legacy.after.platformRevenue, 'platform unchanged');
+  assert.equal(dec(m, after.clientAvailable).minus(legacy.after.clientAvailable).toFixed(2), '55000.00');
+  assert.equal(dec(m, legacy.after.ptAvailable).minus(after.ptAvailable).toFixed(2), '55000.00');
+  const sum = dec(m, after.clientAvailable).plus(after.ptAvailable).plus(after.gymAvailable).plus(after.platformRevenue);
   assert.equal(sum.toFixed(2), '1000000.00', 'all four parts rebuild the price');
 });
 
-test('rounding: 1.000.000 over 3 sessions with a gym share — whole đồng, compensation rounds up for the client, nothing lost', skipOpts, async () => {
+test('rounding: 1.000.000 over 3 sessions with a gym share — whole đồng, the reserve is capped by the hold, nothing lost', skipOpts, async () => {
   const m = await load();
   const legacy = await scenario(m, { price: 1_000_000, sessions: 3, taught: 1, reason: 'PT_CANCELLED', withGym: true });
   const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 3, taught: 1, reason: 'PT_CANCELLED', withGym: true });
   // s_pt = floor(333.333 × 0.55) = 183.333; expected income 550.000 → H = 55.000: held 55.000, released 128.333.
-  // ceiling = ceil(10% × 666.666,67) = 66.667 → capped by what is held.
+  // ceiling = ceil(10% × 666.666,67) = 66.667 → reserve capped by what is held.
   const ph = (held.result as any).ptHoldback;
   assert.equal(ph.held, '55000.00');
-  assert.equal(ph.compensation, '55000.00', 'capped by the held amount');
+  assert.equal(ph.stillHeld, '55000.00', 'capped by the held amount');
   assert.equal(ph.returnedToPt, '0.00');
   assert.equal(held.result.refund, '666667.00', 'rounded up like every client-facing amount');
-  assert.equal(dec(m, legacy.after.ptAvailable).minus(held.after.ptAvailable).toFixed(2), '55000.00');
+  await decide(m, held.f, 'VERIFIED');
+  const after = await balances(m, held.f);
+  assert.equal(dec(m, legacy.after.ptAvailable).minus(after.ptAvailable).toFixed(2), '55000.00');
   const total = ['clientAvailable', 'ptAvailable', 'gymAvailable', 'platformRevenue', 'ptPending', 'gymPending', 'platformPending', 'ptHoldback']
-    .reduce((acc, k) => acc.plus((held.after as any)[k]), dec(m, '0'));
+    .reduce((acc, k) => acc.plus((after as any)[k]), dec(m, '0'));
   assert.equal(total.toFixed(2), '1000000.00', 'not one đồng created or lost');
 });
 
@@ -704,11 +737,13 @@ test('two concurrent termination requests settle the contract once', skipOpts, a
   const [a, b] = await Promise.all([m.ledger.terminateContract(params), m.ledger.terminateContract(params)]);
   assert.deepEqual(a, b, 'both callers are told the same thing');
   const lines = await postings(m, params.transactionId);
-  assert.equal(lines.filter((l) => /^CLIENT CREDIT/.test(l) && /compensation/i.test(l)).length, 1, 'one compensation credit');
+  assert.equal(lines.filter((l) => /^CLIENT CREDIT/.test(l) && /compensation/i.test(l)).length, 0, 'no automatic compensation');
   assert.equal(lines.filter((l) => /refund \(PT_CANCELLED\)/.test(l)).length, 1, 'one refund');
+  assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: params.transactionId } }), 1, 'one review item, however many callers');
   const bal = await balances(m, f);
-  assert.equal(bal.clientAvailable, '3850000.00', 'client paid once: 3.500.000 + 350.000');
+  assert.equal(bal.clientAvailable, '3500000.00', 'client paid once: the refund only');
   assert.equal(bal.ptAvailable, '1000000.00', '900.000 released + 100.000 returned');
+  assert.equal(bal.ptHoldback, '350000.00', 'the potential PT-fault amount is reserved, once');
   await assertBooksReconcile(m, 'concurrent termination');
 });
 
@@ -737,7 +772,7 @@ test('a retried release replays; concurrent releases of different sessions fill 
 
 // ── 6. Contracts sharing a PT wallet ─────────────────────────────────────────
 
-test('two held contracts of one PT: each hold is its own; ending one leaves the other’s hold and pending intact', skipOpts, async () => {
+test('two held contracts of one PT: each hold is its own; ending one (reserve, then verified payment) leaves the other’s hold and pending intact', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const pt = 'pt-shared';
@@ -753,11 +788,18 @@ test('two held contracts of one PT: each hold is its own; ending one leaves the 
     return m.wallet.withWallets([w.id], b.txnId, async (ops) => (await (await import('../services/wallet.service')).pendingForTransaction(ops, w.id, b.txnId)).toFixed(2));
   };
   const bPendingBefore = await pendingB();
+  const bRows = await m.prisma.walletLedgerEntry.count({ where: { transactionId: b.txnId } });
   const { result } = await terminate(m, a, 'PT_CANCELLED');
   assert.equal((result as any).ptHoldback.held, '450000.00');
-  assert.equal((result as any).ptHoldback.compensation, '350000.00');
+  assert.equal((result as any).ptHoldback.stillHeld, '350000.00');
+  assert.equal((await m.wallet.getOrCreateWallet('PT', pt)).holdbackBalance.toFixed(2), '530000.00', 'B’s 180.000 + A’s reserve 350.000');
+  const d = await decide(m, a, 'VERIFIED', '200000');
+  assert.equal(d.paidToClient, '200000.00');
+  assert.equal(d.releasedToPt, '150000.00', 'the rest of A’s reserve goes back to the PT');
+  assert.equal(await heldNow(m, a), '0.00');
   assert.equal(await heldNow(m, b), '180000.00', 'B’s hold is untouched');
   assert.equal(await pendingB(), bPendingBefore, 'B’s pending is untouched');
+  assert.equal(await m.prisma.walletLedgerEntry.count({ where: { transactionId: b.txnId } }), bRows, 'no ledger row of B was written');
   assert.equal((await m.wallet.getOrCreateWallet('PT', pt)).holdbackBalance.toFixed(2), '180000.00', 'the wallet bucket is exactly B’s hold now');
   await assertBooksReconcile(m, 'shared PT wallet');
 });
@@ -796,7 +838,7 @@ test('release is never early: on a running contract it moves nothing and says wh
     transactionId: f.txnId, parties: f.parties, label: `${f.contractId} holdback`, idempotencyKey: key,
   });
   const r1 = await release();
-  assert.deepEqual(r1, { released: '0.00', heldAfter: '450000.00', ended: false, reconciled: false, blockedBy: { notEnded: true, openObligations: '0.00', unresolvedSessions: 0 } });
+  assert.deepEqual(r1, { released: '0.00', heldAfter: '450000.00', ended: false, reconciled: false, blockedBy: { notEnded: true, openReviews: [] } });
   const before = await balances(m, f);
   assert.equal(before.ptAvailable, '450000.00', 'nothing moved');
   assert.equal(await heldNow(m, f), '450000.00');
@@ -918,8 +960,10 @@ test('internal endpoints: release-session / terminate carry the rate, a body wit
       alreadyReleased: { pt: '450000', gym: '0', platform: '100000' }, ptHoldbackRate: '0.10',
     });
     assert.equal(t.status, 200);
-    assert.equal(t.json.data.ptHoldback.compensation, '400000.00');
+    assert.equal(t.json.data.ptHoldback.compensation, '0.00', 'nothing is paid automatically');
+    assert.equal(t.json.data.ptHoldback.stillHeld, '400000.00', 'the potential PT-fault amount is reserved');
     assert.equal(t.json.data.ptHoldback.returnedToPt, '50000.00');
+    assert.deepEqual(t.json.data.ptHoldback.reserves.map((r: any) => [r.kind, r.reserve]), [['PT_FAULT', '400000.00']]);
     // The old parameter is not part of the contract any more: unknown keys are ignored, nothing is charged.
     const old = await paidContract(m, { price: 5_000_000, totalSessions: 10 });
     await post('release-session', { ...common(old), label: 'o', idempotencyKey: `SESSION_RELEASE:${old.contractId}:1` });

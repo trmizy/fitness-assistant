@@ -157,10 +157,40 @@ export interface ProductPaymentsSummary {
   refundShort: number;
 }
 
+/** FH-9: một hợp đồng đang tạm giữ tiền của PT (suy ra từ sổ cái, chỉ đọc). */
+export type PtHoldbackState = "RUNNING" | "WAITING_RECONCILIATION" | "STUCK";
+export interface PtHoldbackRow {
+  transactionId: string;
+  contract: string | null;
+  contractId: string | null;
+  pt: string;
+  held: string;
+  ended: boolean;
+  openObligations: string;
+  undecidedSessions: number;
+  state: PtHoldbackState;
+  lastMovementAt: string | null;
+  /** Phần giữ làm dự phòng theo các mục xem xét đang mở, hạn xem xét sớm nhất, và đã quá hạn chưa. */
+  reserved: string;
+  reviewBy: string | null;
+  overdue: boolean;
+  reviewKinds: string[];
+}
+export interface PtHoldbackSummary {
+  totalHeld: string;
+  contractsHolding: number;
+  waitingReconciliation: { count: number; held: string };
+  /** Đã kết thúc, đối soát xong mà vẫn còn giữ: lẽ ra lần quét kế tiếp đã trả; phải bằng 0. */
+  stuck: { count: number; held: string };
+  /** Dự phòng đã quá hạn xem xét: cần quản trị viên quyết định ngay. */
+  overdue: { count: number; reserved: string };
+}
+
 export interface ObligationsReport {
   generatedAt: string;
   params: { limit: number; staleMinutes: number };
   summary: {
+    ptHoldback: PtHoldbackSummary;
     negativeWallets: number;
     negativeSubledgers: { count: number; unbackedTotal: string };
     walletMismatches: { count: number; nonEscrowCount: number };
@@ -190,6 +220,7 @@ export interface ObligationsReport {
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
   walletMismatches: WalletMismatchRow[];
+  ptHoldbacks: PtHoldbackRow[];
   receivables: ReceivableRow[];
   unpaidObligations: UnpaidObligationRow[];
   /** Đang có khoản chi: đã phê duyệt chi / đang chờ chứng từ (vẫn còn thiếu cho đến khi được xác minh). */
@@ -201,6 +232,7 @@ export interface ObligationsReport {
   cancelledPaid: ProductPaymentRow[];
   refundOutcomes: ProductPaymentRow[];
   truncated: Record<
+    | "ptHoldbacks"
     | "negativeWallets"
     | "negativeSubledgers"
     | "walletMismatches"
@@ -430,7 +462,7 @@ export const ACTIVATION_LABEL: Record<string, string> = {
 };
 export const activationLabel = (s: string | null | undefined) => lookup(ACTIVATION_LABEL, s, "Chưa rõ");
 
-export const BUCKET_LABEL: Record<string, string> = { AVAILABLE: "Khả dụng", PENDING: "Đang chờ", LOCKED: "Đang khóa" };
+export const BUCKET_LABEL: Record<string, string> = { AVAILABLE: "Khả dụng", PENDING: "Đang chờ", LOCKED: "Đang khóa", HOLDBACK: "Tạm giữ của PT" };
 export const bucketLabel = (b: string | null | undefined) => lookup(BUCKET_LABEL, b);
 
 export const SETTLEMENT_KIND_LABEL: Record<string, string> = {
@@ -545,6 +577,13 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
     generatedAt: String(data.generatedAt ?? ""),
     params: { limit: num(data.params?.limit), staleMinutes: num(data.params?.staleMinutes) },
     summary: {
+      ptHoldback: {
+        totalHeld: String(s.ptHoldback?.totalHeld ?? "0"),
+        contractsHolding: num(s.ptHoldback?.contractsHolding),
+        waitingReconciliation: { count: num(s.ptHoldback?.waitingReconciliation?.count), held: String(s.ptHoldback?.waitingReconciliation?.held ?? "0") },
+        stuck: { count: num(s.ptHoldback?.stuck?.count), held: String(s.ptHoldback?.stuck?.held ?? "0") },
+        overdue: { count: num(s.ptHoldback?.overdue?.count), reserved: String(s.ptHoldback?.overdue?.reserved ?? "0") },
+      },
       negativeWallets: num(s.negativeWallets),
       negativeSubledgers: { count: num(s.negativeSubledgers?.count), unbackedTotal: String(s.negativeSubledgers?.unbackedTotal ?? "0") },
       walletMismatches: { count: num(s.walletMismatches?.count), nonEscrowCount: num(s.walletMismatches?.nonEscrowCount) },
@@ -577,6 +616,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
     negativeWallets: arr(data.negativeWallets),
     negativeSubledgers: arr(data.negativeSubledgers),
     walletMismatches: arr(data.walletMismatches),
+    ptHoldbacks: arr(data.ptHoldbacks),
     receivables: arr(data.receivables),
     unpaidObligations: arr<UnpaidObligationRow>(data.unpaidObligations).map(withHistory),
     inFlightObligations: arr<UnpaidObligationRow>(data.inFlightObligations).map(withHistory),
@@ -586,6 +626,7 @@ export function normalizeObligationsReport(raw: unknown): ObligationsReport | nu
     cancelledPaid: arr(data.cancelledPaid),
     refundOutcomes: arr(data.refundOutcomes),
     truncated: {
+      ptHoldbacks: Boolean(t.ptHoldbacks),
       negativeWallets: Boolean(t.negativeWallets),
       negativeSubledgers: Boolean(t.negativeSubledgers),
       walletMismatches: Boolean(t.walletMismatches),
@@ -628,7 +669,7 @@ export function countAttention(payment: ObligationsReport | null, sessions: Sess
   if (payment) {
     const s = payment.summary;
     // Đã hủy mà khách đã trả và tiền vẫn bị giữ = cảnh báo thật (dịch vụ sở hữu xác nhận). "Chưa xác minh" và "còn hiệu lực" là thông tin, cố ý không đếm.
-    critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated + s.productPayments.cancelledPaid;
+    critical += s.negativeWallets + s.negativeSubledgers.count + s.walletMismatches.nonEscrowCount + s.paidNotActivated + s.productPayments.cancelledPaid + s.ptHoldback.stuck.count + s.ptHoldback.overdue.count;
     // Đã thanh toán được xác minh, không truy đòi, giải quyết cách khác, bản ghi cũ đã đóng nên không đếm; "đang xem xét", "đã phê duyệt chi"
     // và "đang chờ chứng từ" vẫn còn thiếu tiền cho khách nên là việc còn mở. Hoàn chưa đủ cần theo dõi.
     watch +=

@@ -524,6 +524,8 @@ ${gymLog.slice(-30).join("")}`);
         endDate: new Date(Date.now() + 60 * DAY),
         // rates are the schema defaults (platform 0.10 / PT 0.90 / gym 0; holdback 0 = off) unless `over.gym` makes it a gym contract
         // (TEST FIXTURE: the caller must also make gymClient.getActiveCollaboration answer these same rates - pay() re-checks them).
+        // Codex #6: a gym contract needs a fixed duration (the package snapshot) that the client's membership covers (the caller stubs the membership lookup).
+        ...(over.gym ? { validityDays: 60 } : {}),
         ...(over.gym ? { gymId: over.gym.gymId, platformRate: over.gym.platformRate, ptRate: over.gym.ptRate, gymRate: over.gym.gymRate } : {}),
       },
     });

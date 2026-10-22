@@ -176,8 +176,14 @@ export interface PtHoldbackRow {
   /** Unpaid amount of this contract's OPEN obligations (what keeps the related part held). */
   openObligations: string;
   undecidedSessions: number;
-  /** RUNNING: not ended yet (normal). WAITING_RECONCILIATION: ended, held because of this contract's own open items. STUCK: ended, nothing blocks it, still held (the sweep should release it). */
+  /** RUNNING: not ended yet (normal). WAITING_RECONCILIATION: ended, a reserve of this contract waits for a cause to clear or an admin decision. STUCK: ended, no reserve waits, still held (the sweep should release it). */
   state: 'RUNNING' | 'WAITING_RECONCILIATION' | 'STUCK';
+  /** What is reserved by open review items, and the earliest review-by deadline. OVERDUE = past that deadline: needs an admin decision now. */
+  reserved: string;
+  reviewBy: string | null;
+  overdue: boolean;
+  /** Open reserve kinds (PT_FAULT / OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE). */
+  reviewKinds: string[];
   lastMovementAt: string | null;
 }
 
@@ -186,7 +192,7 @@ export interface ObligationsReport {
   params: { limit: number; staleMinutes: number };
   summary: {
     /** FH-9: PT money held back per contract. `stuck` should be 0: ended, reconciled and still held means the release sweep has not run. */
-    ptHoldback: { totalHeld: string; contractsHolding: number; waitingReconciliation: { count: number; held: string }; stuck: { count: number; held: string } };
+    ptHoldback: { totalHeld: string; contractsHolding: number; waitingReconciliation: { count: number; held: string }; stuck: { count: number; held: string }; overdue: { count: number; reserved: string } };
     negativeWallets: number;
     negativeSubledgers: { count: number; unbackedTotal: string };
     walletMismatches: { count: number; nonEscrowCount: number };
@@ -426,6 +432,9 @@ export async function buildObligationsReport(
                 sum(CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) AS held,
                 max(e.created_at) AS last_at,
                 EXISTS (SELECT 1 FROM ledger_operations o WHERE o.kind='TERMINATE' AND o.transaction_id = e.transaction_id) AS ended,
+                coalesce((SELECT sum(r.reserve) FROM pt_holdback_reviews r WHERE r.transaction_id = e.transaction_id AND r.status = 'OPEN'),0)::text AS reserved,
+                (SELECT min(r.review_by) FROM pt_holdback_reviews r WHERE r.transaction_id = e.transaction_id AND r.status = 'OPEN') AS review_by,
+                coalesce((SELECT array_agg(DISTINCT r.kind::text) FROM pt_holdback_reviews r WHERE r.transaction_id = e.transaction_id AND r.status = 'OPEN'),'{}') AS review_kinds,
                 coalesce((SELECT sum(c.unpaid) FROM contract_unpaid_obligations c
                            WHERE c.transaction_id = e.transaction_id AND c.unpaid > 0
                              AND c.status IN ('OPEN','UNDER_REVIEW','APPROVED_FOR_PAYMENT','AWAITING_EVIDENCE','PAID_EXTERNALLY')),0)::text AS open_ob,
@@ -487,7 +496,11 @@ export async function buildObligationsReport(
       ended,
       openObligations: openOb.toFixed(2),
       undecidedSessions: undecided,
-      state: !ended ? 'RUNNING' : openOb.greaterThan(0) || undecided > 0 ? 'WAITING_RECONCILIATION' : 'STUCK',
+      state: !ended ? 'RUNNING' : (r.review_kinds as string[]).length > 0 ? 'WAITING_RECONCILIATION' : 'STUCK',
+      reserved: money(r.reserved),
+      reviewBy: iso(r.review_by),
+      overdue: r.review_by ? new Date(r.review_by).getTime() < Date.now() : false,
+      reviewKinds: r.review_kinds as string[],
       lastMovementAt: iso(r.last_at),
     } as PtHoldbackRow;
   });
@@ -497,6 +510,7 @@ export async function buildObligationsReport(
     contractsHolding: holdAll.length,
     waitingReconciliation: { count: holdAll.filter((r) => r.state === 'WAITING_RECONCILIATION').length, held: sumHeld(holdAll.filter((r) => r.state === 'WAITING_RECONCILIATION')) },
     stuck: { count: holdAll.filter((r) => r.state === 'STUCK').length, held: sumHeld(holdAll.filter((r) => r.state === 'STUCK')) },
+    overdue: { count: holdAll.filter((r) => r.overdue).length, reserved: holdAll.filter((r) => r.overdue).reduce((a, r) => a.plus(r.reserved), new Prisma.Decimal(0)).toFixed(2) },
   };
   const rec = (state: string) => core.recSummary.find((r) => r.state === state);
   const ob = (status: string) => core.obSummary.find((r) => r.status === status);

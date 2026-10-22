@@ -457,3 +457,30 @@ describe("FH-8 verified payment lifecycle: separate groups, unverified is never 
     assert.ok(line.includes("Chuyển sang xem xét"));
   });
 });
+
+describe("FH-9 PT holdback block: normalised from the real report shape; an overdue reserve and a stuck hold need attention, a normal hold does not", () => {
+  const withHold = (summary: any, rows: any[] = []) => {
+    const f: any = paymentFixture();
+    f.data.summary.ptHoldback = summary;
+    f.data.ptHoldbacks = rows;
+    return normalizeObligationsReport(f)!;
+  };
+  it("old servers without the block normalise to zeros", () => {
+    const r = normalizeObligationsReport(paymentFixture())!;
+    assert.deepEqual(r.summary.ptHoldback.overdue, { count: 0, reserved: "0" });
+    assert.deepEqual(r.ptHoldbacks, []);
+  });
+  it("reads the totals, the rows and the overdue flag", () => {
+    const r = withHold(
+      { totalHeld: "360000.00", contractsHolding: 3, waitingReconciliation: { count: 1, held: "90000.00" }, stuck: { count: 0, held: "0.00" }, overdue: { count: 1, reserved: "90000.00" } },
+      [{ transactionId: "t1", contract: "3b7ccecd", contractId: "3b7ccecd-0000", pt: "e662bcd1", held: "90000.00", ended: true, openObligations: "0.00", undecidedSessions: 0, state: "WAITING_RECONCILIATION", lastMovementAt: null, reserved: "90000.00", reviewBy: "2026-10-01T00:00:00.000Z", overdue: true, reviewKinds: ["UNCOMPUTABLE"] }],
+    );
+    assert.equal(r.summary.ptHoldback.overdue.count, 1);
+    assert.equal(r.ptHoldbacks[0].overdue, true);
+  });
+  it("an overdue reserve counts as critical (needs a decision now); a normal hold does not", () => {
+    const calm = withHold({ totalHeld: "90000.00", contractsHolding: 1, waitingReconciliation: { count: 0, held: "0" }, stuck: { count: 0, held: "0" }, overdue: { count: 0, reserved: "0" } });
+    const late = withHold({ totalHeld: "90000.00", contractsHolding: 1, waitingReconciliation: { count: 1, held: "90000" }, stuck: { count: 0, held: "0" }, overdue: { count: 1, reserved: "90000" } });
+    assert.equal(countAttention(late, null).critical - countAttention(calm, null).critical, 1);
+  });
+});

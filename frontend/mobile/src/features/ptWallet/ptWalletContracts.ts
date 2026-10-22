@@ -29,6 +29,13 @@ export interface PtWalletContractRow {
     heldDueToDispute: boolean;
     undecidedSessions: number;
     openObligations: string;
+    /** Phần đang giữ làm dự phòng cho việc liên quan của chính hợp đồng này. */
+    reserved: string;
+    /** Có khoản có thể do lỗi PT đang chờ quản trị viên quyết định (chưa trả gì cho khách). */
+    pendingFaultReview: boolean;
+    /** Hạn xem xét sớm nhất của các khoản dự phòng đang mở. */
+    reviewBy: string | null;
+    reviewOverdue: boolean;
   };
 }
 
@@ -41,6 +48,8 @@ export interface PtWalletContractsView {
 
 /** Câu cố định theo yêu cầu của chủ sở hữu. Không kèm ngày. */
 export const HOLDBACK_RELEASE_CONDITION = "Sẽ trả lại khi hợp đồng kết thúc và đối soát hoàn tất";
+
+const formatMoney = (n: number) => `${new Intl.NumberFormat("vi-VN").format(n)} ₫`;
 
 export const num = (v: string | number | null | undefined): number => {
   const n = Number(v ?? 0);
@@ -58,11 +67,16 @@ export function holdbackNote(row: PtWalletContractRow): string | null {
       if (held > 0) return HOLDBACK_RELEASE_CONDITION;
       return target > 0 ? `Một phần thu nhập của các buổi đầu sẽ được tạm giữ. ${HOLDBACK_RELEASE_CONDITION}` : null;
     case "WAITING_RECONCILIATION": {
+      const reserved = num(row.release.reserved);
+      const by = row.release.reviewBy ? ` Hạn xem xét: ${new Date(row.release.reviewBy).toLocaleDateString("vi-VN")}.` : "";
+      if (row.release.pendingFaultReview) {
+        return `Hợp đồng đã kết thúc. ${formatMoney(reserved)} đang được giữ để xem xét; chỉ dùng bồi thường cho khách nếu được xác minh là lỗi của bạn, nếu không sẽ trả lại toàn bộ.${by}`;
+      }
       const reasons: string[] = [];
       if (row.release.undecidedSessions > 0) reasons.push(`${row.release.undecidedSessions} buổi chưa được chốt`);
       if (num(row.release.openObligations) > 0) reasons.push("một khoản của chính hợp đồng này chưa được xử lý xong");
       return reasons.length > 0
-        ? `Hợp đồng đã kết thúc. Khoản tạm giữ còn lại được giữ vì ${reasons.join(" và ")}; sẽ trả lại ngay khi xử lý xong.`
+        ? `Hợp đồng đã kết thúc. ${formatMoney(reserved)} được giữ vì ${reasons.join(" và ")}; phần còn lại đã trả về số dư, phần này sẽ trả lại ngay khi xử lý xong.${by}`
         : "Hợp đồng đã kết thúc. Khoản tạm giữ còn lại sẽ được trả lại sau khi đối soát hoàn tất.";
     }
     case "RELEASED":

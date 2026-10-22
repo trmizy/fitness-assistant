@@ -518,7 +518,7 @@ test('rounding: 1.000.003 over 3 sessions with a gym — whole đồng at every 
 
 // ── 5. Holdback interplay ────────────────────────────────────────────────────
 
-test('holdback, non-fault exit: the hold goes back to the PT except the part related to the unresolved sessions; the unresolved PT share stays pending; the sweep releases the rest once they are decided', skipOpts, async () => {
+test('holdback, non-fault exit with unresolved sessions: the sessions’ value is held in PENDING, which secures the client refund, so NO holdback is kept for them — the whole hold goes back to the PT at the ending (Decision 2)', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
@@ -531,29 +531,27 @@ test('holdback, non-fault exit: the hold goes back to the PT except the part rel
   assert.equal(exit.refund, '2500000.00');
   assert.equal(exit.ptHoldback?.held, '450000.00');
   assert.equal(exit.ptHoldback?.compensation, '0.00');
-  assert.equal(exit.ptHoldback?.stillHeld, '100000.00', 'what two undecided sessions could still be about: 10% × 2 × 500.000');
-  assert.equal(exit.ptHoldback?.stillHeldFor.unresolvedSessions, '100000.00');
-  assert.equal(exit.ptHoldback?.returnedToPt, '350000.00');
+  assert.equal(exit.ptHoldback?.stillHeld, '0.00', 'the two undecided sessions are already secured by the pending of this contract');
+  assert.deepEqual(exit.ptHoldback?.reserves, []);
+  assert.equal(exit.ptHoldback?.returnedToPt, '450000.00');
   assert.equal(exit.topUp.pt, '0.00', 'not a đồng of the unresolved sessions is topped up');
   assert.equal(exit.unresolved?.byParty.pt, '900000.00');
   const b = await balances(m, f);
-  assert.equal(b.ptAvailable, '1250000.00');
-  assert.equal(b.ptPending, '900000.00');
-  assert.equal(b.ptHoldback, '100000.00');
+  assert.equal(b.ptAvailable, '1350000.00');
+  assert.equal(b.ptPending, '900000.00', 'the unresolved PT shares stay in pending');
+  assert.equal(b.ptHoldback, '0.00');
+  assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: f.txnId } }), 0, 'no reserve, no review');
 
   const sweep = () => m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
   const early = await sweep();
-  assert.equal(early.released, '0.00', 'two sessions are still undecided: not reconciled, nothing is released');
-  assert.equal(early.blockedBy?.unresolvedSessions, 2);
+  assert.equal(early.released, '0.00', 'nothing left to release');
+  assert.equal(early.reconciled, true);
   assert.deepEqual(await balances(m, f), b, 'and nothing moved');
 
   // DELIVERED pays the PT in full: no holdback is applied again to a contract that is over
   const r = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'DELIVERED'));
   assert.equal(r.moved.pt, '450000.00');
-  assert.equal((await sweep()).released, '0.00', 'one is still undecided');
   await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'B', 'DELIVERED'));
-  const done = await sweep();
-  assert.equal(done.released, '100000.00');
   const end = await balances(m, f);
   assert.equal(end.ptAvailable, '2250000.00', '5 × 450.000: what five confirmed sessions give a PT whose hold was returned');
   assert.equal(end.ptPending, '0.00');
@@ -561,26 +559,28 @@ test('holdback, non-fault exit: the hold goes back to the PT except the part rel
   await assertBooksReconcile(m, 'holdback non-fault');
 });
 
-test('holdback, PT-fault exit: the compensation is carved out of the hold only, measured on the certainly-undelivered sessions, and the unresolved PT share is not touched', skipOpts, async () => {
+test('holdback, PT-fault exit with unresolved sessions: the potential PT-fault amount is reserved (10% × the certainly-undelivered sessions), nothing is paid until verified; the unresolved PT share in pending is not touched', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
   await deliver(m, f, 3);
   const exit = await m.ledger.terminateContract(terminateParams(m, f, 'PT_CANCELLED', 2));
   assert.equal(exit.refund, '2500000.00');
-  assert.equal(exit.ptHoldback?.compensation, '250000.00', '10% × 2.500.000 — not × 3.500.000');
-  assert.equal(exit.ptHoldback?.stillHeld, '100000.00', 'the two undecided sessions keep their related part held');
-  assert.equal(exit.ptHoldback?.returnedToPt, '100000.00');
+  assert.equal(exit.ptHoldback?.compensation, '0.00', 'nothing automatic');
+  assert.equal(exit.ptHoldback?.stillHeld, '250000.00', '10% × 2.500.000 — not × 3.500.000');
+  assert.equal(exit.ptHoldback?.returnedToPt, '200000.00');
   assert.equal(exit.topUp.pt, '0.00');
   const b = await balances(m, f);
   assert.equal(b.ptPending, '900000.00', 'the 2 unresolved PT shares are intact');
-  assert.equal(b.clientAvailable, '2750000.00', 'refund + compensation');
-  assert.equal(b.ptAvailable, '1000000.00');
-  assert.equal(b.ptHoldback, '100000.00');
+  assert.equal(b.clientAvailable, '2500000.00', 'refund only');
+  assert.equal(b.ptAvailable, '1100000.00');
+  assert.equal(b.ptHoldback, '250000.00');
   await assertBooksReconcile(m, 'holdback PT fault');
 
   const early = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
-  assert.equal(early.released, '0.00');
+  assert.equal(early.released, '0.00', 'the PT-fault review is open: the sweep never decides it');
+  assert.equal(early.reconciled, false);
+  assert.equal(early.blockedBy?.openReviews[0]?.kind, 'PT_FAULT');
   assert.equal((await balances(m, f)).ptPending, '900000.00');
 });
 

@@ -15,7 +15,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HOUR, DAY, skip, sleep, startMi, type Mi, type PaidContract } from "./mi.harness";
+import { HOUR, DAY, PAY_DB_URL, skip, sleep, startMi, type Mi, type PaidContract } from "./mi.harness";
 
 let M: Mi;
 test.before(async () => {
@@ -394,5 +394,48 @@ test("MI-4f FH-9 holdback sweep on 3 instances at once (the flag is OFF in produ
     assert.equal(res.reduce((s, r) => s + (r.result?.released ?? 0), 0), 1, "exactly one instance recorded the mark");
     assert.equal(ptAfter, ptAfterEnd, "the sweep credited nothing a second time (Z4: nothing left to release, nothing double-counted)");
     assert.equal(Number(after.releasedToPt), Number(before.releasedToPt), "no amount is copied into the counter");
+  });
+});
+
+test("MI-4g FH-9 owner decision across processes: three instances end the contract as PT_CANCELLED at once -> ONE review and ONE reserve, nothing paid automatically; then two admin decision CLIs (same approval + another approval) and three holdback sweeps run at once -> the client is paid once, the rest returns to the PT once", { skip, timeout: 280_000 }, async () => {
+  await scenario(async () => {
+    const { execFile } = await import("node:child_process");
+    const path = await import("node:path");
+    const pt = await M.makePt();
+    const A = await M.paidContract(pt);
+    await M.prisma.contract.update({ where: { id: A.id }, data: { ptHoldbackRate: "0.10", ptHoldbackPolicyVersion: 1 } }); // TEST FIXTURE (flag OFF in production)
+    await M.deliver(A, 3);
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 450_000);
+    const ends = await Promise.all([0, 1, 2].map((i) => M.call(i, "POST", `/contracts/${A.id}/terminate`, A.ptToken, { reason: "PT_CANCELLED" })));
+    show("MI-4g ends", { statuses: ends.map((e) => e.status) });
+    assert.ok(ends.some((e) => e.status === 200), JSON.stringify(ends.map((e) => e.body)));
+    const reviews = (await M.payDb.$queryRawUnsafe(`SELECT id, kind::text AS kind, status::text AS status, reserve::text AS reserve, transaction_id FROM pt_holdback_reviews WHERE transaction_id = '${A.txnId}'`)) as any[];
+    assert.equal(reviews.length, 1, "one review item, however many instances ended it");
+    assert.deepEqual([reviews[0].kind, reviews[0].status, reviews[0].reserve], ["PT_FAULT", "OPEN", "350000.00"], "10% of the 3.500.000 undelivered value, capped by the hold; nothing paid");
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 350_000, "only the reserve is still held; the other 100.000 went back to the PT");
+    const clientBefore = (await M.wallet("CLIENT", A.clientUserId)).a;
+
+    const cli = (ref: string) =>
+      new Promise<{ code: number; out: string }>((resolve) => {
+        execFile(
+          process.execPath,
+          ["--import", "tsx", "scripts/fh9-holdback-review.ts", "--op=decide", `--id=${reviews[0].id}`, "--expected-reserve=350000.00", `--expected-transaction-id=${A.txnId}`, "--decision=VERIFIED", "--verified-amount=200000", "--note=checked the evidence of this contract", "--actor=admin-a", "--approved-by=admin-b", `--approval-ref=${ref}`, "--apply"],
+          { cwd: path.resolve(__dirname, "../../../../payment-service"), env: { ...process.env, DATABASE_URL: PAY_DB_URL, FITNESS_DISABLE_REDIS: "true" }, timeout: 120_000 },
+          (err, stdout, stderr) => resolve({ code: err ? ((err as any).code ?? 1) : 0, out: `${stdout}${stderr}` }),
+        );
+      });
+    const at = Date.now() + 800;
+    const [c1, c2, c3] = await Promise.all([cli("AP-MI-1"), cli("AP-MI-1"), cli("AP-MI-2"), Promise.all([0, 1, 2].map((i) => M.job(i, "holdback", at)))] as const).then((r) => [r[0], r[1], r[2]] as const);
+    await Promise.all([0, 1, 2].map((i) => M.job(i, "holdback", Date.now() + 100)));
+    show("MI-4g cli", { c1: c1.code, c2: c2.code, c3: c3.code, tail: c3.out.slice(-200) });
+    assert.ok([c1, c2, c3].filter((c) => c.code === 0).length >= 1, "at least one decision applied");
+    assert.equal(await M.opCount(`HOLDBACK_FAULT_COMP:${A.id}:AP-MI-1`) + await M.opCount(`HOLDBACK_FAULT_COMP:${A.id}:AP-MI-2`), 1, "exactly one ledger decision operation");
+    assert.equal((await M.wallet("CLIENT", A.clientUserId)).a - clientBefore, 200_000, "the client is paid the verified amount once");
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 0, "the rest of the reserve returned to the PT, once");
+    const ev = (await M.payDb.$queryRawUnsafe(`SELECT count(*)::int AS n FROM pt_holdback_review_events WHERE review_id = '${reviews[0].id}'`)) as any[];
+    assert.equal(ev[0].n, 1, "one append-only event");
+    // after the decision the contract is reconciled: the next sweep marks it
+    await M.job(0, "holdback", Date.now() + 100);
+    assert.ok((await M.contractRow(A.id)).holdbackReleasedAt, "marked once nothing is held and no reserve waits");
   });
 });

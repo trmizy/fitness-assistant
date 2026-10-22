@@ -13,6 +13,7 @@ import {
   ObligationsReport,
   PaidNotActivatedRow,
   ProductPaymentRow,
+  PtHoldbackRow,
   ReceivableRow,
   SessionsReconciliationReport,
   SettlementAttentionItem,
@@ -199,6 +200,28 @@ const subledgerCols: Column<NegativeSubledgerRow>[] = [
   { header: "Số bút toán", cell: (r) => r.entries, right: true },
   { header: "Từ — đến", cell: (r) => `${formatDateTimeVi(r.firstEntry)} — ${formatDateTimeVi(r.lastEntry)}` },
 ];
+const HOLDBACK_STATE_LABEL: Record<string, string> = {
+  RUNNING: "Hợp đồng đang chạy (bình thường)",
+  WAITING_RECONCILIATION: "Đã kết thúc, chờ xử lý việc của chính hợp đồng",
+  STUCK: "Đã kết thúc và đối soát xong nhưng chưa trả",
+};
+const HOLDBACK_KIND_LABEL: Record<string, string> = {
+  PT_FAULT: "có thể do lỗi PT",
+  OPEN_OBLIGATION: "nghĩa vụ của hợp đồng",
+  UNSECURED_DISPUTE: "buổi tranh chấp chưa được đảm bảo",
+  UNCOMPUTABLE: "chưa tính được rủi ro",
+};
+const ptHoldbackCols: Column<PtHoldbackRow>[] = [
+  { header: "Hợp đồng", cell: (r) => shortId(r.contractId ?? r.transactionId) },
+  { header: "PT", cell: (r) => shortId(r.pt) },
+  { header: "Đang tạm giữ", cell: (r) => money(r.held), right: true },
+  { header: "Tình trạng", cell: (r) => <span className={r.state === "STUCK" ? "text-red-400 font-semibold" : r.state === "WAITING_RECONCILIATION" ? "text-amber-400" : "text-zinc-300"}>{HOLDBACK_STATE_LABEL[r.state] ?? r.state}</span> },
+  { header: "Dự phòng", cell: (r) => (toAmount(r.reserved) > 0 ? `${money(r.reserved)} · ${r.reviewKinds.map((k) => HOLDBACK_KIND_LABEL[k] ?? k).join(", ")}` : "—") },
+  {
+    header: "Hạn xem xét",
+    cell: (r) => (r.reviewBy ? <span className={r.overdue ? "text-red-400 font-semibold" : "text-zinc-300"}>{formatDateTimeVi(r.reviewBy)}{r.overdue ? " · QUÁ HẠN" : ""}</span> : "—"),
+  },
+];
 const negativeWalletCols: Column<NegativeWalletRow>[] = [
   { header: "Ví", cell: (r) => `${partyLabel(r.ownerType)} ${shortId(r.owner)}` },
   { header: "Khả dụng", cell: (r) => money(r.available), right: true },
@@ -218,9 +241,9 @@ const receivableCols: Column<ReceivableRow>[] = [
     header: "Trạng thái",
     cell: (r) =>
       r.state === "SUSPENDED" ? (
-        <span className="text-amber-400">Tạm ngừng thu{r.suspensionRef ? ` (${r.suspensionRef})` : ""}</span>
+        <span className="text-amber-400">Đã tạm ngừng (lưu vết){r.suspensionRef ? ` (${r.suspensionRef})` : ""}</span>
       ) : (
-        <span className="text-zinc-300">Đang thu</span>
+        <span className="text-zinc-300">Đang mở (lưu vết, không tự thu)</span>
       ),
   },
   { header: "Còn nợ", cell: (r) => <span className="font-semibold">{money(r.outstanding)}</span>, right: true },
@@ -422,11 +445,41 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
         <Rows rows={r.walletMismatches} columns={mismatchCols} rowKey={(x) => `${x.ownerType}-${x.owner}-${x.bucket}`} />
       </Block>
 
+      <Block
+        testId="recon-pt-holdback"
+        title="Tiền tạm giữ của PT theo hợp đồng"
+        hint="Tiền PT đã kiếm nhưng chưa rút được; chỉ trả khi hợp đồng kết thúc và đối soát xong. Đây không phải doanh thu của nền tảng. “Đã xong mà chưa trả” phải bằng 0."
+        count={s.ptHoldback.contractsHolding}
+        tone="neutral"
+        truncated={r.truncated.ptHoldbacks}
+        emptyText="Không có hợp đồng nào đang tạm giữ tiền của PT."
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
+          <div data-testid="recon-pt-holdback-overdue">
+            <div className="text-zinc-500">Quá hạn xem xét</div>
+            <div className={s.ptHoldback.overdue.count > 0 ? "text-red-400 font-semibold" : "text-zinc-200 font-semibold"}>{s.ptHoldback.overdue.count} · {money(s.ptHoldback.overdue.reserved)}</div>
+          </div>
+          <div data-testid="recon-pt-holdback-total">
+            <div className="text-zinc-500">Đang tạm giữ</div>
+            <div className="text-zinc-200 font-semibold">{money(s.ptHoldback.totalHeld)} · {s.ptHoldback.contractsHolding} hợp đồng</div>
+          </div>
+          <div data-testid="recon-pt-holdback-waiting">
+            <div className="text-zinc-500">Chờ xử lý việc của hợp đồng</div>
+            <div className="text-amber-300 font-semibold">{s.ptHoldback.waitingReconciliation.count} · {money(s.ptHoldback.waitingReconciliation.held)}</div>
+          </div>
+          <div data-testid="recon-pt-holdback-stuck">
+            <div className="text-zinc-500">Xong mà chưa trả</div>
+            <div className={s.ptHoldback.stuck.count > 0 ? "text-red-400 font-semibold" : "text-zinc-200 font-semibold"}>{s.ptHoldback.stuck.count} · {money(s.ptHoldback.stuck.held)}</div>
+          </div>
+        </div>
+        <Rows rows={r.ptHoldbacks} columns={ptHoldbackCols} rowKey={(x) => x.transactionId} />
+      </Block>
+
       <GroupTitle>Khoản đối tác còn nợ và nghĩa vụ chưa trả</GroupTitle>
       <Block
         testId="recon-receivables"
         title="Khoản phải thu từ đối tác"
-        hint="Nền tảng đã ứng trước và chưa thu lại. Đang thu: sẽ trừ vào thu nhập sau này (nếu bật). Tạm ngừng: không thu cho đến khi có quyết định."
+        hint="Khoản cũ nền tảng từng ứng trước. Chỉ để lưu vết và ra quyết định: hệ thống KHÔNG tự trừ vào thu nhập của đối tác (cả khoản đang thu lẫn tạm ngừng)."
         count={s.receivables.active.count + s.receivables.suspended.count}
         tone="watch"
         truncated={r.truncated.receivables}
@@ -434,13 +487,13 @@ function PaymentBlocks({ r }: { r: ObligationsReport }) {
       >
         <div className="grid grid-cols-2 gap-3 text-xs mb-3">
           <div data-testid="recon-receivables-active">
-            <div className="text-zinc-500">Đang thu</div>
+            <div className="text-zinc-500">Đang mở (lưu vết)</div>
             <div className="text-zinc-200 font-semibold">
               {s.receivables.active.count} khoản · {money(s.receivables.active.outstanding)}
             </div>
           </div>
           <div data-testid="recon-receivables-suspended">
-            <div className="text-zinc-500">Tạm ngừng thu</div>
+            <div className="text-zinc-500">Đã tạm ngừng</div>
             <div className="text-zinc-200 font-semibold">
               {s.receivables.suspended.count} khoản · {money(s.receivables.suspended.outstanding)}
             </div>

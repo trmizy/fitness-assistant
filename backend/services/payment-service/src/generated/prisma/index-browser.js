@@ -267,6 +267,45 @@ exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
   reason: 'reason'
 };
 
+exports.Prisma.PtHoldbackReviewScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  transactionId: 'transactionId',
+  kind: 'kind',
+  status: 'status',
+  reserve: 'reserve',
+  reason: 'reason',
+  relatedRef: 'relatedRef',
+  handler: 'handler',
+  reviewBy: 'reviewBy',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  decidedAt: 'decidedAt',
+  decidedBy: 'decidedBy',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  verifiedAmount: 'verifiedAmount',
+  releasedToPt: 'releasedToPt',
+  note: 'note'
+};
+
+exports.Prisma.PtHoldbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  action: 'action',
+  actor: 'actor',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  reserve: 'reserve',
+  verifiedAmount: 'verifiedAmount',
+  releasedToPt: 'releasedToPt',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PartnerReceivableEventScalarFieldEnum = {
   id: 'id',
   receivableId: 'receivableId',
@@ -482,6 +521,21 @@ exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligation
   RESOLVED_OTHER: 'RESOLVED_OTHER'
 };
 
+exports.PtHoldbackReviewKind = exports.$Enums.PtHoldbackReviewKind = {
+  PT_FAULT: 'PT_FAULT',
+  OPEN_OBLIGATION: 'OPEN_OBLIGATION',
+  UNSECURED_DISPUTE: 'UNSECURED_DISPUTE',
+  UNCOMPUTABLE: 'UNCOMPUTABLE'
+};
+
+exports.PtHoldbackReviewStatus = exports.$Enums.PtHoldbackReviewStatus = {
+  OPEN: 'OPEN',
+  SETTLED_VERIFIED: 'SETTLED_VERIFIED',
+  SETTLED_PARTIAL: 'SETTLED_PARTIAL',
+  NOT_VERIFIED: 'NOT_VERIFIED',
+  RELEASED_AUTO: 'RELEASED_AUTO'
+};
+
 exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventAction = {
   SUSPEND: 'SUSPEND',
   RESUME: 'RESUME',
@@ -517,6 +571,8 @@ exports.Prisma.ModelName = {
   PartnerReceivable: 'PartnerReceivable',
   LedgerOperation: 'LedgerOperation',
   ContractUnpaidObligation: 'ContractUnpaidObligation',
+  PtHoldbackReview: 'PtHoldbackReview',
+  PtHoldbackReviewEvent: 'PtHoldbackReviewEvent',
   PartnerReceivableEvent: 'PartnerReceivableEvent',
   ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
   ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',

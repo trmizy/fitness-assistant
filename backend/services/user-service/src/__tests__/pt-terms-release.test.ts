@@ -61,12 +61,13 @@ test("Điều 3 says an online session is recorded by the system when the room c
   assert.equal(PT_TERMS_IS_DRAFT, true);
 });
 
-test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 added the privacy notice, clause 10) (earlier drafts had other text, so their ids must not be reused)", () => {
+test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 added the privacy notice, clause 10; draft-6 added the holdback clause and the gym fixed-duration rule) (earlier drafts had other text, so their ids must not be reused)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-2");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-3");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-4");
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-5");
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-5");
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-6");
   assert.equal(PT_TERMS_IS_DRAFT, true);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
@@ -101,8 +102,8 @@ test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 a
   assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10"]);
 });
 
-test("draft-5: clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-5");
+test("draft-6 (privacy notice from draft-5): clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-6");
   assert.equal(PT_TERMS_IS_DRAFT, true, "still a draft: the notice does not make the terms official");
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice");
   assert.ok(clause, "clause 10 exists");
@@ -124,4 +125,44 @@ test("draft-5: clause 10 is the PT privacy notice (purpose, data, who sees it, 1
   assert.deepEqual(Object.keys(served!).sort(), ["body", "id", "title"]);
   assert.ok(served!.body.length >= 4 && served!.body.every((p) => typeof p === "string" && p.length > 0));
   assert.equal(JSON.stringify(publicPtTerms()).includes("PtTermsAcceptance"), false, "the server-side source note is never served");
+});
+
+test("draft-6: Điều 1 states the gym-linked contract rule (fixed duration + a membership that covers it, checked at request / accept / pay)", () => {
+  const text = PT_TERMS_SECTIONS.find((s) => s.id === "contract-flow")!.body.join(" ");
+  assert.match(text, /Hợp đồng gắn với một phòng gym phải có thời hạn cố định/);
+  assert.match(text, /gói hội viên đang có của khách tại gym đó phải còn hiệu lực đủ dài để bao phủ toàn bộ thời hạn của hợp đồng/);
+  assert.match(text, /khi khách gửi yêu cầu, khi bạn chấp nhận và khi khách thanh toán/);
+  assert.match(text, /trước khi có bất kỳ khoản tiền nào được chuyển/);
+});
+
+test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amount on the PT's EXPECTED income, collection, nature, release after end + reconciliation (no fixed date), use only for a VERIFIED PT-responsible obligation of the SAME contract (PT share, PENDING first, not automatic), reserve + review deadline, decision outcomes, non-retroactive", () => {
+  const clause = PT_TERMS_SECTIONS.find((s) => s.id === "revenue-split")!;
+  assert.match(clause.title, /^2\. Chia tiền của hợp đồng và khoản tạm giữ một phần thu nhập$/);
+  const text = clause.body.join(" ");
+  assert.match(text, /chỉ áp dụng cho hợp đồng được tạo sau khi quy định này có hiệu lực/);
+  assert.match(text, /10% thu nhập dự kiến của bạn trên chính hợp đồng đó/);
+  assert.match(text, /không phải 10% số tiền khách trả/);
+  assert.match(text, /hợp đồng 1\.000\.000đ, bạn nhận 90%, thu nhập dự kiến 900\.000đ, mức giữ 90\.000đ/);
+  assert.match(text, /không bao giờ lấy từ phần của phòng gym hay của nền tảng/);
+  assert.match(text, /khách xác nhận, hoặc hệ thống tự xác nhận hợp lệ; không phải lúc bạn bấm hoàn thành/);
+  assert.match(text, /Buổi bạn vắng mặt không tạo thu nhập nên không có gì bị giữ/);
+  assert.match(text, /không phải phí, không phải doanh thu của nền tảng/);
+  assert.match(text, /sau khi hợp đồng kết thúc và việc đối soát của chính hợp đồng đó hoàn tất, đúng một lần/);
+  assert.match(text, /không có ngày cố định/);
+  assert.match(text, /không bao giờ tự tịch thu/);
+  assert.match(text, /CHÍNH hợp đồng đó mà quản trị viên đã xem xét và xác minh là thuộc trách nhiệm của bạn/);
+  assert.match(text, /chỉ phần thuộc phần của bạn/);
+  assert.match(text, /Trước hết dùng phần tiền chờ của hợp đồng đó đã được tách riêng/);
+  assert.match(text, /không bao giờ trả một khoản hai lần/);
+  assert.match(text, /không tự động xảy ra chỉ vì bạn bị hạn chế hoặc khóa tài khoản, bạn đơn phương chấm dứt hợp đồng, hay khách khiếu nại/);
+  assert.match(text, /chỉ giữ lại phần tối đa bạn có thể phải chịu/);
+  assert.match(text, /hạn xem xét \(14 ngày\)/);
+  assert.match(text, /nếu không được xác minh là lỗi của bạn, toàn bộ phần dự phòng được trả lại cho bạn/);
+  assert.match(text, /không ứng tiền, không lấy từ hợp đồng khác/);
+  assert.doesNotMatch(text, /tự động (bồi thường|trừ|tịch thu)/, "nothing is described as automatic");
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /không tự động khiến bạn bị bồi thường thêm từ khoản tạm giữ ở mục 2/);
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "restriction")!.body.join(" "), /không tự động bị coi là lỗi của bạn đối với từng khách/);
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "neutral-exit")!.body.join(" "), /không dùng khoản tạm giữ ở mục 2 để bồi thường/);
+  assert.equal(PT_TERMS_SECTIONS.length, 10, "numbering is unchanged: the holdback lives in clause 2, the privacy notice stays clause 10");
+  assert.ok(PT_TERMS_SECTIONS.some((s) => s.id === "privacy-notice"));
 });

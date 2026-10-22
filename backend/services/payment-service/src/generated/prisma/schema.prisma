@@ -244,6 +244,7 @@ model PaymentTransaction {
   commissions   PlatformCommission[]
   ledgerEntries WalletLedgerEntry[]
   unpaidObligations ContractUnpaidObligation[]
+  ptHoldbackReviews PtHoldbackReview[]
 
   @@index([payerId, status])
   @@index([status])
@@ -412,6 +413,83 @@ model ContractUnpaidObligation {
   @@index([status])
   @@index([transactionId])
   @@map("contract_unpaid_obligations")
+}
+
+/// FH-9 (owner decision): a reserve kept in a contract's HOLDBACK after the contract ended, and WHY. Never automatic compensation: a PT-fault
+/// amount is only paid to the client after an authorised admin VERIFIED it (holdback-review.service.ts); everything else is released.
+///   PT_FAULT          PT_CANCELLED / PT_REPEATED_NO_SHOW: the potential PT-fault amount, until the admin decides.
+///   OPEN_OBLIGATION   the PT-borne part of an OPEN unpaid obligation of THIS contract (not covered by this contract's pending).
+///   UNSECURED_DISPUTE the PT's share of an unresolved session that this contract's pending could not cover.
+///   UNCOMPUTABLE      the risk could not be computed reliably: up to the whole remaining hold, with the reason, a handler and a deadline.
+enum PtHoldbackReviewKind {
+  PT_FAULT
+  OPEN_OBLIGATION
+  UNSECURED_DISPUTE
+  UNCOMPUTABLE
+}
+
+enum PtHoldbackReviewStatus {
+  OPEN
+  SETTLED_VERIFIED
+  SETTLED_PARTIAL
+  NOT_VERIFIED
+  RELEASED_AUTO
+}
+
+model PtHoldbackReview {
+  id             String                 @id @default(uuid())
+  /// HBR:<transactionId>:<kind>[:<obligationId>] - one row per cause, created exactly once with the ending.
+  key            String                 @unique
+  transactionId  String                 @map("transaction_id")
+  kind           PtHoldbackReviewKind
+  status         PtHoldbackReviewStatus @default(OPEN)
+  /// What is kept in HOLDBACK for this cause (the PT-borne part only).
+  reserve        Decimal                @db.Decimal(14, 2)
+  reason         String
+  /// The obligation id / the disputed sessions this reserve is about.
+  relatedRef     String?                @map("related_ref")
+  /// Who handles it (an admin queue name or person); null until assigned.
+  handler        String?
+  reviewBy       DateTime               @map("review_by")
+  createdBy      String                 @default("SYSTEM") @map("created_by")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  decidedAt      DateTime?              @map("decided_at")
+  decidedBy      String?                @map("decided_by")
+  approvedBy     String?                @map("approved_by")
+  approvalRef    String?                @map("approval_ref")
+  verifiedAmount Decimal?               @map("verified_amount") @db.Decimal(14, 2)
+  releasedToPt   Decimal?               @map("released_to_pt") @db.Decimal(14, 2)
+  note           String?
+
+  transaction PaymentTransaction       @relation(fields: [transactionId], references: [id])
+  events      PtHoldbackReviewEvent[]
+
+  @@index([transactionId])
+  @@index([status, reviewBy])
+  @@map("pt_holdback_reviews")
+}
+
+/// Append-only (the migration rejects UPDATE/DELETE): every decision on a review.
+model PtHoldbackReviewEvent {
+  id             String   @id @default(uuid())
+  reviewId       String   @map("review_id")
+  action         String
+  actor          String
+  approvedBy     String   @map("approved_by")
+  approvalRef    String   @map("approval_ref")
+  idempotencyKey String   @unique @map("idempotency_key")
+  fromStatus     String   @map("from_status")
+  toStatus       String   @map("to_status")
+  reserve        Decimal  @db.Decimal(14, 2)
+  verifiedAmount Decimal  @map("verified_amount") @db.Decimal(14, 2)
+  releasedToPt   Decimal  @map("released_to_pt") @db.Decimal(14, 2)
+  note           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  review PtHoldbackReview @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+
+  @@index([reviewId])
+  @@map("pt_holdback_review_events")
 }
 
 enum PartnerReceivableEventAction {

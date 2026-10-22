@@ -48,6 +48,13 @@ export interface PtWalletContractRow {
     undecidedSessions: number;
     /** Unpaid amount of this contract's OPEN obligations. */
     openObligations: string;
+    /** What is kept in HOLDBACK as a reserve for a related item of THIS contract (each reserve has a review deadline). */
+    reserved: string;
+    /** A potential PT-fault amount (or a risk that could not be computed) is waiting for an admin decision. Nothing is paid before it is verified. */
+    pendingFaultReview: boolean;
+    /** The earliest review-by deadline of the open reserves, if any. */
+    reviewBy: string | null;
+    reviewOverdue: boolean;
   };
 }
 
@@ -129,6 +136,14 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
         undecided.set(id, Number.isInteger(n) && n > 0 ? Math.max(0, n - resolved) : 0);
       }
 
+      const revRows = ids.length
+        ? await tx.$queryRawUnsafe<{ transaction_id: string; kind: string; reserve: string; review_by: Date }[]>(
+            `SELECT transaction_id, kind::text AS kind, reserve::text AS reserve, review_by FROM pt_holdback_reviews WHERE status = 'OPEN' AND transaction_id = ANY($1::text[])`,
+            ids,
+          )
+        : [];
+      const reviewsOf = (id: string) => revRows.filter((r) => r.transaction_id === id);
+
       let totalHeld = new Prisma.Decimal(0);
       let totalDispute = new Prisma.Decimal(0);
       let holding = 0;
@@ -159,7 +174,11 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
             : held.greaterThan(0)
               ? 'WAITING_RECONCILIATION'
               : 'RELEASED';
-        const dispute = held.greaterThan(0) && isEnded && (undecidedN > 0 || obligations.greaterThan(0));
+        const reviews = reviewsOf(r.transaction_id);
+        const reserved = reviews.reduce((a, x) => a.plus(x.reserve), new Prisma.Decimal(0));
+        const faultPending = reviews.some((x) => x.kind === 'PT_FAULT' || x.kind === 'UNCOMPUTABLE');
+        const earliest = reviews.map((x) => new Date(x.review_by).getTime()).sort((a, b) => a - b)[0];
+        const dispute = held.greaterThan(0) && isEnded && reviews.length > 0;
         if (held.greaterThan(0)) {
           totalHeld = totalHeld.plus(held);
           holding += 1;
@@ -184,6 +203,10 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
             heldDueToDispute: dispute,
             undecidedSessions: undecidedN,
             openObligations: obligations.toFixed(2),
+            reserved: reserved.toFixed(2),
+            pendingFaultReview: faultPending,
+            reviewBy: earliest === undefined ? null : new Date(earliest).toISOString(),
+            reviewOverdue: earliest !== undefined && earliest < Date.now(),
           },
         };
       });

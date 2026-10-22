@@ -7,9 +7,11 @@
  * again before taking NEW contracts (contracts already accepted keep running unchanged).
  *
  * Every clause below describes a rule that RUNS TODAY - the `source` of each is recorded next to it (not served
- * to clients). Do not add a clause for a rule that is not live. In particular the PT holdback (D21-D24) is
- * built but switched OFF (pt-holdback-rate.ts), so it is deliberately NOT described here; when it is switched
- * on, the new clause and a new version go in together.
+ * to clients). Exception, by the owner's decision (FH-9, draft-6): clause 2 also describes the PT holdback, which is
+ * built but switched OFF (pt-holdback-rate.ts: PT_HOLDBACK_NEW_CONTRACTS_ENABLED, default off) and applies ONLY to contracts
+ * created after it is switched on, for PTs who confirmed an OFFICIAL version of these terms that states it
+ * (PT_HOLDBACK_TERMS_VERSION). The text says so itself ("hợp đồng được tạo sau khi quy định này có hiệu lực"); it never
+ * presents the holdback as applying to a contract that already exists.
  *
  * DRAFT vs OFFICIAL (D74). While the wording awaits the owner's approval `PT_TERMS_IS_DRAFT` is true and the version id is a
  * DRAFT id ("...-pt-draft-N"). A confirmation of a draft is NOT an official acceptance and must never become one by flipping
@@ -19,7 +21,7 @@
  * running production service cannot be taken down by it.
  */
 
-export const PT_TERMS_VERSION = "2026-10-pt-draft-5";
+export const PT_TERMS_VERSION = "2026-10-pt-draft-6";
 export const PT_TERMS_IS_DRAFT = true;
 
 /** A version id that marks a draft text. */
@@ -69,22 +71,31 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
       "Khách chọn một gói dịch vụ của bạn và gửi yêu cầu. Bạn có thể chấp nhận hoặc từ chối yêu cầu đó.",
       "Sau khi bạn chấp nhận, khách có 12 giờ để thanh toán. Quá hạn mà chưa thanh toán thì yêu cầu tự hủy và không phát sinh nghĩa vụ nào. Hợp đồng chỉ có hiệu lực sau khi khách đã thanh toán.",
       "Nếu hợp đồng gắn với một phòng gym, thỏa thuận giữa bạn và gym phải còn hiệu lực tại thời điểm bạn chấp nhận và lúc khách thanh toán; nếu không, hợp đồng mới đó không đi tiếp được.",
+      "Hợp đồng gắn với một phòng gym phải có thời hạn cố định (gói PT của bạn phải có số ngày hiệu lực), và gói hội viên đang có của khách tại gym đó phải còn hiệu lực đủ dài để bao phủ toàn bộ thời hạn của hợp đồng. Điều kiện này được kiểm tra khi khách gửi yêu cầu, khi bạn chấp nhận và khi khách thanh toán; nếu không đạt, yêu cầu bị từ chối trước khi có bất kỳ khoản tiền nào được chuyển và hợp đồng giữ nguyên trạng thái.",
       "Khi tài khoản đang bị hạn chế, bạn không thể chấp nhận hợp đồng mới (xem mục 7).",
     ],
     source:
-      "contract.service acceptContract / assertGymStillAcceptsContract / CONTRACT_PAYMENT_DEADLINE_HOURS=12 (D12, D13); assertPtMayAct (D31/D38)",
+      "contract.service acceptContract / assertGymStillAcceptsContract / CONTRACT_PAYMENT_DEADLINE_HOURS=12 (D12, D13); assertPtMayAct (D31/D38); contract-gym-membership.service assertClientMayRequestGymContract / assertGymContractStillCovered (Codex #6: fixed duration + membership covering it, at request / PT accept / client pay)",
   },
   {
     id: "revenue-split",
-    title: "2. Chia tiền của hợp đồng",
+    title: "2. Chia tiền của hợp đồng và khoản tạm giữ một phần thu nhập",
     body: [
       "Tỷ lệ chia được chốt vào từng hợp đồng ngay khi khách gửi yêu cầu và không đổi cho hợp đồng đó, kể cả khi thỏa thuận với gym thay đổi về sau.",
       "Hợp đồng không qua phòng gym: bạn nhận 90% giá trị hợp đồng, nền tảng nhận 10%.",
       "Hợp đồng qua phòng gym: tỷ lệ của bạn, của phòng gym và của nền tảng theo thỏa thuận hợp tác giữa bạn và thương hiệu gym tại thời điểm tạo hợp đồng.",
       "Tiền của từng buổi chỉ về ví của bạn sau khi buổi đó được xác nhận (xem mục 3).",
+      "Khoản tạm giữ một phần thu nhập. Quy định này chỉ áp dụng cho hợp đồng được tạo sau khi quy định này có hiệu lực và sau khi bạn đã đồng ý phiên bản điều khoản có nội dung này; hợp đồng đã ký hoặc đang chạy không bị thay đổi.",
+      "Mức giữ: 10% thu nhập dự kiến của bạn trên chính hợp đồng đó, tức là 10% của phần bạn được nhận theo tỷ lệ chia đã chốt của hợp đồng đó (không phải 10% số tiền khách trả), làm tròn xuống đồng. Ví dụ: hợp đồng 1.000.000đ, bạn nhận 90%, thu nhập dự kiến 900.000đ, mức giữ 90.000đ. Khoản này chỉ lấy từ phần của bạn, không bao giờ lấy từ phần của phòng gym hay của nền tảng, và không tính trên hợp đồng khác.",
+      "Cách giữ: khi một buổi trở thành có thể thanh toán (khách xác nhận, hoặc hệ thống tự xác nhận hợp lệ; không phải lúc bạn bấm hoàn thành), thu nhập thật sự của buổi đó (sau khoản trừ vì vào phòng học muộn nếu có) được tạm giữ cho đến khi đủ mức giữ, phần còn lại về ví khả dụng của bạn như bình thường. Buổi bạn vắng mặt không tạo thu nhập nên không có gì bị giữ. Khi đã đủ mức giữ thì không giữ thêm. Số tiền giữ không bao giờ vượt quá thu nhập bạn đã thật sự kiếm được trên hợp đồng đó.",
+      "Bản chất: khoản tạm giữ là tiền bạn đã kiếm, đang chưa rút được. Đây không phải phí, không phải doanh thu của nền tảng, và không được dùng để bù cho hợp đồng khác hoặc cấn trừ vào khoản nợ nào khác của bạn.",
+      "Trả lại: khoản tạm giữ được trả vào ví khả dụng của bạn sau khi hợp đồng kết thúc và việc đối soát của chính hợp đồng đó hoàn tất, đúng một lần. Thời điểm trả phụ thuộc vào việc kết thúc và đối soát nên không có ngày cố định. Nếu hợp đồng kết thúc sớm, phần không liên quan đến việc nào của hợp đồng đó chưa xử lý xong được trả lại ngay khi kết thúc; Gymini không bao giờ tự tịch thu khoản tạm giữ.",
+      "Khi nào được dùng: chỉ để trả cho khách một nghĩa vụ của CHÍNH hợp đồng đó mà quản trị viên đã xem xét và xác minh là thuộc trách nhiệm của bạn, và chỉ phần thuộc phần của bạn (bạn không phải chịu phần của phòng gym hay của nền tảng). Trước hết dùng phần tiền chờ của hợp đồng đó đã được tách riêng cho khoản ấy; không bao giờ trả một khoản hai lần. Việc dùng này không tự động xảy ra chỉ vì bạn bị hạn chế hoặc khóa tài khoản, bạn đơn phương chấm dứt hợp đồng, hay khách khiếu nại.",
+      "Phần dự phòng khi còn việc chưa xử lý: khi hợp đồng kết thúc mà còn khoản có thể thuộc trách nhiệm của bạn chưa được tiền chờ của hợp đồng đó bảo đảm (ví dụ bạn có thể phải bồi thường khi bị xác minh là hủy hợp đồng hoặc vắng mặt nhiều lần, hoặc một khoản đang được đối soát), Gymini chỉ giữ lại phần tối đa bạn có thể phải chịu cho việc đó; phần còn lại trả cho bạn ngay. Nếu không tính được mức rủi ro một cách đáng tin cậy, Gymini có thể giữ tối đa toàn bộ khoản tạm giữ của hợp đồng đó, kèm lý do. Mỗi khoản dự phòng được ghi lại kèm lý do, bộ phận xử lý và hạn xem xét (14 ngày); quá hạn sẽ được đưa lên danh sách việc cần quản trị viên quyết định.",
+      "Khi có quyết định: nếu không được xác minh là lỗi của bạn, toàn bộ phần dự phòng được trả lại cho bạn; nếu được xác minh, chỉ đúng phần đã xác minh được trả cho khách và phần còn lại trả lại cho bạn. Nếu khoản tạm giữ không đủ, phần còn thiếu được ghi nhận là khoản đang được đối soát với khách; Gymini không ứng tiền, không lấy từ hợp đồng khác và không tự động biến phần thiếu đó thành khoản nợ của bạn.",
     ],
     source:
-      "contract.service.requestContract (rates default 0.10/0.90, gym rates from collaboration snapshot) (D3, D5, D11); contract-rates-survive-agreement-change test",
+      "contract.service.requestContract (rates default 0.10/0.90, gym rates from collaboration snapshot) (D3, D5, D11); contract-rates-survive-agreement-change test. FH-9 (owner decision, final): payment-service contract-money.ts holdbackTarget = rate x ptExpectedIncome(price, frozen rates) rounded down; contract-ledger.service releaseSession (hold collected when a session becomes payable, min(entitlement after D77, target - held), PT no-show earns nothing so nothing held; nothing held after the ending is recorded), terminateContract (releases everything not reserved; reserve per cause PT_FAULT / OPEN_OBLIGATION (PT-borne part) / UNSECURED_DISPUTE / UNCOMPUTABLE with a durable pt_holdback_reviews row, review-by PT_HOLDBACK_REVIEW_DAYS=14), releasePtHoldback (after end and no waiting reserve), holdback-review.service (admin VERIFIED / NOT_VERIFIED, four-eyes, CAS, idempotent, only the PT-borne verified part, same contract, shortfall -> OPEN obligation); pt-holdback-rate.ts (flag PT_HOLDBACK_NEW_CONTRACTS_ENABLED default OFF + PT_HOLDBACK_TERMS_VERSION + the PT's confirmation; non-retroactive via contracts.pt_holdback_policy_version)",
   },
   {
     id: "sessions",
@@ -118,7 +129,7 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
       "Khoản hoàn được lấy từ chính tiền của hợp đồng đó, không lấy từ tiền của hợp đồng khác. Gymini không cam kết mọi khoản còn thiếu đều được hoàn ngay; trên từng buổi, ứng dụng hiển thị đúng trường hợp đang xảy ra: (a) tiền của hợp đồng đủ — khách được hoàn đủ vào ví, buổi hiện «đã hoàn tiền»; (b) chỉ đủ một phần — khách được hoàn phần đó vào ví, phần còn lại được ghi nhận là khoản đang được đối soát giữa các bên, buổi hiện «đã hoàn một phần, còn … đang chờ xử lý»; (c) chưa hoàn được — toàn bộ khoản đang được đối soát, buổi hiện «chưa hoàn, đang chờ xử lý». Phần đang đối soát chỉ được coi là đã hoàn khi đã được xử lý xong, và không tự động trở thành khoản nợ của bạn.",
       "Buổi học trực tuyến mà bạn vào phòng học muộn hơn 15 phút so với giờ bắt đầu đã hẹn, trong khi khách cũng có mặt: buổi vẫn được tính là buổi đã diễn ra, nhưng khách được bồi thường một nửa giá trị của buổi đó (một nửa của giá hợp đồng chia cho tổng số buổi). Khoản bồi thường này được trừ vào chính tiền của buổi đó: bạn, phòng gym (nếu có) và nền tảng mỗi bên chịu phần của mình theo đúng tỷ lệ chia của hợp đồng. Sau khi buổi được xác nhận, bạn nhận phần còn lại của buổi đó sau khi đã trừ phần bồi thường của bạn; các buổi khác không bị ảnh hưởng. Nếu khoản bồi thường chưa thực hiện được ngay, nó được ghi nhận là khoản đang được đối soát với khách và không tự động trở thành khoản nợ của bạn.",
       "Nếu bạn vắng mặt 3 buổi trên cùng một hợp đồng, khách có quyền chấm dứt hợp đồng và được hoàn đầy đủ phần chưa dùng.",
-      "Nếu bạn chấm dứt hợp đồng giữa chừng, khách được hoàn đầy đủ 100% phần chưa dùng.",
+      "Nếu bạn chấm dứt hợp đồng giữa chừng, khách được hoàn đầy đủ 100% phần chưa dùng. Hai trường hợp này (bạn hủy giữa chừng, hoặc vắng mặt 3 buổi) không tự động khiến bạn bị bồi thường thêm từ khoản tạm giữ ở mục 2: khoản đó chỉ được dùng sau khi quản trị viên xem xét và xác minh là thuộc trách nhiệm của bạn, và chỉ trên chính hợp đồng đó.",
     ],
     source:
       "session-outcome.ts rows 3-5; PT_REPEATED_NO_SHOW_THRESHOLD=3 (contract.service.ts); D19; payment-service compensateNoShow. DQ-2(a): refund of price/totalSessions to the wallet, session closed as not-delivered (NO_SHOW), counted in compensatedSessions (NOT usedSessions: it is not a delivered session), no replacement session, PT not paid. DQ-1: funded from the contract's own funds only; the refund state (FULL/PARTIAL/PENDING, session-refund-state.ts) comes from the ledger's paid/owed/unpaid and the live obligation; an unfunded remainder is a reconciling obligation, not PT debt. D77: room-close-resolution ptLate = PT joined > NO_SHOW_GRACE_MINUTES (15) after the start with the client present; payment-service computeLateArrivalCompensation = half of roundForClient(price/totalSessions), charged to PT/gym/platform by the contract's rates and deducted from THAT session's release (releaseSession dueOf); the rest is released on confirmation; an unperformed compensation is a record-only OPEN obligation (recordLateArrivalObligation)",
@@ -127,7 +138,7 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     id: "neutral-exit",
     title: "6. Khi khách rút lui vì bạn bị hạn chế",
     body: [
-      "Nếu tài khoản hoặc một hợp đồng của bạn đang bị hạn chế, khách có quyền rút khỏi hợp đồng đó và được hoàn đầy đủ phần chưa dùng, không mất phí. Việc này không tự có nghĩa là bạn có lỗi.",
+      "Nếu tài khoản hoặc một hợp đồng của bạn đang bị hạn chế, khách có quyền rút khỏi hợp đồng đó và được hoàn đầy đủ phần chưa dùng, không mất phí. Việc này không tự có nghĩa là bạn có lỗi và không dùng khoản tạm giữ ở mục 2 để bồi thường.",
       "Buổi bạn đã báo hoàn thành mà khách chưa xác nhận vẫn đi tiếp quy trình xác nhận ở mục 3 và không bị hoàn tự động; buổi đang khiếu nại được giữ chờ quyết định.",
     ],
     source: "client-exit.service CLIENT_EXIT_DUE_TO_PT_RESTRICTION (D32, D36)",
@@ -138,10 +149,10 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     body: [
       "Quản trị viên có thể hạn chế quyền hoạt động của bạn khi có khiếu nại hoặc nghi ngờ vi phạm. Có ba mức: hạn chế riêng một hợp đồng, hạn chế toàn tài khoản, hoặc khóa vĩnh viễn.",
       "Khi bị hạn chế, bạn không thể nhận hợp đồng mới hay thực hiện các thao tác mới trên phần bị hạn chế (đọc thông tin thì vẫn được). Việc hạn chế không tự hủy hợp đồng và không tự kết luận bạn có lỗi.",
-      "Khi tài khoản bị khóa vĩnh viễn, các hợp đồng đang dở được xử lý và khách được hoàn phần chưa sử dụng.",
+      "Khi tài khoản bị khóa vĩnh viễn, các hợp đồng đang dở được kết thúc theo quyết định của nền tảng, khách được hoàn phần chưa sử dụng và khoản tạm giữ của từng hợp đồng (nếu có) được trả lại cho bạn theo mục 2. Việc khóa tài khoản không tự động bị coi là lỗi của bạn đối với từng khách.",
     ],
     source:
-      "pt-restriction.service (assertPtMayAct, scopes CONTRACT_SCOPE / PT_ACCOUNT_SCOPE / PERMANENT_BAN) (D31, D38); TerminationReason.PT_BANNED",
+      "pt-restriction.service (assertPtMayAct, scopes CONTRACT_SCOPE / PT_ACCOUNT_SCOPE / PERMANENT_BAN) (D31, D38); TerminationReason.SERVICE_DISCONTINUED_BY_PLATFORM (D49; PT_BANNED is retired for new endings and is not PT fault)",
   },
   {
     id: "withdrawal",
