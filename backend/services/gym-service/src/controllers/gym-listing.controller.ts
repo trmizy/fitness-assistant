@@ -134,6 +134,7 @@ export const gymListingController = {
     const body = parseOrThrow(adminRetireBodySchema, req.body);
     ok(res, await adminGymListingService.retirePhoto(req.user!.userId, req.params.gymId, req.params.photoId, body));
   }),
+  adminGetPublished: wrap(async (req, res) => ok(res, await adminGymListingService.getPublished(req.params.gymId))),
   adminHistory: wrap(async (req, res) => {
     ok(res, await adminGymListingService.history(req.params.gymId, typeof req.query.page === 'string' ? Number(req.query.page) : 1));
   }),

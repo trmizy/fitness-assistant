@@ -577,6 +577,51 @@ export const adminGymListingService = {
     return { retired: true, photoId, purged, listingVersion: out.listingVersion, revisionId: out.revisionId };
   },
 
+  /**
+   * GET /admin/listings/gyms/:gymId - the CURRENT published listing of one branch, with or without any revision
+   * (what the admin's "Sửa trực tiếp" starts from, plus the `listingVersion` the edit must quote).
+   * 404 for an unknown branch; 409 GYM_IS_DRAFT / LISTING_NOT_AVAILABLE for a branch that is not APPROVED / SUSPENDED
+   * or is permanently closed (same rule as every other listing route: assertListingAvailable).
+   */
+  async getPublished(gymId: string) {
+    await requireGymExists(prisma, gymId);
+    const published = await loadPublished(prisma, gymId);
+    const [photos, open, brand] = await Promise.all([
+      Promise.all(published.photos.map(toPhotoView)),
+      prisma.gymListingRevision.findFirst({ where: { gymId, status: { in: ['DRAFT', 'PENDING'] } }, select: { id: true, status: true } }),
+      published.gym.brandId ? prisma.gymBrand.findUnique({ where: { id: published.gym.brandId }, select: { name: true, approvedName: true } }) : Promise.resolve(null),
+    ]);
+    return {
+      gym: {
+        id: published.gym.id,
+        name: gymLabel(published.gym),
+        brandName: brand ? (brand.approvedName ?? brand.name) : null,
+        listingVersion: published.listingVersion,
+        listingPublishedAt: published.listingPublishedAt,
+        status: published.gym.status,
+        operationalStatus: published.gym.operationalStatus,
+      },
+      published: {
+        description: published.payload.description,
+        amenityIds: published.payload.amenityIds,
+        photoIds: published.payload.photoIds,
+        coverPhotoId: published.payload.coverPhotoId,
+      },
+      // Custom ones included, DISABLED ones too (status says which): the dialog keeps a disabled one removable.
+      amenities: published.amenities.map((a) => ({
+        id: a.amenity.id,
+        slug: a.amenity.slug,
+        name: a.amenity.name,
+        category: a.amenity.category,
+        iconKey: a.amenity.iconKey,
+        status: a.amenity.status,
+        source: a.amenity.source,
+      })),
+      photos,
+      openRevision: open ? { id: open.id, status: open.status } : null,
+    };
+  },
+
   /** GET /admin/listings/gyms/:gymId/history */
   async history(gymId: string, page = 1) {
     await requireGymExists(prisma, gymId, { anyStatus: true });
@@ -587,6 +632,8 @@ export const adminGymListingService = {
         where: { metadata: { path: ['gymId'], equals: gymId } },
         orderBy: { createdAt: 'desc' },
         take,
+        // Explicit select: ipAddress/userAgent are personal data and never go to the admin UI.
+        select: { id: true, partnerId: true, actorUserId: true, action: true, targetAccountId: true, reason: true, metadata: true, createdAt: true },
       }),
     ]);
     return { revisions: revisions.map((r) => toHistoryItem(r, { admin: true })), audit };

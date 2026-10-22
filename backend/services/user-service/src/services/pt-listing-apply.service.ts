@@ -483,12 +483,51 @@ export const adminPtListingService = {
     return { retired: true, photoId, purged, listingVersion: out.listingVersion, revisionId: out.revisionId };
   },
 
+  /**
+   * GET /admin/listings/pts/:ptUserId - the CURRENT published listing of one trainer, with or without any revision
+   * (what the admin's "Sửa trực tiếp" starts from, plus the `listingVersion` the edit must quote).
+   * 404 unless the user is a PT with an APPROVED application. Names only: no email, phone or application documents.
+   */
+  async getPublished(ptUserId: string) {
+    let published: Awaited<ReturnType<typeof loadPublished>>;
+    try {
+      published = await loadPublished(prisma, ptUserId);
+    } catch (e) {
+      if (e instanceof ListingError && (e.code === "NOT_A_PT" || e.code === "PT_NOT_APPROVED")) {
+        throw new ListingError(404, "PT_NOT_FOUND", "Không tìm thấy huấn luyện viên có tin đăng.");
+      }
+      throw e;
+    }
+    const [photos, open] = await Promise.all([
+      Promise.all(published.photos.map(toOwnerPhotoView)),
+      prisma.ptListingRevision.findFirst({ where: { ptUserId, status: { in: ["DRAFT", "PENDING"] } }, select: { id: true, status: true } }),
+    ]);
+    return {
+      pt: {
+        userId: published.userId,
+        firstName: published.firstName,
+        lastName: published.lastName,
+        listingVersion: published.listingVersion,
+        listingPublishedAt: published.listingPublishedAt,
+      },
+      published: published.payload,
+      photos,
+      openRevision: open ? { id: open.id, status: open.status } : null,
+    };
+  },
+
   /** GET /admin/listings/pts/:ptUserId/history */
   async history(ptUserId: string, page = 1) {
     const take = 50;
     const [revisions, audit] = await Promise.all([
       prisma.ptListingRevision.findMany({ where: { ptUserId }, orderBy: { createdAt: "desc" }, skip: (Math.max(1, page) - 1) * take, take }),
-      prisma.auditLog.findMany({ where: { entityType: "PT_LISTING", entityId: ptUserId }, orderBy: { createdAt: "desc" }, take }),
+      // Explicit select: the audit row also stores ipAddress/userAgent (personal data) — never sent to the admin UI.
+      prisma.auditLog.findMany({
+        where: { entityType: "PT_LISTING", entityId: ptUserId },
+        orderBy: { createdAt: "desc" },
+        take,
+        select: { id: true, actorUserId: true, action: true, entityType: true, entityId: true, metadata: true, createdAt: true },
+      }),
     ]);
     return { revisions: revisions.map((r) => toHistoryItem(r, { admin: true })), audit };
   },

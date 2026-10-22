@@ -18,5 +18,6 @@ router.post("/revisions/:rid/request-changes", c.adminRequestChanges as any);
 router.post("/:ptUserId/direct-edit", c.adminDirectEdit as any);
 router.post("/:ptUserId/physique/:photoId/retire", c.adminRetirePhoto as any);
 router.get("/:ptUserId/history", c.adminHistory as any);
+router.get("/:ptUserId", c.adminGetPublished as any);
 
 export default router;

@@ -153,6 +153,7 @@ export const ptListingController = {
     const body = parseOrThrow(adminRetireBodySchema, req.body);
     res.json(await adminPtListingService.retirePhoto(req.user!.id, req.params.ptUserId, req.params.photoId, body));
   }),
+  adminGetPublished: wrap(async (req, res) => res.json(await adminPtListingService.getPublished(req.params.ptUserId))),
   adminHistory: wrap(async (req, res) => {
     res.json(await adminPtListingService.history(req.params.ptUserId, typeof req.query.page === "string" ? Number(req.query.page) : 1));
   }),

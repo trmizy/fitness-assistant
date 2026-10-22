@@ -20,6 +20,7 @@ adminGymListingRouter.post('/:gymId/photos/presign', c.adminPresign);
 adminGymListingRouter.post('/:gymId/photos/confirm', c.adminConfirm);
 adminGymListingRouter.post('/:gymId/photos/:photoId/retire', c.adminRetirePhoto);
 adminGymListingRouter.get('/:gymId/history', c.adminHistory);
+adminGymListingRouter.get('/:gymId', c.adminGetPublished);
 
 export const adminAmenityRouter = Router();
 adminAmenityRouter.use(noStorePrivate);
