@@ -23,9 +23,9 @@ const SIGNED = `CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END
 /** P-02. */
 export const P02_NEGATIVE_WALLETS_SQL = `
   SELECT owner_type::text AS t, left(owner_id,8) AS owner, available_balance::text AS a, pending_balance::text AS p,
-         locked_balance::text AS l, count(*) OVER ()::int AS total
+         locked_balance::text AS l, holdback_balance::text AS h, count(*) OVER ()::int AS total
     FROM wallets
-   WHERE available_balance<0 OR pending_balance<0 OR locked_balance<0
+   WHERE available_balance<0 OR pending_balance<0 OR locked_balance<0 OR holdback_balance<0
    ORDER BY owner_type, owner_id
    LIMIT $1`;
 
@@ -35,10 +35,10 @@ export const P03_WALLET_VS_LEDGER_SQL = `
                FROM wallet_ledger_entries GROUP BY 1,2)
   SELECT w.owner_type::text AS t, left(w.owner_id,8) AS owner, (w.owner_type='PLATFORM' AND w.owner_id='ESCROW') AS is_escrow,
          b.bucket, coalesce(l.net,0)::text AS ledger,
-         (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ELSE w.locked_balance END)::text AS wallet
-    FROM wallets w CROSS JOIN (VALUES ('AVAILABLE'),('PENDING'),('LOCKED')) b(bucket)
+         (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance WHEN 'HOLDBACK' THEN w.holdback_balance ELSE w.locked_balance END)::text AS wallet
+    FROM wallets w CROSS JOIN (VALUES ('AVAILABLE'),('PENDING'),('LOCKED'),('HOLDBACK')) b(bucket)
     LEFT JOIN l ON l.wallet_id=w.id AND l.bucket=b.bucket
-   WHERE coalesce(l.net,0) <> (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ELSE w.locked_balance END)
+   WHERE coalesce(l.net,0) <> (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance WHEN 'HOLDBACK' THEN w.holdback_balance ELSE w.locked_balance END)
    ORDER BY is_escrow, w.owner_type, w.owner_id, b.bucket`;
 
 /** P-04. `txn_full` is the payment transaction id (an internal id, needed to look the row up; not personal data). */
@@ -58,6 +58,7 @@ export interface NegativeWalletRow {
   available: string;
   pending: string;
   locked: string;
+  holdback: string;
 }
 export interface WalletLedgerMismatchRow {
   ownerType: string;
@@ -87,7 +88,7 @@ export async function findNegativeWallets(q: RawQueryable, limit: number): Promi
   const rows = await q.$queryRawUnsafe<any[]>(P02_NEGATIVE_WALLETS_SQL, limit);
   return {
     total: rows[0]?.total ?? 0,
-    rows: rows.map((r) => ({ ownerType: r.t, owner: r.owner, available: r.a, pending: r.p, locked: r.l })),
+    rows: rows.map((r) => ({ ownerType: r.t, owner: r.owner, available: r.a, pending: r.p, locked: r.l, holdback: r.h ?? '0.00' })),
   };
 }
 

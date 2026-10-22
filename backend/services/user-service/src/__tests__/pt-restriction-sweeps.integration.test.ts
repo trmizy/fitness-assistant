@@ -112,7 +112,7 @@ const holdbackContract = (ptUserId: string, over: Record<string, unknown> = {}) 
 const released = (s: ReturnType<typeof stubs>, contractId: string) =>
   s.payments.some((p) => p.method === "releaseHoldback" && p.body.idempotencyKey === `HOLDBACK_RELEASE:${contractId}`);
 
-test("idle holdback: a suspended PT's held amount is not released; suspended time does not count toward the idle days", { skip }, async () => {
+test("no idle holdback release (FH-9): a RUNNING contract's held amount is never released by the sweep - suspended PT or not, quiet or not", { skip }, async () => {
   const T = Date.now();
   const ptSuspendedNow = await makePt();
   const ptLongPast = await makePt(); // 25 of the last 40 days suspended, lifted 5 days ago
@@ -130,23 +130,23 @@ test("idle holdback: a suspended PT's held amount is not released; suspended tim
     await ptRestrictionService.suspend(suspendInput(ptShortPast, new Date(T - 20 * DAY)));
     await ptRestrictionService.lift({ ptUserId: ptShortPast, adminId: "a", reason: "ok", at: new Date(T - 17 * DAY) });
 
-    // without the suspension rule, all four would be idle: 40 days, no sessions, rate > 0
-    const naive = await contractRepository.findIdleHoldbackCandidates({ activatedBefore: new Date(T - 30 * DAY), sessionsSince: new Date(T - 30 * DAY) });
-    for (const c of [cNow, cLong, cShort, cNever]) assert.ok(naive.some((n) => n.id === c.id), "control: the plain idle rule would release it");
-
-    await contractService.releaseIdleHoldbacks(new Date(T));
-    assert.equal(released(s, cNow.id), false, "suspended right now: never released");
-    assert.equal(released(s, cLong.id), false, "only 5 + 10 = 15 non-suspended days: not idle yet (5 days since the lift + the 10 before the suspension)");
-    assert.equal(released(s, cShort.id), true, "control: 37 non-suspended days: idle");
-    assert.equal(released(s, cNever.id), true, "control: idle");
-    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: cNow.id } })).holdbackReleasedAt, null);
+    // 40 quiet days, no sessions, rate > 0: under the old rule three of them would have been released. Now none is: the hold leaves
+    // only after the contract has ended and is reconciled.
+    for (const c of [cNow, cLong, cShort, cNever]) {
+      assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: c.id })).length, 0, "an ACTIVE contract is never a sweep candidate");
+    }
+    await contractService.releaseDueHoldbacks(new Date(T));
+    for (const c of [cNow, cLong, cShort, cNever]) {
+      assert.equal(released(s, c.id), false, "never released while the contract runs");
+      assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).holdbackReleasedAt, null);
+    }
   } finally {
     s.restore();
     await cleanup([ptSuspendedNow, ptLongPast, ptShortPast, ptNever], [cNow.id, cLong.id, cShort.id, cNever.id]);
   }
 });
 
-test("idle holdback: sessions called off by a suspension (SYSTEM) are not 'PT cancelled' activity, while a genuine PT cancellation still is", { skip }, async () => {
+test("sessions called off by a suspension are SYSTEM cancellations, a genuine PT cancellation carries the PT's id; neither lets a running contract's holdback be released", { skip }, async () => {
   const T = Date.now();
   const ptAdmin = await makePt();
   const ptReal = await makePt();
@@ -168,12 +168,10 @@ test("idle holdback: sessions called off by a suspension (SYSTEM) are not 'PT ca
     assert.equal(adminSession.cancelledBy, "SYSTEM");
     assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: real.id } })).cancelledBy, ptReal);
 
-    const window = { activatedBefore: new Date(T - 30 * DAY), sessionsSince: new Date(T - 30 * DAY) };
-    const idleAdmin = await contractRepository.findIdleHoldbackCandidates({ ...window, id: cAdmin.id });
-    const idleReal = await contractRepository.findIdleHoldbackCandidates({ ...window, id: cReal.id });
-    assert.equal(idleAdmin.length, 1, "an administrative cancellation is not activity: the contract is still idle");
-    assert.equal(idleReal.length, 0, "a real PT cancellation still counts as activity");
-    assert.equal(s.payments.length, 0);
+    assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: cAdmin.id })).length, 0);
+    assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: cReal.id })).length, 0);
+    await contractService.releaseDueHoldbacks(new Date(T));
+    assert.equal(s.payments.length, 0, "no payment-service call at all: nothing is due while the contracts run");
   } finally {
     s.restore();
     await cleanup([ptAdmin, ptReal], [cAdmin.id, cReal.id]);

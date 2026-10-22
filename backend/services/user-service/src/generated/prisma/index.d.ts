@@ -316,7 +316,8 @@ export const TerminationReason: {
   EXPIRED: 'EXPIRED',
   COMPLETED: 'COMPLETED',
   PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW',
-  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+  SERVICE_DISCONTINUED_BY_PLATFORM: 'SERVICE_DISCONTINUED_BY_PLATFORM'
 };
 
 export type TerminationReason = (typeof TerminationReason)[keyof typeof TerminationReason]
@@ -9539,6 +9540,7 @@ export namespace Prisma {
     pricePerSession: Decimal | null
     validityDays: number | null
     ptHoldbackRate: Decimal | null
+    ptHoldbackPolicyVersion: number | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -9559,6 +9561,7 @@ export namespace Prisma {
     pricePerSession: Decimal | null
     validityDays: number | null
     ptHoldbackRate: Decimal | null
+    ptHoldbackPolicyVersion: number | null
     platformRate: Decimal | null
     ptRate: Decimal | null
     gymRate: Decimal | null
@@ -9616,6 +9619,7 @@ export namespace Prisma {
     paymentDueAt: Date | null
     paymentDeadlineExtendedAt: Date | null
     ptHoldbackRate: Decimal | null
+    ptHoldbackPolicyVersion: number | null
     holdbackReleasedAt: Date | null
     platformRate: Decimal | null
     ptRate: Decimal | null
@@ -9687,6 +9691,7 @@ export namespace Prisma {
     paymentDueAt: Date | null
     paymentDeadlineExtendedAt: Date | null
     ptHoldbackRate: Decimal | null
+    ptHoldbackPolicyVersion: number | null
     holdbackReleasedAt: Date | null
     platformRate: Decimal | null
     ptRate: Decimal | null
@@ -9758,6 +9763,7 @@ export namespace Prisma {
     paymentDueAt: number
     paymentDeadlineExtendedAt: number
     ptHoldbackRate: number
+    ptHoldbackPolicyVersion: number
     holdbackReleasedAt: number
     platformRate: number
     ptRate: number
@@ -9794,6 +9800,7 @@ export namespace Prisma {
     pricePerSession?: true
     validityDays?: true
     ptHoldbackRate?: true
+    ptHoldbackPolicyVersion?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -9814,6 +9821,7 @@ export namespace Prisma {
     pricePerSession?: true
     validityDays?: true
     ptHoldbackRate?: true
+    ptHoldbackPolicyVersion?: true
     platformRate?: true
     ptRate?: true
     gymRate?: true
@@ -9871,6 +9879,7 @@ export namespace Prisma {
     paymentDueAt?: true
     paymentDeadlineExtendedAt?: true
     ptHoldbackRate?: true
+    ptHoldbackPolicyVersion?: true
     holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
@@ -9942,6 +9951,7 @@ export namespace Prisma {
     paymentDueAt?: true
     paymentDeadlineExtendedAt?: true
     ptHoldbackRate?: true
+    ptHoldbackPolicyVersion?: true
     holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
@@ -10013,6 +10023,7 @@ export namespace Prisma {
     paymentDueAt?: true
     paymentDeadlineExtendedAt?: true
     ptHoldbackRate?: true
+    ptHoldbackPolicyVersion?: true
     holdbackReleasedAt?: true
     platformRate?: true
     ptRate?: true
@@ -10171,6 +10182,7 @@ export namespace Prisma {
     paymentDueAt: Date | null
     paymentDeadlineExtendedAt: Date | null
     ptHoldbackRate: Decimal
+    ptHoldbackPolicyVersion: number
     holdbackReleasedAt: Date | null
     platformRate: Decimal
     ptRate: Decimal
@@ -10261,6 +10273,7 @@ export namespace Prisma {
     paymentDueAt?: boolean
     paymentDeadlineExtendedAt?: boolean
     ptHoldbackRate?: boolean
+    ptHoldbackPolicyVersion?: boolean
     holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
@@ -10338,6 +10351,7 @@ export namespace Prisma {
     paymentDueAt?: boolean
     paymentDeadlineExtendedAt?: boolean
     ptHoldbackRate?: boolean
+    ptHoldbackPolicyVersion?: boolean
     holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
@@ -10409,6 +10423,7 @@ export namespace Prisma {
     paymentDueAt?: boolean
     paymentDeadlineExtendedAt?: boolean
     ptHoldbackRate?: boolean
+    ptHoldbackPolicyVersion?: boolean
     holdbackReleasedAt?: boolean
     platformRate?: boolean
     ptRate?: boolean
@@ -10502,6 +10517,7 @@ export namespace Prisma {
       paymentDueAt: Date | null
       paymentDeadlineExtendedAt: Date | null
       ptHoldbackRate: Prisma.Decimal
+      ptHoldbackPolicyVersion: number
       holdbackReleasedAt: Date | null
       platformRate: Prisma.Decimal
       ptRate: Prisma.Decimal
@@ -10997,6 +11013,7 @@ export namespace Prisma {
     readonly paymentDueAt: FieldRef<"Contract", 'DateTime'>
     readonly paymentDeadlineExtendedAt: FieldRef<"Contract", 'DateTime'>
     readonly ptHoldbackRate: FieldRef<"Contract", 'Decimal'>
+    readonly ptHoldbackPolicyVersion: FieldRef<"Contract", 'Int'>
     readonly holdbackReleasedAt: FieldRef<"Contract", 'DateTime'>
     readonly platformRate: FieldRef<"Contract", 'Decimal'>
     readonly ptRate: FieldRef<"Contract", 'Decimal'>
@@ -38450,6 +38467,7 @@ export namespace Prisma {
     paymentDueAt: 'paymentDueAt',
     paymentDeadlineExtendedAt: 'paymentDeadlineExtendedAt',
     ptHoldbackRate: 'ptHoldbackRate',
+    ptHoldbackPolicyVersion: 'ptHoldbackPolicyVersion',
     holdbackReleasedAt: 'holdbackReleasedAt',
     platformRate: 'platformRate',
     ptRate: 'ptRate',
@@ -40356,6 +40374,7 @@ export namespace Prisma {
     paymentDueAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     paymentDeadlineExtendedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     ptHoldbackRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFilter<"Contract"> | number
     holdbackReleasedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -40432,6 +40451,7 @@ export namespace Prisma {
     paymentDueAt?: SortOrderInput | SortOrder
     paymentDeadlineExtendedAt?: SortOrderInput | SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     holdbackReleasedAt?: SortOrderInput | SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
@@ -40511,6 +40531,7 @@ export namespace Prisma {
     paymentDueAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     paymentDeadlineExtendedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     ptHoldbackRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFilter<"Contract"> | number
     holdbackReleasedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
     platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -40587,6 +40608,7 @@ export namespace Prisma {
     paymentDueAt?: SortOrderInput | SortOrder
     paymentDeadlineExtendedAt?: SortOrderInput | SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     holdbackReleasedAt?: SortOrderInput | SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
@@ -40666,6 +40688,7 @@ export namespace Prisma {
     paymentDueAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     paymentDeadlineExtendedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     ptHoldbackRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntWithAggregatesFilter<"Contract"> | number
     holdbackReleasedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     platformRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
@@ -44115,6 +44138,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -44191,6 +44215,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -44267,6 +44292,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44343,6 +44369,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44419,6 +44446,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -44490,6 +44518,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -44561,6 +44590,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -48470,6 +48500,7 @@ export namespace Prisma {
     paymentDueAt?: SortOrder
     paymentDeadlineExtendedAt?: SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
@@ -48504,6 +48535,7 @@ export namespace Prisma {
     pricePerSession?: SortOrder
     validityDays?: SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -48561,6 +48593,7 @@ export namespace Prisma {
     paymentDueAt?: SortOrder
     paymentDeadlineExtendedAt?: SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
@@ -48632,6 +48665,7 @@ export namespace Prisma {
     paymentDueAt?: SortOrder
     paymentDeadlineExtendedAt?: SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     holdbackReleasedAt?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
@@ -48666,6 +48700,7 @@ export namespace Prisma {
     pricePerSession?: SortOrder
     validityDays?: SortOrder
     ptHoldbackRate?: SortOrder
+    ptHoldbackPolicyVersion?: SortOrder
     platformRate?: SortOrder
     ptRate?: SortOrder
     gymRate?: SortOrder
@@ -55118,6 +55153,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -55193,6 +55229,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -55368,6 +55405,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -55443,6 +55481,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -55681,6 +55720,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -55756,6 +55796,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -55924,6 +55965,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -55999,6 +56041,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -56145,6 +56188,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -56220,6 +56264,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -56388,6 +56433,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -56463,6 +56509,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -57696,6 +57743,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -57771,6 +57819,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -57993,6 +58042,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -58068,6 +58118,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -58399,6 +58450,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -58474,6 +58526,7 @@ export namespace Prisma {
     paymentDueAt?: Date | string | null
     paymentDeadlineExtendedAt?: Date | string | null
     ptHoldbackRate?: Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: number
     holdbackReleasedAt?: Date | string | null
     platformRate?: Decimal | DecimalJsLike | number | string
     ptRate?: Decimal | DecimalJsLike | number | string
@@ -58593,6 +58646,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -58668,6 +58722,7 @@ export namespace Prisma {
     paymentDueAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paymentDeadlineExtendedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     ptHoldbackRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptHoldbackPolicyVersion?: IntFieldUpdateOperationsInput | number
     holdbackReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string

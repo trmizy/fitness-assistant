@@ -81,10 +81,17 @@ enum LedgerEntryType {
 /// reservation a later clawback/refund cannot reach, since those only ever debit AVAILABLE);
 /// the actual payout later debits LOCKED (+ ESCROW); a rejection after approval moves LOCKED
 /// back to AVAILABLE.
+///
+/// FH-9: HOLDBACK added - the PT's EARNED-but-not-yet-withdrawable money for the contracts that carry a PT financial holdback
+/// (10% of the PT's expected income on that contract, held until the contract has ended and is reconciled). It is a claim of the PT
+/// on ESCROW exactly like AVAILABLE, but nothing withdraws from it and no per-session / compensation path can reach it; it only
+/// leaves through the two doors in contract-ledger.service (the contract's own verified PT-fault compensation, and the release to AVAILABLE).
+/// Per contract the held amount is Σ HOLDBACK rows of that contract's payment transaction id.
 enum LedgerBucket {
   PENDING
   AVAILABLE
   LOCKED
+  HOLDBACK
 }
 
 enum RelatedEntityType {
@@ -120,6 +127,8 @@ model Wallet {
   availableBalance Decimal         @db.Decimal(14, 2) @default(0) @map("available_balance")
   pendingBalance   Decimal         @db.Decimal(14, 2) @default(0) @map("pending_balance")
   lockedBalance    Decimal         @db.Decimal(14, 2) @default(0) @map("locked_balance")
+  /// FH-9: earned PT money held back per contract (see LedgerBucket.HOLDBACK). Not withdrawable.
+  holdbackBalance  Decimal         @db.Decimal(14, 2) @default(0) @map("holdback_balance")
   status           WalletStatus    @default(ACTIVE)
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")

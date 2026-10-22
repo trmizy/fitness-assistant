@@ -325,11 +325,20 @@ ${gymLog.slice(-30).join("")}`);
 
   async function wallet(ownerType: string, ownerId: string): Promise<Wallet> {
     const rows: any[] = await payDb.$queryRawUnsafe(
-      "SELECT available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l FROM wallets WHERE owner_type = $1::\"WalletOwnerType\" AND owner_id = $2",
+      "SELECT available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l, holdback_balance::text AS h FROM wallets WHERE owner_type = $1::\"WalletOwnerType\" AND owner_id = $2",
       ownerType,
       ownerId,
     );
     return rows[0] ? { a: num(rows[0].a), p: num(rows[0].p), l: num(rows[0].l) } : { ...ZERO_WALLET };
+  }
+  /** FH-9: what is held back for this owner (HOLDBACK bucket). Kept apart from wallet() so the {a, p, l} shape every suite compares stays as it was. */
+  async function heldBack(ownerType: string, ownerId: string): Promise<number> {
+    const rows: any[] = await payDb.$queryRawUnsafe(
+      'SELECT holdback_balance::text AS h FROM wallets WHERE owner_type = $1::"WalletOwnerType" AND owner_id = $2',
+      ownerType,
+      ownerId,
+    );
+    return rows[0] ? num(rows[0].h) : 0;
   }
   const revenue = () => wallet("PLATFORM", "REVENUE");
   const escrow = () => wallet("PLATFORM", "ESCROW");
@@ -346,7 +355,7 @@ ${gymLog.slice(-30).join("")}`);
     return rows.map((r) => ({ ownerType: r.owner_type as string, ownerId: r.owner_id as string, bucket: r.bucket as string, type: r.entry_type as string, amount: num(r.amount), description: r.description as string }));
   }
   /** Net movement of one owner type in one bucket attributable to ONE contract's transaction (credits - debits). */
-  async function net(txnId: string, ownerType: string, bucket: "PENDING" | "AVAILABLE" | "LOCKED", ownerId?: string) {
+  async function net(txnId: string, ownerType: string, bucket: "PENDING" | "AVAILABLE" | "LOCKED" | "HOLDBACK", ownerId?: string) {
     return (await entries(txnId))
       .filter((e) => e.ownerType === ownerType && e.bucket === bucket && (ownerId === undefined || e.ownerId === ownerId))
       .reduce((s, e) => s + (e.type === "CREDIT" ? e.amount : -e.amount), 0);
@@ -356,7 +365,7 @@ ${gymLog.slice(-30).join("")}`);
   async function invariant(context = "") {
     const rows: any[] = await payDb.$queryRawUnsafe(
       `SELECT owner_type::text AS owner_type, CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END AS owner_id,
-              SUM(pending_balance)::text AS p, SUM(available_balance)::text AS a, SUM(locked_balance)::text AS l
+              SUM(pending_balance)::text AS p, SUM(available_balance)::text AS a, SUM(locked_balance)::text AS l, SUM(holdback_balance)::text AS h
          FROM wallets GROUP BY 1, 2`,
     );
     let claims = 0;
@@ -366,10 +375,10 @@ ${gymLog.slice(-30).join("")}`);
         escrowAvail = num(r.a);
         continue;
       }
-      claims += num(r.a) + num(r.p) + num(r.l);
+      claims += num(r.a) + num(r.p) + num(r.l) + num(r.h);
     }
     const negative: any[] = await payDb.$queryRawUnsafe(
-      "SELECT owner_type::text, owner_id FROM wallets WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0",
+      "SELECT owner_type::text, owner_id FROM wallets WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0 OR holdback_balance < 0",
     );
     const drift = Math.round((escrowAvail - claims) * 100) / 100;
     if (drift !== 0 || negative.length > 0) {
@@ -381,12 +390,12 @@ ${gymLog.slice(-30).join("")}`);
   /** Everything that proves "nothing moved": non-zero wallet balances + row counts. */
   async function snapshot() {
     const w: any[] = await payDb.$queryRawUnsafe(
-      `SELECT owner_type::text AS t, owner_id AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l
-         FROM wallets WHERE available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 ORDER BY 1, 2`,
+      `SELECT owner_type::text AS t, owner_id AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l, holdback_balance::text AS h
+         FROM wallets WHERE available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 OR holdback_balance <> 0 ORDER BY 1, 2`,
     );
     const c = async (sql: string) => num(((await payDb.$queryRawUnsafe(sql)) as any[])[0].n);
     return {
-      wallets: w.map((r) => `${r.t}:${r.id}:${r.a}/${r.p}/${r.l}`),
+      wallets: w.map((r) => `${r.t}:${r.id}:${r.a}/${r.p}/${r.l}/${r.h}`),
       entries: await c("SELECT count(*)::text AS n FROM wallet_ledger_entries"),
       operations: await c("SELECT count(*)::text AS n FROM ledger_operations"),
       receivables: await c("SELECT count(*)::text AS n FROM partner_receivables"),
@@ -602,6 +611,7 @@ ${log.slice(-15).join("")}`);
     paymentLog: () => log.join(""),
     resetPayment,
     wallet,
+    heldBack,
     revenue,
     escrow,
     entries,

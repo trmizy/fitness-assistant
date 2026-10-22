@@ -602,19 +602,15 @@ test("(17) idle-holdback clock: Bình's restricted days do not count for Bình a
     assert.equal(adminSession.status, "CANCELLED");
     assert.equal(adminSession.cancelledBy, "SYSTEM");
     assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: real.id } })).cancelledBy, pt);
-    const window = { activatedBefore: new Date(T - 30 * DAY), sessionsSince: new Date(T - 30 * DAY) };
-    assert.equal((await contractRepository.findIdleHoldbackCandidates({ ...window, id: bAdmin.id })).length, 1, "an administrative cancellation is not activity");
-    assert.equal((await contractRepository.findIdleHoldbackCandidates({ ...window, id: chiReal.id })).length, 0, "a real PT cancellation still counts (D30 unchanged)");
-
-    // the sweep
-    for (const x of [bNow, bPast, chi]) {
-      assert.ok((await contractRepository.findIdleHoldbackCandidates({ ...window, id: x.id })).length === 1, "control: the plain idle rule would release it");
+    // FH-9: there is no idle release any more. A RUNNING contract's holdback is never released by the sweep - restricted or not, quiet or not.
+    for (const x of [bNow, bPast, chi, bAdmin, chiReal]) {
+      assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: x.id })).length, 0, "an ACTIVE contract is never a sweep candidate");
     }
-    await contractService.releaseIdleHoldbacks(new Date(T));
-    assert.equal(released(s, bNow.id), false, "restricted right now: never released");
-    assert.equal(released(s, bPast.id), false, "only 15 non-restricted days on THIS contract: not idle yet");
-    assert.equal(released(s, chi.id), true, "Chi shares the PT but not the restriction: idle for 40 days, released");
-    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: bNow.id } })).holdbackReleasedAt, null);
+    await contractService.releaseDueHoldbacks(new Date(T));
+    for (const x of [bNow, bPast, chi, bAdmin, chiReal]) {
+      assert.equal(released(s, x.id), false, "nothing is released while the contract runs (Chi's 40 quiet days included)");
+      assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: x.id } })).holdbackReleasedAt, null);
+    }
   } finally {
     s.restore();
     await cleanup([pt], [bNow.id, bPast.id, chi.id, bAdmin.id, chiReal.id]);

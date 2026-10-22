@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
-// FH-0: automatic PartnerReceivable recovery is paused by default; this suite exercises the recovery mechanics themselves.
+// Owner decision: automatic PartnerReceivable recovery was REMOVED. The old switch is set to 'true' on purpose, to prove it is inert.
 process.env.RECEIVABLE_RECOVERY_ENABLED = 'true';
 const databaseUrl = process.env.DATABASE_URL || '';
 const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
@@ -205,6 +205,7 @@ async function balances(m: Mods, f: Fixture) {
   ]);
   return {
     ptPending: pt.pendingBalance.toFixed(2),
+    ptHoldback: pt.holdbackBalance.toFixed(2),
     ptAvailable: pt.availableBalance.toFixed(2),
     gymPending: gym?.pendingBalance.toFixed(2) ?? '0.00',
     gymAvailable: gym?.availableBalance.toFixed(2) ?? '0.00',
@@ -246,12 +247,13 @@ async function assertBooksReconcile(m: Mods, context: string) {
   const mismatched = await m.prisma.$queryRawUnsafe<{ id: string }[]>(`
     SELECT w.id
       FROM wallets w
-      CROSS JOIN (VALUES ('PENDING'), ('AVAILABLE'), ('LOCKED')) AS b(bucket)
+      CROSS JOIN (VALUES ('PENDING'), ('AVAILABLE'), ('LOCKED'), ('HOLDBACK')) AS b(bucket)
       LEFT JOIN wallet_ledger_entries e ON e.wallet_id = w.id AND e.bucket::text = b.bucket
-     GROUP BY w.id, b.bucket, w.pending_balance, w.available_balance, w.locked_balance
+     GROUP BY w.id, b.bucket, w.pending_balance, w.available_balance, w.locked_balance, w.holdback_balance
     HAVING COALESCE(SUM(CASE WHEN e.entry_type::text = 'CREDIT' THEN e.amount ELSE -e.amount END), 0)
            <> CASE b.bucket WHEN 'PENDING' THEN w.pending_balance
                             WHEN 'LOCKED' THEN w.locked_balance
+                            WHEN 'HOLDBACK' THEN w.holdback_balance
                             ELSE w.available_balance END`);
   assert.equal(mismatched.length, 0, `${context}: every bucket balance is fully explained by its ledger rows`);
 
@@ -259,7 +261,8 @@ async function assertBooksReconcile(m: Mods, context: string) {
     SELECT (SELECT COUNT(*) FROM wallet_ledger_entries WHERE amount <> TRUNC(amount))
          + (SELECT COUNT(*) FROM wallets WHERE pending_balance <> TRUNC(pending_balance)
                                             OR available_balance <> TRUNC(available_balance)
-                                            OR locked_balance <> TRUNC(locked_balance)) AS n`);
+                                            OR locked_balance <> TRUNC(locked_balance)
+                                            OR holdback_balance <> TRUNC(holdback_balance)) AS n`);
   assert.equal(Number(fractional[0].n), 0, `${context}: every amount is a whole number of đồng`);
 }
 
@@ -309,7 +312,7 @@ test('worked example: 5.000.000 / 10 / 0.90-0.10-0, 4 used, 1 awaiting confirmat
   assert.equal(exit.shortfall, '0.00');
   const afterExit = await balances(m, f);
   assert.deepEqual(afterExit, {
-    ptPending: '900000.00', ptAvailable: '1800000.00', gymPending: '0.00', gymAvailable: '0.00',
+    ptPending: '900000.00', ptHoldback: '0.00', ptAvailable: '1800000.00', gymPending: '0.00', gymAvailable: '0.00',
     clientAvailable: '2000000.00', escrow: '5000000.00', platformPending: '100000.00', platformRevenue: '200000.00',
   });
   assert.deepEqual(await contractPending(m, f), { pt: '900000.00', gym: '0.00', platform: '100000.00', total: '1000000.00' });
@@ -320,7 +323,7 @@ test('worked example: 5.000.000 / 10 / 0.90-0.10-0, 4 used, 1 awaiting confirmat
     outcome: 'DELIVERED', unit: '500000.00', moved: { pt: '450000.00', gym: '0.00', platform: '50000.00', client: '0.00' }, shortfall: '0.00',
   });
   assert.deepEqual(await balances(m, f), {
-    ptPending: '450000.00', ptAvailable: '2250000.00', gymPending: '0.00', gymAvailable: '0.00',
+    ptPending: '450000.00', ptHoldback: '0.00', ptAvailable: '2250000.00', gymPending: '0.00', gymAvailable: '0.00',
     clientAvailable: '2000000.00', escrow: '5000000.00', platformPending: '50000.00', platformRevenue: '250000.00',
   });
   await assertBooksReconcile(m, 'after DELIVERED');
@@ -330,7 +333,7 @@ test('worked example: 5.000.000 / 10 / 0.90-0.10-0, 4 used, 1 awaiting confirmat
     outcome: 'NOT_DELIVERED', unit: '500000.00', moved: { pt: '450000.00', gym: '0.00', platform: '50000.00', client: '500000.00' }, shortfall: '0.00',
   });
   assert.deepEqual(await balances(m, f), {
-    ptPending: '0.00', ptAvailable: '2250000.00', gymPending: '0.00', gymAvailable: '0.00',
+    ptPending: '0.00', ptHoldback: '0.00', ptAvailable: '2250000.00', gymPending: '0.00', gymAvailable: '0.00',
     clientAvailable: '2500000.00', escrow: '5000000.00', platformPending: '0.00', platformRevenue: '250000.00',
   });
   assert.deepEqual(await contractPending(m, f), { pt: '0.00', gym: '0.00', platform: '0.00', total: '0.00' }, 'nothing is left in this contract’s pending');
@@ -410,7 +413,7 @@ for (const shape of SHAPES) {
 
       // everything the price became is somewhere explained: client + parties' available +
       // everything still pending (wallets hold nothing else in this fixture)
-      const everything = ['clientAvailable', 'ptAvailable', 'gymAvailable', 'platformRevenue', 'ptPending', 'gymPending', 'platformPending']
+      const everything = ['clientAvailable', 'ptAvailable', 'ptHoldback', 'gymAvailable', 'platformRevenue', 'ptPending', 'gymPending', 'platformPending']
         .reduce((sum, k) => sum.plus((b as Record<string, string>)[k]), dec(m, 0));
       assert.equal(everything.toFixed(2), shape.price.toFixed(2), `${ctx}: nothing created, nothing lost`);
       assert.equal(b.escrow, shape.price.toFixed(2), `${ctx}: escrow only moves on a real payout`);
@@ -439,6 +442,9 @@ async function viaUnresolved(m: Mods, o: { price: number; sessions: number; with
     steps.push(await m.ledger.resolveUnresolvedSession(resolveParams(m, f, `S${i}`, outcome)));
     await assertBooksReconcile(m, `after resolving ${i} as ${outcome}`);
   }
+  // FH-9: once every held session is decided the contract is reconciled and the sweep releases whatever stayed held for them.
+  await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
+  await assertBooksReconcile(m, `after the holdback release ${o.reason}`);
   return { f, exit, steps, bal: await balances(m, f), pending: await contractPending(m, f) };
 }
 
@@ -451,7 +457,7 @@ async function classifiedFromStart(m: Mods, o: { price: number; sessions: number
   return { f, bal: await balances(m, f) };
 }
 
-const FINAL_KEYS = ['clientAvailable', 'ptAvailable', 'gymAvailable', 'platformRevenue', 'ptPending', 'gymPending', 'platformPending', 'escrow'] as const;
+const FINAL_KEYS = ['clientAvailable', 'ptAvailable', 'ptHoldback', 'gymAvailable', 'platformRevenue', 'ptPending', 'gymPending', 'platformPending', 'escrow'] as const;
 
 for (const withGym of [false, true]) {
   for (const h of [undefined, '0.10']) {
@@ -512,40 +518,50 @@ test('rounding: 1.000.003 over 3 sessions with a gym — whole đồng at every 
 
 // ── 5. Holdback interplay ────────────────────────────────────────────────────
 
-test('holdback, non-fault exit: the held-back pot goes back to the PT, the unresolved PT share stays pending, and the idle-holdback release cannot sweep it', skipOpts, async () => {
+test('holdback, non-fault exit: the hold goes back to the PT except the part related to the unresolved sessions; the unresolved PT share stays pending; the sweep releases the rest once they are decided', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
   await deliver(m, f, 3);
   const mid = await balances(m, f);
-  assert.equal(mid.ptAvailable, '850000.00', '3 × 450.000 less the 500.000 pot');
+  assert.equal(mid.ptAvailable, '900000.00', '3 × 450.000 less the 450.000 hold');
+  assert.equal(mid.ptHoldback, '450000.00');
 
   const exit = await m.ledger.terminateContract(terminateParams(m, f, EXIT, 2));
   assert.equal(exit.refund, '2500000.00');
-  assert.equal(exit.ptHoldback?.held, '500000.00');
+  assert.equal(exit.ptHoldback?.held, '450000.00');
   assert.equal(exit.ptHoldback?.compensation, '0.00');
-  assert.equal(exit.ptHoldback?.returnedToPt, '500000.00');
-  assert.equal(exit.topUp.pt, '500000.00', 'exactly the pot, not a đồng of the unresolved sessions');
+  assert.equal(exit.ptHoldback?.stillHeld, '100000.00', 'what two undecided sessions could still be about: 10% × 2 × 500.000');
+  assert.equal(exit.ptHoldback?.stillHeldFor.unresolvedSessions, '100000.00');
+  assert.equal(exit.ptHoldback?.returnedToPt, '350000.00');
+  assert.equal(exit.topUp.pt, '0.00', 'not a đồng of the unresolved sessions is topped up');
   assert.equal(exit.unresolved?.byParty.pt, '900000.00');
   const b = await balances(m, f);
-  assert.equal(b.ptAvailable, '1350000.00');
+  assert.equal(b.ptAvailable, '1250000.00');
   assert.equal(b.ptPending, '900000.00');
+  assert.equal(b.ptHoldback, '100000.00');
 
-  const idle = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
-  assert.equal(idle.released, '0.00', 'the pot was settled at termination — nothing to release');
+  const sweep = () => m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
+  const early = await sweep();
+  assert.equal(early.released, '0.00', 'two sessions are still undecided: not reconciled, nothing is released');
+  assert.equal(early.blockedBy?.unresolvedSessions, 2);
   assert.deepEqual(await balances(m, f), b, 'and nothing moved');
 
   // DELIVERED pays the PT in full: no holdback is applied again to a contract that is over
   const r = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'DELIVERED'));
   assert.equal(r.moved.pt, '450000.00');
+  assert.equal((await sweep()).released, '0.00', 'one is still undecided');
   await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'B', 'DELIVERED'));
+  const done = await sweep();
+  assert.equal(done.released, '100000.00');
   const end = await balances(m, f);
-  assert.equal(end.ptAvailable, '2250000.00', '5 × 450.000: what five confirmed sessions give a PT whose holdback was returned');
+  assert.equal(end.ptAvailable, '2250000.00', '5 × 450.000: what five confirmed sessions give a PT whose hold was returned');
   assert.equal(end.ptPending, '0.00');
+  assert.equal(end.ptHoldback, '0.00');
   await assertBooksReconcile(m, 'holdback non-fault');
 });
 
-test('holdback, PT-fault exit: the compensation is carved out of the pot only, measured on the certainly-undelivered sessions, and the unresolved PT share is not touched', skipOpts, async () => {
+test('holdback, PT-fault exit: the compensation is carved out of the hold only, measured on the certainly-undelivered sessions, and the unresolved PT share is not touched', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
@@ -553,27 +569,32 @@ test('holdback, PT-fault exit: the compensation is carved out of the pot only, m
   const exit = await m.ledger.terminateContract(terminateParams(m, f, 'PT_CANCELLED', 2));
   assert.equal(exit.refund, '2500000.00');
   assert.equal(exit.ptHoldback?.compensation, '250000.00', '10% × 2.500.000 — not × 3.500.000');
-  assert.equal(exit.ptHoldback?.returnedToPt, '250000.00');
-  assert.equal(exit.topUp.pt, '250000.00');
+  assert.equal(exit.ptHoldback?.stillHeld, '100000.00', 'the two undecided sessions keep their related part held');
+  assert.equal(exit.ptHoldback?.returnedToPt, '100000.00');
+  assert.equal(exit.topUp.pt, '0.00');
   const b = await balances(m, f);
   assert.equal(b.ptPending, '900000.00', 'the 2 unresolved PT shares are intact');
   assert.equal(b.clientAvailable, '2750000.00', 'refund + compensation');
-  assert.equal(b.ptAvailable, '1100000.00');
+  assert.equal(b.ptAvailable, '1000000.00');
+  assert.equal(b.ptHoldback, '100000.00');
   await assertBooksReconcile(m, 'holdback PT fault');
 
-  const idle = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
-  assert.equal(idle.released, '0.00');
+  const early = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
+  assert.equal(early.released, '0.00');
   assert.equal((await balances(m, f)).ptPending, '900000.00');
 });
 
-test('the idle-holdback release on a contract that is terminated with nothing unresolved still moves nothing (unchanged)', skipOpts, async () => {
+test('the holdback release on a contract that is terminated with nothing unresolved moves nothing more (the ending already returned the hold)', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
   await deliver(m, f, 3);
   await m.ledger.terminateContract(terminateParams(m, f, EXIT));
-  const idle = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
-  assert.equal(idle.released, '0.00');
+  const before = await balances(m, f);
+  const rel = await m.ledger.releasePtHoldback({ transactionId: f.txnId, parties: f.parties, label: f.contractId, idempotencyKey: `HOLDBACK_RELEASE:${f.contractId}` });
+  assert.equal(rel.released, '0.00');
+  assert.equal(rel.reconciled, true);
+  assert.deepEqual(await balances(m, f), before);
 });
 
 // ── 6. Resolve: idempotency, the one-way rule, guards ────────────────────────
@@ -671,21 +692,21 @@ test('resolve only ever touches this contract’s own pending — a neighbour of
   await assertBooksReconcile(m, 'resolve isolation');
 });
 
-test('DELIVERED works a debt the PT owes the platform off out of what the session earned — exactly as releaseSession does', skipOpts, async () => {
+test('DELIVERED pays the PT the session in full: an old PartnerReceivable is not deducted (owner decision - no automatic recovery)', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await exited(m, 1);
-  await m.prisma.partnerReceivable.create({ data: { partnerType: 'PT', partnerId: f.parties.ptUserId, amount: 100_000, reason: 'earlier shortfall', transactionId: f.txnId } });
+  const debt = await m.prisma.partnerReceivable.create({ data: { partnerType: 'PT', partnerId: f.parties.ptUserId, amount: 100_000, reason: 'earlier shortfall', transactionId: f.txnId } });
   const before = await balances(m, f);
   const r = await m.ledger.resolveUnresolvedSession(resolveParams(m, f, 'A', 'DELIVERED'));
   assert.equal(r.moved.pt, '450000.00', 'the session’s share moved to available…');
   const after = await balances(m, f);
-  assert.equal(dec(m, after.ptAvailable).minus(before.ptAvailable).toFixed(2), '350000.00', '…of which 100.000 went against the debt');
-  const debt = await m.prisma.partnerReceivable.findFirstOrThrow({ where: { partnerId: f.parties.ptUserId } });
-  assert.equal(debt.recovered.toFixed(2), '100000.00');
-  assert.ok(debt.settledAt);
-  assert.equal(dec(m, after.platformRevenue).minus(before.platformRevenue).toFixed(2), '150000.00', 'platform: its 50.000 share + the 100.000 recovered');
-  await assertBooksReconcile(m, 'receivable recovery');
+  assert.equal(dec(m, after.ptAvailable).minus(before.ptAvailable).toFixed(2), '450000.00', '…and all of it reached the PT');
+  const row = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
+  assert.equal(row.recovered.toFixed(2), '0.00');
+  assert.equal(row.settledAt, null);
+  assert.equal(dec(m, after.platformRevenue).minus(before.platformRevenue).toFixed(2), '50000.00', 'platform: only its own 50.000 share');
+  await assertBooksReconcile(m, 'receivable not recovered');
 });
 
 test('NOT_DELIVERED credits the client in one clearly worded row that counts as withdrawable', skipOpts, async () => {

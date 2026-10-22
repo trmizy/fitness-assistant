@@ -1,35 +1,56 @@
 /**
- * PT holdback: the share of a contract's price whose first earnings the PT does not get to
- * withdraw until the contract ends well, or sits idle (see Contract.ptHoldbackRate in the schema
- * and payment-service's contract-ledger.service#releaseSession / #terminateContract).
+ * PT financial holdback (FH-9): the share of a PT's EXPECTED INCOME on one contract that is held back from their first earnings
+ * until the contract has ended and is reconciled (see payment-service's contract-ledger.service / contract-money.ts#holdbackTarget).
  *
- * The rate a NEW contract is snapshotted with comes from exactly one place: this function.
+ * The rate (and the policy version it was decided under) a NEW contract is snapshotted with comes from exactly one place: this file.
+ * Everything after that reads the contract's own snapshot - never this function, never the flag.
  */
+import { PT_TERMS_IS_DRAFT, PT_TERMS_VERSION } from "./pt-terms";
+import { ptTermsService } from "./pt-terms.service";
+import { PT_HOLDBACK_POLICY_VERSION, PT_HOLDBACK_RATE, policyVersionForRate } from "./pt-holdback-policy";
+
+export { PT_HOLDBACK_POLICY_VERSION, PT_HOLDBACK_RATE, policyVersionForRate };
 
 /**
- * The holdback rate a contract between a client and `ptUserId` is created with — a decimal string
- * like the rate table's ("0.10"), "0" for none.
- *
- * Today it ALWAYS returns "0": the rule is built and tested but switched OFF, and no real
- * contract is affected. It will return "0.10" only for PTs who have accepted the version of the
- * terms that states the rule — the terms-acceptance feature that decides that does not exist
- * yet (a later task; do not read a PT's acceptance from anywhere else in the meantime). Until
- * then `ptUserId` is deliberately unused.
- *
- * Why a snapshot, not a lookup at payout time: a PT can only be held to a term they agreed to
- * when the contract was created. Flipping this later changes only contracts created after the
- * flip; every existing row keeps the 0 it was created with.
+ * PT_HOLDBACK_NEW_CONTRACTS_ENABLED - only the exact value "true" (case-insensitive, trimmed) turns the holdback on for NEW contracts.
+ * Default OFF. Read on every call, never cached. Turning it off later changes only contracts created afterwards: every contract that
+ * already carries the snapshot keeps its rules and its held money (nothing is released, nothing is lost).
  */
-export async function resolvePtHoldbackRate(_ptUserId: string): Promise<string> {
-  return "0";
+export function ptHoldbackEnabledForNewContracts(env: NodeJS.ProcessEnv = process.env): boolean {
+  return (env.PT_HOLDBACK_NEW_CONTRACTS_ENABLED ?? "").trim().toLowerCase() === "true";
 }
 
 /**
- * How many days a contract may go without any session before its held-back amount is released to
- * the PT and the contract carries on without a holdback. One constant, env-configurable
- * (PT_HOLDBACK_IDLE_DAYS), default 30. Read once at module load so the sweep and its tests agree.
+ * The holdback rate a contract between a client and `ptUserId` is created with - a decimal string like the rate table's ("0.10"),
+ * "0" for none.
+ *
+ * "0.10" ONLY when ALL hold:
+ *   - the flag is on (above);
+ *   - the terms the PT is held to are a RELEASED version (not a draft) that states the rule: PT_HOLDBACK_TERMS_VERSION, set by
+ *     operations when that version is published, must equal the version the service currently serves;
+ *   - this PT has confirmed exactly that version (a PT can only be held to a term they agreed to).
+ * Anything else, or any failure to find out, is "0": the holdback is never applied on a guess.
+ *
+ * Why a snapshot, not a lookup at payout time: flipping the flag later changes only contracts created after the flip; every existing
+ * row keeps the value it was created with.
  */
-export const PT_HOLDBACK_IDLE_DAYS = (() => {
-  const n = Number(process.env.PT_HOLDBACK_IDLE_DAYS ?? 30);
-  return Number.isFinite(n) && n > 0 ? n : 30;
-})();
+export async function resolvePtHoldbackRate(
+  ptUserId: string,
+  deps: {
+    env?: NodeJS.ProcessEnv;
+    termsVersion?: string;
+    termsAreDraft?: boolean;
+    hasAcceptedCurrent?: (userId: string) => Promise<boolean>;
+  } = {},
+): Promise<string> {
+  const env = deps.env ?? process.env;
+  if (!ptHoldbackEnabledForNewContracts(env)) return "0";
+  const statedIn = (env.PT_HOLDBACK_TERMS_VERSION ?? "").trim();
+  if (!statedIn || statedIn !== (deps.termsVersion ?? PT_TERMS_VERSION) || (deps.termsAreDraft ?? PT_TERMS_IS_DRAFT)) return "0";
+  try {
+    const accepted = await (deps.hasAcceptedCurrent ?? ((id: string) => ptTermsService.hasAcceptedCurrent(id)))(ptUserId);
+    return accepted ? PT_HOLDBACK_RATE : "0";
+  } catch {
+    return "0";
+  }
+}

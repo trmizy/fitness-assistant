@@ -6,6 +6,7 @@ import { walletService } from "../../services/api";
 import type { Wallet, WalletLedgerEntry } from "../../types";
 import { walletEntryLabel } from "../../utils/walletEntryLabel";
 import { formatVND } from "../../utils/currency";
+import { PtContractMoney } from "./PtContractMoney";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -127,6 +128,8 @@ export function PTWalletPage() {
           </div>
         )}
       </div>
+
+      <PtContractMoney />
 
       <div>
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Transaction History</h2>

@@ -43,6 +43,7 @@ const rawContract = () => ({
   ptRate: "0.5500",
   gymRate: "0.3500",
   ptHoldbackRate: "0.1000",
+  ptHoldbackPolicyVersion: 1,
   holdbackReleasedAt: null,
   releasedToPt: "10.00",
   releasedToGym: "20.00",

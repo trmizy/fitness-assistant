@@ -190,6 +190,7 @@ export function sessionCallOffReasonFor(reason: string, supplied?: string): stri
     case "PT_REPEATED_NO_SHOW":
       return "Hợp đồng được kết thúc vì huấn luyện viên vắng nhiều lần; các buổi chưa diễn ra được huỷ, không bị trừ.";
     case "PT_BANNED":
+    case "SERVICE_DISCONTINUED_BY_PLATFORM": // D49: the same neutral wording - nobody is blamed
       return "Hợp đồng được kết thúc do huấn luyện viên ngừng hoạt động; các buổi chưa diễn ra được huỷ, không bị trừ.";
     case "CLIENT_EXIT_DUE_TO_PT_RESTRICTION":
       return "Hợp đồng được kết thúc theo yêu cầu của bạn vì huấn luyện viên đang tạm ngưng hoạt động; các buổi chưa diễn ra được huỷ, không bị trừ.";

@@ -5,8 +5,7 @@
  *
  *   - the client gets 100% of the unused training value back (no cancellation fee);
  *   - nothing is taken out of the PT's held-back earnings (no compensation, no penalty, no
- *     receivable) — whatever is held for the PT on that contract goes back to the PT through the
- *     ordinary top-up, as it does for MUTUAL;
+ *     receivable) — whatever is held for the PT on that contract (the HOLDBACK bucket, FH-9) goes back to the PT, as it does for MUTUAL;
  *   - every party keeps what the delivered sessions earned;
  *   - the refund row names the reason, so a ledger reader can tell it from a MUTUAL refund, and
  *     it is still withdrawable (withdrawal.repository#sumRefundSourcedCredits matches "refund").
@@ -192,6 +191,7 @@ async function balances(m: Mods, f: Fixture) {
   ]);
   return {
     ptPending: pt.pendingBalance.toFixed(2),
+    ptHoldback: pt.holdbackBalance.toFixed(2),
     ptAvailable: pt.availableBalance.toFixed(2),
     ptLocked: pt.lockedBalance.toFixed(2),
     gymPending: gym?.pendingBalance.toFixed(2) ?? '0.00',
@@ -228,12 +228,13 @@ async function assertBooksReconcile(m: Mods, context: string) {
   const mismatched = await m.prisma.$queryRawUnsafe<{ id: string }[]>(`
     SELECT w.id
       FROM wallets w
-      CROSS JOIN (VALUES ('PENDING'), ('AVAILABLE'), ('LOCKED')) AS b(bucket)
+      CROSS JOIN (VALUES ('PENDING'), ('AVAILABLE'), ('LOCKED'), ('HOLDBACK')) AS b(bucket)
       LEFT JOIN wallet_ledger_entries e ON e.wallet_id = w.id AND e.bucket::text = b.bucket
-     GROUP BY w.id, b.bucket, w.pending_balance, w.available_balance, w.locked_balance
+     GROUP BY w.id, b.bucket, w.pending_balance, w.available_balance, w.locked_balance, w.holdback_balance
     HAVING COALESCE(SUM(CASE WHEN e.entry_type::text = 'CREDIT' THEN e.amount ELSE -e.amount END), 0)
            <> CASE b.bucket WHEN 'PENDING' THEN w.pending_balance
                             WHEN 'LOCKED' THEN w.locked_balance
+                            WHEN 'HOLDBACK' THEN w.holdback_balance
                             ELSE w.available_balance END`);
   assert.equal(mismatched.length, 0, `${context}: every bucket balance is fully explained by its ledger rows`);
 
@@ -241,7 +242,8 @@ async function assertBooksReconcile(m: Mods, context: string) {
     SELECT (SELECT COUNT(*) FROM wallet_ledger_entries WHERE amount <> TRUNC(amount))
          + (SELECT COUNT(*) FROM wallets WHERE pending_balance <> TRUNC(pending_balance)
                                             OR available_balance <> TRUNC(available_balance)
-                                            OR locked_balance <> TRUNC(locked_balance)) AS n`);
+                                            OR locked_balance <> TRUNC(locked_balance)
+                                            OR holdback_balance <> TRUNC(holdback_balance)) AS n`);
   assert.equal(Number(fractional[0].n), 0, `${context}: every amount is a whole number of đồng`);
 }
 
@@ -359,35 +361,39 @@ for (const withGym of [false, true]) {
       const exit = await scenario(m, { h: '0.10', taught, withGym, reason: EXIT });
 
       const ph = (exit.result as any).ptHoldback;
-      assert.ok(ph, 'the holdback block is reported for a contract that carries one');
-      assert.equal(ph.compensation, '0.00', 'a PT restriction is not a PT-fault ending: nothing is carved out of the held amount');
-      assert.equal(ph.returnedToPt, ph.held, 'the whole held amount is returned to the PT');
-      assert.equal(ph.held, exit.heldBefore, 'and it is what the ledger said was held');
+      if (taught === 0) {
+        assert.equal(ph, undefined, 'nothing was held (no session was ever payable), so there is no holdback block');
+      } else {
+        assert.ok(ph, 'the holdback block is reported for a contract that holds money back');
+        assert.equal(ph.compensation, '0.00', 'a PT restriction is not a PT-fault ending: nothing is carved out of the held amount');
+        assert.equal(ph.returnedToPt, ph.held, 'the whole held amount is returned to the PT');
+        assert.equal(ph.held, exit.heldBefore, 'and it is what the ledger said was held');
+        assert.equal(exit.after.ptHoldback, '0.00', 'and nothing stays in HOLDBACK');
+      }
       assert.deepEqual(exit.resultWithoutReason, mutual.resultWithoutReason, 'identical to MUTUAL');
       assert.deepEqual(exit.after, mutual.after, 'every wallet where MUTUAL leaves it');
       assert.deepEqual(exit.lines, mutual.lines);
       // …which is also exactly where a contract with no holdback ends: the held amount came back, nothing else moved.
       assert.deepEqual(exit.after, legacy.after, 'same balances as the same contract with no holdback at all');
       assert.equal(exit.after.ptPending, legacy.after.ptPending, 'nothing is stranded in the PT’s pending');
-      assert.equal(
-        dec(m, exit.result.topUp.pt).minus(legacy.result.topUp.pt).toFixed(2),
-        ph.held,
-        'the PT’s top-up is larger than without holdback by exactly the held amount',
-      );
+      assert.equal(exit.result.topUp.pt, legacy.result.topUp.pt, 'the pending top-up is the same as without holdback: the held amount reaches the PT through HOLDBACK, not through it');
       await assertNoPtFaultMachinery(m, exit.f.txnId, `holdback taught=${taught}`);
     });
   }
 }
 
-test('pinned numbers: 5.000.000 / 10 sessions / h 0.10, 3 taught — 3.500.000 to the client, 500.000 held goes back to the PT, no compensation', skipOpts, async () => {
+test('pinned numbers: 5.000.000 / 10 sessions / h 0.10, 3 taught — 3.500.000 to the client, 450.000 held goes back to the PT, no compensation', skipOpts, async () => {
   const m = await load();
   const s = await scenario(m, { h: '0.10', taught: 3, reason: EXIT });
-  assert.equal(s.heldBefore, '500000.00');
-  assert.deepEqual((s.result as any).ptHoldback, { target: '500000.00', held: '500000.00', compensation: '0.00', returnedToPt: '500000.00' });
+  assert.equal(s.heldBefore, '450000.00');
+  assert.deepEqual((s.result as any).ptHoldback, {
+    target: '450000.00', held: '450000.00', compensation: '0.00', returnedToPt: '450000.00', stillHeld: '0.00',
+    stillHeldFor: { openObligations: '0.00', unresolvedSessions: '0.00' },
+  });
   assert.equal(s.result.refund, '3500000.00');
-  assert.equal(s.result.topUp.pt, '500000.00');
+  assert.equal(s.result.topUp.pt, '0.00', 'the pending top-up is nil: the whole hold came back through HOLDBACK');
   assert.equal(s.after.clientAvailable, '3500000.00');
-  assert.equal(s.after.ptAvailable, '1350000.00', '3 × 450.000, 850.000 released along the way + 500.000 returned');
+  assert.equal(s.after.ptAvailable, '1350000.00', '3 × 450.000, 900.000 released along the way + 450.000 returned');
   assert.equal(s.after.ptPending, '0.00');
   assert.equal(s.after.platformRevenue, '150000.00');
 });
@@ -436,8 +442,8 @@ test('another running contract of the same PT is untouched: pending, held pot an
   const a = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10', ptUserId: pt });
   const b = await paidContract(m, { price: 2_000_000, totalSessions: 8, h: '0.10', ptUserId: pt });
   await deliver(m, a, 3);
-  await deliver(m, b, 1); // s = 225.000, H = 200.000 → held 200.000
-  assert.equal(await heldNow(m, b), '200000.00');
+  await deliver(m, b, 1); // s = 225.000, expected income 1.800.000, H = 180.000 → held 180.000
+  assert.equal(await heldNow(m, b), '180000.00');
 
   const ptWallet = await m.wallet.getOrCreateWallet('PT', pt);
   const pendingOf = (f: Fixture) =>
@@ -447,7 +453,7 @@ test('another running contract of the same PT is untouched: pending, held pot an
 
   await m.ledger.terminateContract(terminateParams(m, a, EXIT));
 
-  assert.equal(await heldNow(m, b), '200000.00', 'B’s held pot is untouched');
+  assert.equal(await heldNow(m, b), '180000.00', 'B’s held pot is untouched');
   assert.equal(await pendingOf(b), bPending, 'B’s pending is untouched');
   assert.equal(await m.prisma.walletLedgerEntry.count({ where: { transactionId: b.txnId } }), bRows, 'no ledger row of B was written');
   assert.equal(await pendingOf(a), '0.00', 'A’s own pending is fully settled');
@@ -544,7 +550,7 @@ test('POST /internal/contracts/terminate accepts the reason, settles it, and sti
     assert.equal(ok.json.data.reason, EXIT);
     assert.equal(ok.json.data.refund, '3500000.00');
     assert.equal(ok.json.data.ptHoldback.compensation, '0.00');
-    assert.equal(ok.json.data.ptHoldback.returnedToPt, '500000.00');
+    assert.equal(ok.json.data.ptHoldback.returnedToPt, '450000.00');
 
     const replay = await post(body(EXIT));
     assert.equal(replay.status, 200);

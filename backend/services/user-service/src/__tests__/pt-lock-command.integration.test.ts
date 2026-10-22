@@ -408,10 +408,10 @@ test("session cancellation is conditional on the session's current state: a sess
   }
 });
 
-test("sessions the unwind cancels are SYSTEM cancellations: the idle-holdback clock does not count them as PT activity", { skip }, async () => {
+test("sessions the unwind cancels are SYSTEM cancellations (not PT cancellations); and a running contract's holdback is never swept (FH-9: no idle clock any more)", { skip }, async () => {
   const pt = await makePt();
   const c = await makeContract(pt, { ptHoldbackRate: "0.10", startDate: new Date(Date.now() - 60 * DAY) });
-  // Cancelled-by-PT-id counts as activity in findIdleHoldbackCandidates; cancelledBy SYSTEM must not.
+  // cancelledBy SYSTEM must stay distinguishable from a cancellation by the PT's own id (the PT is never blamed for the unwind).
   const recent = await addSession(c, "CONFIRMED", -3);
   const s = stubs();
   try {
@@ -423,14 +423,9 @@ test("sessions the unwind cancels are SYSTEM cancellations: the idle-holdback cl
     assert.equal(row.cancelledBy, "SYSTEM");
     assert.notEqual(row.cancelledBy, row.ptUserId);
 
-    const cutoff = new Date(Date.now() - 30 * DAY);
-    const candidates = await contractRepository.findIdleHoldbackCandidates({ activatedBefore: cutoff, sessionsSince: cutoff, id: c.id });
-    assert.equal(candidates.length, 1, "the unwind's cancellation does not keep the idle clock from running");
-
-    // Control: the same session cancelled BY THE PT would have counted.
-    await prisma.session.update({ where: { id: recent.id }, data: { cancelledBy: pt } });
-    const counted = await contractRepository.findIdleHoldbackCandidates({ activatedBefore: cutoff, sessionsSince: cutoff, id: c.id });
-    assert.equal(counted.length, 0, "control: a PT-id cancellation does count");
+    // FH-9: the idle release is gone. A running (ACTIVE) contract is never a candidate of the holdback sweep, quiet or not; only an ENDED
+    // contract can be (and payment-service still decides whether the release is due).
+    assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: c.id })).length, 0, "a running contract is never a sweep candidate");
   } finally {
     s.restore();
     await cleanup(pt, [c.id]);
@@ -449,7 +444,7 @@ test("a contract that is only waiting for payment (no money) is cancelled with n
     assert.equal(s.calls.length, 0);
     const after = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
     assert.equal(after.status, "CANCELLED");
-    assert.equal(after.terminationReason, "PT_BANNED");
+    assert.equal(after.terminationReason, "SERVICE_DISCONTINUED_BY_PLATFORM");
     assert.equal(after.cancelledBy, "SYSTEM");
     assert.equal(notified.filter((n) => n.eventType === "CONTRACT_CANCELLED_PT_DEACTIVATED").length, 1);
   } finally {

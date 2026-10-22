@@ -1,5 +1,6 @@
-import { ContractStatus, ContractSource, PackageType, SessionMode, SessionStatus, Prisma } from "../generated/prisma";
+import { ContractStatus, ContractSource, PackageType, SessionMode, Prisma } from "../generated/prisma";
 import { prisma } from "./profile.repository";
+import { policyVersionForRate } from "../services/pt-holdback-policy";
 
 /** Vòng 4 / Phase A3 — same reasoning as session.repository.ts's own Db type: findById needs
  *  to run on whichever connection currently holds withPtScheduleLock's advisory lock, so a
@@ -44,7 +45,8 @@ export const contractRepository = {
     platformRate?: Prisma.Decimal | string;
     ptRate?: Prisma.Decimal | string;
     gymRate?: Prisma.Decimal | string;
-    // PT holdback rate, snapshotted at creation (see pt-holdback-rate.ts). Omitted → schema default 0.
+    // PT holdback rate, snapshotted at creation (see pt-holdback-rate.ts). Omitted → schema default 0. The policy version it was decided
+    // under is stamped here from the rate (0 for no holdback), so a caller cannot snapshot a rate without its version.
     ptHoldbackRate?: Prisma.Decimal | string;
     paymentTransactionId?: string;
     /** Phase 3 / P3.2 snapshot of the PT-gym agreement behind the rates (all null when not recorded). */
@@ -52,7 +54,7 @@ export const contractRepository = {
     gymAgreementId?: string | null;
     gymAgreementScope?: string | null;
     gymMembershipId?: string | null;
-  }, db: Db = prisma) => db.contract.create({ data }),
+  }, db: Db = prisma) => db.contract.create({ data: { ...data, ptHoldbackPolicyVersion: policyVersionForRate(data.ptHoldbackRate) } }),
 
   findById: (id: string, db: Db = prisma) => db.contract.findUnique({ where: { id } }),
 
@@ -265,93 +267,37 @@ export const contractRepository = {
     }),
 
   /**
-   * Contracts whose PT holdback is due for release because nothing has happened on them for a
-   * long time (the idle-release sweep's candidates; also re-run per id right before the money call).
+   * FH-9. Contracts that carry a PT holdback and have ENDED, whose holdback the sweep has not yet seen settled - the sweep's candidates
+   * (a contract whose ending is confirmed but whose held money is waiting for an open obligation / an undecided session, or whose
+   * natural completion has not reached payment-service yet). payment-service decides whether the release is due; this only lists.
    *
-   * The rule, exactly. A contract qualifies when ALL of:
-   *   · status ACTIVE, paid (paymentTransactionId set), ptHoldbackRate > 0, holdbackReleasedAt null;
-   *   · activated at least `idleDays` ago (startDate is stamped at activation by
-   *     activateIfPendingGuarded; there is no separate activatedAt);
-   *   · NO session counts as activity, where a session counts when it is
-   *       - in a state that still holds the contract's entitlement — REQUESTED, CONFIRMED,
-   *         PENDING_CLIENT_CONFIRMATION, DISPUTED, PT_NO_SHOW_REPORTED (docs/money-flow.md
-   *         "business-rules-session-lifecycle" §1.1), whatever its start time, future included; or
-   *       - COMPLETED or NO_SHOW with a start time inside the last `idleDays` days; or
-   *       - CANCELLED BY THE PT (cancelledBy = the session's own ptUserId) with a start time inside
-   *         the last `idleDays` days — so a PT cannot run the clock down by cancelling every session
-   *         and then collect the holdback before walking away.
-   *     Any other CANCELLED never counts: nothing happened and the slot no longer holds anything.
-   *     That covers a client cancel (cancelledBy = the client's id), an admin dispute ruling
-   *     ("ADMIN") and a system cancel ("SYSTEM": a room nobody joined, the PT-deactivation unwind).
-   *     "Counts as activity" here is ONLY about the idle clock — it does not mean the session was
-   *     delivered, and nothing about quota, entitlement or money reads this rule.
-   * It is deliberately a SUPERSET of "a holding-state session starting in the last N days or in the
-   * future": a session left unresolved for longer (a dispute waiting for an admin, say) must keep
-   * the money held, and a PT who has stopped turning up (NO_SHOW) must not have the holdback
-   * released as if the contract had merely been quiet.
+   * The rule, exactly: status COMPLETED / EXPIRED / CANCELLED (an ended contract), paid (paymentTransactionId set), created under a known
+   * holdback policy (ptHoldbackPolicyVersion > 0 and ptHoldbackRate > 0 - an old row can never qualify), holdbackReleasedAt null.
+   * There is no idle clock any more: a running contract's holdback is never released early, however quiet it is.
    */
-  findIdleHoldbackCandidates: (opts: {
-    activatedBefore: Date;
-    sessionsSince: Date;
-    limit?: number;
-    id?: string;
-    /** PTs restricted right now: a paused contract is never idle (see contractService.releaseIdleHoldbacks). */
-    excludePtUserIds?: string[];
-    /** Contracts paused on their own (CONTRACT-scope restriction): never idle either. */
-    excludeContractIds?: string[];
-  }) =>
+  findEndedHoldbackCandidates: (opts: { limit?: number; id?: string } = {}) =>
     prisma.contract.findMany({
       where: {
-        ...(opts.id ? { id: opts.id } : opts.excludeContractIds && opts.excludeContractIds.length > 0 ? { id: { notIn: opts.excludeContractIds } } : {}),
-        ...(opts.excludePtUserIds && opts.excludePtUserIds.length > 0 ? { ptUserId: { notIn: opts.excludePtUserIds } } : {}),
-        status: ContractStatus.ACTIVE,
+        ...(opts.id ? { id: opts.id } : {}),
+        status: { in: [ContractStatus.COMPLETED, ContractStatus.EXPIRED, ContractStatus.CANCELLED] },
         holdbackReleasedAt: null,
         ptHoldbackRate: { gt: 0 },
+        ptHoldbackPolicyVersion: { gt: 0 },
         paymentTransactionId: { not: null },
-        startDate: { lte: opts.activatedBefore },
-        sessions: {
-          none: {
-            OR: [
-              {
-                status: {
-                  in: [
-                    SessionStatus.REQUESTED,
-                    SessionStatus.CONFIRMED,
-                    SessionStatus.PENDING_CLIENT_CONFIRMATION,
-                    SessionStatus.DISPUTED,
-                    SessionStatus.PT_NO_SHOW_REPORTED,
-                  ],
-                },
-              },
-              {
-                status: { in: [SessionStatus.COMPLETED, SessionStatus.NO_SHOW] },
-                scheduledStartAt: { gte: opts.sessionsSince },
-              },
-              {
-                status: SessionStatus.CANCELLED,
-                cancelledBy: { equals: prisma.session.fields.ptUserId },
-                scheduledStartAt: { gte: opts.sessionsSince },
-              },
-            ],
-          },
-        },
       },
-      orderBy: { startDate: "asc" },
+      orderBy: { updatedAt: "asc" },
       take: opts.limit ?? 200,
     }),
 
   /**
-   * Guarded mark: ONE UPDATE ... WHERE, so a contract's holdback is recorded as released exactly
-   * once even if two sweeps overlap (two instances, or a retry after a crash) — the loser sees
-   * holdbackReleasedAt already set and affects 0 rows. What the release actually moved is added to
-   * releasedToPt IN THE SAME UPDATE, so it is counted once and only by the winner: termination
-   * hands releasedToPt back to payment-service as `alreadyReleased`, and an uncounted release
-   * would be paid to the PT a second time out of the client's refund.
+   * Guarded mark: ONE UPDATE ... WHERE holdbackReleasedAt IS NULL, so it is recorded exactly once however many sweeps overlap. It is a
+   * flag only - the ledger (payment-service) is the authority for the amounts, and the mark is written whatever status the contract
+   * has by now (Z4: it used to require ACTIVE, so a contract that ended before the sweep got its money released but never recorded).
    */
-  markHoldbackReleased: (id: string, released: Prisma.Decimal, now: Date) =>
+  markHoldbackReleased: (id: string, now: Date) =>
     prisma.contract.updateMany({
-      where: { id, status: ContractStatus.ACTIVE, holdbackReleasedAt: null },
-      data: { holdbackReleasedAt: now, releasedToPt: { increment: released } },
+      where: { id, holdbackReleasedAt: null },
+      data: { holdbackReleasedAt: now },
     }),
 
   /** Admin: list all contracts with pagination */

@@ -3,7 +3,7 @@ import { Prisma } from '../generated/prisma';
 import { walletService } from './wallet.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { splitThreeWays, ZERO } from './contract-money';
-import { ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
+import { ownPending, recordObligation } from './contract-ledger.service';
 
 /**
  * P0 cluster C3 — escrow for Personalized PT Service orders (ai-service).
@@ -13,7 +13,7 @@ import { ownPending, recordObligation, recoverReceivables } from './contract-led
  * it is one lump-sum price, held until the buyer accepts the delivered work (or the
  * auto-accept sweep does, on their behalf, after the review window lapses) or refunded. Same
  * underlying primitives (walletService.withWallets, withIdempotentLedgerOp,
- * recordObligation/recoverReceivables) — a different shape of formula.
+ * recordObligation) — a different shape of formula.
  *
  * There is no `holdOrder` here: the "hold" step (price → escrow, PT/platform shares →
  * PENDING) is exactly what the existing generic checkout + webhook pipeline already does for
@@ -85,7 +85,6 @@ export async function releaseOrder(params: {
         walletId: string,
         amount: Prisma.Decimal,
         who: string,
-        debtor?: { partnerType: 'PT'; partnerId: string },
       ): Promise<Prisma.Decimal> => {
         if (amount.lessThanOrEqualTo(0)) return ZERO;
         // This order's pending, not the wallet's pooled bucket: the PT's and the platform's
@@ -98,13 +97,10 @@ export async function releaseOrder(params: {
         }
         await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
         await ops.credit(walletId, moving, `${label} — order accepted`, 'AVAILABLE');
-        if (debtor) {
-          await recoverReceivables({ ops, walletId, revenueWalletId: wallets.revenueId, ...debtor, justCredited: moving, label });
-        }
         return moving;
       };
 
-      const pt = await move(wallets.ptId, shares.pt, 'PT', { partnerType: 'PT', partnerId: parties.ptUserId });
+      const pt = await move(wallets.ptId, shares.pt, 'PT');
       const platform = await move(wallets.revenueId, shares.platform, 'platform');
 
       return { released: { pt: pt.toFixed(2), platform: platform.toFixed(2) } };

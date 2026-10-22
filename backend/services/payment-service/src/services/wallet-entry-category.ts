@@ -38,6 +38,7 @@ export type WalletEntryCategory =
   | 'PT_CHARGE_LATE_ARRIVAL'
   | 'HOLDBACK_KEPT'
   | 'HOLDBACK_RELEASED'
+  | 'HOLDBACK_USED_FOR_COMPENSATION'
   | 'CLAWBACK'
   | 'REFERRAL_COMMISSION'
   | 'REFERRAL_CLAWBACK'
@@ -124,6 +125,7 @@ export function classifyWalletEntry(
   if (/— (release to available|final settlement|pending released on termination|pending drained)$/.test(d)) {
     return credit ? 'EARNING_RELEASED' : 'EARNING_MOVED_TO_AVAILABLE';
   }
+  if (d.includes('PT holdback used for compensation')) return 'HOLDBACK_USED_FOR_COMPENSATION';
   if (d.includes('PT holdback retained')) return 'HOLDBACK_KEPT';
   if (d.includes('PT holdback released') || d.includes('PT holdback settled')) return 'HOLDBACK_RELEASED';
 

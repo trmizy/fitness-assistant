@@ -361,25 +361,38 @@ test("MI-4e reschedule-expiry sweep on 3 instances at once, 3 stale requests: au
   });
 });
 
-test("MI-4f idle-holdback sweep on 3 instances at once (holdback is OFF in production: a contract row with a 10% rate is a FIXTURE here): released to the PT once", { skip, timeout: 200_000 }, async () => {
+test("MI-4f FH-9 holdback sweep on 3 instances at once (the flag is OFF in production: a contract row with a 10% rate + policy version is a FIXTURE here): an ENDED contract is released/marked once, AVAILABLE is not credited twice", { skip, timeout: 200_000 }, async () => {
   await scenario(async () => {
     const pt = await M.makePt();
     const A = await M.paidContract(pt);
-    await M.prisma.contract.update({ where: { id: A.id }, data: { ptHoldbackRate: "0.10" } });
+    await M.prisma.contract.update({ where: { id: A.id }, data: { ptHoldbackRate: "0.10", ptHoldbackPolicyVersion: 1 } });
     await M.deliver(A, 2);
-    // the contract has been idle for ages
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 450_000, "the hold of 10% of the PT expected income is in HOLDBACK");
+    // a quiet RUNNING contract is never released, however long it has been idle (the old idle clock is gone)
     await M.prisma.$executeRawUnsafe(`UPDATE sessions SET scheduled_start_at = now() - interval '200 days', scheduled_end_at = now() - interval '200 days' + interval '1 hour' WHERE contract_id = '${A.id}'`);
     await M.prisma.$executeRawUnsafe(`UPDATE contracts SET start_date = now() - interval '300 days' WHERE id = '${A.id}'`);
+    const at0 = Date.now() + 300;
+    await Promise.all([0, 1, 2].map((i) => M.job(i, "holdback", at0)));
+    assert.equal(await M.opCount(`HOLDBACK_RELEASE:${A.id}`), 0, "a running contract is never swept");
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 450_000);
+
+    // the contract ends (the client cancels): the ending returns the hold inside payment-service's TERMINATE operation
+    const end = await M.call(0, "POST", `/contracts/${A.id}/terminate`, A.clientToken, { reason: "CLIENT_CANCELLED" });
+    assert.equal(end.status, 200, JSON.stringify(end.body));
+    const ptAfterEnd = await M.net(A.txnId, "PT", "AVAILABLE");
+    assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 0);
     const before = await M.contractRow(A.id);
-    const ptBefore = await M.net(A.txnId, "PT", "AVAILABLE");
+    assert.equal(before.holdbackReleasedAt, null, "not marked yet: the sweep has not looked at the ended contract");
+
     const at = Date.now() + 400;
     const res = await Promise.all([0, 1, 2].map((i) => M.job(i, "holdback", at)));
     const after = await M.contractRow(A.id);
     const ptAfter = await M.net(A.txnId, "PT", "AVAILABLE");
-    show("MI-4f", { results: res.map((r) => r.result), ptAvailBefore: ptBefore, ptAvailAfter: ptAfter, releasedToPtDelta: Number(after.releasedToPt) - Number(before.releasedToPt), holdbackReleasedAt: !!after.holdbackReleasedAt, ledgerOps: await M.opCount(`HOLDBACK_RELEASE:${A.id}`) });
-    assert.equal(await M.opCount(`HOLDBACK_RELEASE:${A.id}`), 1);
+    show("MI-4f", { results: res.map((r) => r.result), ptAvailAfterEnd: ptAfterEnd, ptAvailAfterSweep: ptAfter, releasedToPtDelta: Number(after.releasedToPt) - Number(before.releasedToPt), holdbackReleasedAt: !!after.holdbackReleasedAt, ledgerOps: await M.opCount(`HOLDBACK_RELEASE:${A.id}`) });
+    assert.equal(await M.opCount(`HOLDBACK_RELEASE:${A.id}`), 1, "one stored final answer");
     assert.ok(after.holdbackReleasedAt);
-    assert.equal(res.reduce((s, r) => s + (r.result?.released ?? 0), 0), 1, "exactly one instance recorded the release");
-    assert.equal(Number(after.releasedToPt) - Number(before.releasedToPt), ptAfter - ptBefore, "bookkeeping == what the ledger moved, counted once");
+    assert.equal(res.reduce((s, r) => s + (r.result?.released ?? 0), 0), 1, "exactly one instance recorded the mark");
+    assert.equal(ptAfter, ptAfterEnd, "the sweep credited nothing a second time (Z4: nothing left to release, nothing double-counted)");
+    assert.equal(Number(after.releasedToPt), Number(before.releasedToPt), "no amount is copied into the counter");
   });
 });

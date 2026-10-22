@@ -1,7 +1,7 @@
 import { Prisma } from '../generated/prisma';
 import { ZERO, splitThreeWays, type RateTable } from './contract-money';
 import { pendingForTransaction, walletService, type LedgerOps } from './wallet.service';
-import { ownPending, recordObligation, recoverReceivables } from './contract-ledger.service';
+import { ownPending, recordObligation } from './contract-ledger.service';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 
 /**
@@ -340,34 +340,12 @@ export async function releaseMembershipPending(params: {
 
     if (entitlement.gym.greaterThan(0)) {
       await ops.credit(gymWallet.id, entitlement.gym, `${label} — released`, 'AVAILABLE');
-      // Same rule as on the contract side (money-flow §3.9): a partner the platform has
-      // fronted money for works it off out of the next thing they earn, before it becomes
-      // withdrawable. A gym refund the pending bucket could not cover is exactly how a gym
-      // ends up owing, so this is the flow most likely to find a debt outstanding.
-      await recoverReceivables({
-        ops,
-        walletId: gymWallet.id,
-        revenueWalletId: revenueWallet.id,
-        partnerType: 'GYM',
-        partnerId: gymId,
-        justCredited: entitlement.gym,
-        label,
-      });
     }
     if (entitlement.platform.greaterThan(0)) {
       await ops.credit(revenueWallet.id, entitlement.platform, `${label} — released`, 'AVAILABLE');
     }
     if (ptWallet && entitlement.pt.greaterThan(0)) {
       await ops.credit(ptWallet.id, entitlement.pt, `${label} — released`, 'AVAILABLE');
-      await recoverReceivables({
-        ops,
-        walletId: ptWallet.id,
-        revenueWalletId: revenueWallet.id,
-        partnerType: 'PT',
-        partnerId: ptUserId!,
-        justCredited: entitlement.pt,
-        label,
-      });
     }
 
     if (refundToClient.greaterThan(0)) {

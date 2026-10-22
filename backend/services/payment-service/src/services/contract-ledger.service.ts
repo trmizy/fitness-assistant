@@ -8,6 +8,7 @@ import {
   computeSessionRelease,
   computeTermination,
   holdbackTarget,
+  roundForClient,
   splitReleaseWithHoldback,
   splitThreeWays,
   type RateTable,
@@ -19,6 +20,7 @@ import { withIdempotentLedgerOp } from './ledger-idempotency';
 import {
   assertRequestMatchesTransaction,
   contractOpMeta,
+  RequestDoesNotMatchTransactionError,
 } from './contract-request-guard';
 
 /**
@@ -259,37 +261,22 @@ export async function loadLateArrivalDeductions(
 
 const amountsToStrings = (a: PartyAmounts) => ({ pt: a.pt.toFixed(2), gym: a.gym.toFixed(2), platform: a.platform.toFixed(2) });
 
-// ── PT holdback bookkeeping ──────────────────────────────────────────────────
+// ── PT holdback bookkeeping (FH-9) ───────────────────────────────────────────
 //
-// A contract that carries a holdback rate keeps the FIRST money its PT earns in the PT's
-// PENDING bucket instead of releasing it (contract-money.ts, splitReleaseWithHoldback). That
-// money never leaves PENDING, so the bucket balance alone cannot say how much of it is "held"
-// as opposed to "unearned, for a session not yet delivered" — both are pending money of the
-// same contract. Rather than trust a number from the caller, the pot is derived from this
-// contract's own ledger rows, which are written under the contract's payment transaction id:
+// A contract that carries a holdback rate keeps part of the PT's EARNINGS on that contract in the PT wallet's HOLDBACK bucket
+// instead of paying them to AVAILABLE (contract-money.ts, holdbackTarget / splitReleaseWithHoldback). The held money is earned (it
+// left PENDING, so it is no longer "unearned money of a session still to come"), it is the PT's, and it is NOT withdrawable.
 //
-//   held = Σ PENDING credits described "… PT holdback retained"
-//        − Σ PENDING debits  described "… PT holdback released (no activity)"
+// Because it lives in its own bucket, the contract's held amount is a real number of the ledger, not a text match on a description:
 //
-// releaseSession writes a retained row for each session's held part (and releases that part
-// from "unearned" with the ordinary release-to-available debit, so the net PENDING movement
-// is exactly what a contract without a holdback posts: the amount actually paid out).
-// releasePtHoldback writes the released row. Termination needs no row of its own: it ends the
-// contract and drains its pending, and every later read is clamped to ownPending.
+//   held(contract) = Σ HOLDBACK credits − Σ HOLDBACK debits of the rows carrying THAT contract's payment transaction id
 //
-// The descriptions are matched by suffix, so the label a caller chooses can never collide.
+// and the wallet's HOLDBACK balance is the sum over the PT's contracts. Nothing that draws on PENDING (a no-show / late-arrival charge,
+// a refund, the termination drain) can reach it, nothing withdraws from it, and it leaves in exactly two ways, both below: as the
+// contract's own verified PT-fault compensation to the client, and as the release to the PT's AVAILABLE once the contract has ended and
+// is reconciled. Descriptions are for people reading the ledger; no code matches on them.
 export const HOLDBACK_RETAINED_SUFFIX = ' — PT holdback retained';
-export const HOLDBACK_RELEASED_SUFFIX = ' — PT holdback released (no activity)';
-/**
- * Written (as a zero-amount row, like the release marker) by a termination that leaves
- * unresolved sessions behind while a holdback was in force. That termination has already paid
- * the whole pot out (to the PT, or part of it to the client as compensation), but the contract's
- * pending is NOT empty afterwards — it still holds the unresolved sessions' value — so the pot
- * derived from the retained rows (ptHeld) would otherwise still read as "held" and a later
- * idle-holdback release would sweep up money that belongs to the unresolved sessions.
- * holdbackWasReleased treats this marker exactly like the release marker.
- */
-export const HOLDBACK_SETTLED_SUFFIX = ' — contract ended, PT holdback settled';
+export const HOLDBACK_RELEASED_SUFFIX = ' — PT holdback released to available';
 /**
  * Zero-amount rows in the platform's pending bucket that make "this contract was ended with
  * unresolved sessions" and "this many have been resolved since" facts of the ledger, readable
@@ -299,21 +286,12 @@ export const UNRESOLVED_HELD_MARKER = ' — unresolved sessions held: ';
 export const UNRESOLVED_RESOLVED_MARKER = ' — unresolved session resolved: ';
 
 /**
- * What is held back for the PT on this contract right now: the ledger-derived pot, never more
- * than the contract's own pending the PT really has (a PT no-show charge draws on the same
- * pending pool and can, in the extreme, eat into the pot — `held` is then simply what is left).
+ * What is held back for the PT on this contract right now: the ledger-derived HOLDBACK sum of this contract's own rows, never more
+ * than the wallet's HOLDBACK bucket really holds (on a damaged ledger the sum of one contract could exceed it; nothing is invented).
  */
 export async function ptHeld(ops: LedgerOps, ptWalletId: string, transactionId: string): Promise<Prisma.Decimal> {
   const rows = await ops.tx.walletLedgerEntry.findMany({
-    where: {
-      walletId: ptWalletId,
-      transactionId,
-      bucket: 'PENDING',
-      OR: [
-        { entryType: 'CREDIT', description: { endsWith: HOLDBACK_RETAINED_SUFFIX } },
-        { entryType: 'DEBIT', description: { endsWith: HOLDBACK_RELEASED_SUFFIX } },
-      ],
-    },
+    where: { walletId: ptWalletId, transactionId, bucket: 'HOLDBACK' },
     select: { entryType: true, amount: true },
   });
   const pot = rows.reduce(
@@ -321,31 +299,91 @@ export async function ptHeld(ops: LedgerOps, ptWalletId: string, transactionId: 
     ZERO,
   );
   if (pot.lessThanOrEqualTo(0)) return ZERO;
-  const pending = await ownPending(ops, ptWalletId, transactionId);
-  return pot.lessThan(pending) ? pot : pending;
+  const bucket = ops.balance(ptWalletId, 'HOLDBACK');
+  return pot.lessThan(bucket) ? pot : bucket;
 }
 
 /**
- * Whether this contract's holdback was already released for inactivity. Once it has been, the
- * contract carries on WITHOUT a holdback — later sessions release in full and a later PT-fault
- * ending pays no compensation — and payment-service enforces that itself, from the ledger,
- * rather than relying on the caller's flag having been saved before the next call arrives.
+ * The hold's own snapshot on the payment transaction (metadata.ptHoldback = { rate, target, policy }), written once, the first time a
+ * session of the contract is held. The caller keeps sending the rate from the contract's snapshot; this is the ledger's copy: a later
+ * call that disagrees with it is refused (a changed rate must never change the target of money already held), and the PT views read the
+ * target from here. JSONB merge in the same DB transaction, under the PT wallet lock.
  */
-async function holdbackWasReleased(ops: LedgerOps, ptWalletId: string, transactionId: string): Promise<boolean> {
-  const marker = await ops.tx.walletLedgerEntry.findFirst({
-    where: {
-      walletId: ptWalletId,
-      transactionId,
-      bucket: 'PENDING',
-      entryType: 'DEBIT',
-      OR: [
-        { description: { endsWith: HOLDBACK_RELEASED_SUFFIX } },
-        { description: { endsWith: HOLDBACK_SETTLED_SUFFIX } },
-      ],
-    },
-    select: { id: true },
+export const HOLDBACK_POLICY_VERSION = 1;
+async function recordHoldbackSnapshot(ops: LedgerOps, transactionId: string, rate: Prisma.Decimal, target: Prisma.Decimal): Promise<void> {
+  const txn = await ops.tx.paymentTransaction.findUnique({ where: { id: transactionId }, select: { metadata: true } });
+  const snap = ((txn?.metadata ?? {}) as { ptHoldback?: { rate?: string; target?: string } }).ptHoldback;
+  if (snap) {
+    if (!new Prisma.Decimal(snap.rate ?? NaN).equals(rate) || !new Prisma.Decimal(snap.target ?? NaN).equals(target)) {
+      throw new RequestDoesNotMatchTransactionError(
+        `holdback rate/target ${rate.toString()}/${target.toString()} does not match the snapshot ${snap.rate}/${snap.target} frozen on transaction ${transactionId}`,
+      );
+    }
+    return;
+  }
+  const patch = JSON.stringify({ ptHoldback: { rate: rate.toString(), target: target.toFixed(0), policy: HOLDBACK_POLICY_VERSION } });
+  await ops.tx.$executeRawUnsafe(
+    `UPDATE payment_transactions SET metadata = coalesce(metadata, '{}'::jsonb) || $1::jsonb WHERE id = $2`,
+    patch,
+    transactionId,
+  );
+}
+
+/**
+ * Whether this contract's ending was already recorded by the ledger (a TERMINATE operation exists for its payment transaction). From
+ * then on nothing is held back any more: a late call (a slow release that outlived its caller) must never raise the hold of a contract
+ * that has ended.
+ */
+async function contractEndingRecorded(ops: LedgerOps, transactionId: string): Promise<boolean> {
+  const row = await ops.tx.ledgerOperation.findFirst({ where: { transactionId, kind: 'TERMINATE' }, select: { id: true } });
+  return row !== null;
+}
+
+/** The contract's OPEN unpaid obligations (any kind): a settlement of this contract that is not reconciled yet. */
+async function openObligationUnpaid(ops: LedgerOps, transactionId: string): Promise<Prisma.Decimal> {
+  const rows = await ops.tx.contractUnpaidObligation.findMany({
+    // Every state in which the client has NOT been verifiably paid: open, under review, approved for payment, waiting for a second person
+    // to verify the evidence, and the legacy unverified "paid externally". Only PAID_VERIFIED / WAIVED / RESOLVED / RESOLVED_OTHER close it.
+    where: { transactionId, status: { in: ['OPEN', 'UNDER_REVIEW', 'APPROVED_FOR_PAYMENT', 'AWAITING_EVIDENCE', 'PAID_EXTERNALLY'] } },
+    select: { unpaid: true },
   });
-  return marker !== null;
+  return rows.reduce((sum, r) => (new Prisma.Decimal(r.unpaid).greaterThan(0) ? sum.plus(r.unpaid) : sum), ZERO);
+}
+
+/** How many sessions the ending left unresolved and nobody has decided yet (the marker rows resolveUnresolvedSession uses). */
+async function unresolvedRemaining(ops: LedgerOps, revenueWalletId: string, transactionId: string): Promise<number> {
+  const markerWhere = { walletId: revenueWalletId, transactionId, bucket: 'PENDING' as const };
+  const held = await ops.tx.walletLedgerEntry.findFirst({
+    where: { ...markerWhere, description: { contains: UNRESOLVED_HELD_MARKER } },
+    select: { description: true },
+  });
+  if (!held?.description) return 0;
+  const opened = Number(held.description.split(UNRESOLVED_HELD_MARKER).pop());
+  if (!Number.isInteger(opened) || opened <= 0) return 0;
+  const resolved = await ops.tx.walletLedgerEntry.count({
+    where: { ...markerWhere, description: { contains: UNRESOLVED_RESOLVED_MARKER } },
+  });
+  return Math.max(0, opened - resolved);
+}
+
+/**
+ * HOLDBACK -> AVAILABLE for the PT, one pair of rows. The ONLY way held money reaches the PT. It moves at most what the contract
+ * really holds (ptHeld), so a second call finds nothing and cannot pay twice, and it never touches another contract's held money.
+ */
+async function releaseHeldToAvailable(
+  ops: LedgerOps,
+  ptWalletId: string,
+  transactionId: string,
+  label: string,
+  amount: Prisma.Decimal,
+): Promise<Prisma.Decimal> {
+  if (amount.lessThanOrEqualTo(0)) return ZERO;
+  const held = await ptHeld(ops, ptWalletId, transactionId);
+  const moving = held.lessThan(amount) ? held : amount;
+  if (moving.lessThanOrEqualTo(0)) return ZERO;
+  await ops.debit(ptWalletId, moving, `${label}${HOLDBACK_RELEASED_SUFFIX}`, 'HOLDBACK');
+  await ops.credit(ptWalletId, moving, `${label}${HOLDBACK_RELEASED_SUFFIX}`, 'AVAILABLE');
+  return moving;
 }
 
 /**
@@ -577,17 +615,17 @@ export interface ReleaseResult {
   released: { pt: string; gym: string; platform: string };
   unit: string;
   /**
-   * Present only when this call applied a PT holdback (a rate > 0 that has not been released
-   * for inactivity). Left off entirely otherwise, so the result — and the copy of it stored for
+   * Present only when this call applied a PT holdback (a rate > 0 on a contract that has not ended).
+   * Left off entirely otherwise, so the result — and the copy of it stored for
    * idempotent replay — for a contract without a holdback is exactly what it was before this
    * field existed.
    */
   /** D77: present only when this session had a late-arrival compensation, deducted from what the parties were released. */
   lateArrivalDeducted?: { pt: string; gym: string; platform: string };
   ptHoldback?: {
-    /** H = h × price in whole đồng: how much of the PT's first earnings is held back. */
+    /** H = h × (the PT's expected income on this contract) in whole đồng: how much of the PT's earnings is held back. */
     target: string;
-    /** Taken out of THIS session's PT share and kept in pending. */
+    /** Taken out of THIS session's PT entitlement (after any D77 deduction) and put in the HOLDBACK bucket. */
     heldNow: string;
     /** The pot after this session. */
     totalHeld: string;
@@ -606,17 +644,18 @@ export interface ReleaseResult {
  * the value of the sessions still owed — which is the same pot a refund draws from, so the
  * two mechanisms stay consistent with no extra bookkeeping.
  *
- * PT holdback. When the contract carries a `ptHoldbackRate` h, the PT's share is not released
- * in full until a pot of H = h × price has been held back from their FIRST earnings: after u
- * sessions the PT has been released exactly max(0, E − H), E being the PT share of u sessions,
- * and the other min(E, H) stays in their pending (contract-money.ts#splitReleaseWithHoldback).
- * The gym and the platform are not affected. The amounts returned in `released` are what
+ * PT holdback (FH-9). When the contract carries a `ptHoldbackRate` h, the PT's entitlement for the session (their share after
+ * the D77 late-arrival deduction; a PT no-show session is not released at all, so nothing is held for it) is not released in full
+ * until a pot of H = h × (the PT's expected income on the contract) is held: the session puts min(entitlement, H − heldSoFar)
+ * into the PT's HOLDBACK bucket and the rest goes to AVAILABLE (contract-money.ts#splitReleaseWithHoldback). Once H is held,
+ * nothing more is held. After u sessions the PT has been released exactly max(0, E − H), E being what they earned on them. The
+ * gym and the platform are not affected, nor is any other contract. The hold is collected only while the contract is running: a
+ * call that arrives after the ending was recorded never holds. The amounts returned in `released` are what
  * REALLY went to available — the first session of a held contract returns 0 for the PT — which
  * is what user-service adds to releasedToPt and hands back at termination as `alreadyReleased`,
  * so the two stay consistent.
  *
- * With no rate (or 0), or once the holdback was released for inactivity, this posts exactly
- * the rows it always has.
+ * With no rate (or 0), or once the contract has ended, this posts exactly the rows it always has.
  */
 export async function releaseSession(params: {
   transactionId: string;
@@ -649,10 +688,10 @@ export async function releaseSession(params: {
       const lateDeduction = await lateDeductionFor(ops, transactionId, idempotencyKey);
       const dueOf = (full: Prisma.Decimal, key: 'pt' | 'gym' | 'platform') =>
         lateDeduction ? Prisma.Decimal.max(full.minus(lateDeduction[key]), ZERO) : full;
-      // Decided once, under the wallet locks: a holdback released for inactivity stays released
-      // whatever rate the caller still sends.
-      const target = holdbackTarget(price, ptHoldbackRate);
-      const holding = target.greaterThan(0) && !(await holdbackWasReleased(ops, wallets.ptId, transactionId));
+      // Decided once, under the wallet locks: a contract whose ending is already recorded never raises its hold.
+      const target = holdbackTarget(price, ptHoldbackRate, rates);
+      const holding = target.greaterThan(0) && !(await contractEndingRecorded(ops, transactionId));
+      if (holding) await recordHoldbackSnapshot(ops, transactionId, ptHoldbackRate!, target);
       let ptHoldback: ReleaseResult['ptHoldback'];
 
       const move = async (
@@ -660,7 +699,6 @@ export async function releaseSession(params: {
         amount: Prisma.Decimal,
         who: string,
         key: 'pt' | 'gym' | 'platform',
-        debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
         holdbackPot?: Prisma.Decimal,
       ) => {
         if (amount.lessThanOrEqualTo(0)) return;
@@ -678,10 +716,9 @@ export async function releaseSession(params: {
           return;
         }
 
-        // `moving` is what the party EARNED with this session. All of it leaves "unearned"
-        // pending; with a holdback, the part that tops up the held-back pot goes straight back
-        // into pending under its own description, and only the rest reaches available. The net
-        // PENDING movement is then exactly the amount paid out, as for every other contract.
+        // `moving` is what the party EARNED with this session. All of it leaves "unearned" pending; with a holdback, the part
+        // that tops up the PT's held-back pot goes to the HOLDBACK bucket (earned, not withdrawable) and only the rest reaches
+        // available. Σ of the credits is exactly `moving`, so the books balance whatever the split.
         let toAvailable = moving;
         let heldNow = ZERO;
         if (holdbackPot) {
@@ -698,31 +735,17 @@ export async function releaseSession(params: {
 
         await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
         if (heldNow.greaterThan(0)) {
-          await ops.credit(walletId, heldNow, `${label}${HOLDBACK_RETAINED_SUFFIX}`, 'PENDING');
+          await ops.credit(walletId, heldNow, `${label}${HOLDBACK_RETAINED_SUFFIX}`, 'HOLDBACK');
         }
         if (toAvailable.greaterThan(0)) {
           await ops.credit(walletId, toAvailable, `${label} — session earned`, 'AVAILABLE');
         }
         moved[key] = toAvailable;
-
-        // A partner who owes the platform works the debt off out of what they just earned,
-        // before it becomes withdrawable. The platform is never a debtor to itself, so the
-        // revenue wallet is not passed a debtor.
-        if (debtor && toAvailable.greaterThan(0)) {
-          await recoverReceivables({
-            ops,
-            walletId,
-            revenueWalletId: wallets.revenueId,
-            ...debtor,
-            justCredited: toAvailable,
-            label,
-          });
-        }
       };
 
-      await move(wallets.ptId, dueOf(rel.pt, 'pt'), 'PT', 'pt', { partnerType: 'PT', partnerId: parties.ptUserId }, holding ? target : undefined);
+      await move(wallets.ptId, dueOf(rel.pt, 'pt'), 'PT', 'pt', holding ? target : undefined);
       if (wallets.gymId) {
-        await move(wallets.gymId, dueOf(rel.gym, 'gym'), 'Gym', 'gym', { partnerType: 'GYM', partnerId: parties.gymId! });
+        await move(wallets.gymId, dueOf(rel.gym, 'gym'), 'Gym', 'gym');
       }
       await move(wallets.revenueId, dueOf(rel.platform, 'platform'), 'Platform', 'platform');
 
@@ -1011,102 +1034,20 @@ async function recordCompensationObligation(
 }
 
 /**
- * RECEIVABLE_RECOVERY_ENABLED — only the exact value "true" (case-insensitive) turns automatic debt
- * recovery on. Unset or anything else: paused (FH-0). Read on every call, never cached.
+ * Owner decision (final): there is NO automatic recovery of a partner's debt by deducting from what they earn - not from
+ * this contract, not from any other. `recoverReceivables` was removed; no environment variable or configuration brings it back.
+ * Old PartnerReceivable rows (created before D48 by the removed platform-fronting path) are history only: they are never read
+ * or changed by any money path. FH-8 (adjustment-operations.service) is the audited tool that records decisions on them.
+ * This only warns, once, when somebody still sets the old switch.
  */
-export function receivableRecoveryEnabled(): boolean {
-  return (process.env.RECEIVABLE_RECOVERY_ENABLED ?? '').trim().toLowerCase() === 'true';
+export function warnIfRemovedReceivableRecoveryFlagSet(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.RECEIVABLE_RECOVERY_ENABLED === undefined) return false;
+  logger.warn(
+    `[ContractLedger] RECEIVABLE_RECOVERY_ENABLED is set ("${String(env.RECEIVABLE_RECOVERY_ENABLED).slice(0, 20)}") but automatic debt recovery was removed: the setting is ignored and every earning is paid in full. Remove it from the environment.`,
+  );
+  return true;
 }
-
-/**
- * Recovery of OLD PartnerReceivable rows (created before D48 by the removed platform-fronting path;
- * no code creates new ones): take the fronted money back out of what the partner
- * earns next (money-flow §3.9, "khoản phải thu này bị trừ vào các lần ghi có sau").
- *
- * Called immediately after a partner's AVAILABLE bucket is credited, and withholds from
- * that credit before the partner can withdraw it. Three deliberate limits:
- *
- *  · Never more than the credit that just landed. The debt is recovered out of *subsequent
- *    earnings*, not by raiding a balance the partner built up before the debt arose — that
- *    would be a seizure, and it would surprise someone who had already been told a figure.
- *  · Oldest debt first, so a long-standing receivable cannot be starved by newer ones.
- *  · The recovered money goes back to REVENUE, which is where the (removed) D48-era platform fronting took it from.
- *    Escrow does not move: the partner's claim shrinks and the platform's grows by the same
- *    amount, so the §6 invariant holds without a compensating entry.
- *
- * Partial recovery is normal — a large debt is worked off over several sessions. The row
- * only settles when `recovered` reaches `amount`.
- *
- * Withdrawal requests (VĐ1) now exist, and P0 cluster F gave `WalletLedgerV2` a third bucket
- * (`LOCKED`) for exactly this reason: once a withdrawal is `approve()`d, its amount is moved
- * OUT of AVAILABLE into LOCKED, so this function's `ops.balance(walletId, 'AVAILABLE')` read
- * can no longer touch it — an approved-but-not-yet-paid withdrawal is structurally safe from
- * a clawback that lands afterward. The still-open gap is narrower than the old comment above
- * implied: a withdrawal that is only *requested* (still PENDING, still sitting in AVAILABLE)
- * has no reservation yet, so a same-moment recovery can still shrink the balance a pending
- * request expects to draw from — `requestWithdrawal`/`approve()` do not re-check against an
- * in-flight receivable. Money-flow §15 rules that recovery should outrank a pending request
- * in that case; the check, if added, belongs in `withdrawal.service.ts#approve()`, not here.
- */
-export async function recoverReceivables(params: {
-  ops: LedgerOps;
-  walletId: string;
-  revenueWalletId: string;
-  partnerType: 'PT' | 'GYM';
-  partnerId: string;
-  /** Ceiling for this pass: the amount just credited to the partner's AVAILABLE bucket. */
-  justCredited: Prisma.Decimal;
-  label: string;
-}): Promise<Prisma.Decimal> {
-  const { ops, walletId, revenueWalletId, partnerType, partnerId, justCredited, label } = params;
-  if (justCredited.lessThanOrEqualTo(0)) return ZERO;
-  // FH-0 (D75, DQ-4): automatic collection of old PartnerReceivables is PAUSED unless explicitly
-  // enabled. Read at call time. Disabled = no deduction, every debt row untouched, history kept.
-  if (!receivableRecoveryEnabled()) return ZERO;
-
-  const debts = await ops.tx.partnerReceivable.findMany({
-    // FH-8: a SUSPENDED receivable is not collected (history kept); a WAIVED part is not owed any more.
-    where: { partnerType, partnerId, settledAt: null, suspendedAt: null },
-    orderBy: { createdAt: 'asc' },
-  });
-  if (debts.length === 0) return ZERO;
-
-  // Cap by what is actually in the bucket as well. These should agree, but a bucket that is
-  // somehow short must not be pushed negative — that breaks the invariant this whole file
-  // exists to protect.
-  const held = ops.balance(walletId, 'AVAILABLE');
-  let budget = justCredited.lessThan(held) ? justCredited : held;
-  let recoveredTotal = ZERO;
-
-  for (const debt of debts) {
-    if (budget.lessThanOrEqualTo(0)) break;
-    const outstanding = new Prisma.Decimal(debt.amount).minus(debt.recovered).minus(debt.waived);
-    if (outstanding.lessThanOrEqualTo(0)) continue;
-
-    const take = outstanding.lessThan(budget) ? outstanding : budget;
-    const nowRecovered = new Prisma.Decimal(debt.recovered).plus(take);
-    const settled = nowRecovered.plus(debt.waived).greaterThanOrEqualTo(debt.amount);
-
-    await ops.tx.partnerReceivable.update({
-      where: { id: debt.id },
-      data: { recovered: nowRecovered, settledAt: settled ? new Date() : null },
-    });
-
-    budget = budget.minus(take);
-    recoveredTotal = recoveredTotal.plus(take);
-    logger.info(
-      `[ContractLedger] recovered ${take.toString()} of receivable ${debt.id} from ${partnerType} ${partnerId}` +
-        (settled ? ' — settled in full' : ` — ${outstanding.minus(take).toString()} still owed`),
-    );
-  }
-
-  if (recoveredTotal.greaterThan(0)) {
-    await ops.debit(walletId, recoveredTotal, `${label} — withheld against outstanding debt`, 'AVAILABLE');
-    await ops.credit(revenueWalletId, recoveredTotal, `${label} — debt recovered`, 'AVAILABLE');
-  }
-
-  return recoveredTotal;
-}
+warnIfRemovedReceivableRecoveryFlagSet();
 
 export interface TerminationLedgerResult {
   reason: TerminationReason;
@@ -1133,21 +1074,24 @@ export interface TerminationLedgerResult {
    */
   overReleased?: Array<{ party: 'PT' | 'GYM' | 'PLATFORM'; amount: string; obligationId: string }>;
   /**
-   * Present only when a PT holdback was in force when the contract ended (a rate > 0 that had
-   * not been released for inactivity). Left off entirely otherwise, so the result — and the
-   * copy of it stored for idempotent replay — for every other termination is exactly what it
-   * was before this field existed. Kept apart from `shortfall` above so that figure keeps
+   * Present only when the PT had money held back on this contract when it ended (FH-9; the HOLDBACK bucket of the contract's own
+   * payment transaction). Left off entirely otherwise, so the result - and the copy of it stored for idempotent replay - for every
+   * other termination is exactly what it was before this field existed. Kept apart from `shortfall` above so that figure keeps
    * meaning what its existing readers take it to mean.
    */
   ptHoldback?: {
-    /** H = h × price in whole đồng. */
+    /** H = h x (the PT's expected income on the contract) in whole dong; 0 when the caller sent no rate. */
     target: string;
-    /** What was really still held back for the PT on this contract when it ended. */
+    /** What was really held back for the PT on this contract when it ended. */
     held: string;
-    /** Credited to the client on top of `refund`, taken out of `held`. Zero unless PT-fault. */
+    /** Credited to the client on top of `refund`, taken out of `held` (the contract's own verified PT-fault compensation). Zero unless PT-fault. */
     compensation: string;
-    /** The rest of the pot, paid to the PT inside `topUp.pt`: held − compensation. */
+    /** Moved from HOLDBACK to the PT's AVAILABLE by this ending: held - compensation - stillHeld. */
     returnedToPt: string;
+    /** Kept in HOLDBACK because it is related to something of THIS contract that is not reconciled yet (open obligations, unresolved sessions). */
+    stillHeld: string;
+    /** Why `stillHeld` is held: the contract's OPEN unpaid obligations and the unresolved sessions' exposure. Both 0 when everything is reconciled. */
+    stillHeldFor: { openObligations: string; unresolvedSessions: string };
   };
   /**
    * Present only when the termination left unresolved sessions behind (unresolvedSessions > 0).
@@ -1182,24 +1126,19 @@ const PT_FAULT_WORDING: Partial<Record<TerminationReason, string>> = {
  * exceeds what they were already released, then empty the contract's pending buckets — the
  * residue is the client's refund money and goes back to escrow's custody on their behalf.
  *
- * PT holdback (`ptHoldbackRate`). The held-back pot is still in the PT's pending when the
- * contract ends, and it is part of the PT's final entitlement — so for the endings that are not
- * the PT's fault (COMPLETED, EXPIRED, CLIENT_CANCELLED, MUTUAL) the ordinary top-up above pays it
- * to the PT with no extra step: less was released along the way, so the gap is larger by exactly
- * the pot.
+ * PT holdback (FH-9). What the PT has held back on this contract sits in their HOLDBACK bucket (never in pending, so the refund drain
+ * cannot reach it). The ending settles it like this, always inside this one operation:
  *
- * For a PT-fault ending (PT_CANCELLED, PT_BANNED, PT_REPEATED_NO_SHOW) the client is also paid
+ *   1. PT-fault endings only (PT_CANCELLED, PT_REPEATED_NO_SHOW; NOT PT_BANNED, NOT a restriction, NOT SERVICE_DISCONTINUED_BY_PLATFORM,
+ *      NOT a client ending): the client is paid compensation = min( h × base , held , what the PT was still to be paid ) out of
+ *      the held money - the contract's own verified obligation, nothing else, never from AVAILABLE, never from another contract, never
+ *      fronted by the platform, never a receivable.
+ *   2. Everything else the PT holds goes back to the PT (HOLDBACK -> AVAILABLE) - EXCEPT the part related to something of THIS contract
+ *      that is not reconciled yet: the unpaid amount of its OPEN obligations and, when sessions were left unresolved, the
+ *      compensation ceiling of those sessions. That part stays in HOLDBACK and is released by releasePtHoldback as soon as the
+ *      contract is reconciled; nothing is forfeited automatically and the hold is never raised after an early end.
  *
- *   compensation = min( h × base , held , what the PT was still to be paid )
- *
- * where `base` is the value of the sessions never delivered (PT_REPEATED_NO_SHOW adds the
- * sessions already compensated as no-shows — contract-money.ts#holdbackCompensationBase) and
- * `held` is what is really still held back for the PT on this contract at this moment
- * (ptHeld: the ledger-derived pot, clamped to the contract's own pending). It is carved out of
- * that pot: the PT's top-up shrinks by the same amount and the client gets a separate,
- * clearly-described credit. It is NEVER taken from the PT's available balance, never fronted by
- * the platform and never booked as a receivable — nothing held means nothing owed, and the
- * client still gets the normal refund. Whatever of the pot is not used goes to the PT.
+ *   final to the PT = entitlement - compensation, in total, whichever way the money travels (HOLDBACK first, then the contract's pending).
  *
  * It runs inside the same wallet-locked transaction and under the same idempotency key as
  * everything else, so it lands with the refund or not at all, and a replay can never post it
@@ -1249,9 +1188,9 @@ export async function terminateContract(params: {
   idempotencyKey: string;
   /**
    * The PT holdback rate THIS contract carries (0..1), as snapshotted when it was created.
-   * Absent or zero means the contract carries no holdback (or it was already released for
-   * inactivity — the caller then sends 0), and termination settles exactly as it did before
-   * this parameter existed. There is no fallback to a platform-wide rate here or in
+   * Absent or zero means the contract carries no holdback, and termination settles exactly as it
+   * did before this parameter existed. It only sizes the PT-fault compensation ceiling and the exposure of unresolved
+   * sessions: what is HELD is read from the ledger (the contract's HOLDBACK rows), never from this rate. There is no fallback to a platform-wide rate here or in
    * contract-money.ts: the caller passes the contract's own value or nothing.
    */
   ptHoldbackRate?: Prisma.Decimal;
@@ -1263,7 +1202,7 @@ export async function terminateContract(params: {
     reason,
   );
   const unresolvedCount = unresolvedSessions ?? 0;
-  const holdbackPot = holdbackTarget(price, ptHoldbackRate);
+  const holdbackPot = holdbackTarget(price, ptHoldbackRate, rates);
   // Only immutable fields are checked/fingerprinted: usedSessions, compensatedSessions,
   // unresolvedSessions and alreadyReleased legitimately differ between a call and its retry.
   const opMeta = contractOpMeta('TERMINATE', { transactionId, price, totalSessions, rates, parties, reason });
@@ -1287,24 +1226,21 @@ export async function terminateContract(params: {
     // Sum of the other parties' positive gaps (what they are still owed on top of what they were released).
     let positiveGapTotal = ZERO;
 
-    // The PT holdback, decided under the wallet locks. `held` is what is really still held back
-    // for the PT; `compensation` is the client's share of it (zero unless the PT is at fault).
-    // Capped three ways, each for a reason:
-    //   · the target h × base — the contract term;
-    //   · held — the compensation may only ever come out of the held-back pot;
-    //   · what the PT was still to be paid (final entitlement − already released) — so carving
-    //     the compensation out of the PT's top-up can never push the top-up below zero and
-    //     reach into available money.
-    const holding = holdbackPot.greaterThan(0) && !(await holdbackWasReleased(ops, wallets.ptId, transactionId));
-    let held = ZERO;
+    // The PT holdback, decided under the wallet locks and from the LEDGER, not from the caller: `held` is what the PT really has in
+    // HOLDBACK for this contract (a rate the caller no longer sends cannot make held money disappear). `compensation` is the client's
+    // share of it - zero unless the ending is the PT's fault - capped three ways, each for a reason:
+    //   - the target h x base - the contract term;
+    //   - held - the compensation may only ever come out of the held-back money of THIS contract;
+    //   - what the PT was still to be paid (final entitlement - already released) - so it can never reach into available money.
+    const held = await ptHeld(ops, wallets.ptId, transactionId);
     let compensation = ZERO;
-    if (holding) {
-      held = await ptHeld(ops, wallets.ptId, transactionId);
-      if (outcome.ptFaultCompensationTarget.greaterThan(0)) {
-        const ptStillToBePaid = Prisma.Decimal.max(outcome.entitlement.pt.minus(alreadyReleased.pt), ZERO);
-        compensation = Prisma.Decimal.min(outcome.ptFaultCompensationTarget, held, ptStillToBePaid);
-      }
+    if (held.greaterThan(0) && outcome.ptFaultCompensationTarget.greaterThan(0)) {
+      const ptStillToBePaid = Prisma.Decimal.max(outcome.entitlement.pt.minus(alreadyReleased.pt), ZERO);
+      compensation = Prisma.Decimal.min(outcome.ptFaultCompensationTarget, held, ptStillToBePaid);
     }
+    // Everything the PT holds counts as already paid to the PT for the top-up below: it is either paid out of HOLDBACK (not out of
+    // pending), taken as the client's compensation, or kept for a related unreconciled item - never topped up a second time.
+    const ptAlreadyHas = alreadyReleased.pt.plus(held);
 
     /**
      * Bring one party from "what they have already been paid" to "what they are finally owed".
@@ -1320,7 +1256,6 @@ export async function terminateContract(params: {
       entitlement: Prisma.Decimal,
       released: Prisma.Decimal,
       key: 'pt' | 'gym' | 'platform',
-      debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
       reserve: Prisma.Decimal = ZERO,
       keepBack: Prisma.Decimal = ZERO,
       /** Rounding dust trimmed off this party's top-up so the client's refund stays whole (see trimTopUps). */
@@ -1341,18 +1276,6 @@ export async function terminateContract(params: {
           await ops.debit(walletId, moving, `${label} — final settlement`, 'PENDING');
           await ops.credit(walletId, moving, `${label} — final settlement`, 'AVAILABLE');
           topUp[key] = moving;
-          // Last chance to recover: after this the contract is closed and this partner has
-          // no further credits from it to withhold against.
-          if (debtor) {
-            await recoverReceivables({
-              ops,
-              walletId,
-              revenueWalletId: wallets.revenueId,
-              ...debtor,
-              justCredited: moving,
-              label,
-            });
-          }
         }
         shortfall = shortfall.plus(gap.minus(trimmed).minus(moving));
       } else if (gap.lessThan(0)) {
@@ -1378,7 +1301,7 @@ export async function terminateContract(params: {
     let trimmedTotal = ZERO;
     {
       const plan: Array<{ key: 'pt' | 'gym' | 'platform'; walletId: string | null; ent: Prisma.Decimal; rel: Prisma.Decimal; reserve: Prisma.Decimal }> = [
-        { key: 'pt', walletId: wallets.ptId, ent: outcome.entitlement.pt, rel: alreadyReleased.pt, reserve: compensation },
+        { key: 'pt', walletId: wallets.ptId, ent: outcome.entitlement.pt, rel: ptAlreadyHas, reserve: ZERO },
         { key: 'gym', walletId: wallets.gymId, ent: outcome.entitlement.gym, rel: alreadyReleased.gym, reserve: ZERO },
         { key: 'platform', walletId: wallets.revenueId, ent: outcome.entitlement.platform, rel: alreadyReleased.platform, reserve: ZERO },
       ];
@@ -1397,7 +1320,7 @@ export async function terminateContract(params: {
       }
       // Only dust is absorbed this way (at most 2 dong per session of the contract): a bigger shortage is a real one -
       // the parties' earned top-ups are not given up for it; it becomes the client's unpaid obligation below.
-      let short = Prisma.Decimal.min(outcome.refund.plus(compensation).minus(projectedDrain), new Prisma.Decimal(2 * totalSessions));
+      let short = Prisma.Decimal.min(outcome.refund.minus(projectedDrain), new Prisma.Decimal(2 * totalSessions));
       for (const q of plan) {
         if (short.lessThanOrEqualTo(0)) break;
         const cut = Prisma.Decimal.min(short, topups[q.key]);
@@ -1407,14 +1330,11 @@ export async function terminateContract(params: {
       }
     }
 
-    await settleParty(wallets.ptId, outcome.entitlement.pt, alreadyReleased.pt, 'pt', {
-      partnerType: 'PT',
-      partnerId: parties.ptUserId,
-    }, compensation, outcome.unresolvedHeld.pt, trim.pt);
+    await settleParty(wallets.ptId, outcome.entitlement.pt, ptAlreadyHas, 'pt', ZERO, outcome.unresolvedHeld.pt, trim.pt);
     await settleParty(wallets.gymId, outcome.entitlement.gym, alreadyReleased.gym, 'gym',
-      parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined, ZERO, outcome.unresolvedHeld.gym, trim.gym);
+      ZERO, outcome.unresolvedHeld.gym, trim.gym);
     await settleParty(wallets.revenueId, outcome.entitlement.platform, alreadyReleased.platform, 'platform',
-      undefined, ZERO, outcome.unresolvedHeld.platform, trim.platform);
+      ZERO, outcome.unresolvedHeld.platform, trim.platform);
 
     // Net the dust: whatever was trimmed off the top-ups is the over-release it came from.
     if (trimmedTotal.greaterThan(0)) {
@@ -1467,15 +1387,11 @@ export async function terminateContract(params: {
       }
     }
 
-    // What the client can really be paid: only what this contract's own pending funded (refund first,
-    // then the PT-fault compensation).
+    // What the client can really be paid as REFUND: only what this contract's own pending funded. The PT-fault compensation is
+    // different: it is debited from the HOLDBACK bucket in the same operation, so it is funded by construction (compensation <= held).
     const owedToClient = outcome.refund.plus(compensation);
-    let refundPaid = outcome.refund;
-    let compensationPaid = compensation;
-    if (drained.lessThan(owedToClient)) {
-      refundPaid = Prisma.Decimal.min(outcome.refund, drained);
-      compensationPaid = Prisma.Decimal.min(compensation, drained.minus(refundPaid));
-    }
+    const refundPaid = drained.lessThan(outcome.refund) ? drained : outcome.refund;
+    const compensationPaid = compensation;
 
     if (refundPaid.greaterThan(0)) {
       await ops.credit(wallets.clientId, refundPaid, `${label} — refund (${reason})`);
@@ -1485,10 +1401,11 @@ export async function terminateContract(params: {
 
     // Its own ledger row, not folded into the refund: the client is owed two different things
     // for two different reasons, and an auditor has to be able to tell them apart. The wording
-    // matters — a client may only withdraw credits described as a refund or a compensation
+    // matters - a client may only withdraw credits described as a refund or a compensation
     // (withdrawal.repository#sumRefundSourcedCredits matches on this text). Escrow does not
     // move, for the same reason it does not for the refund.
     if (compensationPaid.greaterThan(0)) {
+      await ops.debit(wallets.ptId, compensationPaid, `${label} — PT holdback used for compensation (${reason})`, 'HOLDBACK');
       await ops.credit(
         wallets.clientId,
         compensationPaid,
@@ -1496,27 +1413,25 @@ export async function terminateContract(params: {
       );
     }
 
-    // Every đồng drained out of pending must land somewhere, and the client's refund and
-    // compensation must be fully funded. Reconcile the two. The compensation was reserved out
-    // of the PT's own pending above, so it is always among what was drained.
-    const residue = drained.minus(owedToClient);
+    // Every dong drained out of pending must land somewhere, and the client's refund must be fully funded. Reconcile the two.
+    const residue = drained.minus(outcome.refund);
     let obligationId: string | undefined;
     if (residue.greaterThan(0)) {
-      // Drained more than the client is owed — the surplus is the parties' forfeited share
+      // Drained more than the client is owed - the surplus is the parties' forfeited share
       // (a cancellation fee, say) and belongs to the platform, not to nobody.
       await ops.credit(wallets.revenueId, residue, `${label} — forfeited share`, 'AVAILABLE');
     } else if (residue.lessThan(0)) {
       // Drained less than the client is owed: this contract's own pending was already short.
       // The client was credited what could be drawn; the rest is an OPEN obligation (FH-1),
-      // not fronted by the platform and not a PT debt.
+      // not fronted by the platform, not a PT debt - and NOT paid out of the PT's held money (that is not a PT-fault item).
       obligationId = await recordObligation(ops, {
         key: idempotencyKey,
         transactionId,
         contractRef: label,
         kind: 'REFUND_SHORT',
         party: 'CLIENT',
-        owed: owedToClient,
-        paid: refundPaid.plus(compensationPaid),
+        owed: outcome.refund,
+        paid: refundPaid,
       });
     }
 
@@ -1536,16 +1451,40 @@ export async function terminateContract(params: {
     const paidToClient = refundPaid.plus(compensationPaid);
     const unpaidToClient = owedToClient.minus(paidToClient);
 
-    // Facts for the later operations, written only when sessions were left unresolved (zero
-    // amounts: no balance moves). The count lets resolveUnresolvedSession refuse a session
-    // beyond the ones this termination left open, and the settled marker stops the idle-holdback
-    // release from reading the pot (still derivable from the retained rows) while the contract's
-    // pending is non-empty only because of the unresolved sessions.
+    // Facts for the later operations, written only when sessions were left unresolved (zero amounts: no balance moves). The count
+    // lets resolveUnresolvedSession refuse a session beyond the ones this termination left open, and lets the holdback release
+    // know that the contract is not reconciled until every one of them is decided.
     const keptTotal = kept.pt.plus(kept.gym).plus(kept.platform);
     if (unresolvedCount > 0) {
       await ops.credit(wallets.revenueId, ZERO, `${label}${UNRESOLVED_HELD_MARKER}${unresolvedCount}`, 'PENDING');
-      if (holding) await ops.debit(wallets.ptId, ZERO, `${label}${HOLDBACK_SETTLED_SUFFIX}`, 'PENDING');
     }
+
+    // The rest of the PT's held money goes back to the PT now - except the part related to what THIS contract has not reconciled
+    // (its OPEN obligations, written just above, and the unresolved sessions' exposure). Nothing is forfeited automatically, and
+    // nothing is held "for" anything unrelated: if everything is reconciled, all of it is released here (no sweep needed).
+    const heldAfterCompensation = held.minus(compensationPaid);
+    let keepHeld = ZERO;
+    let keepForObligations = ZERO;
+    let keepForUnresolved = ZERO;
+    if (heldAfterCompensation.greaterThan(0)) {
+      keepForObligations = Prisma.Decimal.min(await openObligationUnpaid(ops, transactionId), heldAfterCompensation);
+      if (unresolvedCount > 0) {
+        // The compensation ceiling those sessions would carry if they turned out undelivered by the PT's fault: h x their value
+        // (rounded up like every client-facing amount). Without a rate the exposure cannot be sized, so all of it stays.
+        const unitFloor = computeSessionRelease(price, totalSessions, rates).unit;
+        keepForUnresolved =
+          ptHoldbackRate && ptHoldbackRate.greaterThan(0)
+            ? roundForClient(unitFloor.mul(unresolvedCount).mul(ptHoldbackRate))
+            : heldAfterCompensation;
+      }
+      keepHeld = Prisma.Decimal.min(keepForObligations.plus(keepForUnresolved), heldAfterCompensation);
+    }
+    // Never pay the PT out of HOLDBACK more than they were still to be paid in total (an anomaly would stay held and be reported,
+    // never over-credited); in every normal ending the cap is not reached.
+    const ptStillOwed = Prisma.Decimal.max(outcome.entitlement.pt.minus(alreadyReleased.pt).minus(compensationPaid), ZERO);
+    const releasable = Prisma.Decimal.min(heldAfterCompensation.minus(keepHeld), ptStillOwed);
+    const returnedToPt = await releaseHeldToAvailable(ops, wallets.ptId, transactionId, label, releasable);
+    const stillHeld = heldAfterCompensation.minus(returnedToPt);
 
     return {
       reason,
@@ -1566,13 +1505,15 @@ export async function terminateContract(params: {
       // Spread in rather than assigned, so the key does not exist at all when no holdback was
       // in force: an explicit `undefined` would vanish when the result is stored as JSON for
       // replay, and the first call would then differ from every retry of it.
-      ...(holding
+      ...(held.greaterThan(0)
         ? {
             ptHoldback: {
               target: holdbackPot.toFixed(2),
               held: held.toFixed(2),
               compensation: compensationPaid.toFixed(2),
-              returnedToPt: held.minus(compensationPaid).toFixed(2),
+              returnedToPt: returnedToPt.toFixed(2),
+              stillHeld: stillHeld.toFixed(2),
+              stillHeldFor: { openObligations: keepForObligations.toFixed(2), unresolvedSessions: keepForUnresolved.toFixed(2) },
             },
           }
         : {}),
@@ -1591,24 +1532,34 @@ export async function terminateContract(params: {
 }
 
 export interface ReleaseHoldbackResult {
-  /** What went from the PT's pending to their available balance. 0 when nothing was held. */
+  /** What went from the PT's HOLDBACK to their AVAILABLE balance by THIS call. 0 when nothing was held or the release is not due. */
   released: string;
+  /** What the contract still has in HOLDBACK after this call. */
+  heldAfter: string;
+  /** The contract's ending is recorded in the ledger (a release is never due before that). */
+  ended: boolean;
+  /** Ended AND nothing of the contract is unreconciled: the held money is due, and after this call none is left. */
+  reconciled: boolean;
+  /** When not reconciled: what keeps the rest held (only THIS contract's own items). */
+  blockedBy?: { notEnded?: true; openObligations: string; unresolvedSessions: number };
 }
 
 /**
- * The contract has had no session for a long time (user-service decides what "a long time"
- * is): hand the PT the held-back pot now, and from here on treat the contract as having no
- * holdback — releaseSession releases in full and terminateContract owes no compensation,
- * because holdbackWasReleased finds the marker row this writes.
+ * The release of what is still held for the PT on a contract - the sweep's call (FH-9; Z4).
  *
- * The amount is derived from the ledger (ptHeld), not from the caller. Idempotent two ways: the
- * business key (`HOLDBACK_RELEASE:<contractId>`) replays the first result, and the marker row
- * makes a second call under a different key for the same payment a no-op as well. The marker is
- * written even when nothing was held (as a zero-amount row), so "released" is a fact in the
- * ledger whether or not there was anything to release.
+ * Due ONLY when the contract has ended (its TERMINATE is recorded in the ledger) AND everything of THAT contract is reconciled: no
+ * OPEN unpaid obligation of its own and no unresolved session left undecided. Then ALL of the held money goes to the PT's
+ * AVAILABLE, in one pair of rows. Never early (an active contract's call changes nothing and says why), never twice (the amount is
+ * derived from the contract's own HOLDBACK rows, which the release empties, so a second or a concurrent call finds nothing), never
+ * from or for another contract.
  *
- * Safe on a contract that has already ended: its pending has been drained, ptHeld is clamped to
- * that pending, so nothing moves.
+ * Z4 (the old "HOLDBACK_RELEASE missing amounts when the contract ends before the sweep"): the ending itself already released
+ * everything that was not related to an unreconciled item, inside the TERMINATE operation, and the sweep only picks up the rest. The
+ * amount is read from the ledger and written to the ledger in one transaction, and a crashed call is simply repeated - there is no
+ * counter on another service to fall out of step with, so nothing can be released but not recorded, or recorded but not released.
+ *
+ * A final answer (ended, reconciled, nothing left) is stored under the business key (`HOLDBACK_RELEASE:<contractId>`) so a replay
+ * returns the same amount; an answer that is not final is never stored (the next sweep must be able to release the rest).
  */
 export async function releasePtHoldback(params: {
   transactionId: string;
@@ -1622,31 +1573,40 @@ export async function releasePtHoldback(params: {
   await assertRequestMatchesTransaction({ idempotencyKey, transactionId, parties, meta: opMeta });
   const wallets = await resolveWallets(parties);
 
-  return walletService.withWallets(wallets.all, transactionId, (ops) =>
-    withIdempotentLedgerOp(ops, idempotencyKey, opMeta, async () => {
-      if (await holdbackWasReleased(ops, wallets.ptId, transactionId)) return { released: '0.00' };
+  return walletService.withWallets(wallets.all, transactionId, async (ops) => {
+    const stored = await ops.tx.ledgerOperation.findUnique({ where: { key: idempotencyKey } });
+    if (stored) return stored.result as unknown as ReleaseHoldbackResult;
 
-      const pot = await ptHeld(ops, wallets.ptId, transactionId);
-      const description = `${label}${HOLDBACK_RELEASED_SUFFIX}`;
-      await ops.debit(wallets.ptId, pot, description, 'PENDING');
-      if (pot.greaterThan(0)) {
-        await ops.credit(wallets.ptId, pot, description, 'AVAILABLE');
-        // The PT works any debt they owe the platform off out of what they just earned, as for
-        // every other release.
-        await recoverReceivables({
-          ops,
-          walletId: wallets.ptId,
-          revenueWalletId: wallets.revenueId,
-          partnerType: 'PT',
-          partnerId: parties.ptUserId,
-          justCredited: pot,
-          label,
-        });
-      }
-      logger.info(`[ContractLedger] ${label}: PT holdback of ${pot.toFixed(2)} released for inactivity`);
-      return { released: pot.toFixed(2) };
-    }),
-  );
+    const ended = await contractEndingRecorded(ops, transactionId);
+    const heldBefore = await ptHeld(ops, wallets.ptId, transactionId);
+    const openObligations = await openObligationUnpaid(ops, transactionId);
+    const unresolved = await unresolvedRemaining(ops, wallets.revenueId, transactionId);
+    const reconciled = ended && openObligations.lessThanOrEqualTo(0) && unresolved === 0;
+
+    if (!reconciled) {
+      return {
+        released: '0.00',
+        heldAfter: heldBefore.toFixed(2),
+        ended,
+        reconciled: false,
+        blockedBy: { ...(ended ? {} : { notEnded: true as const }), openObligations: openObligations.toFixed(2), unresolvedSessions: unresolved },
+      };
+    }
+
+    const released = await releaseHeldToAvailable(ops, wallets.ptId, transactionId, label, heldBefore);
+    const result: ReleaseHoldbackResult = { released: released.toFixed(2), heldAfter: heldBefore.minus(released).toFixed(2), ended: true, reconciled: true };
+    await ops.tx.ledgerOperation.create({
+      data: {
+        key: idempotencyKey,
+        result: result as unknown as Prisma.InputJsonValue,
+        requestFingerprint: opMeta.fingerprint,
+        transactionId: opMeta.transactionId,
+        kind: opMeta.kind,
+      },
+    });
+    logger.info(`[ContractLedger] ${label}: PT holdback of ${released.toFixed(2)} released (contract ended and reconciled)`);
+    return result;
+  });
 }
 
 export interface ResolveUnresolvedResult {
@@ -1764,10 +1724,9 @@ export async function resolveUnresolvedSession(params: {
         key: 'pt' | 'gym' | 'platform';
         walletId: string | null;
         amount: Prisma.Decimal;
-        debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string };
       }> = [
-        { key: 'pt', walletId: wallets.ptId, amount: dueOf(rel.pt, 'pt'), debtor: { partnerType: 'PT', partnerId: parties.ptUserId } },
-        { key: 'gym', walletId: wallets.gymId, amount: dueOf(rel.gym, 'gym'), debtor: parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined },
+        { key: 'pt', walletId: wallets.ptId, amount: dueOf(rel.pt, 'pt') },
+        { key: 'gym', walletId: wallets.gymId, amount: dueOf(rel.gym, 'gym') },
         { key: 'platform', walletId: wallets.revenueId, amount: dueOf(rel.platform, 'platform') },
       ];
 
@@ -1782,18 +1741,6 @@ export async function resolveUnresolvedSession(params: {
         if (outcome === 'DELIVERED') {
           await ops.debit(part.walletId, moving, `${label} — unresolved session delivered (release to available)`, 'PENDING');
           await ops.credit(part.walletId, moving, `${label} — session earned`, 'AVAILABLE');
-          // Same as every release: a partner who owes the platform works the debt off out of
-          // what they just earned, before it is withdrawable.
-          if (part.debtor) {
-            await recoverReceivables({
-              ops,
-              walletId: part.walletId,
-              revenueWalletId: wallets.revenueId,
-              ...part.debtor,
-              justCredited: moving,
-              label,
-            });
-          }
         } else {
           await ops.debit(part.walletId, moving, `${label} — unresolved session not delivered (pending returned)`, 'PENDING');
         }

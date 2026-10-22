@@ -88,7 +88,7 @@ test("PT lock racing a payment: a contract activated between the read and the wr
 
     const after = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
     assert.equal(after.status, "CANCELLED");
-    assert.equal(after.terminationReason, "PT_BANNED");
+    assert.equal(after.terminationReason, "SERVICE_DISCONTINUED_BY_PLATFORM");
     assert.equal(after.paymentTransactionId, txn);
     assert.equal(after.cancelledBy, "SYSTEM");
   } finally {

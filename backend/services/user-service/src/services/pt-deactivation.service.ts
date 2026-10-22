@@ -30,7 +30,7 @@ export const BLOCKING_CONTRACT_STATUSES: ContractStatus[] = [
  * cancelled exactly like the other sessions the unwind calls off: quota kept (not consumed), no
  * compensation, no ptAtFault mark — the PT is not penalised for a report nobody got to answer, and
  * the client is not short-changed because the contract's whole unused value (this session included)
- * is refunded in full by the PT_BANNED termination right after. The report stays on the row
+ * is refunded in full by the SERVICE_DISCONTINUED_BY_PLATFORM termination right after. The report stays on the row
  * (disputeReason / disputedAt) and the audit entry records that it was closed unadjudicated.
  */
 /**
@@ -342,7 +342,8 @@ export const ptDeactivationService = {
     // key, compensatedSessions accounted for, and a status write that is guarded on the status it
     // read — so a payment that activates the contract meanwhile is refunded through the ledger,
     // not stranded. The client-facing "Lý do" text is written in the same guarded UPDATE.
-    const settled = await settleContractTermination(contract.id, "PT_BANNED", {
+    // D49: the platform ends the service - NOT "PT fault" (PT_BANNED was a fault reason in the holdback formula and is retired for new endings).
+    const settled = await settleContractTermination(contract.id, "SERVICE_DISCONTINUED_BY_PLATFORM", {
       cancelledBy: SYSTEM_ACTOR,
       cancellationReason: reason,
     });

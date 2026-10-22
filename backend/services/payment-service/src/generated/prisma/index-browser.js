@@ -129,6 +129,7 @@ exports.Prisma.WalletScalarFieldEnum = {
   availableBalance: 'availableBalance',
   pendingBalance: 'pendingBalance',
   lockedBalance: 'lockedBalance',
+  holdbackBalance: 'holdbackBalance',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -394,7 +395,8 @@ exports.LedgerEntryType = exports.$Enums.LedgerEntryType = {
 exports.LedgerBucket = exports.$Enums.LedgerBucket = {
   PENDING: 'PENDING',
   AVAILABLE: 'AVAILABLE',
-  LOCKED: 'LOCKED'
+  LOCKED: 'LOCKED',
+  HOLDBACK: 'HOLDBACK'
 };
 
 exports.WithdrawalRequestStatus = exports.$Enums.WithdrawalRequestStatus = {

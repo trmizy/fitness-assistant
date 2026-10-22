@@ -31,6 +31,7 @@ const row = () => ({
   ptRate: "0.5500",
   gymRate: "0.3500",
   ptHoldbackRate: "0.0000",
+  ptHoldbackPolicyVersion: 0,
   holdbackReleasedAt: null,
   releasedToPt: "0.00",
   releasedToGym: "0.00",

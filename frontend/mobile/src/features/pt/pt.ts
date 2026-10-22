@@ -725,6 +725,9 @@ export function noShowReports(raw: unknown): any[] {
  */
 export function ptTransactionLabel(description: string | null | undefined, entryType: string): string {
   const d = (description ?? "").toLowerCase();
+  if (/pt holdback retained/.test(d)) return "Tạm giữ một phần thu nhập hợp đồng";
+  if (/pt holdback released/.test(d)) return "Trả lại khoản tạm giữ vào số dư";
+  if (/pt holdback used for compensation/.test(d)) return "Dùng khoản tạm giữ để bồi thường khách";
   if (/session earned/.test(d)) return "Thu nhập buổi tập";
   if (/release to available/.test(d)) return "Chuyển sang số dư khả dụng";
   if (/pending released on termination/.test(d)) return "Giải phóng tiền tạm giữ";

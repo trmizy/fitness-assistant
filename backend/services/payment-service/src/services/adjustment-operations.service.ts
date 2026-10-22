@@ -16,10 +16,8 @@
  *
  * Waiving: `waived` is the part of `amount` the platform bears. When recovered + waived >= amount the row is closed
  * (`settledAt` set) exactly like a fully recovered row, but `waived` (and the event) say it was not paid by the partner.
- * NOTE for the collector (contract-ledger.service `recoverReceivables`): it reads `settledAt: null` and `amount - recovered`.
- * A fully waived row is therefore already skipped; a PARTIAL waive or a SUSPENDED row is only honoured there once that
- * query also filters `suspendedAt: null` and uses `amount - recovered - waived` (D62 C.4 item 1). Until then, suspend/
- * partial-waive take effect for reporting and for the FH-0 switch-off, not for a switched-on collector.
+ * NOTE: there is no collector any more. The owner decided (final) that a partner's old debt is never deducted from later earnings, so
+ * nothing reads these rows on a money path; suspend / waive here only record the decision (reporting, FH-8 lifecycle).
  */
 import { Prisma } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';

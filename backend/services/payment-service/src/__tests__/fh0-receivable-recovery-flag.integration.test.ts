@@ -1,12 +1,14 @@
 /**
- * Financial Hardening FH-0 (D75, DQ-4) - BACKEND INTEGRATION, real ledger, isolated *_test database.
+ * Owner decision (final) - BACKEND INTEGRATION, real ledger, isolated *_test database.
  *
- * RECEIVABLE_RECOVERY_ENABLED is read on every call inside recoverReceivables. Default (unset / anything but "true"):
- * automatic collection of old PartnerReceivables is PAUSED - a PT with an old receivable who teaches is paid in full, the
- * receivable row is untouched (history kept) and escrow still balances. "true": the old behaviour (debt withheld).
+ * There is NO automatic recovery of a partner's debt by deducting income: `recoverReceivables` no longer exists and no
+ * environment variable brings it back. This file used to pin the FH-0 switch (RECEIVABLE_RECOVERY_ENABLED); it now pins that
+ * the switch is INERT: for every value of it, with an old PartnerReceivable on the books, a session release and the final
+ * settlement pay the partner in full, the receivable row is unchanged (no delete, no waive, no recovered amount), no ledger
+ * row mentions debt recovery and the books are sound.
  *
  * Run THIS FILE ALONE (it TRUNCATEs the ledger tables):
- *   DATABASE_URL="postgresql://<user>:<password>@localhost:55433/gymcoach_payment_fha_b_test?schema=public" FITNESS_DISABLE_REDIS=true \
+ *   DATABASE_URL="postgresql://<user>:<password>@localhost:55433/gymcoach_payment_fh9_test?schema=public" FITNESS_DISABLE_REDIS=true \
  *     ./node_modules/.bin/tsx --test src/__tests__/fh0-receivable-recovery-flag.integration.test.ts
  */
 import test from 'node:test';
@@ -69,7 +71,7 @@ async function scenario(m: Mods) {
     m.ledger.releaseSession({
       transactionId: txn.id, price: D('1000000'), totalSessions: 4, rates, parties, label: 'fh0 session', idempotencyKey: `SESSION_RELEASE:fh0:${randomUUID()}`,
     });
-  return { debt, teach };
+  return { debt, teach, txn, rates, parties, D };
 }
 
 async function withFlag<T>(value: string | undefined, fn: () => Promise<T>): Promise<T> {
@@ -84,8 +86,8 @@ async function withFlag<T>(value: string | undefined, fn: () => Promise<T>): Pro
   }
 }
 
-for (const flag of [undefined, 'false', '', '1', 'yes']) {
-  test(`FH-0 RECEIVABLE_RECOVERY_ENABLED=${flag === undefined ? '<unset>' : JSON.stringify(flag)}: the PT is paid in full, the old receivable is untouched, escrow balances`, skipOpts, async () => {
+for (const flag of [undefined, 'false', '', '1', 'yes', 'true', 'TRUE', ' True ']) {
+  test(`RECEIVABLE_RECOVERY_ENABLED=${flag === undefined ? '<unset>' : JSON.stringify(flag)}: the PT is paid in full, the old receivable is untouched, books are sound`, skipOpts, async () => {
     const m = await load();
     await withFlag(flag, async () => {
       const { debt, teach } = await scenario(m);
@@ -97,79 +99,40 @@ for (const flag of [undefined, 'false', '', '1', 'yes']) {
       assert.equal(after.recovered.toFixed(2), '0.00', 'nothing was collected');
       assert.equal(after.settledAt, null, 'and the debt is still open: history kept');
       assert.equal(after.amount.toFixed(2), '100000.00');
-      assert.equal(await m.prisma.walletLedgerEntry.count({ where: { description: { contains: 'withheld against outstanding debt' } } }), 0);
-      const report = await m.reconcile.assertInvariant('FH-0 paused');
+      assert.equal(after.waived.toFixed(2), '0.00', 'no mass waive either');
+      assert.equal(await m.prisma.walletLedgerEntry.count({ where: { description: { contains: 'outstanding debt' } } }), 0);
+      assert.equal(await m.prisma.partnerReceivable.count(), 1, 'no row deleted or created');
+      const report = await m.reconcile.assertInvariant('receivable untouched');
       assert.equal(report.drift, '0.00');
       assert.equal(report.negativeWallets.length, 0);
     });
   });
 }
 
-test('FH-0 RECEIVABLE_RECOVERY_ENABLED=true (case-insensitive): the old behaviour - the debt is withheld from what the PT just earned', skipOpts, async () => {
+test('the final settlement pays the rest in full as well and leaves the receivable alone (switch on and off)', skipOpts, async () => {
   const m = await load();
-  for (const flag of ['true', 'TRUE', ' True ']) {
+  for (const flag of ['true', undefined]) {
     await withFlag(flag, async () => {
-      const { debt, teach } = await scenario(m);
+      const { debt, teach, txn, rates, parties, D } = await scenario(m);
       await teach();
+      await m.ledger.terminateContract({
+        transactionId: txn.id, price: D('1000000'), totalSessions: 4, usedSessions: 1, rates, reason: 'MUTUAL',
+        alreadyReleased: { pt: D('225000'), gym: D('0'), platform: D('25000') }, parties, label: 'fh0 end', idempotencyKey: `CONTRACT_TERMINATE:fh0:${randomUUID()}`,
+      });
       const w = await m.wallet.getOrCreateWallet('PT', PT);
-      assert.equal(w.availableBalance.toFixed(2), '125000.00', `${flag}: 100.000 withheld`);
+      assert.equal(w.availableBalance.toFixed(2), '225000.00');
       const after = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
-      assert.equal(after.recovered.toFixed(2), '100000.00');
-      assert.ok(after.settledAt);
-      const report = await m.reconcile.assertInvariant('FH-0 enabled');
-      assert.equal(report.drift, '0.00');
+      assert.equal(after.recovered.toFixed(2), '0.00');
+      assert.equal(after.settledAt, null);
+      assert.equal((await m.reconcile.assertInvariant('fh0 end')).drift, '0.00');
     });
   }
 });
 
-test('FH-0 the flag is read at call time: flipping it between two sessions changes the next session only', skipOpts, async () => {
+test('setting the removed switch only warns; nothing branches on its value', skipOpts, async () => {
   const m = await load();
-  const { debt, teach } = await scenario(m);
-  await withFlag(undefined, () => teach());
-  assert.equal((await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } })).recovered.toFixed(2), '0.00');
-  await withFlag('true', () => teach());
-  assert.equal((await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } })).recovered.toFixed(2), '100000.00');
-  assert.equal((await m.wallet.getOrCreateWallet('PT', PT)).availableBalance.toFixed(2), '350000.00', '225.000 + (225.000 - 100.000)');
-  await m.reconcile.assertInvariant('FH-0 flip');
-});
-
-test('FH-8 columns on top of the flag: with recovery ON a SUSPENDED receivable is not collected (history kept), the PT is paid in full', skipOpts, async () => {
-  const m = await load();
-  await withFlag('true', async () => {
-    const { debt, teach } = await scenario(m);
-    await m.prisma.partnerReceivable.update({ where: { id: debt.id }, data: { suspendedAt: new Date(), suspendedBy: 'admin-test', suspensionReason: 'under review' } });
-    await teach();
-    assert.equal((await m.wallet.getOrCreateWallet('PT', PT)).availableBalance.toFixed(2), '225000.00', 'nothing withheld');
-    const after = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
-    assert.equal(after.recovered.toFixed(2), '0.00');
-    assert.equal(after.settledAt, null);
-    assert.ok(after.suspendedAt, 'still suspended');
-    assert.equal((await m.reconcile.assertInvariant('FH-8 suspended')).drift, '0.00');
-
-    // resuming it makes it collectable again
-    await m.prisma.partnerReceivable.update({ where: { id: debt.id }, data: { suspendedAt: null } });
-    await teach();
-    assert.equal((await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } })).recovered.toFixed(2), '100000.00');
-  });
-});
-
-test('FH-8 columns on top of the flag: with recovery ON only amount - recovered - waived is collected; a fully waived row is not touched', skipOpts, async () => {
-  const m = await load();
-  await withFlag('true', async () => {
-    const { debt, teach } = await scenario(m);
-    await m.prisma.partnerReceivable.update({ where: { id: debt.id }, data: { waived: 60_000, waivedAt: new Date(), waivedBy: 'admin-test' } });
-    await teach();
-    const after = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
-    assert.equal(after.recovered.toFixed(2), '40000.00', 'only the 40.000 that was not waived');
-    assert.ok(after.settledAt, 'recovered + waived = amount: the row is settled');
-    assert.equal((await m.wallet.getOrCreateWallet('PT', PT)).availableBalance.toFixed(2), '185000.00', '225.000 - 40.000');
-    assert.equal((await m.reconcile.assertInvariant('FH-8 partial waive')).drift, '0.00');
-
-    const second = await scenario(m);
-    await m.prisma.partnerReceivable.update({ where: { id: second.debt.id }, data: { waived: 100_000 } });
-    await second.teach();
-    const untouched = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: second.debt.id } });
-    assert.equal(untouched.recovered.toFixed(2), '0.00');
-    assert.equal((await m.wallet.getOrCreateWallet('PT', PT)).availableBalance.toFixed(2), '225000.00');
-  });
+  assert.equal(m.ledger.warnIfRemovedReceivableRecoveryFlagSet({} as NodeJS.ProcessEnv), false);
+  assert.equal(m.ledger.warnIfRemovedReceivableRecoveryFlagSet({ RECEIVABLE_RECOVERY_ENABLED: 'true' } as unknown as NodeJS.ProcessEnv), true);
+  assert.equal((m.ledger as Record<string, unknown>).recoverReceivables, undefined, 'the collector is gone');
+  assert.equal((m.ledger as Record<string, unknown>).receivableRecoveryEnabled, undefined, 'and so is its reader');
 });

@@ -85,3 +85,21 @@ test('[REGRESSION D48-INVARIANT] setting the removed flag only warns - it never 
     assert.equal(warnIfRemovedOwnFundsFlagSet({ LEDGER_STRICT_OWN_FUNDS: v } as unknown as NodeJS.ProcessEnv), true, `"${v}": warned, nothing else`);
   }
 });
+
+test('[REGRESSION NO-DEBT-RECOVERY] recoverReceivables / receivableRecoveryEnabled are neither defined nor called anywhere in production code', () => {
+  const strip = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  const hits = productionSources.filter((f) => /recoverReceivables|receivableRecoveryEnabled/.test(strip(read(f)))).map(rel);
+  assert.deepEqual(hits, []);
+});
+
+test('[REGRESSION NO-DEBT-RECOVERY] only the audited FH-8 tool changes a PartnerReceivable (and never `recovered`); the old switch is never compared with a value', () => {
+  const strip = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  const writers = productionSources.filter((f) => /partnerReceivable\s*\.\s*(update|updateMany|delete|deleteMany)\b/.test(read(f))).map(rel);
+  assert.deepEqual(writers, ['src/services/adjustment-operations.service.ts']);
+  const adj = strip(read(path.join(SERVICE_ROOT, 'src/services/adjustment-operations.service.ts')));
+  assert.ok(!/recovered\s*:\s*(\{\s*(increment|set)|[A-Za-z.]*\.plus)/.test(adj), 'FH-8 never writes `recovered` (it is only read, and used as a compare-and-set guard)');
+  const ledger = strip(read(path.join(SERVICE_ROOT, 'src/services/contract-ledger.service.ts')));
+  const mentions = ledger.match(/RECEIVABLE_RECOVERY_ENABLED/g) ?? [];
+  assert.ok(mentions.length <= 4, 'only the "removed switch" warning mentions it');
+  assert.ok(!/RECEIVABLE_RECOVERY_ENABLED[^\n]*(===|!==|==)\s*['"]true/i.test(ledger), 'its value is never compared');
+});

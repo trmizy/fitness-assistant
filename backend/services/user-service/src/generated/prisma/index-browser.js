@@ -305,6 +305,7 @@ exports.Prisma.ContractScalarFieldEnum = {
   paymentDueAt: 'paymentDueAt',
   paymentDeadlineExtendedAt: 'paymentDeadlineExtendedAt',
   ptHoldbackRate: 'ptHoldbackRate',
+  ptHoldbackPolicyVersion: 'ptHoldbackPolicyVersion',
   holdbackReleasedAt: 'holdbackReleasedAt',
   platformRate: 'platformRate',
   ptRate: 'ptRate',
@@ -843,7 +844,8 @@ exports.TerminationReason = exports.$Enums.TerminationReason = {
   EXPIRED: 'EXPIRED',
   COMPLETED: 'COMPLETED',
   PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW',
-  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+  SERVICE_DISCONTINUED_BY_PLATFORM: 'SERVICE_DISCONTINUED_BY_PLATFORM'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {

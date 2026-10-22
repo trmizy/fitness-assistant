@@ -164,10 +164,29 @@ export interface ProductPaymentRow {
 /** NOT_CHECKED: no lookup configured. OK: every candidate answered. PARTIAL: some did not. UNAVAILABLE: none did. */
 export type ProductLookupState = 'OK' | 'PARTIAL' | 'UNAVAILABLE' | 'NOT_CHECKED';
 
+/** FH-9: one contract that has money held back for its PT (derived from the ledger; no personal id beyond the first 8 characters). */
+export interface PtHoldbackRow {
+  transactionId: string;
+  contract: string | null;
+  contractId: string | null;
+  pt: string;
+  held: string;
+  /** The contract's ending is recorded in the ledger. */
+  ended: boolean;
+  /** Unpaid amount of this contract's OPEN obligations (what keeps the related part held). */
+  openObligations: string;
+  undecidedSessions: number;
+  /** RUNNING: not ended yet (normal). WAITING_RECONCILIATION: ended, held because of this contract's own open items. STUCK: ended, nothing blocks it, still held (the sweep should release it). */
+  state: 'RUNNING' | 'WAITING_RECONCILIATION' | 'STUCK';
+  lastMovementAt: string | null;
+}
+
 export interface ObligationsReport {
   generatedAt: string;
   params: { limit: number; staleMinutes: number };
   summary: {
+    /** FH-9: PT money held back per contract. `stuck` should be 0: ended, reconciled and still held means the release sweep has not run. */
+    ptHoldback: { totalHeld: string; contractsHolding: number; waitingReconciliation: { count: number; held: string }; stuck: { count: number; held: string } };
     negativeWallets: number;
     negativeSubledgers: { count: number; unbackedTotal: string };
     walletMismatches: { count: number; nonEscrowCount: number };
@@ -217,6 +236,8 @@ export interface ObligationsReport {
   negativeWallets: NegativeWalletRow[];
   negativeSubledgers: NegativeSubledgerRow[];
   walletMismatches: WalletLedgerMismatchRow[];
+  /** FH-9: contracts that currently hold money back for their PT (largest first). */
+  ptHoldbacks: PtHoldbackRow[];
   receivables: ReceivableRow[];
   /** Still to be paid: OPEN and UNDER_REVIEW rows (a partially paid row stays here with its reduced `unpaid`). */
   unpaidObligations: UnpaidObligationRow[];
@@ -239,6 +260,7 @@ export interface ObligationsReport {
   /** Confirmed cancelled and refunded: `outcome` is REFUND_COMPLETED or REFUND_SHORT. */
   refundOutcomes: ProductPaymentRow[];
   truncated: {
+    ptHoldbacks: boolean;
     negativeWallets: boolean;
     negativeSubledgers: boolean;
     walletMismatches: boolean;
@@ -398,7 +420,32 @@ export async function buildObligationsReport(
         limit,
       );
 
-      return { negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, inFlightRows, pendingRows, closedRows, eventRows, staleCount, staleRows };
+      // FH-9: contracts that hold money back for their PT, with what keeps it held. Read-only, from the ledger only.
+      const holdRows = await tx.$queryRawUnsafe<any[]>(
+        `SELECT e.transaction_id, left(w.owner_id,8) AS pt, t.related_entity_id AS contract_id,
+                sum(CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) AS held,
+                max(e.created_at) AS last_at,
+                EXISTS (SELECT 1 FROM ledger_operations o WHERE o.kind='TERMINATE' AND o.transaction_id = e.transaction_id) AS ended,
+                coalesce((SELECT sum(c.unpaid) FROM contract_unpaid_obligations c
+                           WHERE c.transaction_id = e.transaction_id AND c.unpaid > 0
+                             AND c.status IN ('OPEN','UNDER_REVIEW','APPROVED_FOR_PAYMENT','AWAITING_EVIDENCE','PAID_EXTERNALLY')),0)::text AS open_ob,
+                coalesce((SELECT max(substring(l.description from 'unresolved sessions held: ([0-9]+)')::int)
+                            FROM wallet_ledger_entries l JOIN wallets rw ON rw.id = l.wallet_id
+                           WHERE rw.owner_type='PLATFORM' AND rw.owner_id='REVENUE' AND l.bucket='PENDING' AND l.transaction_id = e.transaction_id
+                             AND l.description LIKE '%unresolved sessions held: %'),0)
+                - (SELECT count(*) FROM wallet_ledger_entries l JOIN wallets rw ON rw.id = l.wallet_id
+                    WHERE rw.owner_type='PLATFORM' AND rw.owner_id='REVENUE' AND l.bucket='PENDING' AND l.transaction_id = e.transaction_id
+                      AND l.description LIKE '%unresolved session resolved: %') AS undecided
+           FROM wallet_ledger_entries e
+           JOIN wallets w ON w.id = e.wallet_id
+           LEFT JOIN payment_transactions t ON t.id = e.transaction_id
+          WHERE e.bucket = 'HOLDBACK'
+          GROUP BY e.transaction_id, w.owner_id, t.related_entity_id
+         HAVING sum(CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) > 0
+          ORDER BY sum(CASE WHEN e.entry_type='CREDIT' THEN e.amount ELSE -e.amount END) DESC, e.transaction_id`,
+      );
+
+      return { holdRows, negWallets, negSub, mism, recSummary, recRows, obSummary, obRows, inFlightRows, pendingRows, closedRows, eventRows, staleCount, staleRows };
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30_000, maxWait: 10_000 },
   );
@@ -427,6 +474,30 @@ export async function buildObligationsReport(
         ? 'UNAVAILABLE'
         : 'PARTIAL';
 
+  const holdAll: PtHoldbackRow[] = core.holdRows.map((r) => {
+    const openOb = new Prisma.Decimal(r.open_ob ?? 0);
+    const undecided = Math.max(0, Number(r.undecided ?? 0));
+    const ended = r.ended === true;
+    return {
+      transactionId: r.transaction_id,
+      contract: short(r.contract_id),
+      contractId: r.contract_id ?? null,
+      pt: r.pt,
+      held: money(r.held),
+      ended,
+      openObligations: openOb.toFixed(2),
+      undecidedSessions: undecided,
+      state: !ended ? 'RUNNING' : openOb.greaterThan(0) || undecided > 0 ? 'WAITING_RECONCILIATION' : 'STUCK',
+      lastMovementAt: iso(r.last_at),
+    } as PtHoldbackRow;
+  });
+  const sumHeld = (rows: PtHoldbackRow[]) => rows.reduce((a, r) => a.plus(r.held), new Prisma.Decimal(0)).toFixed(2);
+  const holdSummary = {
+    totalHeld: sumHeld(holdAll),
+    contractsHolding: holdAll.length,
+    waitingReconciliation: { count: holdAll.filter((r) => r.state === 'WAITING_RECONCILIATION').length, held: sumHeld(holdAll.filter((r) => r.state === 'WAITING_RECONCILIATION')) },
+    stuck: { count: holdAll.filter((r) => r.state === 'STUCK').length, held: sumHeld(holdAll.filter((r) => r.state === 'STUCK')) },
+  };
   const rec = (state: string) => core.recSummary.find((r) => r.state === state);
   const ob = (status: string) => core.obSummary.find((r) => r.status === status);
   const recCount = (rec('ACTIVE')?.c ?? 0) + (rec('SUSPENDED')?.c ?? 0);
@@ -514,6 +585,7 @@ export async function buildObligationsReport(
     generatedAt: now.toISOString(),
     params: { limit, staleMinutes },
     summary: {
+      ptHoldback: holdSummary,
       negativeWallets: core.negWallets.total,
       negativeSubledgers: { count: core.negSub.total, unbackedTotal: core.negSub.unbackedTotal },
       walletMismatches: { count: core.mism.total, nonEscrowCount: core.mism.nonEscrowTotal },
@@ -546,6 +618,7 @@ export async function buildObligationsReport(
     negativeWallets: core.negWallets.rows,
     negativeSubledgers: core.negSub.rows,
     walletMismatches: core.mism.rows,
+    ptHoldbacks: holdAll.slice(0, limit),
     receivables: core.recRows.map((r) => ({
       id: r.id,
       partnerType: r.partner_type,
@@ -578,6 +651,7 @@ export async function buildObligationsReport(
     cancelledPaid: cancelledAll.slice(0, limit),
     refundOutcomes: refundsAll.slice(0, limit),
     truncated: {
+      ptHoldbacks: holdAll.length > limit,
       negativeWallets: core.negWallets.total > core.negWallets.rows.length,
       negativeSubledgers: core.negSub.total > core.negSub.rows.length,
       walletMismatches: core.mism.total > core.mism.rows.length,

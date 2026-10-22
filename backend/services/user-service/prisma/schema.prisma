@@ -398,6 +398,7 @@ enum TerminationReason {
   COMPLETED        // quota fully used — nothing to refund
   PT_REPEATED_NO_SHOW // Vòng 4 / E2 — client's own right after a 3rd confirmed PT no-show, full refund
   CLIENT_EXIT_DUE_TO_PT_RESTRICTION // client left because the PT is suspended/banned — full refund of the unused value, no fee, nobody at fault; substituted by the server, never sent by a client
+  SERVICE_DISCONTINUED_BY_PLATFORM // D49 — the platform ends the service (e.g. a permanent PT ban): full refund of the unused value, no fee, NOT PT fault; replaces PT_BANNED for every new ending
 }
 
 enum PackageType {
@@ -674,16 +675,18 @@ model Contract {
   // (one extension per contract); recorded either way so switching the rule off and on again does not forget extensions already used.
   paymentDeadlineExtendedAt DateTime? @map("payment_deadline_extended_at")
 
-  // ── PT holdback (rule decided by the product owner; OFF until the terms-acceptance feature exists) ──
-  // Snapshot, like the three rates above: the share of `price` whose first earnings the PT does
-  // not get to withdraw until the contract ends well (COMPLETED / EXPIRED / CLIENT_CANCELLED /
-  // MUTUAL) or sits idle for PT_HOLDBACK_IDLE_DAYS. A PT-fault ending (PT_CANCELLED / PT_BANNED /
-  // PT_REPEATED_NO_SHOW) pays the client compensation out of the held amount ONLY. 0 = no
-  // holdback — every contract that exists today, and every new one until resolvePtHoldbackRate
-  // (pt-holdback-rate.ts) starts returning 0.10. Existing rows get 0 from the column default.
+  // ── PT financial holdback (FH-9; final owner rules; OFF for new contracts until the flag is enabled) ──
+  // Snapshot, like the three rates below: the share of the PT's EXPECTED INCOME on this contract (computed by payment-service from the
+  // frozen rates, never from the client's payment) that is held back from the PT's first earnings until the contract has ended and
+  // is reconciled. 0 = no holdback - every contract that exists today, and every new one while resolvePtHoldbackRate (pt-holdback-rate.ts)
+  // returns 0. A contract that carries a holdback keeps it whatever the flag says later: the rules live in this snapshot.
   ptHoldbackRate       Decimal        @default("0") @db.Decimal(6, 4) @map("pt_holdback_rate")
-  // Set (once) when the idle-release sweep handed the held amount to the PT. From then on the
-  // contract carries NO holdback: release-session/terminate calls send an effective rate of 0.
+  // Version of the holdback policy the rate was snapshotted under (0 = none / not a FH-9 contract). Only a contract created under a
+  // known version is sent to payment-service with a rate, so an old row can never start holding money (non-retroactive).
+  ptHoldbackPolicyVersion Int         @default(0) @map("pt_holdback_policy_version")
+  // Set (once) when payment-service confirmed the contract ended AND nothing is held for the PT any more (everything was returned in
+  // the ending, or released by the sweep once the contract was reconciled). It only stops the sweep from asking again; the ledger is
+  // the authority for the amounts.
   holdbackReleasedAt   DateTime?      @map("holdback_released_at")
 
   // ── Revenue split, frozen at signing ──────────────────────────────────────

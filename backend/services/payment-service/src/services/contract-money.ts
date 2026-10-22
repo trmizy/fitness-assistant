@@ -34,7 +34,12 @@ export type TerminationReason =
   // delivered sessions earned. A separate reason from MUTUAL only so the ledger can tell the two
   // apart (the refund row's description embeds the reason) and so it can never be mistaken for
   // a PT-fault ending (PT_FAULT_REASONS deliberately does not list it).
-  | 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION';
+  | 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'
+  // D49: the platform itself ends the service (a permanent PT ban, a closed PT account ...). Not the client's choice (no
+  // cancellation fee) and NOT proof of PT fault: settled exactly as MUTUAL is - 100% of the unused value back to the client,
+  // the parties keep what the delivered sessions earned, the PT's held-back money goes back to the PT. It replaces PT_BANNED for
+  // every new ending; PT_BANNED stays in this union only so that an ending recorded under it can still be replayed.
+  | 'SERVICE_DISCONTINUED_BY_PLATFORM';
 
 /** Share of a contract each party is entitled to. Frozen onto the contract when it is signed. */
 export interface RateTable {
@@ -94,11 +99,11 @@ export interface ContractMoneyInput {
   lateArrival?: LateArrivalDeductions;
   rates: RateTable;
   /**
-   * The PT holdback rate THIS contract carries (`h`): the share of the price whose first
-   * earnings the PT does not get to withdraw until the contract ends well (or sits idle for
-   * 30 days). Read by computeTermination only — for the compensation a PT-fault ending owes
+   * The PT holdback rate THIS contract carries (`h`): the share of the PT's expected income whose
+   * first earnings the PT does not get to withdraw until the contract has ended and is reconciled. Read by computeTermination only — for the compensation a PT-fault ending owes
    * the client (see holdbackCompensationTarget) — and by the ledger, which holds the money back
-   * session by session (contract-ledger.service#releaseSession).
+   * session by session (contract-ledger.service#releaseSession). FH-9: the rate applies to the PT's
+   * expected income on the contract (see holdbackTarget), never to the client's payment.
    *
    * Deliberately an input and not a constant in this module. It is a term of the individual
    * contract, like the rate table: a PT can only be held to a term they agreed to, so the caller
@@ -302,29 +307,42 @@ export function assertHoldbackRateValid(rate: Prisma.Decimal | undefined): void 
 }
 
 /**
- * H — how much of the PT's first earnings on a contract is held back: h × price, in WHOLE đồng,
- * rounded DOWN. Every amount in the held-back pot is a whole đồng (session shares are whole
- * đồng, see computeSessionRelease), so the target must be one too; rounding down means the
- * sub-đồng remainder of h × price is never held — it goes to the PT with their first release.
+ * The PT's expected income on a contract: what the PT ends up with if every session is delivered and nothing is deducted -
+ * the PT part of the three-way split of the WHOLE price under the contract's frozen rates (the same figure the final settlement
+ * of a completed contract pays: terminateContract's entitlement.pt). Never the client's payment, never the current agreement.
  */
-export function holdbackTarget(price: Prisma.Decimal, rate: Prisma.Decimal | undefined): Prisma.Decimal {
+export function ptExpectedIncome(price: Prisma.Decimal, rates: RateTable): Prisma.Decimal {
+  return splitThreeWays(price, rates).pt;
+}
+
+/**
+ * H - FH-9. How much of the PT's earnings on ONE contract is held back: h x (the PT's expected income on that contract), in WHOLE
+ * dong, rounded DOWN (the sub-dong remainder is never held - it goes to the PT with the first payout).
+ *
+ * The base is the PT's expected income computed from the CONTRACT'S frozen rates - NOT the client's payment (price) and never today's
+ * agreement. It therefore never touches the gym's or the platform's share, never another contract, and can never exceed what the PT
+ * can earn on the contract. Every amount in the pot is a whole dong (session shares are whole dong, see computeSessionRelease), so the
+ * target must be one too.
+ */
+export function holdbackTarget(price: Prisma.Decimal, rate: Prisma.Decimal | undefined, rates: RateTable): Prisma.Decimal {
   assertHoldbackRateValid(rate);
   if (!rate || rate.isZero()) return ZERO;
-  return price.mul(rate).toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN);
+  return ptExpectedIncome(price, rates).mul(rate).toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN);
 }
 
 /**
  * Splits ONE session's PT share between "held back" and "released to available".
  *
- * The PT's first earnings fill the pot until it holds `target`; everything after that is paid
- * out in full. So after u sessions the PT has been released exactly max(0, E − H) where
- * E = u × share, and holds min(E, H):
+ * The PT's earnings from the first payable sessions fill the pot until it holds `target`; everything
+ * after that is paid out in full. `share` is what the PT ACTUALLY earns for the session (after the D77
+ * late-arrival deduction; a PT no-show earns nothing, so nothing is held for it). After u sessions the PT
+ * has been released exactly max(0, E − H) where E = what they earned on them, and holds min(E, H):
  *
  *   held     = clamp(target − heldBefore, 0, share)   // this session's contribution to the pot
  *   released = share − held
  *
- * (price 5,000,000 / 10 sessions / PT 0.90 / h 0.10: shares of 450,000 release 0, 400,000, then
- * 450,000 each, while the pot fills 450,000 → 500,000.) Pure, so the cumulative property can be
+ * (1,000,000 / 20 sessions / PT 0.90 / h 0.10: shares of 45,000, target 90,000: S1 and S2 release 0 and
+ * hold 45,000 each, then 45,000 each is released.) Pure, so the cumulative property can be
  * checked by arithmetic alone.
  */
 export function splitReleaseWithHoldback(
@@ -338,17 +356,22 @@ export function splitReleaseWithHoldback(
   return { held, released: share.minus(held) };
 }
 
-/** The endings that are the PT's fault. The only ones that can draw on the held-back pot. */
+/**
+ * The endings that are the PT's fault. The only ones that can draw on the held-back pot.
+ *
+ * FH-9 / D49: PT_BANNED is NOT here any more. A ban (or any restriction) is the platform's decision, not proof that this PT failed this
+ * client; "ban = compensate every client" was rejected (D31/D44/D49). New bans end contracts as SERVICE_DISCONTINUED_BY_PLATFORM; an
+ * old ending recorded as PT_BANNED is replayed from the ledger with the same amounts and owes no holdback compensation either.
+ */
 export const PT_FAULT_REASONS: ReadonlySet<TerminationReason> = new Set<TerminationReason>([
   'PT_CANCELLED',
-  'PT_BANNED',
   'PT_REPEATED_NO_SHOW',
 ]);
 
 /**
  * The value a PT-fault ending is measured on.
  *
- *   PT_CANCELLED, PT_BANNED   the value of the sessions that will now never be delivered — the
+ *   PT_CANCELLED              the value of the sessions that will now never be delivered — the
  *                             same `remaining` the refund is taken on (never used, never
  *                             compensated).
  *   PT_REPEATED_NO_SHOW       that remaining value PLUS the value of the sessions already
@@ -452,6 +475,7 @@ export function computeTermination(
     case 'PT_BANNED':
     case 'MUTUAL':
     case 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION':
+    case 'SERVICE_DISCONTINUED_BY_PLATFORM':
     case 'PT_REPEATED_NO_SHOW':
     case 'PT_CANCELLED':
       // The client is made whole. That the PT must also compensate them is a separate matter —

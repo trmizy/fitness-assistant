@@ -7,7 +7,6 @@ import {
   PackageType,
   SessionMode,
   Prisma,
-  PtRestrictionScope,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { sessionRepository } from "../repositories/session.repository";
@@ -24,7 +23,7 @@ import { clientReviewRepository } from "../repositories/clientReview.repository"
 import { availabilityService } from "./availability.service";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
 import { completeContractRecordingEnding, recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
-import { PT_HOLDBACK_IDLE_DAYS, resolvePtHoldbackRate } from "./pt-holdback-rate";
+import { resolvePtHoldbackRate } from "./pt-holdback-rate";
 import { ptTermsService } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
@@ -41,7 +40,6 @@ import {
   getBlockingRestriction,
   getEffectiveContractStatuses,
   isContractRestricted,
-  idleCutoffExcludingRestrictions,
 } from "./pt-restriction.service";
 
 function err(message: string, status: number) {
@@ -1584,75 +1582,34 @@ export const contractService = {
   },
 
   /**
-   * Idle release of the PT holdback: a contract with a holdback that has had no session for
-   * PT_HOLDBACK_IDLE_DAYS (the exact rule is contractRepository.findIdleHoldbackCandidates) hands
-   * the held-back amount to the PT, and carries on WITHOUT a holdback from then on.
+   * FH-9: the sweep that picks up the PT holdback of ENDED contracts. A running contract's holdback is never released here (there is
+   * no idle clock any more): the ending itself returns everything that is not related to an unreconciled item of the contract, inside
+   * payment-service's TERMINATE operation, and this sweep releases what that left held (an OPEN obligation of the contract, an
+   * undecided session) as soon as the contract is reconciled - and finds the contracts whose ending reached payment-service later
+   * than the status (natural completion) so none is ever stuck.
    *
-   * Per contract and in this order, so a failure at any step is retried by the next tick and
-   * nothing can fire twice:
-   *   1. re-check that the contract still qualifies (a session may have been booked since the
-   *      candidate list was read);
-   *   2. payment-service releases the held amount — idempotent per contract, so a repeat call (a
-   *      crash before step 3, or an overlapping run) replays the first result;
-   *   3. a guarded update records holdbackReleasedAt and adds what was released to releasedToPt in
-   *      the same statement — it affects 0 rows if anyone got there first, so the amount is counted
-   *      once.
-   * Errors are caught per contract so one bad contract does not block the rest of the batch.
-   * Returns how many contracts THIS run released.
+   * Per contract: payment-service is asked to release. It decides - from its own ledger - whether the release is due (the ending is
+   * recorded, nothing of the contract is unreconciled), moves the money in the same transaction that empties the contract's HOLDBACK
+   * (so a repeated or concurrent call finds nothing), and answers what is still held. Only when nothing is held any more AND the
+   * contract is reconciled is the contract marked (a flag so the sweep stops asking; the ledger stays the authority for amounts).
+   * Z4: the mark does not depend on the contract's status, and no amount is copied to this service - nothing can be released but not
+   * recorded. Errors are caught per contract so one bad contract does not block the batch. Returns how many contracts THIS run closed.
    */
-  async releaseIdleHoldbacks(now: Date = new Date()): Promise<number> {
-    const dayMs = 24 * 60 * 60 * 1000;
-    const cutoff = new Date(now.getTime() - PT_HOLDBACK_IDLE_DAYS * dayMs);
-    const window = { activatedBefore: cutoff, sessionsSince: cutoff };
-    // A restricted PT's held amount is never released by the idle clock: nothing is "idle" while the
-    // PT is paused by an admin. (The list excludes them; the per-contract check below re-reads.)
-    const restricted = await activeRestrictedPtUserIds();
-    const candidates = await contractRepository.findIdleHoldbackCandidates({
-      ...window,
-      excludePtUserIds: restricted,
-      excludeContractIds: await activeRestrictedContractIds(),
-    });
+  async releaseDueHoldbacks(now: Date = new Date()): Promise<number> {
+    const candidates = await contractRepository.findEndedHoldbackCandidates();
     let count = 0;
     for (const c of candidates) {
       try {
-        if (await isContractRestricted(c)) continue;
-        // Suspended time does not count toward the idle days: the window is pushed back by the time
-        // this PT spent restricted, so PT_HOLDBACK_IDLE_DAYS of NON-suspended days are required.
-        // ...counting only what blocked THIS contract: the PT's account episodes and this contract's own — never
-        // another contract's (a restriction on a different client's contract does not stop this clock).
-        const episodes = await prisma.ptRestriction.findMany({
-          where: {
-            OR: [
-              { ptUserId: c.ptUserId, scope: PtRestrictionScope.ACCOUNT },
-              { contractId: c.id, scope: PtRestrictionScope.CONTRACT },
-            ],
-          },
-          select: { startedAt: true, endedAt: true },
-        });
-        const idleSince = idleCutoffExcludingRestrictions(now, PT_HOLDBACK_IDLE_DAYS * dayMs, episodes);
-        const stillIdle = await contractRepository.findIdleHoldbackCandidates({
-          activatedBefore: idleSince,
-          sessionsSince: idleSince,
-          id: c.id,
-          limit: 1,
-        });
-        if (stillIdle.length === 0) continue;
-
         const result = await releaseHoldbackMoney(c.id);
-        if (!result) continue; // not payable (no transaction) — nothing to release
-        const { count: marked } = await contractRepository.markHoldbackReleased(
-          c.id,
-          new Prisma.Decimal(result.released),
-          now,
-        );
+        if (!result) continue; // not payable (no transaction) - nothing to release
+        if (!result.reconciled || Number(result.heldAfter) > 0) continue; // not due yet: asked again on the next tick
+        const { count: marked } = await contractRepository.markHoldbackReleased(c.id, now);
         if (marked === 0) continue; // someone else recorded it first
         count++;
-        logger.info(
-          `[HoldbackSweep] Contract ${c.id} idle for ${PT_HOLDBACK_IDLE_DAYS}+ days — released ${result.released} to the PT, holdback ended`,
-        );
+        logger.info(`[HoldbackSweep] Contract ${c.id} ended and reconciled - released ${result.released} to the PT, nothing is held any more`);
       } catch (e) {
         logger.error({
-          error: "Failed to release an idle contract's PT holdback",
+          error: "Failed to release an ended contract's PT holdback",
           contractId: c.id,
           message: (e as Error).message,
         });

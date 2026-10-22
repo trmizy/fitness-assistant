@@ -648,6 +648,7 @@ const terminationReasonSchema = z.enum([
   'COMPLETED',
   'PT_REPEATED_NO_SHOW',
   'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+  'SERVICE_DISCONTINUED_BY_PLATFORM',
 ]) satisfies z.ZodType<TerminationReason>;
 
 // Sessions that are neither used nor unused when the contract ends (reported delivered but not
@@ -767,9 +768,9 @@ const releaseHoldbackSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
-// POST /internal/contracts/release-holdback — the contract has been idle for too long: the
-// PT's held-back pot goes to their available balance now, and the contract carries on without
-// a holdback. The amount is read from the ledger, never from the request.
+// POST /internal/contracts/release-holdback - FH-9: what is still held for the PT on an ENDED contract goes to their available
+// balance once the contract is reconciled (no OPEN obligation, no unresolved session of its own). Never before the ending is
+// recorded. The amount is read from the ledger, never from the request.
 router.post('/contracts/release-holdback', async (req: Request, res: Response) => {
   const parsed = releaseHoldbackSchema.safeParse(req.body);
   if (!parsed.success) {

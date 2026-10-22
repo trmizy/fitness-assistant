@@ -27,7 +27,7 @@ import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
 function statusFor(reason: string): ContractStatus {
   if (reason === "COMPLETED") return ContractStatus.COMPLETED;
   if (reason === "EXPIRED") return ContractStatus.EXPIRED;
-  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL, PT_REPEATED_NO_SHOW, CLIENT_EXIT_DUE_TO_PT_RESTRICTION
+  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL, PT_REPEATED_NO_SHOW, CLIENT_EXIT_DUE_TO_PT_RESTRICTION, SERVICE_DISCONTINUED_BY_PLATFORM
 }
 
 /**
@@ -63,14 +63,16 @@ function ratesOf(c: ContractRow) {
 /**
  * The PT holdback rate to send payment-service for this contract - and NOTHING when there is none.
  *
- * The contract's own snapshot (ptHoldbackRate), or 0 once the holdback has been released for
- * inactivity: from then on the contract carries on without one. The key is left off the request
- * entirely at rate 0, not sent as "0", so for every contract that exists today the bodies
- * user-service sends are byte-for-byte what they were before the holdback existed (pinned by
- * contract-holdback.test.ts).
+ * The contract's own snapshot (ptHoldbackRate), and only when it was snapshotted under a known policy (ptHoldbackPolicyVersion > 0): a
+ * row with a rate but no policy version is not an FH-9 contract and never starts holding money (non-retroactive). The key is left off
+ * the request entirely at rate 0, not sent as "0", so for every contract that exists today the bodies user-service sends are
+ * byte-for-byte what they were before the holdback existed (pinned by contract-holdback.test.ts).
+ *
+ * Deliberately NOT conditional on the feature flag (it only decides the snapshot of NEW contracts) and NOT on holdbackReleasedAt: the
+ * ledger itself knows what is held for the contract, so the rules and the money follow the snapshot whatever the flag says later.
  */
 export function holdbackArgOf(c: ContractRow): { ptHoldbackRate?: string } {
-  if (c.holdbackReleasedAt || c.ptHoldbackRate == null) return {};
+  if (c.ptHoldbackRate == null || !((c as { ptHoldbackPolicyVersion?: number }).ptHoldbackPolicyVersion ?? 0)) return {};
   const rate = new Prisma.Decimal(c.ptHoldbackRate);
   return rate.greaterThan(0) ? { ptHoldbackRate: rate.toString() } : {};
 }
@@ -722,7 +724,10 @@ export type TerminationReason =
   // PT-suspension slice 4 - the client leaves a contract whose PT is suspended/banned. Full refund of the
   // unused value, no fee, and NOT a PT-fault reason (payment-service pays no compensation for it). Never
   // sent by a caller: client-exit.service.ts substitutes it after checking the restriction itself.
-  | "CLIENT_EXIT_DUE_TO_PT_RESTRICTION";
+  | "CLIENT_EXIT_DUE_TO_PT_RESTRICTION"
+  // D49 - the platform itself ends the service (e.g. a permanent PT ban). Full refund of the unused value, no fee, NOT PT fault: the PT's
+  // held-back money goes back to the PT. It replaces PT_BANNED for every new ending (PT_BANNED stays only so an old ending can be replayed).
+  | "SERVICE_DISCONTINUED_BY_PLATFORM";
 
 const TERMINATION_REASONS: TerminationReason[] = [
   "CLIENT_CANCELLED",
@@ -733,6 +738,7 @@ const TERMINATION_REASONS: TerminationReason[] = [
   "COMPLETED",
   "PT_REPEATED_NO_SHOW",
   "CLIENT_EXIT_DUE_TO_PT_RESTRICTION",
+  "SERVICE_DISCONTINUED_BY_PLATFORM",
 ];
 
 function asTerminationReason(v: string | null | undefined): TerminationReason | null {
@@ -1607,17 +1613,16 @@ export async function settleContractTermination(
 }
 
 /**
- * The contract has had no session for PT_HOLDBACK_IDLE_DAYS: hand the PT the amount held back on
- * it. Called by the idle-release sweep (contractService.releaseIdleHoldbacks), which has already
- * decided the contract qualifies.
- *
- * Returns what payment-service really moved to the PT's available balance (it reads the amount
- * from its own ledger - nothing here computes or sends one). Idempotent on payment-service's side
- * (`HOLDBACK_RELEASE:<contractId>`), so a retry after a crash replays instead of paying twice.
- * Throws on failure, unlike the best-effort session release: the sweep leaves the contract
- * un-marked and tries again on its next tick.
+ * FH-9. Asks payment-service to release what is still held for the PT on an ENDED contract. Called by the holdback sweep
+ * (contractService.releaseDueHoldbacks). payment-service decides from its own ledger whether the release is due (the ending is
+ * recorded and nothing of the contract is unreconciled), moves the money and answers what it moved and what is still held; nothing
+ * here computes or sends an amount. Idempotent on payment-service's side (the amount is derived from the contract's own HOLDBACK, which
+ * the release empties; a final answer is stored under `HOLDBACK_RELEASE:<contractId>`), so a retry after a crash can never pay twice.
+ * Throws on failure, unlike the best-effort session release: the sweep leaves the contract un-marked and tries again on its next tick.
  */
-export async function releaseHoldbackMoney(contractId: string): Promise<{ released: string } | null> {
+export async function releaseHoldbackMoney(
+  contractId: string,
+): Promise<{ released: string; heldAfter: string; ended: boolean; reconciled: boolean; blockedBy?: unknown } | null> {
   const contract = payableOrNull(await contractRepository.findById(contractId));
   if (!contract) return null;
   return paymentClient.releaseHoldback({

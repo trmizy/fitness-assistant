@@ -74,7 +74,7 @@ export async function runContractHoldbackSweep(): Promise<{ released: number }> 
   holdbackRunning = true;
 
   try {
-    const released = await contractService.releaseIdleHoldbacks();
+    const released = await contractService.releaseDueHoldbacks();
     if (released > 0) {
       logger.info(`[ContractHoldbackSweep] Released the holdback on ${released} idle contract(s)`);
     }

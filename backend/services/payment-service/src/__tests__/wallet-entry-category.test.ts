@@ -53,6 +53,8 @@ test('partner earnings', () => {
   assert.equal(c(`Contract ${ID} PT late arrival ${ID} — PT late-arrival charge`, 'DEBIT'), 'PT_CHARGE_LATE_ARRIVAL');
   assert.equal(c(`Contract ${ID} holdback — PT holdback retained`), 'HOLDBACK_KEPT');
   assert.equal(c(`Contract ${ID} holdback — PT holdback released (no activity)`), 'HOLDBACK_RELEASED');
+  assert.equal(c(`Contract ${ID} holdback — PT holdback released to available`), 'HOLDBACK_RELEASED');
+  assert.equal(c(`Contract ${ID} termination — PT holdback used for compensation (PT_CANCELLED)`, 'DEBIT'), 'HOLDBACK_USED_FOR_COMPENSATION');
   assert.equal(c(`Membership ${ID} referral — referral commission`), 'REFERRAL_COMMISSION');
   assert.equal(c(`Contract ${ID} — pending reversed (payment refunded)`, 'DEBIT'), 'PENDING_REVERSED');
 });

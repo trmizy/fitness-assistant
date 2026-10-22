@@ -19,7 +19,7 @@
  * Money maths used below (all derived by hand, not read back from the code under test): price 5,000,000 / 10 sessions
  * => one session = 500,000 = PT 450,000 (90%) + platform 50,000 (10%); no gym, holdback off. A client's own
  * cancellation refunds 90% of the unused value and the remaining 10% is shared 90/10 PT/platform; PT_CANCELLED,
- * PT_BANNED and the restriction exit refund 100% of the unused value.
+ * SERVICE_DISCONTINUED_BY_PLATFORM (was PT_BANNED, D49) and the restriction exit refund 100% of the unused value.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -469,7 +469,7 @@ test("F. permanent-ban unwind with 3 contracts: each client gets 100% of the unu
       assert.equal(o.refundAmount, expected);
       assert.deepEqual(await H.wallet("CLIENT", cs[i].clientUserId), w(expected), `contract ${i + 1}: 100% of the unused value`);
       const row = await contractRow(cs[i].id);
-      assert.deepEqual([row.status, row.terminationReason, row.usedSessions], ["CANCELLED", "PT_BANNED", used[i]]);
+      assert.deepEqual([row.status, row.terminationReason, row.usedSessions], ["CANCELLED", "SERVICE_DISCONTINUED_BY_PLATFORM", used[i]]);
       assert.equal((await H.entries(cs[i].txnId)).filter((e) => e.ownerType === "CLIENT" && e.type === "CREDIT").length, 1, "one refund per contract");
       assert.equal(await H.net(cs[i].txnId, "PT", "PENDING"), 0);
     }

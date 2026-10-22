@@ -110,7 +110,7 @@ test("L3 PT ban (the lock unwind): the awaiting + disputed sessions are NOT canc
   try {
     const res = await ptDeactivationService.deactivatePT({ ptUserId: pt, adminId: ADMIN, reason: "vi phạm", seq: BigInt(Date.now()) });
     assert.equal(res.complete, true, JSON.stringify(res.outcomes));
-    assert.equal(ledger.terminate[0].reason, "PT_BANNED");
+    assert.equal(ledger.terminate[0].reason, "SERVICE_DISCONTINUED_BY_PLATFORM");
     assert.equal(ledger.terminate[0].unresolvedSessions, 2);
     assert.equal(await statusOf(ids.pending), "PENDING_CLIENT_CONFIRMATION");
     assert.equal(await statusOf(ids.disputed), "DISPUTED");

@@ -495,7 +495,7 @@ test("R3. PT ban unwinding 3 contracts; user-service killed after the 2nd refund
     for (let i = 0; i < 3; i++) {
       const expected = (10 - used[i]) * UNIT; // 100% of the unused value
       const row = await contractRow(cs[i].id);
-      assert.deepEqual([row.status, row.terminationReason], ["CANCELLED", "PT_BANNED"], `contract ${i + 1} ended`);
+      assert.deepEqual([row.status, row.terminationReason], ["CANCELLED", "SERVICE_DISCONTINUED_BY_PLATFORM"], `contract ${i + 1} ended`);
       assert.deepEqual(await H.wallet("CLIENT", cs[i].clientUserId), w(expected), `contract ${i + 1}: refunded exactly once, 100% of the unused value`);
       assert.equal((await H.entries(cs[i].txnId)).filter((e) => e.ownerType === "CLIENT" && e.type === "CREDIT").length, 1);
       assert.equal(await H.net(cs[i].txnId, "PT", "PENDING"), 0);
@@ -625,14 +625,14 @@ test("R5. post-deploy-state-check flags the R1 crash window (X-01), a PT_NO_SHOW
 // FH-3b (DQ-8) - NATURAL COMPLETION: the contract status and the CONTRACT_TERMINATION intent are ONE transaction.
 // Before: status COMPLETED was written first, the intent afterwards - a process death in between left a COMPLETED contract with no
 // intent, which no sweep ever settled (PT / gym never paid out of the contract's pending money).
-// Fixture for R6-R8: a 10-session contract with a 10% PT holdback (a FIXTURE row value, holdback is OFF in production), 9 sessions
+// Fixture for R6-R8: a 10-session contract with a 10% PT holdback (a FIXTURE row value + policy version 1; the flag is OFF in production), 9 sessions
 // delivered through the harness; the 10th is delivered through a REAL user-service process that is then SIGKILLed. The holdback is
-// what makes the ending's money visible: it is returned to the PT only by the COMPLETED termination.
+// what makes the ending's money visible: the held amount (HOLDBACK bucket) is returned to the PT only by the COMPLETED termination.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 async function nearlyDone() {
   const pt = await H.makePt();
   const c = await H.paidContract(pt);
-  await H.m.prisma.contract.update({ where: { id: c.id }, data: { ptHoldbackRate: "0.10" } });
+  await H.m.prisma.contract.update({ where: { id: c.id }, data: { ptHoldbackRate: "0.10", ptHoldbackPolicyVersion: 1 } });
   await H.deliver(c, 9);
   const last = await H.m.base.addSession(c, "CONFIRMED", new Date(Date.now() - 40 * DAY));
   return { pt, c, last, ptTok: tokenOf(pt, "PT"), clientTok: tokenOf(c.clientUserId, "CUSTOMER") };
@@ -670,9 +670,9 @@ test("R6. [FH-3b] natural completion; user-service is SIGKILLed right after the 
     assert.deepEqual([intent.kind, intent.reason], ["CONTRACT_TERMINATION", "COMPLETED"]);
     assert.notEqual(intent.status, "SETTLED", "COMPLETED is not 'money settled'");
     assert.ok(intent.requestSnapshot, "the request snapshot was written with the intent");
-    // what the ending still owes the PT: the 10% holdback of the 10 delivered sessions, in PENDING until the COMPLETED termination
-    const heldBack = await H.net(c.txnId, "PT", "PENDING");
-    assert.ok(heldBack > 0, `the PT's holdback is still pending after the crash (${heldBack}) - payment-service never saw the ending`);
+    // what the ending still owes the PT: the 10% holdback of the PT's expected income, in HOLDBACK until the COMPLETED termination
+    const heldBack = await H.net(c.txnId, "PT", "HOLDBACK");
+    assert.equal(heldBack, 450_000, `the PT's holdback (10% of 4.500.000) is still held after the crash - payment-service never saw the ending`);
     const ptBefore = await H.wallet("PT", pt);
     const gap = (await sessionSettlementRepository.findEndedPaidWithoutSettledTermination()).find((g) => g.contractId === c.id);
     assert.ok(gap && gap.hasIntent && gap.contractStatus === "COMPLETED", "the report query shows an ended + paid contract whose money is not confirmed");
@@ -685,8 +685,8 @@ test("R6. [FH-3b] natural completion; user-service is SIGKILLed right after the 
     assert.deepEqual([healed.status, healed.terminationReason], ["COMPLETED", "COMPLETED"]);
     assert.ok(healed.terminatedAt);
     const ptAfter = await H.wallet("PT", pt);
-    show("R6 after restart", { ptAvailableBefore: ptBefore.a, ptAvailableAfter: ptAfter.a, heldBack, ptPendingAfter: await H.net(c.txnId, "PT", "PENDING") });
-    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0, "the holdback left PENDING");
+    show("R6 after restart", { ptAvailableBefore: ptBefore.a, ptAvailableAfter: ptAfter.a, heldBack, ptHoldbackAfter: await H.net(c.txnId, "PT", "HOLDBACK") });
+    assert.equal(await H.net(c.txnId, "PT", "HOLDBACK"), 0, "the holdback left HOLDBACK");
     assert.equal(ptAfter.a, ptBefore.a + heldBack, "the PT received the held-back amount - once");
     await H.invariant("after the sweep");
 
@@ -722,7 +722,7 @@ test("R7. [FH-3b] natural completion; user-service is SIGKILLed AFTER payment-se
     assert.equal(crashed.status, "COMPLETED");
     assert.ok(intent && intent.status !== "SETTLED" && intent.reason === "COMPLETED");
     const ptMid = await H.wallet("PT", pt);
-    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0, "the ledger already returned the holdback (the ending is committed there)");
+    assert.equal(await H.net(c.txnId, "PT", "HOLDBACK"), 0, "the ledger already returned the holdback (the ending is committed there)");
     const snap = await H.snapshot();
 
     proxy.reset();
@@ -795,8 +795,8 @@ test("R8. [FH-3b] natural completion; user-service is SIGKILLed INSIDE the statu
     assert.equal(crashed.completedAt, null);
     assert.equal(crashed.usedSessions, 10, "the session itself was counted before (separate, earlier commit)");
     assert.equal(await terminationRow(c.id), null, "no intent and no COMPLETED: there is no half state to fall through the sweep");
-    const heldBack = await H.net(c.txnId, "PT", "PENDING");
-    assert.ok(heldBack > 0, "the holdback is still pending: nothing was settled");
+    const heldBack = await H.net(c.txnId, "PT", "HOLDBACK");
+    assert.equal(heldBack, 450_000, "the holdback is still held: nothing was settled");
     const ptBefore = await H.wallet("PT", pt);
 
     // the retry (the next session action / completion check) completes and settles it
@@ -804,7 +804,7 @@ test("R8. [FH-3b] natural completion; user-service is SIGKILLed INSIDE the statu
     const done = await contractRow(c.id);
     assert.deepEqual([done.status, done.terminationReason], ["COMPLETED", "COMPLETED"]);
     assert.equal((await terminationRow(c.id))!.status, "SETTLED");
-    assert.equal(await H.net(c.txnId, "PT", "PENDING"), 0);
+    assert.equal(await H.net(c.txnId, "PT", "HOLDBACK"), 0);
     assert.equal((await H.wallet("PT", pt)).a, ptBefore.a + heldBack, "the PT is paid the holdback once");
     await H.invariant("after the retry");
   });

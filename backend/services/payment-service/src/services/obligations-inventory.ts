@@ -29,6 +29,8 @@ export interface Inventory {
   fronted: { total: string; recovered: string; waived: string; outstanding: string };
   stuckPaid: InventoryGroup[];
   unpaidObligations: { kind: string; status: string; count: number; unpaid: string }[];
+  /** FH-9 (P-09): money held back for PTs - contracts holding it, the total, and how many of them have ENDED (should be 0 once the sweep has run). */
+  ptHoldback: { contractsHolding: number; totalHeld: string; endedStillHeld: number };
 }
 
 const money = (v: unknown) => new Prisma.Decimal(String(v ?? 0)).toFixed(2);
@@ -50,7 +52,7 @@ export async function buildInventory(opts: { staleMinutes?: number; databaseUrl?
       const inv = (
         await tx.$queryRawUnsafe<{ escrow: string; claims: string }[]>(
           `SELECT (SELECT coalesce(sum(available_balance),0)::text FROM wallets WHERE owner_type='PLATFORM' AND owner_id='ESCROW') AS escrow,
-                  (SELECT coalesce(sum(available_balance+pending_balance+locked_balance),0)::text FROM wallets WHERE NOT (owner_type='PLATFORM' AND owner_id='ESCROW')) AS claims`,
+                  (SELECT coalesce(sum(available_balance+pending_balance+locked_balance+holdback_balance),0)::text FROM wallets WHERE NOT (owner_type='PLATFORM' AND owner_id='ESCROW')) AS claims`,
         )
       )[0];
       const negWallets = await findNegativeWallets(tx, 1);
@@ -108,6 +110,16 @@ export async function buildInventory(opts: { staleMinutes?: number; databaseUrl?
            FROM contract_unpaid_obligations GROUP BY 1,2 ORDER BY 1,2`,
       );
 
+      const hb = (
+        await tx.$queryRawUnsafe<any[]>(
+          `SELECT count(*)::int AS c, coalesce(sum(h),0)::text AS total,
+                  count(*) FILTER (WHERE EXISTS (SELECT 1 FROM ledger_operations o WHERE o.kind='TERMINATE' AND o.transaction_id = s.transaction_id))::int AS ended
+             FROM (SELECT transaction_id, sum(CASE WHEN entry_type='CREDIT' THEN amount ELSE -amount END) AS h
+                     FROM wallet_ledger_entries WHERE bucket='HOLDBACK' GROUP BY transaction_id
+                   HAVING sum(CASE WHEN entry_type='CREDIT' THEN amount ELSE -amount END) > 0) s`,
+        )
+      )[0];
+
       const escrowDiff = mism.rows.find((r) => r.isEscrow);
       const drift = new Prisma.Decimal(inv.escrow).minus(new Prisma.Decimal(inv.claims));
       return {
@@ -135,6 +147,7 @@ export async function buildInventory(opts: { staleMinutes?: number; databaseUrl?
         fronted: { total: money(fronted.total), recovered: money(fronted.recovered), waived: money(fronted.waived), outstanding: money(fronted.outstanding) },
         stuckPaid: stuck.map((r) => ({ label: r.label, count: r.c, amount: money(r.amount) })),
         unpaidObligations: ob.map((r) => ({ kind: r.kind, status: r.status, count: r.c, unpaid: money(r.unpaid) })),
+        ptHoldback: { contractsHolding: hb?.c ?? 0, totalHeld: money(hb?.total), endedStillHeld: hb?.ended ?? 0 },
       } satisfies Inventory;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 60_000, maxWait: 10_000 },
@@ -162,5 +175,6 @@ export function formatInventory(i: Inventory): string[] {
   L.push('P-08 unpaid obligations by kind / status (count, unpaid):');
   if (i.unpaidObligations.length === 0) L.push('       none');
   for (const o of i.unpaidObligations) L.push(`       ${o.kind} / ${o.status}: ${o.count}, ${o.unpaid}`);
+  L.push(`P-09 PT money held back: ${i.ptHoldback.contractsHolding} contract(s), ${i.ptHoldback.totalHeld}; of which ${i.ptHoldback.endedStillHeld} on contracts that already ENDED`);
   return L;
 }

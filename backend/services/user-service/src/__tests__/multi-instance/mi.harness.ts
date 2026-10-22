@@ -344,7 +344,7 @@ export async function startMi(opts: { instances: number; instanceEnv?: Record<st
   type Wallet = { a: number; p: number; l: number };
   async function wallet(ownerType: string, ownerId: string): Promise<Wallet> {
     const rows: any[] = await payDb.$queryRawUnsafe(
-      "SELECT available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l FROM wallets WHERE owner_type = $1::\"WalletOwnerType\" AND owner_id = $2",
+      "SELECT available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l, holdback_balance::text AS h FROM wallets WHERE owner_type = $1::\"WalletOwnerType\" AND owner_id = $2",
       ownerType,
       ownerId,
     );
@@ -360,7 +360,7 @@ export async function startMi(opts: { instances: number; instanceEnv?: Record<st
     );
     return rows.map((r) => ({ ownerType: r.owner_type as string, ownerId: r.owner_id as string, bucket: r.bucket as string, type: r.entry_type as string, amount: num(r.amount), description: r.description as string }));
   }
-  async function net(txnId: string, ownerType: string, bucket: "PENDING" | "AVAILABLE" | "LOCKED", ownerId?: string) {
+  async function net(txnId: string, ownerType: string, bucket: "PENDING" | "AVAILABLE" | "LOCKED" | "HOLDBACK", ownerId?: string) {
     return (await entries(txnId))
       .filter((e) => e.ownerType === ownerType && e.bucket === bucket && (ownerId === undefined || e.ownerId === ownerId))
       .reduce((s, e) => s + (e.type === "CREDIT" ? e.amount : -e.amount), 0);
@@ -368,7 +368,7 @@ export async function startMi(opts: { instances: number; instanceEnv?: Record<st
   async function invariant(context = "") {
     const rows: any[] = await payDb.$queryRawUnsafe(
       `SELECT owner_type::text AS owner_type, CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END AS owner_id,
-              SUM(pending_balance)::text AS p, SUM(available_balance)::text AS a, SUM(locked_balance)::text AS l
+              SUM(pending_balance)::text AS p, SUM(available_balance)::text AS a, SUM(locked_balance)::text AS l, SUM(holdback_balance)::text AS h
          FROM wallets GROUP BY 1, 2`,
     );
     let claims = 0;
@@ -378,9 +378,9 @@ export async function startMi(opts: { instances: number; instanceEnv?: Record<st
         escrowAvail = num(r.a);
         continue;
       }
-      claims += num(r.a) + num(r.p) + num(r.l);
+      claims += num(r.a) + num(r.p) + num(r.l) + num(r.h);
     }
-    const negative: any[] = await payDb.$queryRawUnsafe("SELECT owner_type::text, owner_id FROM wallets WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0");
+    const negative: any[] = await payDb.$queryRawUnsafe("SELECT owner_type::text, owner_id FROM wallets WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0 OR holdback_balance < 0");
     const drift = Math.round((escrowAvail - claims) * 100) / 100;
     if (drift !== 0 || negative.length > 0) {
       throw new Error(`Money invariant violated${context ? ` (${context})` : ""}: escrow=${escrowAvail} claims=${claims} drift=${drift} negative=${JSON.stringify(negative)}`);
@@ -394,8 +394,8 @@ export async function startMi(opts: { instances: number; instanceEnv?: Record<st
   }
   async function snapshot() {
     const w: any[] = await payDb.$queryRawUnsafe(
-      `SELECT owner_type::text AS t, owner_id AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l
-         FROM wallets WHERE available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 ORDER BY 1, 2`,
+      `SELECT owner_type::text AS t, owner_id AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l, holdback_balance::text AS h
+         FROM wallets WHERE available_balance <> 0 OR pending_balance <> 0 OR locked_balance <> 0 OR holdback_balance <> 0 ORDER BY 1, 2`,
     );
     const c = async (sql: string) => num(((await payDb.$queryRawUnsafe(sql)) as any[])[0].n);
     return {

@@ -677,7 +677,8 @@ export const contractController = {
       const allowed: Record<string, boolean> = {
         CLIENT_CANCELLED: isClient || isAdmin,
         PT_CANCELLED: isPt || isAdmin,
-        PT_BANNED: isAdmin,
+        PT_BANNED: isAdmin, // retired for NEW endings (D49) - refused below with REASON_RETIRED; kept in the map so it is not "unknown"
+        SERVICE_DISCONTINUED_BY_PLATFORM: isAdmin,
         MUTUAL: isAdmin,
         EXPIRED: isAdmin,
         COMPLETED: isAdmin,
@@ -689,6 +690,11 @@ export const contractController = {
       };
       if (!(reason in allowed)) {
         res.status(400).json({ error: `Unknown termination reason: ${reason}` });
+        return;
+      }
+      if (reason === 'PT_BANNED') {
+        // D49: a ban is the platform's decision, not proof that this PT failed this client. New endings use SERVICE_DISCONTINUED_BY_PLATFORM.
+        res.status(400).json({ error: 'PT_BANNED is retired: use SERVICE_DISCONTINUED_BY_PLATFORM', code: 'REASON_RETIRED' });
         return;
       }
       if (!allowed[reason]) {

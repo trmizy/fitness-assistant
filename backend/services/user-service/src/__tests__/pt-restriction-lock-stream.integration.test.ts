@@ -63,7 +63,7 @@ test("the permanent lock and unlock leave PERMANENT_BAN history; repeats and sta
     assert.equal(rows[0].lockSeq, 1n);
     assert.equal(rows[0].endedAt, null);
     assert.ok(await flagMatchesRecord(pt));
-    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).terminationReason, "PT_BANNED", "the existing unwind still runs");
+    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).terminationReason, "SERVICE_DISCONTINUED_BY_PLATFORM", "the existing unwind still runs");
 
     await ptDeactivationService.deactivatePT(cmd(pt, 1)); // retry of the very same command
     await ptDeactivationService.deactivatePT(cmd(pt, 2)); // newer lock while already locked
@@ -126,7 +126,7 @@ test("temporary → permanent: the temporary episode is closed at that instant, 
     for (const id of [c1.id, c2.id]) {
       const after = await prisma.contract.findUniqueOrThrow({ where: { id } });
       assert.equal(after.status, "CANCELLED");
-      assert.equal(after.terminationReason, "PT_BANNED");
+      assert.equal(after.terminationReason, "SERVICE_DISCONTINUED_BY_PLATFORM");
     }
     assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: open.id } })).status, "DISPUTED", "Decision A: the unwind HOLDS the in-flight report for the admin");
 

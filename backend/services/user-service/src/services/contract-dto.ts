@@ -14,6 +14,7 @@ export const SPLIT_FIELDS_HIDDEN_FROM_CLIENT = [
   "ptRate",
   "gymRate",
   "ptHoldbackRate",
+  "ptHoldbackPolicyVersion",
   "holdbackReleasedAt",
   "releasedToPt",
   "releasedToGym",

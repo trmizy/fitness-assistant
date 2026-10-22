@@ -231,7 +231,7 @@ test("a suspension converted to a permanent ban sends NO 'reinstated' notice —
       ["CONTRACT_CANCELLED_PT_DEACTIVATED"],
       "the client is told the contract ended and what they got back",
     );
-    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: C.id } })).terminationReason, "PT_BANNED");
+    assert.equal((await prisma.contract.findUniqueOrThrow({ where: { id: C.id } })).terminationReason, "SERVICE_DISCONTINUED_BY_PLATFORM");
 
     // a permanent lock of a PT that was never suspended, and its unlock: no 'reinstated' either
     await ptDeactivationService.deactivatePT(cmd(pt2, 1));

@@ -26,7 +26,7 @@ export class WalletNotActiveError extends Error {
 export const PLATFORM_ESCROW_ID = 'ESCROW';
 export const PLATFORM_REVENUE_ID = 'REVENUE';
 
-export type Bucket = 'PENDING' | 'AVAILABLE' | 'LOCKED';
+export type Bucket = 'PENDING' | 'AVAILABLE' | 'LOCKED' | 'HOLDBACK';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -37,6 +37,7 @@ interface WalletRow {
   available_balance: string;
   pending_balance: string;
   locked_balance: string;
+  holdback_balance: string;
   status: string;
 }
 
@@ -59,13 +60,18 @@ async function lockWallets(tx: TxClient, walletIds: string[]): Promise<Map<strin
  * itself and every entry chains off it.
  */
 function readBucket(wallet: WalletRow, bucket: Bucket): Prisma.Decimal {
-  const raw = bucket === 'PENDING' ? wallet.pending_balance : bucket === 'LOCKED' ? wallet.locked_balance : wallet.available_balance;
+  const raw =
+    bucket === 'PENDING' ? wallet.pending_balance
+    : bucket === 'LOCKED' ? wallet.locked_balance
+    : bucket === 'HOLDBACK' ? wallet.holdback_balance
+    : wallet.available_balance;
   return new Prisma.Decimal(raw);
 }
 
 function writeBucket(wallet: WalletRow, bucket: Bucket, value: Prisma.Decimal): void {
   if (bucket === 'PENDING') wallet.pending_balance = value.toString();
   else if (bucket === 'LOCKED') wallet.locked_balance = value.toString();
+  else if (bucket === 'HOLDBACK') wallet.holdback_balance = value.toString();
   else wallet.available_balance = value.toString();
 }
 
@@ -73,6 +79,7 @@ function writeBucket(wallet: WalletRow, bucket: Bucket, value: Prisma.Decimal): 
 function bucketUpdate(bucket: Bucket, value: Prisma.Decimal): Prisma.WalletUpdateInput {
   if (bucket === 'PENDING') return { pendingBalance: value };
   if (bucket === 'LOCKED') return { lockedBalance: value };
+  if (bucket === 'HOLDBACK') return { holdbackBalance: value };
   return { availableBalance: value };
 }
 

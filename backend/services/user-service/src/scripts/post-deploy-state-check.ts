@@ -62,6 +62,9 @@ export const EXPECTED_USER_MIGRATIONS = [
   "20261011100000_unresolved_session_settlement_kind",
   "20261011120000_client_exit_acceptance",
   "20261012100000_pt_restriction_contract_scope",
+  // FH-9: the D49 termination reason and the holdback policy version on the contract.
+  "20261022110000_fh9_termination_reason_d49",
+  "20261022110001_fh9_contract_holdback_policy_version",
 ];
 export const EXPECTED_AUTH_MIGRATIONS = ["20261010150000_pt_deactivation_call_ordering"];
 
@@ -250,22 +253,26 @@ interface PayTxn {
 async function paymentChecks(url: string, o: Options): Promise<{ findings: Finding[]; txns: PayTxn[]; opKeys: Set<string> }> {
   return readOnly(url, async (q) => {
     const out: Finding[] = [];
+    // FH-9: the HOLDBACK bucket is a claim on escrow like the others. Tolerant of a payment database that has not been migrated yet
+    // (the column is checked, not assumed), so this script can run before AND after that migration.
+    const hasHoldback = (await q(`SELECT 1 FROM information_schema.columns WHERE table_name='wallets' AND column_name='holdback_balance'`)).length > 0;
+    const H = hasHoldback ? "+holdback_balance" : "";
     const inv = await q(`
       SELECT (SELECT coalesce(sum(available_balance),0)::text FROM wallets WHERE owner_type='PLATFORM' AND owner_id='ESCROW') AS escrow,
-             (SELECT coalesce(sum(available_balance+pending_balance+locked_balance),0)::text FROM wallets WHERE NOT (owner_type='PLATFORM' AND owner_id='ESCROW')) AS claims`);
+             (SELECT coalesce(sum(available_balance+pending_balance+locked_balance${H}),0)::text FROM wallets WHERE NOT (owner_type='PLATFORM' AND owner_id='ESCROW')) AS claims`);
     const drift = Math.round((n(inv[0].escrow) - n(inv[0].claims)) * 100) / 100;
     out.push(drift === 0 ? { id: "P-01", level: "PASS", title: `escrow == sum of claims (${dong(inv[0].escrow)} d)` } : { id: "P-01", level: "FAIL", title: `ESCROW DRIFT ${dong(drift)} d (escrow ${dong(inv[0].escrow)} vs claims ${dong(inv[0].claims)})` });
 
-    const neg = await q(`SELECT owner_type::text AS t, left(owner_id,8) AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l FROM wallets WHERE available_balance<0 OR pending_balance<0 OR locked_balance<0`);
+    const neg = await q(`SELECT owner_type::text AS t, left(owner_id,8) AS id, available_balance::text AS a, pending_balance::text AS p, locked_balance::text AS l FROM wallets WHERE available_balance<0 OR pending_balance<0 OR locked_balance<0${hasHoldback ? " OR holdback_balance<0" : ""}`);
     out.push(neg.length === 0 ? { id: "P-02", level: "PASS", title: "no negative wallet bucket" } : { id: "P-02", level: "FAIL", title: `${neg.length} wallet(s) with a negative bucket`, detail: neg.slice(0, 5).map((r: any) => `${r.t}:${r.id} a=${r.a} p=${r.p} l=${r.l}`).join("; ") });
 
     const mism = await q(`
       WITH l AS (SELECT wallet_id, bucket::text AS bucket, sum(CASE WHEN entry_type='CREDIT' THEN amount ELSE -amount END) AS net FROM wallet_ledger_entries GROUP BY 1,2)
       SELECT w.owner_type::text AS t, left(w.owner_id,8) AS id, b.bucket, coalesce(l.net,0)::text AS ledger,
-             (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ELSE w.locked_balance END)::text AS wallet
-        FROM wallets w CROSS JOIN (VALUES ('AVAILABLE'),('PENDING'),('LOCKED')) b(bucket)
+             (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ${hasHoldback ? "WHEN 'HOLDBACK' THEN w.holdback_balance " : ""}ELSE w.locked_balance END)::text AS wallet
+        FROM wallets w CROSS JOIN (VALUES ('AVAILABLE'),('PENDING'),('LOCKED')${hasHoldback ? ",('HOLDBACK')" : ""}) b(bucket)
         LEFT JOIN l ON l.wallet_id=w.id AND l.bucket=b.bucket
-       WHERE coalesce(l.net,0) <> (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ELSE w.locked_balance END)`);
+       WHERE coalesce(l.net,0) <> (CASE b.bucket WHEN 'AVAILABLE' THEN w.available_balance WHEN 'PENDING' THEN w.pending_balance ${hasHoldback ? "WHEN 'HOLDBACK' THEN w.holdback_balance " : ""}ELSE w.locked_balance END)`);
     const mismEscrow = mism.filter((r: any) => r.t === "PLATFORM" && r.id === "ESCROW");
     const mismOther = mism.filter((r: any) => !(r.t === "PLATFORM" && r.id === "ESCROW"));
     out.push(mismOther.length === 0 ? { id: "P-03a", level: "PASS", title: "every non-escrow wallet bucket equals the sum of its ledger entries" } : { id: "P-03a", level: "FAIL", title: `${mismOther.length} wallet bucket(s) differ from their ledger`, detail: mismOther.slice(0, 5).map((r: any) => `${r.t}:${r.id}/${r.bucket} ledger=${r.ledger} wallet=${r.wallet}`).join("; ") });

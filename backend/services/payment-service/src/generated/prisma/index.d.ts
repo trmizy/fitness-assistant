@@ -151,7 +151,8 @@ export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryT
 export const LedgerBucket: {
   PENDING: 'PENDING',
   AVAILABLE: 'AVAILABLE',
-  LOCKED: 'LOCKED'
+  LOCKED: 'LOCKED',
+  HOLDBACK: 'HOLDBACK'
 };
 
 export type LedgerBucket = (typeof LedgerBucket)[keyof typeof LedgerBucket]
@@ -2264,12 +2265,14 @@ export namespace Prisma {
     availableBalance: Decimal | null
     pendingBalance: Decimal | null
     lockedBalance: Decimal | null
+    holdbackBalance: Decimal | null
   }
 
   export type WalletSumAggregateOutputType = {
     availableBalance: Decimal | null
     pendingBalance: Decimal | null
     lockedBalance: Decimal | null
+    holdbackBalance: Decimal | null
   }
 
   export type WalletMinAggregateOutputType = {
@@ -2279,6 +2282,7 @@ export namespace Prisma {
     availableBalance: Decimal | null
     pendingBalance: Decimal | null
     lockedBalance: Decimal | null
+    holdbackBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2291,6 +2295,7 @@ export namespace Prisma {
     availableBalance: Decimal | null
     pendingBalance: Decimal | null
     lockedBalance: Decimal | null
+    holdbackBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2303,6 +2308,7 @@ export namespace Prisma {
     availableBalance: number
     pendingBalance: number
     lockedBalance: number
+    holdbackBalance: number
     status: number
     createdAt: number
     updatedAt: number
@@ -2314,12 +2320,14 @@ export namespace Prisma {
     availableBalance?: true
     pendingBalance?: true
     lockedBalance?: true
+    holdbackBalance?: true
   }
 
   export type WalletSumAggregateInputType = {
     availableBalance?: true
     pendingBalance?: true
     lockedBalance?: true
+    holdbackBalance?: true
   }
 
   export type WalletMinAggregateInputType = {
@@ -2329,6 +2337,7 @@ export namespace Prisma {
     availableBalance?: true
     pendingBalance?: true
     lockedBalance?: true
+    holdbackBalance?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -2341,6 +2350,7 @@ export namespace Prisma {
     availableBalance?: true
     pendingBalance?: true
     lockedBalance?: true
+    holdbackBalance?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -2353,6 +2363,7 @@ export namespace Prisma {
     availableBalance?: true
     pendingBalance?: true
     lockedBalance?: true
+    holdbackBalance?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -2452,6 +2463,7 @@ export namespace Prisma {
     availableBalance: Decimal
     pendingBalance: Decimal
     lockedBalance: Decimal
+    holdbackBalance: Decimal
     status: $Enums.WalletStatus
     createdAt: Date
     updatedAt: Date
@@ -2483,6 +2495,7 @@ export namespace Prisma {
     availableBalance?: boolean
     pendingBalance?: boolean
     lockedBalance?: boolean
+    holdbackBalance?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2498,6 +2511,7 @@ export namespace Prisma {
     availableBalance?: boolean
     pendingBalance?: boolean
     lockedBalance?: boolean
+    holdbackBalance?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2510,6 +2524,7 @@ export namespace Prisma {
     availableBalance?: boolean
     pendingBalance?: boolean
     lockedBalance?: boolean
+    holdbackBalance?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2535,6 +2550,10 @@ export namespace Prisma {
       availableBalance: Prisma.Decimal
       pendingBalance: Prisma.Decimal
       lockedBalance: Prisma.Decimal
+      /**
+       * FH-9: earned PT money held back per contract (see LedgerBucket.HOLDBACK). Not withdrawable.
+       */
+      holdbackBalance: Prisma.Decimal
       status: $Enums.WalletStatus
       createdAt: Date
       updatedAt: Date
@@ -2939,6 +2958,7 @@ export namespace Prisma {
     readonly availableBalance: FieldRef<"Wallet", 'Decimal'>
     readonly pendingBalance: FieldRef<"Wallet", 'Decimal'>
     readonly lockedBalance: FieldRef<"Wallet", 'Decimal'>
+    readonly holdbackBalance: FieldRef<"Wallet", 'Decimal'>
     readonly status: FieldRef<"Wallet", 'WalletStatus'>
     readonly createdAt: FieldRef<"Wallet", 'DateTime'>
     readonly updatedAt: FieldRef<"Wallet", 'DateTime'>
@@ -15536,6 +15556,7 @@ export namespace Prisma {
     availableBalance: 'availableBalance',
     pendingBalance: 'pendingBalance',
     lockedBalance: 'lockedBalance',
+    holdbackBalance: 'holdbackBalance',
     status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -16168,6 +16189,7 @@ export namespace Prisma {
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -16182,6 +16204,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -16200,6 +16223,7 @@ export namespace Prisma {
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -16214,6 +16238,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -16234,6 +16259,7 @@ export namespace Prisma {
     availableBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusWithAggregatesFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
@@ -17492,6 +17518,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17506,6 +17533,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17520,6 +17548,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17534,6 +17563,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17548,6 +17578,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17560,6 +17591,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17572,6 +17604,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19146,6 +19179,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -19155,6 +19189,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
   }
 
   export type WalletMaxOrderByAggregateInput = {
@@ -19164,6 +19199,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -19176,6 +19212,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -19185,6 +19222,7 @@ export namespace Prisma {
     availableBalance?: SortOrder
     pendingBalance?: SortOrder
     lockedBalance?: SortOrder
+    holdbackBalance?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -21786,6 +21824,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -21799,6 +21838,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -21907,6 +21947,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21920,6 +21961,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22018,6 +22060,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22031,6 +22074,7 @@ export namespace Prisma {
     availableBalance?: Decimal | DecimalJsLike | number | string
     pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
+    holdbackBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22060,6 +22104,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22073,6 +22118,7 @@ export namespace Prisma {
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    holdbackBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

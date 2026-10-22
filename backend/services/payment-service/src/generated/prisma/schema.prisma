@@ -81,10 +81,17 @@ enum LedgerEntryType {
 /// reservation a later clawback/refund cannot reach, since those only ever debit AVAILABLE);
 /// the actual payout later debits LOCKED (+ ESCROW); a rejection after approval moves LOCKED
 /// back to AVAILABLE.
+///
+/// FH-9: HOLDBACK added - the PT's EARNED-but-not-yet-withdrawable money for the contracts that carry a PT financial holdback
+/// (10% of the PT's expected income on that contract, held until the contract has ended and is reconciled). It is a claim of the PT
+/// on ESCROW exactly like AVAILABLE, but nothing withdraws from it and no per-session / compensation path can reach it; it only
+/// leaves through the two doors in contract-ledger.service (the contract's own verified PT-fault compensation, and the release to AVAILABLE).
+/// Per contract the held amount is Σ HOLDBACK rows of that contract's payment transaction id.
 enum LedgerBucket {
   PENDING
   AVAILABLE
   LOCKED
+  HOLDBACK
 }
 
 enum RelatedEntityType {
@@ -117,14 +124,16 @@ model Wallet {
   id               String          @id @default(uuid())
   ownerType        WalletOwnerType @map("owner_type")
   ownerId          String          @map("owner_id")
-  availableBalance Decimal         @default(0) @map("available_balance") @db.Decimal(14, 2)
-  pendingBalance   Decimal         @default(0) @map("pending_balance") @db.Decimal(14, 2)
-  lockedBalance    Decimal         @default(0) @map("locked_balance") @db.Decimal(14, 2)
+  availableBalance Decimal         @db.Decimal(14, 2) @default(0) @map("available_balance")
+  pendingBalance   Decimal         @db.Decimal(14, 2) @default(0) @map("pending_balance")
+  lockedBalance    Decimal         @db.Decimal(14, 2) @default(0) @map("locked_balance")
+  /// FH-9: earned PT money held back per contract (see LedgerBucket.HOLDBACK). Not withdrawable.
+  holdbackBalance  Decimal         @db.Decimal(14, 2) @default(0) @map("holdback_balance")
   status           WalletStatus    @default(ACTIVE)
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  ledgerEntries      WalletLedgerEntry[]
+  ledgerEntries WalletLedgerEntry[]
   withdrawalRequests WithdrawalRequest[]
 
   @@unique([ownerType, ownerId])
@@ -140,8 +149,8 @@ model WalletLedgerEntry {
   /// wallet's two buckets each form their own unbroken chain.
   bucket        LedgerBucket    @default(AVAILABLE)
   amount        Decimal         @db.Decimal(14, 2)
-  balanceBefore Decimal         @map("balance_before") @db.Decimal(14, 2)
-  balanceAfter  Decimal         @map("balance_after") @db.Decimal(14, 2)
+  balanceBefore Decimal         @db.Decimal(14, 2) @map("balance_before")
+  balanceAfter  Decimal         @db.Decimal(14, 2) @map("balance_after")
   description   String?
   createdAt     DateTime        @default(now()) @map("created_at")
 
@@ -216,24 +225,24 @@ model PaymentTransaction {
   refundedAt            DateTime?           @map("refunded_at")
   metadata              Json?
 
-  payerWalletId         String?            @map("payer_wallet_id")
-  receiverWalletId      String?            @map("receiver_wallet_id")
-  relatedEntityType     RelatedEntityType? @map("related_entity_type")
-  relatedEntityId       String?            @map("related_entity_id")
-  activationStatus      ActivationStatus   @default(NOT_APPLICABLE) @map("activation_status")
+  payerWalletId       String?            @map("payer_wallet_id")
+  receiverWalletId    String?            @map("receiver_wallet_id")
+  relatedEntityType   RelatedEntityType? @map("related_entity_type")
+  relatedEntityId     String?            @map("related_entity_id")
+  activationStatus    ActivationStatus   @default(NOT_APPLICABLE) @map("activation_status")
   // On REFUND-purpose rows, "activation" means "the downstream cancel-after-refund succeeded" —
   // reusing this one status/retry pair for both flows avoids a near-duplicate set of columns.
-  activationRetryCount  Int                @default(0) @map("activation_retry_count")
-  lastActivationRetryAt DateTime?          @map("last_activation_retry_at")
-  initiatedBy           String?            @default("SYSTEM") @map("initiated_by")
-  sourceService         String?            @default("payment-service") @map("source_service")
-  refundOfTransactionId String?            @map("refund_of_transaction_id")
+  activationRetryCount  Int              @default(0) @map("activation_retry_count")
+  lastActivationRetryAt DateTime?        @map("last_activation_retry_at")
+  initiatedBy           String?          @default("SYSTEM") @map("initiated_by")
+  sourceService         String?          @default("payment-service") @map("source_service")
+  refundOfTransactionId String?          @map("refund_of_transaction_id")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
 
-  commissions       PlatformCommission[]
-  ledgerEntries     WalletLedgerEntry[]
+  commissions   PlatformCommission[]
+  ledgerEntries WalletLedgerEntry[]
   unpaidObligations ContractUnpaidObligation[]
 
   @@index([payerId, status])
@@ -249,10 +258,10 @@ model PlatformCommission {
   paymentTransactionId String           @map("payment_transaction_id")
   partnerType          PartnerType      @map("partner_type")
   partnerId            String           @map("partner_id")
-  grossAmount          Decimal          @map("gross_amount") @db.Decimal(12, 2)
-  platformFeeAmount    Decimal          @map("platform_fee_amount") @db.Decimal(12, 2)
-  partnerPayoutAmount  Decimal          @map("partner_payout_amount") @db.Decimal(12, 2)
-  commissionRate       Decimal          @map("commission_rate") @db.Decimal(5, 4)
+  grossAmount          Decimal          @db.Decimal(12, 2) @map("gross_amount")
+  platformFeeAmount    Decimal          @db.Decimal(12, 2) @map("platform_fee_amount")
+  partnerPayoutAmount  Decimal          @db.Decimal(12, 2) @map("partner_payout_amount")
+  commissionRate       Decimal          @db.Decimal(5, 4) @map("commission_rate")
   status               CommissionStatus @default(PENDING)
   settledAt            DateTime?        @map("settled_at")
   createdAt            DateTime         @default(now()) @map("created_at")
@@ -272,31 +281,31 @@ model PlatformCommission {
 /// here. Without this row the shortfall would either push a wallet negative or silently break
 /// the reconciliation invariant; instead it stays visible and recoverable.
 model PartnerReceivable {
-  id               String      @id @default(uuid())
-  partnerType      PartnerType @map("partner_type")
-  partnerId        String      @map("partner_id")
-  amount           Decimal     @db.Decimal(14, 2)
+  id            String      @id @default(uuid())
+  partnerType   PartnerType @map("partner_type")
+  partnerId     String      @map("partner_id")
+  amount        Decimal     @db.Decimal(14, 2)
   /// Recovered so far, by withholding from the partner's later credits.
-  recovered        Decimal     @default(0) @db.Decimal(14, 2)
-  reason           String
-  contractId       String?     @map("contract_id")
-  transactionId    String?     @map("transaction_id")
-  settledAt        DateTime?   @map("settled_at")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
+  recovered     Decimal     @default(0) @db.Decimal(14, 2)
+  reason        String
+  contractId    String?     @map("contract_id")
+  transactionId String?     @map("transaction_id")
+  settledAt     DateTime?   @map("settled_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
   /// FH-8 (D62 C.4). Collection of THIS row is paused while suspendedAt is set. History is kept; nothing is
   /// marked paid and `recovered` is never touched. Set/cleared only by the audited adjustment operation.
-  suspendedAt      DateTime?   @map("suspended_at")
-  suspendedBy      String?     @map("suspended_by")
-  suspensionReason String?     @map("suspension_reason")
+  suspendedAt      DateTime? @map("suspended_at")
+  suspendedBy      String?   @map("suspended_by")
+  suspensionReason String?   @map("suspension_reason")
   /// Approval / minute number the owner gave for the suspension.
-  suspensionRef    String?     @map("suspension_ref")
+  suspensionRef    String?   @map("suspension_ref")
   /// FH-8. Part of `amount` the platform has agreed to bear (forgiven). Outstanding = amount - recovered - waived.
-  waived           Decimal     @default(0) @db.Decimal(14, 2)
-  waivedAt         DateTime?   @map("waived_at")
-  waivedBy         String?     @map("waived_by")
-  waiveReason      String?     @map("waive_reason")
-  waiveRef         String?     @map("waive_ref")
+  waived           Decimal   @default(0) @db.Decimal(14, 2)
+  waivedAt         DateTime? @map("waived_at")
+  waivedBy         String?   @map("waived_by")
+  waiveReason      String?   @map("waive_reason")
+  waiveRef         String?   @map("waive_ref")
 
   events PartnerReceivableEvent[]
 
@@ -319,17 +328,17 @@ model PartnerReceivable {
 /// audit query, e.g. `SESSION_RELEASE:<sessionId>`, `CONTRACT_TERMINATE:<contractId>`,
 /// `MEMBERSHIP_RELEASE:<membershipId>` — see docs/money-flow.md for the full list.
 model LedgerOperation {
-  id                 String   @id @default(uuid())
-  key                String   @unique
-  result             Json
-  createdAt          DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  key       String   @unique
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at")
   /// FH-2b. Hash of the IMMUTABLE fields of the request that claimed this key (kind, transaction,
   /// price, session count, rates, parties, reason/outcome). NULL on rows written before the column
   /// existed and on callers that do not fingerprint: those replay exactly as they always did.
-  requestFingerprint String?  @map("request_fingerprint")
+  requestFingerprint String? @map("request_fingerprint")
   /// FH-2b. The payment transaction the operation moved money for; lets a later operation (and
   /// the read-only lookup) find "has this transaction been terminated" without parsing keys.
-  transactionId      String?  @map("transaction_id")
+  transactionId      String? @map("transaction_id")
   /// FH-2b. RELEASE_SESSION | NO_SHOW | LATE_ARRIVAL | TERMINATE | RESOLVE_UNRESOLVED | ...
   kind               String?
 
@@ -371,32 +380,32 @@ enum ContractUnpaidObligationStatus {
 /// the PT's pooled balance is not touched. Written in the same DB transaction as the ledger rows,
 /// keyed by the idempotency key of the operation, so a retry can never create a second one.
 model ContractUnpaidObligation {
-  id             String                         @id @default(uuid())
+  id            String                         @id @default(uuid())
   /// Idempotency key of the operation (OVER_RELEASED rows add `#OVER_RELEASED:<party>`).
-  key            String                         @unique
-  transactionId  String                         @map("transaction_id")
+  key           String                         @unique
+  transactionId String                         @map("transaction_id")
   /// Contract reference the caller labelled the operation with (the ledger label).
-  contractRef    String?                        @map("contract_ref")
-  kind           ContractUnpaidObligationKind
+  contractRef   String?                        @map("contract_ref")
+  kind          ContractUnpaidObligationKind
   /// Who the obligation is owed to: CLIENT, or the over-released party (PT | GYM | PLATFORM).
-  party          String
-  owed           Decimal                        @db.Decimal(14, 2)
-  paid           Decimal                        @db.Decimal(14, 2)
-  unpaid         Decimal                        @db.Decimal(14, 2)
+  party         String
+  owed          Decimal                        @db.Decimal(14, 2)
+  paid          Decimal                        @db.Decimal(14, 2)
+  unpaid        Decimal                        @db.Decimal(14, 2)
   /// FH-8: total paid to the client OUTSIDE this ledger (evidence in the events). Never a wallet credit.
-  externallyPaid Decimal                        @default(0) @map("externally_paid") @db.Decimal(14, 2)
+  externallyPaid Decimal                       @default(0) @db.Decimal(14, 2) @map("externally_paid")
   /// FH-8: total paid outside the ledger AND VERIFIED by a second person (sum of VERIFIED payments). Only this reduces `unpaid`
   /// in the current lifecycle; `externallyPaid` is the legacy, unverified figure and is never written any more.
-  verifiedPaid   Decimal                        @default(0) @map("verified_paid") @db.Decimal(14, 2)
-  status         ContractUnpaidObligationStatus @default(OPEN)
-  createdAt      DateTime                       @default(now()) @map("created_at")
-  resolvedAt     DateTime?                      @map("resolved_at")
-  resolvedBy     String?                        @map("resolved_by")
-  resolvedNote   String?                        @map("resolved_note")
+  verifiedPaid  Decimal                        @default(0) @db.Decimal(14, 2) @map("verified_paid")
+  status        ContractUnpaidObligationStatus @default(OPEN)
+  createdAt     DateTime                       @default(now()) @map("created_at")
+  resolvedAt    DateTime?                      @map("resolved_at")
+  resolvedBy    String?                        @map("resolved_by")
+  resolvedNote  String?                        @map("resolved_note")
   /// Why the obligation exists, in words (D77: set by the record-only late-arrival operation; null on the rows FH-1 wrote).
-  reason         String?
+  reason        String?
 
-  transaction PaymentTransaction                @relation(fields: [transactionId], references: [id])
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
   events      ContractUnpaidObligationEvent[]
   payments    ContractUnpaidObligationPayment[]
 
@@ -414,18 +423,18 @@ enum PartnerReceivableEventAction {
 /// FH-8. Append-only audit trail of every adjustment made to a PartnerReceivable. Rows are only ever inserted:
 /// the operation code never updates or deletes them. `idempotencyKey` makes a replayed operation a no-op.
 model PartnerReceivableEvent {
-  id             String                       @id @default(uuid())
-  receivableId   String                       @map("receivable_id")
+  id             String                         @id @default(uuid())
+  receivableId   String                         @map("receivable_id")
   action         PartnerReceivableEventAction
   /// Amount the action concerned (the waived amount for WAIVE; the row's amount for SUSPEND/RESUME).
-  amount         Decimal                      @db.Decimal(14, 2)
+  amount         Decimal                        @db.Decimal(14, 2)
   reason         String
-  approvedBy     String                       @map("approved_by")
-  approvalRef    String                       @map("approval_ref")
-  idempotencyKey String                       @unique @map("idempotency_key")
-  beforeJson     Json                         @map("before_json")
-  afterJson      Json                         @map("after_json")
-  createdAt      DateTime                     @default(now()) @map("created_at")
+  approvedBy     String                         @map("approved_by")
+  approvalRef    String                         @map("approval_ref")
+  idempotencyKey String                         @unique @map("idempotency_key")
+  beforeJson     Json                           @map("before_json")
+  afterJson      Json                           @map("after_json")
+  createdAt      DateTime                       @default(now()) @map("created_at")
 
   receivable PartnerReceivable @relation(fields: [receivableId], references: [id], onDelete: Restrict)
 
@@ -449,34 +458,34 @@ enum ContractUnpaidObligationEventAction {
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
 /// it moves no money.
 model ContractUnpaidObligationEvent {
-  id                String                              @id @default(uuid())
-  obligationId      String                              @map("obligation_id")
-  action            ContractUnpaidObligationEventAction
-  note              String
-  actor             String
-  approvalRef       String                              @map("approval_ref")
-  idempotencyKey    String                              @unique @map("idempotency_key")
-  fromStatus        ContractUnpaidObligationStatus      @map("from_status")
-  toStatus          ContractUnpaidObligationStatus      @map("to_status")
+  id             String                              @id @default(uuid())
+  obligationId   String                              @map("obligation_id")
+  action         ContractUnpaidObligationEventAction
+  note           String
+  actor          String
+  approvalRef    String                              @map("approval_ref")
+  idempotencyKey String                              @unique @map("idempotency_key")
+  fromStatus     ContractUnpaidObligationStatus      @map("from_status")
+  toStatus       ContractUnpaidObligationStatus      @map("to_status")
   /// Unpaid amount at the time of the change (the CAS value the owner approved).
-  unpaid            Decimal                             @db.Decimal(14, 2)
+  unpaid         Decimal                             @db.Decimal(14, 2)
   /// PAY_EXTERNALLY evidence (null for the other actions): what was paid, the bank/transfer reference, the date it was paid,
   /// who approved it, and what stays unpaid afterwards.
-  paidAmount        Decimal?                            @map("paid_amount") @db.Decimal(14, 2)
-  transferReference String?                             @map("transfer_reference")
-  paidOn            DateTime?                           @map("paid_on")
-  approvedBy        String?                             @map("approved_by")
-  unpaidAfter       Decimal?                            @map("unpaid_after") @db.Decimal(14, 2)
+  paidAmount        Decimal?                         @map("paid_amount") @db.Decimal(14, 2)
+  transferReference String?                          @map("transfer_reference")
+  paidOn            DateTime?                        @map("paid_on")
+  approvedBy        String?                          @map("approved_by")
+  unpaidAfter       Decimal?                         @map("unpaid_after") @db.Decimal(14, 2)
   /// Payment lifecycle events (APPROVE_PAYMENT .. CANCEL_APPROVAL): the payment record, its manual source, the recipient
   /// (taken from the ledger), the evidence pointers and who verified it.
-  paymentId         String?                             @map("payment_id")
-  paymentSource     String?                             @map("payment_source")
+  paymentId         String?                          @map("payment_id")
+  paymentSource     String?                          @map("payment_source")
   recipient         String?
-  evidenceRef       String?                             @map("evidence_ref")
-  evidenceHash      String?                             @map("evidence_hash")
-  bankStatementId   String?                             @map("bank_statement_id")
-  verifiedBy        String?                             @map("verified_by")
-  createdAt         DateTime                            @default(now()) @map("created_at")
+  evidenceRef       String?                          @map("evidence_ref")
+  evidenceHash      String?                          @map("evidence_hash")
+  bankStatementId   String?                          @map("bank_statement_id")
+  verifiedBy        String?                          @map("verified_by")
+  createdAt      DateTime                            @default(now()) @map("created_at")
 
   obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
 
@@ -497,31 +506,31 @@ enum ContractUnpaidObligationPaymentStatus {
 /// obligation the payer of the payment transaction), never from input. Moves no money: no wallet / ledger / receivable row.
 /// DELETE is rejected and the identity columns are immutable (trigger in the migration); the event table keeps the full history.
 model ContractUnpaidObligationPayment {
-  id                String                                @id @default(uuid())
-  obligationId      String                                @map("obligation_id")
-  approvalRef       String                                @map("approval_ref")
-  status            ContractUnpaidObligationPaymentStatus @default(APPROVED)
-  amount            Decimal                               @db.Decimal(14, 2)
-  paymentSource     String                                @map("payment_source")
-  recipientParty    String                                @map("recipient_party")
-  recipientId       String?                               @map("recipient_id")
-  approvedBy        String                                @map("approved_by")
-  approvedAt        DateTime                              @default(now()) @map("approved_at")
+  id               String                                 @id @default(uuid())
+  obligationId     String                                 @map("obligation_id")
+  approvalRef      String                                 @map("approval_ref")
+  status           ContractUnpaidObligationPaymentStatus  @default(APPROVED)
+  amount           Decimal                                @db.Decimal(14, 2)
+  paymentSource    String                                 @map("payment_source")
+  recipientParty   String                                 @map("recipient_party")
+  recipientId      String?                                @map("recipient_id")
+  approvedBy       String                                 @map("approved_by")
+  approvedAt       DateTime                               @default(now()) @map("approved_at")
   /// Evidence (recorded by `recordedBy` AFTER the payment was made outside): what was paid, the transfer reference, the day,
   /// and a pointer to the proof (file reference / sha256 / bank statement id). NOT proof by itself - `verifiedBy` must confirm it.
-  paidAmount        Decimal?                              @map("paid_amount") @db.Decimal(14, 2)
+  paidAmount       Decimal?                               @map("paid_amount") @db.Decimal(14, 2)
   transferReference String?                               @map("transfer_reference")
-  paidOn            DateTime?                             @map("paid_on")
-  evidenceRef       String?                               @map("evidence_ref")
-  evidenceHash      String?                               @map("evidence_hash")
-  bankStatementId   String?                               @map("bank_statement_id")
-  recordedBy        String?                               @map("recorded_by")
-  recordedAt        DateTime?                             @map("recorded_at")
-  verifiedBy        String?                               @map("verified_by")
-  verifiedAt        DateTime?                             @map("verified_at")
-  cancelledBy       String?                               @map("cancelled_by")
-  cancelledAt       DateTime?                             @map("cancelled_at")
-  cancelReason      String?                               @map("cancel_reason")
+  paidOn           DateTime?                              @map("paid_on")
+  evidenceRef      String?                                @map("evidence_ref")
+  evidenceHash     String?                                @map("evidence_hash")
+  bankStatementId  String?                                @map("bank_statement_id")
+  recordedBy       String?                                @map("recorded_by")
+  recordedAt       DateTime?                              @map("recorded_at")
+  verifiedBy       String?                                @map("verified_by")
+  verifiedAt       DateTime?                              @map("verified_at")
+  cancelledBy      String?                                @map("cancelled_by")
+  cancelledAt      DateTime?                              @map("cancelled_at")
+  cancelReason     String?                                @map("cancel_reason")
 
   obligation ContractUnpaidObligation @relation(fields: [obligationId], references: [id], onDelete: Restrict)
 
