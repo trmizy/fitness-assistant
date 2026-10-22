@@ -141,6 +141,18 @@ const adminDetail = async (partnerId: string) => (await h.call(admin.token, 'GET
 
 // ═══ 1. the step: save, read back, resume (`missing`) ═══════════════════════════════════════════════
 
+test('GET /owner/application/amenities/catalog: an applicant (not yet approved) reads the ACTIVE catalogue there, while /owner/amenities stays behind the operational gate', async () => {
+  const a = await fillApplication('catalog', NEW);
+  const gated = await h.call(a.token, 'GET', '/owner/amenities', undefined, NEW);
+  assert.equal(gated.status, 403, 'the operational route stays closed to applicants');
+  const r = await h.call(a.token, 'GET', '/owner/application/amenities/catalog', undefined, NEW);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  const slugs = r.json.data.amenities.map((x: { slug: string }) => x.slug);
+  assert.ok(slugs.includes('WIFI') && slugs.includes('SAUNA'), 'system amenities are listed');
+  assert.ok(r.json.data.amenities.every((x: { status?: string }) => x.status === undefined || x.status === 'ACTIVE'), 'only ACTIVE amenities');
+  assert.ok(Array.isArray(r.json.data.proposals));
+});
+
 test('PUT /owner/application/amenities: saves the DRAFT branch selection; GET exposes it and the missing section key is AMENITIES (resume); saving empty re-opens it', async () => {
   const a = await fillApplication('step', NEW);
 

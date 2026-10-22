@@ -254,6 +254,17 @@ test('wizard amenities: PATCH draft with amenityIds / proposals / proposalIds wr
   assert.equal(code(r), 'AMENITY_UNKNOWN');
 });
 
+test('owner GET /owner/gyms/:id returns the DRAFT branch amenity selection (custom included) and its pending proposals, so a wizard re-opened elsewhere keeps them', async () => {
+  const id = await draft(NEW);
+  let r = await h.call(owner.token, 'PATCH', `/owner/gyms/${id}/draft`, { amenityIds: [sys('WIFI'), sys('SAUNA')], proposals: [{ name: `${P} Phòng boxing`, suggestedCategory: 'TRAINING_ZONE' }] }, NEW);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  r = await h.call(owner.token, 'GET', `/owner/gyms/${id}`, undefined, NEW);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  assert.deepEqual(r.json.data.amenities.map((a: { id: string }) => a.id).sort(), [sys('SAUNA'), sys('WIFI')].sort());
+  assert.equal(r.json.data.amenityProposals.length, 1);
+  assert.equal(r.json.data.amenityProposals[0].status, 'PENDING');
+});
+
 test('wizard submit, NEW client: 422 AMENITIES_REQUIRED without any (stays DRAFT, no event); 400 lists "amenities" among the other missing items; with an amenity or a proposal it is PENDING_REVIEW', async () => {
   const id = await draft(NEW);
   // other items missing as well -> 400 with everything listed, amenities included

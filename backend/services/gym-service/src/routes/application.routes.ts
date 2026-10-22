@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { validateBody } from '../middleware/validate.middleware';
 import { applicationController } from '../controllers/application.controller';
+import { amenityController } from '../controllers/amenity.controller';
 import { applicationAmenitiesSchema } from '../services/amenity-selection.schemas';
 import {
   applicationBranchSchema,
@@ -39,6 +40,10 @@ router.put('/business-scale', validateBody(businessScaleSchema), applicationCont
 router.put('/brand', validateBody(applicationBrandSchema), applicationController.brand);
 router.put('/branch', validateBody(applicationBranchSchema), applicationController.branch);
 router.put('/amenities', validateBody(applicationAmenitiesSchema), applicationController.amenities);
+// Listing Management: danh mục tiện ích ACTIVE + đề xuất của chính người gọi cho bước "Tiện ích" của hồ sơ.
+// Mount ở đây (trước cổng vận hành) vì ứng viên chưa duyệt không gọi được /owner/amenities (403).
+// Chỉ đọc; cùng dữ liệu với GET /owner/amenities.
+router.get('/amenities/catalog', amenityController.ownerCatalog);
 router.put('/social', validateBody(socialLinksSchema), applicationController.social);
 router.put('/legal', validateBody(legalSchema), applicationController.legal);
 

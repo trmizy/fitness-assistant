@@ -8,6 +8,8 @@ import { sendListingError } from './gym-listing.controller';
 import { listingCompatOf } from '../services/legacy-compat.service';
 import { filterByScope } from '../services/partner-permissions';
 import { branchInfoFor } from '../services/staff-views';
+import { prisma } from '../repositories/prisma';
+import { amenityDto, proposalDto } from '../services/gym-amenity-catalog.service';
 
 export const gymController = {
   async listPublic(_req: Request, res: Response) {
@@ -55,7 +57,19 @@ export const gymController = {
     try {
       const ownerId = principalId(req);
       const gym = await gymService.getOwnedGym(req.params.id, ownerId);
-      res.json({ success: true, data: req.partner ? branchInfoFor(req.partner.role, gym) : gym });
+      const data: Record<string, unknown> = req.partner ? branchInfoFor(req.partner.role, gym) : gym;
+      // Listing Management: the OWNER's branch view carries the real amenity selection (gym_amenities, custom ones
+      // included) and the owner's PENDING proposals for this branch — `facilities` is only the SYSTEM mirror, so a
+      // wizard re-opened on another device could otherwise silently drop a custom amenity on its next save.
+      if (!req.partner || req.partner.role === 'OWNER') {
+        const [links, proposals] = await Promise.all([
+          prisma.gymAmenity.findMany({ where: { gymId: gym.id }, include: { amenity: true } }),
+          prisma.amenityProposal.findMany({ where: { gymId: gym.id, ownerUserId: ownerId, status: 'PENDING' }, orderBy: { createdAt: 'asc' } }),
+        ]);
+        data.amenities = links.map((l) => amenityDto(l.amenity));
+        data.amenityProposals = proposals.map(proposalDto);
+      }
+      res.json({ success: true, data });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
