@@ -4,6 +4,7 @@ import { MagnifyingGlassIcon as Search, MapPinIcon as MapPin, PhoneIcon as Phone
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
+import { AssistedCheckinPanel, CheckinExceptionsPanel } from "../../components/gym/AssistedCheckinPanel";
 import { EmptyState, ErrorState } from "../../components/dashboard/DashboardStates";
 import { PARTNER_ROLE_LABEL } from "../../utils/gymStaffRole";
 import { useStaffRole } from "../../hooks/useStaffRole";
@@ -25,7 +26,8 @@ const PRESENCE_CLS = {
  * D15 / D15b — trang chủ của LỄ TÂN: chỉ việc quầy. Chi nhánh được gán (chỉ xem), mã QR check-in, PT đã check-in hôm nay
  * và "khách hôm nay" (đã vào hoặc có lịch tập tại chi nhánh — CHỈ tên hiển thị). KHÔNG có danh sách hội viên, SĐT,
  * e-mail, InBody, doanh thu, ví, giá gói, cộng tác PT hay nhân sự — server không trả những thứ đó cho vai trò này
- * (staff-views.ts), trang chỉ không có chỗ để hiện. Lễ tân cũng không check-in hộ: hội viên/PT tự quét QR.
+ * (staff-views.ts), trang chỉ không có chỗ để hiện. D15c: lễ tân được check-in hộ HỘI VIÊN không quét được QR, sau khi xác minh
+ * danh tính (AssistedCheckinPanel); PT vẫn chỉ tự quét QR. Quản lý/chủ thấy thêm danh sách ngoại lệ chờ duyệt.
  */
 export function FrontDeskPage() {
   const { user } = useApp();
@@ -56,7 +58,7 @@ export function FrontDeskPage() {
     <div className="p-4 md:p-6 max-w-3xl w-full min-w-0 mx-auto space-y-5" data-testid="front-desk-page">
       <div>
         <h1 className="text-zinc-100 text-xl font-bold">Quầy lễ tân</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">{role ? PARTNER_ROLE_LABEL[role] : ""} · QR check-in và khách hôm nay</p>
+        <p className="text-zinc-500 text-sm mt-0.5">{role ? PARTNER_ROLE_LABEL[role] : ""} · QR check-in, check-in hộ và khách hôm nay</p>
       </div>
 
       {gymsQuery.isLoading ? (
@@ -94,6 +96,9 @@ export function FrontDeskPage() {
           )}
 
           {gymId && <GymCheckinPanel gymId={gymId} ptCheckinsMode="today" />}
+
+          {gymId && <CheckinExceptionsPanel gymId={gymId} />}
+          {gymId && <AssistedCheckinPanel gymId={gymId} />}
 
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 space-y-3" data-testid="front-desk-members">
             <div className="flex items-center justify-between gap-3">

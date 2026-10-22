@@ -34,4 +34,28 @@ export const profileClient = {
       throw e; // a real outage — the caller decides how to surface this
     }
   },
+
+  /**
+   * D15c — the member's profile photo (the only thing the front desk gets from the profile), for the PHOTO_MATCH identity
+   * check. Reads user-service's existing internal profile route but KEEPS ONLY `photoUrl`: the rest of that payload
+   * (body metrics, goals, health data) is dropped here and never reaches a response. Fail-closed: any failure or an empty
+   * photo is `null` = "no photo on file", which makes PHOTO_MATCH unavailable rather than silently allowed.
+   */
+  async getProfilePhotoUrl(userId: string): Promise<string | null> {
+    try {
+      let body: any;
+      const path = `/internal/profile/${encodeURIComponent(userId)}`;
+      if (process.env.USER_LAMBDA_NAME) {
+        const result = await invokeHttpLambda({ functionName: process.env.USER_LAMBDA_NAME, method: 'GET', path, headers });
+        throwForLambdaHttpError(result);
+        body = result.body;
+      } else {
+        body = (await axios.get(`${process.env.USER_SERVICE_URL || USER_SERVICE_URL}${path}`, { headers, timeout: 4_000 })).data;
+      }
+      const url = body?.profile?.photoUrl;
+      return typeof url === 'string' && url.trim() ? url : null;
+    } catch {
+      return null;
+    }
+  },
 };

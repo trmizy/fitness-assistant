@@ -5742,6 +5742,35 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
     return data?.data ?? data;
   },
+  // D15c — check-in HỘ hội viên không dùng được QR (lễ tân / quản lý / chủ). Danh tính nhân viên do máy chủ lấy từ phiên.
+  getAssistedConfig: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/assisted-checkin/config`);
+    return data?.data ?? data;
+  },
+  searchFrontDeskMembers: async (gymId: string, params: { code?: string; name?: string; last4?: string }) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/members`, { params });
+    return data?.data ?? data;
+  },
+  requestAssistedOtp: async (gymId: string, membershipId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin/otp`, { membershipId });
+    return data?.data ?? data;
+  },
+  assistedCheckIn: async (gymId: string, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin`, payload);
+    return data?.data ?? data;
+  },
+  requestCheckinException: async (gymId: string, payload: { membershipId: string; reason: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions`, payload);
+    return data?.data ?? data;
+  },
+  listCheckinExceptions: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  decideCheckinException: async (gymId: string, exceptionId: string, decision: "approve" | "reject", reason: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions/${exceptionId}/${decision}`, { reason });
+    return data?.data ?? data;
+  },
   // D15b — kế toán/chủ: TỔNG hoa hồng PT theo kỳ trong phạm vi (không theo PT, không tỷ lệ).
   getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
     const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });

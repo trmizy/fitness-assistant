@@ -288,6 +288,23 @@ export type ClientCompatEvent = $Result.DefaultSelection<Prisma.$ClientCompatEve
  * Audit thao tác trên danh mục (không có partnerId nên không dùng PartnerAuditLog). Không có FK: audit sống lâu hơn đối tượng.
  */
 export type AmenityAuditLog = $Result.DefaultSelection<Prisma.$AmenityAuditLogPayload>
+/**
+ * Model GymAssistedCheckInEvent
+ * Nhật ký CHỈ-THÊM (trigger chặn UPDATE/DELETE). Mỗi lần tra cứu / gửi OTP / nhập sai / check-in hộ thành công hay bị
+ * từ chối / quyết định ngoại lệ là một dòng: ai (staff), hội viên nào, chi nhánh nào, lúc nào, bằng cách nào, kết quả,
+ * lý do, khoá idempotency. KHÔNG lưu từ khoá tìm kiếm, mã OTP, SĐT, e-mail.
+ */
+export type GymAssistedCheckInEvent = $Result.DefaultSelection<Prisma.$GymAssistedCheckInEventPayload>
+/**
+ * Model GymAssistedCheckInChallenge
+ * Một mã OTP một lần gửi tới e-mail đã đăng ký của hội viên, gắn với (hội viên, chi nhánh, nhân viên). Chỉ lưu BĂM.
+ */
+export type GymAssistedCheckInChallenge = $Result.DefaultSelection<Prisma.$GymAssistedCheckInChallengePayload>
+/**
+ * Model GymAssistedCheckInException
+ * Ngoại lệ: không OTP, không ảnh → lễ tân xin, QUẢN LÝ/CHỦ chi nhánh đó duyệt (ghi lý do riêng). Hết hạn cuối ngày.
+ */
+export type GymAssistedCheckInException = $Result.DefaultSelection<Prisma.$GymAssistedCheckInExceptionPayload>
 
 /**
  * Enums
@@ -691,6 +708,14 @@ export const GymTrainerVisibility: {
 export type GymTrainerVisibility = (typeof GymTrainerVisibility)[keyof typeof GymTrainerVisibility]
 
 
+export const GymCheckInSource: {
+  QR: 'QR',
+  ASSISTED: 'ASSISTED'
+};
+
+export type GymCheckInSource = (typeof GymCheckInSource)[keyof typeof GymCheckInSource]
+
+
 export const CollaborationStatus: {
   PENDING: 'PENDING',
   COUNTERED: 'COUNTERED',
@@ -794,6 +819,41 @@ export const LegacyCompatEntityType: {
 };
 
 export type LegacyCompatEntityType = (typeof LegacyCompatEntityType)[keyof typeof LegacyCompatEntityType]
+
+
+export const AssistedCheckInEventType: {
+  MEMBER_SEARCH: 'MEMBER_SEARCH',
+  OTP_SENT: 'OTP_SENT',
+  OTP_FAILED: 'OTP_FAILED',
+  CHECKIN_SUCCEEDED: 'CHECKIN_SUCCEEDED',
+  CHECKIN_REFUSED: 'CHECKIN_REFUSED',
+  EXCEPTION_REQUESTED: 'EXCEPTION_REQUESTED',
+  EXCEPTION_APPROVED: 'EXCEPTION_APPROVED',
+  EXCEPTION_REJECTED: 'EXCEPTION_REJECTED',
+  EXCEPTION_EXPIRED: 'EXCEPTION_EXPIRED'
+};
+
+export type AssistedCheckInEventType = (typeof AssistedCheckInEventType)[keyof typeof AssistedCheckInEventType]
+
+
+export const AssistedCheckInMethod: {
+  MEMBER_OTP: 'MEMBER_OTP',
+  PHOTO_MATCH: 'PHOTO_MATCH',
+  MANAGER_EXCEPTION: 'MANAGER_EXCEPTION'
+};
+
+export type AssistedCheckInMethod = (typeof AssistedCheckInMethod)[keyof typeof AssistedCheckInMethod]
+
+
+export const AssistedExceptionStatus: {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  USED: 'USED'
+};
+
+export type AssistedExceptionStatus = (typeof AssistedExceptionStatus)[keyof typeof AssistedExceptionStatus]
 
 }
 
@@ -937,6 +997,10 @@ export type GymTrainerVisibility = $Enums.GymTrainerVisibility
 
 export const GymTrainerVisibility: typeof $Enums.GymTrainerVisibility
 
+export type GymCheckInSource = $Enums.GymCheckInSource
+
+export const GymCheckInSource: typeof $Enums.GymCheckInSource
+
 export type CollaborationStatus = $Enums.CollaborationStatus
 
 export const CollaborationStatus: typeof $Enums.CollaborationStatus
@@ -980,6 +1044,18 @@ export const LegacyCompatOutcome: typeof $Enums.LegacyCompatOutcome
 export type LegacyCompatEntityType = $Enums.LegacyCompatEntityType
 
 export const LegacyCompatEntityType: typeof $Enums.LegacyCompatEntityType
+
+export type AssistedCheckInEventType = $Enums.AssistedCheckInEventType
+
+export const AssistedCheckInEventType: typeof $Enums.AssistedCheckInEventType
+
+export type AssistedCheckInMethod = $Enums.AssistedCheckInMethod
+
+export const AssistedCheckInMethod: typeof $Enums.AssistedCheckInMethod
+
+export type AssistedExceptionStatus = $Enums.AssistedExceptionStatus
+
+export const AssistedExceptionStatus: typeof $Enums.AssistedExceptionStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1463,6 +1539,36 @@ export class PrismaClient<
     * ```
     */
   get amenityAuditLog(): Prisma.AmenityAuditLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymAssistedCheckInEvent`: Exposes CRUD operations for the **GymAssistedCheckInEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymAssistedCheckInEvents
+    * const gymAssistedCheckInEvents = await prisma.gymAssistedCheckInEvent.findMany()
+    * ```
+    */
+  get gymAssistedCheckInEvent(): Prisma.GymAssistedCheckInEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymAssistedCheckInChallenge`: Exposes CRUD operations for the **GymAssistedCheckInChallenge** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymAssistedCheckInChallenges
+    * const gymAssistedCheckInChallenges = await prisma.gymAssistedCheckInChallenge.findMany()
+    * ```
+    */
+  get gymAssistedCheckInChallenge(): Prisma.GymAssistedCheckInChallengeDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymAssistedCheckInException`: Exposes CRUD operations for the **GymAssistedCheckInException** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymAssistedCheckInExceptions
+    * const gymAssistedCheckInExceptions = await prisma.gymAssistedCheckInException.findMany()
+    * ```
+    */
+  get gymAssistedCheckInException(): Prisma.GymAssistedCheckInExceptionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1939,7 +2045,10 @@ export namespace Prisma {
     LegacyCompatEvent: 'LegacyCompatEvent',
     CompatWriterHeartbeat: 'CompatWriterHeartbeat',
     ClientCompatEvent: 'ClientCompatEvent',
-    AmenityAuditLog: 'AmenityAuditLog'
+    AmenityAuditLog: 'AmenityAuditLog',
+    GymAssistedCheckInEvent: 'GymAssistedCheckInEvent',
+    GymAssistedCheckInChallenge: 'GymAssistedCheckInChallenge',
+    GymAssistedCheckInException: 'GymAssistedCheckInException'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1955,7 +2064,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn" | "amenity" | "amenityProposal" | "gymAmenity" | "gymListingRevision" | "legacyCompatEvent" | "compatWriterHeartbeat" | "clientCompatEvent" | "amenityAuditLog"
+      modelProps: "gymPhoto" | "gymBranchDocument" | "gymBranchReviewIssue" | "gymOperatingHours" | "gymComplaint" | "partnerAuditLog" | "partnerInternalNote" | "platformCommissionRate" | "gymPartner" | "gymPartnerAccount" | "partnerInvitation" | "gymPartnerDocument" | "gymPartnerDocumentFile" | "gymPartnerReviewIssue" | "partnerUploadIntent" | "gymPartnerContactLog" | "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymBrandPtAgreement" | "gymPtAgreementConflict" | "gymMembershipReferral" | "gymPtCheckIn" | "amenity" | "amenityProposal" | "gymAmenity" | "gymListingRevision" | "legacyCompatEvent" | "compatWriterHeartbeat" | "clientCompatEvent" | "amenityAuditLog" | "gymAssistedCheckInEvent" | "gymAssistedCheckInChallenge" | "gymAssistedCheckInException"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4476,6 +4585,216 @@ export namespace Prisma {
           count: {
             args: Prisma.AmenityAuditLogCountArgs<ExtArgs>
             result: $Utils.Optional<AmenityAuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymAssistedCheckInEvent: {
+        payload: Prisma.$GymAssistedCheckInEventPayload<ExtArgs>
+        fields: Prisma.GymAssistedCheckInEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymAssistedCheckInEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymAssistedCheckInEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          findFirst: {
+            args: Prisma.GymAssistedCheckInEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymAssistedCheckInEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          findMany: {
+            args: Prisma.GymAssistedCheckInEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>[]
+          }
+          create: {
+            args: Prisma.GymAssistedCheckInEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          createMany: {
+            args: Prisma.GymAssistedCheckInEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymAssistedCheckInEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>[]
+          }
+          delete: {
+            args: Prisma.GymAssistedCheckInEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          update: {
+            args: Prisma.GymAssistedCheckInEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymAssistedCheckInEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymAssistedCheckInEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymAssistedCheckInEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInEventPayload>
+          }
+          aggregate: {
+            args: Prisma.GymAssistedCheckInEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymAssistedCheckInEvent>
+          }
+          groupBy: {
+            args: Prisma.GymAssistedCheckInEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymAssistedCheckInEventCountArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymAssistedCheckInChallenge: {
+        payload: Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>
+        fields: Prisma.GymAssistedCheckInChallengeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymAssistedCheckInChallengeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymAssistedCheckInChallengeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          findFirst: {
+            args: Prisma.GymAssistedCheckInChallengeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymAssistedCheckInChallengeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          findMany: {
+            args: Prisma.GymAssistedCheckInChallengeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>[]
+          }
+          create: {
+            args: Prisma.GymAssistedCheckInChallengeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          createMany: {
+            args: Prisma.GymAssistedCheckInChallengeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymAssistedCheckInChallengeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>[]
+          }
+          delete: {
+            args: Prisma.GymAssistedCheckInChallengeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          update: {
+            args: Prisma.GymAssistedCheckInChallengeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          deleteMany: {
+            args: Prisma.GymAssistedCheckInChallengeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymAssistedCheckInChallengeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymAssistedCheckInChallengeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInChallengePayload>
+          }
+          aggregate: {
+            args: Prisma.GymAssistedCheckInChallengeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymAssistedCheckInChallenge>
+          }
+          groupBy: {
+            args: Prisma.GymAssistedCheckInChallengeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInChallengeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymAssistedCheckInChallengeCountArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInChallengeCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymAssistedCheckInException: {
+        payload: Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>
+        fields: Prisma.GymAssistedCheckInExceptionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymAssistedCheckInExceptionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymAssistedCheckInExceptionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          findFirst: {
+            args: Prisma.GymAssistedCheckInExceptionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymAssistedCheckInExceptionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          findMany: {
+            args: Prisma.GymAssistedCheckInExceptionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>[]
+          }
+          create: {
+            args: Prisma.GymAssistedCheckInExceptionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          createMany: {
+            args: Prisma.GymAssistedCheckInExceptionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymAssistedCheckInExceptionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>[]
+          }
+          delete: {
+            args: Prisma.GymAssistedCheckInExceptionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          update: {
+            args: Prisma.GymAssistedCheckInExceptionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymAssistedCheckInExceptionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymAssistedCheckInExceptionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymAssistedCheckInExceptionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymAssistedCheckInExceptionPayload>
+          }
+          aggregate: {
+            args: Prisma.GymAssistedCheckInExceptionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymAssistedCheckInException>
+          }
+          groupBy: {
+            args: Prisma.GymAssistedCheckInExceptionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInExceptionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymAssistedCheckInExceptionCountArgs<ExtArgs>
+            result: $Utils.Optional<GymAssistedCheckInExceptionCountAggregateOutputType> | number
           }
         }
       }
@@ -26095,6 +26414,7 @@ export namespace Prisma {
     payoutReleasedAt: Date | null
     multiGymWarned: boolean | null
     refundClawbackDone: boolean | null
+    memberCode: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -26115,6 +26435,7 @@ export namespace Prisma {
     payoutReleasedAt: Date | null
     multiGymWarned: boolean | null
     refundClawbackDone: boolean | null
+    memberCode: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -26135,6 +26456,7 @@ export namespace Prisma {
     payoutReleasedAt: number
     multiGymWarned: number
     refundClawbackDone: number
+    memberCode: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -26171,6 +26493,7 @@ export namespace Prisma {
     payoutReleasedAt?: true
     multiGymWarned?: true
     refundClawbackDone?: true
+    memberCode?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -26191,6 +26514,7 @@ export namespace Prisma {
     payoutReleasedAt?: true
     multiGymWarned?: true
     refundClawbackDone?: true
+    memberCode?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -26211,6 +26535,7 @@ export namespace Prisma {
     payoutReleasedAt?: true
     multiGymWarned?: true
     refundClawbackDone?: true
+    memberCode?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -26318,6 +26643,7 @@ export namespace Prisma {
     payoutReleasedAt: Date | null
     multiGymWarned: boolean
     refundClawbackDone: boolean
+    memberCode: string | null
     createdAt: Date
     updatedAt: Date
     _count: GymMembershipContractCountAggregateOutputType | null
@@ -26357,6 +26683,7 @@ export namespace Prisma {
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -26382,6 +26709,7 @@ export namespace Prisma {
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -26404,6 +26732,7 @@ export namespace Prisma {
     payoutReleasedAt?: boolean
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -26465,6 +26794,12 @@ export namespace Prisma {
        * answer one question: did THIS refund's clawback step already run.
        */
       refundClawbackDone: boolean
+      /**
+       * D15c — mã hội viên ngắn (8 ký tự hex, hiển thị XXXX-XXXX) để lễ tân tra cứu khi hội viên không dùng được QR.
+       * CỘT SINH TỰ ĐỘNG (GENERATED ALWAYS ... STORED) từ client_id trong migration: một người một mã cho mọi lần
+       * gia hạn, không bao giờ ghi từ ứng dụng — Prisma không được gửi giá trị cho cột này.
+       */
+      memberCode: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymMembershipContract"]>
@@ -26879,6 +27214,7 @@ export namespace Prisma {
     readonly payoutReleasedAt: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly multiGymWarned: FieldRef<"GymMembershipContract", 'Boolean'>
     readonly refundClawbackDone: FieldRef<"GymMembershipContract", 'Boolean'>
+    readonly memberCode: FieldRef<"GymMembershipContract", 'String'>
     readonly createdAt: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly updatedAt: FieldRef<"GymMembershipContract", 'DateTime'>
   }
@@ -28303,6 +28639,8 @@ export namespace Prisma {
     gymId: string | null
     clientId: string | null
     checkedInBy: string | null
+    source: $Enums.GymCheckInSource | null
+    assistedEventId: string | null
     createdAt: Date | null
   }
 
@@ -28312,6 +28650,8 @@ export namespace Prisma {
     gymId: string | null
     clientId: string | null
     checkedInBy: string | null
+    source: $Enums.GymCheckInSource | null
+    assistedEventId: string | null
     createdAt: Date | null
   }
 
@@ -28321,6 +28661,8 @@ export namespace Prisma {
     gymId: number
     clientId: number
     checkedInBy: number
+    source: number
+    assistedEventId: number
     createdAt: number
     _all: number
   }
@@ -28332,6 +28674,8 @@ export namespace Prisma {
     gymId?: true
     clientId?: true
     checkedInBy?: true
+    source?: true
+    assistedEventId?: true
     createdAt?: true
   }
 
@@ -28341,6 +28685,8 @@ export namespace Prisma {
     gymId?: true
     clientId?: true
     checkedInBy?: true
+    source?: true
+    assistedEventId?: true
     createdAt?: true
   }
 
@@ -28350,6 +28696,8 @@ export namespace Prisma {
     gymId?: true
     clientId?: true
     checkedInBy?: true
+    source?: true
+    assistedEventId?: true
     createdAt?: true
     _all?: true
   }
@@ -28432,6 +28780,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source: $Enums.GymCheckInSource
+    assistedEventId: string | null
     createdAt: Date
     _count: GymCheckInCountAggregateOutputType | null
     _min: GymCheckInMinAggregateOutputType | null
@@ -28458,6 +28808,8 @@ export namespace Prisma {
     gymId?: boolean
     clientId?: boolean
     checkedInBy?: boolean
+    source?: boolean
+    assistedEventId?: boolean
     createdAt?: boolean
     membership?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymCheckIn"]>
@@ -28468,6 +28820,8 @@ export namespace Prisma {
     gymId?: boolean
     clientId?: boolean
     checkedInBy?: boolean
+    source?: boolean
+    assistedEventId?: boolean
     createdAt?: boolean
     membership?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymCheckIn"]>
@@ -28478,6 +28832,8 @@ export namespace Prisma {
     gymId?: boolean
     clientId?: boolean
     checkedInBy?: boolean
+    source?: boolean
+    assistedEventId?: boolean
     createdAt?: boolean
   }
 
@@ -28499,6 +28855,12 @@ export namespace Prisma {
       gymId: string
       clientId: string
       checkedInBy: string
+      /**
+       * D15c — QR: hội viên tự quét (checkedInBy = chính họ). ASSISTED: nhân viên quầy check-in hộ sau khi xác minh
+       * danh tính; checkedInBy = nhân viên, assistedEventId trỏ tới sự kiện kiểm toán (gym_assisted_checkin_events).
+       */
+      source: $Enums.GymCheckInSource
+      assistedEventId: string | null
       createdAt: Date
     }, ExtArgs["result"]["gymCheckIn"]>
     composites: {}
@@ -28899,6 +29261,8 @@ export namespace Prisma {
     readonly gymId: FieldRef<"GymCheckIn", 'String'>
     readonly clientId: FieldRef<"GymCheckIn", 'String'>
     readonly checkedInBy: FieldRef<"GymCheckIn", 'String'>
+    readonly source: FieldRef<"GymCheckIn", 'GymCheckInSource'>
+    readonly assistedEventId: FieldRef<"GymCheckIn", 'String'>
     readonly createdAt: FieldRef<"GymCheckIn", 'DateTime'>
   }
     
@@ -43589,6 +43953,3028 @@ export namespace Prisma {
 
 
   /**
+   * Model GymAssistedCheckInEvent
+   */
+
+  export type AggregateGymAssistedCheckInEvent = {
+    _count: GymAssistedCheckInEventCountAggregateOutputType | null
+    _min: GymAssistedCheckInEventMinAggregateOutputType | null
+    _max: GymAssistedCheckInEventMaxAggregateOutputType | null
+  }
+
+  export type GymAssistedCheckInEventMinAggregateOutputType = {
+    id: string | null
+    eventType: $Enums.AssistedCheckInEventType | null
+    gymId: string | null
+    staffUserId: string | null
+    staffRole: $Enums.PartnerAccountRole | null
+    membershipId: string | null
+    clientId: string | null
+    method: $Enums.AssistedCheckInMethod | null
+    outcome: string | null
+    reason: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    checkinId: string | null
+    exceptionId: string | null
+    challengeId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymAssistedCheckInEventMaxAggregateOutputType = {
+    id: string | null
+    eventType: $Enums.AssistedCheckInEventType | null
+    gymId: string | null
+    staffUserId: string | null
+    staffRole: $Enums.PartnerAccountRole | null
+    membershipId: string | null
+    clientId: string | null
+    method: $Enums.AssistedCheckInMethod | null
+    outcome: string | null
+    reason: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    checkinId: string | null
+    exceptionId: string | null
+    challengeId: string | null
+    createdAt: Date | null
+  }
+
+  export type GymAssistedCheckInEventCountAggregateOutputType = {
+    id: number
+    eventType: number
+    gymId: number
+    staffUserId: number
+    staffRole: number
+    membershipId: number
+    clientId: number
+    method: number
+    outcome: number
+    reason: number
+    idempotencyKey: number
+    requestHash: number
+    checkinId: number
+    exceptionId: number
+    challengeId: number
+    details: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymAssistedCheckInEventMinAggregateInputType = {
+    id?: true
+    eventType?: true
+    gymId?: true
+    staffUserId?: true
+    staffRole?: true
+    membershipId?: true
+    clientId?: true
+    method?: true
+    outcome?: true
+    reason?: true
+    idempotencyKey?: true
+    requestHash?: true
+    checkinId?: true
+    exceptionId?: true
+    challengeId?: true
+    createdAt?: true
+  }
+
+  export type GymAssistedCheckInEventMaxAggregateInputType = {
+    id?: true
+    eventType?: true
+    gymId?: true
+    staffUserId?: true
+    staffRole?: true
+    membershipId?: true
+    clientId?: true
+    method?: true
+    outcome?: true
+    reason?: true
+    idempotencyKey?: true
+    requestHash?: true
+    checkinId?: true
+    exceptionId?: true
+    challengeId?: true
+    createdAt?: true
+  }
+
+  export type GymAssistedCheckInEventCountAggregateInputType = {
+    id?: true
+    eventType?: true
+    gymId?: true
+    staffUserId?: true
+    staffRole?: true
+    membershipId?: true
+    clientId?: true
+    method?: true
+    outcome?: true
+    reason?: true
+    idempotencyKey?: true
+    requestHash?: true
+    checkinId?: true
+    exceptionId?: true
+    challengeId?: true
+    details?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymAssistedCheckInEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInEvent to aggregate.
+     */
+    where?: GymAssistedCheckInEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInEvents to fetch.
+     */
+    orderBy?: GymAssistedCheckInEventOrderByWithRelationInput | GymAssistedCheckInEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymAssistedCheckInEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymAssistedCheckInEvents
+    **/
+    _count?: true | GymAssistedCheckInEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymAssistedCheckInEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymAssistedCheckInEventMaxAggregateInputType
+  }
+
+  export type GetGymAssistedCheckInEventAggregateType<T extends GymAssistedCheckInEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymAssistedCheckInEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymAssistedCheckInEvent[P]>
+      : GetScalarType<T[P], AggregateGymAssistedCheckInEvent[P]>
+  }
+
+
+
+
+  export type GymAssistedCheckInEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAssistedCheckInEventWhereInput
+    orderBy?: GymAssistedCheckInEventOrderByWithAggregationInput | GymAssistedCheckInEventOrderByWithAggregationInput[]
+    by: GymAssistedCheckInEventScalarFieldEnum[] | GymAssistedCheckInEventScalarFieldEnum
+    having?: GymAssistedCheckInEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymAssistedCheckInEventCountAggregateInputType | true
+    _min?: GymAssistedCheckInEventMinAggregateInputType
+    _max?: GymAssistedCheckInEventMaxAggregateInputType
+  }
+
+  export type GymAssistedCheckInEventGroupByOutputType = {
+    id: string
+    eventType: $Enums.AssistedCheckInEventType
+    gymId: string
+    staffUserId: string
+    staffRole: $Enums.PartnerAccountRole | null
+    membershipId: string | null
+    clientId: string | null
+    method: $Enums.AssistedCheckInMethod | null
+    outcome: string
+    reason: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    checkinId: string | null
+    exceptionId: string | null
+    challengeId: string | null
+    details: JsonValue | null
+    createdAt: Date
+    _count: GymAssistedCheckInEventCountAggregateOutputType | null
+    _min: GymAssistedCheckInEventMinAggregateOutputType | null
+    _max: GymAssistedCheckInEventMaxAggregateOutputType | null
+  }
+
+  type GetGymAssistedCheckInEventGroupByPayload<T extends GymAssistedCheckInEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymAssistedCheckInEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymAssistedCheckInEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymAssistedCheckInEventGroupByOutputType[P]>
+            : GetScalarType<T[P], GymAssistedCheckInEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymAssistedCheckInEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventType?: boolean
+    gymId?: boolean
+    staffUserId?: boolean
+    staffRole?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    method?: boolean
+    outcome?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    checkinId?: boolean
+    exceptionId?: boolean
+    challengeId?: boolean
+    details?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInEvent"]>
+
+  export type GymAssistedCheckInEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventType?: boolean
+    gymId?: boolean
+    staffUserId?: boolean
+    staffRole?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    method?: boolean
+    outcome?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    checkinId?: boolean
+    exceptionId?: boolean
+    challengeId?: boolean
+    details?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInEvent"]>
+
+  export type GymAssistedCheckInEventSelectScalar = {
+    id?: boolean
+    eventType?: boolean
+    gymId?: boolean
+    staffUserId?: boolean
+    staffRole?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    method?: boolean
+    outcome?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    checkinId?: boolean
+    exceptionId?: boolean
+    challengeId?: boolean
+    details?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $GymAssistedCheckInEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymAssistedCheckInEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      eventType: $Enums.AssistedCheckInEventType
+      gymId: string
+      staffUserId: string
+      /**
+       * null = hệ thống (vd tự hết hạn ngoại lệ cuối ngày), staffUserId khi đó là 'system'.
+       */
+      staffRole: $Enums.PartnerAccountRole | null
+      membershipId: string | null
+      clientId: string | null
+      method: $Enums.AssistedCheckInMethod | null
+      /**
+       * 'OK' hoặc mã từ chối (NOT_ACTIVE, TOO_SOON, OTP_INVALID, ...).
+       */
+      outcome: string
+      reason: string | null
+      idempotencyKey: string | null
+      requestHash: string | null
+      checkinId: string | null
+      exceptionId: string | null
+      challengeId: string | null
+      details: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymAssistedCheckInEvent"]>
+    composites: {}
+  }
+
+  type GymAssistedCheckInEventGetPayload<S extends boolean | null | undefined | GymAssistedCheckInEventDefaultArgs> = $Result.GetResult<Prisma.$GymAssistedCheckInEventPayload, S>
+
+  type GymAssistedCheckInEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymAssistedCheckInEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymAssistedCheckInEventCountAggregateInputType | true
+    }
+
+  export interface GymAssistedCheckInEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymAssistedCheckInEvent'], meta: { name: 'GymAssistedCheckInEvent' } }
+    /**
+     * Find zero or one GymAssistedCheckInEvent that matches the filter.
+     * @param {GymAssistedCheckInEventFindUniqueArgs} args - Arguments to find a GymAssistedCheckInEvent
+     * @example
+     * // Get one GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymAssistedCheckInEventFindUniqueArgs>(args: SelectSubset<T, GymAssistedCheckInEventFindUniqueArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymAssistedCheckInEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymAssistedCheckInEventFindUniqueOrThrowArgs} args - Arguments to find a GymAssistedCheckInEvent
+     * @example
+     * // Get one GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymAssistedCheckInEventFindUniqueOrThrowArgs>(args: SelectSubset<T, GymAssistedCheckInEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventFindFirstArgs} args - Arguments to find a GymAssistedCheckInEvent
+     * @example
+     * // Get one GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymAssistedCheckInEventFindFirstArgs>(args?: SelectSubset<T, GymAssistedCheckInEventFindFirstArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventFindFirstOrThrowArgs} args - Arguments to find a GymAssistedCheckInEvent
+     * @example
+     * // Get one GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymAssistedCheckInEventFindFirstOrThrowArgs>(args?: SelectSubset<T, GymAssistedCheckInEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymAssistedCheckInEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymAssistedCheckInEvents
+     * const gymAssistedCheckInEvents = await prisma.gymAssistedCheckInEvent.findMany()
+     * 
+     * // Get first 10 GymAssistedCheckInEvents
+     * const gymAssistedCheckInEvents = await prisma.gymAssistedCheckInEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymAssistedCheckInEventWithIdOnly = await prisma.gymAssistedCheckInEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymAssistedCheckInEventFindManyArgs>(args?: SelectSubset<T, GymAssistedCheckInEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymAssistedCheckInEvent.
+     * @param {GymAssistedCheckInEventCreateArgs} args - Arguments to create a GymAssistedCheckInEvent.
+     * @example
+     * // Create one GymAssistedCheckInEvent
+     * const GymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.create({
+     *   data: {
+     *     // ... data to create a GymAssistedCheckInEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymAssistedCheckInEventCreateArgs>(args: SelectSubset<T, GymAssistedCheckInEventCreateArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymAssistedCheckInEvents.
+     * @param {GymAssistedCheckInEventCreateManyArgs} args - Arguments to create many GymAssistedCheckInEvents.
+     * @example
+     * // Create many GymAssistedCheckInEvents
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymAssistedCheckInEventCreateManyArgs>(args?: SelectSubset<T, GymAssistedCheckInEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymAssistedCheckInEvents and returns the data saved in the database.
+     * @param {GymAssistedCheckInEventCreateManyAndReturnArgs} args - Arguments to create many GymAssistedCheckInEvents.
+     * @example
+     * // Create many GymAssistedCheckInEvents
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymAssistedCheckInEvents and only return the `id`
+     * const gymAssistedCheckInEventWithIdOnly = await prisma.gymAssistedCheckInEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymAssistedCheckInEventCreateManyAndReturnArgs>(args?: SelectSubset<T, GymAssistedCheckInEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymAssistedCheckInEvent.
+     * @param {GymAssistedCheckInEventDeleteArgs} args - Arguments to delete one GymAssistedCheckInEvent.
+     * @example
+     * // Delete one GymAssistedCheckInEvent
+     * const GymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.delete({
+     *   where: {
+     *     // ... filter to delete one GymAssistedCheckInEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymAssistedCheckInEventDeleteArgs>(args: SelectSubset<T, GymAssistedCheckInEventDeleteArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymAssistedCheckInEvent.
+     * @param {GymAssistedCheckInEventUpdateArgs} args - Arguments to update one GymAssistedCheckInEvent.
+     * @example
+     * // Update one GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymAssistedCheckInEventUpdateArgs>(args: SelectSubset<T, GymAssistedCheckInEventUpdateArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymAssistedCheckInEvents.
+     * @param {GymAssistedCheckInEventDeleteManyArgs} args - Arguments to filter GymAssistedCheckInEvents to delete.
+     * @example
+     * // Delete a few GymAssistedCheckInEvents
+     * const { count } = await prisma.gymAssistedCheckInEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymAssistedCheckInEventDeleteManyArgs>(args?: SelectSubset<T, GymAssistedCheckInEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymAssistedCheckInEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymAssistedCheckInEvents
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymAssistedCheckInEventUpdateManyArgs>(args: SelectSubset<T, GymAssistedCheckInEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymAssistedCheckInEvent.
+     * @param {GymAssistedCheckInEventUpsertArgs} args - Arguments to update or create a GymAssistedCheckInEvent.
+     * @example
+     * // Update or create a GymAssistedCheckInEvent
+     * const gymAssistedCheckInEvent = await prisma.gymAssistedCheckInEvent.upsert({
+     *   create: {
+     *     // ... data to create a GymAssistedCheckInEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymAssistedCheckInEventUpsertArgs>(args: SelectSubset<T, GymAssistedCheckInEventUpsertArgs<ExtArgs>>): Prisma__GymAssistedCheckInEventClient<$Result.GetResult<Prisma.$GymAssistedCheckInEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymAssistedCheckInEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventCountArgs} args - Arguments to filter GymAssistedCheckInEvents to count.
+     * @example
+     * // Count the number of GymAssistedCheckInEvents
+     * const count = await prisma.gymAssistedCheckInEvent.count({
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymAssistedCheckInEventCountArgs>(
+      args?: Subset<T, GymAssistedCheckInEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymAssistedCheckInEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymAssistedCheckInEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymAssistedCheckInEventAggregateArgs>(args: Subset<T, GymAssistedCheckInEventAggregateArgs>): Prisma.PrismaPromise<GetGymAssistedCheckInEventAggregateType<T>>
+
+    /**
+     * Group by GymAssistedCheckInEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymAssistedCheckInEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymAssistedCheckInEventGroupByArgs['orderBy'] }
+        : { orderBy?: GymAssistedCheckInEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymAssistedCheckInEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymAssistedCheckInEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymAssistedCheckInEvent model
+   */
+  readonly fields: GymAssistedCheckInEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymAssistedCheckInEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymAssistedCheckInEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymAssistedCheckInEvent model
+   */ 
+  interface GymAssistedCheckInEventFieldRefs {
+    readonly id: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly eventType: FieldRef<"GymAssistedCheckInEvent", 'AssistedCheckInEventType'>
+    readonly gymId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly staffUserId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly staffRole: FieldRef<"GymAssistedCheckInEvent", 'PartnerAccountRole'>
+    readonly membershipId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly clientId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly method: FieldRef<"GymAssistedCheckInEvent", 'AssistedCheckInMethod'>
+    readonly outcome: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly reason: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly idempotencyKey: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly requestHash: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly checkinId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly exceptionId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly challengeId: FieldRef<"GymAssistedCheckInEvent", 'String'>
+    readonly details: FieldRef<"GymAssistedCheckInEvent", 'Json'>
+    readonly createdAt: FieldRef<"GymAssistedCheckInEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymAssistedCheckInEvent findUnique
+   */
+  export type GymAssistedCheckInEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInEvent to fetch.
+     */
+    where: GymAssistedCheckInEventWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent findUniqueOrThrow
+   */
+  export type GymAssistedCheckInEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInEvent to fetch.
+     */
+    where: GymAssistedCheckInEventWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent findFirst
+   */
+  export type GymAssistedCheckInEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInEvent to fetch.
+     */
+    where?: GymAssistedCheckInEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInEvents to fetch.
+     */
+    orderBy?: GymAssistedCheckInEventOrderByWithRelationInput | GymAssistedCheckInEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInEvents.
+     */
+    cursor?: GymAssistedCheckInEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInEvents.
+     */
+    distinct?: GymAssistedCheckInEventScalarFieldEnum | GymAssistedCheckInEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInEvent findFirstOrThrow
+   */
+  export type GymAssistedCheckInEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInEvent to fetch.
+     */
+    where?: GymAssistedCheckInEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInEvents to fetch.
+     */
+    orderBy?: GymAssistedCheckInEventOrderByWithRelationInput | GymAssistedCheckInEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInEvents.
+     */
+    cursor?: GymAssistedCheckInEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInEvents.
+     */
+    distinct?: GymAssistedCheckInEventScalarFieldEnum | GymAssistedCheckInEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInEvent findMany
+   */
+  export type GymAssistedCheckInEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInEvents to fetch.
+     */
+    where?: GymAssistedCheckInEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInEvents to fetch.
+     */
+    orderBy?: GymAssistedCheckInEventOrderByWithRelationInput | GymAssistedCheckInEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymAssistedCheckInEvents.
+     */
+    cursor?: GymAssistedCheckInEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInEvents.
+     */
+    skip?: number
+    distinct?: GymAssistedCheckInEventScalarFieldEnum | GymAssistedCheckInEventScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInEvent create
+   */
+  export type GymAssistedCheckInEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a GymAssistedCheckInEvent.
+     */
+    data: XOR<GymAssistedCheckInEventCreateInput, GymAssistedCheckInEventUncheckedCreateInput>
+  }
+
+  /**
+   * GymAssistedCheckInEvent createMany
+   */
+  export type GymAssistedCheckInEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymAssistedCheckInEvents.
+     */
+    data: GymAssistedCheckInEventCreateManyInput | GymAssistedCheckInEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInEvent createManyAndReturn
+   */
+  export type GymAssistedCheckInEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymAssistedCheckInEvents.
+     */
+    data: GymAssistedCheckInEventCreateManyInput | GymAssistedCheckInEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInEvent update
+   */
+  export type GymAssistedCheckInEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a GymAssistedCheckInEvent.
+     */
+    data: XOR<GymAssistedCheckInEventUpdateInput, GymAssistedCheckInEventUncheckedUpdateInput>
+    /**
+     * Choose, which GymAssistedCheckInEvent to update.
+     */
+    where: GymAssistedCheckInEventWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent updateMany
+   */
+  export type GymAssistedCheckInEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymAssistedCheckInEvents.
+     */
+    data: XOR<GymAssistedCheckInEventUpdateManyMutationInput, GymAssistedCheckInEventUncheckedUpdateManyInput>
+    /**
+     * Filter which GymAssistedCheckInEvents to update
+     */
+    where?: GymAssistedCheckInEventWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent upsert
+   */
+  export type GymAssistedCheckInEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the GymAssistedCheckInEvent to update in case it exists.
+     */
+    where: GymAssistedCheckInEventWhereUniqueInput
+    /**
+     * In case the GymAssistedCheckInEvent found by the `where` argument doesn't exist, create a new GymAssistedCheckInEvent with this data.
+     */
+    create: XOR<GymAssistedCheckInEventCreateInput, GymAssistedCheckInEventUncheckedCreateInput>
+    /**
+     * In case the GymAssistedCheckInEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymAssistedCheckInEventUpdateInput, GymAssistedCheckInEventUncheckedUpdateInput>
+  }
+
+  /**
+   * GymAssistedCheckInEvent delete
+   */
+  export type GymAssistedCheckInEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+    /**
+     * Filter which GymAssistedCheckInEvent to delete.
+     */
+    where: GymAssistedCheckInEventWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent deleteMany
+   */
+  export type GymAssistedCheckInEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInEvents to delete
+     */
+    where?: GymAssistedCheckInEventWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInEvent without action
+   */
+  export type GymAssistedCheckInEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInEvent
+     */
+    select?: GymAssistedCheckInEventSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymAssistedCheckInChallenge
+   */
+
+  export type AggregateGymAssistedCheckInChallenge = {
+    _count: GymAssistedCheckInChallengeCountAggregateOutputType | null
+    _avg: GymAssistedCheckInChallengeAvgAggregateOutputType | null
+    _sum: GymAssistedCheckInChallengeSumAggregateOutputType | null
+    _min: GymAssistedCheckInChallengeMinAggregateOutputType | null
+    _max: GymAssistedCheckInChallengeMaxAggregateOutputType | null
+  }
+
+  export type GymAssistedCheckInChallengeAvgAggregateOutputType = {
+    attempts: number | null
+    maxAttempts: number | null
+  }
+
+  export type GymAssistedCheckInChallengeSumAggregateOutputType = {
+    attempts: number | null
+    maxAttempts: number | null
+  }
+
+  export type GymAssistedCheckInChallengeMinAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    membershipId: string | null
+    clientId: string | null
+    staffUserId: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    attempts: number | null
+    maxAttempts: number | null
+    lockedAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type GymAssistedCheckInChallengeMaxAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    membershipId: string | null
+    clientId: string | null
+    staffUserId: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    attempts: number | null
+    maxAttempts: number | null
+    lockedAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type GymAssistedCheckInChallengeCountAggregateOutputType = {
+    id: number
+    gymId: number
+    membershipId: number
+    clientId: number
+    staffUserId: number
+    otpHash: number
+    expiresAt: number
+    attempts: number
+    maxAttempts: number
+    lockedAt: number
+    consumedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GymAssistedCheckInChallengeAvgAggregateInputType = {
+    attempts?: true
+    maxAttempts?: true
+  }
+
+  export type GymAssistedCheckInChallengeSumAggregateInputType = {
+    attempts?: true
+    maxAttempts?: true
+  }
+
+  export type GymAssistedCheckInChallengeMinAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    staffUserId?: true
+    otpHash?: true
+    expiresAt?: true
+    attempts?: true
+    maxAttempts?: true
+    lockedAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type GymAssistedCheckInChallengeMaxAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    staffUserId?: true
+    otpHash?: true
+    expiresAt?: true
+    attempts?: true
+    maxAttempts?: true
+    lockedAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type GymAssistedCheckInChallengeCountAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    staffUserId?: true
+    otpHash?: true
+    expiresAt?: true
+    attempts?: true
+    maxAttempts?: true
+    lockedAt?: true
+    consumedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GymAssistedCheckInChallengeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInChallenge to aggregate.
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInChallenges to fetch.
+     */
+    orderBy?: GymAssistedCheckInChallengeOrderByWithRelationInput | GymAssistedCheckInChallengeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymAssistedCheckInChallengeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInChallenges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInChallenges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymAssistedCheckInChallenges
+    **/
+    _count?: true | GymAssistedCheckInChallengeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymAssistedCheckInChallengeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymAssistedCheckInChallengeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymAssistedCheckInChallengeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymAssistedCheckInChallengeMaxAggregateInputType
+  }
+
+  export type GetGymAssistedCheckInChallengeAggregateType<T extends GymAssistedCheckInChallengeAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymAssistedCheckInChallenge]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymAssistedCheckInChallenge[P]>
+      : GetScalarType<T[P], AggregateGymAssistedCheckInChallenge[P]>
+  }
+
+
+
+
+  export type GymAssistedCheckInChallengeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAssistedCheckInChallengeWhereInput
+    orderBy?: GymAssistedCheckInChallengeOrderByWithAggregationInput | GymAssistedCheckInChallengeOrderByWithAggregationInput[]
+    by: GymAssistedCheckInChallengeScalarFieldEnum[] | GymAssistedCheckInChallengeScalarFieldEnum
+    having?: GymAssistedCheckInChallengeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymAssistedCheckInChallengeCountAggregateInputType | true
+    _avg?: GymAssistedCheckInChallengeAvgAggregateInputType
+    _sum?: GymAssistedCheckInChallengeSumAggregateInputType
+    _min?: GymAssistedCheckInChallengeMinAggregateInputType
+    _max?: GymAssistedCheckInChallengeMaxAggregateInputType
+  }
+
+  export type GymAssistedCheckInChallengeGroupByOutputType = {
+    id: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    staffUserId: string
+    otpHash: string
+    expiresAt: Date
+    attempts: number
+    maxAttempts: number
+    lockedAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date
+    _count: GymAssistedCheckInChallengeCountAggregateOutputType | null
+    _avg: GymAssistedCheckInChallengeAvgAggregateOutputType | null
+    _sum: GymAssistedCheckInChallengeSumAggregateOutputType | null
+    _min: GymAssistedCheckInChallengeMinAggregateOutputType | null
+    _max: GymAssistedCheckInChallengeMaxAggregateOutputType | null
+  }
+
+  type GetGymAssistedCheckInChallengeGroupByPayload<T extends GymAssistedCheckInChallengeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymAssistedCheckInChallengeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymAssistedCheckInChallengeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymAssistedCheckInChallengeGroupByOutputType[P]>
+            : GetScalarType<T[P], GymAssistedCheckInChallengeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymAssistedCheckInChallengeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    staffUserId?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    attempts?: boolean
+    maxAttempts?: boolean
+    lockedAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInChallenge"]>
+
+  export type GymAssistedCheckInChallengeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    staffUserId?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    attempts?: boolean
+    maxAttempts?: boolean
+    lockedAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInChallenge"]>
+
+  export type GymAssistedCheckInChallengeSelectScalar = {
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    staffUserId?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    attempts?: boolean
+    maxAttempts?: boolean
+    lockedAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $GymAssistedCheckInChallengePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymAssistedCheckInChallenge"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      gymId: string
+      membershipId: string
+      clientId: string
+      staffUserId: string
+      otpHash: string
+      expiresAt: Date
+      attempts: number
+      maxAttempts: number
+      lockedAt: Date | null
+      consumedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["gymAssistedCheckInChallenge"]>
+    composites: {}
+  }
+
+  type GymAssistedCheckInChallengeGetPayload<S extends boolean | null | undefined | GymAssistedCheckInChallengeDefaultArgs> = $Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload, S>
+
+  type GymAssistedCheckInChallengeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymAssistedCheckInChallengeFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymAssistedCheckInChallengeCountAggregateInputType | true
+    }
+
+  export interface GymAssistedCheckInChallengeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymAssistedCheckInChallenge'], meta: { name: 'GymAssistedCheckInChallenge' } }
+    /**
+     * Find zero or one GymAssistedCheckInChallenge that matches the filter.
+     * @param {GymAssistedCheckInChallengeFindUniqueArgs} args - Arguments to find a GymAssistedCheckInChallenge
+     * @example
+     * // Get one GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymAssistedCheckInChallengeFindUniqueArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeFindUniqueArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymAssistedCheckInChallenge that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymAssistedCheckInChallengeFindUniqueOrThrowArgs} args - Arguments to find a GymAssistedCheckInChallenge
+     * @example
+     * // Get one GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymAssistedCheckInChallengeFindUniqueOrThrowArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInChallenge that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeFindFirstArgs} args - Arguments to find a GymAssistedCheckInChallenge
+     * @example
+     * // Get one GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymAssistedCheckInChallengeFindFirstArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeFindFirstArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInChallenge that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeFindFirstOrThrowArgs} args - Arguments to find a GymAssistedCheckInChallenge
+     * @example
+     * // Get one GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymAssistedCheckInChallengeFindFirstOrThrowArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymAssistedCheckInChallenges that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymAssistedCheckInChallenges
+     * const gymAssistedCheckInChallenges = await prisma.gymAssistedCheckInChallenge.findMany()
+     * 
+     * // Get first 10 GymAssistedCheckInChallenges
+     * const gymAssistedCheckInChallenges = await prisma.gymAssistedCheckInChallenge.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymAssistedCheckInChallengeWithIdOnly = await prisma.gymAssistedCheckInChallenge.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymAssistedCheckInChallengeFindManyArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymAssistedCheckInChallenge.
+     * @param {GymAssistedCheckInChallengeCreateArgs} args - Arguments to create a GymAssistedCheckInChallenge.
+     * @example
+     * // Create one GymAssistedCheckInChallenge
+     * const GymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.create({
+     *   data: {
+     *     // ... data to create a GymAssistedCheckInChallenge
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymAssistedCheckInChallengeCreateArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeCreateArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymAssistedCheckInChallenges.
+     * @param {GymAssistedCheckInChallengeCreateManyArgs} args - Arguments to create many GymAssistedCheckInChallenges.
+     * @example
+     * // Create many GymAssistedCheckInChallenges
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymAssistedCheckInChallengeCreateManyArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymAssistedCheckInChallenges and returns the data saved in the database.
+     * @param {GymAssistedCheckInChallengeCreateManyAndReturnArgs} args - Arguments to create many GymAssistedCheckInChallenges.
+     * @example
+     * // Create many GymAssistedCheckInChallenges
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymAssistedCheckInChallenges and only return the `id`
+     * const gymAssistedCheckInChallengeWithIdOnly = await prisma.gymAssistedCheckInChallenge.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymAssistedCheckInChallengeCreateManyAndReturnArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymAssistedCheckInChallenge.
+     * @param {GymAssistedCheckInChallengeDeleteArgs} args - Arguments to delete one GymAssistedCheckInChallenge.
+     * @example
+     * // Delete one GymAssistedCheckInChallenge
+     * const GymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.delete({
+     *   where: {
+     *     // ... filter to delete one GymAssistedCheckInChallenge
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymAssistedCheckInChallengeDeleteArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeDeleteArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymAssistedCheckInChallenge.
+     * @param {GymAssistedCheckInChallengeUpdateArgs} args - Arguments to update one GymAssistedCheckInChallenge.
+     * @example
+     * // Update one GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymAssistedCheckInChallengeUpdateArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeUpdateArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymAssistedCheckInChallenges.
+     * @param {GymAssistedCheckInChallengeDeleteManyArgs} args - Arguments to filter GymAssistedCheckInChallenges to delete.
+     * @example
+     * // Delete a few GymAssistedCheckInChallenges
+     * const { count } = await prisma.gymAssistedCheckInChallenge.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymAssistedCheckInChallengeDeleteManyArgs>(args?: SelectSubset<T, GymAssistedCheckInChallengeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymAssistedCheckInChallenges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymAssistedCheckInChallenges
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymAssistedCheckInChallengeUpdateManyArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymAssistedCheckInChallenge.
+     * @param {GymAssistedCheckInChallengeUpsertArgs} args - Arguments to update or create a GymAssistedCheckInChallenge.
+     * @example
+     * // Update or create a GymAssistedCheckInChallenge
+     * const gymAssistedCheckInChallenge = await prisma.gymAssistedCheckInChallenge.upsert({
+     *   create: {
+     *     // ... data to create a GymAssistedCheckInChallenge
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInChallenge we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymAssistedCheckInChallengeUpsertArgs>(args: SelectSubset<T, GymAssistedCheckInChallengeUpsertArgs<ExtArgs>>): Prisma__GymAssistedCheckInChallengeClient<$Result.GetResult<Prisma.$GymAssistedCheckInChallengePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymAssistedCheckInChallenges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeCountArgs} args - Arguments to filter GymAssistedCheckInChallenges to count.
+     * @example
+     * // Count the number of GymAssistedCheckInChallenges
+     * const count = await prisma.gymAssistedCheckInChallenge.count({
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInChallenges we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymAssistedCheckInChallengeCountArgs>(
+      args?: Subset<T, GymAssistedCheckInChallengeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymAssistedCheckInChallengeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymAssistedCheckInChallenge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymAssistedCheckInChallengeAggregateArgs>(args: Subset<T, GymAssistedCheckInChallengeAggregateArgs>): Prisma.PrismaPromise<GetGymAssistedCheckInChallengeAggregateType<T>>
+
+    /**
+     * Group by GymAssistedCheckInChallenge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInChallengeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymAssistedCheckInChallengeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymAssistedCheckInChallengeGroupByArgs['orderBy'] }
+        : { orderBy?: GymAssistedCheckInChallengeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymAssistedCheckInChallengeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymAssistedCheckInChallengeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymAssistedCheckInChallenge model
+   */
+  readonly fields: GymAssistedCheckInChallengeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymAssistedCheckInChallenge.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymAssistedCheckInChallengeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymAssistedCheckInChallenge model
+   */ 
+  interface GymAssistedCheckInChallengeFieldRefs {
+    readonly id: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly gymId: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly membershipId: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly clientId: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly staffUserId: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly otpHash: FieldRef<"GymAssistedCheckInChallenge", 'String'>
+    readonly expiresAt: FieldRef<"GymAssistedCheckInChallenge", 'DateTime'>
+    readonly attempts: FieldRef<"GymAssistedCheckInChallenge", 'Int'>
+    readonly maxAttempts: FieldRef<"GymAssistedCheckInChallenge", 'Int'>
+    readonly lockedAt: FieldRef<"GymAssistedCheckInChallenge", 'DateTime'>
+    readonly consumedAt: FieldRef<"GymAssistedCheckInChallenge", 'DateTime'>
+    readonly createdAt: FieldRef<"GymAssistedCheckInChallenge", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymAssistedCheckInChallenge findUnique
+   */
+  export type GymAssistedCheckInChallengeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInChallenge to fetch.
+     */
+    where: GymAssistedCheckInChallengeWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge findUniqueOrThrow
+   */
+  export type GymAssistedCheckInChallengeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInChallenge to fetch.
+     */
+    where: GymAssistedCheckInChallengeWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge findFirst
+   */
+  export type GymAssistedCheckInChallengeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInChallenge to fetch.
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInChallenges to fetch.
+     */
+    orderBy?: GymAssistedCheckInChallengeOrderByWithRelationInput | GymAssistedCheckInChallengeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInChallenges.
+     */
+    cursor?: GymAssistedCheckInChallengeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInChallenges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInChallenges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInChallenges.
+     */
+    distinct?: GymAssistedCheckInChallengeScalarFieldEnum | GymAssistedCheckInChallengeScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInChallenge findFirstOrThrow
+   */
+  export type GymAssistedCheckInChallengeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInChallenge to fetch.
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInChallenges to fetch.
+     */
+    orderBy?: GymAssistedCheckInChallengeOrderByWithRelationInput | GymAssistedCheckInChallengeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInChallenges.
+     */
+    cursor?: GymAssistedCheckInChallengeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInChallenges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInChallenges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInChallenges.
+     */
+    distinct?: GymAssistedCheckInChallengeScalarFieldEnum | GymAssistedCheckInChallengeScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInChallenge findMany
+   */
+  export type GymAssistedCheckInChallengeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInChallenges to fetch.
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInChallenges to fetch.
+     */
+    orderBy?: GymAssistedCheckInChallengeOrderByWithRelationInput | GymAssistedCheckInChallengeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymAssistedCheckInChallenges.
+     */
+    cursor?: GymAssistedCheckInChallengeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInChallenges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInChallenges.
+     */
+    skip?: number
+    distinct?: GymAssistedCheckInChallengeScalarFieldEnum | GymAssistedCheckInChallengeScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInChallenge create
+   */
+  export type GymAssistedCheckInChallengeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * The data needed to create a GymAssistedCheckInChallenge.
+     */
+    data: XOR<GymAssistedCheckInChallengeCreateInput, GymAssistedCheckInChallengeUncheckedCreateInput>
+  }
+
+  /**
+   * GymAssistedCheckInChallenge createMany
+   */
+  export type GymAssistedCheckInChallengeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymAssistedCheckInChallenges.
+     */
+    data: GymAssistedCheckInChallengeCreateManyInput | GymAssistedCheckInChallengeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInChallenge createManyAndReturn
+   */
+  export type GymAssistedCheckInChallengeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymAssistedCheckInChallenges.
+     */
+    data: GymAssistedCheckInChallengeCreateManyInput | GymAssistedCheckInChallengeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInChallenge update
+   */
+  export type GymAssistedCheckInChallengeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * The data needed to update a GymAssistedCheckInChallenge.
+     */
+    data: XOR<GymAssistedCheckInChallengeUpdateInput, GymAssistedCheckInChallengeUncheckedUpdateInput>
+    /**
+     * Choose, which GymAssistedCheckInChallenge to update.
+     */
+    where: GymAssistedCheckInChallengeWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge updateMany
+   */
+  export type GymAssistedCheckInChallengeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymAssistedCheckInChallenges.
+     */
+    data: XOR<GymAssistedCheckInChallengeUpdateManyMutationInput, GymAssistedCheckInChallengeUncheckedUpdateManyInput>
+    /**
+     * Filter which GymAssistedCheckInChallenges to update
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge upsert
+   */
+  export type GymAssistedCheckInChallengeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * The filter to search for the GymAssistedCheckInChallenge to update in case it exists.
+     */
+    where: GymAssistedCheckInChallengeWhereUniqueInput
+    /**
+     * In case the GymAssistedCheckInChallenge found by the `where` argument doesn't exist, create a new GymAssistedCheckInChallenge with this data.
+     */
+    create: XOR<GymAssistedCheckInChallengeCreateInput, GymAssistedCheckInChallengeUncheckedCreateInput>
+    /**
+     * In case the GymAssistedCheckInChallenge was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymAssistedCheckInChallengeUpdateInput, GymAssistedCheckInChallengeUncheckedUpdateInput>
+  }
+
+  /**
+   * GymAssistedCheckInChallenge delete
+   */
+  export type GymAssistedCheckInChallengeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+    /**
+     * Filter which GymAssistedCheckInChallenge to delete.
+     */
+    where: GymAssistedCheckInChallengeWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge deleteMany
+   */
+  export type GymAssistedCheckInChallengeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInChallenges to delete
+     */
+    where?: GymAssistedCheckInChallengeWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInChallenge without action
+   */
+  export type GymAssistedCheckInChallengeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInChallenge
+     */
+    select?: GymAssistedCheckInChallengeSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymAssistedCheckInException
+   */
+
+  export type AggregateGymAssistedCheckInException = {
+    _count: GymAssistedCheckInExceptionCountAggregateOutputType | null
+    _min: GymAssistedCheckInExceptionMinAggregateOutputType | null
+    _max: GymAssistedCheckInExceptionMaxAggregateOutputType | null
+  }
+
+  export type GymAssistedCheckInExceptionMinAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    membershipId: string | null
+    clientId: string | null
+    requestedBy: string | null
+    requestReason: string | null
+    status: $Enums.AssistedExceptionStatus | null
+    decidedBy: string | null
+    decidedByRole: $Enums.PartnerAccountRole | null
+    decisionReason: string | null
+    decidedAt: Date | null
+    expiresAt: Date | null
+    usedCheckinId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymAssistedCheckInExceptionMaxAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    membershipId: string | null
+    clientId: string | null
+    requestedBy: string | null
+    requestReason: string | null
+    status: $Enums.AssistedExceptionStatus | null
+    decidedBy: string | null
+    decidedByRole: $Enums.PartnerAccountRole | null
+    decisionReason: string | null
+    decidedAt: Date | null
+    expiresAt: Date | null
+    usedCheckinId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymAssistedCheckInExceptionCountAggregateOutputType = {
+    id: number
+    gymId: number
+    membershipId: number
+    clientId: number
+    requestedBy: number
+    requestReason: number
+    status: number
+    decidedBy: number
+    decidedByRole: number
+    decisionReason: number
+    decidedAt: number
+    expiresAt: number
+    usedCheckinId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymAssistedCheckInExceptionMinAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    requestedBy?: true
+    requestReason?: true
+    status?: true
+    decidedBy?: true
+    decidedByRole?: true
+    decisionReason?: true
+    decidedAt?: true
+    expiresAt?: true
+    usedCheckinId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymAssistedCheckInExceptionMaxAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    requestedBy?: true
+    requestReason?: true
+    status?: true
+    decidedBy?: true
+    decidedByRole?: true
+    decisionReason?: true
+    decidedAt?: true
+    expiresAt?: true
+    usedCheckinId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymAssistedCheckInExceptionCountAggregateInputType = {
+    id?: true
+    gymId?: true
+    membershipId?: true
+    clientId?: true
+    requestedBy?: true
+    requestReason?: true
+    status?: true
+    decidedBy?: true
+    decidedByRole?: true
+    decisionReason?: true
+    decidedAt?: true
+    expiresAt?: true
+    usedCheckinId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymAssistedCheckInExceptionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInException to aggregate.
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInExceptions to fetch.
+     */
+    orderBy?: GymAssistedCheckInExceptionOrderByWithRelationInput | GymAssistedCheckInExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymAssistedCheckInExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymAssistedCheckInExceptions
+    **/
+    _count?: true | GymAssistedCheckInExceptionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymAssistedCheckInExceptionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymAssistedCheckInExceptionMaxAggregateInputType
+  }
+
+  export type GetGymAssistedCheckInExceptionAggregateType<T extends GymAssistedCheckInExceptionAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymAssistedCheckInException]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymAssistedCheckInException[P]>
+      : GetScalarType<T[P], AggregateGymAssistedCheckInException[P]>
+  }
+
+
+
+
+  export type GymAssistedCheckInExceptionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymAssistedCheckInExceptionWhereInput
+    orderBy?: GymAssistedCheckInExceptionOrderByWithAggregationInput | GymAssistedCheckInExceptionOrderByWithAggregationInput[]
+    by: GymAssistedCheckInExceptionScalarFieldEnum[] | GymAssistedCheckInExceptionScalarFieldEnum
+    having?: GymAssistedCheckInExceptionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymAssistedCheckInExceptionCountAggregateInputType | true
+    _min?: GymAssistedCheckInExceptionMinAggregateInputType
+    _max?: GymAssistedCheckInExceptionMaxAggregateInputType
+  }
+
+  export type GymAssistedCheckInExceptionGroupByOutputType = {
+    id: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    requestedBy: string
+    requestReason: string
+    status: $Enums.AssistedExceptionStatus
+    decidedBy: string | null
+    decidedByRole: $Enums.PartnerAccountRole | null
+    decisionReason: string | null
+    decidedAt: Date | null
+    expiresAt: Date
+    usedCheckinId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymAssistedCheckInExceptionCountAggregateOutputType | null
+    _min: GymAssistedCheckInExceptionMinAggregateOutputType | null
+    _max: GymAssistedCheckInExceptionMaxAggregateOutputType | null
+  }
+
+  type GetGymAssistedCheckInExceptionGroupByPayload<T extends GymAssistedCheckInExceptionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymAssistedCheckInExceptionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymAssistedCheckInExceptionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymAssistedCheckInExceptionGroupByOutputType[P]>
+            : GetScalarType<T[P], GymAssistedCheckInExceptionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymAssistedCheckInExceptionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    requestedBy?: boolean
+    requestReason?: boolean
+    status?: boolean
+    decidedBy?: boolean
+    decidedByRole?: boolean
+    decisionReason?: boolean
+    decidedAt?: boolean
+    expiresAt?: boolean
+    usedCheckinId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInException"]>
+
+  export type GymAssistedCheckInExceptionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    requestedBy?: boolean
+    requestReason?: boolean
+    status?: boolean
+    decidedBy?: boolean
+    decidedByRole?: boolean
+    decisionReason?: boolean
+    decidedAt?: boolean
+    expiresAt?: boolean
+    usedCheckinId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["gymAssistedCheckInException"]>
+
+  export type GymAssistedCheckInExceptionSelectScalar = {
+    id?: boolean
+    gymId?: boolean
+    membershipId?: boolean
+    clientId?: boolean
+    requestedBy?: boolean
+    requestReason?: boolean
+    status?: boolean
+    decidedBy?: boolean
+    decidedByRole?: boolean
+    decisionReason?: boolean
+    decidedAt?: boolean
+    expiresAt?: boolean
+    usedCheckinId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $GymAssistedCheckInExceptionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymAssistedCheckInException"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      gymId: string
+      membershipId: string
+      clientId: string
+      requestedBy: string
+      requestReason: string
+      status: $Enums.AssistedExceptionStatus
+      decidedBy: string | null
+      decidedByRole: $Enums.PartnerAccountRole | null
+      decisionReason: string | null
+      decidedAt: Date | null
+      expiresAt: Date
+      usedCheckinId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymAssistedCheckInException"]>
+    composites: {}
+  }
+
+  type GymAssistedCheckInExceptionGetPayload<S extends boolean | null | undefined | GymAssistedCheckInExceptionDefaultArgs> = $Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload, S>
+
+  type GymAssistedCheckInExceptionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymAssistedCheckInExceptionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymAssistedCheckInExceptionCountAggregateInputType | true
+    }
+
+  export interface GymAssistedCheckInExceptionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymAssistedCheckInException'], meta: { name: 'GymAssistedCheckInException' } }
+    /**
+     * Find zero or one GymAssistedCheckInException that matches the filter.
+     * @param {GymAssistedCheckInExceptionFindUniqueArgs} args - Arguments to find a GymAssistedCheckInException
+     * @example
+     * // Get one GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymAssistedCheckInExceptionFindUniqueArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionFindUniqueArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymAssistedCheckInException that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymAssistedCheckInExceptionFindUniqueOrThrowArgs} args - Arguments to find a GymAssistedCheckInException
+     * @example
+     * // Get one GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymAssistedCheckInExceptionFindUniqueOrThrowArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInException that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionFindFirstArgs} args - Arguments to find a GymAssistedCheckInException
+     * @example
+     * // Get one GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymAssistedCheckInExceptionFindFirstArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionFindFirstArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymAssistedCheckInException that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionFindFirstOrThrowArgs} args - Arguments to find a GymAssistedCheckInException
+     * @example
+     * // Get one GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymAssistedCheckInExceptionFindFirstOrThrowArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymAssistedCheckInExceptions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymAssistedCheckInExceptions
+     * const gymAssistedCheckInExceptions = await prisma.gymAssistedCheckInException.findMany()
+     * 
+     * // Get first 10 GymAssistedCheckInExceptions
+     * const gymAssistedCheckInExceptions = await prisma.gymAssistedCheckInException.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymAssistedCheckInExceptionWithIdOnly = await prisma.gymAssistedCheckInException.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymAssistedCheckInExceptionFindManyArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymAssistedCheckInException.
+     * @param {GymAssistedCheckInExceptionCreateArgs} args - Arguments to create a GymAssistedCheckInException.
+     * @example
+     * // Create one GymAssistedCheckInException
+     * const GymAssistedCheckInException = await prisma.gymAssistedCheckInException.create({
+     *   data: {
+     *     // ... data to create a GymAssistedCheckInException
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymAssistedCheckInExceptionCreateArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionCreateArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymAssistedCheckInExceptions.
+     * @param {GymAssistedCheckInExceptionCreateManyArgs} args - Arguments to create many GymAssistedCheckInExceptions.
+     * @example
+     * // Create many GymAssistedCheckInExceptions
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymAssistedCheckInExceptionCreateManyArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymAssistedCheckInExceptions and returns the data saved in the database.
+     * @param {GymAssistedCheckInExceptionCreateManyAndReturnArgs} args - Arguments to create many GymAssistedCheckInExceptions.
+     * @example
+     * // Create many GymAssistedCheckInExceptions
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymAssistedCheckInExceptions and only return the `id`
+     * const gymAssistedCheckInExceptionWithIdOnly = await prisma.gymAssistedCheckInException.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymAssistedCheckInExceptionCreateManyAndReturnArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymAssistedCheckInException.
+     * @param {GymAssistedCheckInExceptionDeleteArgs} args - Arguments to delete one GymAssistedCheckInException.
+     * @example
+     * // Delete one GymAssistedCheckInException
+     * const GymAssistedCheckInException = await prisma.gymAssistedCheckInException.delete({
+     *   where: {
+     *     // ... filter to delete one GymAssistedCheckInException
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymAssistedCheckInExceptionDeleteArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionDeleteArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymAssistedCheckInException.
+     * @param {GymAssistedCheckInExceptionUpdateArgs} args - Arguments to update one GymAssistedCheckInException.
+     * @example
+     * // Update one GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymAssistedCheckInExceptionUpdateArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionUpdateArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymAssistedCheckInExceptions.
+     * @param {GymAssistedCheckInExceptionDeleteManyArgs} args - Arguments to filter GymAssistedCheckInExceptions to delete.
+     * @example
+     * // Delete a few GymAssistedCheckInExceptions
+     * const { count } = await prisma.gymAssistedCheckInException.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymAssistedCheckInExceptionDeleteManyArgs>(args?: SelectSubset<T, GymAssistedCheckInExceptionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymAssistedCheckInExceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymAssistedCheckInExceptions
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymAssistedCheckInExceptionUpdateManyArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymAssistedCheckInException.
+     * @param {GymAssistedCheckInExceptionUpsertArgs} args - Arguments to update or create a GymAssistedCheckInException.
+     * @example
+     * // Update or create a GymAssistedCheckInException
+     * const gymAssistedCheckInException = await prisma.gymAssistedCheckInException.upsert({
+     *   create: {
+     *     // ... data to create a GymAssistedCheckInException
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInException we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymAssistedCheckInExceptionUpsertArgs>(args: SelectSubset<T, GymAssistedCheckInExceptionUpsertArgs<ExtArgs>>): Prisma__GymAssistedCheckInExceptionClient<$Result.GetResult<Prisma.$GymAssistedCheckInExceptionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymAssistedCheckInExceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionCountArgs} args - Arguments to filter GymAssistedCheckInExceptions to count.
+     * @example
+     * // Count the number of GymAssistedCheckInExceptions
+     * const count = await prisma.gymAssistedCheckInException.count({
+     *   where: {
+     *     // ... the filter for the GymAssistedCheckInExceptions we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymAssistedCheckInExceptionCountArgs>(
+      args?: Subset<T, GymAssistedCheckInExceptionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymAssistedCheckInExceptionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymAssistedCheckInException.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymAssistedCheckInExceptionAggregateArgs>(args: Subset<T, GymAssistedCheckInExceptionAggregateArgs>): Prisma.PrismaPromise<GetGymAssistedCheckInExceptionAggregateType<T>>
+
+    /**
+     * Group by GymAssistedCheckInException.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymAssistedCheckInExceptionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymAssistedCheckInExceptionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymAssistedCheckInExceptionGroupByArgs['orderBy'] }
+        : { orderBy?: GymAssistedCheckInExceptionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymAssistedCheckInExceptionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymAssistedCheckInExceptionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymAssistedCheckInException model
+   */
+  readonly fields: GymAssistedCheckInExceptionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymAssistedCheckInException.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymAssistedCheckInExceptionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymAssistedCheckInException model
+   */ 
+  interface GymAssistedCheckInExceptionFieldRefs {
+    readonly id: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly gymId: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly membershipId: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly clientId: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly requestedBy: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly requestReason: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly status: FieldRef<"GymAssistedCheckInException", 'AssistedExceptionStatus'>
+    readonly decidedBy: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly decidedByRole: FieldRef<"GymAssistedCheckInException", 'PartnerAccountRole'>
+    readonly decisionReason: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly decidedAt: FieldRef<"GymAssistedCheckInException", 'DateTime'>
+    readonly expiresAt: FieldRef<"GymAssistedCheckInException", 'DateTime'>
+    readonly usedCheckinId: FieldRef<"GymAssistedCheckInException", 'String'>
+    readonly createdAt: FieldRef<"GymAssistedCheckInException", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymAssistedCheckInException", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymAssistedCheckInException findUnique
+   */
+  export type GymAssistedCheckInExceptionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInException to fetch.
+     */
+    where: GymAssistedCheckInExceptionWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInException findUniqueOrThrow
+   */
+  export type GymAssistedCheckInExceptionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInException to fetch.
+     */
+    where: GymAssistedCheckInExceptionWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInException findFirst
+   */
+  export type GymAssistedCheckInExceptionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInException to fetch.
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInExceptions to fetch.
+     */
+    orderBy?: GymAssistedCheckInExceptionOrderByWithRelationInput | GymAssistedCheckInExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInExceptions.
+     */
+    cursor?: GymAssistedCheckInExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInExceptions.
+     */
+    distinct?: GymAssistedCheckInExceptionScalarFieldEnum | GymAssistedCheckInExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInException findFirstOrThrow
+   */
+  export type GymAssistedCheckInExceptionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInException to fetch.
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInExceptions to fetch.
+     */
+    orderBy?: GymAssistedCheckInExceptionOrderByWithRelationInput | GymAssistedCheckInExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymAssistedCheckInExceptions.
+     */
+    cursor?: GymAssistedCheckInExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymAssistedCheckInExceptions.
+     */
+    distinct?: GymAssistedCheckInExceptionScalarFieldEnum | GymAssistedCheckInExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInException findMany
+   */
+  export type GymAssistedCheckInExceptionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which GymAssistedCheckInExceptions to fetch.
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymAssistedCheckInExceptions to fetch.
+     */
+    orderBy?: GymAssistedCheckInExceptionOrderByWithRelationInput | GymAssistedCheckInExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymAssistedCheckInExceptions.
+     */
+    cursor?: GymAssistedCheckInExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymAssistedCheckInExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymAssistedCheckInExceptions.
+     */
+    skip?: number
+    distinct?: GymAssistedCheckInExceptionScalarFieldEnum | GymAssistedCheckInExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * GymAssistedCheckInException create
+   */
+  export type GymAssistedCheckInExceptionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a GymAssistedCheckInException.
+     */
+    data: XOR<GymAssistedCheckInExceptionCreateInput, GymAssistedCheckInExceptionUncheckedCreateInput>
+  }
+
+  /**
+   * GymAssistedCheckInException createMany
+   */
+  export type GymAssistedCheckInExceptionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymAssistedCheckInExceptions.
+     */
+    data: GymAssistedCheckInExceptionCreateManyInput | GymAssistedCheckInExceptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInException createManyAndReturn
+   */
+  export type GymAssistedCheckInExceptionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymAssistedCheckInExceptions.
+     */
+    data: GymAssistedCheckInExceptionCreateManyInput | GymAssistedCheckInExceptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymAssistedCheckInException update
+   */
+  export type GymAssistedCheckInExceptionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a GymAssistedCheckInException.
+     */
+    data: XOR<GymAssistedCheckInExceptionUpdateInput, GymAssistedCheckInExceptionUncheckedUpdateInput>
+    /**
+     * Choose, which GymAssistedCheckInException to update.
+     */
+    where: GymAssistedCheckInExceptionWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInException updateMany
+   */
+  export type GymAssistedCheckInExceptionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymAssistedCheckInExceptions.
+     */
+    data: XOR<GymAssistedCheckInExceptionUpdateManyMutationInput, GymAssistedCheckInExceptionUncheckedUpdateManyInput>
+    /**
+     * Filter which GymAssistedCheckInExceptions to update
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInException upsert
+   */
+  export type GymAssistedCheckInExceptionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the GymAssistedCheckInException to update in case it exists.
+     */
+    where: GymAssistedCheckInExceptionWhereUniqueInput
+    /**
+     * In case the GymAssistedCheckInException found by the `where` argument doesn't exist, create a new GymAssistedCheckInException with this data.
+     */
+    create: XOR<GymAssistedCheckInExceptionCreateInput, GymAssistedCheckInExceptionUncheckedCreateInput>
+    /**
+     * In case the GymAssistedCheckInException was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymAssistedCheckInExceptionUpdateInput, GymAssistedCheckInExceptionUncheckedUpdateInput>
+  }
+
+  /**
+   * GymAssistedCheckInException delete
+   */
+  export type GymAssistedCheckInExceptionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+    /**
+     * Filter which GymAssistedCheckInException to delete.
+     */
+    where: GymAssistedCheckInExceptionWhereUniqueInput
+  }
+
+  /**
+   * GymAssistedCheckInException deleteMany
+   */
+  export type GymAssistedCheckInExceptionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymAssistedCheckInExceptions to delete
+     */
+    where?: GymAssistedCheckInExceptionWhereInput
+  }
+
+  /**
+   * GymAssistedCheckInException without action
+   */
+  export type GymAssistedCheckInExceptionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymAssistedCheckInException
+     */
+    select?: GymAssistedCheckInExceptionSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -43992,6 +47378,7 @@ export namespace Prisma {
     payoutReleasedAt: 'payoutReleasedAt',
     multiGymWarned: 'multiGymWarned',
     refundClawbackDone: 'refundClawbackDone',
+    memberCode: 'memberCode',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -44022,6 +47409,8 @@ export namespace Prisma {
     gymId: 'gymId',
     clientId: 'clientId',
     checkedInBy: 'checkedInBy',
+    source: 'source',
+    assistedEventId: 'assistedEventId',
     createdAt: 'createdAt'
   };
 
@@ -44265,6 +47654,68 @@ export namespace Prisma {
   };
 
   export type AmenityAuditLogScalarFieldEnum = (typeof AmenityAuditLogScalarFieldEnum)[keyof typeof AmenityAuditLogScalarFieldEnum]
+
+
+  export const GymAssistedCheckInEventScalarFieldEnum: {
+    id: 'id',
+    eventType: 'eventType',
+    gymId: 'gymId',
+    staffUserId: 'staffUserId',
+    staffRole: 'staffRole',
+    membershipId: 'membershipId',
+    clientId: 'clientId',
+    method: 'method',
+    outcome: 'outcome',
+    reason: 'reason',
+    idempotencyKey: 'idempotencyKey',
+    requestHash: 'requestHash',
+    checkinId: 'checkinId',
+    exceptionId: 'exceptionId',
+    challengeId: 'challengeId',
+    details: 'details',
+    createdAt: 'createdAt'
+  };
+
+  export type GymAssistedCheckInEventScalarFieldEnum = (typeof GymAssistedCheckInEventScalarFieldEnum)[keyof typeof GymAssistedCheckInEventScalarFieldEnum]
+
+
+  export const GymAssistedCheckInChallengeScalarFieldEnum: {
+    id: 'id',
+    gymId: 'gymId',
+    membershipId: 'membershipId',
+    clientId: 'clientId',
+    staffUserId: 'staffUserId',
+    otpHash: 'otpHash',
+    expiresAt: 'expiresAt',
+    attempts: 'attempts',
+    maxAttempts: 'maxAttempts',
+    lockedAt: 'lockedAt',
+    consumedAt: 'consumedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type GymAssistedCheckInChallengeScalarFieldEnum = (typeof GymAssistedCheckInChallengeScalarFieldEnum)[keyof typeof GymAssistedCheckInChallengeScalarFieldEnum]
+
+
+  export const GymAssistedCheckInExceptionScalarFieldEnum: {
+    id: 'id',
+    gymId: 'gymId',
+    membershipId: 'membershipId',
+    clientId: 'clientId',
+    requestedBy: 'requestedBy',
+    requestReason: 'requestReason',
+    status: 'status',
+    decidedBy: 'decidedBy',
+    decidedByRole: 'decidedByRole',
+    decisionReason: 'decisionReason',
+    decidedAt: 'decidedAt',
+    expiresAt: 'expiresAt',
+    usedCheckinId: 'usedCheckinId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymAssistedCheckInExceptionScalarFieldEnum = (typeof GymAssistedCheckInExceptionScalarFieldEnum)[keyof typeof GymAssistedCheckInExceptionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -44895,6 +48346,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'GymCheckInSource'
+   */
+  export type EnumGymCheckInSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCheckInSource'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymCheckInSource[]'
+   */
+  export type ListEnumGymCheckInSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymCheckInSource[]'>
+    
+
+
+  /**
    * Reference to a field of type 'CollaborationStatus'
    */
   export type EnumCollaborationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationStatus'>
@@ -45045,6 +48510,48 @@ export namespace Prisma {
    * Reference to a field of type 'LegacyCompatEntityType[]'
    */
   export type ListEnumLegacyCompatEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LegacyCompatEntityType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedCheckInEventType'
+   */
+  export type EnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedCheckInEventType'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedCheckInEventType[]'
+   */
+  export type ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedCheckInEventType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedCheckInMethod'
+   */
+  export type EnumAssistedCheckInMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedCheckInMethod'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedCheckInMethod[]'
+   */
+  export type ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedCheckInMethod[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedExceptionStatus'
+   */
+  export type EnumAssistedExceptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedExceptionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AssistedExceptionStatus[]'
+   */
+  export type ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistedExceptionStatus[]'>
     
   /**
    * Deep Input Types
@@ -47032,6 +50539,7 @@ export namespace Prisma {
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
+    memberCode?: StringNullableFilter<"GymMembershipContract"> | string | null
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -47056,6 +50564,7 @@ export namespace Prisma {
     payoutReleasedAt?: SortOrderInput | SortOrder
     multiGymWarned?: SortOrder
     refundClawbackDone?: SortOrder
+    memberCode?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
@@ -47083,6 +50592,7 @@ export namespace Prisma {
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
+    memberCode?: StringNullableFilter<"GymMembershipContract"> | string | null
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -47107,6 +50617,7 @@ export namespace Prisma {
     payoutReleasedAt?: SortOrderInput | SortOrder
     multiGymWarned?: SortOrder
     refundClawbackDone?: SortOrder
+    memberCode?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymMembershipContractCountOrderByAggregateInput
@@ -47135,6 +50646,7 @@ export namespace Prisma {
     payoutReleasedAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolWithAggregatesFilter<"GymMembershipContract"> | boolean
     refundClawbackDone?: BoolWithAggregatesFilter<"GymMembershipContract"> | boolean
+    memberCode?: StringNullableWithAggregatesFilter<"GymMembershipContract"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
   }
@@ -47236,6 +50748,8 @@ export namespace Prisma {
     gymId?: StringFilter<"GymCheckIn"> | string
     clientId?: StringFilter<"GymCheckIn"> | string
     checkedInBy?: StringFilter<"GymCheckIn"> | string
+    source?: EnumGymCheckInSourceFilter<"GymCheckIn"> | $Enums.GymCheckInSource
+    assistedEventId?: StringNullableFilter<"GymCheckIn"> | string | null
     createdAt?: DateTimeFilter<"GymCheckIn"> | Date | string
     membership?: XOR<GymMembershipContractRelationFilter, GymMembershipContractWhereInput>
   }
@@ -47246,6 +50760,8 @@ export namespace Prisma {
     gymId?: SortOrder
     clientId?: SortOrder
     checkedInBy?: SortOrder
+    source?: SortOrder
+    assistedEventId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     membership?: GymMembershipContractOrderByWithRelationInput
   }
@@ -47259,6 +50775,8 @@ export namespace Prisma {
     gymId?: StringFilter<"GymCheckIn"> | string
     clientId?: StringFilter<"GymCheckIn"> | string
     checkedInBy?: StringFilter<"GymCheckIn"> | string
+    source?: EnumGymCheckInSourceFilter<"GymCheckIn"> | $Enums.GymCheckInSource
+    assistedEventId?: StringNullableFilter<"GymCheckIn"> | string | null
     createdAt?: DateTimeFilter<"GymCheckIn"> | Date | string
     membership?: XOR<GymMembershipContractRelationFilter, GymMembershipContractWhereInput>
   }, "id">
@@ -47269,6 +50787,8 @@ export namespace Prisma {
     gymId?: SortOrder
     clientId?: SortOrder
     checkedInBy?: SortOrder
+    source?: SortOrder
+    assistedEventId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: GymCheckInCountOrderByAggregateInput
     _max?: GymCheckInMaxOrderByAggregateInput
@@ -47284,6 +50804,8 @@ export namespace Prisma {
     gymId?: StringWithAggregatesFilter<"GymCheckIn"> | string
     clientId?: StringWithAggregatesFilter<"GymCheckIn"> | string
     checkedInBy?: StringWithAggregatesFilter<"GymCheckIn"> | string
+    source?: EnumGymCheckInSourceWithAggregatesFilter<"GymCheckIn"> | $Enums.GymCheckInSource
+    assistedEventId?: StringNullableWithAggregatesFilter<"GymCheckIn"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymCheckIn"> | Date | string
   }
 
@@ -48515,6 +52037,309 @@ export namespace Prisma {
     after?: JsonNullableWithAggregatesFilter<"AmenityAuditLog">
     reason?: StringNullableWithAggregatesFilter<"AmenityAuditLog"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AmenityAuditLog"> | Date | string
+  }
+
+  export type GymAssistedCheckInEventWhereInput = {
+    AND?: GymAssistedCheckInEventWhereInput | GymAssistedCheckInEventWhereInput[]
+    OR?: GymAssistedCheckInEventWhereInput[]
+    NOT?: GymAssistedCheckInEventWhereInput | GymAssistedCheckInEventWhereInput[]
+    id?: StringFilter<"GymAssistedCheckInEvent"> | string
+    eventType?: EnumAssistedCheckInEventTypeFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInEventType
+    gymId?: StringFilter<"GymAssistedCheckInEvent"> | string
+    staffUserId?: StringFilter<"GymAssistedCheckInEvent"> | string
+    staffRole?: EnumPartnerAccountRoleNullableFilter<"GymAssistedCheckInEvent"> | $Enums.PartnerAccountRole | null
+    membershipId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    clientId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    method?: EnumAssistedCheckInMethodNullableFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFilter<"GymAssistedCheckInEvent"> | string
+    reason?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    requestHash?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    checkinId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    exceptionId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    challengeId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    details?: JsonNullableFilter<"GymAssistedCheckInEvent">
+    createdAt?: DateTimeFilter<"GymAssistedCheckInEvent"> | Date | string
+  }
+
+  export type GymAssistedCheckInEventOrderByWithRelationInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    gymId?: SortOrder
+    staffUserId?: SortOrder
+    staffRole?: SortOrderInput | SortOrder
+    membershipId?: SortOrderInput | SortOrder
+    clientId?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    requestHash?: SortOrderInput | SortOrder
+    checkinId?: SortOrderInput | SortOrder
+    exceptionId?: SortOrderInput | SortOrder
+    challengeId?: SortOrderInput | SortOrder
+    details?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymAssistedCheckInEventWhereInput | GymAssistedCheckInEventWhereInput[]
+    OR?: GymAssistedCheckInEventWhereInput[]
+    NOT?: GymAssistedCheckInEventWhereInput | GymAssistedCheckInEventWhereInput[]
+    eventType?: EnumAssistedCheckInEventTypeFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInEventType
+    gymId?: StringFilter<"GymAssistedCheckInEvent"> | string
+    staffUserId?: StringFilter<"GymAssistedCheckInEvent"> | string
+    staffRole?: EnumPartnerAccountRoleNullableFilter<"GymAssistedCheckInEvent"> | $Enums.PartnerAccountRole | null
+    membershipId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    clientId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    method?: EnumAssistedCheckInMethodNullableFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFilter<"GymAssistedCheckInEvent"> | string
+    reason?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    idempotencyKey?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    requestHash?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    checkinId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    exceptionId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    challengeId?: StringNullableFilter<"GymAssistedCheckInEvent"> | string | null
+    details?: JsonNullableFilter<"GymAssistedCheckInEvent">
+    createdAt?: DateTimeFilter<"GymAssistedCheckInEvent"> | Date | string
+  }, "id">
+
+  export type GymAssistedCheckInEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    gymId?: SortOrder
+    staffUserId?: SortOrder
+    staffRole?: SortOrderInput | SortOrder
+    membershipId?: SortOrderInput | SortOrder
+    clientId?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
+    outcome?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    requestHash?: SortOrderInput | SortOrder
+    checkinId?: SortOrderInput | SortOrder
+    exceptionId?: SortOrderInput | SortOrder
+    challengeId?: SortOrderInput | SortOrder
+    details?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymAssistedCheckInEventCountOrderByAggregateInput
+    _max?: GymAssistedCheckInEventMaxOrderByAggregateInput
+    _min?: GymAssistedCheckInEventMinOrderByAggregateInput
+  }
+
+  export type GymAssistedCheckInEventScalarWhereWithAggregatesInput = {
+    AND?: GymAssistedCheckInEventScalarWhereWithAggregatesInput | GymAssistedCheckInEventScalarWhereWithAggregatesInput[]
+    OR?: GymAssistedCheckInEventScalarWhereWithAggregatesInput[]
+    NOT?: GymAssistedCheckInEventScalarWhereWithAggregatesInput | GymAssistedCheckInEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymAssistedCheckInEvent"> | string
+    eventType?: EnumAssistedCheckInEventTypeWithAggregatesFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInEventType
+    gymId?: StringWithAggregatesFilter<"GymAssistedCheckInEvent"> | string
+    staffUserId?: StringWithAggregatesFilter<"GymAssistedCheckInEvent"> | string
+    staffRole?: EnumPartnerAccountRoleNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | $Enums.PartnerAccountRole | null
+    membershipId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    clientId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    method?: EnumAssistedCheckInMethodNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | $Enums.AssistedCheckInMethod | null
+    outcome?: StringWithAggregatesFilter<"GymAssistedCheckInEvent"> | string
+    reason?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    idempotencyKey?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    requestHash?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    checkinId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    exceptionId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    challengeId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInEvent"> | string | null
+    details?: JsonNullableWithAggregatesFilter<"GymAssistedCheckInEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInEvent"> | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeWhereInput = {
+    AND?: GymAssistedCheckInChallengeWhereInput | GymAssistedCheckInChallengeWhereInput[]
+    OR?: GymAssistedCheckInChallengeWhereInput[]
+    NOT?: GymAssistedCheckInChallengeWhereInput | GymAssistedCheckInChallengeWhereInput[]
+    id?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    gymId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    membershipId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    clientId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    staffUserId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    otpHash?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    expiresAt?: DateTimeFilter<"GymAssistedCheckInChallenge"> | Date | string
+    attempts?: IntFilter<"GymAssistedCheckInChallenge"> | number
+    maxAttempts?: IntFilter<"GymAssistedCheckInChallenge"> | number
+    lockedAt?: DateTimeNullableFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    consumedAt?: DateTimeNullableFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    createdAt?: DateTimeFilter<"GymAssistedCheckInChallenge"> | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeOrderByWithRelationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    staffUserId?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+    lockedAt?: SortOrderInput | SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInChallengeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymAssistedCheckInChallengeWhereInput | GymAssistedCheckInChallengeWhereInput[]
+    OR?: GymAssistedCheckInChallengeWhereInput[]
+    NOT?: GymAssistedCheckInChallengeWhereInput | GymAssistedCheckInChallengeWhereInput[]
+    gymId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    membershipId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    clientId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    staffUserId?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    otpHash?: StringFilter<"GymAssistedCheckInChallenge"> | string
+    expiresAt?: DateTimeFilter<"GymAssistedCheckInChallenge"> | Date | string
+    attempts?: IntFilter<"GymAssistedCheckInChallenge"> | number
+    maxAttempts?: IntFilter<"GymAssistedCheckInChallenge"> | number
+    lockedAt?: DateTimeNullableFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    consumedAt?: DateTimeNullableFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    createdAt?: DateTimeFilter<"GymAssistedCheckInChallenge"> | Date | string
+  }, "id">
+
+  export type GymAssistedCheckInChallengeOrderByWithAggregationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    staffUserId?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+    lockedAt?: SortOrderInput | SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: GymAssistedCheckInChallengeCountOrderByAggregateInput
+    _avg?: GymAssistedCheckInChallengeAvgOrderByAggregateInput
+    _max?: GymAssistedCheckInChallengeMaxOrderByAggregateInput
+    _min?: GymAssistedCheckInChallengeMinOrderByAggregateInput
+    _sum?: GymAssistedCheckInChallengeSumOrderByAggregateInput
+  }
+
+  export type GymAssistedCheckInChallengeScalarWhereWithAggregatesInput = {
+    AND?: GymAssistedCheckInChallengeScalarWhereWithAggregatesInput | GymAssistedCheckInChallengeScalarWhereWithAggregatesInput[]
+    OR?: GymAssistedCheckInChallengeScalarWhereWithAggregatesInput[]
+    NOT?: GymAssistedCheckInChallengeScalarWhereWithAggregatesInput | GymAssistedCheckInChallengeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    gymId?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    membershipId?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    clientId?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    staffUserId?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    otpHash?: StringWithAggregatesFilter<"GymAssistedCheckInChallenge"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInChallenge"> | Date | string
+    attempts?: IntWithAggregatesFilter<"GymAssistedCheckInChallenge"> | number
+    maxAttempts?: IntWithAggregatesFilter<"GymAssistedCheckInChallenge"> | number
+    lockedAt?: DateTimeNullableWithAggregatesFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    consumedAt?: DateTimeNullableWithAggregatesFilter<"GymAssistedCheckInChallenge"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInChallenge"> | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionWhereInput = {
+    AND?: GymAssistedCheckInExceptionWhereInput | GymAssistedCheckInExceptionWhereInput[]
+    OR?: GymAssistedCheckInExceptionWhereInput[]
+    NOT?: GymAssistedCheckInExceptionWhereInput | GymAssistedCheckInExceptionWhereInput[]
+    id?: StringFilter<"GymAssistedCheckInException"> | string
+    gymId?: StringFilter<"GymAssistedCheckInException"> | string
+    membershipId?: StringFilter<"GymAssistedCheckInException"> | string
+    clientId?: StringFilter<"GymAssistedCheckInException"> | string
+    requestedBy?: StringFilter<"GymAssistedCheckInException"> | string
+    requestReason?: StringFilter<"GymAssistedCheckInException"> | string
+    status?: EnumAssistedExceptionStatusFilter<"GymAssistedCheckInException"> | $Enums.AssistedExceptionStatus
+    decidedBy?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    decidedByRole?: EnumPartnerAccountRoleNullableFilter<"GymAssistedCheckInException"> | $Enums.PartnerAccountRole | null
+    decisionReason?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    decidedAt?: DateTimeNullableFilter<"GymAssistedCheckInException"> | Date | string | null
+    expiresAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+    usedCheckinId?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    createdAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+    updatedAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionOrderByWithRelationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    requestedBy?: SortOrder
+    requestReason?: SortOrder
+    status?: SortOrder
+    decidedBy?: SortOrderInput | SortOrder
+    decidedByRole?: SortOrderInput | SortOrder
+    decisionReason?: SortOrderInput | SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    usedCheckinId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInExceptionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymAssistedCheckInExceptionWhereInput | GymAssistedCheckInExceptionWhereInput[]
+    OR?: GymAssistedCheckInExceptionWhereInput[]
+    NOT?: GymAssistedCheckInExceptionWhereInput | GymAssistedCheckInExceptionWhereInput[]
+    gymId?: StringFilter<"GymAssistedCheckInException"> | string
+    membershipId?: StringFilter<"GymAssistedCheckInException"> | string
+    clientId?: StringFilter<"GymAssistedCheckInException"> | string
+    requestedBy?: StringFilter<"GymAssistedCheckInException"> | string
+    requestReason?: StringFilter<"GymAssistedCheckInException"> | string
+    status?: EnumAssistedExceptionStatusFilter<"GymAssistedCheckInException"> | $Enums.AssistedExceptionStatus
+    decidedBy?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    decidedByRole?: EnumPartnerAccountRoleNullableFilter<"GymAssistedCheckInException"> | $Enums.PartnerAccountRole | null
+    decisionReason?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    decidedAt?: DateTimeNullableFilter<"GymAssistedCheckInException"> | Date | string | null
+    expiresAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+    usedCheckinId?: StringNullableFilter<"GymAssistedCheckInException"> | string | null
+    createdAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+    updatedAt?: DateTimeFilter<"GymAssistedCheckInException"> | Date | string
+  }, "id">
+
+  export type GymAssistedCheckInExceptionOrderByWithAggregationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    requestedBy?: SortOrder
+    requestReason?: SortOrder
+    status?: SortOrder
+    decidedBy?: SortOrderInput | SortOrder
+    decidedByRole?: SortOrderInput | SortOrder
+    decisionReason?: SortOrderInput | SortOrder
+    decidedAt?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    usedCheckinId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymAssistedCheckInExceptionCountOrderByAggregateInput
+    _max?: GymAssistedCheckInExceptionMaxOrderByAggregateInput
+    _min?: GymAssistedCheckInExceptionMinOrderByAggregateInput
+  }
+
+  export type GymAssistedCheckInExceptionScalarWhereWithAggregatesInput = {
+    AND?: GymAssistedCheckInExceptionScalarWhereWithAggregatesInput | GymAssistedCheckInExceptionScalarWhereWithAggregatesInput[]
+    OR?: GymAssistedCheckInExceptionScalarWhereWithAggregatesInput[]
+    NOT?: GymAssistedCheckInExceptionScalarWhereWithAggregatesInput | GymAssistedCheckInExceptionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    gymId?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    membershipId?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    clientId?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    requestedBy?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    requestReason?: StringWithAggregatesFilter<"GymAssistedCheckInException"> | string
+    status?: EnumAssistedExceptionStatusWithAggregatesFilter<"GymAssistedCheckInException"> | $Enums.AssistedExceptionStatus
+    decidedBy?: StringNullableWithAggregatesFilter<"GymAssistedCheckInException"> | string | null
+    decidedByRole?: EnumPartnerAccountRoleNullableWithAggregatesFilter<"GymAssistedCheckInException"> | $Enums.PartnerAccountRole | null
+    decisionReason?: StringNullableWithAggregatesFilter<"GymAssistedCheckInException"> | string | null
+    decidedAt?: DateTimeNullableWithAggregatesFilter<"GymAssistedCheckInException"> | Date | string | null
+    expiresAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInException"> | Date | string
+    usedCheckinId?: StringNullableWithAggregatesFilter<"GymAssistedCheckInException"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInException"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymAssistedCheckInException"> | Date | string
   }
 
   export type GymPhotoCreateInput = {
@@ -50838,6 +54663,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -50862,6 +54688,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -50882,6 +54709,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -50906,6 +54734,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -50928,6 +54757,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -50946,6 +54776,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -50966,6 +54797,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -51072,6 +54904,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
     membership: GymMembershipContractCreateNestedOneWithoutCheckInsInput
   }
@@ -51082,6 +54916,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
   }
 
@@ -51090,6 +54926,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     membership?: GymMembershipContractUpdateOneRequiredWithoutCheckInsNestedInput
   }
@@ -51100,6 +54938,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -51109,6 +54949,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
   }
 
@@ -51117,6 +54959,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -51126,6 +54970,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -52516,6 +56362,377 @@ export namespace Prisma {
     after?: NullableJsonNullValueInput | InputJsonValue
     reason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInEventCreateInput = {
+    id?: string
+    eventType: $Enums.AssistedCheckInEventType
+    gymId: string
+    staffUserId: string
+    staffRole?: $Enums.PartnerAccountRole | null
+    membershipId?: string | null
+    clientId?: string | null
+    method?: $Enums.AssistedCheckInMethod | null
+    outcome: string
+    reason?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    checkinId?: string | null
+    exceptionId?: string | null
+    challengeId?: string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInEventUncheckedCreateInput = {
+    id?: string
+    eventType: $Enums.AssistedCheckInEventType
+    gymId: string
+    staffUserId: string
+    staffRole?: $Enums.PartnerAccountRole | null
+    membershipId?: string | null
+    clientId?: string | null
+    method?: $Enums.AssistedCheckInMethod | null
+    outcome: string
+    reason?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    checkinId?: string | null
+    exceptionId?: string | null
+    challengeId?: string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumAssistedCheckInEventTypeFieldUpdateOperationsInput | $Enums.AssistedCheckInEventType
+    gymId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    staffRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableEnumAssistedCheckInMethodFieldUpdateOperationsInput | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    checkinId?: NullableStringFieldUpdateOperationsInput | string | null
+    exceptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    challengeId?: NullableStringFieldUpdateOperationsInput | string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumAssistedCheckInEventTypeFieldUpdateOperationsInput | $Enums.AssistedCheckInEventType
+    gymId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    staffRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableEnumAssistedCheckInMethodFieldUpdateOperationsInput | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    checkinId?: NullableStringFieldUpdateOperationsInput | string | null
+    exceptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    challengeId?: NullableStringFieldUpdateOperationsInput | string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInEventCreateManyInput = {
+    id?: string
+    eventType: $Enums.AssistedCheckInEventType
+    gymId: string
+    staffUserId: string
+    staffRole?: $Enums.PartnerAccountRole | null
+    membershipId?: string | null
+    clientId?: string | null
+    method?: $Enums.AssistedCheckInMethod | null
+    outcome: string
+    reason?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    checkinId?: string | null
+    exceptionId?: string | null
+    challengeId?: string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumAssistedCheckInEventTypeFieldUpdateOperationsInput | $Enums.AssistedCheckInEventType
+    gymId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    staffRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableEnumAssistedCheckInMethodFieldUpdateOperationsInput | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    checkinId?: NullableStringFieldUpdateOperationsInput | string | null
+    exceptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    challengeId?: NullableStringFieldUpdateOperationsInput | string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumAssistedCheckInEventTypeFieldUpdateOperationsInput | $Enums.AssistedCheckInEventType
+    gymId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    staffRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    membershipId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableEnumAssistedCheckInMethodFieldUpdateOperationsInput | $Enums.AssistedCheckInMethod | null
+    outcome?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    checkinId?: NullableStringFieldUpdateOperationsInput | string | null
+    exceptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    challengeId?: NullableStringFieldUpdateOperationsInput | string | null
+    details?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeCreateInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    staffUserId: string
+    otpHash: string
+    expiresAt: Date | string
+    attempts?: number
+    maxAttempts: number
+    lockedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInChallengeUncheckedCreateInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    staffUserId: string
+    otpHash: string
+    expiresAt: Date | string
+    attempts?: number
+    maxAttempts: number
+    lockedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInChallengeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    maxAttempts?: IntFieldUpdateOperationsInput | number
+    lockedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    maxAttempts?: IntFieldUpdateOperationsInput | number
+    lockedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeCreateManyInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    staffUserId: string
+    otpHash: string
+    expiresAt: Date | string
+    attempts?: number
+    maxAttempts: number
+    lockedAt?: Date | string | null
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type GymAssistedCheckInChallengeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    maxAttempts?: IntFieldUpdateOperationsInput | number
+    lockedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInChallengeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    staffUserId?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attempts?: IntFieldUpdateOperationsInput | number
+    maxAttempts?: IntFieldUpdateOperationsInput | number
+    lockedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionCreateInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    requestedBy: string
+    requestReason: string
+    status?: $Enums.AssistedExceptionStatus
+    decidedBy?: string | null
+    decidedByRole?: $Enums.PartnerAccountRole | null
+    decisionReason?: string | null
+    decidedAt?: Date | string | null
+    expiresAt: Date | string
+    usedCheckinId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymAssistedCheckInExceptionUncheckedCreateInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    requestedBy: string
+    requestReason: string
+    status?: $Enums.AssistedExceptionStatus
+    decidedBy?: string | null
+    decidedByRole?: $Enums.PartnerAccountRole | null
+    decisionReason?: string | null
+    decidedAt?: Date | string | null
+    expiresAt: Date | string
+    usedCheckinId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymAssistedCheckInExceptionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    requestReason?: StringFieldUpdateOperationsInput | string
+    status?: EnumAssistedExceptionStatusFieldUpdateOperationsInput | $Enums.AssistedExceptionStatus
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedByRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    decisionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usedCheckinId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    requestReason?: StringFieldUpdateOperationsInput | string
+    status?: EnumAssistedExceptionStatusFieldUpdateOperationsInput | $Enums.AssistedExceptionStatus
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedByRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    decisionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usedCheckinId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionCreateManyInput = {
+    id?: string
+    gymId: string
+    membershipId: string
+    clientId: string
+    requestedBy: string
+    requestReason: string
+    status?: $Enums.AssistedExceptionStatus
+    decidedBy?: string | null
+    decidedByRole?: $Enums.PartnerAccountRole | null
+    decisionReason?: string | null
+    decidedAt?: Date | string | null
+    expiresAt: Date | string
+    usedCheckinId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymAssistedCheckInExceptionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    requestReason?: StringFieldUpdateOperationsInput | string
+    status?: EnumAssistedExceptionStatusFieldUpdateOperationsInput | $Enums.AssistedExceptionStatus
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedByRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    decisionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usedCheckinId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymAssistedCheckInExceptionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    membershipId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    requestedBy?: StringFieldUpdateOperationsInput | string
+    requestReason?: StringFieldUpdateOperationsInput | string
+    status?: EnumAssistedExceptionStatusFieldUpdateOperationsInput | $Enums.AssistedExceptionStatus
+    decidedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedByRole?: NullableEnumPartnerAccountRoleFieldUpdateOperationsInput | $Enums.PartnerAccountRole | null
+    decisionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    decidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usedCheckinId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -54755,6 +58972,7 @@ export namespace Prisma {
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
     refundClawbackDone?: SortOrder
+    memberCode?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -54782,6 +59000,7 @@ export namespace Prisma {
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
     refundClawbackDone?: SortOrder
+    memberCode?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -54802,6 +59021,7 @@ export namespace Prisma {
     payoutReleasedAt?: SortOrder
     multiGymWarned?: SortOrder
     refundClawbackDone?: SortOrder
+    memberCode?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -54929,6 +59149,13 @@ export namespace Prisma {
     _max?: NestedEnumGymTrainerVisibilityFilter<$PrismaModel>
   }
 
+  export type EnumGymCheckInSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCheckInSource | EnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCheckInSourceFilter<$PrismaModel> | $Enums.GymCheckInSource
+  }
+
   export type GymMembershipContractRelationFilter = {
     is?: GymMembershipContractWhereInput
     isNot?: GymMembershipContractWhereInput
@@ -54940,6 +59167,8 @@ export namespace Prisma {
     gymId?: SortOrder
     clientId?: SortOrder
     checkedInBy?: SortOrder
+    source?: SortOrder
+    assistedEventId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -54949,6 +59178,8 @@ export namespace Prisma {
     gymId?: SortOrder
     clientId?: SortOrder
     checkedInBy?: SortOrder
+    source?: SortOrder
+    assistedEventId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -54958,7 +59189,19 @@ export namespace Prisma {
     gymId?: SortOrder
     clientId?: SortOrder
     checkedInBy?: SortOrder
+    source?: SortOrder
+    assistedEventId?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumGymCheckInSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCheckInSource | EnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCheckInSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymCheckInSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCheckInSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymCheckInSourceFilter<$PrismaModel>
   }
 
   export type GymReviewGymIdClientIdCompoundUniqueInput = {
@@ -55888,6 +60131,241 @@ export namespace Prisma {
     proposalId?: SortOrder
     reason?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumAssistedCheckInEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInEventType | EnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel> | $Enums.AssistedCheckInEventType
+  }
+
+  export type EnumPartnerAccountRoleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerAccountRole | EnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel> | $Enums.PartnerAccountRole | null
+  }
+
+  export type EnumAssistedCheckInMethodNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInMethod | EnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    in?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel> | $Enums.AssistedCheckInMethod | null
+  }
+
+  export type GymAssistedCheckInEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    gymId?: SortOrder
+    staffUserId?: SortOrder
+    staffRole?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    method?: SortOrder
+    outcome?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    checkinId?: SortOrder
+    exceptionId?: SortOrder
+    challengeId?: SortOrder
+    details?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    gymId?: SortOrder
+    staffUserId?: SortOrder
+    staffRole?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    method?: SortOrder
+    outcome?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    checkinId?: SortOrder
+    exceptionId?: SortOrder
+    challengeId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    gymId?: SortOrder
+    staffUserId?: SortOrder
+    staffRole?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    method?: SortOrder
+    outcome?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    checkinId?: SortOrder
+    exceptionId?: SortOrder
+    challengeId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumAssistedCheckInEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInEventType | EnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedCheckInEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.AssistedCheckInEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel>
+  }
+
+  export type EnumPartnerAccountRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerAccountRole | EnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerAccountRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerAccountRole | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel>
+  }
+
+  export type EnumAssistedCheckInMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInMethod | EnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    in?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumAssistedCheckInMethodNullableWithAggregatesFilter<$PrismaModel> | $Enums.AssistedCheckInMethod | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel>
+    _max?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel>
+  }
+
+  export type GymAssistedCheckInChallengeCountOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    staffUserId?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+    lockedAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInChallengeAvgOrderByAggregateInput = {
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+  }
+
+  export type GymAssistedCheckInChallengeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    staffUserId?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+    lockedAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInChallengeMinOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    staffUserId?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+    lockedAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInChallengeSumOrderByAggregateInput = {
+    attempts?: SortOrder
+    maxAttempts?: SortOrder
+  }
+
+  export type EnumAssistedExceptionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedExceptionStatus | EnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel> | $Enums.AssistedExceptionStatus
+  }
+
+  export type GymAssistedCheckInExceptionCountOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    requestedBy?: SortOrder
+    requestReason?: SortOrder
+    status?: SortOrder
+    decidedBy?: SortOrder
+    decidedByRole?: SortOrder
+    decisionReason?: SortOrder
+    decidedAt?: SortOrder
+    expiresAt?: SortOrder
+    usedCheckinId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInExceptionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    requestedBy?: SortOrder
+    requestReason?: SortOrder
+    status?: SortOrder
+    decidedBy?: SortOrder
+    decidedByRole?: SortOrder
+    decisionReason?: SortOrder
+    decidedAt?: SortOrder
+    expiresAt?: SortOrder
+    usedCheckinId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymAssistedCheckInExceptionMinOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    membershipId?: SortOrder
+    clientId?: SortOrder
+    requestedBy?: SortOrder
+    requestReason?: SortOrder
+    status?: SortOrder
+    decidedBy?: SortOrder
+    decidedByRole?: SortOrder
+    decisionReason?: SortOrder
+    decidedAt?: SortOrder
+    expiresAt?: SortOrder
+    usedCheckinId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumAssistedExceptionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedExceptionStatus | EnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedExceptionStatusWithAggregatesFilter<$PrismaModel> | $Enums.AssistedExceptionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
+    _max?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
   }
 
   export type GymCreateNestedOneWithoutPhotosInput = {
@@ -57566,6 +62044,10 @@ export namespace Prisma {
     connect?: GymMembershipContractWhereUniqueInput
   }
 
+  export type EnumGymCheckInSourceFieldUpdateOperationsInput = {
+    set?: $Enums.GymCheckInSource
+  }
+
   export type GymMembershipContractUpdateOneRequiredWithoutCheckInsNestedInput = {
     create?: XOR<GymMembershipContractCreateWithoutCheckInsInput, GymMembershipContractUncheckedCreateWithoutCheckInsInput>
     connectOrCreate?: GymMembershipContractCreateOrConnectWithoutCheckInsInput
@@ -58101,6 +62583,22 @@ export namespace Prisma {
 
   export type EnumLegacyCompatEntityTypeFieldUpdateOperationsInput = {
     set?: $Enums.LegacyCompatEntityType
+  }
+
+  export type EnumAssistedCheckInEventTypeFieldUpdateOperationsInput = {
+    set?: $Enums.AssistedCheckInEventType
+  }
+
+  export type NullableEnumPartnerAccountRoleFieldUpdateOperationsInput = {
+    set?: $Enums.PartnerAccountRole | null
+  }
+
+  export type NullableEnumAssistedCheckInMethodFieldUpdateOperationsInput = {
+    set?: $Enums.AssistedCheckInMethod | null
+  }
+
+  export type EnumAssistedExceptionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AssistedExceptionStatus
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -58991,6 +63489,23 @@ export namespace Prisma {
     _max?: NestedEnumGymTrainerVisibilityFilter<$PrismaModel>
   }
 
+  export type NestedEnumGymCheckInSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCheckInSource | EnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCheckInSourceFilter<$PrismaModel> | $Enums.GymCheckInSource
+  }
+
+  export type NestedEnumGymCheckInSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymCheckInSource | EnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymCheckInSource[] | ListEnumGymCheckInSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymCheckInSourceWithAggregatesFilter<$PrismaModel> | $Enums.GymCheckInSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymCheckInSourceFilter<$PrismaModel>
+    _max?: NestedEnumGymCheckInSourceFilter<$PrismaModel>
+  }
+
   export type NestedEnumCollaborationStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.CollaborationStatus | EnumCollaborationStatusFieldRefInput<$PrismaModel>
     in?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
@@ -59198,6 +63713,74 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
     _max?: NestedEnumLegacyCompatEntityTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInEventType | EnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel> | $Enums.AssistedCheckInEventType
+  }
+
+  export type NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerAccountRole | EnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel> | $Enums.PartnerAccountRole | null
+  }
+
+  export type NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInMethod | EnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    in?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel> | $Enums.AssistedCheckInMethod | null
+  }
+
+  export type NestedEnumAssistedCheckInEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInEventType | EnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedCheckInEventType[] | ListEnumAssistedCheckInEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedCheckInEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.AssistedCheckInEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumAssistedCheckInEventTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPartnerAccountRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PartnerAccountRole | EnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PartnerAccountRole[] | ListEnumPartnerAccountRoleFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPartnerAccountRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.PartnerAccountRole | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel>
+    _max?: NestedEnumPartnerAccountRoleNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAssistedCheckInMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedCheckInMethod | EnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    in?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.AssistedCheckInMethod[] | ListEnumAssistedCheckInMethodFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumAssistedCheckInMethodNullableWithAggregatesFilter<$PrismaModel> | $Enums.AssistedCheckInMethod | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel>
+    _max?: NestedEnumAssistedCheckInMethodNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAssistedExceptionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedExceptionStatus | EnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel> | $Enums.AssistedExceptionStatus
+  }
+
+  export type NestedEnumAssistedExceptionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AssistedExceptionStatus | EnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AssistedExceptionStatus[] | ListEnumAssistedExceptionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAssistedExceptionStatusWithAggregatesFilter<$PrismaModel> | $Enums.AssistedExceptionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
+    _max?: NestedEnumAssistedExceptionStatusFilter<$PrismaModel>
   }
 
   export type GymCreateWithoutPhotosInput = {
@@ -63258,6 +67841,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
@@ -63280,6 +67864,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -63794,6 +68379,7 @@ export namespace Prisma {
     payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
     multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     refundClawbackDone?: BoolFilter<"GymMembershipContract"> | boolean
+    memberCode?: StringNullableFilter<"GymMembershipContract"> | string | null
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
   }
@@ -64226,6 +68812,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -64248,6 +68835,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -64478,6 +69066,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
   }
 
@@ -64486,6 +69076,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
   }
 
@@ -64711,6 +69303,8 @@ export namespace Prisma {
     gymId?: StringFilter<"GymCheckIn"> | string
     clientId?: StringFilter<"GymCheckIn"> | string
     checkedInBy?: StringFilter<"GymCheckIn"> | string
+    source?: EnumGymCheckInSourceFilter<"GymCheckIn"> | $Enums.GymCheckInSource
+    assistedEventId?: StringNullableFilter<"GymCheckIn"> | string | null
     createdAt?: DateTimeFilter<"GymCheckIn"> | Date | string
   }
 
@@ -64989,6 +69583,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -65012,6 +69607,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
@@ -65047,6 +69643,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -65070,6 +69667,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
@@ -66053,6 +70651,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
@@ -66076,6 +70675,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
@@ -66111,6 +70711,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -66134,6 +70735,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -68248,6 +72850,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -68417,6 +73020,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
@@ -68439,6 +73043,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -68460,6 +73065,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -68934,6 +73540,7 @@ export namespace Prisma {
     payoutReleasedAt?: Date | string | null
     multiGymWarned?: boolean
     refundClawbackDone?: boolean
+    memberCode?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -68952,6 +73559,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
@@ -68974,6 +73582,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
@@ -68995,6 +73604,7 @@ export namespace Prisma {
     payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     refundClawbackDone?: BoolFieldUpdateOperationsInput | boolean
+    memberCode?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -69004,6 +73614,8 @@ export namespace Prisma {
     gymId: string
     clientId: string
     checkedInBy: string
+    source?: $Enums.GymCheckInSource
+    assistedEventId?: string | null
     createdAt?: Date | string
   }
 
@@ -69012,6 +73624,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -69020,6 +73634,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -69028,6 +73644,8 @@ export namespace Prisma {
     gymId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     checkedInBy?: StringFieldUpdateOperationsInput | string
+    source?: EnumGymCheckInSourceFieldUpdateOperationsInput | $Enums.GymCheckInSource
+    assistedEventId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -69574,6 +74192,18 @@ export namespace Prisma {
      * @deprecated Use AmenityAuditLogDefaultArgs instead
      */
     export type AmenityAuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AmenityAuditLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymAssistedCheckInEventDefaultArgs instead
+     */
+    export type GymAssistedCheckInEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymAssistedCheckInEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymAssistedCheckInChallengeDefaultArgs instead
+     */
+    export type GymAssistedCheckInChallengeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymAssistedCheckInChallengeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymAssistedCheckInExceptionDefaultArgs instead
+     */
+    export type GymAssistedCheckInExceptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymAssistedCheckInExceptionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

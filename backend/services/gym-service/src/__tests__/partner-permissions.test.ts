@@ -19,8 +19,9 @@ const ROLES = ['OWNER', 'MANAGER', 'RECEPTIONIST', 'ACCOUNTANT'] as const;
 // Ma trận mong đợi, viết tay độc lập với GRANTS để bắt hồi quy khi ai đó nới quyền.
 const EXPECT: Record<(typeof ROLES)[number], PartnerPermission[]> = {
   OWNER: [...ALL_PERMISSIONS],
-  MANAGER: ['branch.view', 'brand.view', 'plan.view', 'membership.full', 'checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'branch.status.temporary'],
-  RECEPTIONIST: ['branch.view', 'checkin.qr', 'checkin.list', 'ptCheckin.today', 'frontDesk.clients'],
+  MANAGER: ['branch.view', 'brand.view', 'plan.view', 'membership.full', 'checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'member.search', 'checkin.assisted', 'checkin.exception.request', 'checkin.exception.approve', 'branch.status.temporary'],
+  // D15c: lễ tân check-in hộ HỘI VIÊN (sau xác minh) và xin ngoại lệ, nhưng KHÔNG duyệt ngoại lệ.
+  RECEPTIONIST: ['branch.view', 'checkin.qr', 'checkin.list', 'ptCheckin.today', 'frontDesk.clients', 'member.search', 'checkin.assisted', 'checkin.exception.request'],
   ACCOUNTANT: ['branch.view', 'brand.view', 'plan.view', 'membership.sales', 'finance.wallet.view', 'finance.withdrawals.view', 'finance.export', 'finance.ptCommission.view'],
 };
 
@@ -43,7 +44,7 @@ test('LỄ TÂN không có quyền tài chính / cộng tác / nhân sự / ghi;
   }
   const writes = ['branch.status.temporary', ...OWNER_ONLY_PERMISSIONS];
   for (const p of writes) assert.equal(hasPermission('ACCOUNTANT', p as PartnerPermission), false, p);
-  for (const p of ['checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'membership.full'] as const) assert.equal(hasPermission('ACCOUNTANT', p), false, p);
+  for (const p of ['checkin.qr', 'checkin.list', 'ptCheckin.list', 'ptCheckin.today', 'frontDesk.clients', 'membership.full', 'member.search', 'checkin.assisted', 'checkin.exception.request', 'checkin.exception.approve'] as const) assert.equal(hasPermission('ACCOUNTANT', p), false, p);
 });
 
 test('vai trò lạ / thiếu → từ chối (fail-closed)', () => {

@@ -15,7 +15,7 @@
  *   • cây route: KHÔNG route nào dưới cổng vận hành thiếu cổng quyền (default-deny chứng minh bằng cấu trúc).
  *
  * D15b (5 quyết định đã chốt): kế toán không có danh tính hội viên, thấy TỔNG hoa hồng PT theo kỳ (không theo PT);
- * lễ tân không check-in hộ, không có danh sách hội viên, chỉ thấy tên khách hôm nay + PT đã check-in hôm nay ở chi
+ * lễ tân không có danh sách hội viên đầy đủ (D15c: được check-in hộ HỘI VIÊN sau xác minh - thay D15b #3), chỉ thấy tên khách hôm nay + PT đã check-in hôm nay ở chi
  * nhánh được gán. auth-service giả trả tên + e-mail + SĐT "bí mật" để chứng minh chúng không lọt ra payload.
  */
 import test from 'node:test';
@@ -536,7 +536,7 @@ integrationTest('D15b · LỄ TÂN: PT đã check-in HÔM NAY chỉ ở chi nhá
   assert.equal((await call(RB, 'GET', `/owner/gyms/${gym.a1}/front-desk/today`)).status, 403);
 });
 
-integrationTest('D15b · LỄ TÂN KHÔNG check-in hộ hội viên hay PT: mọi đường ghi bị từ chối / không tồn tại, không có dòng check-in nào được tạo', async () => {
+integrationTest('D15b/D15c · các đường ghi KHÔNG xác minh vẫn không tồn tại (không check-in hộ trần, không check-in PT, không dùng đường QR của hội viên/PT): không có dòng check-in nào được tạo. Check-in hộ hội viên chỉ qua assisted-checkin có xác minh (xem assisted-checkin.integration.test.ts)', async () => {
   const before = { member: await prisma.gymCheckIn.count({ where: { gymId: gym.a1 } }), pt: await prisma.gymPtCheckIn.count({ where: { gymId: gym.a1 } }) };
   const qr = (await call(R1, 'GET', `/owner/gyms/${gym.a1}/checkin-qr`)).body.data.token;
   const attempts: Array<[string, string, unknown?]> = [

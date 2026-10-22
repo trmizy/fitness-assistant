@@ -17,6 +17,8 @@ import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { checkinController } from '../controllers/checkin.controller';
+import { assistedCheckinController } from '../controllers/assisted-checkin.controller';
+import { noStorePrivate } from '../middleware/no-store.middleware';
 import { financeController } from '../controllers/finance.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { paymentClient } from '../clients/payment.client';
@@ -176,10 +178,23 @@ router.get('/gyms/:gymId/checkin-qr', requirePermission('checkin.qr', { gymParam
 router.get('/gyms/:gymId/checkins', requirePermission('checkin.list', { gymParam: 'gymId' }), asyncHandler(checkinController.listForGym));
 // Phase 2 / P2.2 — PT entries at this branch (separate from member visits; never shows clients).
 router.get('/gyms/:gymId/pt-checkins', requirePermission('ptCheckin.list', { gymParam: 'gymId' }), asyncHandler(checkinController.listPtForGym));
-// D15b - lễ tân: CHỈ ĐỌC, chỉ chi nhánh được gán (gymParam). PT đã check-in hôm nay; khách có lịch/check-in hôm nay
-// (chỉ tên hiển thị). Không có route GHI nào cho lễ tân: check-in luôn do hội viên/PT tự quét QR.
+// D15b - lễ tân: PT đã check-in hôm nay; khách có lịch/check-in hôm nay (chỉ tên hiển thị), chỉ chi nhánh được gán (gymParam).
+// Lễ tân KHÔNG có đường ghi nào cho PT: lượt PT chỉ do chính PT quét QR (gym_pt_check_ins). Đường GHI duy nhất của lễ tân là
+// check-in hộ HỘI VIÊN sau khi xác minh danh tính (D15c, bên dưới).
 router.get('/gyms/:gymId/pt-checkins/today', requirePermission('ptCheckin.today', { gymParam: 'gymId' }), asyncHandler(checkinController.ptCheckinsToday));
 router.get('/gyms/:gymId/front-desk/today', requirePermission('frontDesk.clients', { gymParam: 'gymId' }), asyncHandler(checkinController.frontDeskToday));
+
+// D15c - check-in HỘ hội viên không dùng được QR (quyết định mới của chủ sở hữu, thay D15b #3). Mọi route: phạm vi chi
+// nhánh (gymParam) + quyền riêng; danh tính nhân viên lấy từ phiên; phản hồi không cache (có ảnh hồ sơ ký sẵn).
+const frontDeskNoStore = noStorePrivate;
+router.get('/gyms/:gymId/front-desk/members', frontDeskNoStore, requirePermission('member.search', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.searchMembers));
+router.get('/gyms/:gymId/front-desk/assisted-checkin/config', frontDeskNoStore, requirePermission('checkin.assisted', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.config));
+router.post('/gyms/:gymId/front-desk/assisted-checkin/otp', frontDeskNoStore, requirePermission('checkin.assisted', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.requestOtp));
+router.post('/gyms/:gymId/front-desk/assisted-checkin', frontDeskNoStore, requirePermission('checkin.assisted', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.checkIn));
+router.post('/gyms/:gymId/front-desk/exceptions', frontDeskNoStore, requirePermission('checkin.exception.request', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.requestException));
+router.get('/gyms/:gymId/front-desk/exceptions', frontDeskNoStore, requirePermission(['checkin.exception.request', 'checkin.exception.approve'], { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.listExceptions));
+router.post('/gyms/:gymId/front-desk/exceptions/:exceptionId/approve', frontDeskNoStore, requirePermission('checkin.exception.approve', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.approveException));
+router.post('/gyms/:gymId/front-desk/exceptions/:exceptionId/reject', frontDeskNoStore, requirePermission('checkin.exception.approve', { gymParam: 'gymId' }), asyncHandler(assistedCheckinController.rejectException));
 
 // Mời PT về đầu quân cho chi nhánh là việc "người" → chỉ chủ sở hữu, cùng nhóm với đàm
 // phán cộng tác PT bên dưới.

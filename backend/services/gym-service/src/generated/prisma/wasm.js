@@ -455,6 +455,7 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   payoutReleasedAt: 'payoutReleasedAt',
   multiGymWarned: 'multiGymWarned',
   refundClawbackDone: 'refundClawbackDone',
+  memberCode: 'memberCode',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -479,6 +480,8 @@ exports.Prisma.GymCheckInScalarFieldEnum = {
   gymId: 'gymId',
   clientId: 'clientId',
   checkedInBy: 'checkedInBy',
+  source: 'source',
+  assistedEventId: 'assistedEventId',
   createdAt: 'createdAt'
 };
 
@@ -677,6 +680,59 @@ exports.Prisma.AmenityAuditLogScalarFieldEnum = {
   after: 'after',
   reason: 'reason',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.GymAssistedCheckInEventScalarFieldEnum = {
+  id: 'id',
+  eventType: 'eventType',
+  gymId: 'gymId',
+  staffUserId: 'staffUserId',
+  staffRole: 'staffRole',
+  membershipId: 'membershipId',
+  clientId: 'clientId',
+  method: 'method',
+  outcome: 'outcome',
+  reason: 'reason',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  checkinId: 'checkinId',
+  exceptionId: 'exceptionId',
+  challengeId: 'challengeId',
+  details: 'details',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymAssistedCheckInChallengeScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  membershipId: 'membershipId',
+  clientId: 'clientId',
+  staffUserId: 'staffUserId',
+  otpHash: 'otpHash',
+  expiresAt: 'expiresAt',
+  attempts: 'attempts',
+  maxAttempts: 'maxAttempts',
+  lockedAt: 'lockedAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymAssistedCheckInExceptionScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  membershipId: 'membershipId',
+  clientId: 'clientId',
+  requestedBy: 'requestedBy',
+  requestReason: 'requestReason',
+  status: 'status',
+  decidedBy: 'decidedBy',
+  decidedByRole: 'decidedByRole',
+  decisionReason: 'decisionReason',
+  decidedAt: 'decidedAt',
+  expiresAt: 'expiresAt',
+  usedCheckinId: 'usedCheckinId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1001,6 +1057,11 @@ exports.GymTrainerVisibility = exports.$Enums.GymTrainerVisibility = {
   INTERNAL_ONLY: 'INTERNAL_ONLY'
 };
 
+exports.GymCheckInSource = exports.$Enums.GymCheckInSource = {
+  QR: 'QR',
+  ASSISTED: 'ASSISTED'
+};
+
 exports.CollaborationStatus = exports.$Enums.CollaborationStatus = {
   PENDING: 'PENDING',
   COUNTERED: 'COUNTERED',
@@ -1073,6 +1134,32 @@ exports.LegacyCompatEntityType = exports.$Enums.LegacyCompatEntityType = {
   GYM: 'GYM'
 };
 
+exports.AssistedCheckInEventType = exports.$Enums.AssistedCheckInEventType = {
+  MEMBER_SEARCH: 'MEMBER_SEARCH',
+  OTP_SENT: 'OTP_SENT',
+  OTP_FAILED: 'OTP_FAILED',
+  CHECKIN_SUCCEEDED: 'CHECKIN_SUCCEEDED',
+  CHECKIN_REFUSED: 'CHECKIN_REFUSED',
+  EXCEPTION_REQUESTED: 'EXCEPTION_REQUESTED',
+  EXCEPTION_APPROVED: 'EXCEPTION_APPROVED',
+  EXCEPTION_REJECTED: 'EXCEPTION_REJECTED',
+  EXCEPTION_EXPIRED: 'EXCEPTION_EXPIRED'
+};
+
+exports.AssistedCheckInMethod = exports.$Enums.AssistedCheckInMethod = {
+  MEMBER_OTP: 'MEMBER_OTP',
+  PHOTO_MATCH: 'PHOTO_MATCH',
+  MANAGER_EXCEPTION: 'MANAGER_EXCEPTION'
+};
+
+exports.AssistedExceptionStatus = exports.$Enums.AssistedExceptionStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  USED: 'USED'
+};
+
 exports.Prisma.ModelName = {
   GymPhoto: 'GymPhoto',
   GymBranchDocument: 'GymBranchDocument',
@@ -1109,7 +1196,10 @@ exports.Prisma.ModelName = {
   LegacyCompatEvent: 'LegacyCompatEvent',
   CompatWriterHeartbeat: 'CompatWriterHeartbeat',
   ClientCompatEvent: 'ClientCompatEvent',
-  AmenityAuditLog: 'AmenityAuditLog'
+  AmenityAuditLog: 'AmenityAuditLog',
+  GymAssistedCheckInEvent: 'GymAssistedCheckInEvent',
+  GymAssistedCheckInChallenge: 'GymAssistedCheckInChallenge',
+  GymAssistedCheckInException: 'GymAssistedCheckInException'
 };
 
 /**

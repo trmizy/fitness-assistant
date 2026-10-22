@@ -4,33 +4,10 @@ import { checkinRepository } from '../repositories/checkin.repository';
 import { gymService } from './gym.service';
 import { signGymCheckinToken, verifyGymCheckinToken } from '../utils/checkinToken';
 import { authServiceClient } from '../clients/auth-service.client';
-import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
-import { assertGymOpenForCheckin } from './checkin-gym-guard';
+import { applyMemberCheckIn, lockMembershipForCheckIn } from './checkin-core';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
-
-function err(message: string, status: number) {
-  return Object.assign(new Error(message), { status });
-}
-
-const COOLDOWN_MS = 60 * 1000; // one membership can't be recorded twice within 60s
-
-// Raw row shape from the FOR UPDATE lock (snake_case columns).
-interface MembershipRow {
-  id: string;
-  status: string;
-  end_date: Date | null;
-  total_visits: number | null;
-  used_visits: number;
-  gym_id: string;
-  client_id: string;
-  plan_id: string;
-  // The SCANNED gym's own status — not the membership's original purchase gym (which may now
-  // be a different branch entirely; see the query below).
-  gym_status: string;
-  gym_operational_status: string;
-}
 
 /**
  * Best-effort name lookup so the receptionist sees a person, not a UUID.
@@ -66,97 +43,18 @@ export const checkinService = {
    * FOR UPDATE (mirroring payment-service's wallet ledger), so two quick scans can't
    * over-count visits. Errors are typed codes the UI maps to messages:
    * INVALID_TOKEN / TOKEN_EXPIRED / NO_MEMBERSHIP / NOT_ACTIVE / TOO_SOON / VISIT_LIMIT_REACHED.
+   *
+   * The rules themselves live in checkin-core.ts (shared with the D15c assisted front-desk
+   * check-in) so the two ways in cannot drift.
    */
   async checkInByGymToken(clientId: string, token: string) {
     const payload = verifyGymCheckinToken(token); // INVALID_TOKEN / TOKEN_EXPIRED
     const gymId = payload.gymId;
 
     const result = await prisma.$transaction(async (tx) => {
-      // Plans are brand-scoped (one owner, one brand — see GymMembershipPlan's schema doc
-      // comment): eligibility to check in here is "does this membership's PLAN belong to the
-      // SAME BRAND as the gym being scanned", not "did they buy it at this exact gym" —
-      // c.gym_id (which branch they originally checked out at) plays no part in this any
-      // more. A gym with no brand at all (legacy standalone) matches nothing.
-      //
-      // Money-flow plan 2.5 — second chokepoint: joins to gyms so a SUSPENDED (or otherwise
-      // not-APPROVED) gym's "suspended" status actually means something at the one place that
-      // lets a member physically walk in, not just at the purchase flow. Vòng 4 / Phase C3
-      // adds operational_status to the same join — a gym the owner closed must block check-in
-      // exactly like a SUSPENDED one. This status check is now on the SCANNED gym (the one the
-      // member is physically standing in front of), not the membership's original gym_id.
-      const rows = await tx.$queryRaw<MembershipRow[]>`
-        SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
-               scanned.status AS gym_status, scanned.operational_status AS gym_operational_status
-        FROM gyms scanned
-        JOIN gym_membership_plans p ON p.brand_id = scanned.brand_id
-        JOIN gym_membership_contracts c ON c.plan_id = p.id
-        WHERE scanned.id = ${gymId} AND scanned.brand_id IS NOT NULL AND c.client_id = ${clientId}
-          AND c.status IN ('ACTIVE', 'EXPIRED')
-        ORDER BY CASE WHEN c.status = 'ACTIVE' THEN 0 ELSE 1 END, c.created_at DESC
-        LIMIT 1
-        FOR UPDATE OF c`;
-      if (rows.length === 0) throw err('NO_MEMBERSHIP', 403);
-      const m = rows[0];
-
-      assertGymOpenForCheckin(m.gym_status, m.gym_operational_status);
-
-      // Lazy-expire a membership past its end date, then require ACTIVE.
-      let status = m.status;
-      if (status === 'ACTIVE' && hasPassedEndDate(m.end_date)) {
-        await tx.gymMembershipContract.update({
-          where: { id: m.id },
-          data: { status: 'EXPIRED' },
-        });
-        status = 'EXPIRED';
-      }
-      if (status !== 'ACTIVE') throw err('NOT_ACTIVE', 409);
-
-      // Anti double-scan.
-      const recent = await tx.gymCheckIn.findFirst({
-        where: { membershipId: m.id, createdAt: { gte: new Date(Date.now() - COOLDOWN_MS) } },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (recent) throw err('TOO_SOON', 429);
-
-      // Visit limit (null total = unlimited).
-      if (!hasVisitsLeft(m.total_visits, m.used_visits)) {
-        throw err('VISIT_LIMIT_REACHED', 409);
-      }
-
-      const updated = await tx.gymMembershipContract.update({
-        where: { id: m.id },
-        data: { usedVisits: { increment: 1 } },
-      });
-
-      // Money-flow plan 3.7: a membership that just used its last visit is done — flip it to
-      // EXPIRED right now instead of waiting for it to ALSO pass endDate (which the sweep's
-      // date check requires today, and which could be weeks away for a long membership). The
-      // existing membershipPayout.sweep.ts already releases the payout for any EXPIRED
-      // membership on its next tick via findExpiredNotReleased — it does not care WHY the
-      // membership expired, only that it did, so this flip alone is what "kích hoạt giải
-      // phóng tiền" needs; no separate release call to duplicate here.
-      if (updated.totalVisits != null && updated.usedVisits >= updated.totalVisits) {
-        await tx.gymMembershipContract.update({
-          where: { id: m.id },
-          data: { status: 'EXPIRED' },
-        });
-      }
-
-      const checkin = await tx.gymCheckIn.create({
-        // The member performed this themselves, so there is no staff member to credit.
-        data: { membershipId: m.id, gymId, clientId, checkedInBy: clientId },
-      });
-      const plan = await tx.gymMembershipPlan.findUnique({ where: { id: m.plan_id } });
-
-      return {
-        checkinId: checkin.id,
-        checkedInAt: checkin.createdAt,
-        clientId,
-        usedVisits: updated.usedVisits,
-        totalVisits: updated.totalVisits,
-        endDate: updated.endDate,
-        planName: plan?.name ?? null,
-      };
+      const m = await lockMembershipForCheckIn(tx, { gymId, clientId });
+      // The member performed this themselves, so there is no staff member to credit.
+      return applyMemberCheckIn(tx, m, { gymId, clientId, checkedInBy: clientId, source: 'QR' });
     });
 
     const [clientName, gym] = await Promise.all([

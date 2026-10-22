@@ -23,6 +23,10 @@ import type { PartnerAccountRole } from '../generated/prisma';
  *   ptCheckin.list                   ✅      ✅        —              —
  *   ptCheckin.today (PT hôm nay)     ✅      ✅        ✅ (chi nhánh được gán) —
  *   frontDesk.clients (khách hôm nay) ✅     ✅        ✅ (chỉ tên hiển thị)   —
+ *   member.search (tra hội viên)     ✅      ✅        ✅ (rút gọn)   —
+ *   checkin.assisted (check-in hộ)   ✅      ✅        ✅ (đã xác minh) —
+ *   checkin.exception.request        ✅      ✅        ✅              —
+ *   checkin.exception.approve        ✅      ✅        —              —
  *   finance.ptCommission.view        ✅      —         —              ✅ (CHỈ tổng, không theo PT)
  *   branch.status.temporary          ✅      ✅        —              —
  *   finance.wallet.view              ✅      —         —              ✅
@@ -31,8 +35,13 @@ import type { PartnerAccountRole } from '../generated/prisma';
  *
  * Quyết định của chủ sở hữu (D15b, đã chốt): kế toán KHÔNG có danh tính hội viên (chỉ mã giao dịch / gói / giá /
  * số tiền / ngày / trạng thái / hoàn tiền) và chỉ thấy TỔNG hoa hồng PT theo kỳ, không điều khoản cộng tác hay tỷ lệ
- * từng PT; lễ tân KHÔNG check-in hộ (không có route ghi), KHÔNG có danh sách hội viên đầy đủ — chỉ tên hiển thị của
- * khách có lịch hẹn/check-in tại chi nhánh hôm nay và danh sách PT đã check-in hôm nay tại chi nhánh được gán.
+ * từng PT; lễ tân KHÔNG có danh sách hội viên đầy đủ — chỉ tên hiển thị của khách có lịch hẹn/check-in tại chi nhánh hôm
+ * nay và danh sách PT đã check-in hôm nay tại chi nhánh được gán.
+ *
+ * D15c (quyết định MỚI của chủ sở hữu, thay thế D15b #3 và mở rộng #5): lễ tân ĐƯỢC check-in hộ HỘI VIÊN không dùng được QR,
+ * nhưng chỉ sau khi XÁC MINH danh tính (OTP về e-mail hội viên / đối chiếu ảnh hồ sơ + mã hội viên / ngoại lệ do quản
+ * lý chi nhánh duyệt) và luôn có kiểm toán. Tra cứu trả về tập trường tối thiểu (assisted-checkin.views.ts), KHÔNG tài
+ * chính/InBody/SĐT/e-mail/địa chỉ. Lễ tân vẫn KHÔNG check-in/xác nhận buổi cho PT (gym_pt_check_ins chỉ ghi bằng QR của PT).
  *   mọi quyền GHI / người / hợp tác PT / đóng cửa vĩnh viễn → OWNER_ONLY, chỉ OWNER.
  */
 export const OWNER_ONLY_PERMISSIONS = [
@@ -57,6 +66,10 @@ export const SHARED_PERMISSIONS = [
   'ptCheckin.list',
   'ptCheckin.today',
   'frontDesk.clients',
+  'member.search',
+  'checkin.assisted',
+  'checkin.exception.request',
+  'checkin.exception.approve',
   'branch.status.temporary',
   'finance.wallet.view',
   'finance.withdrawals.view',
@@ -82,6 +95,10 @@ const GRANTS: Record<PartnerAccountRole, ReadonlySet<PartnerPermission>> = {
     'ptCheckin.list',
     'ptCheckin.today',
     'frontDesk.clients',
+    'member.search',
+    'checkin.assisted',
+    'checkin.exception.request',
+    'checkin.exception.approve',
     'branch.status.temporary',
   ]),
   RECEPTIONIST: new Set<PartnerPermission>([
@@ -90,6 +107,9 @@ const GRANTS: Record<PartnerAccountRole, ReadonlySet<PartnerPermission>> = {
     'checkin.list',
     'ptCheckin.today',
     'frontDesk.clients',
+    'member.search',
+    'checkin.assisted',
+    'checkin.exception.request',
   ]),
   ACCOUNTANT: new Set<PartnerPermission>([
     'branch.view',

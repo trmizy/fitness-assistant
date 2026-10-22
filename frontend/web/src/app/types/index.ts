@@ -682,6 +682,8 @@ export interface GymMembershipContract {
   durationDaysSnapshot: number;
   totalVisits?: number;
   usedVisits: number;
+  /** D15c — mã hội viên (8 ký tự hex): hội viên đọc cho lễ tân khi cần check-in hộ. */
+  memberCode?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -711,6 +713,8 @@ export interface GymCheckIn {
   clientId?: string;
   checkedInBy?: string;
   clientName?: string;
+  /** D15c — QR (hội viên tự quét) hoặc ASSISTED (nhân viên quầy check-in hộ). Chỉ chủ/quản lý nhận trường này. */
+  source?: "QR" | "ASSISTED";
 }
 
 export interface GymReview {

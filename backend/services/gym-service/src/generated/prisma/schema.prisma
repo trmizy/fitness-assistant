@@ -1115,6 +1115,10 @@ model GymMembershipContract {
   /// membership (blocked once status flips to CANCELLED), so this flag only ever needs to
   /// answer one question: did THIS refund's clawback step already run.
   refundClawbackDone   Boolean                     @default(false) @map("refund_clawback_done")
+  /// D15c — mã hội viên ngắn (8 ký tự hex, hiển thị XXXX-XXXX) để lễ tân tra cứu khi hội viên không dùng được QR.
+  /// CỘT SINH TỰ ĐỘNG (GENERATED ALWAYS ... STORED) từ client_id trong migration: một người một mã cho mọi lần
+  /// gia hạn, không bao giờ ghi từ ứng dụng — Prisma không được gửi giá trị cho cột này.
+  memberCode           String?                     @map("member_code")
   createdAt            DateTime                    @default(now()) @map("created_at")
   updatedAt            DateTime                    @updatedAt @map("updated_at")
 
@@ -1151,12 +1155,16 @@ model GymTrainerAffiliation {
 
 // ─── Gym Check-in (member scans in at the gym) ────────────────────────
 model GymCheckIn {
-  id           String   @id @default(uuid())
-  membershipId String   @map("membership_id")
-  gymId        String   @map("gym_id")
-  clientId     String   @map("client_id")
-  checkedInBy  String   @map("checked_in_by") // owner userId who scanned
-  createdAt    DateTime @default(now()) @map("created_at")
+  id              String           @id @default(uuid())
+  membershipId    String           @map("membership_id")
+  gymId           String           @map("gym_id")
+  clientId        String           @map("client_id")
+  checkedInBy     String           @map("checked_in_by") // owner userId who scanned
+  /// D15c — QR: hội viên tự quét (checkedInBy = chính họ). ASSISTED: nhân viên quầy check-in hộ sau khi xác minh
+  /// danh tính; checkedInBy = nhân viên, assistedEventId trỏ tới sự kiện kiểm toán (gym_assisted_checkin_events).
+  source          GymCheckInSource @default(QR)
+  assistedEventId String?          @map("assisted_event_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
 
   membership GymMembershipContract @relation(fields: [membershipId], references: [id])
 
@@ -1633,4 +1641,113 @@ model AmenityAuditLog {
   @@index([amenityId, createdAt])
   @@index([actorUserId, createdAt])
   @@map("amenity_audit_logs")
+}
+
+// ── D15c — Lễ tân check-in hộ hội viên (không dùng được QR) ─────────────────────────────────────────────────────
+// Không có hệ thống điểm danh thứ hai: lượt vào vẫn nằm trong gym_check_ins (source = ASSISTED). Ba bảng dưới đây
+// chỉ giữ BẰNG CHỨNG: sự kiện kiểm toán chỉ-thêm, thử thách OTP, yêu cầu ngoại lệ do quản lý duyệt.
+// Migration viết tay: cột sinh member_code, trigger chỉ-thêm và các chỉ mục UNIQUE một phần không biểu diễn được ở đây.
+
+enum GymCheckInSource {
+  QR
+  ASSISTED
+}
+
+enum AssistedCheckInMethod {
+  MEMBER_OTP
+  PHOTO_MATCH
+  MANAGER_EXCEPTION
+}
+
+enum AssistedCheckInEventType {
+  MEMBER_SEARCH
+  OTP_SENT
+  OTP_FAILED
+  CHECKIN_SUCCEEDED
+  CHECKIN_REFUSED
+  EXCEPTION_REQUESTED
+  EXCEPTION_APPROVED
+  EXCEPTION_REJECTED
+  EXCEPTION_EXPIRED
+}
+
+enum AssistedExceptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  USED
+}
+
+/// Nhật ký CHỈ-THÊM (trigger chặn UPDATE/DELETE). Mỗi lần tra cứu / gửi OTP / nhập sai / check-in hộ thành công hay bị
+/// từ chối / quyết định ngoại lệ là một dòng: ai (staff), hội viên nào, chi nhánh nào, lúc nào, bằng cách nào, kết quả,
+/// lý do, khoá idempotency. KHÔNG lưu từ khoá tìm kiếm, mã OTP, SĐT, e-mail.
+model GymAssistedCheckInEvent {
+  id             String                   @id @default(uuid())
+  eventType      AssistedCheckInEventType @map("event_type")
+  gymId          String                   @map("gym_id")
+  staffUserId    String                   @map("staff_user_id")
+  /// null = hệ thống (vd tự hết hạn ngoại lệ cuối ngày), staffUserId khi đó là 'system'.
+  staffRole      PartnerAccountRole?      @map("staff_role")
+  membershipId   String?                  @map("membership_id")
+  clientId       String?                  @map("client_id")
+  method         AssistedCheckInMethod?
+  /// 'OK' hoặc mã từ chối (NOT_ACTIVE, TOO_SOON, OTP_INVALID, ...).
+  outcome        String
+  reason         String?
+  idempotencyKey String?                  @map("idempotency_key")
+  requestHash    String?                  @map("request_hash")
+  checkinId      String?                  @map("checkin_id")
+  exceptionId    String?                  @map("exception_id")
+  challengeId    String?                  @map("challenge_id")
+  details        Json?
+  createdAt      DateTime                 @default(now()) @map("created_at")
+
+  @@index([gymId, createdAt])
+  @@index([staffUserId, idempotencyKey])
+  @@index([membershipId, createdAt])
+  @@map("gym_assisted_checkin_events")
+}
+
+/// Một mã OTP một lần gửi tới e-mail đã đăng ký của hội viên, gắn với (hội viên, chi nhánh, nhân viên). Chỉ lưu BĂM.
+model GymAssistedCheckInChallenge {
+  id           String    @id @default(uuid())
+  gymId        String    @map("gym_id")
+  membershipId String    @map("membership_id")
+  clientId     String    @map("client_id")
+  staffUserId  String    @map("staff_user_id")
+  otpHash      String    @map("otp_hash")
+  expiresAt    DateTime  @map("expires_at")
+  attempts     Int       @default(0)
+  maxAttempts  Int       @map("max_attempts")
+  lockedAt     DateTime? @map("locked_at")
+  consumedAt   DateTime? @map("consumed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([membershipId, createdAt])
+  @@index([gymId, staffUserId])
+  @@map("gym_assisted_checkin_challenges")
+}
+
+/// Ngoại lệ: không OTP, không ảnh → lễ tân xin, QUẢN LÝ/CHỦ chi nhánh đó duyệt (ghi lý do riêng). Hết hạn cuối ngày.
+model GymAssistedCheckInException {
+  id             String                  @id @default(uuid())
+  gymId          String                  @map("gym_id")
+  membershipId   String                  @map("membership_id")
+  clientId       String                  @map("client_id")
+  requestedBy    String                  @map("requested_by")
+  requestReason  String                  @map("request_reason")
+  status         AssistedExceptionStatus @default(PENDING)
+  decidedBy      String?                 @map("decided_by")
+  decidedByRole  PartnerAccountRole?     @map("decided_by_role")
+  decisionReason String?                 @map("decision_reason")
+  decidedAt      DateTime?               @map("decided_at")
+  expiresAt      DateTime                @map("expires_at")
+  usedCheckinId  String?                 @map("used_checkin_id")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  @@index([gymId, status, expiresAt])
+  @@index([membershipId, status])
+  @@map("gym_assisted_checkin_exceptions")
 }

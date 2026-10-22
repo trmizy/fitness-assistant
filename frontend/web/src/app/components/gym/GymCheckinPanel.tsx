@@ -134,9 +134,10 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
               {checkins.slice(0, 6).map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
+                  className="flex items-center justify-between gap-2 text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
                 >
                   <span className="min-w-0 truncate">{c.clientName ?? (c.clientId ? shortId(c.clientId) : "Hội viên")}</span>
+                  {c.source === "ASSISTED" && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 whitespace-nowrap">Check-in hộ</span>}
                   <span className="text-zinc-600">{timeAgo(c.createdAt)}</span>
                 </div>
               ))}
