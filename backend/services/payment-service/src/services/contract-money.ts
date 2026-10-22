@@ -434,6 +434,7 @@ export interface TerminationOutcome {
    * and `entitlement`, which is why adding it leaves the reconciliation of those three
    * untouched.
    */
+  /** Informational only (h x the undelivered value of a PT-fault ending). Since the owner closeout the ledger reserves NOTHING for it: a PT ending refunds the client in full from the contract's own funds. */
   ptFaultCompensationTarget: Prisma.Decimal;
   /**
    * Final entitlement per party for everything that is settled at termination = rate × (P −

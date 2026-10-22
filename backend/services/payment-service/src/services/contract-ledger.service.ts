@@ -8,7 +8,6 @@ import {
   computeSessionRelease,
   computeTermination,
   holdbackTarget,
-  PT_FAULT_REASONS,
   splitReleaseWithHoldback,
   splitThreeWays,
   type RateTable,
@@ -359,7 +358,18 @@ export function holdbackReviewDays(env: NodeJS.ProcessEnv = process.env): number
   return Number.isFinite(n) && n > 0 ? n : 14;
 }
 
-export type HoldbackReviewKind = 'PT_FAULT' | 'OPEN_OBLIGATION' | 'UNSECURED_DISPUTE' | 'UNCOMPUTABLE';
+export type HoldbackReviewKind = 'OPEN_OBLIGATION' | 'UNSECURED_DISPUTE' | 'UNCOMPUTABLE';
+
+/** A rate table the PT share can be computed from: three finite non-negative rates that sum to 1. */
+export function ratesUsable(rates: RateTable): boolean {
+  try {
+    const parts = [rates.platformRate, rates.ptRate, rates.gymRate].map((x) => new Prisma.Decimal(x));
+    if (parts.some((x) => !x.isFinite() || x.isNegative())) return false;
+    return parts[0].plus(parts[1]).plus(parts[2]).minus(1).abs().lessThan('0.0001');
+  } catch {
+    return false;
+  }
+}
 
 /** One durable review item for a reserve kept in HOLDBACK. Written once, with the ending (key per cause). */
 async function createHoldbackReview(
@@ -1124,7 +1134,7 @@ export interface TerminationLedgerResult {
     returnedToPt: string;
     /** Kept in HOLDBACK as a reserve for related items of THIS contract (each has a durable review with a deadline). 0 when nothing is at risk. */
     stillHeld: string;
-    /** Why `stillHeld` is held, per cause: PT_FAULT / OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE. */
+    /** Why `stillHeld` is held, per cause: OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE. */
     reserves: Array<{ kind: string; reserve: string; reason: string }>;
   };
   /**
@@ -1163,14 +1173,15 @@ export const PT_FAULT_WORDING: Partial<Record<TerminationReason, string>> = {
  * PT holdback (FH-9). What the PT has held back on this contract sits in their HOLDBACK bucket (never in pending, so the refund drain
  * cannot reach it). The ending settles it like this, always inside this one operation:
  *
- *   Owner decision (final): NOTHING is paid to the client out of the hold automatically, whatever the reason. At the ending the hold is
- *   split into
- *     - a RESERVE, kept in HOLDBACK, and only for a cause of THIS contract: the potential PT-fault compensation (PT_CANCELLED,
- *       PT_REPEATED_NO_SHOW: h x the undelivered value, capped by what the PT was still to be paid), the PT-borne part of its OPEN
- *       no-show / late-arrival obligations, the PT's part of an unsecured dispute - or the WHOLE hold when the amount cannot be
- *       computed. Each reserve gets a durable pt_holdback_reviews item (reason, handler, review deadline). PT_BANNED, a restriction,
- *       SERVICE_DISCONTINUED_BY_PLATFORM and a client ending are never a PT fault and reserve nothing for it;
- *     - everything else, which goes straight back to the PT (HOLDBACK -> AVAILABLE).
+ *   Owner decision (final): NOTHING is paid to the client out of the hold automatically, whatever the reason. A PT ending or cancelling is
+ *   NOT a reason to keep holdback: the client is refunded in full from the contract's own funds, and with nothing else outstanding the WHOLE
+ *   hold goes straight back to the PT (HOLDBACK -> AVAILABLE) in the same operation. A RESERVE is kept in HOLDBACK only for an existing,
+ *   specific, unsecured financial obligation of THIS contract:
+ *     - the PT-borne part of its OPEN no-show / late-arrival obligations (what the contract's own pending could not fund),
+ *     - the PT's part of an unsecured dispute (unresolved sessions the contract's pending does not cover),
+ *     - or up to the WHOLE hold (UNCOMPUTABLE, with the reason) when such a cause exists but its PT share cannot be sized.
+ *   Each reserve gets a durable pt_holdback_reviews item (reason, handler, review deadline). PT_BANNED, a restriction,
+ *   SERVICE_DISCONTINUED_BY_PLATFORM and a client ending reserve nothing for a "PT fault" either.
  *   The reserve is only ever paid by an admin decision (holdback-review.service: VERIFIED / NOT_VERIFIED, four-eyes, CAS, idempotent
  *   key HOLDBACK_FAULT_COMP:<contractId>:<approvalRef>), never above the verified PT share, never from another contract, never fronted
  *   by the platform, never a receivable; the rest of the reserve returns to the PT.
@@ -1267,8 +1278,8 @@ export async function terminateContract(params: {
     // HOLDBACK for this contract (a rate the caller no longer sends cannot make held money disappear).
     //
     // Owner decision (final): NOTHING is paid to the client out of the hold automatically - not because the PT cancelled, was banned,
-    // was restricted or the client complained. A potential PT-fault amount is only KEPT as a reserve (below) and decided by an authorised
-    // admin through holdback-review.service.ts. So the ending itself never debits HOLDBACK for the client.
+    // was restricted or the client complained. A reserve is only KEPT (below) for a specific, unsecured obligation of THIS contract and
+    // decided by an authorised admin through holdback-review.service.ts. So the ending itself never debits HOLDBACK for the client.
     const held = await ptHeld(ops, wallets.ptId, transactionId);
     // Everything the PT holds counts as already paid to the PT for the top-up below: it is either released to the PT, kept as a reserve
     // for a related item of THIS contract, or (later, after a verified decision) paid to the client - never topped up a second time.
@@ -1480,8 +1491,8 @@ export async function terminateContract(params: {
     // The rest of the PT's held money goes back to the PT now - except a RESERVE for what THIS contract could still make the PT bear and
     // that nothing else of this contract already secures (owner decision, Decision 1 + 2). The reserve is sized, per cause, on the PT's
     // own share only, never more than what is held, and each cause leaves a durable review item (reason, amount, review-by deadline):
-    //   - PT_FAULT: the potential PT-fault amount (h x base, PT_CANCELLED / PT_REPEATED_NO_SHOW only; not for a ban, a restriction,
-    //     D49, the client's own ending). If the rate is not known the risk cannot be computed: UNCOMPUTABLE keeps up to the whole hold.
+    //   - (none for the ending itself: PT_CANCELLED / PT_REPEATED_NO_SHOW reserve nothing - the client is refunded in full from this
+    //     contract's own funds, so there is no unsecured obligation. UNCOMPUTABLE below covers a specific cause that cannot be sized.)
     //   - OPEN_OBLIGATION: the PT-borne part of each OPEN unpaid obligation of THIS contract (what this contract's pending could not fund).
     //   - UNSECURED_DISPUTE: the PT's share of an unresolved session that this contract's pending does not cover. When the session value is
     //     held in pending (the normal case) the client's refund is already secured there, so nothing is kept in HOLDBACK for it.
@@ -1494,15 +1505,21 @@ export async function terminateContract(params: {
       reserves.push({ kind, reserve: take, reason, relatedRef });
       reserveLeft = reserveLeft.minus(take);
     };
-    if (held.greaterThan(0) && PT_FAULT_REASONS.has(reason)) {
-      const ptStillToBePaid = Prisma.Decimal.max(outcome.entitlement.pt.minus(alreadyReleased.pt), ZERO);
-      if (ptHoldbackRate && ptHoldbackRate.greaterThan(0)) {
-        addReserve('PT_FAULT', Prisma.Decimal.min(outcome.ptFaultCompensationTarget, ptStillToBePaid), `${reason}: potential PT-fault compensation (${ptHoldbackRate.toString()} x the undelivered value), pending an admin decision`);
-      } else {
-        addReserve('UNCOMPUTABLE', held, `${reason}: the potential PT-fault amount could not be computed (the holdback rate was not sent), so the whole hold of this contract is kept until an admin decides`);
+    // Owner closeout (final): a PT-fault ending (PT_CANCELLED / PT_REPEATED_NO_SHOW) is NOT a cause by itself. The client is refunded in full
+    // from the contract's own funds at the ending, so there is no potential fault amount to keep: with no specific, unsecured obligation
+    // below, ALL of the hold goes back to the PT here, whatever the reason.
+    // UNCOMPUTABLE: a specific cause exists (an OPEN PT-borne obligation or unresolved sessions) but its PT share cannot be sized because the
+    // contract's frozen rates are not usable; then up to the whole hold is kept, with the reason, until an admin decides.
+    const sizeable = ratesUsable(rates);
+    if (!sizeable && held.greaterThan(0)) {
+      const open0 = await ops.tx.contractUnpaidObligation.count({
+        where: { transactionId, status: { in: [...OBLIGATION_STILL_OWED] }, party: 'CLIENT', kind: { in: [...PT_BORNE_OBLIGATION_KINDS] } },
+      });
+      if (open0 > 0 || unresolvedCount > 0) {
+        addReserve('UNCOMPUTABLE', held, `${open0} open obligation(s) / ${unresolvedCount} unresolved session(s) on this contract, but the PT's share cannot be computed (the contract's frozen rates are not usable), so the whole hold of this contract is kept until an admin decides`);
       }
     }
-    if (reserveLeft.greaterThan(0)) {
+    if (reserveLeft.greaterThan(0) && sizeable) {
       const open = await ops.tx.contractUnpaidObligation.findMany({
         where: { transactionId, status: { in: [...OBLIGATION_STILL_OWED] }, party: 'CLIENT', kind: { in: [...PT_BORNE_OBLIGATION_KINDS] } },
         orderBy: { createdAt: 'asc' },
@@ -1513,7 +1530,7 @@ export async function terminateContract(params: {
         addReserve('OPEN_OBLIGATION', want, `an OPEN ${o.kind} obligation of this contract (${new Prisma.Decimal(o.unpaid).toFixed(2)} unpaid, the PT-borne part is ${want.toFixed(2)})`, o.id);
       }
     }
-    if (reserveLeft.greaterThan(0) && unresolvedCount > 0) {
+    if (reserveLeft.greaterThan(0) && unresolvedCount > 0 && sizeable) {
       // wanted = the PT's share the ending set out to keep in pending for those sessions; kept = what this contract's pending really kept.
       const unsecured = Prisma.Decimal.max(outcome.unresolvedHeld.pt.minus(kept.pt), ZERO);
       addReserve('UNSECURED_DISPUTE', unsecured, `${unresolvedCount} unresolved session(s): this contract's pending does not cover the PT's share (${unsecured.toFixed(2)})`);
@@ -1589,10 +1606,10 @@ export interface ReleaseHoldbackResult {
  * The release of what is still held for the PT on a contract - the sweep's call (FH-9; Z4).
  *
  * Due ONLY when the contract has ended (its TERMINATE is recorded in the ledger) AND none of its reserves is still waiting. A reserve is
- * a durable review item written by the ending (PT_FAULT / OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE):
+ * a durable review item written by the ending (OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE):
  *   - OPEN_OBLIGATION closes by itself once that obligation is no longer owed (resolved / waived / paid and verified);
  *   - UNSECURED_DISPUTE closes by itself once every held session of the contract is decided;
- *   - PT_FAULT and UNCOMPUTABLE close ONLY by an admin decision (holdback-review.service) - the sweep never decides them, so it can never
+ *   - UNCOMPUTABLE closes ONLY by an admin decision (holdback-review.service) - the sweep never decides them, so it can never
  *     pay or release money that somebody still has to judge.
  * Then ALL of the held money goes to the PT's AVAILABLE, in one pair of rows. Never early (an active contract's call changes nothing and
  * says why), never twice (the amount is derived from the contract's own HOLDBACK rows, which the release empties, so a second or a

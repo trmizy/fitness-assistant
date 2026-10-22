@@ -307,11 +307,14 @@ async function scenario(m: Mods, o: {
   reason: Reason;
   withGym?: boolean;
   ptRate?: '0.90' | '0.50';
+  /** TEST FIXTURE: an OPEN unpaid obligation of THIS contract written before the ending (stands in for an unfunded no-show). */
+  obligation?: number;
 }) {
   await resetLedger(m);
   const f = await paidContract(m, { price: o.price ?? 5_000_000, totalSessions: o.sessions ?? 10, withGym: o.withGym, h: o.h, ptRate: o.ptRate });
   await deliver(m, f, o.taught);
   for (let i = 0; i < (o.noShows ?? 0); i++) await noShow(m, f);
+  if (o.obligation) await fixtureObligation(m, f, o.obligation);
   const beforeEnd = await balances(m, f);
   const heldBefore = await heldNow(m, f);
   const { result, txnId } = await terminate(m, f, o.reason);
@@ -324,9 +327,18 @@ async function scenario(m: Mods, o: {
 
 const dec = (m: Mods, v: string) => new m.Prisma.Decimal(v);
 
+/** TEST FIXTURE: an OPEN unpaid NO_SHOW obligation of one contract. The PT-borne part reserved for it is floor(unpaid x PT rate). */
+async function fixtureObligation(m: Mods, f: Fixture, unpaid: number) {
+  return m.prisma.contractUnpaidObligation.create({
+    data: { key: `fixture:${f.contractId}:${randomUUID().slice(0, 6)}`, transactionId: f.txnId, contractRef: f.contractId, kind: 'NO_SHOW', party: 'CLIENT', owed: unpaid, paid: 0, unpaid },
+  });
+}
+/** The unpaid amount whose PT-borne part is exactly `want` at PT rate `ptRate`. */
+const unpaidFor = (want: string, ptRate: number) => Math.ceil(Number(want) / ptRate);
+
 /** The admin's decision (two different people, an approval reference) on the open review of one contract. */
 let approvalSeq = 0;
-async function decide(m: Mods, f: Fixture, decision: 'VERIFIED' | 'NOT_VERIFIED', verifiedAmount?: string, kind = 'PT_FAULT') {
+async function decide(m: Mods, f: Fixture, decision: 'VERIFIED' | 'NOT_VERIFIED', verifiedAmount?: string, kind = 'OPEN_OBLIGATION') {
   const rv = await m.prisma.ptHoldbackReview.findFirstOrThrow({ where: { transactionId: f.txnId, kind: kind as any, status: 'OPEN' } });
   return m.review.decideHoldbackReview({
     reviewId: rv.id, expectedReserve: rv.reserve.toFixed(2), expectedTransactionId: f.txnId, decision, verifiedAmount: decision === 'VERIFIED' ? (verifiedAmount ?? rv.reserve.toFixed(0)) : undefined,
@@ -500,17 +512,17 @@ const FAULT_EXPECTATIONS: Record<'0.90' | '0.50', Record<number, { held: string;
 for (const ptRate of ['0.90', '0.50'] as const) {
   for (const taught of [0, 1, 3]) {
     const reason: Reason = 'PT_CANCELLED';
-    test(`${reason}, PT ${ptRate}, after ${taught} session(s): nothing is paid at the ending - the potential amount min(10% × remaining, held) is RESERVED; after the admin VERIFIES it, the client gets exactly it out of the hold and the rest returns to the PT`, skipOpts, async () => {
+    test(`${reason} with an OPEN obligation of this contract, PT ${ptRate}, after ${taught} session(s): nothing is paid at the ending - only the PT-borne part of that obligation (capped by the hold) is RESERVED; after the admin VERIFIES it, the client gets exactly it out of the hold and the rest returns to the PT`, skipOpts, async () => {
       const m = await load();
       const legacy = await scenario(m, { taught, reason, ptRate });
-      const held = await scenario(m, { h: '0.10', taught, reason, ptRate });
       const exp = FAULT_EXPECTATIONS[ptRate][taught];
+      const held = await scenario(m, { h: '0.10', taught, reason, ptRate, obligation: dec(m, exp.comp).isZero() ? undefined : unpaidFor(exp.comp, Number(ptRate)) });
 
       const ph = (held.result as any).ptHoldback;
       assert.equal(held.heldBefore, exp.held, 'what was really held when the PT left');
       assert.equal(ph?.held ?? '0.00', exp.held);
       assert.equal(ph?.compensation ?? '0.00', '0.00', 'NOTHING is paid to the client out of the hold at the ending');
-      assert.equal(ph?.stillHeld ?? '0.00', exp.comp, 'the potential PT-fault amount stays held as a reserve');
+      assert.equal(ph?.stillHeld ?? '0.00', exp.comp, 'only the PT-borne part of the open obligation stays held as a reserve');
       assert.equal(ph?.returnedToPt ?? '0.00', exp.back, 'the rest of the hold is released to the PT at once');
       assert.equal(held.result.refund, legacy.result.refund, 'the client still gets the normal refund, unchanged');
       assert.equal(held.after.clientAvailable, legacy.after.clientAvailable, 'and nothing more before the decision');
@@ -522,7 +534,7 @@ for (const ptRate of ['0.90', '0.50'] as const) {
         return;
       }
       const review = await m.prisma.ptHoldbackReview.findFirstOrThrow({ where: { transactionId: held.txnId } });
-      assert.equal(review.kind, 'PT_FAULT');
+      assert.equal(review.kind, 'OPEN_OBLIGATION');
       assert.equal(review.status, 'OPEN');
       assert.equal(review.reserve.toFixed(2), exp.comp);
       assert.ok(review.reviewBy.getTime() > Date.now() + 13 * 24 * 3600 * 1000, 'a review-by deadline (14 days) is set');
@@ -556,6 +568,25 @@ for (const ptRate of ['0.90', '0.50'] as const) {
   }
 }
 
+for (const ptRate of ['0.90', '0.50'] as const) {
+  for (const reason of ['PT_CANCELLED', 'PT_REPEATED_NO_SHOW'] as Reason[]) {
+    test(`OWNER CLOSEOUT - ${reason}, PT ${ptRate}, NO open obligation: the client is refunded in full from the contract’s own funds, so the WHOLE hold returns to the PT at the ending (no reserve, no review) and every balance equals a contract with no holdback`, skipOpts, async () => {
+      const m = await load();
+      const noShows = reason === 'PT_REPEATED_NO_SHOW' ? 3 : 0;
+      const legacy = await scenario(m, { taught: 3, noShows, reason, ptRate });
+      const held = await scenario(m, { h: '0.10', taught: 3, noShows, reason, ptRate });
+      const ph = (held.result as any).ptHoldback;
+      assert.equal(ph.compensation, '0.00');
+      assert.equal(ph.stillHeld, '0.00');
+      assert.equal(ph.returnedToPt, held.heldBefore, 'all of what was held goes back');
+      assert.deepEqual(ph.reserves, []);
+      assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: held.txnId } }), 0);
+      assert.deepEqual(held.after, legacy.after, 'identical to the same contract without any holdback');
+      assert.deepEqual((await postings(m, held.txnId)).filter((l) => /compensation/i.test(l)), []);
+    });
+  }
+}
+
 test('PT_BANNED is NOT a fault reason any more: a ban never compensates the client out of the hold; the PT gets all of it back', skipOpts, async () => {
   const m = await load();
   const legacy = await scenario(m, { taught: 3, reason: 'PT_BANNED' });
@@ -568,20 +599,21 @@ test('PT_BANNED is NOT a fault reason any more: a ban never compensates the clie
 });
 
 for (const ptRate of ['0.90', '0.50'] as const) {
-  test(`PT_REPEATED_NO_SHOW, PT ${ptRate}: 3 taught then 3 no-shows reserves the same potential amount as cancelling after 3 (base = remaining + already-compensated); nothing is paid until the admin verifies it`, skipOpts, async () => {
+  test(`PT_REPEATED_NO_SHOW with an OPEN obligation of this contract, PT ${ptRate}: 3 taught then 3 no-shows reserves exactly the PT-borne part of that obligation (capped by the hold), the same as for a cancellation; nothing is paid until the admin verifies it`, skipOpts, async () => {
     const m = await load();
-    const cancel = await scenario(m, { h: '0.10', taught: 3, reason: 'PT_CANCELLED', ptRate });
-    const legacyNs = await scenario(m, { taught: 3, noShows: 3, reason: 'PT_REPEATED_NO_SHOW', ptRate });
-    const ns = await scenario(m, { h: '0.10', taught: 3, noShows: 3, reason: 'PT_REPEATED_NO_SHOW', ptRate }); // last: its ledger is read below
-
     const held = ptRate === '0.90' ? '450000.00' : '250000.00';
     const comp = ptRate === '0.90' ? '350000.00' : '250000.00';
     const back = ptRate === '0.90' ? '100000.00' : '0.00';
+    const obligation = unpaidFor(comp, Number(ptRate));
+    const cancel = await scenario(m, { h: '0.10', taught: 3, reason: 'PT_CANCELLED', ptRate, obligation });
+    const legacyNs = await scenario(m, { taught: 3, noShows: 3, reason: 'PT_REPEATED_NO_SHOW', ptRate });
+    const ns = await scenario(m, { h: '0.10', taught: 3, noShows: 3, reason: 'PT_REPEATED_NO_SHOW', ptRate, obligation }); // last: its ledger is read below
+
     const ph = (ns.result as any).ptHoldback;
     assert.equal(ns.heldBefore, held, 'the no-show charges came out of the sessions never delivered, not out of the held amount');
     assert.equal(ph.compensation, '0.00', 'nothing is paid at the ending');
-    assert.equal(ph.stillHeld, comp, 'remaining 2.000.000 + compensated 1.500.000 = 3.500.000 → 10% = 350.000, capped by what is held');
-    assert.equal(ph.stillHeld, (cancel.result as any).ptHoldback.stillHeld, 'never cheaper to stop turning up than to cancel');
+    assert.equal(ph.stillHeld, comp, 'the PT-borne part of the open obligation, capped by what is held');
+    assert.equal(ph.stillHeld, (cancel.result as any).ptHoldback.stillHeld, 'the same reserve whichever way the contract ended: only the obligation decides');
     assert.equal(ph.returnedToPt, back);
     assert.equal(ns.result.refund, '2000000.00', 'the refund is the remaining value only — the compensated sessions were already paid back');
     assert.equal(ns.after.clientAvailable, legacyNs.after.clientAvailable);
@@ -598,12 +630,12 @@ for (const ptRate of ['0.90', '0.50'] as const) {
 
 test('PT no-shows eating every undelivered session leave the held amount intact (7 of 10 missed)', skipOpts, async () => {
   const m = await load();
-  const r = await scenario(m, { h: '0.10', taught: 3, noShows: 7, reason: 'PT_REPEATED_NO_SHOW' });
+  const r = await scenario(m, { h: '0.10', taught: 3, noShows: 7, reason: 'PT_REPEATED_NO_SHOW', obligation: unpaidFor('350000.00', 0.9) });
   assert.equal(r.heldBefore, '450000.00');
   assert.equal(r.beforeEnd.ptPending, '0.00', 'the no-show charges drained the contract’s pending…');
   assert.equal(r.beforeEnd.ptHoldback, '450000.00', '…and could not touch the held money, which sits in its own bucket');
   assert.equal((r.result as any).ptHoldback.compensation, '0.00');
-  assert.equal((r.result as any).ptHoldback.stillHeld, '350000.00', 'base = 0 remaining + 7 × 500.000 compensated → 10% = 350.000 reserved');
+  assert.equal((r.result as any).ptHoldback.stillHeld, '350000.00', 'the PT-borne part of the open obligation (350.000) is reserved');
   assert.equal((r.result as any).ptHoldback.returnedToPt, '100000.00');
   assert.equal(r.result.refund, '0.00', 'every undelivered session was already paid back');
 });
@@ -640,6 +672,7 @@ test('money locked for an approved withdrawal and the PT’s available balance a
   assert.equal(before.ptAvailable, '100000.00');
   assert.equal(before.ptLocked, '800000.00');
 
+  await fixtureObligation(m, f, unpaidFor('350000.00', 0.9));
   const { result } = await terminate(m, f, 'PT_CANCELLED');
   assert.equal((result as any).ptHoldback.stillHeld, '350000.00');
   const mid = await balances(m, f);
@@ -669,8 +702,8 @@ test('never platform money: with REVENUE empty, a PT quitting before the first s
 test('a contract with a gym share: the gym and the platform keep exactly what they earned; the PT alone funds the (verified) compensation', skipOpts, async () => {
   const m = await load();
   const legacy = await scenario(m, { price: 1_000_000, sessions: 10, taught: 2, reason: 'PT_CANCELLED', withGym: true });
-  const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 10, taught: 2, reason: 'PT_CANCELLED', withGym: true });
-  // PT s = 55.000, H = 10% × 550.000 = 55.000: after 2 sessions held 55.000, released 55.000. Ceiling = 10% × 800.000 = 80.000 → reserve capped by held.
+  const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 10, taught: 2, reason: 'PT_CANCELLED', withGym: true, obligation: 100_000 });
+  // PT s = 55.000, H = 10% × 550.000 = 55.000: after 2 sessions held 55.000, released 55.000. The open obligation (100.000 × 55% = 55.000) reserves all of it.
   assert.equal((held.result as any).ptHoldback.stillHeld, '55000.00');
   assert.equal((held.result as any).ptHoldback.compensation, '0.00');
   await decide(m, held.f, 'VERIFIED');
@@ -687,9 +720,9 @@ test('a contract with a gym share: the gym and the platform keep exactly what th
 test('rounding: 1.000.000 over 3 sessions with a gym share — whole đồng, the reserve is capped by the hold, nothing lost', skipOpts, async () => {
   const m = await load();
   const legacy = await scenario(m, { price: 1_000_000, sessions: 3, taught: 1, reason: 'PT_CANCELLED', withGym: true });
-  const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 3, taught: 1, reason: 'PT_CANCELLED', withGym: true });
+  const held = await scenario(m, { h: '0.10', price: 1_000_000, sessions: 3, taught: 1, reason: 'PT_CANCELLED', withGym: true, obligation: 100_000 });
   // s_pt = floor(333.333 × 0.55) = 183.333; expected income 550.000 → H = 55.000: held 55.000, released 128.333.
-  // ceiling = ceil(10% × 666.666,67) = 66.667 → reserve capped by what is held.
+  // the open obligation's PT-borne part (floor(100.000 × 55%) = 55.000) equals the hold.
   const ph = (held.result as any).ptHoldback;
   assert.equal(ph.held, '55000.00');
   assert.equal(ph.stillHeld, '55000.00', 'capped by the held amount');
@@ -732,6 +765,7 @@ test('two concurrent termination requests settle the contract once', skipOpts, a
   await resetLedger(m);
   const f = await paidContract(m, { price: 5_000_000, totalSessions: 10, h: '0.10' });
   await deliver(m, f, 3);
+  await fixtureObligation(m, f, unpaidFor('350000.00', 0.9));
   const params = await terminateParams(m, f, 'PT_CANCELLED');
 
   const [a, b] = await Promise.all([m.ledger.terminateContract(params), m.ledger.terminateContract(params)]);
@@ -743,7 +777,7 @@ test('two concurrent termination requests settle the contract once', skipOpts, a
   const bal = await balances(m, f);
   assert.equal(bal.clientAvailable, '3500000.00', 'client paid once: the refund only');
   assert.equal(bal.ptAvailable, '1000000.00', '900.000 released + 100.000 returned');
-  assert.equal(bal.ptHoldback, '350000.00', 'the potential PT-fault amount is reserved, once');
+  assert.equal(bal.ptHoldback, '350000.00', 'the PT-borne part of the open obligation is reserved, once');
   await assertBooksReconcile(m, 'concurrent termination');
 });
 
@@ -789,6 +823,7 @@ test('two held contracts of one PT: each hold is its own; ending one (reserve, t
   };
   const bPendingBefore = await pendingB();
   const bRows = await m.prisma.walletLedgerEntry.count({ where: { transactionId: b.txnId } });
+  await fixtureObligation(m, a, unpaidFor('350000.00', 0.9));
   const { result } = await terminate(m, a, 'PT_CANCELLED');
   assert.equal((result as any).ptHoldback.held, '450000.00');
   assert.equal((result as any).ptHoldback.stillHeld, '350000.00');
@@ -954,16 +989,16 @@ test('internal endpoints: release-session / terminate carry the rate, a body wit
     const r1b = await post('release-session', { ...common(held), label: 'h2', idempotencyKey: `SESSION_RELEASE:${held.contractId}:2`, ptHoldbackRate: '0.10' });
     assert.equal(r1b.json.data.released.pt, '450000.00');
 
-    // Terminate it with the rate: PT_CANCELLED after 2 sessions. base 4.000.000 → 400.000; held 450.000.
+    // Terminate it with the rate: PT_CANCELLED after 2 sessions; held 450.000, nothing else outstanding.
     const t = await post('terminate', {
       ...common(held), usedSessions: 2, reason: 'PT_CANCELLED', label: 'x', idempotencyKey: `CONTRACT_TERMINATE:${held.contractId}`,
       alreadyReleased: { pt: '450000', gym: '0', platform: '100000' }, ptHoldbackRate: '0.10',
     });
     assert.equal(t.status, 200);
     assert.equal(t.json.data.ptHoldback.compensation, '0.00', 'nothing is paid automatically');
-    assert.equal(t.json.data.ptHoldback.stillHeld, '400000.00', 'the potential PT-fault amount is reserved');
-    assert.equal(t.json.data.ptHoldback.returnedToPt, '50000.00');
-    assert.deepEqual(t.json.data.ptHoldback.reserves.map((r: any) => [r.kind, r.reserve]), [['PT_FAULT', '400000.00']]);
+    assert.equal(t.json.data.ptHoldback.stillHeld, '0.00', 'owner closeout: no open obligation, nothing is reserved for the cancellation itself');
+    assert.equal(t.json.data.ptHoldback.returnedToPt, '450000.00', 'the whole hold goes back to the PT');
+    assert.deepEqual(t.json.data.ptHoldback.reserves, []);
     // The old parameter is not part of the contract any more: unknown keys are ignored, nothing is charged.
     const old = await paidContract(m, { price: 5_000_000, totalSessions: 10 });
     await post('release-session', { ...common(old), label: 'o', idempotencyKey: `SESSION_RELEASE:${old.contractId}:1` });

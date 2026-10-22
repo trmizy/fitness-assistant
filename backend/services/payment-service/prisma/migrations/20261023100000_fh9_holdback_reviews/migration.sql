@@ -1,6 +1,6 @@
 -- FH-9 (owner decision): durable review items for the reserve kept in a contract's HOLDBACK after it ended.
 -- Additive only. No existing row changes meaning; nothing is created for an existing contract (reviews are written only by the ending of a contract that holds money back).
-CREATE TYPE "PtHoldbackReviewKind" AS ENUM ('PT_FAULT', 'OPEN_OBLIGATION', 'UNSECURED_DISPUTE', 'UNCOMPUTABLE');
+CREATE TYPE "PtHoldbackReviewKind" AS ENUM ('OPEN_OBLIGATION', 'UNSECURED_DISPUTE', 'UNCOMPUTABLE');
 CREATE TYPE "PtHoldbackReviewStatus" AS ENUM ('OPEN', 'SETTLED_VERIFIED', 'SETTLED_PARTIAL', 'NOT_VERIFIED', 'RELEASED_AUTO');
 
 CREATE TABLE "pt_holdback_reviews" (

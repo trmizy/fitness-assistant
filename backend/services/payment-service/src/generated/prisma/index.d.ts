@@ -282,7 +282,6 @@ export type ContractUnpaidObligationStatus = (typeof ContractUnpaidObligationSta
 
 
 export const PtHoldbackReviewKind: {
-  PT_FAULT: 'PT_FAULT',
   OPEN_OBLIGATION: 'OPEN_OBLIGATION',
   UNSECURED_DISPUTE: 'UNSECURED_DISPUTE',
   UNCOMPUTABLE: 'UNCOMPUTABLE'

@@ -155,7 +155,11 @@ test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amo
   assert.match(text, /Trước hết dùng phần tiền chờ của hợp đồng đó đã được tách riêng/);
   assert.match(text, /không bao giờ trả một khoản hai lần/);
   assert.match(text, /không tự động xảy ra chỉ vì bạn bị hạn chế hoặc khóa tài khoản, bạn đơn phương chấm dứt hợp đồng, hay khách khiếu nại/);
-  assert.match(text, /chỉ giữ lại phần tối đa bạn có thể phải chịu/);
+  assert.match(text, /chỉ giữ lại phần tối đa bạn có thể phải chịu cho khoản cụ thể đó/);
+  assert.match(text, /tự nó không phải là lý do để giữ lại khoản tạm giữ/);
+  assert.match(text, /toàn bộ khoản tạm giữ được trả lại cho bạn ngay khi hợp đồng kết thúc/);
+  assert.match(text, /\(Nội dung khoản tạm giữ dưới đây đang chờ rà soát pháp lý — bản nháp\.\)/, "the holdback clause is marked as pending legal review");
+  assert.doesNotMatch(text, /bồi thường khi bị xác minh là hủy hợp đồng|vắng mặt nhiều lần, hoặc/, "no wording implies an automatic penalty reserve for cancelling");
   assert.match(text, /hạn xem xét \(14 ngày\)/);
   assert.match(text, /nếu không được xác minh là lỗi của bạn, toàn bộ phần dự phòng được trả lại cho bạn/);
   assert.match(text, /không ứng tiền, không lấy từ hợp đồng khác/);
@@ -163,6 +167,9 @@ test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amo
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /không tự động khiến bạn bị bồi thường thêm từ khoản tạm giữ ở mục 2/);
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "restriction")!.body.join(" "), /không tự động bị coi là lỗi của bạn đối với từng khách/);
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "neutral-exit")!.body.join(" "), /không dùng khoản tạm giữ ở mục 2 để bồi thường/);
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /khoản tạm giữ chỉ được dùng cho một nghĩa vụ riêng của chính hợp đồng đó đã được quản trị viên xem xét và xác minh là thuộc trách nhiệm của bạn/);
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /Nếu không có nghĩa vụ riêng nào như vậy, khoản tạm giữ của hợp đồng đó được trả lại cho bạn khi hợp đồng kết thúc/);
+  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice")!.body[0], /^\(Nội dung đang chờ rà soát pháp lý — bản nháp\.\)$/, "clause 10 is marked as pending legal review");
   assert.equal(PT_TERMS_SECTIONS.length, 10, "numbering is unchanged: the holdback lives in clause 2, the privacy notice stays clause 10");
   assert.ok(PT_TERMS_SECTIONS.some((s) => s.id === "privacy-notice"));
 });

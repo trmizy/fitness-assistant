@@ -206,7 +206,6 @@ const HOLDBACK_STATE_LABEL: Record<string, string> = {
   STUCK: "Đã kết thúc và đối soát xong nhưng chưa trả",
 };
 const HOLDBACK_KIND_LABEL: Record<string, string> = {
-  PT_FAULT: "có thể do lỗi PT",
   OPEN_OBLIGATION: "nghĩa vụ của hợp đồng",
   UNSECURED_DISPUTE: "buổi tranh chấp chưa được đảm bảo",
   UNCOMPUTABLE: "chưa tính được rủi ro",

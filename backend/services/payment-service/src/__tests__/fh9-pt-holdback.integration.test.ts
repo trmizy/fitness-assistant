@@ -205,7 +205,7 @@ const h = (v: unknown) => String(v);
 
 let approvalSeq = 0;
 /** The admin's decision on the open review of kind `kind` of one contract (two different people, a fresh approval reference). */
-async function decide(m: Mods, f: Fx, decision: 'VERIFIED' | 'NOT_VERIFIED', verifiedAmount?: string, kind = 'PT_FAULT', over: Record<string, unknown> = {}) {
+async function decide(m: Mods, f: Fx, decision: 'VERIFIED' | 'NOT_VERIFIED', verifiedAmount?: string, kind = 'OPEN_OBLIGATION', over: Record<string, unknown> = {}) {
   const rv = await m.prisma.ptHoldbackReview.findFirstOrThrow({ where: { transactionId: f.txnId, kind: kind as any, status: 'OPEN' } });
   return m.review.decideHoldbackReview({
     reviewId: rv.id, expectedReserve: rv.reserve.toFixed(2), expectedTransactionId: f.txnId, decision,
@@ -483,17 +483,60 @@ test('client cancels LATE (after 3 sessions): all held money returns to the PT, 
   await assertBooksSound(m, 'client cancel late');
 });
 
-test('PT cancels (PT_CANCELLED) after 3 sessions: NOTHING is paid at the ending; 70.000 (10% of the 700.000 unused) is RESERVED; VERIFIED pays the client exactly it out of the hold, the other 20.000 went back to the PT at the ending', skipOpts, async () => {
+test('OWNER CLOSEOUT - PT cancels (PT_CANCELLED) after 3 of 10: the client is refunded in full from the contract’s own funds, no open obligation -> the WHOLE 90.000 hold returns to the PT at the ending; no reserve, no review, no compensation', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
   const before = await bal(m, f);
+  assert.equal(await heldOf(m, f), '90000');
+  const r = await terminate(m, f, 'PT_CANCELLED');
+  assert.equal(r.ptHoldback?.compensation, '0.00');
+  assert.equal(r.ptHoldback?.returnedToPt, '90000.00', 'all of it');
+  assert.equal(r.ptHoldback?.stillHeld, '0.00');
+  assert.deepEqual(r.ptHoldback?.reserves, []);
+  const b = await bal(m, f);
+  assert.equal(str(b.client), '700000', 'the 7 undelivered sessions, refunded in full - nothing more');
+  assert.equal(str(b.ptAvailable.minus(before.ptAvailable)), '90000');
+  assert.equal(str(b.ptAvailable), '270000', 'what the PT earned, hold included');
+  assert.equal(await heldOf(m, f), '0');
+  assert.equal((await openReviews(m, f)).length, 0, 'no review item: nothing is outstanding');
+  assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: f.txnId } }), 0);
+  assert.equal(await m.prisma.walletLedgerEntry.count({ where: { transactionId: f.txnId, description: { contains: 'compensation for' } } }), 0);
+  await assertBooksSound(m, 'PT cancels, nothing outstanding');
+});
+
+test('OWNER CLOSEOUT - the example: PT cancels after 2 of 4 -> client refunded 500.000, no open obligation -> the full 90.000 holdback returns to the PT at the ending', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+  const f = await paid(m, { price: 1_000_000, n: 4, h: '0.10' });
+  await deliver(m, f);
+  await deliver(m, f);
+  assert.equal(await heldOf(m, f), '90000');
+  const r = await terminate(m, f, 'PT_CANCELLED');
+  assert.equal(r.ptHoldback?.held, '90000.00');
+  assert.equal(r.ptHoldback?.returnedToPt, '90000.00');
+  assert.equal(r.ptHoldback?.stillHeld, '0.00');
+  const b = await bal(m, f);
+  assert.equal(str(b.client), '500000');
+  assert.equal(str(b.ptAvailable), '450000', '2 delivered sessions of 225.000, the 90.000 hold included');
+  assert.equal(await heldOf(m, f), '0');
+  assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: f.txnId } }), 0);
+  await assertBooksSound(m, 'PT cancels 2/4');
+});
+
+test('PT cancels while a SPECIFIC unsecured obligation of this contract is OPEN: only its PT-borne part (70.000) is reserved; NOTHING is paid at the ending; VERIFIED pays exactly that out of the hold, the other 20.000 went back to the PT', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+  const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
+  for (let i = 0; i < 3; i++) await deliver(m, f);
+  const before = await bal(m, f);
+  await fixtureObligation(m, f, 77_778); // TEST FIXTURE: PT-borne part floor(77.778 x 90%) = 70.000
   const r = await terminate(m, f, 'PT_CANCELLED');
   assert.equal(r.ptHoldback?.compensation, '0.00');
   assert.equal(r.ptHoldback?.stillHeld, '70000.00');
   assert.equal(r.ptHoldback?.returnedToPt, '20000.00', '90.000 held - 70.000 reserved');
-  assert.deepEqual(r.ptHoldback?.reserves.map((x) => [x.kind, x.reserve]), [['PT_FAULT', '70000.00']]);
+  assert.deepEqual(r.ptHoldback?.reserves.map((x) => [x.kind, x.reserve]), [['OPEN_OBLIGATION', '70000.00']]);
   let b = await bal(m, f);
   assert.equal(str(b.client), '700000', 'the refund only: no compensation yet');
   assert.equal(str(b.ptAvailable.minus(before.ptAvailable)), '20000');
@@ -504,21 +547,22 @@ test('PT cancels (PT_CANCELLED) after 3 sessions: NOTHING is paid at the ending;
   const d = await decide(m, f, 'VERIFIED');
   assert.equal(d.paidToClient, '70000.00');
   b = await bal(m, f);
-  assert.equal(str(b.client), '770000', 'refund 700.000 + 70.000 compensation');
-  assert.equal(str(b.ptAvailable), '200000', '270.000 earned - 70.000 compensation');
+  assert.equal(str(b.client), '770000', 'refund 700.000 + 70.000 verified');
+  assert.equal(str(b.ptAvailable), '200000', '270.000 earned - 70.000 verified');
   assert.equal(await heldOf(m, f), '0');
-  await assertBooksSound(m, 'PT cancels');
+  await assertBooksSound(m, 'PT cancels with an open obligation');
 });
 
-test('PT-fault with LESS held than the ceiling: the reserve is min(ceiling, held); and a PT-cancelled contract that was NOT verified gives everything back to the PT', skipOpts, async () => {
+test('a reserve is never more than what is held: an open obligation whose PT-borne part (90.000) exceeds the 45.000 held reserves the 45.000; NOT_VERIFIED gives everything back to the PT', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
-  // 1.000.000 / 20 sessions: target 90.000, after 1 session only 45.000 is held; undelivered value 950.000 -> ceiling 95.000 -> reserve = held 45.000
+  // 1.000.000 / 20 sessions: target 90.000, after 1 session only 45.000 is held
   const f = await paid(m, { price: 1_000_000, n: 20, h: '0.10' });
   await deliver(m, f);
+  await fixtureObligation(m, f, 100_000); // PT-borne 90.000 > held 45.000
   const r = await terminate(m, f, 'PT_CANCELLED');
   assert.equal(r.ptHoldback?.held, '45000.00');
-  assert.equal(r.ptHoldback?.stillHeld, '45000.00', 'less held than the ceiling: all of it is at risk, never more');
+  assert.equal(r.ptHoldback?.stillHeld, '45000.00', 'all of it is at risk, never more');
   assert.equal(r.ptHoldback?.returnedToPt, '0.00');
   const d = await decide(m, f, 'NOT_VERIFIED');
   assert.equal(d.status, 'NOT_VERIFIED');
@@ -528,14 +572,15 @@ test('PT-fault with LESS held than the ceiling: the reserve is min(ceiling, held
   assert.equal(str(b.client), '950000', 'only the refund');
   assert.equal(str(b.ptAvailable), '45000');
   assert.equal(await heldOf(m, f), '0');
-  await assertBooksSound(m, 'PT cancels, not verified');
+  await assertBooksSound(m, 'not verified');
 });
 
-test('PT fault PARTIALLY verified: only the verified part is paid to the client, the rest of the reserve returns to the PT; a second decision is refused', skipOpts, async () => {
+test('PARTIALLY verified: only the verified part is paid to the client, the rest of the reserve returns to the PT; a second decision is refused', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
+  await fixtureObligation(m, f, 77_778);
   await terminate(m, f, 'PT_CANCELLED'); // reserve 70.000
   const d = await decide(m, f, 'VERIFIED', '30000');
   assert.equal(d.status, 'SETTLED_PARTIAL');
@@ -552,18 +597,18 @@ test('PT fault PARTIALLY verified: only the verified part is paid to the client,
   await assertBooksSound(m, 'partial');
 });
 
-test('PT_REPEATED_NO_SHOW: the reserve base includes the already-compensated sessions; still nothing automatic, and only the PT-borne verified part is ever paid', skipOpts, async () => {
+test('OWNER CLOSEOUT - PT_REPEATED_NO_SHOW (3 no-shows already refunded one by one): nothing is reserved for the "fault" and nothing is automatic - the whole 90.000 hold returns to the PT', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
   for (let i = 0; i < 3; i++) await noShow(m, f);
   const r = await terminate(m, f, 'PT_REPEATED_NO_SHOW');
-  // base = remaining (4 x 100.000) + compensated (3 x 100.000) = 700.000 -> ceiling 70.000, held 90.000
   assert.equal(r.ptHoldback?.compensation, '0.00');
-  assert.equal(r.ptHoldback?.stillHeld, '70000.00');
-  assert.equal(r.ptHoldback?.returnedToPt, '20000.00');
-  await decide(m, f, 'VERIFIED', '70000');
+  assert.equal(r.ptHoldback?.returnedToPt, '90000.00');
+  assert.equal(r.ptHoldback?.stillHeld, '0.00');
+  assert.deepEqual(r.ptHoldback?.reserves, []);
+  assert.equal(await m.prisma.ptHoldbackReview.count({ where: { transactionId: f.txnId } }), 0);
   assert.equal(await heldOf(m, f), '0');
   await assertBooksSound(m, 'repeated no-show');
 });
@@ -736,15 +781,16 @@ test('an UNSECURED dispute (this contract’s pending cannot cover the PT share 
   await assertBooksSound(m, 'unsecured dispute');
 });
 
-test('risk NOT computable (a PT-fault ending without the holdback rate): the whole remaining hold is kept with the reason, a handler slot and a deadline; it surfaces as OVERDUE in the admin report once the deadline passes; an admin decision closes it', skipOpts, async () => {
+test('UNCOMPUTABLE reserve (TEST FIXTURE: a reserve re-labelled UNCOMPUTABLE - the ledger refuses invalid rates before it could emit one): the whole remaining hold is kept with the reason, a handler slot and a deadline; it surfaces as OVERDUE in the admin report once the deadline passes; the sweep never decides it; an admin decision closes it', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const report = (await import('../services/admin-obligations.service')).buildObligationsReport;
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
-  const params = termParams(m, f, 'PT_CANCELLED');
-  delete (params as { ptHoldbackRate?: unknown }).ptHoldbackRate; // the caller did not send the rate: the potential amount cannot be sized
-  const r = await m.ledger.terminateContract(params);
+  await fixtureObligation(m, f, 100_000); // PT-borne 90.000 = the whole hold
+  const r = await terminate(m, f, 'PT_CANCELLED');
+  // TEST FIXTURE: the review is re-labelled as one whose amount could not be sized
+  await m.prisma.ptHoldbackReview.updateMany({ where: { transactionId: f.txnId }, data: { kind: 'UNCOMPUTABLE', reason: 'the PT share could not be computed, so the whole hold of this contract is kept until an admin decides' } });
   assert.equal(r.ptHoldback?.stillHeld, '90000.00', 'up to the whole remaining hold of THIS contract');
   assert.equal(r.ptHoldback?.returnedToPt, '0.00');
   const rv = (await openReviews(m, f))[0];
@@ -779,6 +825,7 @@ test('the decision operation: dry-run writes nothing; four-eyes, CAS, the cap, r
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
+  await fixtureObligation(m, f, 77_778); // TEST FIXTURE: the PT-borne part is 70.000
   await terminate(m, f, 'PT_CANCELLED'); // reserve 70.000
   const rv = (await openReviews(m, f))[0];
   const base = { reviewId: rv.id, expectedReserve: '70000.00', expectedTransactionId: f.txnId, decision: 'VERIFIED' as const, verifiedAmount: '70000', note: 'checked the evidence of this contract', actor: 'admin-a', approvedBy: 'admin-b', approvalRef: 'AP-D1' };
@@ -813,6 +860,7 @@ test('RACE: a verified decision, the sweep and a retry run at the same moment on
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 10, h: '0.10' });
   for (let i = 0; i < 3; i++) await deliver(m, f);
+  await fixtureObligation(m, f, 77_778); // TEST FIXTURE: the PT-borne part is 70.000
   await terminate(m, f, 'PT_CANCELLED'); // reserve 70.000, 20.000 already released
   const rv = (await openReviews(m, f))[0];
   const mk = (ref: string) => m.review.decideHoldbackReview({
@@ -959,6 +1007,7 @@ test('funds stay within ONE contract: two held contracts of one PT; ending/compe
   const bBefore = { held: await heldOf(m, b), rows: await m.prisma.walletLedgerEntry.count({ where: { transactionId: b.txnId } }) };
   const pt = await m.wallet.getOrCreateWallet('PT', ptUserId);
   assert.equal(str(pt.holdbackBalance), '270000', 'the wallet’s bucket is the sum over the PT’s contracts');
+  await fixtureObligation(m, a, 77_778); // TEST FIXTURE: PT-borne part 70.000
   const r = await terminate(m, a, 'PT_CANCELLED');
   assert.equal(r.ptHoldback?.stillHeld, '70000.00');
   const dA = await decide(m, a, 'VERIFIED');
@@ -1053,7 +1102,7 @@ test('turning the policy off later does not lose held money: a termination that 
 
 // ───────────────────────────── ledger totals before/after ─────────────────────────────
 
-test('ledger totals balance before and after every step of a PT-fault ending; the printed table is the evidence', skipOpts, async () => {
+test('ledger totals balance before and after every step of a PT cancellation (client refunded in full, whole hold back to the PT); the printed table is the evidence', skipOpts, async () => {
   const m = await load();
   await resetLedger(m);
   const f = await paid(m, { price: 1_000_000, n: 4, h: '0.10' });
@@ -1069,6 +1118,10 @@ test('ledger totals balance before and after every step of a PT-fault ending; th
   await deliver(m, f); await snap('S2');
   await terminate(m, f, 'PT_CANCELLED'); await snap('PT_CANCELLED');
   console.log(['FH9-TABLE 1.000.000/4 PT_CANCELLED after 2', ...lines].join('\n'));
+  const end = await bal(m, f);
+  assert.equal(str(end.ptHoldback), '0');
+  assert.equal(str(end.ptAvailable), '450000');
+  assert.equal(str(end.client), '500000');
   await assertBooksSound(m, 'totals');
 });
 
@@ -1126,15 +1179,16 @@ test('PT view per contract: pending / earned / held / available-from-contract / 
   assert.equal(v.totals.held, '90000.00');
   assert.equal(v.totals.contractsHolding, 1);
 
-  // PT-fault ending: part of the hold is the contract's own verified compensation
+  // an ending with a specific open obligation: its PT-borne part waits for a decision (TEST FIXTURE: 88.889 unpaid -> PT-borne 80.000)
+  await fixtureObligation(m, f, 88_889);
   await terminate(m, f, 'PT_CANCELLED');
   v = await view(ptUserId);
   let after = v.contracts.find((c) => c.transactionId === f.txnId)!;
   assert.equal(after.release.ended, true);
-  assert.equal(after.release.state, 'WAITING_RECONCILIATION', 'a potential PT-fault amount waits for an admin decision');
+  assert.equal(after.release.state, 'WAITING_RECONCILIATION', 'the PT-borne part of an open obligation waits for an admin decision');
   assert.equal(after.held, '80000.00');
   assert.equal(after.release.reserved, '80000.00');
-  assert.equal(after.release.pendingFaultReview, true);
+  assert.equal(after.release.pendingFaultReview, false, 'only an UNCOMPUTABLE reserve is flagged for a fault-style review');
   assert.ok(after.release.reviewBy && !after.release.reviewOverdue);
   assert.equal(after.compensationPaid, '0.00', 'nothing paid before the decision');
   await decide(m, f, 'VERIFIED');
@@ -1191,6 +1245,16 @@ test('an ended contract that waits for its own open obligation shows the hold as
   assert.equal(r3.summary.ptHoldback.stuck.count, 0);
   assert.equal(r3.summary.ptHoldback.contractsHolding, 1);
   await assertBooksSound(m, 'admin report');
+});
+
+test('ratesUsable: the PT share of a cause can only be sized from three finite, non-negative rates that sum to 1 (otherwise a specific cause would be UNCOMPUTABLE)', skipOpts, async () => {
+  const m = await load();
+  const R = (a: string, b: string, c: string) => ({ platformRate: D(m, a), ptRate: D(m, b), gymRate: D(m, c) }) as any;
+  assert.equal(m.ledger.ratesUsable(R('0.10', '0.90', '0')), true);
+  assert.equal(m.ledger.ratesUsable(R('0.10', '0.55', '0.35')), true);
+  assert.equal(m.ledger.ratesUsable(R('0.10', '0.80', '0')), false, 'sum != 1');
+  assert.equal(m.ledger.ratesUsable(R('-0.10', '1.10', '0')), false, 'negative');
+  assert.equal(m.ledger.ratesUsable({ platformRate: D(m, '0.1'), ptRate: undefined, gymRate: D(m, '0') } as any), false, 'missing');
 });
 
 test('source scan: the HOLDBACK bucket is only written by contract-ledger.service; the other modules that name it only read it', () => {

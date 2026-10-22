@@ -417,12 +417,11 @@ model ContractUnpaidObligation {
 
 /// FH-9 (owner decision): a reserve kept in a contract's HOLDBACK after the contract ended, and WHY. Never automatic compensation: a PT-fault
 /// amount is only paid to the client after an authorised admin VERIFIED it (holdback-review.service.ts); everything else is released.
-///   PT_FAULT          PT_CANCELLED / PT_REPEATED_NO_SHOW: the potential PT-fault amount, until the admin decides.
+/// A PT ending/cancelling is NOT a kind: the client is refunded in full from the contract's own funds, so nothing is reserved for it.
 ///   OPEN_OBLIGATION   the PT-borne part of an OPEN unpaid obligation of THIS contract (not covered by this contract's pending).
 ///   UNSECURED_DISPUTE the PT's share of an unresolved session that this contract's pending could not cover.
-///   UNCOMPUTABLE      the risk could not be computed reliably: up to the whole remaining hold, with the reason, a handler and a deadline.
+///   UNCOMPUTABLE      a specific cause exists but its PT share cannot be sized: up to the whole remaining hold, with the reason, a handler and a deadline.
 enum PtHoldbackReviewKind {
-  PT_FAULT
   OPEN_OBLIGATION
   UNSECURED_DISPUTE
   UNCOMPUTABLE

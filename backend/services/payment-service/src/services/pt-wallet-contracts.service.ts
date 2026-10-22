@@ -176,7 +176,7 @@ export async function buildPtWalletContractsView(ptUserId: string, opts: { limit
               : 'RELEASED';
         const reviews = reviewsOf(r.transaction_id);
         const reserved = reviews.reduce((a, x) => a.plus(x.reserve), new Prisma.Decimal(0));
-        const faultPending = reviews.some((x) => x.kind === 'PT_FAULT' || x.kind === 'UNCOMPUTABLE');
+        const faultPending = reviews.some((x) => x.kind === 'UNCOMPUTABLE');
         const earliest = reviews.map((x) => new Date(x.review_by).getTime()).sort((a, b) => a - b)[0];
         const dispute = held.greaterThan(0) && isEnded && reviews.length > 0;
         if (held.greaterThan(0)) {

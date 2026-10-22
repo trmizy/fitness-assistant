@@ -397,21 +397,35 @@ test("MI-4f FH-9 holdback sweep on 3 instances at once (the flag is OFF in produ
   });
 });
 
-test("MI-4g FH-9 owner decision across processes: three instances end the contract as PT_CANCELLED at once -> ONE review and ONE reserve, nothing paid automatically; then two admin decision CLIs (same approval + another approval) and three holdback sweeps run at once -> the client is paid once, the rest returns to the PT once", { skip, timeout: 280_000 }, async () => {
+test("MI-4g FH-9 owner closeout across processes: three instances end a contract as PT_CANCELLED at once -> with NO open obligation the whole hold returns to the PT once (no review); with a specific OPEN obligation ONE review and ONE reserve (its PT-borne part), nothing paid automatically; then two admin decision CLIs (same approval + another approval) and three holdback sweeps run at once -> the client is paid once, the rest returns to the PT once", { skip, timeout: 280_000 }, async () => {
   await scenario(async () => {
     const { execFile } = await import("node:child_process");
     const path = await import("node:path");
     const pt = await M.makePt();
+    // 1) no open obligation: three instances end it at once; the client is refunded in full and the WHOLE hold goes back to the PT, once
+    const B = await M.paidContract(pt);
+    await M.prisma.contract.update({ where: { id: B.id }, data: { ptHoldbackRate: "0.10", ptHoldbackPolicyVersion: 1 } }); // TEST FIXTURE (flag OFF in production)
+    await M.deliver(B, 3);
+    assert.equal(await M.net(B.txnId, "PT", "HOLDBACK"), 450_000);
+    const endsB = await Promise.all([0, 1, 2].map((i) => M.call(i, "POST", `/contracts/${B.id}/terminate`, B.ptToken, { reason: "PT_CANCELLED" })));
+    assert.ok(endsB.some((e) => e.status === 200), JSON.stringify(endsB.map((e) => e.body)));
+    assert.equal(await M.net(B.txnId, "PT", "HOLDBACK"), 0, "nothing outstanding: the whole hold went back");
+    const revB = (await M.payDb.$queryRawUnsafe(`SELECT count(*)::int AS n FROM pt_holdback_reviews WHERE transaction_id = '${B.txnId}'`)) as any[];
+    assert.equal(revB[0].n, 0, "no review item");
+    assert.equal(await M.opCount(`HOLDBACK_FAULT_COMP:${B.id}:%`), 0, "no compensation operation");
+    // 2) a specific OPEN obligation
     const A = await M.paidContract(pt);
     await M.prisma.contract.update({ where: { id: A.id }, data: { ptHoldbackRate: "0.10", ptHoldbackPolicyVersion: 1 } }); // TEST FIXTURE (flag OFF in production)
     await M.deliver(A, 3);
     assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 450_000);
+    // TEST FIXTURE: a specific OPEN no-show obligation of THIS contract (the PT-borne part is floor(388.889 x 90%) = 350.000)
+    await M.payDb.$executeRawUnsafe(`INSERT INTO contract_unpaid_obligations (id, key, transaction_id, contract_ref, kind, party, owed, paid, unpaid) VALUES (gen_random_uuid()::text, 'mi4g:${A.id}', '${A.txnId}', '${A.id}', 'NO_SHOW', 'CLIENT', 388889, 0, 388889)`);
     const ends = await Promise.all([0, 1, 2].map((i) => M.call(i, "POST", `/contracts/${A.id}/terminate`, A.ptToken, { reason: "PT_CANCELLED" })));
     show("MI-4g ends", { statuses: ends.map((e) => e.status) });
     assert.ok(ends.some((e) => e.status === 200), JSON.stringify(ends.map((e) => e.body)));
     const reviews = (await M.payDb.$queryRawUnsafe(`SELECT id, kind::text AS kind, status::text AS status, reserve::text AS reserve, transaction_id FROM pt_holdback_reviews WHERE transaction_id = '${A.txnId}'`)) as any[];
     assert.equal(reviews.length, 1, "one review item, however many instances ended it");
-    assert.deepEqual([reviews[0].kind, reviews[0].status, reviews[0].reserve], ["PT_FAULT", "OPEN", "350000.00"], "10% of the 3.500.000 undelivered value, capped by the hold; nothing paid");
+    assert.deepEqual([reviews[0].kind, reviews[0].status, reviews[0].reserve], ["OPEN_OBLIGATION", "OPEN", "350000.00"], "the PT-borne part of the open obligation, capped by the hold; nothing paid");
     assert.equal(await M.net(A.txnId, "PT", "HOLDBACK"), 350_000, "only the reserve is still held; the other 100.000 went back to the PT");
     const clientBefore = (await M.wallet("CLIENT", A.clientUserId)).a;
 

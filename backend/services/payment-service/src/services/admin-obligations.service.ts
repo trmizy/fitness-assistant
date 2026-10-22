@@ -182,7 +182,7 @@ export interface PtHoldbackRow {
   reserved: string;
   reviewBy: string | null;
   overdue: boolean;
-  /** Open reserve kinds (PT_FAULT / OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE). */
+  /** Open reserve kinds (OPEN_OBLIGATION / UNSECURED_DISPUTE / UNCOMPUTABLE). */
   reviewKinds: string[];
   lastMovementAt: string | null;
 }
