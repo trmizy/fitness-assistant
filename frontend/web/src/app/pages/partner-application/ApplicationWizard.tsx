@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -23,27 +24,17 @@ import {
   type ApplicationView,
   type BusinessScale,
   type DocType,
-  type MissingItem,
   type RepresentativeRole,
 } from "../../services/partnerApplication";
 import { ChangeRequestCards } from "./ChangeRequests";
 import { BrandLogoUpload, DocumentUpload, PhotoUploader, PrivateNotice } from "./uploaders";
 import { Card, Field, GhostButton, PrimaryButton, inputCls } from "./ui";
-
-type StepId = "representative" | "brand" | "social" | "scale" | "branch" | "location" | "photos" | "legal" | "review";
-
-const STEPS: { id: StepId; title: string; sections: MissingItem["section"][] }[] = [
-  { id: "representative", title: "Người đại diện", sections: ["REPRESENTATIVE"] },
-  { id: "brand", title: "Thương hiệu", sections: ["BRAND"] },
-  // Không bắt buộc, không có mục "còn thiếu" nào — bỏ trống vẫn nộp được.
-  { id: "social", title: "Mạng xã hội", sections: [] },
-  { id: "scale", title: "Quy mô", sections: ["SCALE"] },
-  { id: "branch", title: "Chi nhánh đầu tiên", sections: ["BRANCH"] },
-  { id: "location", title: "Vị trí", sections: ["LOCATION"] },
-  { id: "photos", title: "Ảnh cơ sở", sections: ["PHOTOS"] },
-  { id: "legal", title: "Xác minh doanh nghiệp", sections: ["LEGAL"] },
-  { id: "review", title: "Xem lại & gửi", sections: ["TERMS"] },
-];
+import { InlineAmenityPicker } from "../../components/listing/InlineAmenityPicker";
+import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
+import { applicationAmenityService } from "../../services/gymListingApi";
+import { SECTION_TO_STEP, STEPS, firstIncompleteIndex } from "../../utils/applicationSteps";
+import { GYM_LISTING_ERROR_VI, amenityPool, amenitySelectionError, type CatalogAmenity, type InlineProposalInput } from "../../utils/gymListing";
+import { useApp } from "../../context/AppContext";
 
 const blank = (v: string | null | undefined) => !v || !v.trim();
 const opt = (v: string) => (v.trim() ? v.trim() : undefined);
@@ -54,9 +45,9 @@ const opt = (v: string) => (v.trim() ? v.trim() : undefined);
  * ở frontend.
  */
 export function ApplicationWizard({ view, onChanged }: { view: ApplicationView; onChanged: () => Promise<unknown> | void }) {
+  // Resume lands on the first step that still has something missing — AMENITIES (step 7) included.
   const firstIncomplete = useMemo(() => {
-    const idx = STEPS.findIndex((s) => s.id !== "review" && view.missing.some((m) => s.sections.includes(m.section)));
-    return idx === -1 ? STEPS.length - 1 : idx;
+    return firstIncompleteIndex(view.missing);
     // Chỉ tính một lần khi mở, để việc lưu từng bước không kéo người dùng đi chỗ khác.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -133,6 +124,7 @@ export function ApplicationWizard({ view, onChanged }: { view: ApplicationView; 
           {step.id === "scale" && <StepScale view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "branch" && <StepBranch view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "location" && <StepLocation view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
+          {step.id === "amenities" && <StepAmenities view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "photos" && <StepPhotos view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "legal" && <StepLegal view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onDone={() => setIdx(idx + 1)} />}
           {step.id === "review" && <StepReview view={view} editable={editable} onChanged={onChanged} onBack={() => setIdx(idx - 1)} onGoTo={goTo} />}
@@ -455,6 +447,72 @@ function StepLocation({ view, editable, onChanged, onBack, onDone }: StepProps) 
   );
 }
 
+/**
+ * Bước Tiện ích (Listing Management, plan §4/§12.3): chọn tiện ích của chi nhánh đầu tiên trong danh mục, hoặc đề xuất tiện ích mới
+ * để Gymini duyệt cùng hồ sơ. Lưu bằng PUT /owner/application/amenities (amenityIds + proposals + proposalIds); hồ sơ cần ít nhất một
+ * lựa chọn mới nộp được (422 AMENITIES_REQUIRED).
+ *
+ * Danh mục lấy từ GET /owner/application/amenities/catalog (route dành riêng cho ứng viên chưa được duyệt).
+ */
+function StepAmenities({ view, editable, onChanged, onBack, onDone }: StepProps) {
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
+  const catalogQuery = useQuery({
+    queryKey: ["application-amenity-catalog", uid],
+    queryFn: () => applicationAmenityService.catalog(),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  const catalog: CatalogAmenity[] = useMemo(
+    () => amenityPool(catalogQuery.data?.amenities ?? [], (view.amenities ?? []).map((a) => ({ ...a, status: a.status || "ACTIVE" }))),
+    [catalogQuery.data?.amenities, view.amenities],
+  );
+
+  const pendingExisting = (view.amenityProposals ?? []).filter((p) => p.status === "PENDING");
+  const [selectedIds, setSelectedIds] = useState<string[]>((view.amenities ?? []).map((a) => a.id));
+  const [proposals, setProposals] = useState<InlineProposalInput[]>([]);
+  const [keptIds, setKeptIds] = useState<string[]>(pendingExisting.map((p) => p.id));
+  const { error, saving, save } = useSaveStep(editable, onChanged, onDone);
+  const selection = { amenityIds: selectedIds, proposals, proposalIds: keptIds };
+  const problem = amenitySelectionError(selection);
+
+  return (
+    <>
+      <div className="space-y-3.5">
+        <p className="text-sm text-zinc-400">
+          Chọn những tiện ích chi nhánh đầu tiên thực sự có — khách sẽ thấy danh sách này. Không thấy tiện ích cần thiết? Hãy đề xuất, Gymini sẽ duyệt cùng hồ sơ.
+        </p>
+        {!view.branch && <p className="text-sm text-amber-300">Hãy hoàn thành bước Chi nhánh trước khi chọn tiện ích.</p>}
+        {editable ? (
+          <InlineAmenityPicker
+            catalog={catalog}
+            loading={catalogQuery.isLoading}
+            error={catalogQuery.isError ? friendlyError(catalogQuery.error, "Không tải được danh mục tiện ích.").message : null}
+            onRetry={() => void catalogQuery.refetch()}
+            selectedIds={selectedIds}
+            onSelectedChange={setSelectedIds}
+            proposals={proposals}
+            onProposalsChange={setProposals}
+            existing={pendingExisting.map((p) => ({ id: p.id, name: p.name, kind: p.kind }))}
+            keptIds={keptIds}
+            onKeptIdsChange={setKeptIds}
+            disabled={!view.branch}
+          />
+        ) : (
+          <AmenityChipGroups amenities={catalog.filter((a) => selectedIds.includes(a.id))} selectedIds={selectedIds} onToggle={() => {}} disabled />
+        )}
+      </div>
+      <ErrorLine error={error} />
+      <Nav
+        onBack={onBack}
+        next={() => save(() => partnerApplication.saveAmenities(selection))}
+        loading={saving}
+        disabled={editable && (!view.branch || !!problem)}
+      />
+    </>
+  );
+}
+
 function StepPhotos({ view, editable, onChanged, onBack, onDone }: StepProps) {
   const enough = view.photos.length >= view.minPhotos;
   return (
@@ -517,20 +575,10 @@ function StepLegal({ view, editable, onChanged, onBack, onDone }: StepProps) {
   );
 }
 
-const SECTION_TO_STEP: Record<MissingItem["section"], StepId> = {
-  REPRESENTATIVE: "representative",
-  BRAND: "brand",
-  SCALE: "scale",
-  BRANCH: "branch",
-  LOCATION: "location",
-  PHOTOS: "photos",
-  LEGAL: "legal",
-  TERMS: "review",
-};
-
 function StepReview({ view, editable, onChanged, onBack, onGoTo }: StepProps & { onGoTo: (step: string) => void }) {
   const [accept, setAccept] = useState(Boolean(view.partner.termsAcceptedAt));
   const [error, setError] = useState<string | null>(null);
+  const [needsAmenities, setNeedsAmenities] = useState(false);
   const resubmitting = view.accessState === "CHANGES_REQUESTED";
 
   const nonTermsMissing = view.missing.filter((m) => m.section !== "TERMS");
@@ -549,7 +597,13 @@ function StepReview({ view, editable, onChanged, onBack, onGoTo }: StepProps & {
     },
     onError: (e) => {
       const f = friendlyError(e, "Không gửi được hồ sơ. Vui lòng thử lại.");
-      setError(f.message);
+      // 422 AMENITIES_REQUIRED (submit and resubmit): the branch has no amenity — say it in the owner's words and point at the step.
+      if (f.code === "AMENITIES_REQUIRED") {
+        setError(GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED);
+        setNeedsAmenities(true);
+      } else {
+        setError(f.message);
+      }
       onChanged();
     },
   });
@@ -589,6 +643,23 @@ function StepReview({ view, editable, onChanged, onBack, onGoTo }: StepProps & {
           <Summary label="Chi nhánh đầu tiên" value={view.branch?.name} />
           <Summary label="Địa chỉ" value={view.branch?.address} />
           <Summary label="Tên pháp lý" value={view.partner.legalName} />
+          <div className="sm:col-span-2">
+            <dt className="text-xs text-zinc-500">Tiện ích</dt>
+            <dd className="mt-1 text-sm">
+              {(view.amenities ?? []).length + (view.amenityProposals ?? []).filter((p) => p.status === "PENDING").length === 0 ? (
+                <span className="text-zinc-600">Chưa chọn tiện ích nào</span>
+              ) : (
+                <span className="text-zinc-200">
+                  {(view.amenities ?? []).map((a) => a.name).join(", ")}
+                  {(view.amenityProposals ?? []).filter((p) => p.status === "PENDING").length > 0 && (
+                    <span className="text-blue-300">
+                      {(view.amenities ?? []).length > 0 ? " · " : ""}Đề xuất chờ duyệt: {(view.amenityProposals ?? []).filter((p) => p.status === "PENDING").map((p) => p.name).join(", ")}
+                    </span>
+                  )}
+                </span>
+              )}
+            </dd>
+          </div>
           <Summary label="Số ảnh" value={String(view.photos.length)} />
         </dl>
         <ul className="text-xs text-zinc-500 space-y-0.5">
@@ -614,6 +685,11 @@ function StepReview({ view, editable, onChanged, onBack, onGoTo }: StepProps & {
         )}
       </div>
       <ErrorLine error={error} />
+      {needsAmenities && (
+        <button type="button" onClick={() => onGoTo("amenities")} className="mt-2 text-xs font-semibold text-green-400 hover:text-green-300">
+          Đi tới bước Tiện ích
+        </button>
+      )}
       <div className="mt-6 flex items-center justify-between gap-3 max-lg:sticky max-lg:bottom-0 max-lg:-mx-5 max-lg:border-t max-lg:border-zinc-800 max-lg:bg-zinc-900/95 max-lg:px-5 max-lg:py-3 max-lg:backdrop-blur">
         <GhostButton onClick={onBack}>
           <ArrowLeft className="w-4 h-4" /> Quay lại

@@ -732,3 +732,325 @@ export interface GymReviewsResponse {
   count: number;
   reviews: GymReview[];
 }
+
+// ═══ Listing Management — Phase D1 (PT "Tin đăng", admin "Tin đăng & tiện ích") ═══════════════
+// Every shape below was read off user-service (pt-listing.*) and gym-service (gym-listing.*,
+// gym-amenity-catalog.service.ts), not guessed. Normalizers live in utils/ptListing.ts.
+
+export type ListingRevisionStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "WITHDRAWN"
+  | "CHANGES_REQUESTED"
+  | "STALE";
+
+export type ListingSessionMode = "ONLINE" | "OFFLINE";
+
+export interface PtListingProfileDraft {
+  professionalBio: string | null;
+  mainSpecialties: string[];
+  trainingMethodsApproach: string | null;
+  targetClientGroups: string[];
+  primaryTrainingGoals: string[];
+  languages: string[];
+  websiteUrl: string | null;
+  linkedinUrl: string | null;
+}
+
+export interface PtListingPackageDraft {
+  /** Present = an existing package of this PT; absent = a new one. */
+  id?: string;
+  name: string;
+  description: string | null;
+  price: number;
+  sessionCount: number;
+  sessionMode: ListingSessionMode;
+  sessionDurationMinutes: number;
+  validityDays: number | null;
+  isActive: boolean;
+  /** Drop an existing package — it is archived once the revision is approved. */
+  archive?: boolean;
+}
+
+export interface PtListingPayload {
+  profile: PtListingProfileDraft;
+  packages: PtListingPackageDraft[];
+  photoIds: string[];
+  coverPhotoId: string | null;
+}
+
+export interface ListingSystemAdjustment {
+  type: string;
+  [key: string]: unknown;
+}
+
+export interface PtListingRevision {
+  id: string;
+  status: ListingRevisionStatus;
+  source: string;
+  parentRevisionId: string | null;
+  baseVersion: number;
+  draftVersion: number;
+  payload: PtListingPayload;
+  systemAdjustments: ListingSystemAdjustment[];
+  ownerNote: string | null;
+  reviewNote: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  /** The public listing moved since this revision was started (server-computed). */
+  stale: boolean;
+}
+
+export interface ListingHistoryItem {
+  id: string;
+  status: ListingRevisionStatus;
+  source?: string;
+  parentRevisionId: string | null;
+  baseVersion?: number;
+  reviewNote: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  closedAt: string | null;
+  createdAt: string | null;
+  /** Admin-only columns. */
+  adminReason?: string | null;
+  reviewedBy?: string | null;
+  submittedBy?: string | null;
+}
+
+/** A photo as its owner / an admin sees it: STAGED = uploaded but not public (URL expires), PUBLISHED = public now. */
+export interface ListingPhoto {
+  id: string;
+  status: string;
+  url: string | null;
+  expiresAt: string | null;
+  isCover: boolean;
+  sortOrder: number;
+}
+
+export interface PtListingLimits {
+  maxPhotos: number;
+  maxPackages: number;
+  maxStagedPhotos: number;
+}
+
+export interface PtPublishedPackage extends PtListingPackageDraft {
+  id: string;
+  version: number;
+}
+
+export interface PtListingView {
+  listingVersion: number;
+  listingPublishedAt: string | null;
+  published: {
+    profile: PtListingProfileDraft;
+    packages: PtPublishedPackage[];
+    photos: ListingPhoto[];
+    coverPhotoId: string | null;
+  };
+  openRevision: PtListingRevision | null;
+  /** Every photo the trainer can put in a revision (STAGED + PUBLISHED). */
+  photos: ListingPhoto[];
+  history: ListingHistoryItem[];
+  limits: PtListingLimits;
+}
+
+/** GET /profile/me/listing/preview (ListingPreviewDto) normalized for the UI. */
+export interface PtListingPreview {
+  revisionStatus: string;
+  name: string;
+  specialties: string[];
+  profile: PtListingProfileDraft;
+  fromPricePerSession: number | null;
+  fromPackagePrice: number | null;
+  packages: Array<PtListingPackageDraft & { isNew: boolean }>;
+  photos: Array<{ id: string; url: string; isCover: boolean }>;
+  coverPhotoUrl: string | null;
+  photoUrlsExpireAt: string | null;
+}
+
+/** One entry of the server-built `changes` list (pt-listing-diff.ts / gym-listing-diff.ts). */
+export interface ListingFieldChange {
+  /** PT: "profile.<field>", "packages[+]", "packages[<id>]", "packages[<id>].<field>", "photoIds", "coverPhotoId".
+   *  Gym: "description", "amenityIds", "proposalIds", "photoIds", "coverPhotoId". */
+  path: string;
+  before: unknown;
+  after: unknown;
+  added?: string[];
+  removed?: string[];
+}
+
+export interface AdminListingListItem extends ListingHistoryItem {
+  currentListingVersion: number | null;
+  stale: boolean;
+  /** PT rows */
+  ptUserId?: string;
+  ptName?: string | null;
+  /** Gym rows */
+  gymId?: string;
+  gymName?: string;
+  brandId?: string | null;
+  brandName?: string | null;
+  summary: { photoCount: number; packageCount?: number; amenityCount?: number; proposalCount?: number };
+}
+
+export interface AdminListingList {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: AdminListingListItem[];
+}
+
+export interface GymListingPayload {
+  description: string | null;
+  amenityIds: string[];
+  proposalIds: string[];
+  photoIds: string[];
+  coverPhotoId: string | null;
+}
+
+export type AmenityCategory = "FACILITY" | "TRAINING_ZONE" | "SERVICE" | "RECOVERY";
+
+export interface Amenity {
+  id: string;
+  slug: string;
+  name: string;
+  category: AmenityCategory;
+  iconKey: string;
+  sortOrder: number;
+  source: string;
+  status: "ACTIVE" | "DISABLED";
+  /** Admin list only. */
+  gymCount?: number;
+}
+
+export interface AdminPtRevisionDetail {
+  revision: ListingHistoryItem & { ptUserId: string; draftVersion: number; payload: PtListingPayload; previousSnapshot: unknown; ownerNote: string | null };
+  pt: { userId: string; firstName: string | null; lastName: string | null; listingVersion: number; listingPublishedAt: string | null } | null;
+  stale: boolean;
+  published: PtListingPayload | null;
+  changes: ListingFieldChange[];
+  changesAtDecision: ListingFieldChange[] | null;
+  photos: ListingPhoto[];
+}
+
+export interface AdminGymRevisionDetail {
+  revision: ListingHistoryItem & { draftVersion: number; payload: GymListingPayload; previousSnapshot: unknown; ownerNote: string | null };
+  gym: {
+    id: string;
+    name: string;
+    status: string;
+    operationalStatus: string;
+    brandId: string | null;
+    ownerId: string;
+    listingVersion: number;
+    listingPublishedAt: string | null;
+  };
+  stale: boolean;
+  published: GymListingPayload;
+  changes: ListingFieldChange[];
+  changesAtDecision: ListingFieldChange[] | null;
+  amenities: Array<{ id: string; slug: string; name: string; category: string; iconKey: string; status: string; source: string }>;
+  proposals: Array<{ id: string; name: string; kind: string; suggestedCategory: string; status: string; note: string | null; targetAmenityId: string | null; resultingAmenityId: string | null }>;
+  flags: {
+    hasDisabledAmenity: boolean;
+    disabledAmenities: Array<{ id: string; name: string }>;
+    hasPendingProposal: boolean;
+    pendingProposals: Array<{ id: string; name: string }>;
+  };
+  photos: ListingPhoto[];
+}
+
+export interface AmenityProposalItem {
+  id: string;
+  gymId: string;
+  kind: "NEW" | "REENABLE";
+  targetAmenityId: string | null;
+  name: string;
+  suggestedCategory: AmenityCategory;
+  note: string | null;
+  status: string;
+  resultingAmenityId: string | null;
+  rejectReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  ownerUserId: string;
+  gymName: string | null;
+}
+
+export interface AmenityProposalGroup {
+  key: string;
+  kind: "NEW" | "REENABLE";
+  nameNormalized: string;
+  name: string;
+  targetAmenityId: string | null;
+  existingAmenity: { id: string; name: string; status: string } | null;
+  ownerCount: number;
+  suggestedCategories: Record<string, number>;
+  proposalIds: string[];
+  proposals: AmenityProposalItem[];
+}
+
+/** Admin write results the UI reads (the rest of each body is ignored). */
+export interface ListingDirectEditResult {
+  revisionId: string;
+  listingVersion: number;
+  invalidatedRevisionId: string | null;
+  rebasedDraftRevisionId: string | null;
+}
+
+export interface PresignedPostTarget {
+  uploadId: string;
+  url: string;
+  fields: Record<string, string>;
+  method: "POST";
+  maxBytes: number;
+  contentType: string;
+  expiresAt: string;
+}
+
+// ── Listing Management D1 follow-up: "current published listing" admin reads ────────────────────
+// GET /admin/listings/pts/:ptUserId (bare object) and GET /admin/listings/gyms/:gymId ({success,data}).
+
+export interface AdminPtPublishedListing {
+  pt: { userId: string; firstName: string | null; lastName: string | null; listingVersion: number; listingPublishedAt: string | null };
+  published: PtListingPayload;
+  photos: ListingPhoto[];
+  openRevision: { id: string; status: ListingRevisionStatus } | null;
+}
+
+export interface AdminGymPublishedListing {
+  gym: {
+    id: string;
+    name: string;
+    brandName: string | null;
+    listingVersion: number;
+    listingPublishedAt: string | null;
+    status: string;
+    operationalStatus: string;
+  };
+  published: Pick<GymListingPayload, "description" | "amenityIds" | "photoIds" | "coverPhotoId">;
+  amenities: Array<{ id: string; slug: string; name: string; category: string; iconKey: string; status: string; source: string }>;
+  photos: ListingPhoto[];
+  openRevision: { id: string; status: ListingRevisionStatus } | null;
+}
+
+/** What the direct-edit dialog needs, whether it came from a revision's detail or from the published read. */
+export interface PtDirectEditSource {
+  ptUserId: string;
+  listingVersion: number;
+  published: PtListingPayload;
+  photos: ListingPhoto[];
+}
+export interface GymDirectEditSource {
+  gymId: string;
+  gymName: string;
+  listingVersion: number;
+  published: GymListingPayload;
+  amenities: AdminGymPublishedListing["amenities"];
+  photos: ListingPhoto[];
+}

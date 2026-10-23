@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, PlusIcon as Plus, XIcon as X, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ProhibitIcon as Ban, BuildingsIcon as Building2, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, PencilSimpleIcon as Pencil, CheckIcon as Check, StarIcon as Star } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
+import { useApp } from "../../context/AppContext";
+import { ownerAmenityService, quickCreateGymService } from "../../services/gymListingApi";
+import { InlineAmenityPicker } from "../../components/listing/InlineAmenityPicker";
+import {
+  GYM_LISTING_ERROR_VI,
+  amenityPool,
+  amenitySelectionError,
+  errorCodeOf,
+  gymListingErrorMessage,
+  ownerAmenitiesKey,
+  type InlineProposalInput,
+} from "../../utils/gymListing";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
@@ -185,6 +197,18 @@ export function MyGymsPage() {
   useBackDismissible(!!showCreateGym, () => setShowCreateGym(false));
   const [gymForm, setGymForm] = useState({ name: "", address: "", city: "", description: "" });
   const [gymLocation, setGymLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
+  // Listing Management D2: a new branch needs >= 1 amenity or proposal (the server answers 422 AMENITIES_REQUIRED otherwise).
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
+  const [amenityIds, setAmenityIds] = useState<string[]>([]);
+  const [amenityProposals, setAmenityProposals] = useState<InlineProposalInput[]>([]);
+  const amenityProblem = amenitySelectionError({ amenityIds, proposals: amenityProposals });
+  const catalogQuery = useQuery({
+    queryKey: ownerAmenitiesKey(uid),
+    queryFn: () => ownerAmenityService.catalog(),
+    enabled: showCreateGym && !!user,
+    staleTime: 30_000,
+  });
 
   // First-run brand setup — dismissible (X), not a hard block: an owner who closes it and
   // tries "New Gym" anyway just gets createGym's own "set up your brand first" error, so
@@ -221,13 +245,16 @@ export function MyGymsPage() {
   // never auto-derived from whatever they happen to call their first branch.
   const createGymMutation = useMutation({
     mutationFn: () =>
-      gymService.createGym({
-        name: gymForm.name,
-        address: gymForm.address,
-        city: gymForm.city,
-        description: gymForm.description,
-        ...gymLocation,
-      }),
+      quickCreateGymService.create(
+        {
+          name: gymForm.name,
+          address: gymForm.address,
+          city: gymForm.city,
+          description: gymForm.description,
+          ...gymLocation,
+        },
+        { amenityIds, proposals: amenityProposals },
+      ),
     onSuccess: () => {
       toast.success(
         brands.length > 0 ? "Đã thêm chi nhánh — chờ admin duyệt" : "Gym created — awaiting admin approval",
@@ -235,10 +262,18 @@ export function MyGymsPage() {
       setShowCreateGym(false);
       setGymForm({ name: "", address: "", city: "", description: "" });
       setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
+      setAmenityIds([]);
+      setAmenityProposals([]);
       queryClient.invalidateQueries({ queryKey: ["owned-gyms"] });
       queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
+      queryClient.invalidateQueries({ queryKey: ownerAmenitiesKey(uid) });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create gym"),
+    onError: (err: any) =>
+      toast.error(
+        errorCodeOf(err) === "AMENITIES_REQUIRED"
+          ? GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED
+          : err?.response?.data?.error?.message || gymListingErrorMessage(err, "Failed to create gym"),
+      ),
   });
 
   const createBrandMutation = useMutation({
@@ -277,6 +312,8 @@ export function MyGymsPage() {
   const openAddBranch = () => {
     setGymForm({ name: "", address: "", city: "", description: "" });
     setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
+    setAmenityIds([]);
+    setAmenityProposals([]);
     setShowCreateGym(true);
   };
 
@@ -497,6 +534,23 @@ export function MyGymsPage() {
               />
               <AboutCounter value={gymForm.description} />
               <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
+                <p className="text-xs font-semibold text-zinc-300">Tiện ích *</p>
+                <InlineAmenityPicker
+                  catalog={amenityPool(catalogQuery.data?.amenities ?? [], [])}
+                  loading={catalogQuery.isLoading}
+                  error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
+                  onRetry={() => void catalogQuery.refetch()}
+                  selectedIds={amenityIds}
+                  onSelectedChange={setAmenityIds}
+                  proposals={amenityProposals}
+                  onProposalsChange={setAmenityProposals}
+                  existing={[]}
+                  keptIds={[]}
+                  onKeptIdsChange={() => {}}
+                  disabled={createGymMutation.isPending}
+                />
+              </div>
+              <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
                 <input
                   aria-label="Address"
                   value={gymForm.address}
@@ -530,7 +584,8 @@ export function MyGymsPage() {
               <button
                 type="button"
                 onClick={() => createGymMutation.mutate()}
-                disabled={!gymForm.name.trim() || !gymForm.address.trim() || createGymMutation.isPending}
+                disabled={!gymForm.name.trim() || !gymForm.address.trim() || !!amenityProblem || createGymMutation.isPending}
+                title={amenityProblem ?? undefined}
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
               >
                 {createGymMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}

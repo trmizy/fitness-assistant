@@ -20,6 +20,7 @@ export type StaffFeature =
   | "gyms"
   | "gymManage"
   | "gymWizard"
+  | "listings"
   | "plans"
   | "collaborations"
   | "staff"
@@ -32,6 +33,8 @@ const ALLOWED: Record<StaffFeature, readonly PartnerRole[]> = {
   gyms: ["OWNER", "MANAGER"],
   gymManage: ["OWNER", "MANAGER"],
   gymWizard: ["OWNER"],
+  // Listing Management D2 — gym-service owner-listing routes are requirePartnerOwner (a MANAGER gets 403).
+  listings: ["OWNER"],
   plans: ["OWNER", "MANAGER"],
   collaborations: ["OWNER"],
   staff: ["OWNER"],

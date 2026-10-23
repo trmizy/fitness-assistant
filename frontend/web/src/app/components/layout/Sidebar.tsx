@@ -88,6 +88,7 @@ const gymOwnerNavFull = [
   },
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
   { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
+  { label: "Tin đăng & tiện ích", icon: GyminiGymIcon, to: "/gym-owner/listings", ownerOnly: true },
   { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations", ownerOnly: true },
   { label: "Nhân sự", icon: GyminiUsersIcon, to: "/gym-owner/managers", ownerOnly: true },
 ];
@@ -123,6 +124,7 @@ const ptWorkspaceNav = [
   },
   { label: "Ví thu nhập", icon: GyminiWalletIcon, to: "/pt/wallet" },
   { label: "Hồ sơ PT", icon: GyminiProfileIcon, to: "/pt/profile" },
+  { label: "Tin đăng", icon: GyminiCatalogIcon, to: "/pt/listing" },
 ];
 
 /** Admin nav */
@@ -152,6 +154,8 @@ const adminNav = [
   { label: "Tổng quan Gym", icon: GyminiDashboardIcon, to: "/admin/gym-management" },
   { label: "Chi nhánh", icon: GyminiGymIcon, to: "/admin/gyms" },
   { label: "Đối tác", icon: GyminiContractIcon, to: "/admin/partners" },
+  // Listing Management D1 - separate from PT management and partners: what the public sees of a trainer / branch.
+  { label: "Tin đăng & tiện ích", icon: GyminiCatalogIcon, to: "/admin/listings" },
   // Phase 5 — "Khiếu nại/Vi phạm", the nav item Phase 3 deliberately left out until this
   // screen existed (GYM_MANAGEMENT_API_GAPS.md). Reuses GyminiDisputeIcon (already used for
   // session disputes below) — same underlying concept, different domain.

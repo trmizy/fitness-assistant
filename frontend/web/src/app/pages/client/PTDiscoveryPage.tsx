@@ -28,6 +28,8 @@ import {
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
+import { ListingImage } from "../../components/listing/ListingImage";
+import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageChanged } from "../../utils/listingErrors";
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { Stars } from "../../components/gym/Stars";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
@@ -88,6 +90,8 @@ function groupAvailabilityByDay(
 }
 
 function getLowestPerSessionPrice(app: any): number | null {
+  // Listing Management: the public DTO derives this from the live packages (fromPricePerSession).
+  if (isValidPrice(app?.fromPricePerSession)) return app.fromPricePerSession;
   const prices = [
     app?.onlinePricePerSession,
     app?.offlinePricePerSession,
@@ -144,6 +148,10 @@ export function PTDiscoveryPage() {
     "detail",
   );
   useEffect(() => setDetailTab("detail"), [selectedId]);
+
+  // 409 PACKAGE_CHANGED: the package was edited (and approved) after this page loaded it. `current` is the package
+  // as the server holds it now, when the body carried one.
+  const [packageChanged, setPackageChanged] = useState<{ current: Record<string, any> | null } | null>(null);
 
   // Filter panel state
   const [filterOpen, setFilterOpen] = useState(false);
@@ -255,6 +263,16 @@ export function PTDiscoveryPage() {
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      const changed = readPackageChanged(err);
+      if (changed) {
+        setPackageChanged(changed);
+        setLowAvailabilityData(null);
+        setEligibilityRefusal(null);
+        queryClient.invalidateQueries({ queryKey: ["pt-packages", selectedId] });
+        queryClient.invalidateQueries({ queryKey: ["pts-list"] });
+        queryClient.invalidateQueries({ queryKey: ["pt-detail", selectedId] });
+        return;
+      }
       const refused = readEligibilityRefusal(err);
       if (refused) {
         // The server is the authority: show its verdict and re-read the branch list so the
@@ -301,6 +319,8 @@ export function PTDiscoveryPage() {
       clientMessage: requestMessage || undefined,
       gymId,
       acknowledgedLowAvailability,
+      // The version of the package as this page showed it: a package edited since then answers 409 PACKAGE_CHANGED.
+      ...(Number.isInteger(selectedPackage.version) ? { expectedPackageVersion: selectedPackage.version } : {}),
     });
   };
 
@@ -331,11 +351,14 @@ export function PTDiscoveryPage() {
 
   // Only carries what the list row doesn't already have — recentReviews — but fetched
   // whenever a PT is opened since the list endpoint has no comments at all.
-  const { data: ptDetail, isLoading: ptDetailLoading } = useQuery({
+  const { data: ptDetail, isLoading: ptDetailLoading, error: ptDetailError } = useQuery({
     queryKey: ["pt-detail", selectedId],
     queryFn: () => profileService.getPTDetail(selectedId!),
     enabled: !!selectedId,
   });
+
+  // 404 on the detail: the trainer was hidden / suspended / is no longer approved (the id cannot be probed past the list).
+  const ptGone = !!selectedId && !!ptDetailError && isPtGone(ptDetailError);
 
   const { data: ptsData, isLoading } = useQuery({
 
@@ -605,10 +628,14 @@ export function PTDiscoveryPage() {
                   className={`w-full text-left bg-zinc-900 rounded-xl border-2 p-4 transition-all ${selectedId === pt.userId ? "border-green-500 bg-green-500/5" : "border-zinc-800/60 hover:border-zinc-700"}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-sm flex-shrink-0">
-                      {pt.firstName?.[0]}
-                      {pt.lastName?.[0]}
-                    </div>
+                    {pt.coverPhotoUrl ? (
+                      <ListingImage url={pt.coverPhotoUrl} alt={`${pt.firstName ?? ""} ${pt.lastName ?? ""}`.trim()} className="w-12 h-12 rounded-xl flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-sm flex-shrink-0">
+                        {pt.firstName?.[0]}
+                        {pt.lastName?.[0]}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -651,7 +678,7 @@ export function PTDiscoveryPage() {
                         </div>
                         {lowestPrice && (
                           <span className="text-xs font-bold text-green-400 whitespace-nowrap">
-                            từ {formatVND(lowestPrice)}
+                            từ {formatVND(lowestPrice)}/buổi
                           </span>
                         )}
                       </div>
@@ -685,7 +712,7 @@ export function PTDiscoveryPage() {
         </div>
 
         {/* Detail panel */}
-        {selectedPT &&
+        {selectedPT && !ptGone &&
           (() => {
             const app = selectedPT.ptApplication;
             const ptMode = app?.serviceMode;
@@ -851,6 +878,22 @@ export function PTDiscoveryPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Physique photos (Listing Management): published ones only, cover first as the server ordered them */}
+                  {(() => {
+                    const photos: { id: string; url: string }[] = (ptDetail?.physiquePhotos ?? selectedPT.physiquePhotos ?? []).filter((p: any) => p?.url);
+                    if (photos.length === 0) return null;
+                    return (
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Hình ảnh</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          {photos.map((p, i) => (
+                            <ListingImage key={p.id} url={p.url} alt={`Ảnh ${i + 1} của huấn luyện viên`} className="aspect-square w-full rounded-lg" />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Education & Work Experience */}
                   {(app?.educationBackground ||
@@ -1134,6 +1177,11 @@ export function PTDiscoveryPage() {
                   <div>
                     <h4 className="text-sm font-bold text-zinc-200 mb-3">
                       Bảng giá
+                      {isValidPrice(ptDetail?.fromPackagePrice ?? selectedPT.fromPackagePrice) && (
+                        <span className="ml-2 text-xs font-semibold text-green-400">
+                          Gói từ {formatVND(ptDetail?.fromPackagePrice ?? selectedPT.fromPackagePrice)}
+                        </span>
+                      )}
                     </h4>
                     <div className="space-y-3">
                       {packagesLoading ? (
@@ -1256,6 +1304,61 @@ export function PTDiscoveryPage() {
             );
           })()}
       </div>
+
+      {/* Trainer no longer visible (404 on the detail): a calm empty state, not a broken panel. */}
+      {selectedId && ptGone && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedId(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+            <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+            <h3 className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</h3>
+            <p className="text-sm text-zinc-500 mt-1">Hồ sơ có thể đã được ẩn hoặc tạm ngưng. Hãy chọn một huấn luyện viên khác trong danh sách.</p>
+            <button
+              onClick={() => {
+                setSelectedId(null);
+                queryClient.invalidateQueries({ queryKey: ["pts-list"] });
+              }}
+              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+            >
+              Quay lại danh sách
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* 409 PACKAGE_CHANGED — shown above the request modal (z-[70]). "Xem giá mới" closes the request and opens the (re-fetched) price list. */}
+      {packageChanged && createPortal(
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div role="alertdialog" aria-labelledby="pkg-changed-title" className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
+            <h3 id="pkg-changed-title" className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</h3>
+            <p className="text-sm text-zinc-400 mt-2">{PACKAGE_CHANGED_MESSAGE}</p>
+            {packageChanged.current && (
+              <div className="mt-3 rounded-xl border border-zinc-700/60 bg-zinc-800/40 p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-zinc-200">{packageChanged.current.name}</span>
+                  <span className="font-bold text-green-400">{formatVND(Number(packageChanged.current.price))}</span>
+                </div>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {packageChanged.current.sessionCount} buổi · {packageChanged.current.sessionMode === "ONLINE" ? "Online" : "Trực tiếp"}
+                  {packageChanged.current.isActive === false ? " · đang tạm ngưng bán" : ""}
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setPackageChanged(null);
+                setShowRequestModal(false);
+                setSelectedPackage(null);
+                setDetailTab("pricing");
+              }}
+              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+            >
+              Xem giá mới
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* Request Coaching Modal — portaled to <body> and above the mobile detail sheet's
           z-[60] (see the PT-detail bottom sheet above). Without the portal, this fixed

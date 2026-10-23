@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { CircleNotchIcon, CheckCircleIcon, WarningCircleIcon, PencilSimpleIcon } from "@phosphor-icons/react";
-import { gymService, gymPhotoUrl } from "../../../services/api";
-import type { GymOperatingHoursDay, GymPhoto, GymBranchDocument, BranchReviewCategory } from "../../../types";
+import { gymService } from "../../../services/api";
+import { branchPhotoService } from "../../../services/gymListingApi";
+import { ListingImage } from "../../listing/ListingImage";
+import type { GymOperatingHoursDay, ListingPhoto, GymBranchDocument, BranchReviewCategory } from "../../../types";
 import type { BasicInfoValue } from "./StepBasicInfo";
 import type { LocationValue } from "./StepLocation";
-import { FACILITY_LABEL } from "./StepFacilities";
 
 const DAY_LABEL: Record<string, string> = {
   MONDAY: "Thứ 2", TUESDAY: "Thứ 3", WEDNESDAY: "Thứ 4", THURSDAY: "Thứ 5", FRIDAY: "Thứ 6", SATURDAY: "Thứ 7", SUNDAY: "Chủ nhật",
@@ -29,7 +30,7 @@ const CATEGORY_STEP: Record<BranchReviewCategory, number | null> = {
 const FIELD_STEP: Record<string, number> = {
   name: 1, description: 1, phone: 1, email: 1,
   address: 2, city: 2, provinceCode: 2, wardCode: 2, latitude: 2, longitude: 2, locationNote: 2,
-  operatingHours: 3, facilities: 4, verification: 6,
+  operatingHours: 3, facilities: 4, amenities: 4, verification: 6,
 };
 
 export interface SubmitIssue {
@@ -48,7 +49,8 @@ export function StepReviewSubmit({
   basicInfo,
   location,
   hours,
-  facilities,
+  amenityLabels,
+  pendingAmenityNames,
   openReviewIssues,
   submitIssues,
   submitting,
@@ -60,14 +62,17 @@ export function StepReviewSubmit({
   basicInfo: BasicInfoValue;
   location: LocationValue;
   hours: GymOperatingHoursDay[];
-  facilities: string[];
+  /** Names of the catalogue amenities chosen for the branch. */
+  amenityLabels: string[];
+  /** Names of the owner's proposals waiting for Gymini (they count as a choice). */
+  pendingAmenityNames: string[];
   openReviewIssues: { category: BranchReviewCategory; message: string }[];
   submitIssues: SubmitIssue[];
   submitting: boolean;
   onSubmit: () => void;
   onGoToStep: (step: number) => void;
 }) {
-  const photosQuery = useQuery<GymPhoto[]>({ queryKey: ["gym-photos", gymId], queryFn: () => gymService.listGymPhotos(gymId) });
+  const photosQuery = useQuery<ListingPhoto[]>({ queryKey: ["gym-photos", gymId], queryFn: () => branchPhotoService.list(gymId) });
   const docsQuery = useQuery<{ documents: GymBranchDocument[] }>({
     queryKey: ["gym-branch-documents", gymId],
     queryFn: () => gymService.listBranchDocuments(gymId),
@@ -146,10 +151,15 @@ export function StepReviewSubmit({
       </ReviewSection>
 
       <ReviewSection title="Tiện ích & Dịch vụ" onEdit={() => onGoToStep(4)}>
-        {facilities.length === 0 ? (
-          <p className="text-xs text-zinc-600">Chưa chọn tiện ích nào.</p>
+        {amenityLabels.length + pendingAmenityNames.length === 0 ? (
+          <p className="flex items-center gap-1.5 text-xs text-amber-400">
+            <WarningCircleIcon className="size-4" /> Chưa chọn tiện ích nào — cần ít nhất một tiện ích để gửi duyệt.
+          </p>
         ) : (
-          <p className="text-xs text-zinc-400">{facilities.map((f) => FACILITY_LABEL[f as keyof typeof FACILITY_LABEL] ?? f).join(", ")}</p>
+          <div className="space-y-1">
+            {amenityLabels.length > 0 && <p className="text-xs text-zinc-400">{amenityLabels.join(", ")}</p>}
+            {pendingAmenityNames.length > 0 && <p className="text-xs text-blue-300">Đề xuất chờ Gymini duyệt: {pendingAmenityNames.join(", ")}</p>}
+          </div>
         )}
       </ReviewSection>
 
@@ -160,7 +170,7 @@ export function StepReviewSubmit({
           <p className="text-xs text-zinc-600">Chưa có ảnh nào.</p>
         ) : (
           <div className="flex items-center gap-2">
-            {cover && <img src={gymPhotoUrl(cover.fileName, cover.url)} alt="" className="size-12 rounded-lg object-cover border border-zinc-800" />}
+            {cover && <ListingImage url={cover.url} alt="Ảnh bìa" className="size-12 rounded-lg border border-zinc-800" />}
             <p className="text-xs text-zinc-400">{photos.length} ảnh</p>
           </div>
         )}

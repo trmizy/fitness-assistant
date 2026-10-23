@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { canUseFeature, homePathFor, normalizePartnerRole, type PartnerRole, type StaffFeature } from "../gymStaffRole";
 
-const FEATURES: StaffFeature[] = ["dashboard", "gyms", "gymManage", "gymWizard", "plans", "collaborations", "staff", "frontDesk", "finance", "profile"];
+const FEATURES: StaffFeature[] = ["dashboard", "gyms", "gymManage", "gymWizard", "listings", "plans", "collaborations", "staff", "frontDesk", "finance", "profile"];
 
 describe("gymStaffRole", () => {
   it("receptionist: front desk + profile only", () => {
@@ -20,7 +20,7 @@ describe("gymStaffRole", () => {
   });
 
   it("manager never reaches owner-only pages (staff, collaborations, branch wizard, finance)", () => {
-    for (const f of ["staff", "collaborations", "gymWizard", "finance"] as StaffFeature[]) assert.equal(canUseFeature("MANAGER", f), false, f);
+    for (const f of ["staff", "collaborations", "gymWizard", "listings", "finance"] as StaffFeature[]) assert.equal(canUseFeature("MANAGER", f), false, f);
     for (const f of ["dashboard", "gyms", "gymManage", "plans", "frontDesk", "profile"] as StaffFeature[]) assert.equal(canUseFeature("MANAGER", f), true, f);
   });
 

@@ -90,11 +90,14 @@ const PTSchedulePage = lazy(() => import("./pages/pt/PTSchedulePage").then((m) =
 const PTProfilePage = lazy(() => import("./pages/pt/PTProfilePage").then((m) => ({ default: m.PTProfilePage })));
 const PTWalletPage = lazy(() => import("./pages/pt/PTWalletPage").then((m) => ({ default: m.PTWalletPage })));
 const PTServiceOrderPage = lazy(() => import("./pages/pt/PTServiceOrderPage").then((m) => ({ default: m.PTServiceOrderPage })));
+// Listing Management D1 - the trainer's public listing (profile text, packages, photos) edited as a draft and sent for review.
+const PTListingPage = lazy(() => import("./pages/pt/PTListingPage").then((m) => ({ default: m.PTListingPage })));
 
 // Gym owner pages
 const GymOwnerDashboard = lazy(() => import("./pages/gym-owner/GymOwnerDashboard").then((m) => ({ default: m.GymOwnerDashboard })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
 const GymOwnerProfilePage = lazy(() => import("./pages/gym-owner/GymOwnerProfilePage").then((m) => ({ default: m.GymOwnerProfilePage })));
+const GymListingsPage = lazy(() => import("./pages/gym-owner/GymListingsPage").then((m) => ({ default: m.GymListingsPage })));
 const GymManagePage = lazy(() => import("./pages/gym-owner/GymManagePage").then((m) => ({ default: m.GymManagePage })));
 // GYM_BRANCH_FORM_SPEC.md, Phase 1 — new "Add Branch" wizard shell, not yet the primary
 // creation path (see AddBranchWizardPage.tsx's own doc comment for why).
@@ -122,6 +125,8 @@ const AdminGymManagementOverview = lazy(() =>
 );
 const AdminComplaintsPage = lazy(() => import("./pages/admin/AdminComplaintsPage").then((m) => ({ default: m.AdminComplaintsPage })));
 const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
+// Listing Management D1 - PT + branch listing revisions, amenity catalogue and proposals.
+const AdminListingsPage = lazy(() => import("./pages/admin/AdminListingsPage").then((m) => ({ default: m.AdminListingsPage })));
 
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -293,6 +298,7 @@ export const router = createBrowserRouter([
           { path: "service-orders/:id", Component: PTServiceOrderPage },
           { path: "schedule", Component: PTSchedulePage },
           { path: "profile", Component: PTProfilePage },
+          { path: "listing", Component: PTListingPage },
           { path: "chat", Component: ChatPage },
           { path: "wallet", Component: PTWalletPage },
         ],
@@ -316,6 +322,7 @@ export const router = createBrowserRouter([
           { path: "gyms", element: <RequireStaffFeature feature="gyms"><MyGymsPage /></RequireStaffFeature> },
           { path: "gyms/wizard/:id?", element: <RequireStaffFeature feature="gymWizard"><AddBranchWizardPage /></RequireStaffFeature> },
           { path: "gyms/:id", element: <RequireStaffFeature feature="gymManage"><GymManagePage /></RequireStaffFeature> },
+          { path: "listings", element: <RequireStaffFeature feature="listings"><GymListingsPage /></RequireStaffFeature> },
           { path: "plans", element: <RequireStaffFeature feature="plans"><GymPlansPage /></RequireStaffFeature> },
           { path: "collaborations", element: <RequireStaffFeature feature="collaborations"><GymCollaborationsPage /></RequireStaffFeature> },
           { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
@@ -351,6 +358,7 @@ export const router = createBrowserRouter([
           { path: "gym-management", Component: AdminGymManagementOverview },
           { path: "gyms", Component: AdminGymModeration },
           { path: "partners", Component: AdminPartnersPage },
+          { path: "listings", Component: AdminListingsPage },
           { path: "complaints", Component: AdminComplaintsPage },
           { path: "ai-observability", Component: AdminAIObservability },
         ],

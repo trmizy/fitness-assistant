@@ -39,16 +39,6 @@ const emptyLocForm = {
   note: "",
 };
 
-const emptyPkgForm = {
-  name: "",
-  description: "",
-  sessionCount: "",
-  price: "",
-  sessionMode: "ONLINE" as "ONLINE" | "OFFLINE",
-  sessionDurationMinutes: "60",
-  validityDays: "",
-};
-
 const DAY_LABELS: Record<string, string> = {
   MONDAY: "Mon",
   TUESDAY: "Tue",
@@ -184,11 +174,6 @@ export function PTProfilePage() {
     else createMutation.mutate(payload);
   };
 
-  // Service package management
-  const [pkgFormOpen, setPkgFormOpen] = useState(false);
-  const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
-  const [pkgForm, setPkgForm] = useState({ ...emptyPkgForm });
-
   const { data: pkgData, isLoading: pkgsLoading } = useQuery({
     queryKey: ["pt-service-packages"],
     queryFn: ptServicePackageService.getMyPackages,
@@ -256,99 +241,6 @@ export function PTProfilePage() {
     Array.isArray(availabilityRaw) ? availabilityRaw : (availabilityRaw?.data ?? [])
   ) as { dayOfWeek: string; startTime: string; endTime: string; isActive: boolean }[];
 
-  const createPkgMutation = useMutation({
-    mutationFn: ptServicePackageService.createPackage,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pt-service-packages"] });
-      closePkgForm();
-      toast.success("Đã tạo gói dịch vụ");
-    },
-    onError: (e: any) =>
-      toast.error(e?.response?.data?.error || "Lỗi tạo gói dịch vụ"),
-  });
-
-  const updatePkgMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      ptServicePackageService.updatePackage(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pt-service-packages"] });
-      closePkgForm();
-      toast.success("Đã cập nhật gói dịch vụ");
-    },
-    onError: (e: any) =>
-      toast.error(e?.response?.data?.error || "Lỗi cập nhật gói dịch vụ"),
-  });
-
-  const archivePkgMutation = useMutation({
-    mutationFn: (id: string) => ptServicePackageService.archivePackage(id),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["pt-service-packages"] });
-      toast.success(
-        res.hasActiveContracts
-          ? "Đã lưu trữ gói. Có hợp đồng đang tham chiếu gói này — hợp đồng đó không bị ảnh hưởng."
-          : "Đã lưu trữ gói",
-      );
-    },
-    onError: (e: any) =>
-      toast.error(e?.response?.data?.error || "Lỗi lưu trữ gói"),
-  });
-
-  const closePkgForm = () => {
-    setPkgFormOpen(false);
-    setEditingPkgId(null);
-    setPkgForm({ ...emptyPkgForm });
-  };
-
-  const openAddPkgForm = () => {
-    setEditingPkgId(null);
-    setPkgForm({ ...emptyPkgForm });
-    setPkgFormOpen(true);
-  };
-
-  const openEditPkgForm = (pkg: PTServicePackage) => {
-    setEditingPkgId(pkg.id);
-    setPkgForm({
-      name: pkg.name,
-      description: pkg.description ?? "",
-      sessionCount: String(pkg.sessionCount),
-      price: String(Number(pkg.price)),
-      sessionMode: pkg.sessionMode,
-      sessionDurationMinutes: String(pkg.sessionDurationMinutes),
-      validityDays: pkg.validityDays != null ? String(pkg.validityDays) : "",
-    });
-    setPkgFormOpen(true);
-  };
-
-  const submitPkgForm = () => {
-    if (!pkgForm.name.trim()) {
-      toast.error("Tên gói không được để trống");
-      return;
-    }
-    const sessionCount = Number(pkgForm.sessionCount);
-    const price = Number(pkgForm.price);
-    if (!Number.isInteger(sessionCount) || sessionCount < 1) {
-      toast.error("Số buổi phải là số nguyên >= 1");
-      return;
-    }
-    if (!(price > 0)) {
-      toast.error("Giá phải lớn hơn 0");
-      return;
-    }
-    const payload = {
-      name: pkgForm.name.trim(),
-      description: pkgForm.description.trim() || undefined,
-      sessionCount,
-      price,
-      sessionMode: pkgForm.sessionMode,
-      sessionDurationMinutes: pkgForm.sessionDurationMinutes
-        ? Number(pkgForm.sessionDurationMinutes)
-        : undefined,
-      validityDays: pkgForm.validityDays ? Number(pkgForm.validityDays) : undefined,
-    };
-    if (editingPkgId) updatePkgMutation.mutate({ id: editingPkgId, data: payload });
-    else createPkgMutation.mutate(payload);
-  };
-
   // Keyed by the real PTApplicationStatus values, not by a frozen local flag.
   const verificationConfig: Record<string, { label: string; color: string; approved?: boolean }> = {
     DRAFT: { label: "Hồ sơ nháp", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700" },
@@ -375,7 +267,7 @@ export function PTProfilePage() {
           </p>
         </div>
         <button
-          onClick={() => navigate("/client/pt-application")}
+          onClick={() => navigate("/pt/listing")}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"
         >
           <Edit3 className="w-4 h-4" /> Sửa hồ sơ chuyên môn
@@ -501,17 +393,15 @@ export function PTProfilePage() {
             </div>
           </div>
 
-          {/* Packages */}
+          {/* Packages — read-only here. Packages are edited and sent for review in "Tin đăng" (Listing Management D1). */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-zinc-200">
-                Service Packages
-              </h4>
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <h4 className="text-sm font-bold text-zinc-200">Gói dịch vụ</h4>
               <button
-                onClick={openAddPkgForm}
+                onClick={() => navigate("/pt/listing")}
                 className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Package
+                <Pencil className="w-3.5 h-3.5" /> Sửa trong Tin đăng
               </button>
             </div>
 
@@ -519,223 +409,37 @@ export function PTProfilePage() {
               <div className="flex justify-center py-6">
                 <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
               </div>
-            ) : packages.length === 0 ? (
+            ) : packages.filter((p) => !p.archivedAt).length === 0 ? (
               <p className="text-xs text-zinc-600 text-center py-6">
-                Chưa có gói dịch vụ nào. Thêm gói để khách hàng có thể đăng
-                ký.
+                Chưa có gói dịch vụ nào. Vào mục Tin đăng để thêm gói và gửi duyệt.
               </p>
             ) : (
               <div className="space-y-3">
-                {packages.map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    className={`p-4 border-2 rounded-xl ${
-                      pkg.archivedAt
-                        ? "border-zinc-800/60 opacity-50"
-                        : "border-zinc-800/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="min-w-0">
-                        <span className="text-sm font-bold text-zinc-200">
-                          {pkg.name}
-                        </span>
-                        <span className="text-xs text-zinc-600 ml-2">
-                          {pkg.sessionCount} buổi ·{" "}
-                          {pkg.sessionMode === "ONLINE" ? "Online" : "Offline"} ·{" "}
-                          {pkg.sessionDurationMinutes} phút/buổi
-                        </span>
-                        {pkg.archivedAt && (
-                          <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-zinc-700/50 border border-zinc-600 text-zinc-500 rounded-full">
-                            Đã lưu trữ
+                {packages
+                  .filter((p) => !p.archivedAt)
+                  .map((pkg) => (
+                    <div key={pkg.id} className="p-4 border-2 rounded-xl border-zinc-800/60">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-sm font-bold text-zinc-200">{pkg.name}</span>
+                          <span className="text-xs text-zinc-600 ml-2">
+                            {pkg.sessionCount} buổi · {pkg.sessionMode === "ONLINE" ? "Online" : "Trực tiếp"} · {pkg.sessionDurationMinutes} phút/buổi
                           </span>
-                        )}
+                          {!pkg.isActive && (
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-zinc-700/50 border border-zinc-600 text-zinc-500 rounded-full">Tạm ngưng</span>
+                          )}
+                        </div>
+                        <span className="text-base font-bold text-green-400 flex-shrink-0">{formatVND(Number(pkg.price))}</span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-base font-bold text-green-400">
-                          {formatVND(Number(pkg.price))}
-                        </span>
-                        {!pkg.archivedAt && (
-                          <>
-                            <button
-                              onClick={() => openEditPkgForm(pkg)}
-                              className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => archivePkgMutation.mutate(pkg.id)}
-                              disabled={archivePkgMutation.isPending}
-                              className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      {pkg.description && <p className="text-xs text-zinc-400 mt-1">{pkg.description}</p>}
+                      {pkg.validityDays != null && (
+                        <p className="text-[11px] text-zinc-600 mt-1">Hiệu lực {pkg.validityDays} ngày kể từ khi mua</p>
+                      )}
                     </div>
-                    {pkg.description && (
-                      <p className="text-xs text-zinc-400">
-                        {pkg.description}
-                      </p>
-                    )}
-                    {pkg.validityDays != null && (
-                      <p className="text-[11px] text-zinc-600 mt-1">
-                        Hiệu lực {pkg.validityDays} ngày kể từ khi mua
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
-
-            {/* Add/Edit package form */}
-            {pkgFormOpen && (
-              <div className="mt-4 border-t border-zinc-800/60 pt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-400">
-                    {editingPkgId ? "Sửa gói dịch vụ" : "Thêm gói dịch vụ"}
-                  </span>
-                  <button
-                    onClick={closePkgForm}
-                    className="text-zinc-500 hover:text-zinc-300"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Tên gói *
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={100}
-                      value={pkgForm.name}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      placeholder="VD: Gói 10 buổi giảm mỡ"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Số buổi *
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={pkgForm.sessionCount}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({ ...prev, sessionCount: e.target.value }))
-                      }
-                      placeholder="10"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Giá (VND) *
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={pkgForm.price}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({ ...prev, price: e.target.value }))
-                      }
-                      placeholder="1000000"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Hình thức
-                    </label>
-                    <select
-                      value={pkgForm.sessionMode}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({
-                          ...prev,
-                          sessionMode: e.target.value as "ONLINE" | "OFFLINE",
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    >
-                      <option value="ONLINE">Online</option>
-                      <option value="OFFLINE">Offline</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Phút/buổi
-                    </label>
-                    <input
-                      type="number"
-                      min={15}
-                      max={240}
-                      value={pkgForm.sessionDurationMinutes}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({
-                          ...prev,
-                          sessionDurationMinutes: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Hiệu lực (ngày, để trống = không giới hạn)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={pkgForm.validityDays}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({ ...prev, validityDays: e.target.value }))
-                      }
-                      placeholder="VD: 90"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                      Mô tả
-                    </label>
-                    <textarea
-                      rows={2}
-                      maxLength={500}
-                      value={pkgForm.description}
-                      onChange={(e) =>
-                        setPkgForm((prev) => ({ ...prev, description: e.target.value }))
-                      }
-                      placeholder="Nội dung gói, bao gồm những gì..."
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none resize-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={closePkgForm}
-                    className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={submitPkgForm}
-                    disabled={createPkgMutation.isPending || updatePkgMutation.isPending}
-                    className="flex-1 py-2 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {(createPkgMutation.isPending || updatePkgMutation.isPending) && (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    )}
-                    {editingPkgId ? "Lưu" : "Thêm"}
-                  </button>
-                </div>
-              </div>
-            )}
+            <p className="text-[11px] text-zinc-600 mt-3">Thay đổi gói cần gửi duyệt trong mục Tin đăng.</p>
           </div>
         </div>
 

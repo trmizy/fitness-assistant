@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { gymService } from "../../services/api";
 import type { GymReviewsResponse } from "../../types";
 import { Stars } from "./Stars";
+import { isPublicGymGone } from "../../utils/gymPublic";
 
 function currentUserId(): string {
   try {
@@ -22,9 +23,10 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
-  const { data, isLoading } = useQuery<GymReviewsResponse>({
+  const { data, isLoading, error: reviewsError } = useQuery<GymReviewsResponse>({
     queryKey: ["gym-reviews", gymId],
     queryFn: () => gymService.getGymReviews(gymId),
+    retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
 
   // Only someone who has bought a membership here may rate the gym; everyone else can read
@@ -143,6 +145,8 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
       {/* Reviews list */}
       {isLoading ? (
         <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-green-500 animate-spin" /></div>
+      ) : isPublicGymGone(reviewsError) ? (
+        <p className="py-6 text-center text-sm text-zinc-500">Đánh giá của phòng gym này hiện không còn hiển thị.</p>
       ) : data && data.reviews.length > 0 ? (
         <div className="space-y-2">
           {data.reviews.map((r) => (
