@@ -1,6 +1,6 @@
 // The whole seed universe as plain data. Pure and deterministic: same code + same assets => the same world, byte for byte.
 import { NameBook } from "../names.mjs";
-import { resetPhysiqueCursor, resetPoolCursors } from "./assets.mjs";
+import { resetPhysiqueCursor, resetPoolCursors, manifest } from "./assets.mjs";
 import { buildClients } from "./clients.mjs";
 import { buildOwners } from "./owners.mjs";
 import { buildPts } from "./pts.mjs";
@@ -12,6 +12,21 @@ export function buildWorld() {
   const names = new NameBook("marketplace");
   // fixed names first (owners + PTs reserve theirs), so generated people can never collide with them
   const owners = buildOwners(names);
+  // Live API requires completed onboarding for plans/extra branches; explicitly approved by the owner.
+  for (const owner of owners) if (owner.partner.state === "APPROVED_PAYOUT_PENDING") {
+    owner.partner.originalState = owner.partner.state;
+    owner.partner.state = "ACTIVE";
+    owner.partner.payoutDone = true;
+  }
+  const urban = owners.find(o => o.slug === "to-quang-vinh");
+  urban.branches[0].amenities.system = ["FREE_WEIGHTS"];
+  urban.partner.changes.issues = [{ category: "AMENITIES", message: "Vui lòng bổ sung mô tả cụ thể về khu tạ và trang thiết bị hiện có." }];
+  for (const owner of owners) {
+    const first = owner.branches.find(b => b.firstOfApplication) ?? owner.branches[0];
+    if (owner.partner.state !== "ONBOARDING" && first.photoFiles.length === 0) {
+      first.photoFiles = [manifest().items.find(i => i.kind === "gym")];
+    }
+  }
   const pts = buildPts(names);
   const clients = buildClients(names);
   // Amenity-catalogue scenarios that are not tied to a single branch's listing (plan 8.1 "đề xuất MERGED / REENABLE").

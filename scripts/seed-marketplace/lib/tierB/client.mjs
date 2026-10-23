@@ -22,7 +22,8 @@ export function makeClient({ baseUrl = "http://localhost:3000", fetchImpl = glob
   let dryCounter = 0;
 
   async function call(method, path, { token, body, headers = {}, form, expect } = {}) {
-    log.push({ method, path });
+    const entry = { method, path: path.split('?')[0], ...(body === undefined ? {} : { body: redact(body) }) };
+    log.push(entry);
     if (dryRun) {
       dryCounter++;
       return { status: 200, json: { dryRun: true, id: `dry-${dryCounter}` }, dry: true };
@@ -40,10 +41,11 @@ export function makeClient({ baseUrl = "http://localhost:3000", fetchImpl = glob
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
-      json = { raw: text.slice(0, 2000) };
+      json = { raw: text }; // Simulator success link follows its stylesheet; keep full response in memory only.
     }
     const out = { status: res.status, json, headers: res.headers, location: res.headers?.get?.("location") ?? null };
-    log[log.length - 1].status = res.status;
+    entry.status = res.status;
+    if (res.status >= 400) entry.response = redact(json);
     if (expect && !expect.includes(res.status)) {
       const code = json?.error?.code ?? json?.code ?? "";
       throw new GatewayError(`${method} ${path} -> ${res.status} ${code} ${json?.error?.message ?? json?.message ?? (typeof json?.error === "string" ? json.error : "")}`.trim(), out);

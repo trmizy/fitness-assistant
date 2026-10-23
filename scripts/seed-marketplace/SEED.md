@@ -1,7 +1,7 @@
 # Marketplace seed (Phase G2)
 
 Production-like data so every current client screen (PT discovery/detail, gym discovery/detail, owner and PT workspaces, admin queues) renders like production.
-Status of this tree: **Tier A and the integrity script were run on isolated test DBs; Tier B is built and unit/fixture tested but has NOT been run live** (see "What has / has not been run").
+Status: live HTTP validation is recorded in `_warroom/evidence/seed-live/REPORT.md`. The live run uses seven isolated `*_seedrun` databases. Older Phase G2 notes below describe the earlier fixture-only validation; the live report supersedes them.
 
 ## What it creates (scale: LARGE)
 
@@ -61,7 +61,7 @@ Custom proposals: PENDING (Phòng boxing, Khu tắm biển nước ngọt), REJE
 * Seed accounts: `<slug>@seed.gymini.test` (slug = accent-stripped full name, `-2` suffix on a name clash). Group (3) only.
 * Fixed dev password: **`Seed@Gymini2026`** (override with `SEED_MARKETPLACE_PASSWORD`). It satisfies the auth-service rule (8+ chars, upper, lower, digit). It is hashed (bcrypt, 10 rounds) once per run and **never printed or logged** (client logs redact password / token / secret keys).
 * The seed **never creates, updates or deletes** anything outside the seed domain: Tier A has no UPDATE/DELETE statement at all (checked by a test); before writing, every planned e-mail is looked up and a clash with an account that is not the seed's own stops the run (`SeedCollisionError`, nothing written).
-* The seed has no admin. Tier B logs in the admin that was approved to be kept in Phase G: `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (environment only).
+* `--target fresh` and `--target partner` create the deterministic seed admin `marketplace-admin@seed.gymini.test`, using the same seed password above. Other targets require `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
 
 ## How to run
 
@@ -142,9 +142,53 @@ docker compose -f infra/compose/docker-compose.dev.yml up -d --force-recreate au
 | Tier B flows vs fake gateway (PT application + listing) | TEST FIXTURE - not evidence the real services accept the calls |
 | Tier B dry-run (all flows, ~4,250 requests recorded, nothing sent) | TEST FIXTURE |
 | Tier A x3 + integrity on `*_seed_test` DBs | BACKEND INTEGRATION (isolated test container) |
-| Tier B against a live stack | **NOT RUN** |
+| Tier B against a live stack | **REAL HTTP/API**: isolated seedrun databases; see live report for exit codes, timings, counts and limitations |
 | Gym-owner / branch / listing / money flows vs a fake | **NOT RUN** (only planners + body schemas + dry-run) |
 
 ## Questions for Ngài
 
 See the end of the Phase G2 report; the short list is also kept in `_warroom`.
+
+## Live partner runbook (2026-10-23)
+
+The live validation report is `_warroom/evidence/seed-live/REPORT.md`. No browser or real bank payment is implied: all business writes use the real gateway and the local VNPay simulator. PT documents use the approved multipart API because this stack has no AWS user-upload bucket; listing photos still use presign → MinIO → confirm. Multipart uploads create runtime files in user-service's uploads directory.
+
+Approved changes to the matrix above: O5 and O18 finish onboarding and become ACTIVE (ACTIVE 13, payout-pending 0). Urban Pulse selects Tạ tự do before submission and receives an AMENITIES issue requesting a more detailed description. Submitted partner applications have at least one facility photo. Suspended owners are suspended only after their plans and branches exist. The original matrix describes planned rows; use the SQL tables and deviations in the live report for actual counts. ONBOARDING/review/rejected owners cannot create operational plans through the API. An application stopped after the brand section has no branch yet.
+
+Run these PowerShell commands on the partner's local development machine with the repository's normal dependencies installed. The recipe deliberately uses isolated seedrun databases on THEIR local Postgres. Existing development databases are not seed targets. If they choose a different database suffix, both service URLs and `SEED_DB_SUFFIX` must match; changing the CLI alone does not reconfigure services.
+
+```powershell
+git pull --ff-only origin feature/payment-gateways
+pnpm install --frozen-lockfile
+docker compose -f infra/compose/docker-compose.dev.yml up -d postgres redis minio
+# First installation only: createdb refuses an existing name; never drop an existing DB.
+$seedServices = @('auth','user','fitness','ai','chat','payment','gym')
+foreach ($seedService in $seedServices) {
+  docker exec gymcoach-postgres createdb -U gymcoach "gymcoach_${seedService}_seedrun"
+  if ($LASTEXITCODE -ne 0) { throw "Database creation failed; inspect before continuing." }
+}
+docker compose -f infra/compose/docker-compose.dev.yml -f scripts/seed-marketplace/compose.seedrun.override.yml up -d --no-deps --force-recreate auth-service user-service fitness-service ai-service chat-service gym-service payment-service api-gateway
+# Wait for gateway/backends to be healthy and migrations to finish.
+$env:NODE_ENV='development'
+$env:SEED_MARKETPLACE_CONFIRM='partner'
+$env:SEED_DB_SUFFIX='seedrun'
+$env:SEED_PG_HOST='localhost'
+$env:SEED_PG_PORT='5433'
+$env:SEED_PT_DOCUMENT_UPLOAD='multipart'
+node scripts/seed-marketplace/index.mjs --target partner --tier all --gateway http://localhost:3000 --fail-fast --evidence _warroom/evidence/seed-live/partner-run.json
+if ($LASTEXITCODE -ne 0) { throw 'Seed incomplete; inspect evidence and resume with --reseed.' }
+node scripts/seed-marketplace/verify-integrity.mjs --target partner
+if ($LASTEXITCODE -ne 0) { throw 'Integrity failed; inspect before accepting the seed.' }
+node scripts/seed-marketplace/snapshot.mjs --target partner --output _warroom/evidence/seed-live/partner-counts.json
+# Keep the populated DBs for testing; disable all temporary capabilities.
+docker compose -f infra/compose/docker-compose.dev.yml -f scripts/seed-marketplace/compose.seedrun.override.yml -f scripts/seed-marketplace/compose.restore.override.yml -f scripts/seed-marketplace/compose.seedrun.ready.override.yml up -d --no-deps --force-recreate auth-service user-service fitness-service ai-service chat-service gym-service payment-service api-gateway
+docker exec gymcoach-payment-dev printenv VNPAY_SIMULATE
+docker exec gymcoach-auth-dev printenv PARTNER_APPLICATION_DEV_ECHO
+docker exec gymcoach-gym-dev printenv PARTNER_APPLICATION_DEV_ECHO
+```
+
+The last three commands must print `false`. The override explicitly applies migrations to fitness instead of its original `db push --accept-data-loss && db seed`; AI ingestion into shared Qdrant is also skipped. SMTP is disabled during seeding. Do not start the original compose alone against the fresh target.
+
+For a partial or complete rerun, re-enable the seed override first, then use the same command with `--reseed`. No database reset is needed. `fresh` performs an empty-business-data check on first use and requires its matching local `.runtime` receipt for `--reseed`; `partner` requires the explicit environment confirmation and retains collision/production/local-host guards. Never copy a fresh receipt to authorize a different database set. Token and audit rows produced by real authentication are reported separately from business writes.
+
+Seed accounts end in `@seed.gymini.test`; `data_origin` stays REAL. Admin: `marketplace-admin@seed.gymini.test`, password from **Accounts and the three groups** above. Useful logins: `pham-thu-uyen` (client), `tran-minh-khoa` (approved PT), `le-hoang-nam` (pending listing), `dang-quoc-bao` (contract restriction), `hoang-thu-trang` (not accepting clients), `nguyen-truong-thanh` (active owner), `doan-minh-tam` (onboarding owner), `huynh-kim-ngan` (under review), `to-quang-vinh` (changes requested), `cao-van-loc` (suspended owner; login intentionally blocked). Append the seed domain to each slug.

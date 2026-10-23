@@ -46,7 +46,9 @@ function branchSpec(ctx, owner, b, token, gymId) {
     photos: b.photoFiles,
     async payloadForRound(r, R, photoIds) {
       const roundTweaks = b.listing.roundTweaks?.[r - 1] ?? [];
-      return tweakPayload(P.gymListingPayload({ description: b.description, amenityIds: baseAmenities(), photoIds, coverPhotoId: photoIds[0] ?? null }), r < R ? [] : roundTweaks);
+      const payload = tweakPayload(P.gymListingPayload({ description: b.description, amenityIds: baseAmenities(), photoIds, coverPhotoId: photoIds[0] ?? null }), r < R ? [] : roundTweaks);
+      payload.description = `${payload.description.slice(0, 250)} Cập nhật cơ sở lần ${r}.`;
+      return payload;
     },
     async payloadForTail(photoIds) {
       const proposals = tweaks.filter((t) => t.startsWith("proposal:"));
@@ -58,7 +60,9 @@ function branchSpec(ctx, owner, b, token, gymId) {
         if (id) proposalIds.push(id);
       }
       const base = P.gymListingPayload({ description: b.description, amenityIds: baseAmenities(), proposalIds, photoIds, coverPhotoId: photoIds[0] ?? null });
-      return tweakPayload(base, tweaks.filter((t) => !t.startsWith("proposal:")));
+      const payload = tweakPayload(base, tweaks.filter((t) => !t.startsWith("proposal:")));
+      payload.description = `${payload.description.slice(0, 240)} Bổ sung thông tin khu tập trong tháng này.`;
+      return payload;
     },
     directEdit: () => ({ description: `${b.description} (Quản trị viên đã chỉnh lại mô tả theo yêu cầu của chủ cơ sở.)`.slice(0, 300) }),
   };
@@ -83,10 +87,16 @@ export async function runTierB(ctx, { only, limit } = {}) {
   else ctx.catalog = ctx.catalog ?? new Map();
 
   if (want("pts")) {
+    if (!ctx.client.dryRun) {
+      const users = unwrap(await ctx.client.call("GET", "/auth/users?role=PT", { token: await F.adminToken(ctx), expect: [200] }));
+      ctx.disabledPts = new Set((users?.users ?? []).filter(u => u.isActive === false).map(u => u.id));
+    }
     for (const pt of world.pts.slice(0, limit ?? Infinity)) {
+      if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) continue;
       await step(`pt ${pt.slug} application`, () => F.ensurePtApplication(ctx, pt));
     }
     for (const pt of world.pts.slice(0, limit ?? Infinity)) {
+      if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) continue;
       await step(`pt ${pt.slug} listing`, () => F.ensurePtListing(ctx, pt));
     }
   }
@@ -96,9 +106,11 @@ export async function runTierB(ctx, { only, limit } = {}) {
     for (const owner of world.owners.slice(0, limit ?? Infinity)) {
       await step(`owner ${owner.slug} application`, async () => {
         await F.ensureOwnerApplication(ctx, owner);
+        if (owner.__accessState === "SUSPENDED") return;
         ownerCtx.set(owner.slug, await ctx.client.login(owner.email).catch(() => null));
       });
       const token = ownerCtx.get(owner.slug);
+      if (owner.__accessState === "SUSPENDED") continue;
       if (!token || !["ACTIVE", "SUSPENDED", "APPROVED_PAYOUT_PENDING"].includes(owner.partner.state)) continue;
       await step(`owner ${owner.slug} plans`, () => F.ensureBrandPlans(ctx, owner, token));
       const gyms = unwrap(await ctx.client.call("GET", "/owner/gyms", { token }).catch(() => ({}))) ?? [];
@@ -107,13 +119,22 @@ export async function runTierB(ctx, { only, limit } = {}) {
         await step(`branch ${b.slug}`, async () => {
           let gym = list.find((g) => g.name === b.name || g.approvedName === b.name);
           if (!b.firstOfApplication) gym = await F.ensureExtraBranch(ctx, owner, b, token);
-          else if (gym && b.hours) await ctx.client.call("PUT", `/owner/gyms/${gym.id}/hours`, { token, body: P.hoursBody(b), expect: [200] });
-          if (gym && b.op && b.op !== "OPEN" && b.firstOfApplication) await ctx.client.call("PATCH", `/owner/gyms/${gym.id}/operational-status`, { token, body: P.operationalBody(b), expect: [200] });
+          else if (gym && b.hours) await F.ensureHours(ctx, gym.id, b, token);
+          if (gym && b.op && b.op !== "OPEN" && b.firstOfApplication && gym.operationalStatus !== b.op) await ctx.client.call("PATCH", `/owner/gyms/${gym.id}/operational-status`, { token, body: P.operationalBody(b), expect: [200] });
           const gid = gym?.id ?? (ctx.client.dryRun ? `dry-gym-${b.slug}` : null);
           if (gid && b.listing.finalKind !== "NONE" && b.status === "APPROVED") await F.driveListing(ctx, branchSpec(ctx, owner, b, token, gid));
+          if (gid && b.listing.finalKind === "REJECTED") for (const tweak of b.listing.open ?? []) {
+            if (!tweak.startsWith("proposal:")) continue;
+            const [, name, category] = tweak.split(":");
+            await F.ensureProposal(ctx, {token, gymId:gid, want:{name, category, outcome:"REJECTED"}});
+          }
           b.__gymId = gid;
         });
       }
+      if (owner.partner.state === "SUSPENDED") await step(`owner ${owner.slug} suspend`, async () => {
+        const app = unwrap(await ctx.client.call("GET", "/owner/application/status", { token, expect: [200] }));
+        await ctx.client.call("POST", `/admin/partners/${app.partnerId}/suspend`, { token: await F.adminToken(ctx), body: P.partnerSuspendBody(owner.partner.suspendReason), expect: [200] });
+      });
     }
     // catalogue scenarios that span owners
     const s = world.amenityScenarios;
@@ -176,6 +197,8 @@ export async function runTierB(ctx, { only, limit } = {}) {
           const token = await ctx.client.login(pt.email).catch(() => null);
           const mine = token ? unwrap(await ctx.client.call("GET", "/contracts/pt", { token })) ?? [] : [];
           const c = (Array.isArray(mine) ? mine : mine.contracts ?? []).find((x) => x.status === "ACTIVE");
+          const history = unwrap(await ctx.client.call("GET", `/admin/pts/${pt.userId}/restrictions`, { token: admin, expect: [200] }));
+          if (history?.restrictions?.some(r => r.scope === "CONTRACT" && r.contractId === c?.id && !r.endedAt)) return;
           if (c) await ctx.client.call("POST", `/admin/pts/${pt.userId}/contracts/${c.id}/restrict`, { token: admin, body: P.restrictContractBody("DOCUMENT_VERIFICATION", "Chứng chỉ của huấn luyện viên cần được xác minh lại cho hợp đồng này.", "Hợp đồng đang tạm dừng để xác minh."), expect: [200, 409] });
         });
       }

@@ -85,7 +85,8 @@ test("fixed PT matrix rows (P1-P16)", () => {
 
 test("owners: one brand each, partner states covered", () => {
   const states = new Set(world.owners.map((o) => o.partner.state));
-  for (const st of ["ONBOARDING", "UNDER_REVIEW", "CHANGES_REQUESTED", "REJECTED", "APPROVED_PAYOUT_PENDING", "ACTIVE", "SUSPENDED"]) assert.ok(states.has(st), st);
+  for (const st of ["ONBOARDING", "UNDER_REVIEW", "CHANGES_REQUESTED", "REJECTED", "ACTIVE", "SUSPENDED"]) assert.ok(states.has(st), st);
+  assert.equal(world.owners.filter(o => o.partner.originalState === "APPROVED_PAYOUT_PENDING" && o.partner.state === "ACTIVE").length, 2);
   assert.equal(new Set(world.owners.map((o) => o.brand.name)).size, world.owners.length);
   const amen = world.owners.find((o) => o.partner.state === "CHANGES_REQUESTED" && o.partner.changes.issues.some((i) => i.category === "AMENITIES"));
   assert.ok(amen, "CHANGES_REQUESTED with an AMENITIES issue");

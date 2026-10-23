@@ -4,11 +4,46 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { assertSeedAllowed, readMarker, resolveTarget, SeedGuardError } from "../lib/guard.mjs";
+import { assertEmptyBusinessTables, checkFreshTarget } from "../lib/preflight.mjs";
 
 const dbs = (suffix) => ({ auth: `gymcoach_auth_${suffix}`, user: `gymcoach_user_${suffix}`, gym: `gymcoach_gym_${suffix}`, payment: `gymcoach_payment_${suffix}` });
 const dev = (over = {}) => ({ host: "localhost", port: 5433, dbs: { auth: "gymcoach_auth", user: "gymcoach_user", gym: "gymcoach_gym", payment: "gymcoach_payment" }, ...over });
 const test_ = (over = {}) => ({ host: "localhost", port: 55433, dbs: dbs("seed_test"), ...over });
 const refuses = (fn, code) => assert.throws(fn, (e) => e instanceof SeedGuardError && e.code === code, `expected ${code}`);
+
+test('fresh targets all seven seedrun DBs and refuses nonlocal or mismatched names', () => {
+  const target = resolveTarget({ kind: 'fresh', env: {} });
+  assert.equal(Object.keys(target.dbs).length, 7);
+  assert.equal(assertSeedAllowed(target, { env: {} }).requiresEmptyCheck, true);
+  refuses(() => assertSeedAllowed({ ...target, host: 'remote.example' }, { env: {} }), 'HOST_NOT_ALLOWED');
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, user: 'gymcoach_user_e' } }, { env: {} }), 'DB_NOT_ALLOWLISTED');
+});
+
+test('fresh emptiness excludes only migration/reference rows; any business row refuses', () => {
+  assertEmptyBusinessTables({ 'gym._prisma_migrations': 20, 'gym.amenities': 18, 'user.vietnam_provinces': 34, 'auth.users': 0 });
+  refuses(() => assertEmptyBusinessTables({ 'auth.users': 1 }), 'FRESH_NOT_EMPTY');
+  refuses(() => assertEmptyBusinessTables({ 'fitness.workouts': 1 }), 'FRESH_NOT_EMPTY');
+  refuses(() => assertEmptyBusinessTables({ 'ai.chat_history': 1 }), 'FRESH_NOT_EMPTY');
+});
+
+test('fresh reseed requires a matching prior empty-check receipt', async () => {
+  const target = resolveTarget({ kind: 'fresh', env: {} });
+  const pools = Object.fromEntries(Object.keys(target.dbs).map(s => [s, { query: async sql => ({ rows: sql.includes('FROM wallets') ? [{ n: 0 }] : [] }) }]));
+  const receiptDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-receipt-'));
+  try {
+    await assert.rejects(checkFreshTarget(target, pools, { reseed: true, receiptDir }), e => e.code === 'FRESH_RECEIPT_REQUIRED');
+    await checkFreshTarget(target, pools, { receiptDir });
+    await checkFreshTarget(target, pools, { reseed: true, receiptDir });
+    await assert.rejects(checkFreshTarget({ ...target, port: 9999 }, pools, { reseed: true, receiptDir }), e => e.code === 'FRESH_RECEIPT_REQUIRED');
+  } finally { fs.rmSync(receiptDir, { recursive: true }); }
+});
+
+test('partner requires explicit confirmation and refuses production', () => {
+  const target = resolveTarget({ kind: 'partner', env: {} });
+  refuses(() => assertSeedAllowed(target, { env: {} }), 'CONFIRM_MISSING');
+  assert.equal(assertSeedAllowed(target, { env: { SEED_MARKETPLACE_CONFIRM: 'partner' } }).kind, 'partner');
+  refuses(() => assertSeedAllowed(target, { env: { NODE_ENV: 'production', SEED_MARKETPLACE_CONFIRM: 'partner' } }), 'PRODUCTION_REFUSED');
+});
 
 function marker(valid = true) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "marker-"));

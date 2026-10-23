@@ -128,7 +128,7 @@ export function planPartnerApplication(observed, want) {
 export function planBranch(obs, want) {
   const a = [];
   if (!obs.exists) a.push(want.createdVia === "WIZARD" ? "createDraft" : "quickCreate");
-  if (want.createdVia === "WIZARD" || (want.status === "DRAFT" && want.createdVia !== "QUICK")) {
+  if ((!obs.exists || obs.status === "DRAFT") && (!obs.exists || (obs.wizardStep ?? 0) < (want.status === "DRAFT" ? want.wizardStep ?? 2 : 7)) && (want.createdVia === "WIZARD" || (want.status === "DRAFT" && want.createdVia !== "QUICK"))) {
     a.push(`fillWizard:${want.status === "DRAFT" ? want.wizardStep ?? 2 : "all"}`);
   }
   if (want.status === "DRAFT") return a;

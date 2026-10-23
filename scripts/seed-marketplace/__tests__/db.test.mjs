@@ -10,14 +10,16 @@ import { buildWorld } from "../lib/world/index.mjs";
 const target = resolveTarget({ kind: "test" });
 assertSeedAllowed(target, { reseed: true });
 const pools = makePools(target);
-let reachable = true;
+let reachable = process.env.SEED_MARKETPLACE_RUN_DB_TESTS === 'true';
 try {
-  await pools.auth.query("SELECT 1");
-  await pools.payment.query("SELECT 1");
+  if (reachable) {
+    await pools.auth.query("SELECT 1");
+    await pools.payment.query("SELECT 1");
+  }
 } catch {
   reachable = false;
 }
-const opts = { skip: reachable ? false : "test container not reachable" };
+const opts = { skip: reachable ? false : "DB fixtures require SEED_MARKETPLACE_RUN_DB_TESTS=true and dedicated test DBs" };
 const world = buildWorld();
 test.after(() => closePools(pools));
 

@@ -93,7 +93,9 @@ test("branch: wizard / quick / statuses", () => {
   assert.deepEqual(planBranch(none, { createdVia: "WIZARD", status: "APPROVED", op: "OPEN" }), ["createDraft", "fillWizard:all", "submitWizard", "admin:status:APPROVED"]);
   assert.deepEqual(planBranch(none, { createdVia: "QUICK", status: "APPROVED", op: "TEMPORARILY_CLOSED" }), ["quickCreate", "admin:status:APPROVED", "owner:operational:TEMPORARILY_CLOSED"]);
   assert.deepEqual(planBranch({ exists: true, status: "APPROVED", operationalStatus: "TEMPORARILY_CLOSED" }, { createdVia: "QUICK", status: "APPROVED", op: "TEMPORARILY_CLOSED" }), []);
-  assert.deepEqual(planBranch({ exists: true, status: "SUSPENDED", operationalStatus: "OPEN" }, { createdVia: "WIZARD", status: "SUSPENDED", op: "OPEN" }), ["fillWizard:all"]);
+  assert.deepEqual(planBranch({ exists: true, status: "SUSPENDED", operationalStatus: "OPEN" }, { createdVia: "WIZARD", status: "SUSPENDED", op: "OPEN" }), []);
+  assert.deepEqual(planBranch({ exists: true, status: "DRAFT", wizardStep: 4 }, { createdVia: "WIZARD", status: "DRAFT", wizardStep: 4 }), []);
+  assert.deepEqual(planBranch({ exists: true, status: "DRAFT", wizardStep: 7 }, { createdVia: "WIZARD", status: "PENDING_REVIEW" }), ["submitWizard"]);
 });
 
 test("amenity proposals", () => {

@@ -13,7 +13,7 @@
 import pg from "pg";
 import bcrypt from "bcryptjs";
 import { SERVICES } from "./guard.mjs";
-import { chunk, isSeedEmail, seedEmail } from "./util.mjs";
+import { chunk, isSeedEmail, seedEmail, did } from "./util.mjs";
 
 export class SeedCollisionError extends Error {
   constructor(message, rows) {
@@ -28,7 +28,7 @@ const day = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
 
 export function makePools(target) {
   const pools = {};
-  for (const s of SERVICES) {
+  for (const s of Object.keys(target.dbs)) {
     pools[s] = new pg.Pool({ host: target.host, port: target.port, user: target.user, password: target.password, database: target.dbs[s], max: 4 });
   }
   return pools;
@@ -39,6 +39,19 @@ export async function closePools(pools) {
 
 export function devPassword() {
   return process.env.SEED_MARKETPLACE_PASSWORD || "Seed@Gymini2026";
+}
+
+export const seedAdmin = { id: did("seed-admin"), email: "marketplace-admin@seed.gymini.test" };
+
+/** Explicit opt-in for fresh/partner runs; never adopts a foreign account. */
+export async function ensureSeedAdmin(pools) {
+  const { rows } = await pools.auth.query('SELECT id, role FROM users WHERE lower(email) = $1', [seedAdmin.email]);
+  if (rows.length && (rows[0].id !== seedAdmin.id || rows[0].role !== "ADMIN")) {
+    throw new SeedCollisionError("Seed admin email belongs to another identity or role", rows);
+  }
+  if (rows.length) return 0;
+  const hash = await bcrypt.hash(devPassword(), 10);
+  return insertMany(pools.auth, "users", AUTH_COLS, [{ id: seedAdmin.id, email: seedAdmin.email, password: hash, firstName: "Quản trị", lastName: "Marketplace", role: "ADMIN", isActive: true, must_change_password: false, createdAt: new Date(), updatedAt: new Date() }]);
 }
 
 /** Every account this seed intends to own, with its deterministic id. Owners are listed for the collision check only. */
@@ -198,7 +211,7 @@ export async function seedCounts(pools) {
     "user.inbody_entries": await one(pools.user, `SELECT count(*)::int n FROM inbody_entries WHERE user_id IN (SELECT "userId" FROM user_profiles WHERE email LIKE ${emailLike})`),
     "user.pt_applications": await one(pools.user, `SELECT count(*)::int n FROM pt_applications WHERE user_profile_id IN (SELECT id FROM user_profiles WHERE email LIKE ${emailLike})`),
     "gym.gym_partners[seed owners]": await one(pools.gym, `SELECT count(*)::int n FROM gym_partners WHERE contact_email LIKE ${emailLike}`),
-    "gym.gyms": await one(pools.gym, `SELECT count(*)::int n FROM gyms WHERE email LIKE ${emailLike}`),
+    "gym.gyms": await one(pools.gym, `SELECT count(*)::int n FROM gyms WHERE email LIKE ${emailLike} OR owner_id IN (SELECT a.user_id FROM gym_partner_accounts a JOIN gym_partners p ON p.id=a.partner_id WHERE p.contact_email LIKE ${emailLike})`),
     "payment.wallets": await one(pools.payment, `SELECT count(*)::int n FROM wallets`),
   };
 }

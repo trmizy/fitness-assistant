@@ -18,6 +18,7 @@ export class SeedGuardError extends Error {
 }
 
 export const SERVICES = ["auth", "user", "gym", "payment"];
+export const ALL_SERVICES = ["auth", "user", "fitness", "ai", "chat", "payment", "gym"];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "gymcoach-postgres"]);
 const FORBIDDEN_NAME = /prod|staging|live/i;
 const TEST_NAME = /^gymcoach_(auth|user|gym|payment)_[a-z0-9_]*test$/;
@@ -68,6 +69,18 @@ export function assertSeedAllowed(target, opts = {}) {
   if (!LOCAL_HOSTS.has(String(target.host).toLowerCase())) {
     throw new SeedGuardError("HOST_NOT_ALLOWED", `Host "${target.host}" is not local (allowed: ${[...LOCAL_HOSTS].join(", ")}).`);
   }
+  if (target.kind === "fresh" || target.kind === "partner") {
+    for (const service of ALL_SERVICES) {
+      const name = target.dbs[service];
+      if (!name || FORBIDDEN_NAME.test(name)) throw new SeedGuardError("FORBIDDEN_DB_NAME", `Invalid ${service} database name.`);
+      const allowed = target.kind === "fresh" ? name === `gymcoach_${service}_seedrun` : new RegExp(`^gymcoach_${service}(?:_[a-z0-9_]+)?$`).test(name);
+      if (!allowed) throw new SeedGuardError("DB_NOT_ALLOWLISTED", `Database ${name} is not allowed for ${service}/${target.kind}.`);
+    }
+    if (target.kind === "partner" && env.SEED_MARKETPLACE_CONFIRM !== "partner") {
+      throw new SeedGuardError("CONFIRM_MISSING", "Partner seed needs SEED_MARKETPLACE_CONFIRM=partner.");
+    }
+    return { kind: target.kind, requiresEmptyCheck: target.kind === "fresh" };
+  }
   const names = SERVICES.map((s) => target.dbs[s]);
   if (names.some((n) => !n)) throw new SeedGuardError("NO_TARGET", `Need a database for each of ${SERVICES.join(", ")}.`);
   for (const n of names) {
@@ -113,6 +126,15 @@ export function assertSeedAllowed(target, opts = {}) {
 
 /** Builds the target object from env / flags. Defaults: test container on localhost:55433. */
 export function resolveTarget({ kind, suffix = "seed_test", env = process.env } = {}) {
+  if (kind === "fresh" || kind === "partner") {
+    const tail = kind === "fresh" ? "_seedrun" : env.SEED_DB_SUFFIX ? `_${env.SEED_DB_SUFFIX}` : "";
+    return {
+      kind, host: env.SEED_PG_HOST || "localhost", port: Number(env.SEED_PG_PORT || 5433),
+      user: env.SEED_PG_USER || "gymcoach", password: env.SEED_PG_PASSWORD || "gymcoach_password",
+      dbs: Object.fromEntries(ALL_SERVICES.map(s => [s, `gymcoach_${s}${tail}`])),
+    };
+  }
+  if (kind !== undefined && kind !== "test" && kind !== "dev") throw new SeedGuardError("NO_TARGET", `Unknown target: ${kind}`);
   if (kind === "dev") {
     return {
       kind: "dev",

@@ -1,6 +1,7 @@
 // Cross-database integrity checks for the marketplace seed (plan 8.2 "verify-integrity"). READ-ONLY.
 // Each check returns { examined, violations: [...] }. examined === 0 means "nothing to look at yet" (reported as N/A, never
 // as a silent pass), e.g. the gym/payment checks before Tier B has run.
+import { seedAdmin } from "./tierA.mjs";
 const SEED = `'%@seed.gymini.test'`;
 
 async function rows(pool, sql, params = []) {
@@ -24,8 +25,8 @@ export const CHECKS = [
         if (!a) v.push({ userId: p.uid, why: "profile without auth user" });
         else if ((a.role === "PT") !== p.is_pt) v.push({ userId: p.uid, role: a.role, isPT: p.is_pt, why: "role PT <-> is_pt mismatch" });
       }
-      for (const a of auth) if (a.role !== "GYM_OWNER" && !profById.has(a.id)) v.push({ userId: a.id, why: "CUSTOMER/PT auth user without profile" });
-      for (const a of auth) if (a.role === "ADMIN") v.push({ userId: a.id, why: "seed must not create admins" });
+      for (const a of auth) if (a.role !== "GYM_OWNER" && a.role !== "ADMIN" && !profById.has(a.id)) v.push({ userId: a.id, why: "CUSTOMER/PT auth user without profile" });
+      for (const a of auth) if (a.role === "ADMIN" && (a.id !== seedAdmin.id || a.email !== seedAdmin.email)) v.push({ userId: a.id, why: "unexpected seed admin" });
       return { examined: prof.length, violations: v };
     },
   },
@@ -118,12 +119,12 @@ export const CHECKS = [
     },
   },
   {
-    name: "listing revisions: one open per listing, version = 1 + approved revisions",
+    name: "listing revisions: one open; PT version=approved; gym version=1+approved",
     async run({ pools }) {
       const gOpen = await rows(pools.gym, `SELECT gym_id, count(*)::int n FROM gym_listing_revisions WHERE status IN ('DRAFT','PENDING') GROUP BY gym_id HAVING count(*) > 1`);
       const pOpen = await rows(pools.user, `SELECT pt_user_id, count(*)::int n FROM pt_listing_revisions WHERE status IN ('DRAFT','PENDING') GROUP BY pt_user_id HAVING count(*) > 1`);
       const gVer = await rows(pools.gym, `SELECT g.id, g.listing_version FROM gyms g LEFT JOIN gym_listing_revisions r ON r.gym_id = g.id WHERE g.listing_version > 0 GROUP BY g.id, g.listing_version HAVING g.listing_version <> 1 + count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
-      const pVer = await rows(pools.user, `SELECT p."userId" AS uid, p.listing_version FROM user_profiles p LEFT JOIN pt_listing_revisions r ON r.pt_user_id = p."userId" WHERE p.listing_version > 0 GROUP BY p."userId", p.listing_version HAVING p.listing_version <> 1 + count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
+      const pVer = await rows(pools.user, `SELECT p."userId" AS uid, p.listing_version FROM user_profiles p LEFT JOIN pt_listing_revisions r ON r.pt_user_id = p."userId" WHERE p.listing_version > 0 GROUP BY p."userId", p.listing_version HAVING p.listing_version <> count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
       const n = (await rows(pools.gym, `SELECT count(*)::int n FROM gym_listing_revisions`))[0].n + (await rows(pools.user, `SELECT count(*)::int n FROM pt_listing_revisions`))[0].n;
       return {
         examined: n,
@@ -131,7 +132,7 @@ export const CHECKS = [
           ...gOpen.map((r) => ({ ...r, why: "gym has >1 open revision" })),
           ...pOpen.map((r) => ({ ...r, why: "PT has >1 open revision" })),
           ...gVer.map((r) => ({ ...r, why: "gym listing_version != 1 + approved" })),
-          ...pVer.map((r) => ({ ...r, why: "PT listing_version != 1 + approved" })),
+          ...pVer.map((r) => ({ ...r, why: "PT listing_version != approved revisions (initial version 0)" })),
         ],
       };
     },
@@ -196,9 +197,9 @@ export const CHECKS = [
     },
   },
   {
-    name: "no admin account on the seed domain",
+    name: "only the designated seed admin on the seed domain",
     async run({ pools }) {
-      const admins = await rows(pools.auth, `SELECT id FROM users WHERE email LIKE ${SEED} AND role = 'ADMIN'`);
+      const admins = await rows(pools.auth, `SELECT id FROM users WHERE email LIKE ${SEED} AND role = 'ADMIN' AND NOT (id = $1 AND email = $2)`, [seedAdmin.id, seedAdmin.email]);
       const n = (await rows(pools.auth, `SELECT count(*)::int n FROM users WHERE email LIKE ${SEED}`))[0].n;
       return { examined: n, violations: admins.map((r) => ({ ...r, why: "admin account on the seed domain" })) };
     },

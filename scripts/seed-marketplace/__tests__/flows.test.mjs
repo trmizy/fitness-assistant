@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { buildWorld } from "../lib/world/index.mjs";
 import { makeClient } from "../lib/tierB/client.mjs";
 import { makeTierBContext, runTierB } from "../lib/tierB/run.mjs";
-import { ensurePtApplication, ensurePtListing, observeListing, roundSlice, settleViaSimulator } from "../lib/tierB/flows.mjs";
+import { ensurePtApplication, ensurePtListing, ensureMembership, observeListing, roundSlice, settleViaSimulator } from "../lib/tierB/flows.mjs";
 import { createFakeGateway } from "./fakeGateway.mjs";
 
 const world = buildWorld();
@@ -137,4 +137,27 @@ test("helpers: roundSlice grows monotonically and ends with everything; settleVi
   assert.equal(status, 302);
   assert.deepEqual(calls, ["GET /payments/vnpay/sim?txnId=123e4567-e89b-12d3-a456-426614174000", "GET /payments/vnpay/return?vnp_Amount=1&vnp_SecureHash=ab"]);
   await assert.rejects(settleViaSimulator(fakeCtx, { redirectUrl: "https://sandbox.vnpayment.vn/x" }, "t"), /VNPAY_SIMULATE/);
+});
+
+test("real HTTP client preserves simulator success links after a long stylesheet", async () => {
+  const client = makeClient({ baseUrl: "http://fixture.local", fetchImpl: async () => new Response(' '.repeat(3000) + '<a href="/payments/vnpay/return?ok=1">success</a>') });
+  const page = await client.call("GET", "/payments/vnpay/sim?txnId=fixture");
+  assert.ok(page.json.raw.includes('/payments/vnpay/return?ok=1'));
+  assert.equal(client.log[0].path, '/payments/vnpay/sim');
+  assert.equal(client.log[0].response, undefined, "successful HTML and signed URLs must not be persisted in evidence");
+});
+
+test("membership settles the checkout returned by purchase without creating a second payment attempt", async () => {
+  const calls = [];
+  const ctx = {stats:{}, client:{dryRun:false, login:async()=>"fixture-token", call:async(method,path)=>{
+    calls.push(`${method} ${path}`);
+    if(path === '/me/gym-memberships') return {status:200,json:{data:[]}};
+    if(path === '/gyms/gym/memberships') return {status:201,json:{data:{membership:{id:'membership'},payment:{redirectUrl:'http://localhost:3000/payments/vnpay/sim?txnId=123e4567-e89b-12d3-a456-426614174000'}}}};
+    if(path.startsWith('/payments/vnpay/sim')) return {status:200,json:{raw:'<a href="/payments/vnpay/return?ok=1">ok</a>'}};
+    if(path.startsWith('/payments/vnpay/return')) return {status:302,json:null};
+    throw new Error(`Unexpected ${method} ${path}`);
+  }}};
+  await ensureMembership(ctx,{client:world.clients[0],gymId:'gym',planId:'plan',want:'ACTIVE'});
+  assert.equal(calls.filter(x=>x.startsWith('POST')).length,1);
+  assert.ok(!calls.some(x=>x.includes('/membership/pay')));
 });

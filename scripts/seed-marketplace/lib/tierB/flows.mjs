@@ -55,6 +55,12 @@ export const amenityIdFor = (ctx, slugOrKey) => ctx.catalog.get(slugOrKey)?.id ?
 
 // ---- PT --------------------------------------------------------------------------------------------------------------------
 async function uploadPtDocument(ctx, token, bytes, contentType) {
+  if (process.env.SEED_PT_DOCUMENT_UPLOAD === 'multipart') {
+    const form = new FormData();
+    form.append('document', new Blob([bytes], { type: contentType }), 'seed-document.png');
+    const uploaded = unwrap(await ctx.client.call('POST', '/pt-applications/me/upload', { token, form, expect: [200] }));
+    return uploaded?.url;
+  }
   const p = unwrap(await ctx.client.call("POST", "/pt-applications/me/upload/presign", { token, body: { contentType }, expect: [200] }));
   await putToStorage(ctx.client, need(ctx, p?.uploadUrl, "uploadUrl"), bytes, contentType);
   const c = unwrap(await ctx.client.call("POST", "/pt-applications/me/upload/confirm", { token, body: { key: need(ctx, p?.key, "key") }, expect: [200] }));
@@ -84,7 +90,13 @@ export async function ensurePtApplication(ctx, pt) {
       };
       // the draft must carry the document URLs before it can be submitted
       await ctx.client.call("POST", "/pt-applications/me/draft", { token, body: P.ptDraftBody(pt, docs), expect: [200] });
-    } else if (a === "submit") await ctx.client.call("POST", "/pt-applications/me/submit", { token, body: { termsVersion: ctx.ptTermsVersion }, expect: [200] });
+    } else if (a === "submit") {
+      if (!ctx.ptTermsVersion && !ctx.client.dryRun) {
+        const terms = unwrap(await ctx.client.call('GET', '/pt-applications/terms', { token, expect: [200] }));
+        ctx.ptTermsVersion = terms?.version;
+      }
+      await ctx.client.call("POST", "/pt-applications/me/submit", { token, body: { termsVersion: ctx.ptTermsVersion }, expect: [200] });
+    }
     else if (a.startsWith("review:")) {
       const status = a.slice(7);
       const id = appId() ?? unwrap(await ctx.client.call("GET", "/pt-applications/me", { token }))?.id;
@@ -97,13 +109,17 @@ export async function ensurePtApplication(ctx, pt) {
 
 export async function ensurePtFlags(ctx, pt) {
   if (pt.app.state !== "APPROVED") return;
+  if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) return;
   const admin = await adminToken(ctx);
   const token = await ctx.client.login(pt.email).catch(() => null);
-  if (pt.flags.notAccepting && token) {
+  const profile = pt.flags.notAccepting && token ? unwrap(await ctx.client.call("GET", "/profile/me", { token, expect: [200] }))?.profile : null;
+  if (pt.flags.notAccepting && token && profile?.isAcceptingClients !== false) {
     await ctx.client.call("PATCH", "/profile/me/accepting-clients", { token, body: { isAcceptingClients: false, reason: "Lịch kín đến hết tháng sau" }, expect: [200, 404] });
     stat(ctx, "pt.flags.notAccepting");
   }
   if (pt.flags.accountRestricted) {
+    const history = unwrap(await ctx.client.call("GET", `/admin/pts/${pt.userId}/restrictions`, { token: admin, expect: [200] }));
+    if (history?.restrictions?.some(r => r.scope === "ACCOUNT" && !r.endedAt)) return;
     await ctx.client.call("POST", `/admin/pts/${pt.userId}/suspend`, { token: admin, body: P.suspendPtBody("COMPLAINT_REVIEW", "Có nhiều phản hồi về việc huấn luyện viên đến muộn. Tạm đình chỉ để rà soát.", "Tài khoản đang được rà soát."), expect: [200, 409] });
     stat(ctx, "pt.flags.accountRestricted");
   }
@@ -187,6 +203,9 @@ export async function driveListing(ctx, spec) {
       rev = await save(rev, await spec.payloadForTail(await ensurePhotos(spec.photos), spec.photos));
       stat(ctx, `${spec.label}.listing.openDraft`);
     } else if (a === "submit") {
+      if (obs.open === "DRAFT" && rev?.id === obs.openRevision?.id && !actions.includes("openDraft")) {
+        rev = await save(rev, await spec.payloadForTail(await ensurePhotos(spec.photos), spec.photos));
+      }
       rev = await submit(rev ?? (await read())?.openRevision);
     } else if (a === "requestChanges") {
       await ctx.client.call("POST", `${spec.adminBase}/revisions/${need(ctx, await adminRevId(rev), "revisionId")}/request-changes`, { token: admin, body: P.noteBody("Mô tả cần rõ hơn và vui lòng bổ sung thêm ảnh khu tập chính."), expect: [200] });
@@ -217,7 +236,7 @@ export async function ensurePtListing(ctx, pt) {
     photos: pt.photoFiles,
     async payloadForRound(r, R, photoIds, files) {
       const pk = roundSlice(pt.packages, r, R);
-      return P.ptListingPayload(pt, { photoIds, coverPhotoId: photoIds[0] ?? null, packages: await packagesWithIds(ctx, token, pk) });
+      return P.ptListingPayload(pt, { photoIds, coverPhotoId: photoIds[0] ?? null, packages: await packagesWithIds(ctx, token, pk), profileOverride: R > 1 ? { professionalBio: `${pt.app.professionalBio ?? "Huấn luyện viên cá nhân."} Cập nhật chương trình huấn luyện lần ${r}.`.slice(0, 1990) } : {} });
     },
     async payloadForTail(photoIds) {
       const bump = pt.listing.pendingPriceBump;
@@ -267,14 +286,22 @@ async function applicantToken(ctx, owner) {
 
 export async function ensureOwnerApplication(ctx, owner) {
   const admin = await adminToken(ctx);
+  if (owner.partner.state === "SUSPENDED" && !ctx.client.dryRun) {
+    const partners = unwrap(await ctx.client.call("GET", "/admin/partners?status=SUSPENDED", { token: admin, expect: [200] }));
+    if ((Array.isArray(partners) ? partners : partners?.partners ?? []).some(p => p.contactEmail === owner.email)) {
+      owner.__accessState = "SUSPENDED";
+      return;
+    }
+  }
   let observed = null;
   let token;
   const exists = ctx.client.dryRun ? false : await ctx.client.login(owner.email).then(() => true, () => false);
   if (exists) {
     token = await ctx.client.login(owner.email);
-    observed = unwrap(await ctx.client.call("GET", "/owner/application/status", { token, expect: [200] }))?.state ?? null;
+    observed = unwrap(await ctx.client.call("GET", "/owner/application/status", { token, expect: [200] }))?.accessState ?? null;
   }
   const { actions, conflict } = planPartnerApplication(observed, { state: owner.partner.state, onboardingSections: owner.partner.onboardingSections });
+  owner.__accessState = observed;
   if (conflict) {
     ctx.warnings.push(`${owner.email}: ${conflict}`);
     return;
@@ -330,6 +357,23 @@ export async function ensureOwnerApplication(ctx, owner) {
       const n = a.endsWith("all") ? order.length : Number(a.split(":")[1]);
       for (const key of order.slice(0, n)) {
         if (owner.partner.state === "UNDER_REVIEW" && key === "social" && !owner.partner.social.facebookUrl) continue;
+        if (!ctx.client.dryRun) {
+          const app = unwrap(await ctx.client.call("GET", "/owner/application", { token, expect: [200] }));
+          const matches = (actual, wanted) => Object.entries(wanted).every(([k, v]) => (actual?.[k] ?? null) === (v ?? null));
+          const complete = {
+            representative: matches(app?.partner, { representativeName: owner.partner.representative.name, representativeRole: owner.partner.representative.role }) && app?.representativePhone === owner.partner.representative.phone,
+            businessScale: app?.partner?.businessScale === owner.partner.scale,
+            brand: matches(app?.brand, P.applicationBrandBody(owner)),
+            branch: matches(app?.branch, P.applicationBranchBody(first)),
+            location: matches(app?.branch, P.applicationLocationBody(first)),
+            amenities: amenityIds.every(id => app?.amenities?.some(x => (x.id ?? x.amenityId) === id)) && (!first.appProposal || app?.amenityProposals?.some(x => x.name === first.appProposal.name)),
+            photos: (app?.photos?.length ?? 0) >= first.photoFiles.length,
+            legal: matches(app?.partner, P.legalBody(owner)),
+            documents: ["BUSINESS_LICENSE", "REPRESENTATIVE_ID", "PREMISES_PROOF"].every(t => app?.documents?.some(d => d.docType === t && d.hasFile)),
+            social: matches(app?.brand, P.socialBody(owner)),
+          };
+          if (complete[key]) continue;
+        }
         await sections[key]();
       }
     } else if (a === "submit") await call("POST", "/owner/application/submit", P.submitApplicationBody());
@@ -340,16 +384,22 @@ export async function ensureOwnerApplication(ctx, owner) {
       const doAdmin = (method, path, body) => ctx.client.call(method, path, { token: admin, body, expect: [200, 201] });
       if (a === "admin:requestChanges") await doAdmin("POST", `${base}/request-changes`, P.requestChangesBody(owner.partner.changes));
       else if (a === "admin:reject") await doAdmin("POST", `${base}/reject`, P.rejectApplicationBody(owner.partner.rejectReason));
-      else if (a === "admin:acceptDocuments") for (const d of ["BUSINESS_LICENSE", "REPRESENTATIVE_ID", "PREMISES_PROOF"]) await doAdmin("POST", `${base}/documents/${d}/accept`, {});
+      else if (a === "admin:acceptDocuments") {
+        const full = unwrap(await ctx.client.call("GET", base, { token: admin, expect: [200] }));
+        for (const d of ["BUSINESS_LICENSE", "REPRESENTATIVE_ID", "PREMISES_PROOF"]) {
+          if (full?.documents?.some(x => x.docType === d && x.status === "VERIFIED")) continue;
+          await doAdmin("POST", `${base}/documents/${d}/accept`, {});
+        }
+      }
       else if (a === "admin:resolveIssues") {
         const full = unwrap(await ctx.client.call("GET", base, { token: admin }));
         for (const i of full?.issues ?? []) if (i.status !== "RESOLVED") await doAdmin("POST", `${base}/issues/${i.id}/resolve`, {});
       } else if (a === "admin:resolveProposals") {
         const pending = unwrap(await ctx.client.call("GET", "/admin/amenities/proposals?status=PENDING", { token: admin })) ?? [];
-        const mine = (Array.isArray(pending) ? pending : pending.proposals ?? []).filter((p) => p.ownerUserId === undefined || true).filter((p) => p.name === first.appProposal?.name);
+        const mine = (Array.isArray(pending) ? pending : pending.groups?.flatMap(g => g.proposals) ?? pending.proposals ?? []).filter(p => p.name === first.appProposal?.name && p.gymName === first.name);
         if (mine.length && first.appProposal?.outcome === "APPROVED") await doAdmin("POST", "/admin/amenities/proposals/approve", P.proposalApproveBody(mine.map((p) => p.id), { category: first.appProposal.category, iconKey: "trophy" }));
       } else if (a === "admin:approve") await doAdmin("POST", `${base}/approve`, {});
-      else if (a === "admin:suspend") await doAdmin("POST", `/admin/partners/${pid}/suspend`, P.partnerSuspendBody(owner.partner.suspendReason));
+      else if (a === "admin:suspend") continue; // Run after branch/plan creation; suspended owners cannot operate.
       stat(ctx, `owner.${a}`);
     } else if (a === "owner:onboarding") {
       await ctx.client.call("PATCH", "/owner/onboarding/contact", { token, body: { phone: owner.partner.contactPhone }, expect: [200] });
@@ -382,9 +432,14 @@ export async function ensureBrandPlans(ctx, owner, token) {
   const brand = (Array.isArray(brands) ? brands : brands.brands ?? [])[0];
   if (!brand) return;
   const plans = unwrap(await ctx.client.call("GET", `/owner/brands/${brand.id}/plans`, { token, expect: [200] })) ?? [];
-  const have = new Set((Array.isArray(plans) ? plans : plans.plans ?? []).map((p) => p.name));
+  const have = new Map((Array.isArray(plans) ? plans : plans.plans ?? []).map((p) => [p.name, p]));
   for (const p of owner.plans) {
-    if (have.has(p.name)) continue;
+    if (have.has(p.name)) {
+      const existing = have.get(p.name);
+      const wantedStatus = p.status ?? "ACTIVE";
+      if (existing.status !== wantedStatus) await ctx.client.call("PATCH", `/owner/brands/${brand.id}/plans/${existing.id}`, { token, body: P.planPatchBody(wantedStatus), expect: [200] });
+      continue;
+    }
     const r = await ctx.client.call("POST", `/owner/brands/${brand.id}/plans`, { token, body: P.planBody(p), expect: [200, 201] });
     if (p.status === "INACTIVE") await ctx.client.call("PATCH", `/owner/brands/${brand.id}/plans/${need(ctx, unwrap(r)?.id, "planId")}`, { token, body: P.planPatchBody("INACTIVE"), expect: [200] });
     stat(ctx, "plan.created");
@@ -392,11 +447,17 @@ export async function ensureBrandPlans(ctx, owner, token) {
 }
 
 /** Extra branches (not the application's first one): wizard or quick create, then admin status + operational status. */
+export async function ensureHours(ctx, gymId, b, token) {
+  const current = unwrap(await ctx.client.call("GET", `/owner/gyms/${gymId}/hours`, { token, expect: [200] })) ?? [];
+  const same = b.hours.every(w => current.some(h => h.day === w.day && h.type === w.type && (h.openMinute ?? null) === (w.openMinute ?? null) && (h.closeMinute ?? null) === (w.closeMinute ?? null)));
+  if (!same) await ctx.client.call("PUT", `/owner/gyms/${gymId}/hours`, { token, body: P.hoursBody(b), expect: [200] });
+}
+
 export async function ensureExtraBranch(ctx, owner, b, token) {
   const admin = await adminToken(ctx);
   const gyms = unwrap(await ctx.client.call("GET", "/owner/gyms", { token, expect: [200] })) ?? [];
   const mine = (Array.isArray(gyms) ? gyms : gyms.gyms ?? []).find((g) => g.name === b.name || g.approvedName === b.name);
-  const actions = planBranch({ exists: !!mine, status: mine?.status, operationalStatus: mine?.operationalStatus }, { createdVia: b.createdVia === "LEGACY_QUICK" ? "QUICK" : b.createdVia, status: b.status, wizardStep: b.wizardStep, op: b.op });
+  const actions = planBranch({ exists: !!mine, status: mine?.status, operationalStatus: mine?.operationalStatus, wizardStep: mine?.wizardStep }, { createdVia: b.createdVia === "LEGACY_QUICK" ? "QUICK" : b.createdVia, status: b.status, wizardStep: b.wizardStep, op: b.op });
   let gym = mine;
   const amenityIds = b.amenities.system.map((s) => amenityIdFor(ctx, s)).concat(b.amenities.custom.map((k) => amenityIdFor(ctx, k))).filter(Boolean);
   for (const a of actions) {
@@ -409,6 +470,15 @@ export async function ensureExtraBranch(ctx, owner, b, token) {
       if (step >= 3 || a.endsWith("all")) await ctx.client.call("PUT", `/owner/gyms/${gym.id}/hours`, { token, body: P.hoursBody(b), expect: [200] });
       for (const f of b.photoFiles) await uploadPhoto(ctx, token, `/owner/gyms/${gym.id}/listing/photos`, f);
     } else if (a === "submitWizard") {
+      const docs = unwrap(await ctx.client.call('GET', `/owner/gyms/${gym.id}/branch-documents`, { token, expect: [200] }));
+      const existing = Array.isArray(docs) ? docs : docs?.documents ?? [];
+      for (const docType of ['LEASE_OR_PROPERTY_DOC', 'FACILITY_PHOTOS']) {
+        if (existing.some(d => d.docType === docType && d.fileToken)) continue;
+        const form = new FormData();
+        const photo = b.photoFiles[0];
+        form.append('file', new Blob([docType === 'FACILITY_PHOTOS' && photo ? readAsset(photo) : PDF_MIN], { type: docType === 'FACILITY_PHOTOS' && photo ? 'image/webp' : 'application/pdf' }), docType === 'FACILITY_PHOTOS' && photo ? 'facility.webp' : 'lease.pdf');
+        await ctx.client.call('POST', `/owner/gyms/${gym.id}/branch-documents/${docType}`, { token, form, expect: [200, 201] });
+      }
       await ctx.client.call("POST", `/owner/gyms/${gym.id}/submit`, { token, body: {}, headers, expect: [200] });
     } else if (a.startsWith("admin:status:")) {
       await ctx.client.call("PATCH", `/admin/gyms/${need(ctx, gym?.id, "gymId")}/status`, { token: admin, body: P.adminGymStatusBody(a.split(":")[2]), expect: [200] });
@@ -465,15 +535,22 @@ export async function ensureMembership(ctx, { client, gymId, planId, want, revie
   const existing = (Array.isArray(mine) ? mine : mine.memberships ?? []).find((m) => m.gymId === gymId && m.planId === planId);
   const actions = planMembership(existing?.status ?? null, want);
   let m = existing;
+  let purchasePayment;
   for (const a of actions) {
-    if (a === "purchase") m = unwrap(await ctx.client.call("POST", `/gyms/${gymId}/memberships`, { token, body: P.membershipBody(planId), expect: [200, 201] }))?.membership ?? m;
-    if (a === "pay" || (a === "purchase" && want === "ACTIVE")) {
-      const r = await ctx.client.call("POST", `/me/gym-memberships/${need(ctx, m?.id, "membershipId")}/pay`, { token, body: P.payBody(), expect: [200, 201] });
-      await settleViaSimulator(ctx, r.json, token);
+    if (a === "purchase") {
+      const purchased = unwrap(await ctx.client.call("POST", `/gyms/${gymId}/memberships`, { token, body: P.membershipBody(planId), expect: [200, 201] }));
+      m = purchased?.membership ?? m;
+      purchasePayment = purchased?.payment;
+    }
+    if (a === "pay") {
+      const payment = purchasePayment ?? (await ctx.client.call("POST", `/me/gym-memberships/${need(ctx, m?.id, "membershipId")}/pay`, { token, body: P.payBody(), expect: [200, 201] })).json;
+      await settleViaSimulator(ctx, payment, token);
     }
     stat(ctx, `membership.${a}`);
   }
   if (review && want === "ACTIVE") {
+    const reviews = unwrap(await ctx.client.call("GET", `/gyms/${gymId}/reviews`, { token, expect: [200] })) ?? [];
+    if ((Array.isArray(reviews) ? reviews : reviews.reviews ?? []).some(r => r.clientId === client.profile.userId && r.rating === review.rating && r.comment === review.comment)) return;
     await ctx.client.call("POST", `/gyms/${gymId}/reviews`, { token, body: P.reviewBody(review.rating, review.comment), expect: [200, 201] });
     stat(ctx, "gymReview.posted");
   }

@@ -12,7 +12,10 @@
  * Guards: see lib/guard.mjs. The password is never printed. Nothing here ever deletes or updates an existing row.
  */
 import { assertSeedAllowed, resolveTarget, SeedGuardError } from "./lib/guard.mjs";
-import { closePools, devPassword, makePools, runTierA, seedCounts, seedDataPresent, SeedCollisionError } from "./lib/tierA.mjs";
+import fs from 'node:fs';
+import path from 'node:path';
+import { closePools, devPassword, makePools, runTierA, seedCounts, seedDataPresent, SeedCollisionError, assertNoCollisions, ensureSeedAdmin, seedAdmin } from "./lib/tierA.mjs";
+import { checkFreshTarget } from "./lib/preflight.mjs";
 import { buildWorld, summarize } from "./lib/world/index.mjs";
 import { makeClient, redact } from "./lib/tierB/client.mjs";
 import { describeTierB, makeTierBContext, runTierB } from "./lib/tierB/run.mjs";
@@ -59,6 +62,12 @@ async function main() {
       console.log(JSON.stringify(await seedCounts(pools), null, 2));
       return;
     }
+    if (guard.kind === "fresh") await checkFreshTarget(target, pools, { reseed: gopts.reseed });
+    await assertNoCollisions(pools, world);
+    if (guard.kind === "fresh" || guard.kind === "partner") {
+      const count = await ensureSeedAdmin(pools);
+      log(`[seed] seed admin +${count} (${seedAdmin.email})`);
+    }
     if (tier === "a" || tier === "all") {
       const r = await runTierA(pools, world, { log });
       log(`[seed] Tier A done: ${JSON.stringify(r)}`);
@@ -66,15 +75,30 @@ async function main() {
     if (tier === "b" || tier === "all") {
       const gateway = flag("gateway", null);
       if (!gateway || gateway === true) throw new SeedGuardError("NO_GATEWAY", "Tier B needs --gateway <url> (a running stack whose databases ARE the target ones).");
-      if (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD) throw new SeedGuardError("NO_ADMIN", "Tier B needs SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (the admin kept after the DB clean-up).");
+      const ownedAdmin = guard.kind === "fresh" || guard.kind === "partner";
+      const adminEmail = ownedAdmin ? seedAdmin.email : process.env.SEED_ADMIN_EMAIL;
+      const adminPassword = ownedAdmin ? devPassword() : process.env.SEED_ADMIN_PASSWORD;
+      if (!adminEmail || !adminPassword) throw new SeedGuardError("NO_ADMIN", "Tier B needs SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.");
       const client = makeClient({ baseUrl: gateway, password: devPassword() });
       // the admin's own password differs from the seed password: log it in once through the same cache
-      const adminLogin = await client.call("POST", "/auth/login", { body: { email: process.env.SEED_ADMIN_EMAIL, password: process.env.SEED_ADMIN_PASSWORD }, expect: [200] });
+      const adminLogin = await client.call("POST", "/auth/login", { body: { email: adminEmail, password: adminPassword }, expect: [200] });
       const adminToken = adminLogin.json?.accessToken;
-      const ctx = makeTierBContext({ client, world, admin: { email: process.env.SEED_ADMIN_EMAIL }, password: devPassword(), log });
-      client.preset?.(process.env.SEED_ADMIN_EMAIL, adminToken);
-      const out = await runTierB(ctx);
-      log(`[seed] Tier B done: ${JSON.stringify(redact({ requests: out.requests, stats: out.stats, errors: out.errors.length, warnings: out.warnings.length }))}`);
+      const ctx = makeTierBContext({ client, world, admin: { email: adminEmail }, password: devPassword(), log });
+      client.preset?.(adminEmail, adminToken);
+      const startedAt = Date.now();
+      ctx.failFast = !!flag('fail-fast', false);
+      let out;
+      try {
+        out = await runTierB(ctx, { only: flag('only', undefined)?.split(','), limit: flag('limit', undefined) === undefined ? undefined : Number(flag('limit')) });
+      } finally {
+        const evidence = flag('evidence', null);
+        if (typeof evidence === 'string') {
+          fs.mkdirSync(path.dirname(evidence), { recursive: true });
+          fs.writeFileSync(evidence, JSON.stringify(redact({ ms: Date.now() - startedAt, stats: ctx.stats, errors: ctx.errors, warnings: ctx.warnings, requests: client.log }), null, 2));
+        }
+      }
+      const businessWrites = client.log.filter(r => !['GET','HEAD','OPTIONS'].includes(r.method) && r.path !== '/auth/login' && r.status >= 200 && r.status < 300).length;
+      log(`[seed] Tier B done: ${JSON.stringify(redact({ ms: out.ms, requests: out.requests, businessWrites, stats: out.stats, errors: out.errors.length, warnings: out.warnings.length }))}`);
       if (out.errors.length) process.exitCode = 2;
     }
     log(`[seed] counts: ${JSON.stringify(await seedCounts(pools))}`);

@@ -53,6 +53,7 @@ export function createFakeGateway({ adminEmail = "admin@fake.test", password = "
       if (!users.has(body.email)) users.set(body.email, { id: `id-${body.email}`, role: "ADMIN" });
       return json(200, { accessToken: `tok:${body.email}` });
     }
+    if (path === "/pt-applications/terms" && method === "GET") return json(200, { version: "test-v1" });
     const me = email && users.get(email);
     if (!me) return json(401, { error: "unauth" });
 

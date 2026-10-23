@@ -32,7 +32,7 @@ export function ptDraftBody(pt, docs = {}) {
     availableDays: a.availableDays,
     availableFrom: a.availableFrom,
     availableUntil: a.availableUntil,
-    availabilityBlocks: a.availabilityBlocks,
+    availabilityBlocks: a.availabilityBlocks.map(b => ({ ...b, dayOfWeek: typeof b.dayOfWeek === 'number' ? WEEKDAY_ENUM[(b.dayOfWeek + 6) % 7] : b.dayOfWeek })),
     gymAffiliation: a.gymAffiliation,
     residenceProvinceCode: pt.area.provinceCode,
     residenceWardCode: pt.area.wardCode,
@@ -125,7 +125,7 @@ export const operationalBody = (b) => ({ operationalStatus: b.op, reason: b.opRe
 export const planBody = (p) => ({ name: p.name, description: p.description, price: p.price, durationDays: p.durationDays, ...(p.visitLimit ? { visitLimit: p.visitLimit } : {}) });
 export const planPatchBody = (status) => ({ status });
 export const adminGymStatusBody = (status) => ({ status });
-export const partnerSuspendBody = (reason) => ({ reason });
+export const partnerSuspendBody = (reason) => ({ reason: reason || "Tạm đình chỉ để xác minh thông tin và phản hồi của hội viên." });
 
 // ---- amenities --------------------------------------------------------------------------------------------------------------
 export const proposalBody = (gymId, p) => ({ gymId, name: p.name, suggestedCategory: p.category, ...(p.note ? { note: p.note } : {}) });
