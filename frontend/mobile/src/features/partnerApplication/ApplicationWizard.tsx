@@ -7,6 +7,7 @@ import { Check, ChevronLeft, ChevronRight, FileText, ImagePlus, Trash2, Triangle
 import { Badge, Button, Card, Input, Tappable, inputPlaceholderColor, useToast } from "../../components/ui";
 import { SelectField } from "../../components/SelectSheet";
 import {
+  applicationAmenityService,
   locationService,
   partnerApplicationService,
   uploadApplicationFile,
@@ -20,6 +21,16 @@ import { designTokens } from "../../theme/colors";
 import { pickApplicationFile } from "../../lib/pickFile";
 import { useServerSeededState } from "../../hooks/useServerSeededState";
 import { MapPinPicker } from "../gymOwner/MapPinPicker";
+import { AmenityBadgeGroups } from "../gymListing/AmenityWidgets";
+import { InlineAmenityPicker, type InlineProposal } from "../gymListing/InlineAmenityPicker";
+import {
+  amenitySelectionError,
+  amenitySelectionPayload,
+  gymListingErrorMessage,
+  isAmenitiesRequired,
+  applicationAmenityCatalogKey,
+  normalizeCatalog,
+} from "../gymListing/gymListing";
 import { geocodeAddress, PRECISION_TEXT } from "../gymOwner/geocode";
 import { ABOUT_MAX, socialUrlError, SOCIAL_FIELDS } from "../gymOwner/gymOwner";
 import {
@@ -29,6 +40,9 @@ import {
   PHOTO_CATEGORIES,
   REPRESENTATIVE_ROLES,
   STEPS,
+  applicationAmenityIds,
+  applicationPendingProposals,
+  applicationRejectedProposals,
   canAddDocumentFile,
   canResubmit,
   documentsToReplace,
@@ -49,7 +63,7 @@ import {
 } from "./partnerApplication";
 
 /**
- * WB-16 + GY-09 — hồ sơ đối tác 9 bước.
+ * WB-16 + GY-09 — hồ sơ đối tác 10 bước (bước Tiện ích nằm giữa Vị trí và Ảnh cơ sở).
  *
  * **Máy chủ quyết định còn thiếu gì.** `view.missing` là nguồn duy nhất cho: mở ra đứng ở bước nào,
  * tiến độ bao nhiêu, bước nào đã xong, và còn gì chặn nộp. Không có bộ kiểm hợp lệ thứ hai ở máy —
@@ -186,6 +200,7 @@ export function ApplicationWizard() {
           {step.id === "scale" ? <ScaleStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
           {step.id === "branch" ? <BranchStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
           {step.id === "location" ? <LocationStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
+          {step.id === "amenities" ? <AmenitiesStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
           {step.id === "photos" ? <PhotosStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
           {step.id === "legal" ? <LegalStep view={view} onSaved={refresh} fail={fail} editable={editable} /> : null}
           {step.id === "review" ? <ReviewStep view={view} onSaved={refresh} fail={fail} onGoTo={setIdx} /> : null}
@@ -821,13 +836,24 @@ function ReviewStep({
   const legalStep = STEPS.findIndex((st) => st.id === "legal");
   const docLabel = (t: string) => DOC_TYPES.find((x) => x.value === t)?.label ?? t;
 
+  const amenitiesStep = STEPS.findIndex((st) => st.id === "amenities");
+  /** 422 AMENITIES_REQUIRED: the branch has no amenity yet — say so and take the applicant to the amenity step. */
+  const onSubmitError = (e: unknown, fallback: string) => {
+    if (isAmenitiesRequired(e)) {
+      fail(e, gymListingErrorMessage(e, "Hãy chọn ít nhất một tiện ích cho chi nhánh."));
+      if (amenitiesStep >= 0) onGoTo(amenitiesStep);
+      return;
+    }
+    fail(e, fallback);
+  };
+
   const submit = useMutation({
     mutationFn: () => partnerApplicationService.submit(true),
     onSuccess: async () => {
       toast.show("Đã gửi hồ sơ cho Gymini", "success");
       await onSaved();
     },
-    onError: (e) => fail(e, "Không gửi được hồ sơ"),
+    onError: (e) => onSubmitError(e, "Không gửi được hồ sơ"),
   });
 
   const resubmit = useMutation({
@@ -836,7 +862,7 @@ function ReviewStep({
       toast.show("Đã gửi lại hồ sơ", "success");
       await onSaved();
     },
-    onError: (e) => fail(e, "Không gửi lại được hồ sơ"),
+    onError: (e) => onSubmitError(e, "Không gửi lại được hồ sơ"),
   });
 
   const markUpdated = useMutation({
@@ -908,6 +934,8 @@ function ReviewStep({
         </Card>
       ) : null}
 
+      <AmenitiesSummary view={view} onEdit={() => amenitiesStep >= 0 && onGoTo(amenitiesStep)} />
+
       {/* Vòng "yêu cầu chỉnh sửa" gửi bằng nút "Gửi lại hồ sơ" ở trên; gửi lần đầu thì máy chủ từ chối. */}
       {changesRound ? null : (
         <Card className="gap-3 p-5">
@@ -953,5 +981,106 @@ function ReviewStep({
         </Card>
       )}
     </View>
+  );
+}
+
+// ── Tiện ích (Listing Management) ─────────────────────────────────────────────────────────────
+
+/**
+ * Bước 7 — chọn tiện ích của chi nhánh đầu tiên. Chưa có bản đã duyệt nên không có "bản sửa": lựa chọn CHÍNH LÀ thứ được lưu
+ * (`PUT /owner/application/amenities` — `amenityIds` thay toàn bộ, `proposalIds` giữ lại đề xuất đang chờ, `proposals` là đề xuất mới).
+ * Máy chủ vẫn quyết định bước này xong chưa (`missing` AMENITIES) — ở đây không có bộ kiểm thứ hai ngoài chuyện cần chọn ít nhất một.
+ */
+function AmenitiesStep({ view, onSaved, fail, editable }: StepProps) {
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
+  const catalogQuery = useQuery({
+    // An applicant is gated out of /owner/amenities until approval: the application has its own read of the same catalogue.
+    queryKey: applicationAmenityCatalogKey(uid),
+    queryFn: async () => normalizeCatalog(await applicationAmenityService.catalog()),
+    retry: false,
+  });
+
+  const serverIds = applicationAmenityIds(view);
+  const pending = applicationPendingProposals(view);
+  const rejected = applicationRejectedProposals(view);
+  const seedKey = JSON.stringify([serverIds, pending.map((p) => p.id)]);
+  const [selected, setSelected] = useServerSeededState(serverIds, seedKey);
+  const [kept, setKept] = useServerSeededState(pending.map((p) => p.id), seedKey);
+  const [proposals, setProposals] = useState<InlineProposal[]>([]);
+
+  const selection = { amenityIds: selected, proposals, proposalIds: kept };
+  const problem = amenitySelectionError(selection);
+
+  const save = useMutation({
+    mutationFn: () => applicationAmenityService.save(amenitySelectionPayload(selection)),
+    onSuccess: async () => {
+      setProposals([]);
+      await onSaved();
+    },
+    onError: (e) => fail(e, gymListingErrorMessage(e, "Không lưu được tiện ích")),
+  });
+
+  return (
+    <Card className="gap-3 p-5">
+      <Text className="font-body text-xs leading-5 text-muted-foreground">
+        Chọn những tiện ích chi nhánh đầu tiên thực sự có — khách thấy danh sách này khi tìm phòng gym. Cần ít nhất một. Chưa thấy tiện ích của bạn? Hãy đề xuất, Gymini sẽ duyệt cùng hồ sơ.
+      </Text>
+      <InlineAmenityPicker
+        catalog={catalogQuery.data?.amenities ?? []}
+        loading={catalogQuery.isLoading}
+        error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
+        onRetry={() => void catalogQuery.refetch()}
+        selectedIds={selected}
+        onSelectedChange={setSelected}
+        proposals={proposals}
+        onProposalsChange={setProposals}
+        existing={pending}
+        keptProposalIds={kept}
+        onKeptProposalIdsChange={setKept}
+        disabled={!editable}
+      />
+      {rejected.length > 0 ? (
+        <View className="gap-1 rounded-xl border border-border bg-panel p-3">
+          {rejected.map((p) => (
+            <Text key={p.id} className="font-body text-xs leading-5 text-muted-foreground">
+              {`Đề xuất "${p.name}" bị từ chối${p.rejectReason ? `: ${p.rejectReason}` : ""}. Bạn có thể đề xuất lại với tên khác.`}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      <SaveButton pending={save.isPending} disabled={!editable || !!problem} onPress={() => save.mutate()} />
+      {problem ? <Text className="text-center font-body text-xs text-muted-foreground">{problem}</Text> : null}
+    </Card>
+  );
+}
+
+/** Bước cuối: tiện ích đã chọn, để người nộp thấy chính xác thứ sẽ gửi đi. */
+function AmenitiesSummary({ view, onEdit }: { view: ApplicationView; onEdit: () => void }) {
+  const amenities = Array.isArray(view.amenities) ? view.amenities.filter((a: any) => a && typeof a.name === "string") : [];
+  const pending = applicationPendingProposals(view);
+  return (
+    <Card className="gap-2 p-5">
+      <View className="flex-row items-center justify-between gap-2">
+        <Text className="font-display text-base text-foreground">Tiện ích chi nhánh</Text>
+        <Tappable accessibilityLabel="Sửa tiện ích" hitSlop={8} onPress={onEdit}>
+          <Text className="font-body-semibold text-xs text-primary">Sửa</Text>
+        </Tappable>
+      </View>
+      {amenities.length === 0 && pending.length === 0 ? (
+        <Text className="font-body text-xs text-muted-foreground">Chưa chọn tiện ích nào.</Text>
+      ) : (
+        <>
+          {amenities.length > 0 ? <AmenityBadgeGroups amenities={amenities} grouped={false} /> : null}
+          {pending.length > 0 ? (
+            <View className="flex-row flex-wrap gap-1.5">
+              {pending.map((p) => (
+                <Badge key={p.id} tone="info">{`${p.name} · chờ duyệt`}</Badge>
+              ))}
+            </View>
+          ) : null}
+        </>
+      )}
+    </Card>
   );
 }

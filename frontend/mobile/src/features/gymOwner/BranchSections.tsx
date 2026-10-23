@@ -5,7 +5,24 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, FileText, Lock, Plus, Star
 
 import { Badge, Button, Card, Input, Tappable, inputPlaceholderColor, useToast } from "../../components/ui";
 import { SelectField } from "../../components/SelectSheet";
-import { gymPhotoUrl, gymService, locationService } from "../../services/api";
+import { gymListingService, gymPhotoUrl, gymService, locationService, ownerAmenityService, uploadGymListingPhoto } from "../../services/api";
+import { router } from "expo-router";
+import {
+  amenitySelectionError,
+  amenitySelectionPayload,
+  gymListingErrorMessage,
+  isReviewRequired,
+  isUploadRouteRetired,
+  normalizeAmenity,
+  normalizeCatalog,
+  normalizeProposal,
+  ownerAmenitiesKey,
+  type Amenity,
+  type Proposal,
+} from "../gymListing/gymListing";
+import { InlineAmenityPicker, type InlineProposal } from "../gymListing/InlineAmenityPicker";
+import { useServerSeededState } from "../../hooks/useServerSeededState";
+import { AmenityBadgeGroups } from "../gymListing/AmenityWidgets";
 import { shareLocalFile } from "../../services/files";
 import { pickApplicationFile, pickImages } from "../../lib/pickFile";
 import { formatVND } from "../../utils/currency";
@@ -46,6 +63,7 @@ import {
   type HoursRow,
 } from "./branchManage";
 import { memberLabel } from "./gymOwner";
+import { facilityLabels } from "../services/gymDirectory";
 
 /**
  * 14B.5 (PG-A7, GY-03) — the sections of web `GymManagePage`'s "Cài đặt" panel, one card each.
@@ -56,7 +74,23 @@ import { memberLabel } from "./gymOwner";
 /** The shared Input is one line tall (h-12); a multi-line field needs room for its text and placeholder. */
 const MULTILINE = { height: 96, paddingTop: 12, paddingBottom: 12, textAlignVertical: "top" } as const;
 
-const serverMessage = (e: any, fallback: string) => e?.response?.data?.error?.message || e?.message || fallback;
+/**
+ * The server's own sentence — except the two refusals Listing Management added to the old routes, which get the app's
+ * wording: 409 LISTING_REVIEW_REQUIRED (the change now goes through a reviewed listing) and 410 UPLOAD_ROUTE_RETIRED.
+ */
+const serverMessage = (e: any, fallback: string) =>
+  isReviewRequired(e) || isUploadRouteRetired(e) ? gymListingErrorMessage(e, fallback) : e?.response?.data?.error?.message || e?.message || fallback;
+
+/** Branches whose listing is revised through "Tin đăng & tiện ích" (gym-service: APPROVED / SUSPENDED). Their description, amenities and photos are read-only here. */
+const hasReviewedListing = (status: string | null | undefined) => status === "APPROVED" || status === "SUSPENDED";
+
+function EditInListingButton({ gymId }: { gymId: string }) {
+  return (
+    <Button variant="secondary" onPress={() => router.push({ pathname: "/gym-owner/listing", params: { gymId } } as never)}>
+      Sửa ở Tin đăng
+    </Button>
+  );
+}
 
 export function branchKeys(uid: string, gymId: string) {
   return {
@@ -123,27 +157,54 @@ export function NameAddressSection({ uid, gym }: { uid: string; gym: any }) {
 export function AboutSection({ uid, gym }: { uid: string; gym: any }) {
   const [form, setForm] = useState({ description: String(gym.description ?? ""), phone: String(gym.phone ?? ""), email: String(gym.email ?? "") });
   const save = useUpdateGym(uid, gym.id, "Đã lưu giới thiệu & liên hệ");
-  const error = aboutError(form);
+  // Listing Management: once a branch has left DRAFT its description is part of the reviewed listing — PATCH answers
+  // 409 LISTING_REVIEW_REQUIRED. Phone and email stay immediate.
+  const descriptionLocked = gym.status !== "DRAFT";
+  const error = descriptionLocked ? aboutError({ ...form, description: "" }) : aboutError(form);
   return (
-    <SectionCard title="Giới thiệu & liên hệ" hint={`Hiện ở mục "Chi tiết" khi khách xem chi nhánh. Có hiệu lực ngay, không cần Gymini duyệt.`}>
-      <Input
-        label={`Giới thiệu · ${form.description.trim().length}/${ABOUT_MAX}`}
-        value={form.description}
-        onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
-        placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
-        placeholderTextColor={inputPlaceholderColor}
-        multiline
-        numberOfLines={4}
-        style={MULTILINE}
-        maxLength={Math.max(ABOUT_MAX, form.description.length)}
-      />
+    <SectionCard
+      title="Giới thiệu & liên hệ"
+      hint={
+        descriptionLocked
+          ? "Điện thoại và email có hiệu lực ngay. Phần giới thiệu là một phần của tin đăng nên sửa ở mục Tin đăng & tiện ích và cần Gymini duyệt."
+          : `Hiện ở mục "Chi tiết" khi khách xem chi nhánh. Có hiệu lực ngay, không cần Gymini duyệt.`
+      }
+    >
+      {descriptionLocked ? (
+        <View className="gap-1.5">
+          <Text className="font-body-medium text-xs text-muted-foreground">Giới thiệu</Text>
+          <View className="rounded-xl border border-border bg-panel p-3">
+            <Text className="font-body text-sm leading-5 text-foreground">{form.description.trim() || "Chưa có phần giới thiệu."}</Text>
+          </View>
+          {hasReviewedListing(gym.status) ? <EditInListingButton gymId={gym.id} /> : null}
+        </View>
+      ) : (
+        <Input
+          label={`Giới thiệu · ${form.description.trim().length}/${ABOUT_MAX}`}
+          value={form.description}
+          onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+          placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
+          placeholderTextColor={inputPlaceholderColor}
+          multiline
+          numberOfLines={4}
+          style={MULTILINE}
+          maxLength={Math.max(ABOUT_MAX, form.description.length)}
+        />
+      )}
       <Input label="Điện thoại chi nhánh" value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" maxLength={20} />
       <Input label="Email chi nhánh" value={form.email} onChangeText={(v) => setForm((f) => ({ ...f, email: v }))} keyboardType="email-address" autoCapitalize="none" maxLength={200} />
       <Button
         disabled={!!error || save.isPending}
-        onPress={() => save.mutate({ description: form.description.trim(), phone: form.phone.trim(), email: form.email.trim() })}
+        onPress={() =>
+          save.mutate({
+            // A non-DRAFT branch must not send the description at all (the server refuses the whole PATCH).
+            ...(descriptionLocked ? {} : { description: form.description.trim() }),
+            phone: form.phone.trim(),
+            email: form.email.trim(),
+          })
+        }
       >
-        {save.isPending ? "Đang lưu…" : "Lưu giới thiệu & liên hệ"}
+        {save.isPending ? "Đang lưu…" : descriptionLocked ? "Lưu liên hệ" : "Lưu giới thiệu & liên hệ"}
       </Button>
       {error ? <Text className="text-center font-body text-xs text-destructive">{error}</Text> : null}
     </SectionCard>
@@ -303,35 +364,103 @@ export function HoursSection({ uid, gymId }: { uid: string; gymId: string }) {
 // ── Facilities ────────────────────────────────────────────────────────────────────────────────
 
 export function FacilitiesSection({ uid, gym }: { uid: string; gym: any }) {
-  const accent = useWorkspaceAccent();
+  const reviewed = gym.status !== "DRAFT";
+  // GET /owner/gyms/:id carries the REAL selection for the OWNER: `amenities` (custom ones included, any catalogue status) and
+  // `amenityProposals` (the owner's PENDING proposals for this branch). `facilities` is only the SYSTEM mirror and is read here
+  // only when an older answer has no `amenities` at all.
+  const amenities = (Array.isArray(gym.amenities) ? gym.amenities : []).map(normalizeAmenity).filter((a: Amenity | null): a is Amenity => !!a);
+  const proposals = (Array.isArray(gym.amenityProposals) ? gym.amenityProposals : []).map(normalizeProposal).filter((p: Proposal | null): p is Proposal => !!p);
+  const hasRealList = Array.isArray(gym.amenities);
+
+  if (reviewed) return <ReviewedAmenities gym={gym} amenities={amenities} proposals={proposals} hasRealList={hasRealList} />;
+  return <DraftAmenities uid={uid} gym={gym} amenities={amenities} proposals={proposals} hasRealList={hasRealList} />;
+}
+
+/** A branch that has left DRAFT edits its amenities through a reviewed listing (PATCH facilities -> 409 LISTING_REVIEW_REQUIRED): shown, not edited. */
+function ReviewedAmenities({ gym, amenities, proposals, hasRealList }: { gym: any; amenities: Amenity[]; proposals: Proposal[]; hasRealList: boolean }) {
   const saved: GymFacility[] = Array.isArray(gym.facilities) ? gym.facilities : [];
-  const [list, setList] = useState<GymFacility[]>(saved);
-  const save = useUpdateGym(uid, gym.id, "Đã lưu tiện ích & dịch vụ");
+  const shown = amenities.filter((a) => a.status === "ACTIVE");
+  const fallbackLabels = hasRealList ? [] : facilityLabels(saved);
   return (
-    <SectionCard title="Tiện ích & dịch vụ" hint="Chọn những tiện ích chi nhánh này thực sự có — khách thấy danh sách này khi tìm phòng gym.">
-      {FACILITY_GROUPS.map((g) => (
-        <View key={g.label} className="gap-2">
-          <Text className="font-body text-[11px] uppercase tracking-wider text-muted-foreground">{g.label}</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {g.items.map((f) => {
-              const on = list.includes(f);
-              return (
-                <Tappable
-                  key={f}
-                  accessibilityLabel={`${FACILITY_LABEL[f]}${on ? " (đã chọn)" : ""}`}
-                  onPress={() => setList((l) => toggleFacility(l, f))}
-                  className={`flex-row items-center gap-1 rounded-full border px-3 py-2 ${on ? "border-primary bg-primary/10" : "border-border"}`}
-                >
-                  {on ? <Check size={12} color={accent.primary} /> : null}
-                  <Text className={`font-body text-xs ${on ? "text-primary" : "text-muted-foreground"}`}>{FACILITY_LABEL[f]}</Text>
-                </Tappable>
-              );
-            })}
-          </View>
+    <SectionCard title="Tiện ích & dịch vụ" hint="Tiện ích là một phần của tin đăng nên sửa ở mục Tin đăng & tiện ích và cần Gymini duyệt.">
+      {shown.length > 0 ? (
+        <AmenityBadgeGroups amenities={shown} />
+      ) : fallbackLabels.length > 0 ? (
+        <View className="flex-row flex-wrap gap-1.5">
+          {fallbackLabels.map((l) => (
+            <Badge key={l} tone="neutral">
+              {l}
+            </Badge>
+          ))}
         </View>
-      ))}
-      <Text className="font-body text-[11px] text-muted-foreground">Đã chọn {list.length} tiện ích.</Text>
-      <Button disabled={sameFacilities(list, saved) || save.isPending} onPress={() => save.mutate({ facilities: list })}>
+      ) : (
+        <Text className="font-body text-xs text-muted-foreground">Chưa có tiện ích nào.</Text>
+      )}
+      {proposals.length > 0 ? (
+        <View className="flex-row flex-wrap gap-1.5">
+          {proposals.map((p) => (
+            <Badge key={p.id} tone="info">{p.name + " · chờ duyệt"}</Badge>
+          ))}
+        </View>
+      ) : null}
+      {hasReviewedListing(gym.status) ? (
+        <EditInListingButton gymId={gym.id} />
+      ) : (
+        <Text className="font-body text-[11px] leading-4 text-muted-foreground">Chi nhánh được duyệt xong mới sửa được tiện ích ở Tin đăng.</Text>
+      )}
+    </SectionCard>
+  );
+}
+
+/**
+ * A DRAFT branch (the wizard) picks its amenities from the catalogue and saves them with PATCH /owner/gyms/:id/draft
+ * ({ amenityIds, proposalIds, proposals }). The selection read back is the server's real one, so a custom amenity chosen on another
+ * device is not silently dropped by the next save.
+ */
+function DraftAmenities({ uid, gym, amenities, proposals, hasRealList }: { uid: string; gym: any; amenities: Amenity[]; proposals: Proposal[]; hasRealList: boolean }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const catalogQuery = useQuery({ queryKey: ownerAmenitiesKey(uid), queryFn: async () => normalizeCatalog(await ownerAmenityService.catalog()) });
+  const savedIds = amenities.filter((a) => a.status === "ACTIVE").map((a) => a.id);
+  // An older answer without `amenities`: start from the system mirror (enum codes -> the SYSTEM amenity ids).
+  const mirrorIds = hasRealList ? [] : (Array.isArray(gym.facilities) ? gym.facilities : []).map((f: string) => "amenity-sys-" + f.toLowerCase().replace(/_/g, "-"));
+  const initial: string[] = hasRealList ? savedIds : mirrorIds;
+  const pending = proposals.filter((p) => p.status === "PENDING");
+  const seedKey = JSON.stringify([initial, pending.map((p) => p.id)]);
+  const [selected, setSelected] = useServerSeededState<string[]>(initial, seedKey);
+  const [kept, setKept] = useServerSeededState<string[]>(pending.map((p) => p.id), seedKey);
+  const [newProposals, setNewProposals] = useState<InlineProposal[]>([]);
+  const selection = { amenityIds: selected, proposals: newProposals, proposalIds: kept };
+
+  const save = useMutation({
+    mutationFn: () => gymService.updateGymDraft(gym.id, amenitySelectionPayload(selection)),
+    onSuccess: () => {
+      toast.show("Đã lưu tiện ích & dịch vụ", "success");
+      setNewProposals([]);
+      void qc.invalidateQueries({ queryKey: branchKeys(uid, gym.id).gym });
+      void qc.invalidateQueries({ queryKey: ["owned-gyms", uid] });
+    },
+    onError: (e) => toast.show(serverMessage(e, "Không thể lưu thay đổi"), "danger"),
+  });
+  const problem = amenitySelectionError(selection);
+  const unchanged = newProposals.length === 0 && seedKey === JSON.stringify([selected, kept]);
+
+  return (
+    <SectionCard title="Tiện ích & dịch vụ" hint="Chọn những tiện ích chi nhánh này thực sự có — khách thấy danh sách này khi tìm phòng gym. Cần ít nhất một.">
+      <InlineAmenityPicker
+        catalog={catalogQuery.data?.amenities ?? []}
+        loading={catalogQuery.isLoading}
+        error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
+        onRetry={() => void catalogQuery.refetch()}
+        selectedIds={selected}
+        onSelectedChange={setSelected}
+        proposals={newProposals}
+        onProposalsChange={setNewProposals}
+        existing={pending}
+        keptProposalIds={kept}
+        onKeptProposalIdsChange={setKept}
+      />
+      <Button disabled={!!problem || unchanged || save.isPending} onPress={() => save.mutate()}>
         {save.isPending ? "Đang lưu…" : "Lưu tiện ích"}
       </Button>
     </SectionCard>
@@ -340,7 +469,7 @@ export function FacilitiesSection({ uid, gym }: { uid: string; gym: any }) {
 
 // ── Photos ────────────────────────────────────────────────────────────────────────────────────
 
-export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
+export function PhotosSection({ uid, gymId, status }: { uid: string; gymId: string; status?: string | null }) {
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const qc = useQueryClient();
@@ -349,18 +478,22 @@ export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
   const photos = query.data ?? [];
   const [uploading, setUploading] = useState<string | null>(null);
 
+  // Listing Management: the old disk-photo write routes answer 410 UPLOAD_ROUTE_RETIRED for every branch. A DRAFT branch (the
+  // wizard) uses the new presign / confirm / reorder / cover routes; an approved one edits photos in its reviewed listing; the rest
+  // (waiting for first review, rejected) cannot take photo changes at all.
+  const draft = status === "DRAFT";
+
   const refresh = () => qc.invalidateQueries({ queryKey: key });
   const onError = (fallback: string) => (e: unknown) => toast.show(serverMessage(e, fallback), "danger");
-  const remove = useMutation({ mutationFn: (id: string) => gymService.deleteGymPhoto(gymId, id), onSuccess: refresh, onError: onError("Không thể xoá ảnh") });
-  // Refetch after cover/reorder (the response has carried `url` since GAP-27 was fixed 5/10, but a
-  // refetch also picks up a fresh signed link, which expires after a few minutes).
+  const remove = useMutation({ mutationFn: (id: string) => gymListingService.deletePhoto(gymId, id), onSuccess: refresh, onError: onError("Không thể xoá ảnh") });
+  // Refetch after cover/reorder: it also picks up a fresh signed link, which expires after a few minutes.
   const cover = useMutation({
-    mutationFn: (id: string) => gymService.setGymPhotoCover(gymId, id),
+    mutationFn: (id: string) => gymListingService.setCover(gymId, id),
     onSuccess: refresh,
     onError: onError("Không thể đặt ảnh bìa"),
   });
   const reorder = useMutation({
-    mutationFn: (ids: string[]) => gymService.reorderGymPhotos(gymId, ids),
+    mutationFn: (ids: string[]) => gymListingService.reorderPhotos(gymId, ids),
     onSuccess: refresh,
     onError: onError("Không thể sắp xếp lại"),
   });
@@ -372,11 +505,11 @@ export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
       const files = await pickImages(room, 8 * 1024 * 1024);
       for (let i = 0; i < files.length; i++) {
         setUploading(`${i + 1}/${files.length}`);
-        await gymService.uploadGymPhoto(gymId, files[i]);
+        await uploadGymListingPhoto(gymId, files[i]);
       }
       if (files.length) toast.show(files.length > 1 ? `Đã tải lên ${files.length} ảnh` : "Đã tải ảnh lên", "success");
     } catch (e) {
-      toast.show(serverMessage(e, "Không thể tải ảnh lên"), "danger");
+      toast.show(gymListingErrorMessage(e, "Không thể tải ảnh lên"), "danger");
     } finally {
       setUploading(null);
       void refresh();
@@ -385,14 +518,27 @@ export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
 
   const busy = remove.isPending || cover.isPending || reorder.isPending || uploading != null;
   return (
-    <SectionCard title="Hình ảnh" hint={`Thư viện ảnh công khai — khách xem khi tìm phòng gym. Tối đa ${MAX_PHOTOS} ảnh, JPG/PNG/WEBP, mỗi ảnh ≤ 8 MB.`}>
-      <Button variant="secondary" icon={Plus} disabled={busy || photos.length >= MAX_PHOTOS} onPress={() => void add()}>
-        {uploading ? `Đang tải ảnh lên ${uploading}…` : `Thêm ảnh (${photos.length}/${MAX_PHOTOS})`}
-      </Button>
+    <SectionCard
+      title="Hình ảnh"
+      hint={
+        draft
+          ? `Thư viện ảnh công khai — khách xem khi tìm phòng gym. Tối đa ${MAX_PHOTOS} ảnh, JPG/PNG/WEBP, mỗi ảnh ≤ 8 MB.`
+          : "Ảnh là một phần của tin đăng nên thêm, xoá và sắp xếp ở mục Tin đăng & tiện ích; thay đổi cần Gymini duyệt."
+      }
+    >
+      {draft ? (
+        <Button variant="secondary" icon={Plus} disabled={busy || photos.length >= MAX_PHOTOS} onPress={() => void add()}>
+          {uploading ? `Đang tải ảnh lên ${uploading}…` : `Thêm ảnh (${photos.length}/${MAX_PHOTOS})`}
+        </Button>
+      ) : hasReviewedListing(status) ? (
+        <EditInListingButton gymId={gymId} />
+      ) : (
+        <Text className="font-body text-xs text-muted-foreground">Chi nhánh được duyệt xong mới thêm hoặc sửa ảnh ở Tin đăng.</Text>
+      )}
       {query.isLoading ? (
         <ActivityIndicator color={accent.primary} />
       ) : photos.length === 0 ? (
-        <Text className="font-body text-xs text-muted-foreground">Chưa có ảnh nào — thêm ít nhất một ảnh để khách hình dung được không gian tập.</Text>
+        <Text className="font-body text-xs text-muted-foreground">Chưa có ảnh nào{draft ? " — thêm ít nhất một ảnh để khách hình dung được không gian tập." : "."}</Text>
       ) : (
         <View className="flex-row flex-wrap justify-between gap-y-3">
           {photos.map((p, i) => (
@@ -404,27 +550,29 @@ export function PhotosSection({ uid, gymId }: { uid: string; gymId: string }) {
                   <Text className="font-body-semibold text-[10px] text-on-primary">Ảnh bìa</Text>
                 </View>
               ) : null}
-              <View className="flex-row items-center justify-between px-1 py-1">
-                <View className="flex-row">
-                  <PhotoButton icon={ArrowLeft} label="Đưa lên trước" disabled={busy || i === 0} onPress={() => { const ids = movedPhotoIds(photos.map((x) => x.id), i, -1); if (ids) reorder.mutate(ids); }} />
-                  <PhotoButton icon={ArrowRight} label="Đưa ra sau" disabled={busy || i === photos.length - 1} onPress={() => { const ids = movedPhotoIds(photos.map((x) => x.id), i, 1); if (ids) reorder.mutate(ids); }} />
+              {draft ? (
+                <View className="flex-row items-center justify-between px-1 py-1">
+                  <View className="flex-row">
+                    <PhotoButton icon={ArrowLeft} label="Đưa lên trước" disabled={busy || i === 0} onPress={() => { const ids = movedPhotoIds(photos.map((x) => x.id), i, -1); if (ids) reorder.mutate(ids); }} />
+                    <PhotoButton icon={ArrowRight} label="Đưa ra sau" disabled={busy || i === photos.length - 1} onPress={() => { const ids = movedPhotoIds(photos.map((x) => x.id), i, 1); if (ids) reorder.mutate(ids); }} />
+                  </View>
+                  <View className="flex-row">
+                    {!p.isCover ? <PhotoButton icon={Star} label="Đặt làm ảnh bìa" disabled={busy} onPress={() => cover.mutate(p.id)} /> : null}
+                    <PhotoButton
+                      icon={Trash2}
+                      label="Xoá ảnh"
+                      danger
+                      disabled={busy}
+                      onPress={() =>
+                        Alert.alert("Xoá ảnh này?", "Ảnh sẽ biến khỏi thư viện của chi nhánh.", [
+                          { text: "Không", style: "cancel" },
+                          { text: "Xoá", style: "destructive", onPress: () => remove.mutate(p.id) },
+                        ])
+                      }
+                    />
+                  </View>
                 </View>
-                <View className="flex-row">
-                  {!p.isCover ? <PhotoButton icon={Star} label="Đặt làm ảnh bìa" disabled={busy} onPress={() => cover.mutate(p.id)} /> : null}
-                  <PhotoButton
-                    icon={Trash2}
-                    label="Xoá ảnh"
-                    danger
-                    disabled={busy}
-                    onPress={() =>
-                      Alert.alert("Xoá ảnh này?", "Ảnh sẽ biến khỏi thư viện công khai của chi nhánh.", [
-                        { text: "Không", style: "cancel" },
-                        { text: "Xoá", style: "destructive", onPress: () => remove.mutate(p.id) },
-                      ])
-                    }
-                  />
-                </View>
-              </View>
+              ) : null}
             </View>
           ))}
         </View>

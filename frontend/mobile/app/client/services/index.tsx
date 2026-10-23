@@ -6,7 +6,6 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import {
   Building2,
   CalendarClock,
-  ChevronRight,
   FileText,
   MapPin,
   QrCode,
@@ -17,6 +16,7 @@ import {
   Ticket,
   UserSearch,
 } from "lucide-react-native";
+import { GymCard } from "../../../src/features/services/GymCard";
 
 import {
   Avatar,
@@ -31,7 +31,8 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { contractService, gymService, profileService } from "../../../src/services/api";
+import { Image } from "expo-image";
+import { absolutePhotoUrl, contractService, gymService, profileService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
@@ -40,7 +41,6 @@ import {
   canReportMembership,
   daysRemaining,
   groupByBrand,
-  gymBlockedReason,
   membershipStatusLabel,
   normalizeGyms,
   normalizeMemberships,
@@ -317,12 +317,34 @@ function FindPtTab() {
   );
 }
 
+/**
+ * The trainer's public cover photo (Listing Management). Hidden again if it fails to load, so a dead link
+ * never leaves a grey box above the card — the avatar row below is the card without it.
+ */
+function TrainerCover({ uri }: { uri: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <View className="overflow-hidden bg-panel" style={{ aspectRatio: 16 / 7 }}>
+      <Image
+        source={{ uri }}
+        contentFit="cover"
+        style={{ flex: 1 }}
+        onError={() => setFailed(true)}
+        accessibilityLabel="Ảnh bìa huấn luyện viên"
+      />
+    </View>
+  );
+}
+
 function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
   const accent = useWorkspaceAccent();
+  const cover = absolutePhotoUrl(pt.coverPhotoUrl);
   return (
     <Tappable onPress={onPress}>
-      <Card className="p-4">
-        <View className="flex-row gap-3.5">
+      <Card className="overflow-hidden">
+        {cover ? <TrainerCover uri={cover} /> : null}
+        <View className="flex-row gap-3.5 p-4">
           <Avatar uri={pt.photoUrl} name={pt.name} size={60} />
           <View className="flex-1">
             <View className="flex-row items-center gap-1.5">
@@ -359,6 +381,7 @@ function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
           <View className="items-end">
             {pt.lowestPrice != null ? (
               <>
+                <Text className="font-body text-[11px] text-muted-foreground">từ</Text>
                 <Text className="font-display text-sm" style={{ color: accent.primary }}>
                   {formatVND(pt.lowestPrice)}
                 </Text>
@@ -543,49 +566,6 @@ function GymsTab() {
         </Stagger>
       )}
     </ScrollView>
-  );
-}
-
-function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) {
-  const accent = useWorkspaceAccent();
-  const closed = gymBlockedReason(gym);
-  return (
-    <Tappable onPress={onPress}>
-      <Card className="gap-2 p-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="font-display text-base text-foreground" numberOfLines={1}>
-              {gym.name}
-            </Text>
-            {gym.city || gym.address ? (
-              <View className="mt-0.5 flex-row items-center gap-1">
-                <MapPin size={12} color="#8b9299" />
-                <Text className="flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
-                  {[gym.address, gym.city].filter(Boolean).join(", ")}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          {gym.rating != null ? <Badge tone="warning">{`★ ${gym.rating.toFixed(1)}`}</Badge> : null}
-        </View>
-
-        <View className="flex-row items-center justify-between">
-          {/* Only a real price is accented — "no plans yet" in the same green would read as one. */}
-          <Text
-            className="font-body-medium text-sm"
-            style={{ color: gym.fromPrice != null ? accent.primary : "#8b9299" }}
-          >
-            {gym.fromPrice != null ? `Từ ${formatVND(gym.fromPrice)}` : "Chưa mở bán gói"}
-          </Text>
-          <View className="flex-row items-center gap-1">
-            <Text className="font-body text-sm text-muted-foreground">Xem gói</Text>
-            <ChevronRight size={16} color="#8b9299" />
-          </View>
-        </View>
-
-        {closed ? <Badge tone="danger">{closed}</Badge> : null}
-      </Card>
-    </Tappable>
   );
 }
 

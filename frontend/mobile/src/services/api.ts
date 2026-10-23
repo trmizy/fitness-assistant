@@ -5,6 +5,8 @@ import axios from "axios";
 // stream below is the one caller that needs it (everything else goes through axios).
 import { fetch as streamingFetch } from "expo/fetch";
 import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
+import Constants from "expo-constants";
+import { listingFlowHeaders } from "./listingFlow";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -4970,6 +4972,8 @@ export const contractService = {
     clientMessage?: string;
     gymId?: string;
     acknowledgedLowAvailability?: boolean;
+    /** `version` of the package on screen; a changed package answers 409 PACKAGE_CHANGED with the current one. */
+    expectedPackageVersion?: number;
   }) => {
     const { data } = await api.post("/contracts/request", requestData);
     return data;
@@ -6187,6 +6191,9 @@ export const gymService = {
       name: string; description: string; address: string; city: string; phone: string; email: string;
       provinceCode: number | null; wardCode: number | null; latitude: number | null; longitude: number | null;
       locationNote: string; facilities: import('../types').GymFacility[]; wizardStep: number;
+      // Listing Management B3: the wizard's amenity step (amenityIds wins over the older facilities labels).
+      amenityIds: string[]; proposalIds: string[];
+      proposals: { name: string; suggestedCategory: 'FACILITY' | 'TRAINING_ZONE' | 'SERVICE' | 'RECOVERY'; note?: string }[];
     }>,
   ) => {
     const { data } = await api.patch(`/owner/gyms/${gymId}/draft`, payload);
@@ -6272,6 +6279,10 @@ export const gymService = {
   createGym: async (payload: {
     name: string; description?: string; address: string; city?: string; phone?: string; email?: string;
     provinceCode?: number | null; wardCode?: number | null; latitude?: number | null; longitude?: number | null;
+    // Listing Management (M2): a new client sends >= 1 of amenityIds / proposals (else 422 AMENITIES_REQUIRED).
+    amenityIds?: string[];
+    proposals?: { name: string; suggestedCategory: 'FACILITY' | 'TRAINING_ZONE' | 'SERVICE' | 'RECOVERY'; note?: string }[];
+    proposalIds?: string[];
   }) => {
     const { data } = await api.post('/owner/gyms', payload);
     return data?.data ?? data;
@@ -6911,5 +6922,259 @@ export const statsService = {
     return data;
   },
 };
+
+// ═══ #region ptListingService — Listing Management, Phase M1 (PT "Tin đăng") ══════════════════
+// user-service /profile/me/listing/*. Identity is always the signed-in token; nothing here names a PT.
+// A revision is the COMPLETE desired listing (profile fields, packages, photoIds, coverPhotoId); every
+// write carries `expectedDraftVersion` (409 DRAFT_STALE / LISTING_STALE come back with the current
+// `revision`). The shapes are normalized in features/ptListing/ptListing.ts, not here.
+
+export type PtPhysiqueUploadStep = "presign" | "upload" | "confirm";
+
+/**
+ * A failed photo upload, tagged with the step that failed so the screen can say what to retry.
+ * `original` is the axios error of a presign/confirm refusal (it carries the server's `error.code`).
+ */
+export class PtPhysiqueUploadError extends Error {
+  readonly step: PtPhysiqueUploadStep;
+  readonly original?: unknown;
+  constructor(step: PtPhysiqueUploadStep, message: string, original?: unknown) {
+    super(message);
+    this.name = "PtPhysiqueUploadError";
+    this.step = step;
+    this.original = original;
+  }
+}
+
+export const ptListingService = {
+  /** Published listing + the open revision (DRAFT/PENDING) + every usable photo + history + limits. */
+  get: async () => {
+    const { data } = await api.get("/profile/me/listing");
+    return data;
+  },
+  /** Starts a draft from the published listing, or (copyFromRevisionId) from a closed revision <= 30 days old. */
+  createDraft: async (opts?: { copyFromRevisionId?: string }) => {
+    const { data } = await api.post("/profile/me/listing/draft", opts ?? {});
+    return data;
+  },
+  saveDraft: async (body: { expectedDraftVersion: number; payload: Record<string, unknown>; ownerNote?: string }) => {
+    const { data } = await api.put("/profile/me/listing/draft", body);
+    return data;
+  },
+  submit: async (body: { expectedDraftVersion: number; ownerNote?: string }) => {
+    const { data } = await api.post("/profile/me/listing/submit", body);
+    return data;
+  },
+  /** PENDING → withdrawn, and the server gives back a fresh DRAFT with the same content. */
+  withdraw: async () => {
+    const { data } = await api.post("/profile/me/listing/withdraw", {});
+    return data;
+  },
+  /** DRAFT → discarded ("bỏ nháp"). */
+  discard: async () => {
+    const { data } = await api.post("/profile/me/listing/discard", {});
+    return data;
+  },
+  /** Keeps the draft's content, moves its base to the current public listing. */
+  rebase: async (body?: { expectedDraftVersion?: number }) => {
+    const { data } = await api.post("/profile/me/listing/rebase", body ?? {});
+    return data;
+  },
+  /** What clients would see if the open revision were approved. STAGED photo links expire after ~15 min. */
+  preview: async () => {
+    const { data } = await api.get("/profile/me/listing/preview");
+    return data;
+  },
+  presign: async (contentType: string) => {
+    const { data } = await api.post("/profile/me/listing/physique/presign", { contentType });
+    return data as {
+      uploadId: string;
+      url: string;
+      fields: Record<string, string>;
+      method: "POST";
+      maxBytes: number;
+      contentType: string;
+      expiresAt: string;
+    };
+  },
+  /** Server reads the uploaded object, checks the real bytes, re-encodes to WebP and stages it. 201 `{ photo, deduplicated }`. */
+  confirm: async (uploadId: string) => {
+    const { data } = await api.post("/profile/me/listing/physique/confirm", { uploadId }, { timeout: 45000 });
+    return data as {
+      photo: { id: string; status: string; url: string; expiresAt: string | null; isCover: boolean; sortOrder: number };
+      deduplicated: boolean;
+    };
+  },
+  /** Deletes a photo that is not public yet (STAGED). A published photo leaves only through an approved revision. */
+  deletePhoto: async (photoId: string) => {
+    const { data } = await api.delete(`/profile/me/listing/physique/${photoId}`);
+    return data as { deleted: boolean };
+  },
+};
+
+/**
+ * Uploads one physique photo: **presign → multipart POST to the URL the server returned → confirm**.
+ * Same mechanics as `uploadApplicationFile` (expo-file-system `File.upload` MULTIPART: signed fields first,
+ * the file LAST, a known Content-Length, no Gymini JWT sent to the storage host). The server, not the phone,
+ * judges the bytes: it re-encodes to WebP and strips EXIF.
+ */
+export async function uploadPtPhysiquePhoto(file: UploadFile) {
+  const contentType = file.type || "image/jpeg";
+  let auth: Awaited<ReturnType<typeof ptListingService.presign>>;
+  try {
+    auth = await ptListingService.presign(contentType);
+  } catch (e) {
+    throw new PtPhysiqueUploadError("presign", "Chưa xin được quyền tải ảnh.", e);
+  }
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(auth.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: contentType,
+      parameters: auth.fields,
+    });
+  } catch {
+    throw new PtPhysiqueUploadError("upload", "Không gửi được ảnh lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
+    throw new PtPhysiqueUploadError("upload", `Tải ảnh lên thất bại (${res.status}). Hãy thử lại.`);
+  }
+  try {
+    return await ptListingService.confirm(auth.uploadId);
+  } catch (e) {
+    throw new PtPhysiqueUploadError("confirm", "Máy chủ chưa xác nhận được ảnh.", e);
+  }
+}
+// #endregion
+
+// ═══ #region gymListingService — Listing Management, Phase M2 (Gym Owner "Tin đăng & tiện ích") ═══
+// gym-service /owner/gyms/:id/listing/* and /owner/amenities/*. Success bodies are `{ success:true, data }`
+// (unwrapped here); every refusal is `{ success:false, error:{ code, message }, message, ...extra }`.
+// A revision payload is the COMPLETE desired state { description, amenityIds, proposalIds, photoIds, coverPhotoId };
+// every write carries `expectedDraftVersion`. Shapes are normalized in features/gymListing/gymListing.ts.
+//
+// Headers: the axios instance sets none globally (only Content-Type + the token). The "new client" headers
+// (services/listingFlow.ts) are attached by the interceptor below to the compat routes ONLY — the application
+// wizard and the branch create/draft routes — and to nothing else.
+api.interceptors.request.use((config) => {
+  const headers = listingFlowHeaders(config.method, config.url, {
+    version: Constants.expoConfig?.version,
+    build: Constants.nativeBuildVersion,
+  });
+  if (headers) for (const [name, value] of Object.entries(headers)) config.headers[name] = value;
+  return config;
+});
+
+const unwrapGym = <T,>(res: any): T => (res?.data?.data ?? res?.data) as T;
+const listingBase = (gymId: string) => `/owner/gyms/${gymId}/listing`;
+
+export const gymListingService = {
+  /** Published listing + the open revision + every usable photo + the amenities/proposals the payloads mention + history + limits. */
+  get: async (gymId: string) => unwrapGym<any>(await api.get(listingBase(gymId))),
+  /** Starts a draft from the published listing, or (copyFromRevisionId) from a closed revision <= 30 days old. */
+  createDraft: async (gymId: string, opts?: { copyFromRevisionId?: string }) =>
+    unwrapGym<any>(await api.post(`${listingBase(gymId)}/draft`, opts ?? {})),
+  saveDraft: async (gymId: string, body: { expectedDraftVersion: number; payload: Record<string, unknown>; ownerNote?: string }) =>
+    unwrapGym<any>(await api.put(`${listingBase(gymId)}/draft`, body)),
+  submit: async (gymId: string, body: { expectedDraftVersion: number; ownerNote?: string }) =>
+    unwrapGym<any>(await api.post(`${listingBase(gymId)}/submit`, body)),
+  /** PENDING → withdrawn, and the server gives back a fresh DRAFT with the same content. */
+  withdraw: async (gymId: string) => unwrapGym<any>(await api.post(`${listingBase(gymId)}/withdraw`, {})),
+  /** DRAFT → discarded ("bỏ nháp"). */
+  discard: async (gymId: string) => unwrapGym<any>(await api.post(`${listingBase(gymId)}/discard`, {})),
+  /** Keeps the draft's content, moves its base to the current public listing. */
+  rebase: async (gymId: string, body?: { expectedDraftVersion?: number }) =>
+    unwrapGym<any>(await api.post(`${listingBase(gymId)}/rebase`, body ?? {})),
+  /** What clients would see if the open revision were approved. STAGED photo links expire after ~15 min. */
+  preview: async (gymId: string) => unwrapGym<any>(await api.get(`${listingBase(gymId)}/preview`)),
+  presign: async (gymId: string, contentType: string) =>
+    unwrapGym<{
+      uploadId: string;
+      url: string;
+      fields: Record<string, string>;
+      method: "POST";
+      maxBytes: number;
+      contentType: string;
+      expiresAt: string;
+    }>(await api.post(`${listingBase(gymId)}/photos/presign`, { contentType })),
+  /** The server reads the uploaded object, checks the real bytes, re-encodes to WebP and stages it. 201 `{ photo, deduplicated }`. */
+  confirm: async (gymId: string, uploadId: string) =>
+    unwrapGym<{
+      photo: { id: string; status: string; url: string | null; expiresAt: string | null; isCover: boolean; sortOrder: number };
+      deduplicated: boolean;
+    }>(await api.post(`${listingBase(gymId)}/photos/confirm`, { uploadId }, { timeout: 45000 })),
+  /** Deletes a photo that is not public yet (STAGED). A published photo leaves only through an approved revision. */
+  deletePhoto: async (gymId: string, photoId: string) =>
+    unwrapGym<{ deleted: boolean }>(await api.delete(`${listingBase(gymId)}/photos/${photoId}`)),
+  /** DRAFT branch only (the wizard): order of its STAGED photos. Any other branch uses the revision payload (409 GYM_NOT_DRAFT). */
+  reorderPhotos: async (gymId: string, photoIds: string[]) =>
+    unwrapGym<{ photos: any[] }>(await api.put(`${listingBase(gymId)}/photos/reorder`, { photoIds })),
+  /** DRAFT branch only: exactly one STAGED photo is the cover. */
+  setCover: async (gymId: string, photoId: string) =>
+    unwrapGym<{ photos: any[] }>(await api.patch(`${listingBase(gymId)}/photos/${photoId}/cover`, {})),
+};
+
+export type ProposalCategory = "FACILITY" | "TRAINING_ZONE" | "SERVICE" | "RECOVERY";
+
+export const ownerAmenityService = {
+  /** The ACTIVE catalogue and the caller's own proposals (newest first, <= 100). OWNER role only (a manager gets 403). */
+  catalog: async () => unwrapGym<any>(await api.get("/owner/amenities")),
+  /** 200 `{ matchedAmenity }` | 200/201 `{ proposal, kind: "NEW" | "REENABLE", created }`. */
+  propose: async (body: { gymId: string; name: string; suggestedCategory: ProposalCategory; note?: string }) =>
+    unwrapGym<any>(await api.post("/owner/amenities/proposals", body)),
+  updateProposal: async (id: string, body: { name?: string; suggestedCategory?: ProposalCategory; note?: string | null }) =>
+    unwrapGym<any>(await api.patch(`/owner/amenities/proposals/${id}`, body)),
+  cancelProposal: async (id: string) => unwrapGym<any>(await api.delete(`/owner/amenities/proposals/${id}`)),
+};
+
+/** `PUT /owner/application/amenities` — the application wizard's amenity step (branch with no published listing). */
+export const applicationAmenityService = {
+  /** GET /owner/application/amenities/catalog: the ACTIVE catalogue + the caller's own proposals, readable by an applicant (/owner/amenities is behind the operational gate). Same shape. */
+  catalog: async () => unwrapGym<any>(await api.get("/owner/application/amenities/catalog")),
+  save: async (body: {
+    amenityIds?: string[];
+    proposalIds?: string[];
+    proposals?: { name: string; suggestedCategory: ProposalCategory; note?: string }[];
+  }) => unwrapGym<any>(await api.put("/owner/application/amenities", body)),
+};
+
+/**
+ * Uploads one branch photo: **presign → multipart POST to the URL the server returned → confirm**. Same mechanics
+ * as `uploadPtPhysiquePhoto` (expo-file-system `File.upload` MULTIPART, signed fields first, the file LAST, no Gymini
+ * JWT sent to the storage host). Works for a DRAFT branch (the add-branch wizard) and for an approved one.
+ * Failures are tagged with the step that failed (`PtPhysiqueUploadError`, a generic presign/upload/confirm error).
+ */
+export async function uploadGymListingPhoto(gymId: string, file: UploadFile) {
+  const contentType = file.type || "image/jpeg";
+  let auth: Awaited<ReturnType<typeof gymListingService.presign>>;
+  try {
+    auth = await gymListingService.presign(gymId, contentType);
+  } catch (e) {
+    throw new PtPhysiqueUploadError("presign", "Chưa xin được quyền tải ảnh.", e);
+  }
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(auth.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: contentType,
+      parameters: auth.fields,
+    });
+  } catch {
+    throw new PtPhysiqueUploadError("upload", "Không gửi được ảnh lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
+    throw new PtPhysiqueUploadError("upload", `Tải ảnh lên thất bại (${res.status}). Hãy thử lại.`);
+  }
+  try {
+    return await gymListingService.confirm(gymId, auth.uploadId);
+  } catch (e) {
+    throw new PtPhysiqueUploadError("confirm", "Máy chủ chưa xác nhận được ảnh.", e);
+  }
+}
+// #endregion
 
 export default api;

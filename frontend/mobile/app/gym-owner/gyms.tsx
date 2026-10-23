@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, ChevronRight, Dumbbell, MapPin, Pencil, Plus, QrCode, Star, Users } from "lucide-react-native";
+import { Building2, Check, ChevronRight, Dumbbell, ListChecks, MapPin, Pencil, Plus, QrCode, Star, Users } from "lucide-react-native";
 import { router } from "expo-router";
 
 import {
@@ -19,7 +19,17 @@ import {
   useToast,
 } from "../../src/components/ui";
 import { SelectField } from "../../src/components/SelectSheet";
-import { gymService, locationService } from "../../src/services/api";
+import { gymService, locationService, ownerAmenityService } from "../../src/services/api";
+import { InlineAmenityPicker } from "../../src/features/gymListing/InlineAmenityPicker";
+import {
+  amenitySelectionError,
+  amenitySelectionPayload,
+  gymListingErrorMessage,
+  isAmenitiesRequired,
+  normalizeCatalog,
+  ownerAmenitiesKey,
+  type AmenitySelection,
+} from "../../src/features/gymListing/gymListing";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
@@ -39,6 +49,7 @@ import {
   isBrandOwner,
   operationalStatus,
   ownedGyms,
+  staffRoleOf,
   showsBranchStats,
   standaloneGyms,
   theBrand,
@@ -63,6 +74,8 @@ import { MapPinPicker } from "../../src/features/gymOwner/MapPinPicker";
  * A MANAGER sees the branches and nothing that edits the brand or adds to it (spec §61): the
  * controls are hidden rather than shown and then refused.
  */
+const EMPTY_AMENITY_SELECTION: AmenitySelection = { amenityIds: [], proposals: [] };
+
 export default function GymOwnerGymsScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
@@ -81,6 +94,8 @@ export default function GymOwnerGymsScreen() {
   const gyms = ownedGyms(gymsQuery.data);
   const brand = theBrand(brandsQuery.data);
   const isOwner = isBrandOwner(statusQuery.data);
+  // Listing Management (M2): the entry is the OWNER's alone (a manager gets 403) — strict, so it never flashes while the role loads.
+  const canEditListing = staffRoleOf(statusQuery.data) === "OWNER";
   const loading = gymsQuery.isLoading || brandsQuery.isLoading;
 
   const branches = brand ? branchesOfBrand(gyms, brand.id) : [];
@@ -91,6 +106,8 @@ export default function GymOwnerGymsScreen() {
   const [brandForm, setBrandForm] = useState({ name: "", description: "" });
   const [renameValue, setRenameValue] = useState("");
   const [form, setForm] = useState<BranchForm>(EMPTY_BRANCH_FORM);
+  // Listing Management (M2): a new client must send >= 1 amenity (or proposal) with the quick-created branch.
+  const [amenitySel, setAmenitySel] = useState<AmenitySelection>(EMPTY_AMENITY_SELECTION);
 
   // The auto-pin's own state lives up here beside the form it belongs to, so opening the sheet
   // clears it in the same place the form is cleared — no effect watching visibility.
@@ -107,6 +124,7 @@ export default function GymOwnerGymsScreen() {
   };
   const openBranchSheet = () => {
     setForm(EMPTY_BRANCH_FORM);
+    setAmenitySel(EMPTY_AMENITY_SELECTION);
     setPinHint(null);
     lastGeocodeKey.current = null;
     pinnedByHand.current = false;
@@ -142,15 +160,17 @@ export default function GymOwnerGymsScreen() {
   });
 
   const createBranch = useMutation({
-    mutationFn: () => gymService.createGym(branchPayload(form)),
+    mutationFn: () => gymService.createGym({ ...branchPayload(form), ...amenitySelectionPayload(amenitySel) }),
     onSuccess: () => {
       toast.show("Đã thêm chi nhánh — đang chờ Gymini duyệt", "success");
       setForm(EMPTY_BRANCH_FORM);
+      setAmenitySel(EMPTY_AMENITY_SELECTION);
       setPinHint(null);
       setSheet(null);
       invalidate();
     },
-    onError: (e) => toast.show(serverMessage(e, "Không tạo được chi nhánh"), "danger"),
+    // 422 AMENITIES_REQUIRED (the sheet already blocks it; this is the server's word if the two ever disagree) and the rest.
+    onError: (e) => toast.show(isAmenitiesRequired(e) ? gymListingErrorMessage(e, "Hãy chọn ít nhất một tiện ích") : serverMessage(e, "Không tạo được chi nhánh"), "danger"),
   });
 
   const refreshing = gymsQuery.isRefetching || brandsQuery.isRefetching;
@@ -247,6 +267,11 @@ export default function GymOwnerGymsScreen() {
                       onPress={openBranchSheet}
                     >
                       Thêm chi nhánh
+                    </Button>
+                  ) : null}
+                  {canEditListing && branches.length > 0 ? (
+                    <Button variant="secondary" icon={ListChecks} onPress={() => router.push("/gym-owner/listing" as never)}>
+                      Tin đăng & tiện ích
                     </Button>
                   ) : null}
                 </Card>
@@ -367,6 +392,8 @@ export default function GymOwnerGymsScreen() {
         shouldGeocode={shouldGeocode}
         markGeocoded={markGeocoded}
         markPinnedByHand={markPinnedByHand}
+        amenitySel={amenitySel}
+        setAmenitySel={setAmenitySel}
         brandLabel={brandDisplayName(brand)}
         submitting={createBranch.isPending}
         onSubmit={() => createBranch.mutate()}
@@ -461,6 +488,8 @@ function BranchSheet({
   shouldGeocode,
   markGeocoded,
   markPinnedByHand,
+  amenitySel,
+  setAmenitySel,
   brandLabel,
   submitting,
   onSubmit,
@@ -474,10 +503,18 @@ function BranchSheet({
   shouldGeocode: (key: string) => boolean;
   markGeocoded: (key: string) => void;
   markPinnedByHand: () => void;
+  amenitySel: AmenitySelection;
+  setAmenitySel: (s: AmenitySelection) => void;
   brandLabel: string;
   submitting: boolean;
   onSubmit: () => void;
 }) {
+  const { user } = useApp();
+  const catalogQuery = useQuery({
+    queryKey: ownerAmenitiesKey(user?.id ?? "guest"),
+    queryFn: async () => normalizeCatalog(await ownerAmenityService.catalog()),
+    enabled: visible,
+  });
   const provincesQuery = useQuery({
     queryKey: ["locations", "provinces"],
     queryFn: () => locationService.getProvinces(),
@@ -526,7 +563,7 @@ function BranchSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const error = useMemo(() => branchFormError(form), [form]);
+  const error = useMemo(() => branchFormError(form) ?? amenitySelectionError(amenitySel), [form, amenitySel]);
 
   return (
     <BottomSheet open={visible} onClose={onClose} title="Thêm chi nhánh">
@@ -588,6 +625,20 @@ function BranchSheet({
           multiline
           numberOfLines={3}
         />
+
+        <View className="gap-2 rounded-xl border border-border bg-panel p-3">
+          <Text className="font-body-semibold text-sm text-foreground">Tiện ích & dịch vụ</Text>
+          <InlineAmenityPicker
+            catalog={catalogQuery.data?.amenities ?? []}
+            loading={catalogQuery.isLoading}
+            error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
+            onRetry={() => void catalogQuery.refetch()}
+            selectedIds={amenitySel.amenityIds}
+            onSelectedChange={(ids) => setAmenitySel({ ...amenitySel, amenityIds: ids })}
+            proposals={amenitySel.proposals}
+            onProposalsChange={(next) => setAmenitySel({ ...amenitySel, proposals: next })}
+          />
+        </View>
 
         <MapPinPicker
           latitude={form.latitude}

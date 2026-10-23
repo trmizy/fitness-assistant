@@ -4,15 +4,19 @@
  * Two things here are contracts with the server, not presentation choices, and both were read off
  * the running backend rather than the mock:
  *
- *  - a trainer row carries NO price. The card's "từ X /buổi" is the lowest of the three per-session
- *    prices on the PT's application (online, offline, desired), exactly as web computes it — a PT
- *    who priced neither shows no price rather than a zero;
+ *  - the card's "từ X /buổi" is `fromPricePerSession` (Listing Management: the lowest per-session
+ *    price over the packages actually on sale, on the row and on `ptApplication`). Older servers sent
+ *    no such field, so the three legacy per-session prices on the PT's application (online, offline,
+ *    desired) stay as a fallback — a PT with nothing priced shows no price rather than a zero. The
+ *    public DTO carries NO e-mail, so a nameless trainer reads "Huấn luyện viên", never an address;
  *  - `POST /contracts/request` takes a `packageId`, never a price: the package is the server's
  *    source of truth for price, session count and mode. A gym may only be attached to an OFFLINE
  *    package, and only one the trainer has an ACCEPTED collaboration with — the server rejects
  *    anything else instead of quietly falling back to the independent rate.
  */
 import { displaySpecialty } from "../../constants/specialties";
+
+export type PtPhysiquePhoto = { id: string; url: string; isCover: boolean; sortOrder: number };
 
 export type PtRow = {
   userId: string;
@@ -24,6 +28,12 @@ export type PtRow = {
   ratingCount: number;
   area: string | null;
   lowestPrice: number | null;
+  /** "Gói từ Y" — the cheapest package on sale, whole package (`fromPackagePrice`). */
+  fromPackagePrice: number | null;
+  /** Public cover photo (`coverPhotoUrl`, a `/media/pt-physique/:id` path) — null when the PT has none. */
+  coverPhotoUrl: string | null;
+  /** Public physique photos in display order (never a draft or a not-yet-approved photo: the server guarantees it). */
+  physiquePhotos: PtPhysiquePhoto[];
   /** Free slots the PT has in the next 28 days — the same number the low-availability check uses. */
   slots28: number | null;
   acceptingClients: boolean;
@@ -55,9 +65,32 @@ export function lowestPerSessionPrice(app: any): number | null {
   return prices.length > 0 ? Math.min(...prices) : null;
 }
 
+/** "từ X/buổi": the server's `fromPricePerSession` first, then the legacy per-session prices an older server sends. */
+export function cardPricePerSession(raw: any): number | null {
+  const app = raw?.ptApplication ?? {};
+  for (const candidate of [app?.fromPricePerSession, raw?.fromPricePerSession]) {
+    if (isValidPrice(candidate)) return candidate;
+  }
+  return lowestPerSessionPrice(app);
+}
+
 function fullName(raw: any): string {
+  // Never the e-mail: the public DTO no longer carries one, and an address is not a name to show anyone.
   const name = [raw?.firstName, raw?.lastName].filter(Boolean).join(" ").trim();
-  return name || raw?.email || "Huấn luyện viên";
+  return name || "Huấn luyện viên";
+}
+
+function normalizePhysiquePhotos(raw: any): PtPhysiquePhoto[] {
+  const list = Array.isArray(raw?.physiquePhotos) ? raw.physiquePhotos : [];
+  return list
+    .filter((p: any) => p && typeof p.id === "string" && typeof p.url === "string")
+    .map((p: any, i: number) => ({
+      id: p.id,
+      url: p.url,
+      isCover: p.isCover === true,
+      sortOrder: Number.isFinite(Number(p.sortOrder)) ? Number(p.sortOrder) : i,
+    }))
+    .sort((a: PtPhysiquePhoto, b: PtPhysiquePhoto) => a.sortOrder - b.sortOrder);
 }
 
 /** City/ward as the profile stores them — the row has no single "area" field. */
@@ -82,7 +115,10 @@ export function normalizePt(raw: any): PtRow {
     rating: typeof raw?.avgRating === "number" ? raw.avgRating : null,
     ratingCount: Number(raw?.ratingCount) || 0,
     area: areaLabel(raw),
-    lowestPrice: lowestPerSessionPrice(app),
+    lowestPrice: cardPricePerSession(raw),
+    fromPackagePrice: [app?.fromPackagePrice, raw?.fromPackagePrice].find(isValidPrice) ?? null,
+    coverPhotoUrl: text(raw?.coverPhotoUrl),
+    physiquePhotos: normalizePhysiquePhotos(raw),
     slots28:
       typeof raw?.availableSlotsNext28Days === "number" ? raw.availableSlotsNext28Days : null,
     acceptingClients: raw?.isAcceptingClients !== false,
@@ -121,6 +157,8 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
     ...fromDetail,
     serviceMode: fromDetail.serviceMode ?? listRow.serviceMode,
     lowestPrice: fromDetail.lowestPrice ?? listRow.lowestPrice,
+    // fromPackagePrice / coverPhotoUrl / physiquePhotos are NOT filled from the list row: the detail
+    // answers them authoritatively, and a cached list row could still show a photo the PT has removed.
     bio: fromDetail.bio ?? listRow.bio,
     yearsOfExperience: fromDetail.yearsOfExperience ?? listRow.yearsOfExperience,
     education: fromDetail.education ?? listRow.education,
@@ -265,6 +303,19 @@ export type ServicePackage = {
   price: number;
   sessionMode: string;
   description?: string | null;
+  sessionDurationMinutes?: number | null;
+  validityDays?: number | null;
+  /**
+   * The package's version as the server last showed it. A contract request echoes it back as
+   * `expectedPackageVersion`; if the PT changed the package since, the server refuses with 409
+   * PACKAGE_CHANGED instead of selling at a price the client never saw. Absent on an older server.
+   */
+  version?: number | null;
+};
+
+const positiveInt = (v: unknown): number | null => {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 ? n : null;
 };
 
 export function normalizePackages(raw: any): ServicePackage[] {
@@ -278,6 +329,9 @@ export function normalizePackages(raw: any): ServicePackage[] {
       price: Number(p?.price) || 0,
       sessionMode: String(p?.sessionMode ?? ""),
       description: p?.description ?? null,
+      sessionDurationMinutes: positiveInt(p?.sessionDurationMinutes),
+      validityDays: positiveInt(p?.validityDays),
+      version: positiveInt(p?.version),
     }))
     .filter((p: ServicePackage) => p.id);
 }
@@ -337,13 +391,37 @@ export function buildContractRequestPayload(input: {
 }): Record<string, unknown> {
   const gymId = input.pkg.sessionMode === "OFFLINE" && input.gymId ? input.gymId : undefined;
   const message = input.message?.trim();
+  const expectedPackageVersion = positiveInt(input.pkg.version);
   return {
     ptUserId: input.ptUserId,
     packageId: input.pkg.id,
+    // The version the client was LOOKING AT — lets the server refuse a package that changed meanwhile.
+    ...(expectedPackageVersion != null ? { expectedPackageVersion } : {}),
     ...(message ? { clientMessage: message } : {}),
     ...(gymId ? { gymId } : {}),
     acknowledgedLowAvailability: input.acknowledgedLowAvailability === true,
   };
+}
+
+/**
+ * 409 PACKAGE_CHANGED: the package shown is no longer the package the server would sell. The body carries
+ * the package as it is NOW (with its version) so the screen can show the new terms. A body without a
+ * usable package still means "changed" — the caller refetches — so it answers an empty marker, not null.
+ */
+export function readPackageChanged(error: any): { current: ServicePackage | null } | null {
+  const data = error?.response?.data;
+  if (error?.response?.status !== 409 || data?.code !== "PACKAGE_CHANGED") return null;
+  const current = data?.package ? normalizePackages({ packages: [data.package] })[0] ?? null : null;
+  return { current };
+}
+
+export const PACKAGE_CHANGED_TITLE = "Gói đã thay đổi — xem giá mới";
+export const PACKAGE_CHANGED_MESSAGE =
+  "Huấn luyện viên vừa cập nhật gói này sau khi bạn mở trang. Hãy xem lại giá và nội dung mới trước khi gửi yêu cầu.";
+
+/** 404 on the trainer detail: hidden, suspended or no longer approved — the id cannot be probed past the list. */
+export function isPtGone(error: any): boolean {
+  return error?.response?.status === 404;
 }
 
 export type LowAvailability = {

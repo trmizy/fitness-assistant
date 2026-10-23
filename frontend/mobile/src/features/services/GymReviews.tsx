@@ -10,6 +10,7 @@ import { designTokens } from "../../theme/colors";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import type { GymReviewsResponse } from "../../types";
 import { canReviewGym } from "./reviewRules";
+import { isGymGone } from "./gymDirectory";
 
 /**
  * 14B.6 (PG-B2) — web `GymReviewsSection`: the public reviews of one gym, and for someone who has
@@ -129,6 +130,11 @@ export function GymReviews({ gymId }: { gymId: string }) {
 
       {reviewsQuery.isLoading ? (
         <ActivityIndicator color={accent.primary} />
+      ) : reviewsQuery.isError ? (
+        // 404: the branch is no longer public (Listing Management hides it from every public route). Say so, do not pretend it has no reviews.
+        <Text className="font-body text-xs text-muted-foreground">
+          {isGymGone(reviewsQuery.error) ? "Phòng gym này hiện không hiển thị nên chưa xem được đánh giá." : "Không tải được đánh giá. Kéo xuống để thử lại."}
+        </Text>
       ) : (data?.reviews ?? []).length === 0 ? (
         <Text className="font-body text-xs text-muted-foreground">Chưa có đánh giá nào.</Text>
       ) : (

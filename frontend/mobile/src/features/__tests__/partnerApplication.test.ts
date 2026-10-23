@@ -41,10 +41,10 @@ import {
 const view = (missing: { section: any; message: string }[]): ApplicationView => ({ missing });
 
 describe("máy chủ quyết định còn thiếu gì", () => {
-  it("chín bước, đúng thứ tự, và bước mạng xã hội không bắt buộc", () => {
+  it("mười bước, đúng thứ tự (Tiện ích nằm giữa Vị trí và Ảnh), và bước mạng xã hội không bắt buộc", () => {
     assert.deepEqual(
       STEPS.map((s) => s.id),
-      ["representative", "brand", "social", "scale", "branch", "location", "photos", "legal", "review"],
+      ["representative", "brand", "social", "scale", "branch", "location", "amenities", "photos", "legal", "review"],
     );
     const social = STEPS.find((s) => s.id === "social")!;
     assert.equal(social.sections.length, 0);
@@ -60,7 +60,10 @@ describe("máy chủ quyết định còn thiếu gì", () => {
 
   it("mở ra đứng ở bước đầu tiên còn thiếu; không thiếu gì thì về bước xem lại", () => {
     assert.equal(firstIncompleteStep(view([{ section: "REPRESENTATIVE", message: "x" }])), 0);
-    assert.equal(firstIncompleteStep(view([{ section: "PHOTOS", message: "x" }])), 6);
+    assert.equal(firstIncompleteStep(view([{ section: "PHOTOS", message: "x" }])), 7);
+    // Khoá AMENITIES của máy chủ ánh xạ về bước Tiện ích: mở lại hồ sơ đứng đúng chỗ đó, trước Ảnh.
+    assert.equal(firstIncompleteStep(view([{ section: "AMENITIES", message: "x" }])), 6);
+    assert.equal(firstIncompleteStep(view([{ section: "PHOTOS", message: "x" }, { section: "AMENITIES", message: "y" }])), 6);
     assert.equal(firstIncompleteStep(view([])), STEPS.length - 1);
     assert.equal(firstIncompleteStep(null), STEPS.length - 1);
     // Thiếu nhiều chỗ thì dừng ở chỗ SỚM nhất, không phải chỗ đầu tiên máy chủ liệt kê.
@@ -70,10 +73,11 @@ describe("máy chủ quyết định còn thiếu gì", () => {
     );
   });
 
-  it("tiến độ tính trên tám bước nhập liệu, không tính bước xem lại", () => {
+  it("tiến độ tính trên chín bước nhập liệu, không tính bước xem lại", () => {
     assert.equal(progressPercent(view([])), 100);
-    // Thiếu đúng một phần trong tám phần.
-    assert.equal(progressPercent(view([{ section: "BRAND", message: "x" }])), 88);
+    // Thiếu đúng một phần trong chín phần.
+    assert.equal(progressPercent(view([{ section: "BRAND", message: "x" }])), 89);
+    assert.equal(progressPercent(view([{ section: "AMENITIES", message: "x" }])), 89);
     // TERMS thuộc bước xem lại, không phải một phần việc nhập liệu.
     assert.equal(progressPercent(view([{ section: "TERMS", message: "x" }])), 100);
   });

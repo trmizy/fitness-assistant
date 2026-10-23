@@ -9,11 +9,11 @@ import {
   CalendarClock,
   ChevronRight,
   Copy,
+  FileText,
   Gift,
   Handshake,
   LogOut,
   MapPin,
-  Package,
   Pencil,
   Plus,
   Star,
@@ -329,14 +329,14 @@ export default function PtProfileScreen() {
             <Card className="overflow-hidden">
               <Card
                 className="flex-row items-center gap-3 rounded-none border-0 p-4"
-                onPress={() => router.push("/pt/packages")}
+                onPress={() => router.push("/pt/listing" as never)}
               >
                 <View className="h-11 w-11 items-center justify-center rounded-xl bg-panel">
-                  <Package size={20} color={accent.primary} />
+                  <FileText size={20} color={accent.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-body-semibold text-sm text-foreground">Gói dịch vụ</Text>
-                  <Text className="font-body text-xs text-muted-foreground">Khách chọn gói ở đây khi gửi yêu cầu</Text>
+                  <Text className="font-body-semibold text-sm text-foreground">Tin đăng</Text>
+                  <Text className="font-body text-xs text-muted-foreground">Giới thiệu, gói dịch vụ và ảnh khách thấy — sửa xong gửi duyệt</Text>
                 </View>
                 <ChevronRight size={16} color={designTokens.mutedForeground} />
               </Card>

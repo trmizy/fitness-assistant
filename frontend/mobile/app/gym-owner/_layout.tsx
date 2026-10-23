@@ -43,7 +43,10 @@ export default function GymOwnerLayout() {
   );
 }
 
-const hiddenRoutes = ["plans", "collaborations", "managers", "checkin-qr", "branch"];
+/** Listing Management (M2): "Tin đăng & tiện ích" is a drill-down from Phòng gym / the branch screen, never a tab. */
+const LISTING_HIDDEN_ROUTES = ["listing"];
+
+const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch"];
 
 /** The "Ví" tab is OWNER-only (gym-service 403s a manager), so a manager's bar leaves it out. */
 function GymTabs() {

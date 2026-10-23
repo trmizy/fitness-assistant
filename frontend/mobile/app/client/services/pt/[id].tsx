@@ -14,6 +14,7 @@ import {
   Star,
   TriangleAlert,
   UserSearch,
+  UserX,
 } from "lucide-react-native";
 
 import {
@@ -37,18 +38,23 @@ import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { useOpenChat } from "../../../../src/features/chat/useOpenChat";
 import { formatVND } from "../../../../src/utils/currency";
 import {
+  PACKAGE_CHANGED_MESSAGE,
+  PACKAGE_CHANGED_TITLE,
   buildContractRequestPayload,
+  isPtGone,
   lowAvailabilityMessage,
   mergePtSources,
   normalizePackages,
   normalizePts,
   pricePerSession,
   readLowAvailability,
+  readPackageChanged,
   requestBlockedReason,
   serviceModeLabel,
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
+import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { contractRequestError } from "../../../../src/features/services/contracts";
 import {
   normalizeGymOptions,
@@ -88,6 +94,8 @@ export default function TrainerDetailScreen() {
   const [gymId, setGymId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [lowAvailability, setLowAvailability] = useState<LowAvailability | null>(null);
+  // 409 PACKAGE_CHANGED: the trainer changed the package after this screen loaded it. Holds the package as it is NOW.
+  const [packageChanged, setPackageChanged] = useState<{ current: ServicePackage | null } | null>(null);
   // The server's own 422 on the membership rule: it wins over anything shown before sending.
   const [refusal, setRefusal] = useState<{ reason: EligibilityReason; message: string } | null>(null);
 
@@ -176,6 +184,14 @@ export default function TrainerDetailScreen() {
         void gymOptionsQuery.refetch();
         return;
       }
+      const changed = readPackageChanged(error);
+      if (changed) {
+        // The price the client was looking at is no longer the price: show the new terms, never send silently.
+        setPackageChanged(changed);
+        setLowAvailability(null);
+        void packagesQuery.refetch();
+        return;
+      }
       const info = readLowAvailability(error);
       if (info) {
         // Not a failure: the server is asking whether the client accepts a thinner calendar.
@@ -208,6 +224,18 @@ export default function TrainerDetailScreen() {
           <View className="items-center py-16">
             <ActivityIndicator color={accent.primary} />
           </View>
+        ) : isPtGone(detailQuery.error) ? (
+          // 404 = hidden, suspended or no longer approved. Not an error the client can fix by retrying.
+          <EmptyState
+            icon={UserX}
+            title="Huấn luyện viên không còn hiển thị"
+            description="Hồ sơ này đã được ẩn hoặc tạm ngưng nhận khách. Hãy chọn huấn luyện viên khác."
+            actionLabel="Xem danh sách huấn luyện viên"
+            onAction={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/client/services");
+            }}
+          />
         ) : !pt ? (
           <EmptyState
             icon={UserSearch}
@@ -294,6 +322,12 @@ export default function TrainerDetailScreen() {
 
             {segment === "Giới thiệu" ? (
               <Card className="gap-3 p-4">
+                {pt.physiquePhotos.length > 0 ? (
+                  <GymPhotoGallery
+                    title={pt.name}
+                    photos={pt.physiquePhotos.map((photo) => ({ id: photo.id, url: photo.url, category: null }))}
+                  />
+                ) : null}
                 {pt.bio ? (
                   <Text className="font-body text-sm leading-6 text-foreground">{pt.bio}</Text>
                 ) : (
@@ -355,6 +389,9 @@ export default function TrainerDetailScreen() {
 
             {segment === "Gói dịch vụ" ? (
               <View className="gap-3">
+                {pt.fromPackagePrice != null && packages.length > 0 ? (
+                  <Text className="px-1 font-body text-xs text-muted-foreground">{`Gói từ ${formatVND(pt.fromPackagePrice)}`}</Text>
+                ) : null}
                 {packagesQuery.isLoading ? (
                   <View className="items-center py-10">
                     <ActivityIndicator color={accent.primary} />
@@ -522,6 +559,33 @@ export default function TrainerDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <BottomSheet open={!!packageChanged} onClose={() => setPackageChanged(null)} title={PACKAGE_CHANGED_TITLE}>
+        <View className="gap-4 pb-2">
+          <Text className="font-body text-sm leading-6 text-foreground">{PACKAGE_CHANGED_MESSAGE}</Text>
+          {packageChanged?.current ? (
+            <Card className="gap-1 p-3">
+              <Text className="font-body-semibold text-sm text-foreground">{packageChanged.current.name}</Text>
+              <Text className="font-body text-xs text-muted-foreground">
+                {`${packageChanged.current.sessionCount} buổi · ${serviceModeLabel(packageChanged.current.sessionMode)}`}
+              </Text>
+              <Text className="font-display text-base" style={{ color: accent.primary }}>
+                {formatVND(packageChanged.current.price)}
+              </Text>
+            </Card>
+          ) : null}
+          <Button
+            full
+            onPress={() => {
+              setPackageChanged(null);
+              setRefusal(null);
+              void packagesQuery.refetch();
+            }}
+          >
+            Xem giá mới
+          </Button>
+        </View>
+      </BottomSheet>
 
       <BottomSheet
         open={!!lowAvailability}

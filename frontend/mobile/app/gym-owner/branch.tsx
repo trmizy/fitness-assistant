@@ -3,7 +3,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronRight, CreditCard, Handshake, MapPin, QrCode, Star } from "lucide-react-native";
+import { AlertTriangle, ChevronRight, CreditCard, Handshake, ListChecks, MapPin, QrCode, Star } from "lucide-react-native";
 
 import { Badge, Card, ScreenHeader, Segmented, Tappable } from "../../src/components/ui";
 import { gymService } from "../../src/services/api";
@@ -78,6 +78,12 @@ export default function BranchScreen() {
 
           {activeTab === "Thông tin" ? (
             <>
+              {/* Listing Management (M2): description, amenities and photos of an approved branch are edited as a reviewed listing. */}
+              {isOwner && (gym.status === "APPROVED" || gym.status === "SUSPENDED") ? (
+                <Card className="p-1">
+                  <LinkRow icon={ListChecks} label="Tin đăng & tiện ích" last onPress={() => router.push({ pathname: "/gym-owner/listing", params: { gymId: gym.id } } as never)} />
+                </Card>
+              ) : null}
               <NameAddressSection key={`na-${gym.id}`} uid={uid} gym={gym} />
               <AboutSection key={`ab-${gym.id}`} uid={uid} gym={gym} />
               <BrandLine brandId={gym.brandId} uid={uid} />
@@ -89,7 +95,7 @@ export default function BranchScreen() {
 
           {activeTab === "Ảnh & giấy tờ" ? (
             <>
-              <PhotosSection uid={uid} gymId={gym.id} />
+              <PhotosSection uid={uid} gymId={gym.id} status={gym.status} />
               <VerificationSection uid={uid} gymId={gym.id} />
             </>
           ) : null}

@@ -34,16 +34,17 @@ import { formatVND } from "../../../../src/utils/currency";
 import { BranchMap } from "../../../../src/features/services/BranchMap";
 import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
+import { AmenityBadgeGroups } from "../../../../src/features/gymListing/AmenityWidgets";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { GymReviews } from "../../../../src/features/services/GymReviews";
 import {
   aboutText,
   daysRemaining,
   directionsUrl,
-  facilityLabels,
   fullAddress,
   socialLinks,
   gymBlockedReason,
+  isGymGone,
   membershipStatusLabel,
   multiGymWarningText,
   normalizeGym,
@@ -199,6 +200,15 @@ export default function GymDetailScreen() {
           <View className="items-center py-16">
             <ActivityIndicator color={accent.primary} />
           </View>
+        ) : isGymGone(gymQuery.error) || isGymGone(plansQuery.error) ? (
+          // 404 on the gym or its plans: the branch is no longer public (suspended, closed, or hidden) — a plain empty state, not a broken page.
+          <EmptyState
+            icon={Building2}
+            title="Phòng gym này hiện không hiển thị"
+            description="Chi nhánh có thể đã tạm ngưng hoặc đóng cửa. Hãy chọn một phòng gym khác."
+            actionLabel="Xem phòng gym khác"
+            onAction={() => router.replace("/client/services")}
+          />
         ) : !gym ? (
           <EmptyState
             icon={Building2}
@@ -294,13 +304,10 @@ export default function GymDetailScreen() {
                 </View>
               ) : null}
 
-              {facilityLabels(gym.facilities).length > 0 ? (
-                <View className="flex-row flex-wrap gap-1.5 pt-1">
-                  {facilityLabels(gym.facilities).map((facility) => (
-                    <Badge key={facility} tone="neutral">
-                      {facility}
-                    </Badge>
-                  ))}
+              {gym.amenities.length > 0 ? (
+                <View className="gap-2 pt-2">
+                  <Text className="font-body-medium text-sm text-foreground">Tiện ích & dịch vụ</Text>
+                  <AmenityBadgeGroups amenities={gym.amenities} />
                 </View>
               ) : null}
             </Card>

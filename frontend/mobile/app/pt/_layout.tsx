@@ -24,6 +24,12 @@ const ptTabs: WorkspaceTab[] = [
   { name: "profile", label: "Hồ sơ", icon: User },
 ];
 
+/**
+ * Listing Management (M1): "Tin đăng" is reached from the profile hub like Gói dịch vụ — hidden, never a tab.
+ * Kept as its own constant and spread into `hiddenRoutes` below so the existing list stays untouched.
+ */
+const LISTING_HIDDEN_ROUTES = ["listing"];
+
 export default function PtLayout() {
   return (
     <RequireRole allow={["pt"]}>
@@ -33,7 +39,7 @@ export default function PtLayout() {
         // Reachable but never a tab: every file under app/pt/ becomes a Tabs.Screen, so anything
         // not listed here would silently grow a sixth tab. Contracts is a drill-down from the
         // dashboard (five tabs is the design's bar — see CLAUDE.md on avoiding page explosion).
-        hiddenRoutes={["contracts", "plan-review", "packages", "collaborations", "service-orders", "gym-checkin"]}
+        hiddenRoutes={[...LISTING_HIDDEN_ROUTES, "contracts", "plan-review", "packages", "collaborations", "service-orders", "gym-checkin"]}
       />
     </RequireRole>
   );

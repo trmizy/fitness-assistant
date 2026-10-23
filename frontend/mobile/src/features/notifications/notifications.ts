@@ -91,6 +91,26 @@ export function notificationMeta(eventType: string | null): { title: string; ico
     case "PT_APPLICATION_SUBMITTED":
     case "PT_APPLICATION_REVIEWED":
       return { title: "Đơn ứng tuyển PT", icon: "shield", tone: "primary" };
+    // Listing Management (M1): the PT's public listing. All four open the "Tin đăng" screen.
+    case "PT_LISTING_APPROVED":
+      return { title: "Tin đăng đã được duyệt", icon: "check", tone: "primary" };
+    case "PT_LISTING_REJECTED":
+      return { title: "Bản sửa tin đăng bị từ chối", icon: "alert", tone: "danger" };
+    case "PT_LISTING_CHANGES_REQUESTED":
+      return { title: "Tin đăng cần chỉnh sửa", icon: "alert", tone: "warning" };
+    case "PT_LISTING_INVALIDATED":
+      return { title: "Tin đăng vừa được cập nhật", icon: "file", tone: "warning" };
+    // Listing Management (M2): the Gym Owner's branch listing and amenity proposals. All five open "Tin đăng & tiện ích".
+    case "GYM_LISTING_APPROVED":
+      return { title: "Tin đăng chi nhánh đã được duyệt", icon: "check", tone: "primary" };
+    case "GYM_LISTING_REJECTED":
+      return { title: "Bản sửa tin đăng chi nhánh bị từ chối", icon: "alert", tone: "danger" };
+    case "GYM_LISTING_CHANGES_REQUESTED":
+      return { title: "Tin đăng chi nhánh cần chỉnh sửa", icon: "alert", tone: "warning" };
+    case "GYM_LISTING_INVALIDATED":
+      return { title: "Tin đăng chi nhánh vừa được cập nhật", icon: "file", tone: "warning" };
+    case "GYM_AMENITY_PROPOSAL_REVIEWED":
+      return { title: "Đề xuất tiện ích đã được xử lý", icon: "sparkles", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
   }
@@ -107,11 +127,27 @@ const LINK_MAP: Record<string, string> = {
   "/client/wallet": "/client/profile/wallet",
   "/client/dashboard": "/client/dashboard",
   "/client/pt-application": "/client/profile/pt-application",
+  // Listing Management (M1): the server links PT listing notifications to "/pt/listing".
+  "/pt/listing": "/pt/listing",
 };
+
+/**
+ * Listing Management (M2): gym-service links its owner notifications to `/gym-owner/listings?gymId=<id>` (the web page); the
+ * mobile screen is `/gym-owner/listing`. The branch id is kept so the screen opens straight on that branch.
+ */
+const GYM_LISTING_LINK = /^\/gym-owner\/listings?$/;
+export function gymListingRoute(link: string): string | null {
+  const [rawPath, query = ""] = link.split("#")[0].split("?");
+  if (!GYM_LISTING_LINK.test(rawPath.replace(/\/+$/, ""))) return null;
+  const id = /(?:^|&)gymId=([^&]+)/.exec(query)?.[1];
+  return id ? `/gym-owner/listing?gymId=${id}` : "/gym-owner/listing";
+}
 
 /** Where tapping a notification goes on mobile, or null when there is nothing to open. */
 export function notificationRoute(n: Pick<AppNotification, "link" | "entityType">): string | null {
   if (n.link) {
+    const gymListing = gymListingRoute(n.link);
+    if (gymListing) return gymListing;
     const path = n.link.split("?")[0].replace(/\/+$/, "");
     if (LINK_MAP[path]) return LINK_MAP[path];
     for (const [prefix, target] of Object.entries(LINK_MAP)) if (path.startsWith(`${prefix}/`)) return target;
@@ -124,6 +160,8 @@ export function notificationRoute(n: Pick<AppNotification, "link" | "entityType"
       return "/client/services";
     case "WORKOUT_SCHEDULE":
       return "/client/workout";
+    case "PT_LISTING":
+      return "/pt/listing";
     default:
       return null;
   }
