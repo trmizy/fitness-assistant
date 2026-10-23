@@ -4,7 +4,15 @@ import { randomUUID } from "node:crypto";
 import { SessionStatus, SessionDisputeType } from "../generated/prisma";
 import { bookingService } from "../services/booking.service";
 import { sessionRepository } from "../repositories/session.repository";
+import { contractRepository } from "../repositories/contract.repository";
 import { notificationService } from "../services/notification.service";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Vòng 4 / Phase E4 — disputeType is audit/admin-screen classification only; it never changes
@@ -35,9 +43,10 @@ test("disputeSession từ báo cáo hoàn thành bình thường -> DELIVERY_DIS
   let capturedExtra: any = null;
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+    // F3: the dispute is a compare-and-set from PENDING_CLIENT_CONFIRMATION
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], _status: SessionStatus, extra: any) => {
       capturedExtra = extra;
-      return { ...session, status, ...extra } as any;
+      return true;
     }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
@@ -62,9 +71,10 @@ test("disputeSession từ báo cáo 'khách vắng mặt' (markNoShow CLIENT) ->
   let capturedExtra: any = null;
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+    // F3: the dispute is a compare-and-set from PENDING_CLIENT_CONFIRMATION
+    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], _status: SessionStatus, extra: any) => {
       capturedExtra = extra;
-      return { ...session, status, ...extra } as any;
+      return true;
     }),
     patch(notificationService, "create", async () => ({}) as any),
   ];
@@ -86,16 +96,19 @@ test("respondToNoShowReport DENY -> PT_NO_SHOW_CLAIM", async () => {
     status: SessionStatus.PT_NO_SHOW_REPORTED,
   };
   let capturedExtra: any = null;
-  const restore = patch(sessionRepository, "updateStatus", async (_id: string, status: SessionStatus, extra: any) => {
+  // F1: the DENY is a compare-and-set from PT_NO_SHOW_REPORTED, on a running contract
+  const restore = patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], _status: SessionStatus, extra: any) => {
     capturedExtra = extra;
-    return { ...session, status, ...extra } as any;
+    return true;
   });
   const restoreFind = patch(sessionRepository, "findById", async () => session as any);
+  const restoreContract = patch(contractRepository, "findById", async () => ({ id: "c1", status: "ACTIVE" }) as any);
   try {
     await bookingService.respondToNoShowReport(sessionId, "pt-1", "DENY", "Tôi có mặt đúng giờ");
   } finally {
     restore();
     restoreFind();
+    restoreContract();
   }
   assert.equal(capturedExtra?.disputeType, SessionDisputeType.PT_NO_SHOW_CLAIM);
 });

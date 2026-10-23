@@ -8,16 +8,28 @@ export const webhookRepository = {
     providerTransactionId?: string;
     payload: Prisma.InputJsonValue;
   }) {
-    return prisma.paymentWebhookEvent.upsert({
-      where: { provider_providerEventId: { provider: data.provider, providerEventId: data.providerEventId } },
-      create: {
-        provider: data.provider,
-        providerEventId: data.providerEventId,
-        providerTransactionId: data.providerTransactionId,
-        payload: data.payload,
-      },
-      update: {},
-    });
+    const where = { provider_providerEventId: { provider: data.provider, providerEventId: data.providerEventId } };
+    try {
+      return await prisma.paymentWebhookEvent.upsert({
+        where,
+        create: {
+          provider: data.provider,
+          providerEventId: data.providerEventId,
+          providerTransactionId: data.providerTransactionId,
+          payload: data.payload,
+        },
+        update: {},
+      });
+    } catch (err) {
+      // Two deliveries of the SAME event racing (an IPN and its retry arriving together) both see "no row"
+      // and both try to INSERT; the loser hits the unique index. That is not a failure — the row exists, which
+      // is all the caller wanted. Without this the loser answered VNPay 99 and VNPay retried a payment that was
+      // already being settled.
+      if ((err as { code?: string }).code === 'P2002') {
+        return prisma.paymentWebhookEvent.findUniqueOrThrow({ where });
+      }
+      throw err;
+    }
   },
 
   async markProcessed(id: string) {

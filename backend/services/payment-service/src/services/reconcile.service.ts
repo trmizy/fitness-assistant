@@ -35,6 +35,8 @@ export interface ReconciliationReport {
     ptPending: string;
     ptAvailable: string;
     ptLocked: string;
+    /** FH-9: earned PT money held back per contract (not withdrawable). A claim on ESCROW like AVAILABLE. */
+    ptHoldback: string;
     gymPending: string;
     gymAvailable: string;
     gymLocked: string;
@@ -42,7 +44,7 @@ export interface ReconciliationReport {
     platformRevenueAvailable: string;
   };
   /** Wallets whose balances have gone negative — always a bug, never expected. */
-  negativeWallets: { id: string; ownerType: string; ownerId: string; available: string; pending: string; locked: string }[];
+  negativeWallets: { id: string; ownerType: string; ownerId: string; available: string; pending: string; locked: string; holdback: string }[];
 }
 
 interface SumRow {
@@ -51,6 +53,7 @@ interface SumRow {
   pending: string | null;
   available: string | null;
   locked: string | null;
+  holdback: string | null;
 }
 
 export async function buildReconciliationReport(): Promise<ReconciliationReport> {
@@ -59,7 +62,8 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
            CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END AS owner_id,
            SUM(pending_balance)::text   AS pending,
            SUM(available_balance)::text AS available,
-           SUM(locked_balance)::text    AS locked
+           SUM(locked_balance)::text    AS locked,
+           SUM(holdback_balance)::text  AS holdback
     FROM wallets
     GROUP BY owner_type, CASE WHEN owner_type = 'PLATFORM' THEN owner_id ELSE '' END`;
 
@@ -70,6 +74,7 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
       pending: new Prisma.Decimal(r?.pending ?? 0),
       available: new Prisma.Decimal(r?.available ?? 0),
       locked: new Prisma.Decimal(r?.locked ?? 0),
+      holdback: new Prisma.Decimal(r?.holdback ?? 0),
     };
   };
 
@@ -82,19 +87,19 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
   // A client wallet only ever holds refunds, and those are withdrawable, but count all three
   // buckets so an accidental pending/locked credit shows up as a claim rather than as drift.
   const claims = zero
-    .plus(client.pending).plus(client.available).plus(client.locked)
-    .plus(pt.pending).plus(pt.available).plus(pt.locked)
-    .plus(gym.pending).plus(gym.available).plus(gym.locked)
-    .plus(revenue.pending).plus(revenue.available).plus(revenue.locked);
+    .plus(client.pending).plus(client.available).plus(client.locked).plus(client.holdback)
+    .plus(pt.pending).plus(pt.available).plus(pt.locked).plus(pt.holdback)
+    .plus(gym.pending).plus(gym.available).plus(gym.locked).plus(gym.holdback)
+    .plus(revenue.pending).plus(revenue.available).plus(revenue.locked).plus(revenue.holdback);
 
   const escrow = escrowRow.available;
   const drift = escrow.minus(claims);
 
   const negativeRows = await prisma.$queryRaw<
-    { id: string; owner_type: string; owner_id: string; available_balance: string; pending_balance: string; locked_balance: string }[]
-  >`SELECT id, owner_type, owner_id, available_balance, pending_balance, locked_balance
+    { id: string; owner_type: string; owner_id: string; available_balance: string; pending_balance: string; locked_balance: string; holdback_balance: string }[]
+  >`SELECT id, owner_type, owner_id, available_balance, pending_balance, locked_balance, holdback_balance
       FROM wallets
-     WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0`;
+     WHERE available_balance < 0 OR pending_balance < 0 OR locked_balance < 0 OR holdback_balance < 0`;
 
   return {
     escrow: escrow.toFixed(2),
@@ -106,6 +111,7 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
       ptPending: pt.pending.toFixed(2),
       ptAvailable: pt.available.toFixed(2),
       ptLocked: pt.locked.toFixed(2),
+      ptHoldback: pt.holdback.toFixed(2),
       gymPending: gym.pending.toFixed(2),
       gymAvailable: gym.available.toFixed(2),
       gymLocked: gym.locked.toFixed(2),
@@ -119,6 +125,7 @@ export async function buildReconciliationReport(): Promise<ReconciliationReport>
       available: r.available_balance,
       pending: r.pending_balance,
       locked: r.locked_balance,
+      holdback: r.holdback_balance,
     })),
   };
 }

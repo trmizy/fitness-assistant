@@ -7,7 +7,10 @@ import type {
   WebhookVerifyResult,
   RefundResult,
   ProviderTxnStatus,
+  GatewayQueryResult,
 } from './payment-provider.interface';
+import { parseGatewayAmountVnd } from './amount-util';
+import { safeEqualHex } from './signature-util';
 
 // ZaloPay Open API v2 — sandbox by default. Docs: https://docs.zalopay.vn/v2/
 const ENDPOINT = process.env.ZALOPAY_ENDPOINT ?? 'https://sb-openapi.zalopay.vn';
@@ -98,49 +101,77 @@ export class ZaloPayProvider implements PaymentProvider {
     };
   }
 
-  /** Callback body is `{ data, mac }`; mac = HMAC-SHA256(KEY2, data). */
+  /**
+   * Callback body is `{ data, mac }`; mac = HMAC-SHA256(KEY2, data), `data` a JSON string.
+   *
+   * "Valid" means: the MAC is ours (KEY2), the order belongs to OUR app (data.app_id === ZALOPAY_APP_ID) and it names an
+   * app_trans_id. It does NOT mean "paid the right amount": data.amount is surfaced as `paidAmountVnd` (ZaloPay
+   * amounts are plain VND, no scaling) and handleEvent compares it with the transaction's price.
+   *
+   * ZaloPay only calls back for a successful charge, so a signed callback is PAID. Its retry contract: the merchant
+   * answers return_code 1 (success) or 2 (already processed) to stop the retries; anything else is retried - see
+   * webhook.routes.ts for how each of our outcomes is answered.
+   */
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult {
     // Fail closed: an empty KEY2 is a known, publicly-computable HMAC key —
     // never treat "not configured" as "verification not needed."
     if (!KEY2) {
       logger.error('[ZaloPay] ZALOPAY_KEY2 is not configured — rejecting webhook');
-      return { valid: false };
+      return { valid: false, reason: 'BAD_SIGNATURE' };
     }
-    let parsed: { data?: string; mac?: string };
+    let parsed: { data?: unknown; mac?: unknown };
     try {
       parsed = JSON.parse(rawBody.toString('utf-8'));
     } catch {
-      return { valid: false };
+      return { valid: false, reason: 'BAD_SIGNATURE' };
     }
-    if (!parsed.data || !parsed.mac) return { valid: false };
+    if (typeof parsed.data !== 'string' || !parsed.data || typeof parsed.mac !== 'string' || !parsed.mac) {
+      return { valid: false, reason: 'BAD_SIGNATURE' };
+    }
 
-    const expected = hmac256(KEY2, parsed.data);
-    if (expected !== parsed.mac) {
+    if (!safeEqualHex(hmac256(KEY2, parsed.data), parsed.mac)) {
       logger.warn('[ZaloPay] callback MAC mismatch');
-      return { valid: false };
+      return { valid: false, reason: 'BAD_SIGNATURE' };
     }
 
     let inner: Record<string, unknown>;
     try {
       inner = JSON.parse(parsed.data);
     } catch {
-      return { valid: false };
+      return { valid: false, reason: 'BAD_SIGNATURE' };
+    }
+    if (!inner || typeof inner !== 'object') return { valid: false, reason: 'BAD_SIGNATURE' };
+
+    // Merchant: a callback signed with our key but carrying another app id is not for us.
+    if (!APP_ID || String(inner.app_id ?? '') !== APP_ID) {
+      logger.error({ error: '[ZaloPay] callback is for a different app_id than ours — refusing', receivedAppId: inner.app_id ?? null, appIdConfigured: Boolean(APP_ID) });
+      return { valid: false, reason: 'MERCHANT_MISMATCH' };
     }
 
-    const appTransId = String(inner.app_trans_id ?? '');
-    // A signed ZaloPay callback is only delivered for a successful charge.
+    const appTransId = typeof inner.app_trans_id === 'string' ? inner.app_trans_id : '';
+    if (!appTransId) {
+      logger.warn('[ZaloPay] signed callback without app_trans_id — rejecting');
+      return { valid: false, reason: 'MISSING_REFERENCE' };
+    }
+
     return {
       valid: true,
       normalized: {
         providerEventId: `zalopay_${appTransId}_${inner.zp_trans_id ?? 'na'}`,
         providerTransactionId: appTransId,
         status: 'PAID',
+        paidAmountVnd: parseGatewayAmountVnd(inner.amount),
         raw: inner,
       },
     };
   }
 
-  /** Active poll via /v2/query — the local/dev confirmation path (no public callback needed). */
+  /**
+   * Active poll via /v2/query - the local/dev confirmation path (no public callback needed). Returns 'PAID' only when
+   * ZaloPay says the order was paid AND the amount it reports equals this transaction's price; a paid order for a
+   * different amount is 'PENDING' here (never 'PAID', never silently dropped) - the settlement path
+   * (pollAndSettle -> handleEvent) uses queryGatewayResult() instead and records the discrepancy.
+   */
   async queryTransactionStatus(txn: {
     id: string;
     providerTransactionId: string | null;
@@ -148,23 +179,41 @@ export class ZaloPayProvider implements PaymentProvider {
     createdAt: Date;
     metadata?: unknown;
   }): Promise<ProviderTxnStatus> {
+    const result = await this.queryGatewayResult(txn);
+    if (result.status !== 'PAID') return result.status;
+    return Number.isInteger(txn.amount) && result.paidAmountVnd === String(txn.amount) ? 'PAID' : 'PENDING';
+  }
+
+  /**
+   * /v2/query, returning the gateway-reported amount alongside the status. The query response is not signed by ZaloPay
+   * (only our REQUEST carries a MAC), so the only trust anchor is TLS to ZALOPAY_ENDPOINT; the amount check below is
+   * what stops a wrong figure from settling.
+   */
+  async queryGatewayResult(txn: {
+    id: string;
+    providerTransactionId: string | null;
+    amount: number;
+    createdAt: Date;
+    metadata?: unknown;
+  }): Promise<GatewayQueryResult> {
     const meta = (txn.metadata ?? {}) as Record<string, unknown>;
     const appTransId = String(meta.app_trans_id ?? txn.providerTransactionId ?? '');
-    if (!appTransId) return 'PENDING';
+    if (!appTransId) return { status: 'PENDING' };
 
     const macData = `${APP_ID}|${appTransId}|${KEY1}`;
     const body = new URLSearchParams({ app_id: APP_ID, app_trans_id: appTransId, mac: hmac256(KEY1, macData) });
 
-    const { data } = await axios.post<{ return_code: number; sub_return_message?: string }>(
+    const { data } = await axios.post<{ return_code: number; sub_return_message?: string; is_processing?: boolean; amount?: unknown; zp_trans_id?: unknown }>(
       `${ENDPOINT}/v2/query`,
       body.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15_000 },
     );
 
     // return_code: 1 = success (paid), 2 = failed, 3 = processing/pending.
-    if (data.return_code === 1) return 'PAID';
-    if (data.return_code === 2) return 'FAILED';
-    return 'PENDING';
+    const raw = data as unknown as Record<string, unknown>;
+    if (data.return_code === 1) return { status: 'PAID', paidAmountVnd: parseGatewayAmountVnd(data.amount), raw };
+    if (data.return_code === 2) return { status: 'FAILED', raw };
+    return { status: 'PENDING', raw };
   }
 
   async refund(params: {

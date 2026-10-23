@@ -33,7 +33,9 @@ export async function canInitiateCallFromChat(
       return { allowed: false, reason: "One or both accounts are deactivated" };
     }
   } catch {
-    // If user-service is down, be permissive
+    // Fail closed: if the account-status check cannot be made (user-service or auth-service down), the call is
+    // not started. Being permissive here let a deactivated/banned account call during an outage.
+    return { allowed: false, reason: "Cannot verify account status right now" };
   }
 
   return { allowed: true };

@@ -1,0 +1,17 @@
+# Apply AFTER the original compose and compose-user-e.override.yml.
+# User-approved: skip migration/db-push/seed startup commands on existing dev databases.
+services:
+  auth-service:
+    command: ["pnpm", "run", "dev"]
+  user-service:
+    command: ["pnpm", "run", "dev"]
+  fitness-service:
+    command: ["pnpm", "run", "dev"]
+  ai-service:
+    command: ["pnpm", "run", "dev"]
+  chat-service:
+    command: ["pnpm", "run", "dev"]
+  payment-service:
+    command: ["pnpm", "run", "dev"]
+  gym-service:
+    command: ["pnpm", "run", "dev"]

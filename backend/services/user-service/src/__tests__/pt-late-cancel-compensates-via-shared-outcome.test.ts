@@ -8,6 +8,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { contractService } from "../services/contract.service";
 import { notificationService } from "../services/notification.service";
 import { paymentClient } from "../clients/payment.client";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 3.1 — the `cancelSession` half of unifying PT-side outcomes.
@@ -42,6 +49,7 @@ function contractFixture(id: string) {
     ptUserId: "pt-1",
     gymId: null,
     clientUserId: "client-1",
+    status: "ACTIVE", // F1: a session of an ended contract is not cancellable
   };
 }
 
@@ -122,6 +130,7 @@ test("a PT cancelling ≥ 24h out still costs nothing — unchanged from before 
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
+    patch(contractRepository, "findById", async () => contractFixture(contractId) as any),
     // Vòng 4 / Phase A1: same swap as above — REQUESTED-branch cancel also CASes now.
     patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);

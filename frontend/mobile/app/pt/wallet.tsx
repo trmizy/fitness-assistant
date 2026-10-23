@@ -23,6 +23,7 @@ import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { money, parseAmountInput, shortDate, withdrawFormError, withdrawableCeiling, withdrawalStatus } from "../../src/features/wallet/wallet";
 import { ptTransactionLabel } from "../../src/features/pt/pt";
+import { PtContractMoney } from "../../src/features/ptWallet/PtContractMoney";
 
 /**
  * PT-05 — "Ví thu nhập". Visual: the design's PTWallet. Behaviour: web's PTWalletPage — the PT
@@ -49,7 +50,8 @@ export default function PtWalletScreen() {
   // Trần rút = số dư khả dụng trừ các yêu cầu còn PENDING, đúng như payment-service tính.
   // Thiếu bước trừ này thì biểu mẫu mời rút một số tiền máy chủ chắc chắn từ chối bằng 400.
   const available = withdrawableCeiling(wallet, wdQuery.data);
-  const held = money(wallet?.lockedBalance) + money(wallet?.pendingBalance);
+  // FH-9: held back = locked for a payout + not earned yet + earned but held back per contract (holdbackBalance)
+  const held = money(wallet?.lockedBalance) + money(wallet?.pendingBalance) + money(wallet?.holdbackBalance);
   const transactions: any[] = Array.isArray(txQuery.data) ? txQuery.data : [];
   const withdrawals: any[] = Array.isArray(wdQuery.data) ? wdQuery.data : [];
 
@@ -117,6 +119,10 @@ export default function PtWalletScreen() {
                 sang số dư khả dụng. Mỗi yêu cầu rút được xét rồi chuyển khoản thủ công.
               </Text>
             </Card>
+          </StaggerItem>
+
+          <StaggerItem>
+            <PtContractMoney uid={uid} />
           </StaggerItem>
 
           <StaggerItem>

@@ -6,7 +6,6 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import {
   Building2,
   CalendarClock,
-  ChevronRight,
   FileText,
   MapPin,
   QrCode,
@@ -17,6 +16,7 @@ import {
   Ticket,
   UserSearch,
 } from "lucide-react-native";
+import { GymCard } from "../../../src/features/services/GymCard";
 
 import {
   Avatar,
@@ -31,7 +31,8 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { contractService, gymService, profileService } from "../../../src/services/api";
+import { Image } from "expo-image";
+import { absolutePhotoUrl, contractService, gymService, profileService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { formatVND } from "../../../src/utils/currency";
@@ -40,7 +41,6 @@ import {
   canReportMembership,
   daysRemaining,
   groupByBrand,
-  gymBlockedReason,
   membershipStatusLabel,
   normalizeGyms,
   normalizeMemberships,
@@ -48,19 +48,28 @@ import {
   type GymRow,
   type MembershipRow,
 } from "../../../src/features/services/gymDirectory";
-import { PaymentMethodSheet } from "../../../src/components/payment/PaymentMethodSheet";
+import { Notice, PaymentMethodSheet } from "../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../src/features/payments/useGatewayCheckout";
 import {
   CLIENT_TERMINATION_CHOICES,
+  PAUSED_BY_ADMIN_NOTICE,
+  END_TERMS_TEXT,
+  applyLiftedPreview,
   contractStatus,
   endActionFor,
+  endSheetView,
   isOpen,
+  isPausedByAdmin,
+  isPtRestrictionLifted,
   normalizeContracts,
   normalizeMoneyBreakdown,
   sessionProgress,
+  sessionsConsumed,
+  terminateSuccessMessage,
   type ContractRow,
   type TerminationChoice,
 } from "../../../src/features/services/contracts";
+import { normalizeCheckoutContext } from "../../../src/features/services/contractGymOptions";
 import {
   EMPTY_PT_FILTERS,
   SESSION_MODES,
@@ -308,12 +317,34 @@ function FindPtTab() {
   );
 }
 
+/**
+ * The trainer's public cover photo (Listing Management). Hidden again if it fails to load, so a dead link
+ * never leaves a grey box above the card — the avatar row below is the card without it.
+ */
+function TrainerCover({ uri }: { uri: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <View className="overflow-hidden bg-panel" style={{ aspectRatio: 16 / 7 }}>
+      <Image
+        source={{ uri }}
+        contentFit="cover"
+        style={{ flex: 1 }}
+        onError={() => setFailed(true)}
+        accessibilityLabel="Ảnh bìa huấn luyện viên"
+      />
+    </View>
+  );
+}
+
 function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
   const accent = useWorkspaceAccent();
+  const cover = absolutePhotoUrl(pt.coverPhotoUrl);
   return (
     <Tappable onPress={onPress}>
-      <Card className="p-4">
-        <View className="flex-row gap-3.5">
+      <Card className="overflow-hidden">
+        {cover ? <TrainerCover uri={cover} /> : null}
+        <View className="flex-row gap-3.5 p-4">
           <Avatar uri={pt.photoUrl} name={pt.name} size={60} />
           <View className="flex-1">
             <View className="flex-row items-center gap-1.5">
@@ -350,6 +381,7 @@ function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
           <View className="items-end">
             {pt.lowestPrice != null ? (
               <>
+                <Text className="font-body text-[11px] text-muted-foreground">từ</Text>
                 <Text className="font-display text-sm" style={{ color: accent.primary }}>
                   {formatVND(pt.lowestPrice)}
                 </Text>
@@ -534,49 +566,6 @@ function GymsTab() {
         </Stagger>
       )}
     </ScrollView>
-  );
-}
-
-function GymCard({ gym, onPress }: { gym: GymRow; onPress: () => void }) {
-  const accent = useWorkspaceAccent();
-  const closed = gymBlockedReason(gym);
-  return (
-    <Tappable onPress={onPress}>
-      <Card className="gap-2 p-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="font-display text-base text-foreground" numberOfLines={1}>
-              {gym.name}
-            </Text>
-            {gym.city || gym.address ? (
-              <View className="mt-0.5 flex-row items-center gap-1">
-                <MapPin size={12} color="#8b9299" />
-                <Text className="flex-1 font-body text-xs text-muted-foreground" numberOfLines={1}>
-                  {[gym.address, gym.city].filter(Boolean).join(", ")}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          {gym.rating != null ? <Badge tone="warning">{`★ ${gym.rating.toFixed(1)}`}</Badge> : null}
-        </View>
-
-        <View className="flex-row items-center justify-between">
-          {/* Only a real price is accented — "no plans yet" in the same green would read as one. */}
-          <Text
-            className="font-body-medium text-sm"
-            style={{ color: gym.fromPrice != null ? accent.primary : "#8b9299" }}
-          >
-            {gym.fromPrice != null ? `Từ ${formatVND(gym.fromPrice)}` : "Chưa mở bán gói"}
-          </Text>
-          <View className="flex-row items-center gap-1">
-            <Text className="font-body text-sm text-muted-foreground">Xem gói</Text>
-            <ChevronRight size={16} color="#8b9299" />
-          </View>
-        </View>
-
-        {closed ? <Badge tone="danger">{closed}</Badge> : null}
-      </Card>
-    </Tappable>
   );
 }
 
@@ -783,6 +772,9 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
 
   const [ending, setEnding] = useState<ContractRow | null>(null);
   const [reason, setReason] = useState<TerminationChoice["reason"]>("CLIENT_CANCELLED");
+  // Set when the server says the no-fee exit the client was shown no longer applies (409). The
+  // sheet then shows the ordinary terms and needs a fresh, explicit confirmation.
+  const [termsChanged, setTermsChanged] = useState(false);
 
   const contractsQuery = useQuery({
     queryKey: ["client-contracts"],
@@ -803,17 +795,70 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
     invalidate: [["client-contracts"]],
   });
 
+  // Opening the sheet always re-reads the server's figure (staleTime 0, and the cached copy is
+  // dropped when the sheet opens); nothing about the refund is computed on the phone.
+  const terminating = !!ending && endActionFor(ending) === "terminate";
+  const breakdownQuery = useQuery({
+    queryKey: ["contract-money-breakdown", ending?.id ?? null],
+    queryFn: () => contractService.getMoneyBreakdown(ending!.id),
+    enabled: terminating,
+    staleTime: 0,
+    retry: 1,
+  });
+  const sheet = useMemo(
+    () =>
+      endSheetView({
+        breakdown: normalizeMoneyBreakdown(breakdownQuery.data),
+        fetching: breakdownQuery.isFetching,
+        failed: breakdownQuery.isError,
+        reason,
+        termsChanged,
+      }),
+    [breakdownQuery.data, breakdownQuery.isFetching, breakdownQuery.isError, reason, termsChanged],
+  );
+
+  const openEnding = (contract: ContractRow) => {
+    queryClient.removeQueries({ queryKey: ["contract-money-breakdown", contract.id] });
+    setReason("CLIENT_CANCELLED");
+    setTermsChanged(false);
+    setEnding(contract);
+  };
+  const closeEnding = () => {
+    setEnding(null);
+    setTermsChanged(false);
+  };
+
   const endMutation = useMutation({
-    mutationFn: async (input: { contract: ContractRow; reason: TerminationChoice["reason"] }) =>
+    mutationFn: async (input: {
+      contract: ContractRow;
+      reason: TerminationChoice["reason"];
+      expectNoPenalty: boolean;
+    }) =>
       endActionFor(input.contract) === "withdraw"
         ? contractService.cancelContract(input.contract.id, "Khách rút yêu cầu")
-        : contractService.terminateContract(input.contract.id, input.reason),
-    onSuccess: () => {
-      setEnding(null);
+        : contractService.terminateContract(input.contract.id, input.reason, {
+            expectNoPenalty: input.expectNoPenalty,
+          }),
+    onSuccess: (result, input) => {
+      closeEnding();
       void queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
-      toast.show("Đã cập nhật hợp đồng.", "success");
+      void queryClient.invalidateQueries({ queryKey: ["contract-money", input.contract.id] });
+      toast.show(terminateSuccessMessage(result, formatVND), "success");
     },
-    onError: (error: any) => {
+    onError: (error: any, input) => {
+      if (isPtRestrictionLifted(error)) {
+        // Not a failure: the trainer is operating again, so the no-fee terms the client saw are
+        // gone and nothing was cancelled. Keep the sheet open on the ordinary terms, using the
+        // server's fresh preview when it sent one and re-reading the breakdown when it did not.
+        const key = ["contract-money-breakdown", input.contract.id];
+        const lifted = applyLiftedPreview(queryClient.getQueryData(key), error);
+        if (lifted) queryClient.setQueryData(key, lifted);
+        else void queryClient.invalidateQueries({ queryKey: key });
+        void queryClient.invalidateQueries({ queryKey: ["contract-money", input.contract.id] });
+        setReason("CLIENT_CANCELLED");
+        setTermsChanged(true);
+        return;
+      }
       // The server re-counts PT_REPEATED_NO_SHOW itself and answers 403 with the real reason —
       // show that sentence rather than a generic failure.
       toast.show(
@@ -855,10 +900,7 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
                 contract={contract}
                 paying={checkout.submitting}
                 onPay={() => checkout.choose(contract)}
-                onEnd={() => {
-                  setReason("CLIENT_CANCELLED");
-                  setEnding(contract);
-                }}
+                onEnd={() => openEnding(contract)}
               />
             ))}
 
@@ -874,50 +916,101 @@ function ContractsTab({ onFindPt }: { onFindPt: () => void }) {
 
       <BottomSheet
         open={!!ending}
-        onClose={() => setEnding(null)}
+        onClose={closeEnding}
         title={ending && endActionFor(ending) === "withdraw" ? "Rút yêu cầu" : "Chấm dứt hợp đồng"}
       >
         <View className="gap-4 pb-2">
-          {ending && endActionFor(ending) === "withdraw" ? (
-            <Text className="font-body text-sm leading-6 text-foreground">
-              Yêu cầu này chưa phát sinh thanh toán, nên rút lại là xong — không có khoản nào phải
-              hoàn.
-            </Text>
-          ) : (
-            <>
+          {/* Long text (no-fee terms, pending-session note) must stay reachable on a 360dp phone, so
+              the body scrolls inside the sheet while the buttons stay in view. */}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ gap: 16 }}
+          >
+            {ending && endActionFor(ending) === "withdraw" ? (
               <Text className="font-body text-sm leading-6 text-foreground">
-                Lý do bạn chọn quyết định phần tiền được hoàn, nên hãy chọn đúng.
+                Yêu cầu này chưa phát sinh thanh toán, nên rút lại là xong — không có khoản nào phải
+                hoàn.
               </Text>
-              {CLIENT_TERMINATION_CHOICES.map((choice) => {
-                const active = choice.reason === reason;
-                return (
-                  <Tappable
-                    key={choice.reason}
-                    className={`rounded-xl border p-3.5 ${
-                      active ? "border-primary bg-primary/10" : "border-border bg-panel"
-                    }`}
-                    onPress={() => setReason(choice.reason)}
-                  >
-                    <Text className="font-body-medium text-sm text-foreground">{choice.label}</Text>
-                    <Text className="mt-1 font-body text-xs text-muted-foreground">
-                      {choice.description}
-                    </Text>
-                  </Tappable>
-                );
-              })}
-            </>
-          )}
+            ) : sheet.phase === "loading" ? (
+              <View className="items-center py-6">
+                <ActivityIndicator color={accent.primary} />
+              </View>
+            ) : sheet.phase === "error" ? (
+              <Notice tone="danger" text={sheet.intro ?? END_TERMS_TEXT.loadFailed} />
+            ) : (
+              <>
+                {sheet.changedNote ? <Notice tone="warning" text={sheet.changedNote} /> : null}
+                {sheet.intro ? (
+                  <Text className="font-body text-sm leading-6 text-foreground">{sheet.intro}</Text>
+                ) : null}
+                {sheet.showReasons
+                  ? CLIENT_TERMINATION_CHOICES.map((choice) => {
+                      const active = choice.reason === reason;
+                      return (
+                        <Tappable
+                          key={choice.reason}
+                          className={`rounded-xl border p-3.5 ${
+                            active ? "border-primary bg-primary/10" : "border-border bg-panel"
+                          }`}
+                          onPress={() => setReason(choice.reason)}
+                        >
+                          <Text className="font-body-medium text-sm text-foreground">{choice.label}</Text>
+                          <Text className="mt-1 font-body text-xs text-muted-foreground">
+                            {choice.description}
+                          </Text>
+                        </Tappable>
+                      );
+                    })
+                  : null}
+                {sheet.refund != null ? (
+                  <View className="gap-1.5 rounded-xl bg-panel p-3.5">
+                    {sheet.unresolvedAmount != null ? (
+                      <View className="flex-row justify-between gap-3">
+                        <Text className="flex-1 font-body text-xs text-muted-foreground">
+                          {END_TERMS_TEXT.unresolvedAmountLabel}
+                        </Text>
+                        <Text className="font-body text-xs text-foreground">
+                          {formatVND(sheet.unresolvedAmount)}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <View className="flex-row justify-between gap-3">
+                      <Text className="flex-1 font-body-medium text-sm text-foreground">
+                        {sheet.refundLabel}
+                      </Text>
+                      <Text className="font-body-semibold text-sm" style={{ color: accent.primary }}>
+                        {formatVND(sheet.refund)}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+                {sheet.unresolvedNote ? (
+                  <Text className="font-body text-xs leading-5 text-muted-foreground">
+                    {sheet.unresolvedNote}
+                  </Text>
+                ) : null}
+              </>
+            )}
+          </ScrollView>
 
           <View className="flex-row gap-2">
-            <Button variant="secondary" className="flex-1" onPress={() => setEnding(null)}>
+            <Button variant="secondary" className="flex-1" onPress={closeEnding}>
               Để sau
             </Button>
             <Button
               className="flex-1"
-              disabled={endMutation.isPending}
-              onPress={() => ending && endMutation.mutate({ contract: ending, reason })}
+              disabled={endMutation.isPending || (terminating && !sheet.canConfirm)}
+              onPress={() =>
+                ending &&
+                endMutation.mutate({
+                  contract: ending,
+                  reason,
+                  expectNoPenalty: terminating && sheet.expectNoPenalty,
+                })
+              }
             >
-              Xác nhận
+              {terminating ? sheet.confirmLabel : "Xác nhận"}
             </Button>
           </View>
         </View>
@@ -981,7 +1074,7 @@ function ContractCard({
       <Text className="font-body text-sm text-foreground">
         {formatVND(contract.price)}
         <Text className="font-body text-xs text-muted-foreground">
-          {` · ${contract.usedSessions}/${contract.totalSessions} buổi`}
+          {` · ${sessionsConsumed(contract)}/${contract.totalSessions} buổi`}
         </Text>
       </Text>
 
@@ -1000,6 +1093,10 @@ function ContractCard({
       {status.note ? (
         <Text className="font-body text-xs text-muted-foreground">{status.note}</Text>
       ) : null}
+
+      {isPausedByAdmin(contract) ? <Notice tone="warning" text={PAUSED_BY_ADMIN_NOTICE} /> : null}
+
+      {contract.status === "PENDING_PAYMENT" ? <CheckoutSummary contractId={contract.id} /> : null}
 
       {contract.status === "PENDING_PAYMENT" ? (
         <Text className="font-body text-xs text-muted-foreground">
@@ -1042,6 +1139,50 @@ function ContractCard({
         ) : null}
       </View>
     </Card>
+  );
+}
+
+/**
+ * P3.6 — what the client is about to pay for, read from `GET /contracts/:id/checkout-context`: the
+ * amount the server will charge, the payment deadline and anything its re-check flagged. Display
+ * only — nothing is computed here, and a failed read just hides the block (the pay button and the
+ * server's own checks are unaffected).
+ */
+function CheckoutSummary({ contractId }: { contractId: string }) {
+  const query = useQuery({
+    queryKey: ["contract-checkout-context", contractId],
+    queryFn: () => contractService.getCheckoutContext(contractId),
+    staleTime: 0,
+    retry: 1,
+  });
+  const summary = useMemo(() => normalizeCheckoutContext(query.data), [query.data]);
+  const gymQuery = useQuery({
+    queryKey: ["gym", summary?.gymId],
+    queryFn: () => gymService.getGym(summary!.gymId!),
+    enabled: !!summary?.gymId,
+  });
+  if (!summary) return null;
+  const gymName = summary.gymId ? ((gymQuery.data as any)?.name ?? null) : null;
+  const rows: [string, string][] = [];
+  rows.push(["Gói", summary.packageName]);
+  if (summary.amount != null) rows.push(["Số tiền thanh toán", formatVND(summary.amount)]);
+  if (gymName) rows.push(["Phòng gym", String(gymName)]);
+  if (summary.paymentDueLabel) rows.push(["Hạn thanh toán", summary.paymentDueLabel]);
+  return (
+    <View className="gap-2 rounded-xl border border-border bg-panel p-3">
+      <Text className="font-body-semibold text-xs uppercase tracking-wider text-muted-foreground">
+        Trước khi thanh toán
+      </Text>
+      {rows.map(([label, value]) => (
+        <View key={label} className="flex-row items-start justify-between gap-3">
+          <Text className="font-body text-xs text-muted-foreground">{label}</Text>
+          <Text className="flex-1 text-right font-body-medium text-xs text-foreground">{value}</Text>
+        </View>
+      ))}
+      {summary.warnings.map((warning) => (
+        <Notice key={warning} tone="warning" text={warning} />
+      ))}
+    </View>
   );
 }
 

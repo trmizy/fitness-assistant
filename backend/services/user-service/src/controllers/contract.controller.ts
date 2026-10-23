@@ -2,13 +2,22 @@ import path from "path";
 import fs from "fs";
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
-import { contractService } from "../services/contract.service";
+import { contractService, CONTRACT_NOT_ACTIVATABLE } from "../services/contract.service";
 import {
-  moneyBreakdown,
-  terminateContractMoney,
+  settleContractTermination,
 } from '../services/contract-payout.service';
 import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { AuthServiceUnavailableError } from "../clients/auth-service.client";
+import { assertPtMayActOnContract } from "../services/pt-restriction.service";
+import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
+import { errorCodeBody } from "../utils/error-code.util";
+import { clientHeaderOf } from "../services/client-compat.service";
+import {
+  MEMBERSHIP_REQUIRED,
+  MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
+  GYM_CONTRACT_REQUIRES_FIXED_DURATION,
+} from "../services/contract-gym-membership.service";
 import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 import {
@@ -16,6 +25,14 @@ import {
   isS3Ref,
   keyFromS3Ref,
 } from "../services/s3-upload.service";
+
+import { redactBreakdownForViewer, redactContractSplit, redactSettlementForViewer, type ContractViewer } from "../services/contract-dto";
+
+/** Who is asking, as the gateway authenticated them: decides whether a contract row comes back with its money split. */
+const viewerOf = (req: any): ContractViewer => ({
+  userId: req.headers["x-user-id"] as string | undefined,
+  role: req.headers["x-user-role"] as string | undefined,
+});
 
 export const contractController = {
   // Client requests a contract with a PT
@@ -25,8 +42,10 @@ export const contractController = {
       const contract = await contractService.requestContract(
         clientUserId,
         req.body,
+        undefined,
+        { clientHeader: clientHeaderOf(req) },
       );
-      res.status(201).json(contract);
+      res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Request contract error");
       // LOW_AVAILABILITY carries the fields the client UI's warning dialog needs
@@ -34,7 +53,10 @@ export const contractController = {
       // { error: message } here was silently swallowing all three, so the dialog's
       // `code === "LOW_AVAILABILITY"` check could never match and it never rendered.
       res.status(error.status || 500).json({
+        ...errorCodeBody(error),
         error: error.message || "Failed to request contract",
+        // 409 PACKAGE_CHANGED carries the package as it is NOW (with its version), so the UI can show the new terms.
+        ...(error.code === "PACKAGE_CHANGED" && error.package ? { package: error.package } : {}),
         ...(error.code === "LOW_AVAILABILITY"
           ? {
               code: error.code,
@@ -42,6 +64,15 @@ export const contractController = {
               packageSessions: error.packageSessions,
               nearestAvailableSlot: error.nearestAvailableSlot,
             }
+          : {}),
+        // Phase 3 / P3.3: the membership refusals carry the facts the UI needs (gymId/brandId to link to
+        // buying a plan; membershipEndDate/contractEndDate to explain the gap), both under `details`
+        // and flat, so a client may read either.
+        ...(((error.status === 422 &&
+          (error.code === MEMBERSHIP_REQUIRED || error.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT)) ||
+          (error.status === 409 && error.code === GYM_CONTRACT_REQUIRES_FIXED_DURATION)) &&
+        error.details
+          ? { details: error.details, ...error.details }
           : {}),
       });
     }
@@ -55,12 +86,14 @@ export const contractController = {
         req.params.id,
         ptUserId,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Accept contract error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to accept contract" });
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to accept contract",
+        ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+        ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
+      });
     }
   },
 
@@ -74,12 +107,12 @@ export const contractController = {
         ptUserId,
         reason,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Reject contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to reject contract" });
+        .json({ error: error.message || "Failed to reject contract", ...errorCodeBody(error) });
     }
   },
 
@@ -93,12 +126,12 @@ export const contractController = {
         userId,
         reason,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Cancel contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to cancel contract" });
+        .json({ error: error.message || "Failed to cancel contract", ...errorCodeBody(error) });
     }
   },
 
@@ -107,7 +140,7 @@ export const contractController = {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
       const contract = await contractService.create(ptUserId, req.body);
-      res.status(201).json(contract);
+      res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Create contract error");
       res
@@ -125,7 +158,7 @@ export const contractController = {
         ptUserId,
         status as string,
       );
-      res.json(contracts);
+      res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get PT contracts error");
       res.status(500).json({ error: "Failed to fetch contracts" });
@@ -141,7 +174,7 @@ export const contractController = {
         clientUserId,
         status as string,
       );
-      res.json(contracts);
+      res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get client contracts error");
       res.status(500).json({ error: "Failed to fetch contracts" });
@@ -164,7 +197,7 @@ export const contractController = {
         res.status(403).json({ error: "Not authorized" });
         return;
       }
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get contract error");
       res.status(500).json({ error: "Failed to fetch contract" });
@@ -183,12 +216,14 @@ export const contractController = {
         status,
         userRole,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Update contract status error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to update status" });
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to update status",
+        ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
+        ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
+      });
     }
   },
 
@@ -201,7 +236,7 @@ export const contractController = {
         ptUserId,
         req.body,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Update contract error");
       res
@@ -218,7 +253,7 @@ export const contractController = {
         req.params.id,
         ptUserId,
       );
-      res.json(contract);
+      res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Log session error");
       res
@@ -241,6 +276,10 @@ export const contractController = {
       );
       res.json(result);
     } catch (error: any) {
+      if (error instanceof AuthServiceUnavailableError) {
+        res.status(503).json({ error: "Account status cannot be verified right now" });
+        return;
+      }
       logger.error(error, "Check relationship error");
       res.status(500).json({ error: "Failed to check relationship" });
     }
@@ -348,6 +387,23 @@ export const contractController = {
     }
   },
 
+  // INTERNAL — called by ai-service BEFORE a personalized service checkout starts: is there already a live
+  // (non-terminal, PENDING_PAYMENT included) PT contract between this PT and this client? Marketplace-originated
+  // contracts do not count. See contractService.hasStandingPtContract.
+  async hasStandingPtContract(req: any, res: Response) {
+    try {
+      const { ptUserId, clientUserId } = req.query;
+      if (!ptUserId || !clientUserId || typeof ptUserId !== "string" || typeof clientUserId !== "string") {
+        res.status(400).json({ error: "ptUserId and clientUserId are required" });
+        return;
+      }
+      res.json({ conflict: await contractService.hasStandingPtContract(ptUserId, clientUserId) });
+    } catch (error: any) {
+      logger.error(error, "hasStandingPtContract error");
+      res.status(500).json({ error: "Failed to check existing PT contract" });
+    }
+  },
+
   // INTERNAL — called by chat-service to decide whether two users can chat.
   // BR-29 (loosened): client → APPROVED PT can chat for pre-contract discovery.
   // Protected by serviceSecretMiddleware (mounted under /internal).
@@ -364,6 +420,10 @@ export const contractController = {
       );
       res.json(result);
     } catch (error: any) {
+      if (error instanceof AuthServiceUnavailableError) {
+        res.status(503).json({ error: "Account status cannot be verified right now" });
+        return;
+      }
       logger.error(error, "Chat-eligibility error");
       res.status(500).json({ error: "Failed to compute chat eligibility" });
     }
@@ -533,7 +593,8 @@ export const contractController = {
       const platform: 'web' | 'mobile' = req.headers.origin === 'http://localhost' ? 'mobile' : 'web';
       const returnBaseUrl = typeof req.headers['x-public-base-url'] === 'string' ? req.headers['x-public-base-url'] : undefined;
       const result = await contractService.pay(req.params.id, clientUserId, provider, platform, returnBaseUrl);
-      res.json(result);
+      // `result.contract` is the raw row (frozen split, holdback, released-to-*): the client gets it without those fields.
+      res.json(redactContractSplit(result, viewerOf(req)));
     } catch (error: any) {
       if (error.message === 'ALREADY_PAID') {
         res.status(409).json({ error: error.message });
@@ -544,7 +605,10 @@ export const contractController = {
         return;
       }
       logger.error(error, 'Contract pay error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+      res.status(error.status || 500).json({
+        error: error.message || 'Failed to pay contract',
+        ...(error.status && typeof error.code === 'string' ? { code: error.code } : {}),
+      });
     }
   },
 
@@ -562,7 +626,7 @@ export const contractController = {
       res.json(result);
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...errorCodeBody(error) });
         return;
       }
       logger.error(error, 'Contract sendFeedback error');
@@ -585,12 +649,16 @@ export const contractController = {
         res.status(403).json({ error: 'Not authorized' });
         return;
       }
-      const data = await moneyBreakdown(req.params.id);
+      // The preview is priced with the SAME terms the termination would send (reason + sessions held), via
+      // the one shared helper in client-exit.service.ts - so `refundIfCancelledNow` is what cancelling now
+      // really refunds, `exitReasonIfCancelledNow` says which reason that is, `unresolvedSessions` how many
+      // sessions' value would stay held, and payment-service's `reasonUsed` / `unresolvedAmountHeld` pass through.
+      const data = await previewClientExit(req.params.id);
       if (!data) {
         res.status(400).json({ error: 'Contract has no price or sessions to break down' });
         return;
       }
-      res.json(data);
+      res.json(redactBreakdownForViewer(data, viewerOf(req), contract.ptUserId));
     } catch (error: any) {
       logger.error(error, 'Money breakdown error');
       res.status(error.status || 500).json({ error: error.message || 'Failed to load breakdown' });
@@ -624,7 +692,8 @@ export const contractController = {
       const allowed: Record<string, boolean> = {
         CLIENT_CANCELLED: isClient || isAdmin,
         PT_CANCELLED: isPt || isAdmin,
-        PT_BANNED: isAdmin,
+        PT_BANNED: isAdmin, // retired for NEW endings (D49) - refused below with REASON_RETIRED; kept in the map so it is not "unknown"
+        SERVICE_DISCONTINUED_BY_PLATFORM: isAdmin,
         MUTUAL: isAdmin,
         EXPIRED: isAdmin,
         COMPLETED: isAdmin,
@@ -636,6 +705,11 @@ export const contractController = {
       };
       if (!(reason in allowed)) {
         res.status(400).json({ error: `Unknown termination reason: ${reason}` });
+        return;
+      }
+      if (reason === 'PT_BANNED') {
+        // D49: a ban is the platform's decision, not proof that this PT failed this client. New endings use SERVICE_DISCONTINUED_BY_PLATFORM.
+        res.status(400).json({ error: 'PT_BANNED is retired: use SERVICE_DISCONTINUED_BY_PLATFORM', code: 'REASON_RETIRED' });
         return;
       }
       if (!allowed[reason]) {
@@ -658,7 +732,51 @@ export const contractController = {
         }
       }
 
-      const result = await terminateContractMoney(req.params.id, reason as any);
+      // Restricted mode: a suspended PT cannot end a contract on their own account (PT_CANCELLED carries
+      // a fine on the PT) — otherwise the system would book a PT-fault termination against a PT who
+      // is only paused. Admin terminations keep their own reasons and formulas.
+      if (isPt && !isAdmin) await assertPtMayActOnContract(userId, req.params.id);
+
+      // The client's own cancellation goes through the exit check (client-exit.service.ts): while the
+      // contract's PT is restricted the SERVER swaps the reason for CLIENT_EXIT_DUE_TO_PT_RESTRICTION
+      // (100% of the unused value back, no fee). The request never carries that reason, and it is
+      // never accepted from one (it is not in the `allowed` table above). Every other caller and
+      // reason takes the unchanged path below.
+      let result: any;
+      // D59: an ending that was already ACCEPTED (recorded) keeps its recorded reason - a retry, or another caller asking for
+      // a different reason, completes THAT ending and is told which reason it ended with.
+      let recordedReason: string = reason;
+      let alreadyEnding = false;
+      let exit: Awaited<ReturnType<typeof terminateAsClient>> | null = null;
+      if (reason === 'CLIENT_CANCELLED' && isClient) {
+        const outcome = await terminateAsClient(req.params.id, userId, {
+          audit: auditMeta(req),
+          // The client confirmed the no-fee terms they were shown: refuse (409 PT_RESTRICTION_LIFTED) rather than
+          // quietly charging the ordinary cancellation fee if those terms no longer hold.
+          expectNoPenalty: req.body?.expectNoPenalty === true,
+        });
+        result = outcome.settlement;
+        if (outcome.mode !== 'ORDINARY') exit = outcome;
+      } else {
+        const settled = await settleContractTermination(req.params.id, reason as any);
+        result = settled?.result ?? null;
+        recordedReason = settled?.reason ?? reason;
+        alreadyEnding = !!settled && !settled.statusWritten;
+      }
+
+      if (exit) {
+        // The exit service wrote its own audit row (once, by the call that changed the status).
+        res.json({
+          contractId: req.params.id,
+          reason: exit.reason,
+          requestedReason: reason,
+          exitWithoutPenalty: exit.reason === 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+          alreadyTerminated: exit.mode === 'ALREADY_EXITED' || exit.mode === 'ALREADY_ENDED',
+          unresolvedSessions: exit.unresolvedSessions,
+          settlement: redactSettlementForViewer(result, viewerOf(req), contract.ptUserId),
+        });
+        return;
+      }
 
       // The reason decides who pays, so record who declared it and under what authority.
       // "The admin ended it as MUTUAL" and "the PT ended it as MUTUAL" settle differently,
@@ -669,18 +787,32 @@ export const contractController = {
         entityType: AuditEntityType.CONTRACT,
         entityId: req.params.id,
         metadata: {
-          reason,
+          reason: recordedReason,
+          requestedReason: reason,
           actorRole: isAdmin ? "ADMIN" : isPt ? "PT" : isClient ? "CLIENT" : "UNKNOWN",
           refund: result?.refund ?? null,
           statusBefore: contract.status,
+          alreadyEnding,
         },
         ...auditMeta(req),
       });
 
-      res.json({ contractId: req.params.id, reason, settlement: result });
+      res.json({
+        contractId: req.params.id,
+        reason: recordedReason,
+        ...(recordedReason !== reason ? { requestedReason: reason } : {}),
+        ...(alreadyEnding ? { alreadyTerminated: true } : {}),
+        settlement: redactSettlementForViewer(result, viewerOf(req), contract.ptUserId),
+      });
     } catch (error: any) {
       logger.error(error, 'Contract terminate error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract' });
+      // 409 PT_RESTRICTION_LIFTED carries the terms that hold now (a full money breakdown): a client gets the client aggregates only.
+      let extra = error.status && error.extra ? error.extra : {};
+      if (extra.currentTerms) {
+        const owner = await contractRepository.findById(req.params.id).catch(() => null);
+        extra = { ...extra, currentTerms: owner ? redactBreakdownForViewer(extra.currentTerms, viewerOf(req), owner.ptUserId) : null };
+      }
+      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract', ...errorCodeBody(error), ...extra });
     }
   },
 
@@ -691,6 +823,15 @@ export const contractController = {
       const contract = await contractService.activateAfterPayment(req.params.id, transactionId);
       res.json({ success: true, data: contract });
     } catch (error: any) {
+      // 409 CONTRACT_NOT_ACTIVATABLE is a definite answer, not a failure (payment-service refunds
+      // the client on it) — log it at warn level in the service, not as an error here.
+      if (error.code === CONTRACT_NOT_ACTIVATABLE) {
+        res.status(409).json({
+          success: false,
+          error: { code: CONTRACT_NOT_ACTIVATABLE, message: error.message, currentStatus: error.currentStatus },
+        });
+        return;
+      }
       logger.error(error, 'Internal activate-after-payment error');
       res.status(error.status || 500).json({ success: false, error: { message: error.message } });
     }

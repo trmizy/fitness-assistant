@@ -2,10 +2,9 @@ import type { Request } from 'express';
 import { logger } from '@gym-coach/shared';
 import { prisma } from '../repositories/prisma';
 import { partnerRepository } from '../repositories/partner.repository';
+import { withCompatWriter } from '../repositories/compat-writer';
 import type { Prisma, PartnerRepresentativeRole, PartnerBusinessScale } from '../generated/prisma';
 import type { PartnerContext } from './partner.service';
-import { partnerService } from './partner.service';
-import { brandService } from './brand.service';
 import { onboardingService } from './onboarding.service';
 import { partnerAuditService } from './partner-audit.service';
 import { partnerS3 } from './partner-s3.service';
@@ -21,6 +20,20 @@ import {
   type CompletenessInput,
 } from './partner-application.state';
 import { applicantEmails, sendApplicantMail } from './partner-application.emails';
+import { amenityDto, proposalDto } from './gym-amenity-catalog.service';
+import { applyAmenitySelectionTx, selectionCountsTx, type AmenitySelectionInput } from './gym-amenity-selection.service';
+import {
+  LEGACY_NO_HEADER,
+  amenitiesRequired,
+  amenitiesRequiredError,
+  clearLegacyNoAmenitiesTx,
+  createdFlowVersionData,
+  markApplicationFlowTx,
+  recordLegacyCompatTx,
+  recordLegacyRejectedEvent,
+  type LegacyCompatAction,
+  type ListingCompat,
+} from './legacy-compat.service';
 
 /**
  * Hồ sơ đối tác tự đăng ký, phía ỨNG VIÊN — GYM_PARTNER_SELF_ONBOARDING_SPEC.md.
@@ -107,7 +120,112 @@ export function socialOf(brand: { facebookUrl: string | null; instagramUrl: stri
 }
 
 export async function lockPartner(tx: Tx, partnerId: string) {
+  // Every transaction in this file (and partner-upload) that writes gym_partners / gyms starts here, so this is also
+  // where it declares itself an event-aware writer (see repositories/compat-writer.ts).
+  await withCompatWriter(tx);
   await tx.$queryRaw`SELECT id FROM gym_partners WHERE id = ${partnerId} FOR UPDATE`;
+}
+
+/**
+ * Listing Management B3 - closes a transaction of an application request: a new client (`X-Gymini-Listing-Flow: 2`) marks the
+ * application flow version 2 (never downgraded); an old client (no header) leaves its legacy-compat evidence - the ACCEPTED event
+ * AND `legacy_client_at` = the same now(), in this very transaction (plan 12.15 item 4). `legacyNoAmenities` is the application's
+ * "arrived without amenities" state when this action decided it.
+ */
+export async function finishApplicationTx(
+  tx: Tx,
+  partnerId: string,
+  actorUserId: string,
+  compat: ListingCompat,
+  action: LegacyCompatAction,
+  legacyNoAmenities?: boolean,
+) {
+  await markApplicationFlowTx(tx, partnerId, compat);
+  await recordLegacyCompatTx(tx, {
+    action,
+    entityType: 'GYM_PARTNER',
+    entityId: partnerId,
+    actorUserId,
+    flowHeader: compat.flowHeader,
+    clientHeader: compat.clientHeader,
+    outcome: 'ACCEPTED',
+    legacyNoAmenities,
+  });
+  if (legacyNoAmenities === false) await clearLegacyNoAmenitiesTx(tx, 'GYM_PARTNER', partnerId);
+}
+
+/** One save step of the wizard (PUT /owner/application/*): lock the application, do the write, then finishApplicationTx - one transaction. */
+function saveStep<T>(
+  partnerId: string,
+  actorUserId: string,
+  compat: ListingCompat,
+  work: (tx: Tx) => Promise<T>,
+  action: LegacyCompatAction = 'APPLICATION_SAVE_STEP',
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await lockPartner(tx, partnerId);
+    const out = await work(tx);
+    await finishApplicationTx(tx, partnerId, actorUserId, compat, action);
+    return out;
+  });
+}
+
+/** A request that changed nothing (an already-submitted application, a bootstrap that found the account) still leaves its evidence. */
+async function recordNoop(partnerId: string, actorUserId: string, compat: ListingCompat, action: LegacyCompatAction) {
+  await prisma.$transaction(async (tx) => {
+    await lockPartner(tx, partnerId);
+    await finishApplicationTx(tx, partnerId, actorUserId, compat, action);
+  });
+}
+
+/**
+ * Submit / resubmit gate (plan 4, 12.8): a new client, a flow-2 application, or an old client once LISTING_LEGACY_CLIENT_COMPAT is
+ * off needs >= 1 amenity on the DRAFT branch (ACTIVE catalogue rows + the owner's PENDING proposals) - otherwise 422 AMENITIES_REQUIRED.
+ * An old client with the flag on is accepted with 0 (the caller marks legacy_no_amenities). Runs under the partner lock, after the
+ * flow version of a new client was recorded. Returns the amenity total.
+ */
+async function requireAmenitiesForSubmitTx(tx: Tx, partnerId: string, ownerId: string, compat: ListingCompat): Promise<number> {
+  await markApplicationFlowTx(tx, partnerId, compat);
+  const partner = await tx.gymPartner.findUniqueOrThrow({ where: { id: partnerId }, select: { applicationFlowVersion: true } });
+  const gym = await tx.gym.findFirst({ where: { ownerId, status: 'DRAFT' }, orderBy: { createdAt: 'asc' }, select: { id: true, ownerId: true } });
+  const counts = gym ? await selectionCountsTx(tx, gym) : { amenityCount: 0, pendingProposalCount: 0 };
+  const total = counts.amenityCount + counts.pendingProposalCount;
+  if (total === 0 && amenitiesRequired(compat, partner.applicationFlowVersion)) throw amenitiesRequiredError(compat);
+  return total;
+}
+
+/** The business transaction rolled back with AMENITIES_REQUIRED: an old client's refusal still leaves its REJECTED_422 event (own transaction). */
+async function recordRejectedAmenities(e: unknown, partnerId: string, actorUserId: string, compat: ListingCompat, action: LegacyCompatAction) {
+  if ((e as { code?: string })?.code !== 'AMENITIES_REQUIRED' || compat.newClient) return;
+  await recordLegacyRejectedEvent({
+    action,
+    entityType: 'GYM_PARTNER',
+    entityId: partnerId,
+    actorUserId,
+    flowHeader: compat.flowHeader,
+    clientHeader: compat.clientHeader,
+  });
+}
+
+/** The branch's amenity selection as the applicant sees it: the chosen catalogue rows and the own proposals bound to the branch. */
+async function loadAmenityState(db: Tx | typeof prisma, gym: { id: string; ownerId: string } | null) {
+  if (!gym) return { amenities: [] as ReturnType<typeof amenityDto>[], amenityProposals: [] as ReturnType<typeof proposalDto>[], amenityCount: 0, pendingCount: 0 };
+  const [rows, proposals] = await Promise.all([
+    db.gymAmenity.findMany({ where: { gymId: gym.id }, include: { amenity: true } }),
+    db.amenityProposal.findMany({
+      where: { gymId: gym.id, ownerUserId: gym.ownerId, status: { not: 'CANCELLED' } },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
+  const active = rows
+    .filter((r) => r.amenity.status === 'ACTIVE')
+    .sort((a, b) => a.amenity.sortOrder - b.amenity.sortOrder || a.amenity.name.localeCompare(b.amenity.name));
+  return {
+    amenities: active.map((r) => amenityDto(r.amenity)),
+    amenityProposals: proposals.map(proposalDto),
+    amenityCount: active.length,
+    pendingCount: proposals.filter((p) => p.status === 'PENDING').length,
+  };
 }
 
 /**
@@ -162,9 +280,12 @@ export const partnerApplicationService = {
    * không có saga hai datastore — một User chưa bootstrap chỉ là trạng thái SETUP_INCOMPLETE, không có
    * quyền vận hành nào.
    */
-  async bootstrap(userId: string, email: string): Promise<{ created: boolean; partnerId: string }> {
+  async bootstrap(userId: string, email: string, compat: ListingCompat = LEGACY_NO_HEADER): Promise<{ created: boolean; partnerId: string }> {
     const existing = await partnerRepository.findAccountByUserId(userId);
-    if (existing) return { created: false, partnerId: existing.partnerId };
+    if (existing) {
+      await recordNoop(existing.partnerId, userId, compat, 'APPLICATION_BOOTSTRAP');
+      return { created: false, partnerId: existing.partnerId };
+    }
 
     if (await partnerRepository.userHasLegacyOwnership(userId)) {
       throw appError(
@@ -176,6 +297,7 @@ export const partnerApplicationService = {
 
     try {
       const partner = await prisma.$transaction(async (tx) => {
+        await withCompatWriter(tx);
         const created = await tx.gymPartner.create({
           data: {
             // legalName là cột NOT NULL; email là chỗ giữ tạm cho tới khi ứng viên nhập tên pháp lý
@@ -198,6 +320,7 @@ export const partnerApplicationService = {
             activatedAt: new Date(),
           },
         });
+        await finishApplicationTx(tx, created.id, userId, compat, 'APPLICATION_BOOTSTRAP');
         return created;
       });
       logger.info({ userId, partnerId: partner.id }, 'Partner application bootstrapped');
@@ -207,7 +330,10 @@ export const partnerApplicationService = {
       // nên chỉ cần đọc lại hồ sơ mà bên thắng đã tạo.
       if (e?.code === 'P2002') {
         const again = await partnerRepository.findAccountByUserId(userId);
-        if (again) return { created: false, partnerId: again.partnerId };
+        if (again) {
+          await recordNoop(again.partnerId, userId, compat, 'APPLICATION_BOOTSTRAP');
+          return { created: false, partnerId: again.partnerId };
+        }
       }
       throw e;
     }
@@ -216,7 +342,7 @@ export const partnerApplicationService = {
   // ── Đọc ────────────────────────────────────────────────────────────────────────────────────
 
   /** Toàn bộ hồ sơ + phần còn thiếu, cho wizard và trang xem lại. */
-  async getApplication(ctx: PartnerContext) {
+  async getApplication(ctx: PartnerContext, compat: ListingCompat = LEGACY_NO_HEADER) {
     const { partnerId, accountId, ownerId } = requireApplicantOwner(ctx);
     const state = stateOf(ctx);
 
@@ -233,6 +359,7 @@ export const partnerApplicationService = {
     const photos = gym
       ? await prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: { sortOrder: 'asc' } })
       : [];
+    const amenityState = await loadAmenityState(prisma, gym);
 
     const docStatuses: CompletenessInput['docStatuses'] = {};
     for (const d of docs) {
@@ -242,6 +369,8 @@ export const partnerApplicationService = {
     }
 
     const missing = computeMissing({
+      amenityCount: amenityState.amenityCount + amenityState.pendingCount,
+      requireAmenities: amenitiesRequired(compat, partner.applicationFlowVersion),
       representative: { name: partner.representativeName, phone: account.contactPhone, role: partner.representativeRole },
       brandName: brand?.name,
       businessScale: partner.businessScale,
@@ -304,6 +433,11 @@ export const partnerApplicationService = {
             locationNote: gym.locationNote,
           }
         : null,
+      // Listing Management B3: the selection of the DRAFT branch (catalogue rows + own proposals) and how the application got here.
+      amenities: amenityState.amenities,
+      amenityProposals: amenityState.amenityProposals,
+      applicationFlowVersion: partner.applicationFlowVersion,
+      legacyNoAmenities: partner.legacyNoAmenities,
       photos: await Promise.all(
         photos.map(async (p) => ({
           id: p.id,
@@ -380,81 +514,84 @@ export const partnerApplicationService = {
   async updateRepresentative(
     ctx: PartnerContext,
     data: { name: string; phone: string; role: PartnerRepresentativeRole },
+    compat: ListingCompat = LEGACY_NO_HEADER,
   ) {
-    const { partnerId, accountId } = requireApplicantOwner(ctx);
+    const { partnerId, accountId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
-    await prisma.$transaction([
-      prisma.gymPartner.update({
+    await saveStep(partnerId, ownerId, compat, async (tx) => {
+      await tx.gymPartner.update({
         where: { id: partnerId },
         data: { representativeName: data.name.trim(), representativeRole: data.role },
-      }),
-      prisma.gymPartnerAccount.update({ where: { id: accountId }, data: { contactPhone: data.phone.trim() } }),
-    ]);
+      });
+      await tx.gymPartnerAccount.update({ where: { id: accountId }, data: { contactPhone: data.phone.trim() } });
+    });
     return { ok: true };
   },
 
-  async updateBusinessScale(ctx: PartnerContext, scale: PartnerBusinessScale) {
-    const { partnerId } = requireApplicantOwner(ctx);
+  async updateBusinessScale(ctx: PartnerContext, scale: PartnerBusinessScale, compat: ListingCompat = LEGACY_NO_HEADER) {
+    const { partnerId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
-    await partnerRepository.updatePartner(partnerId, { businessScale: scale });
+    await saveStep(partnerId, ownerId, compat, (tx) => tx.gymPartner.update({ where: { id: partnerId }, data: { businessScale: scale } }));
     return { ok: true };
   },
 
   /** Tạo (lần đầu) hoặc đổi tên/mô tả THƯƠNG HIỆU DUY NHẤT. Không bao giờ có "brand thứ hai". */
-  async upsertBrand(ctx: PartnerContext, data: { name: string; description?: string }) {
+  async upsertBrand(ctx: PartnerContext, data: { name: string; description?: string }, compat: ListingCompat = LEGACY_NO_HEADER) {
     const { partnerId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
+    const name = data.name?.trim();
+    if (!name) throw appError('Hãy đặt tên thương hiệu', 400, 'BRAND_NAME_REQUIRED');
 
-    const partner = await partnerRepository.findPartnerById(partnerId);
-    if (!partner) throw appError('Không tìm thấy hồ sơ', 404, 'NOT_FOUND');
+    // One transaction with the partner locked (saveStep): two tabs creating the brand at once run one after the other, and the
+    // legacy-compat evidence is written together with the brand. UNIQUE(gym_brands.owner_id) still holds: the partner's brand, else
+    // the owner's existing one, else a new one.
+    return saveStep(partnerId, ownerId, compat, async (tx) => {
+      const partner = await tx.gymPartner.findUnique({ where: { id: partnerId } });
+      if (!partner) throw appError('Không tìm thấy hồ sơ', 404, 'NOT_FOUND');
 
-    if (partner.brandId) {
-      const brand = await brandService.updateBrand(partner.brandId, ownerId, {
-        name: data.name.trim(),
-        description: data.description,
-      });
-      return { id: brand.id, name: brand.name, description: brand.description };
-    }
-    try {
-      const brand = await brandService.createBrand(ownerId, { name: data.name, description: data.description });
-      await partnerService.attachBrand(partnerId, brand.id);
-      return { id: brand.id, name: brand.name, description: brand.description };
-    } catch (e: any) {
-      // Hai tab cùng tạo: UNIQUE(gym_brands.owner_id) chặn brand thứ hai ở cấp DB — coi như đã có rồi.
-      if (e?.code === 'P2002' || e?.status === 409) {
-        const existing = (await brandService.listOwned(ownerId))[0];
-        if (existing) {
-          await partnerService.attachBrand(partnerId, existing.id).catch(() => undefined);
-          const brand = await brandService.updateBrand(existing.id, ownerId, {
-            name: data.name.trim(),
-            description: data.description,
-          });
-          return { id: brand.id, name: brand.name, description: brand.description };
-        }
+      let brand = partner.brandId
+        ? await tx.gymBrand.findUnique({ where: { id: partner.brandId } })
+        : await tx.gymBrand.findFirst({ where: { ownerId }, orderBy: { createdAt: 'desc' } });
+      if (brand && brand.ownerId !== ownerId) throw appError('Not authorized — you do not own this brand', 403);
+      if (brand) {
+        brand = await tx.gymBrand.update({
+          where: { id: brand.id },
+          data: { name, pendingName: name, ...(data.description !== undefined ? { description: data.description } : {}) },
+        });
+      } else {
+        brand = await tx.gymBrand.create({ data: { ownerId, name, pendingName: name, description: data.description } });
       }
-      throw e;
-    }
+      if (partner.brandId !== brand.id) {
+        const taken = await tx.gymPartner.findFirst({ where: { brandId: brand.id, id: { not: partnerId } }, select: { id: true } });
+        if (taken) throw appError('Thương hiệu này đã thuộc về một đối tác khác', 409);
+        await tx.gymPartner.update({ where: { id: partnerId }, data: { brandId: brand.id } });
+      }
+      return { id: brand.id, name: brand.name, description: brand.description };
+    });
   },
 
   /** Link mạng xã hội của thương hiệu — bước tuỳ chọn, không chặn nộp hồ sơ. Cần có thương hiệu trước. */
   async updateSocialLinks(
     ctx: PartnerContext,
     data: { facebookUrl?: string | null; instagramUrl?: string | null; tiktokUrl?: string | null; youtubeUrl?: string | null },
+    compat: ListingCompat = LEGACY_NO_HEADER,
   ) {
-    const { partnerId } = requireApplicantOwner(ctx);
+    const { partnerId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
-    const partner = await partnerRepository.findPartnerById(partnerId);
-    if (!partner?.brandId) throw appError('Hãy đặt tên thương hiệu trước', 409, 'BRAND_REQUIRED');
-    const brand = await prisma.gymBrand.update({
-      where: { id: partner.brandId },
-      data: {
-        facebookUrl: data.facebookUrl ?? null,
-        instagramUrl: data.instagramUrl ?? null,
-        tiktokUrl: data.tiktokUrl ?? null,
-        youtubeUrl: data.youtubeUrl ?? null,
-      },
+    return saveStep(partnerId, ownerId, compat, async (tx) => {
+      const partner = await tx.gymPartner.findUnique({ where: { id: partnerId } });
+      if (!partner?.brandId) throw appError('Hãy đặt tên thương hiệu trước', 409, 'BRAND_REQUIRED');
+      const brand = await tx.gymBrand.update({
+        where: { id: partner.brandId },
+        data: {
+          facebookUrl: data.facebookUrl ?? null,
+          instagramUrl: data.instagramUrl ?? null,
+          tiktokUrl: data.tiktokUrl ?? null,
+          youtubeUrl: data.youtubeUrl ?? null,
+        },
+      });
+      return socialOf(brand);
     });
-    return socialOf(brand);
   },
 
   /**
@@ -477,13 +614,12 @@ export const partnerApplicationService = {
       longitude: number | null;
       locationNote: string;
     }>,
+    compat: ListingCompat = LEGACY_NO_HEADER,
   ) {
     const { partnerId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
 
-    return prisma.$transaction(async (tx) => {
-      await lockPartner(tx, partnerId);
-
+    return saveStep(partnerId, ownerId, compat, async (tx) => {
       const others = await tx.gym.count({ where: { ownerId, status: { not: 'DRAFT' } } });
       if (others > 0) {
         throw appError('Hồ sơ này chỉ có một chi nhánh đầu tiên', 409, 'APPLICATION_SINGLE_BRANCH');
@@ -502,6 +638,8 @@ export const partnerApplicationService = {
             address: '',
             status: 'DRAFT',
             wizardStep: 1,
+            // Listing Management B3: the branch of an application started by a new client is a flow-2 branch.
+            ...createdFlowVersionData(compat),
             brand: { connect: { id: partner.brandId } },
           },
         });
@@ -522,29 +660,57 @@ export const partnerApplicationService = {
   async updateLegal(
     ctx: PartnerContext,
     data: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null },
+    compat: ListingCompat = LEGACY_NO_HEADER,
   ) {
-    const { partnerId } = requireApplicantOwner(ctx);
+    const { partnerId, ownerId } = requireApplicantOwner(ctx);
     assertEditable(ctx);
-    await partnerRepository.updatePartner(partnerId, {
-      legalName: data.legalName.trim(),
-      ...(data.taxCode !== undefined ? { taxCode: data.taxCode?.trim() || null } : {}),
-      ...(data.businessLicenseNo !== undefined ? { businessLicenseNo: data.businessLicenseNo?.trim() || null } : {}),
-    });
+    await saveStep(partnerId, ownerId, compat, (tx) =>
+      tx.gymPartner.update({
+        where: { id: partnerId },
+        data: {
+          legalName: data.legalName.trim(),
+          ...(data.taxCode !== undefined ? { taxCode: data.taxCode?.trim() || null } : {}),
+          ...(data.businessLicenseNo !== undefined ? { businessLicenseNo: data.businessLicenseNo?.trim() || null } : {}),
+        },
+      }),
+    );
     return { ok: true };
+  },
+
+  /**
+   * Bước Tiện ích (Listing Management B3, plan 6.4): PUT /owner/application/amenities. The selection of the application's single DRAFT
+   * branch - `amenityIds` (catalogue, authoritative when present), `proposals` (new custom ones, bound to that DRAFT branch by the
+   * plan 12.3 owner algorithm) and/or `proposalIds` (own PENDING ones to keep). Saving it empty is allowed (it is a draft step); the
+   * requirement is enforced at submit / resubmit and by the admin approve blockers. One transaction with the compat evidence.
+   */
+  async saveAmenities(ctx: PartnerContext, input: AmenitySelectionInput, compat: ListingCompat = LEGACY_NO_HEADER) {
+    const { partnerId, ownerId } = requireApplicantOwner(ctx);
+    assertEditable(ctx);
+    return saveStep(partnerId, ownerId, compat, async (tx) => {
+      const gym = await tx.gym.findFirst({ where: { ownerId, status: 'DRAFT' }, orderBy: { createdAt: 'asc' } });
+      if (!gym) throw appError('Hãy tạo chi nhánh đầu tiên trước khi chọn tiện ích', 409, 'BRANCH_REQUIRED');
+      const counts = await applyAmenitySelectionTx(tx, gym, ownerId, input);
+      if (counts.amenityCount + counts.pendingProposalCount > 0) await clearLegacyNoAmenitiesTx(tx, 'GYM_PARTNER', partnerId);
+      const state = await loadAmenityState(tx, gym);
+      return { amenities: state.amenities, amenityProposals: state.amenityProposals, amenityCount: state.amenityCount + state.pendingCount };
+    });
   },
 
   // ── Nộp / nộp lại ──────────────────────────────────────────────────────────────────────────
 
   /** Danh sách còn thiếu — dùng chung cho submit, resubmit và trang xem lại. */
-  async missingFor(ctx: PartnerContext) {
-    const app = await this.getApplication(ctx);
+  async missingFor(ctx: PartnerContext, compat: ListingCompat = LEGACY_NO_HEADER) {
+    const app = await this.getApplication(ctx, compat);
     return app.missing;
   },
 
-  async submit(ctx: PartnerContext, actorUserId: string, opts: { acceptTerms?: boolean }, req?: Request) {
-    const { partnerId, accountId } = requireApplicantOwner(ctx);
+  async submit(ctx: PartnerContext, actorUserId: string, opts: { acceptTerms?: boolean }, req?: Request, compat: ListingCompat = LEGACY_NO_HEADER) {
+    const { partnerId, accountId, ownerId } = requireApplicantOwner(ctx);
     const state = stateOf(ctx);
-    if (state === 'UNDER_REVIEW') return { alreadySubmitted: true, accessState: state };
+    if (state === 'UNDER_REVIEW') {
+      await recordNoop(partnerId, actorUserId, compat, 'APPLICATION_SUBMIT');
+      return { alreadySubmitted: true, accessState: state };
+    }
     if (state === 'CHANGES_REQUESTED') {
       throw appError('Hồ sơ đang cần chỉnh sửa — hãy dùng "Gửi lại hồ sơ"', 409, 'USE_RESUBMIT');
     }
@@ -559,30 +725,44 @@ export const partnerApplicationService = {
       });
     }
 
-    const missing = await this.missingFor(ctx);
-    if (missing.length > 0) {
+    // Anything else missing is a 400 listing everything (AMENITIES included when it is required of this client); when ONLY the amenities
+    // are missing the answer is the dedicated 422 AMENITIES_REQUIRED, decided under the lock inside the transaction below.
+    const missing = await this.missingFor(ctx, compat);
+    if (missing.some((m) => m.section !== 'AMENITIES')) {
       throw appError('Hồ sơ chưa đầy đủ', 400, 'APPLICATION_INCOMPLETE', {
         issues: missing.map((m) => ({ field: m.section, message: m.message })),
       });
     }
 
-    const submitted = await prisma.$transaction(async (tx) => {
-      const res = await tx.gymPartner.updateMany({
-        where: { id: partnerId, status: 'PROSPECT', verificationStatus: 'NOT_VERIFIED', source: 'SELF_SERVICE' },
-        data: { verificationStatus: 'IN_REVIEW', submittedAt: new Date(), verificationNotes: null },
+    let submitted: boolean;
+    try {
+      submitted = await prisma.$transaction(async (tx) => {
+        await lockPartner(tx, partnerId);
+        const amenityTotal = await requireAmenitiesForSubmitTx(tx, partnerId, ownerId, compat);
+        const res = await tx.gymPartner.updateMany({
+          where: { id: partnerId, status: 'PROSPECT', verificationStatus: 'NOT_VERIFIED', source: 'SELF_SERVICE' },
+          data: { verificationStatus: 'IN_REVIEW', submittedAt: new Date(), verificationNotes: null },
+        });
+        if (res.count !== 1) return false;
+        await partnerAuditService.recordInTx(tx, {
+          partnerId,
+          actorUserId,
+          action: 'APPLICATION_SUBMITTED',
+          req,
+          metadata: { accountId },
+        });
+        await finishApplicationTx(tx, partnerId, actorUserId, compat, 'APPLICATION_SUBMIT', amenityTotal === 0);
+        return true;
       });
-      if (res.count !== 1) return false;
-      await partnerAuditService.recordInTx(tx, {
-        partnerId,
-        actorUserId,
-        action: 'APPLICATION_SUBMITTED',
-        req,
-        metadata: { accountId },
-      });
-      return true;
-    });
+    } catch (e) {
+      await recordRejectedAmenities(e, partnerId, actorUserId, compat, 'APPLICATION_SUBMIT');
+      throw e;
+    }
 
-    if (!submitted) return { alreadySubmitted: true, accessState: 'UNDER_REVIEW' as AccessState };
+    if (!submitted) {
+      await recordNoop(partnerId, actorUserId, compat, 'APPLICATION_SUBMIT');
+      return { alreadySubmitted: true, accessState: 'UNDER_REVIEW' as AccessState };
+    }
 
     partner = await partnerRepository.findPartnerById(partnerId);
     void sendApplicantMail(partner?.contactEmail, applicantEmails.submitted());
@@ -621,23 +801,29 @@ export const partnerApplicationService = {
    * Gửi lại sau khi admin yêu cầu sửa. Chỉ được khi MỌI vấn đề đã được ứng viên đánh dấu và MỌI
    * giấy tờ bị yêu cầu cập nhật đã được thay tệp. Nộp lại KHÔNG đóng vấn đề nào — chỉ admin đóng.
    */
-  async resubmit(ctx: PartnerContext, actorUserId: string, req?: Request) {
-    const { partnerId } = requireApplicantOwner(ctx);
+  async resubmit(ctx: PartnerContext, actorUserId: string, req?: Request, compat: ListingCompat = LEGACY_NO_HEADER) {
+    const { partnerId, ownerId } = requireApplicantOwner(ctx);
     const state = stateOf(ctx);
-    if (state === 'UNDER_REVIEW') return { alreadySubmitted: true, accessState: state };
+    if (state === 'UNDER_REVIEW') {
+      await recordNoop(partnerId, actorUserId, compat, 'APPLICATION_RESUBMIT');
+      return { alreadySubmitted: true, accessState: state };
+    }
     if (state !== 'CHANGES_REQUESTED') {
       throw appError('Hồ sơ không ở trạng thái có thể gửi lại', 409, 'APPLICATION_LOCKED');
     }
 
-    const missing = await this.missingFor(ctx);
-    if (missing.length > 0) {
+    const missing = await this.missingFor(ctx, compat);
+    if (missing.some((m) => m.section !== 'AMENITIES')) {
       throw appError('Hồ sơ chưa đầy đủ', 400, 'APPLICATION_INCOMPLETE', {
         issues: missing.map((m) => ({ field: m.section, message: m.message })),
       });
     }
 
-    const resubmitted = await prisma.$transaction(async (tx) => {
+    let resubmitted: boolean;
+    try {
+    resubmitted = await prisma.$transaction(async (tx) => {
       await lockPartner(tx, partnerId);
+      const amenityTotal = await requireAmenitiesForSubmitTx(tx, partnerId, ownerId, compat);
       const open = await tx.gymPartnerReviewIssue.count({ where: { partnerId, status: 'OPEN' } });
       if (open > 0) {
         throw appError(
@@ -669,10 +855,18 @@ export const partnerApplicationService = {
         req,
         metadata: { count: resubmittedIssues },
       });
+      await finishApplicationTx(tx, partnerId, actorUserId, compat, 'APPLICATION_RESUBMIT', amenityTotal === 0);
       return true;
     });
+    } catch (e) {
+      await recordRejectedAmenities(e, partnerId, actorUserId, compat, 'APPLICATION_RESUBMIT');
+      throw e;
+    }
 
-    if (!resubmitted) return { alreadySubmitted: true, accessState: 'UNDER_REVIEW' as AccessState };
+    if (!resubmitted) {
+      await recordNoop(partnerId, actorUserId, compat, 'APPLICATION_RESUBMIT');
+      return { alreadySubmitted: true, accessState: 'UNDER_REVIEW' as AccessState };
+    }
     const partner = await partnerRepository.findPartnerById(partnerId);
     void sendApplicantMail(partner?.contactEmail, applicantEmails.resubmitted());
     return { alreadySubmitted: false, accessState: 'UNDER_REVIEW' as AccessState };

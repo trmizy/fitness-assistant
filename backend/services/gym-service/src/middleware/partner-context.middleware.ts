@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { partnerService, type PartnerContext } from '../services/partner.service';
+import { canAccessGym, hasAnyPermission, type PartnerPermission } from '../services/partner-permissions';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -54,6 +55,22 @@ export function requirePartnerOwner(req: Request, res: Response, next: NextFunct
 }
 
 /**
+ * requirePartnerOwner cho route dùng chung nhiều vai trò nằm NGOÀI `/owner` (vd
+ * `/me/collaborations`, PT + GYM_OWNER): chỉ nhánh GYM_OWNER mới bị đòi cấp OWNER; vai trò khác
+ * (PT) không có ngữ cảnh đối tác nên đi tiếp như cũ — controller tự giới hạn theo chính họ.
+ *
+ * Đặt SAU requireOperationalAccessForOwners (chỗ phân giải `req.partner`). Chủ gym cũ (`isLegacy`)
+ * nhận role 'OWNER' từ resolveContextForUser nên qua được, đúng như trên các route /owner.
+ */
+export function requirePartnerOwnerForOwners(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.role !== 'GYM_OWNER') {
+    next();
+    return;
+  }
+  requirePartnerOwner(req, res, next);
+}
+
+/**
  * Cấp quyền thứ hai: người quản lý chỉ thao tác được trên chi nhánh được gán.
  *
  * Chủ sở hữu đi qua vô điều kiện (scopedGymIds rỗng = toàn bộ). Đây KHÔNG thay thế cho
@@ -93,3 +110,52 @@ export function requireGymScope(paramName = 'gymId') {
 export function principalId(req: Request): string {
   return req.partner?.principalUserId ?? req.user!.userId;
 }
+
+/**
+ * D15 — cổng quyền theo DANH MỤC (partner-permissions.ts), mặc định từ chối.
+ *
+ * `permissions` là "một trong" (any-of): route dùng chung giữa nhiều vai trò với phần dữ liệu khác nhau
+ * (vd danh sách hội viên: chủ/quản lý thấy đủ, lễ tân thấy hạn, kế toán thấy doanh số) liệt kê các quyền, và
+ * controller chọn cách hiển thị theo quyền CAO NHẤT mà vai trò có (staff-views.ts).
+ *
+ * `gymParam`: tên tham số route chứa id chi nhánh → kiểm phạm vi (canAccessGym). Vẫn phải để service gọi
+ * gymService.getOwnedGym để chứng minh chi nhánh thuộc ĐÚNG đối tác này; tầng này chỉ trả lời câu hỏi phạm vi.
+ *
+ * Middleware gắn nhãn `.permissions` để kiểm thử duyệt cây route và chứng minh KHÔNG route nào thiếu cổng.
+ */
+export function requirePermission(permission: PartnerPermission | readonly PartnerPermission[], opts: { gymParam?: string } = {}) {
+  const wanted: readonly PartnerPermission[] = Array.isArray(permission) ? permission : [permission as PartnerPermission];
+  const guard = (req: Request, res: Response, next: NextFunction): void => {
+    const ctx = req.partner;
+    if (!ctx) {
+      res.status(500).json({ success: false, error: { code: 'PARTNER_CONTEXT_MISSING', message: 'resolvePartnerContext chưa chạy' } });
+      return;
+    }
+    if (!hasAnyPermission(ctx.role, wanted)) {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: ctx.role === 'MANAGER' || ctx.role === 'OWNER' ? 'OWNER_ROLE_REQUIRED' : 'PERMISSION_DENIED',
+          message: 'Vai trò của bạn không có quyền dùng chức năng này',
+        },
+      });
+      return;
+    }
+    if (opts.gymParam) {
+      const gymId = req.params[opts.gymParam];
+      if (!gymId || !canAccessGym(ctx, gymId)) {
+        res.status(403).json({
+          success: false,
+          error: { code: 'GYM_OUT_OF_SCOPE', message: 'Bạn không được phân công chi nhánh này' },
+        });
+        return;
+      }
+    }
+    next();
+  };
+  (guard as unknown as { permissions: readonly PartnerPermission[] }).permissions = wanted;
+  return guard;
+}
+
+// requirePartnerOwner cũng là một cổng quyền có nhãn ("chỉ OWNER") — để cây route kiểm thử nhận ra nó.
+(requirePartnerOwner as unknown as { permissions: readonly string[] }).permissions = ['owner.only'];

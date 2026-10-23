@@ -1,4 +1,5 @@
 import { partnerS3 } from './partner-s3.service';
+import { listingPhotoStorage } from './listing-photo-storage';
 
 /**
  * Địa chỉ của MỘT ảnh chi nhánh theo nơi nó đang nằm — một hàm dùng chung cho mọi nơi trả ảnh ra
@@ -17,7 +18,8 @@ export async function resolvePhotoUrl(photo: {
 }): Promise<string | null> {
   if (!photo.s3Key) return `/uploads/gym-photos/${photo.fileName}`;
   try {
-    return await partnerS3.presignGet({ key: photo.s3Key, attachment: false, expiresSec: 300 });
+    // through the listing-photo storage port (the default adapter is partnerS3), so tests can inject an in-memory store
+    return await listingPhotoStorage().presignGet({ key: photo.s3Key, expiresSec: 300 });
   } catch {
     return null;
   }

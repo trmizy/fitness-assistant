@@ -4,6 +4,8 @@ import { transactionRepository } from '../repositories/transaction.repository';
 import type { PaymentTransaction } from '../generated/prisma';
 import { pollAndSettle } from './webhook.service';
 import { postServiceJson } from '../clients/service-lambda.client';
+import { refundUnactivatedContractPayment } from './contract-ledger.service';
+import { notifyClientOfAutoRefund } from './refund-notification.service';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 10;
@@ -82,8 +84,7 @@ async function reconcilePendingActivations(): Promise<void> {
 
     for (const txn of pending) {
       try {
-        await callActivateEndpoint(txn);
-        await transactionRepository.markActivated(txn.id);
+        await activateOrRefund(txn);
       } catch (err) {
         await transactionRepository.incrementActivationRetry(txn.id);
         logger.error({ error: 'Activation retry failed', transactionId: txn.id, message: (err as Error).message });
@@ -95,23 +96,141 @@ async function reconcilePendingActivations(): Promise<void> {
 }
 
 /**
+ * user-service's DEFINITE answer that the contract cannot be activated by this payment: it was
+ * cancelled / rejected / expired / completed while the client was at the bank, or it is already
+ * active under a different payment. HTTP 409 with error.code CONTRACT_NOT_ACTIVATABLE (see
+ * contract.service.ts activateAfterPayment). Distinct from every other failure on purpose: a
+ * timeout, a 5xx, a 404 or any other 4xx means "we do not know" and is retried as before; only
+ * this means "no, and never" and is turned into a refund.
+ */
+export class ContractNotActivatableError extends Error {
+  constructor(
+    public readonly currentStatus: string | null,
+    message: string,
+    /** The machine code the owning service answered with; recorded on the refund marker. */
+    public readonly reason: string = CONTRACT_NOT_ACTIVATABLE,
+  ) {
+    super(message);
+    this.name = 'ContractNotActivatableError';
+  }
+}
+
+export const CONTRACT_NOT_ACTIVATABLE = 'CONTRACT_NOT_ACTIVATABLE';
+
+/**
+ * FH-5 / R2: the same "definite no" for the other two purchases that are paid at the gateway before the
+ * owning service is told — a personalized-service order (ai-service) or a gym membership (gym-service)
+ * the client cancelled while at the bank's page. HTTP 409 with error.code NOT_ACTIVATABLE. Like the
+ * PT-contract answer it is the ONLY thing that turns into a refund: a timeout, a 5xx, a 404 or a 409
+ * with any other code still means "we do not know" and is retried by the sweep.
+ */
+export const NOT_ACTIVATABLE = 'NOT_ACTIVATABLE';
+
+/** Maps the owning service's 409 {error:{code}} answer to the typed error; rethrows anything else untouched. */
+function rethrowAsNotActivatable(e: unknown, code: string, what: string): never {
+  // axios and the Lambda client both expose the HTTP answer as err.response.{status,data}.
+  const response = (e as { response?: { status?: number; data?: any } }).response;
+  if (response?.status === 409 && response.data?.error?.code === code) {
+    throw new ContractNotActivatableError(
+      response.data.error.currentStatus ?? null,
+      response.data.error.message ?? `${what} cannot be activated by this payment`,
+      code,
+    );
+  }
+  throw e;
+}
+
+/**
  * Tell the owning service its purchase is paid for. Exported so the webhook path calls the
  * same endpoints the retry sweep does — two copies of this routing would eventually disagree
  * about which service owns which entity type.
+ *
+ * Resolves for an activation (or an idempotent replay of one); throws ContractNotActivatableError
+ * for the "definite no" of any of the three owning services (PT contract, gym membership,
+ * personalized-service order); throws whatever the transport threw for everything else.
+ * Callers must go through activateOrRefund, which handles that error.
  */
 export async function callActivateEndpoint(txn: PaymentTransaction): Promise<void> {
   const body = { transactionId: txn.id };
   const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
   if (txn.relatedEntityType === 'GYM_MEMBERSHIP') {
-    await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, headers });
+    try {
+      await postServiceJson({ service: 'gym', path: `/internal/gym-memberships/${txn.relatedEntityId}/activate`, body, headers });
+    } catch (e) {
+      rethrowAsNotActivatable(e, NOT_ACTIVATABLE, 'Membership');
+    }
   } else if (txn.relatedEntityType === 'PT_CONTRACT') {
-    await postServiceJson({ service: 'user', path: `/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    try {
+      await postServiceJson({ service: 'user', path: `/internal/contracts/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    } catch (e) {
+      rethrowAsNotActivatable(e, CONTRACT_NOT_ACTIVATABLE, 'Contract');
+    }
   } else if (txn.relatedEntityType === 'PERSONALIZED_SERVICE_PURCHASE') {
-    await postServiceJson({ service: 'ai', path: `/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    try {
+      await postServiceJson({ service: 'ai', path: `/internal/personalized-service/orders/${txn.relatedEntityId}/activate-after-payment`, body, headers });
+    } catch (e) {
+      rethrowAsNotActivatable(e, NOT_ACTIVATABLE, 'Order');
+    }
   } else {
     throw new Error(`Unknown relatedEntityType for activation: ${txn.relatedEntityType}`);
   }
+}
+
+/**
+ * The one place that finishes a PAID purchase: activate it, or — when the owning service (user-service
+ * for a PT contract, gym-service for a membership, ai-service for a personalized order) answers that it
+ * can no longer be activated by this payment — give the client the money back.
+ *
+ * Used by every caller that used to do `callActivateEndpoint` + `markActivated` itself (the
+ * webhook/poll settlement, the reconcile sweep, the admin "retry activation" route), so they all
+ * treat the new answer identically.
+ *
+ *  · 'ACTIVATED' — user-service activated it (or confirmed an earlier identical activation);
+ *    marked ACTIVATED.
+ *  · 'REFUNDED'  — not activatable; the full amount of THIS transaction went back to the
+ *    client's wallet and the transaction carries the refund marker (refundUnactivatedContractPayment).
+ *    NOT marked ACTIVATED.
+ *  · throws      — activation outcome unknown (transport/5xx) or the refund itself failed. The
+ *    transaction is untouched (activationStatus stays PENDING) and the reconcile sweep retries:
+ *    the activate call is idempotent and the refund is atomic + keyed per transaction, so a retry
+ *    can neither double-activate nor double-refund.
+ */
+export async function activateOrRefund(txn: PaymentTransaction): Promise<'ACTIVATED' | 'REFUNDED'> {
+  // Already refunded (an admin re-driving a closed row, a late duplicate): never ask user-service
+  // and never activate afterwards — the client has the money, the contract must not also run.
+  if ((txn.metadata as Record<string, unknown> | null)?.unactivatedRefund) {
+    // The refund is already committed; a duplicate callback / admin re-drive is also the retry point for a notice that
+    // could not be sent the first time (a no-op once it was sent - it is claimed per transaction).
+    await notifyClientOfAutoRefund(txn.id);
+    return 'REFUNDED';
+  }
+
+  try {
+    await callActivateEndpoint(txn);
+  } catch (e) {
+    if (!(e instanceof ContractNotActivatableError)) throw e;
+    const meta = (txn.metadata ?? {}) as Record<string, any>;
+    if (!meta.parties?.clientUserId || !meta.parties?.ptUserId) {
+      throw new Error(`transaction ${txn.id} has no frozen party snapshot — cannot refund`);
+    }
+    await refundUnactivatedContractPayment({
+      transactionId: txn.id,
+      parties: {
+        ptUserId: meta.parties.ptUserId,
+        gymId: meta.parties.gymId ?? null,
+        clientUserId: meta.parties.clientUserId,
+      },
+      label: `${txn.purpose} ${txn.relatedEntityId ?? txn.id}`,
+      reason: e.reason,
+      contractStatus: e.currentStatus,
+    });
+    // FH-5: the refund has committed. Tell the client, best-effort and outside the money transaction (never throws).
+    await notifyClientOfAutoRefund(txn.id);
+    return 'REFUNDED';
+  }
+  await transactionRepository.markActivated(txn.id);
+  return 'ACTIVATED';
 }
 
 /**

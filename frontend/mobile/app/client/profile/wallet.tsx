@@ -159,8 +159,8 @@ export default function WalletScreen() {
                         {credit ? <ArrowDownLeft size={18} color={accent.primary} /> : <ArrowUpRight size={18} color={designTokens.mutedForeground} />}
                       </View>
                       <View className="min-w-0 flex-1">
-                        <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                          {transactionLabel(t.description, t.entryType)}
+                        <Text className="font-body-semibold text-sm text-foreground" numberOfLines={3}>
+                          {transactionLabel(t.description, t.entryType, t.category)}
                         </Text>
                         <Text className="font-body text-xs text-muted-foreground">{shortDate(t.createdAt)}</Text>
                       </View>

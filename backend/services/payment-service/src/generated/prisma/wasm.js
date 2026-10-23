@@ -129,6 +129,7 @@ exports.Prisma.WalletScalarFieldEnum = {
   availableBalance: 'availableBalance',
   pendingBalance: 'pendingBalance',
   lockedBalance: 'lockedBalance',
+  holdbackBalance: 'holdbackBalance',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -224,14 +225,151 @@ exports.Prisma.PartnerReceivableScalarFieldEnum = {
   transactionId: 'transactionId',
   settledAt: 'settledAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  suspendedAt: 'suspendedAt',
+  suspendedBy: 'suspendedBy',
+  suspensionReason: 'suspensionReason',
+  suspensionRef: 'suspensionRef',
+  waived: 'waived',
+  waivedAt: 'waivedAt',
+  waivedBy: 'waivedBy',
+  waiveReason: 'waiveReason',
+  waiveRef: 'waiveRef'
 };
 
 exports.Prisma.LedgerOperationScalarFieldEnum = {
   id: 'id',
   key: 'key',
   result: 'result',
+  createdAt: 'createdAt',
+  requestFingerprint: 'requestFingerprint',
+  transactionId: 'transactionId',
+  kind: 'kind'
+};
+
+exports.Prisma.ContractUnpaidObligationScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  transactionId: 'transactionId',
+  contractRef: 'contractRef',
+  kind: 'kind',
+  party: 'party',
+  owed: 'owed',
+  paid: 'paid',
+  unpaid: 'unpaid',
+  externallyPaid: 'externallyPaid',
+  verifiedPaid: 'verifiedPaid',
+  status: 'status',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  resolvedNote: 'resolvedNote',
+  reason: 'reason'
+};
+
+exports.Prisma.PtHoldbackReviewScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  transactionId: 'transactionId',
+  kind: 'kind',
+  status: 'status',
+  reserve: 'reserve',
+  reason: 'reason',
+  relatedRef: 'relatedRef',
+  handler: 'handler',
+  reviewBy: 'reviewBy',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  decidedAt: 'decidedAt',
+  decidedBy: 'decidedBy',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  verifiedAmount: 'verifiedAmount',
+  releasedToPt: 'releasedToPt',
+  note: 'note'
+};
+
+exports.Prisma.PtHoldbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  action: 'action',
+  actor: 'actor',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  reserve: 'reserve',
+  verifiedAmount: 'verifiedAmount',
+  releasedToPt: 'releasedToPt',
+  note: 'note',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.PartnerReceivableEventScalarFieldEnum = {
+  id: 'id',
+  receivableId: 'receivableId',
+  action: 'action',
+  amount: 'amount',
+  reason: 'reason',
+  approvedBy: 'approvedBy',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  beforeJson: 'beforeJson',
+  afterJson: 'afterJson',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ContractUnpaidObligationEventScalarFieldEnum = {
+  id: 'id',
+  obligationId: 'obligationId',
+  action: 'action',
+  note: 'note',
+  actor: 'actor',
+  approvalRef: 'approvalRef',
+  idempotencyKey: 'idempotencyKey',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  unpaid: 'unpaid',
+  paidAmount: 'paidAmount',
+  transferReference: 'transferReference',
+  paidOn: 'paidOn',
+  approvedBy: 'approvedBy',
+  unpaidAfter: 'unpaidAfter',
+  paymentId: 'paymentId',
+  paymentSource: 'paymentSource',
+  recipient: 'recipient',
+  evidenceRef: 'evidenceRef',
+  evidenceHash: 'evidenceHash',
+  bankStatementId: 'bankStatementId',
+  verifiedBy: 'verifiedBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ContractUnpaidObligationPaymentScalarFieldEnum = {
+  id: 'id',
+  obligationId: 'obligationId',
+  approvalRef: 'approvalRef',
+  status: 'status',
+  amount: 'amount',
+  paymentSource: 'paymentSource',
+  recipientParty: 'recipientParty',
+  recipientId: 'recipientId',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  paidAmount: 'paidAmount',
+  transferReference: 'transferReference',
+  paidOn: 'paidOn',
+  evidenceRef: 'evidenceRef',
+  evidenceHash: 'evidenceHash',
+  bankStatementId: 'bankStatementId',
+  recordedBy: 'recordedBy',
+  recordedAt: 'recordedAt',
+  verifiedBy: 'verifiedBy',
+  verifiedAt: 'verifiedAt',
+  cancelledBy: 'cancelledBy',
+  cancelledAt: 'cancelledAt',
+  cancelReason: 'cancelReason'
 };
 
 exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
@@ -296,7 +434,8 @@ exports.LedgerEntryType = exports.$Enums.LedgerEntryType = {
 exports.LedgerBucket = exports.$Enums.LedgerBucket = {
   PENDING: 'PENDING',
   AVAILABLE: 'AVAILABLE',
-  LOCKED: 'LOCKED'
+  LOCKED: 'LOCKED',
+  HOLDBACK: 'HOLDBACK'
 };
 
 exports.WithdrawalRequestStatus = exports.$Enums.WithdrawalRequestStatus = {
@@ -363,6 +502,65 @@ exports.CommissionStatus = exports.$Enums.CommissionStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.ContractUnpaidObligationKind = exports.$Enums.ContractUnpaidObligationKind = {
+  NO_SHOW: 'NO_SHOW',
+  LATE_ARRIVAL: 'LATE_ARRIVAL',
+  REFUND_SHORT: 'REFUND_SHORT',
+  OVER_RELEASED: 'OVER_RELEASED'
+};
+
+exports.ContractUnpaidObligationStatus = exports.$Enums.ContractUnpaidObligationStatus = {
+  OPEN: 'OPEN',
+  RESOLVED: 'RESOLVED',
+  WAIVED: 'WAIVED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PAID_EXTERNALLY: 'PAID_EXTERNALLY',
+  APPROVED_FOR_PAYMENT: 'APPROVED_FOR_PAYMENT',
+  AWAITING_EVIDENCE: 'AWAITING_EVIDENCE',
+  PAID_VERIFIED: 'PAID_VERIFIED',
+  RESOLVED_OTHER: 'RESOLVED_OTHER'
+};
+
+exports.PtHoldbackReviewKind = exports.$Enums.PtHoldbackReviewKind = {
+  OPEN_OBLIGATION: 'OPEN_OBLIGATION',
+  UNSECURED_DISPUTE: 'UNSECURED_DISPUTE',
+  UNCOMPUTABLE: 'UNCOMPUTABLE'
+};
+
+exports.PtHoldbackReviewStatus = exports.$Enums.PtHoldbackReviewStatus = {
+  OPEN: 'OPEN',
+  SETTLED_VERIFIED: 'SETTLED_VERIFIED',
+  SETTLED_PARTIAL: 'SETTLED_PARTIAL',
+  NOT_VERIFIED: 'NOT_VERIFIED',
+  RELEASED_AUTO: 'RELEASED_AUTO'
+};
+
+exports.PartnerReceivableEventAction = exports.$Enums.PartnerReceivableEventAction = {
+  SUSPEND: 'SUSPEND',
+  RESUME: 'RESUME',
+  WAIVE: 'WAIVE'
+};
+
+exports.ContractUnpaidObligationEventAction = exports.$Enums.ContractUnpaidObligationEventAction = {
+  RESOLVE: 'RESOLVE',
+  WAIVE: 'WAIVE',
+  REVIEW: 'REVIEW',
+  RELEASE_REVIEW: 'RELEASE_REVIEW',
+  PAY_EXTERNALLY: 'PAY_EXTERNALLY',
+  APPROVE_PAYMENT: 'APPROVE_PAYMENT',
+  SUBMIT_EVIDENCE: 'SUBMIT_EVIDENCE',
+  VERIFY_PAYMENT: 'VERIFY_PAYMENT',
+  CANCEL_APPROVAL: 'CANCEL_APPROVAL',
+  RESOLVE_OTHER: 'RESOLVE_OTHER'
+};
+
+exports.ContractUnpaidObligationPaymentStatus = exports.$Enums.ContractUnpaidObligationPaymentStatus = {
+  APPROVED: 'APPROVED',
+  EVIDENCE_SUBMITTED: 'EVIDENCE_SUBMITTED',
+  VERIFIED: 'VERIFIED',
+  CANCELLED: 'CANCELLED'
+};
+
 exports.Prisma.ModelName = {
   Wallet: 'Wallet',
   WalletLedgerEntry: 'WalletLedgerEntry',
@@ -371,6 +569,12 @@ exports.Prisma.ModelName = {
   PlatformCommission: 'PlatformCommission',
   PartnerReceivable: 'PartnerReceivable',
   LedgerOperation: 'LedgerOperation',
+  ContractUnpaidObligation: 'ContractUnpaidObligation',
+  PtHoldbackReview: 'PtHoldbackReview',
+  PtHoldbackReviewEvent: 'PtHoldbackReviewEvent',
+  PartnerReceivableEvent: 'PartnerReceivableEvent',
+  ContractUnpaidObligationEvent: 'ContractUnpaidObligationEvent',
+  ContractUnpaidObligationPayment: 'ContractUnpaidObligationPayment',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

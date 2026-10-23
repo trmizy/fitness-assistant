@@ -2,7 +2,15 @@ import { logger } from "@gym-coach/shared";
 import { SessionStatus } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
 import { notificationService } from "./notification.service";
-import { deductQuotaOnce } from "./booking.service";
+import { deductQuotaOnce, type DeliveryTransition } from "./booking.service";
+import { CONTRACT_ENDING } from "./contract-lock";
+import { trackJob } from "../lifecycle";
+import {
+  activeRestrictedContractIds,
+  activeRestrictedPtUserIds,
+  getActiveContractRestriction,
+  isPtRestricted,
+} from "./pt-restriction.service";
 
 const INTERVAL_MS = Number(
   process.env.SESSION_AUTO_CONFIRM_INTERVAL_MS ?? 10 * 60 * 1000,
@@ -25,27 +33,34 @@ export interface AutoConfirmDeps {
   findExpiredPendingConfirmation: (
     before: Date,
     limit: number,
-  ) => Promise<Array<{ id: string; contractId: string; clientUserId: string }>>;
-  deductQuotaOnce: (sessionId: string, contractId: string) => Promise<boolean>;
-  updateStatus: (id: string, status: SessionStatus, extra: Record<string, unknown>) => Promise<unknown>;
+  ) => Promise<Array<{ id: string; contractId: string; clientUserId: string; ptUserId?: string }>>;
+  /** Re-checked right before each session is confirmed (a suspension may have begun since the list was read). */
+  isPtRestricted?: (ptUserId: string) => Promise<boolean>;
+  /** Same re-check for a contract paused on its own (CONTRACT-scope restriction): only that contract's sessions wait. */
+  isContractRestricted?: (contractId: string) => Promise<boolean>;
+  /** F3: the confirmation is ONE compare-and-set (PENDING_CLIENT_CONFIRMATION -> COMPLETED + quota claim); true only if this call won it. */
+  deductQuotaOnce: (sessionId: string, contractId: string, transition: DeliveryTransition) => Promise<boolean>;
   notify: (params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link: string }) => Promise<unknown>;
 }
 
 const defaultAutoConfirmDeps: AutoConfirmDeps = {
-  findExpiredPendingConfirmation: (before, limit) =>
-    sessionRepository.findExpiredPendingConfirmation(before, limit),
-  deductQuotaOnce: (sessionId, contractId) => deductQuotaOnce(sessionId, contractId),
-  updateStatus: (id, status, extra) => sessionRepository.updateStatus(id, status, extra),
+  findExpiredPendingConfirmation: async (before, limit) =>
+    sessionRepository.findExpiredPendingConfirmation(before, limit, await activeRestrictedPtUserIds(), await activeRestrictedContractIds()),
+  isPtRestricted: (ptUserId) => isPtRestricted(ptUserId),
+  isContractRestricted: async (contractId) => (await getActiveContractRestriction(contractId)) !== null,
+  deductQuotaOnce: (sessionId, contractId, transition) => deductQuotaOnce(sessionId, contractId, undefined, transition),
   notify: (params) => notificationService.create(params).catch(() => undefined),
 };
 
-export function startSessionAutoConfirmJob(): void {
+/** Starts the periodic job; returns the function that stops it (graceful shutdown). */
+export function startSessionAutoConfirmJob(): () => void {
   logger.info(
     `Session auto-confirm job started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`,
   );
-  setInterval(() => {
-    void runAutoConfirm();
+  const timer = setInterval(() => {
+    void trackJob(runAutoConfirm());
   }, INTERVAL_MS);
+  return () => clearInterval(timer);
 }
 
 export async function runAutoConfirm(
@@ -73,17 +88,25 @@ export async function runAutoConfirm(
 
     for (const session of due) {
       try {
+        // Nothing is auto-decided against (or for) a PT who is restricted right now.
+        if (session.ptUserId && deps.isPtRestricted && (await deps.isPtRestricted(session.ptUserId))) continue;
+        if (deps.isContractRestricted && (await deps.isContractRestricted(session.contractId))) continue;
         // Same guarded deduction the manual confirm uses — charges the quota, releases the
         // PT's money, and checks contract completion, all in the one place that logic lives.
         // If the client confirmed a moment ago, this claims nothing and nothing is charged
         // or released twice.
-        await deps.deductQuotaOnce(session.id, session.contractId);
-
-        await deps.updateStatus(session.id, SessionStatus.COMPLETED, {
-          completedAt: new Date(),
-          autoConfirmed: true,
-          resolutionNote: `Tự động xác nhận sau khi quá hạn phản hồi (${process.env.SESSION_AUTO_CONFIRM_DAYS ?? 3} ngày)`,
+        // F3: the status change is part of the claim - a session the client disputed, an admin ruled or a cancel
+        // closed in the meantime matches zero rows and is NOT overwritten, charged or paid (it used to be forced to
+        // COMPLETED whether or not the claim won).
+        const won = await deps.deductQuotaOnce(session.id, session.contractId, {
+          from: [SessionStatus.PENDING_CLIENT_CONFIRMATION],
+          extra: {
+            completedAt: new Date(),
+            autoConfirmed: true,
+            resolutionNote: `Tự động xác nhận sau khi quá hạn phản hồi (${process.env.SESSION_AUTO_CONFIRM_DAYS ?? 3} ngày)`,
+          },
         });
+        if (!won) continue;
         confirmed++;
 
         await deps.notify({
@@ -95,6 +118,12 @@ export async function runAutoConfirm(
           link: "/client/booking",
         });
       } catch (err) {
+        // D59: the contract's ending is recorded but unconfirmed - nothing is confirmed on it now; the sweep reaches the
+        // session again once the ending is confirmed (its value is then settled against the hold).
+        if ((err as { code?: string })?.code === CONTRACT_ENDING) {
+          logger.info(`[SessionAutoConfirm] session ${session.id} left for later: contract ${session.contractId} is being ended`);
+          continue;
+        }
         // One bad row must not stop the sweep — the rest still settle.
         logger.error({
           error: "Auto-confirm failed for session",

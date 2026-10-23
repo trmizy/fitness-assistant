@@ -2,6 +2,7 @@ import { logger } from "@gym-coach/shared";
 import { AuditEntityType } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 import { auditService, SYSTEM_ACTOR } from "./audit.service";
+import { trackJob } from "../lifecycle";
 
 const INTERVAL_MS = Number(
   process.env.RESCHEDULE_EXPIRY_INTERVAL_MS ?? 10 * 60 * 1000,
@@ -22,13 +23,15 @@ const BATCH_SIZE = 100;
  */
 let running = false;
 
-export function startRescheduleExpiryJob(): void {
+/** Starts the periodic job; returns the function that stops it (graceful shutdown). */
+export function startRescheduleExpiryJob(): () => void {
   logger.info(
     `Reschedule expiry job started (interval: ${Math.round(INTERVAL_MS / 60000)} min)`,
   );
-  setInterval(() => {
-    void runRescheduleExpiry();
+  const timer = setInterval(() => {
+    void trackJob(runRescheduleExpiry());
   }, INTERVAL_MS);
+  return () => clearInterval(timer);
 }
 
 export async function runRescheduleExpiry(): Promise<{ expired: number }> {

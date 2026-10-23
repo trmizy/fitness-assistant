@@ -4,6 +4,7 @@ import { affiliationController } from '../controllers/affiliation.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireOperationalAccessForOwners } from '../middleware/operational-access.middleware';
+import { requirePartnerOwnerForOwners } from '../middleware/partner-context.middleware';
 
 const router = Router();
 
@@ -32,6 +33,10 @@ router.get(
   // owner.routes.ts — phải tự đi qua nó, nếu không một ứng viên (JWT role GYM_OWNER) đọc được
   // danh sách đề xuất cộng tác PT. PT đi tiếp như cũ.
   asyncHandler(requireOperationalAccessForOwners),
+  // Qua cổng vận hành chưa đủ: controller trả thoả thuận (tỷ lệ chia doanh thu) của MỌI chi nhánh
+  // thuộc đối tác — "tiền và người thì chỉ chủ sở hữu". Thiếu dòng này thì một MANAGER đọc được
+  // hết qua đây dù `GET /owner/collaborations` (owner.routes.ts) đã chặn họ.
+  requirePartnerOwnerForOwners,
   asyncHandler(collaborationController.listMine),
 );
 

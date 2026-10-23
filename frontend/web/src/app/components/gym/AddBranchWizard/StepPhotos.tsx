@@ -1,163 +1,151 @@
-import { useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CircleNotchIcon, ImageIcon, StarIcon, TrashIcon, CaretLeftIcon, CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
-import { gymService, gymPhotoUrl } from "../../../services/api";
-import type { GymPhoto } from "../../../types";
+import { CircleNotchIcon } from "@phosphor-icons/react";
+import { branchPhotoService, gymListingService } from "../../../services/gymListingApi";
+import type { ListingPhoto } from "../../../types";
+import { PhotosSection, type UploadEntry } from "../../../pages/pt/listing/ListingSections";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { MAX_DRAFT_BRANCH_PHOTOS, gymListingErrorMessage, gymPhotoLimitMessage, movePhoto, photoFileError, photoRoom } from "../../../utils/gymListing";
 
-const MAX_PHOTOS = 20;
-
-/** GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Public gallery — upload/preview/
- * reorder/delete/set-cover, mirroring the API gap doc's expected behavior list exactly.
- * Self-contained (owns its own query/mutations) unlike Steps 1-3, which hand a plain value
- * up to the parent: a photo grid's natural unit of action is "this one photo", not a single
- * debounced form value. */
+/**
+ * Step 5 "Hình ảnh" of the add-branch wizard. The old disk route answers 410; photos go presign → direct POST to storage → confirm
+ * (the server re-encodes the file), and a DRAFT branch keeps them as an ordered gallery: ↑ ↓ reorder, one cover, delete. Photos are
+ * STAGED (private) until the branch is approved. Self-contained (owns its query and mutations), like the verification step.
+ */
 export function StepPhotos({ gymId }: { gymId: string }) {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryKey = ["gym-photos", gymId];
-
-  const photosQuery = useQuery<GymPhoto[]>({ queryKey, queryFn: () => gymService.listGymPhotos(gymId) });
+  const photosQuery = useQuery<ListingPhoto[]>({ queryKey, queryFn: () => branchPhotoService.list(gymId),
+    // the list carries short-lived (5 min) presigned links: keep them fresh while the step stays open
+    refetchInterval: 4 * 60 * 1000,
+  });
   const photos = photosQuery.data ?? [];
 
-  const uploadMutation = useMutation({
-    mutationFn: (file: File) => gymService.uploadGymPhoto(gymId, file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tải ảnh lên"),
-  });
+  const [uploads, setUploads] = useState<UploadEntry[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const seq = useRef(0);
 
-  const deleteMutation = useMutation({
-    mutationFn: (photoId: string) => gymService.deleteGymPhoto(gymId, photoId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể xoá ảnh"),
-  });
+  const ids = photos.map((p) => p.id);
+  const cover = (photos.find((p) => p.isCover) ?? photos[0])?.id ?? null;
+  const photoMap = new Map(photos.map((p) => [p.id, p]));
 
-  const coverMutation = useMutation({
-    mutationFn: (photoId: string) => gymService.setGymPhotoCover(gymId, photoId),
-    onSuccess: (updated) => queryClient.setQueryData(queryKey, updated),
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể đặt ảnh bìa"),
-  });
+  async function guarded(fn: () => Promise<void>, fallback: string) {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (e) {
+      toast.error(gymListingErrorMessage(e, fallback));
+      void queryClient.invalidateQueries({ queryKey });
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const reorderMutation = useMutation({
-    mutationFn: (photoIds: string[]) => gymService.reorderGymPhotos(gymId, photoIds),
-    onSuccess: (updated) => queryClient.setQueryData(queryKey, updated),
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể sắp xếp lại"),
-  });
+  const uploadOne = async (file: File, key: string) => {
+    setUploads((prev) => [...prev.filter((u) => u.key !== key), { key, name: file.name, status: "uploading", file }]);
+    try {
+      await gymListingService.uploadPhoto(gymId, file);
+      setUploads((prev) => prev.filter((u) => u.key !== key));
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (e) {
+      const message = gymListingErrorMessage(e, "Không tải được ảnh. Hãy thử lại.");
+      setUploads((prev) => prev.map((u) => (u.key === key ? { ...u, status: "failed", message } : u)));
+    }
+  };
 
-  async function handleFilesSelected(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    const remaining = MAX_PHOTOS - photos.length;
-    if (remaining <= 0) {
-      toast.error(`Tối đa ${MAX_PHOTOS} ảnh cho mỗi chi nhánh`);
+  const onAdd = async (files: File[]) => {
+    const inFlight = uploads.filter((u) => u.status === "uploading").length;
+    const room = photoRoom(photos.length + inFlight, MAX_DRAFT_BRANCH_PHOTOS);
+    if (room <= 0) {
+      toast.error(gymPhotoLimitMessage(MAX_DRAFT_BRANCH_PHOTOS));
       return;
     }
-    const toUpload = Array.from(files).slice(0, remaining);
-    for (const file of toUpload) {
-      await uploadMutation.mutateAsync(file);
+    const accepted: File[] = [];
+    for (const f of files) {
+      const problem = photoFileError(f);
+      if (problem) toast.error(`${f.name}: ${problem}`);
+      else accepted.push(f);
     }
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  function move(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= photos.length) return;
-    const ids = photos.map((p) => p.id);
-    [ids[index], ids[target]] = [ids[target], ids[index]];
-    reorderMutation.mutate(ids);
-  }
+    if (accepted.length > room) toast.error(`Chỉ còn chỗ cho ${room} ảnh nữa — các ảnh thừa đã được bỏ qua.`);
+    for (const file of accepted.slice(0, room)) {
+      seq.current += 1;
+      await uploadOne(file, `upload-${seq.current}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-zinc-100">Hình ảnh</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Thư viện ảnh công khai — khách xem được khi tìm phòng gym. Tối đa {MAX_PHOTOS} ảnh, JPG/PNG/WEBP.
+        <p className="mt-1 text-sm text-zinc-500">
+          Thư viện ảnh của chi nhánh — khách xem được sau khi chi nhánh được duyệt. Tối đa {MAX_DRAFT_BRANCH_PHOTOS} ảnh, JPG/PNG/WEBP.
         </p>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-        className="hidden"
-        onChange={(e) => handleFilesSelected(e.target.files)}
-      />
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploadMutation.isPending || photos.length >= MAX_PHOTOS}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-zinc-700 text-sm font-semibold text-zinc-400 hover:bg-zinc-900 disabled:opacity-50 transition-colors"
-      >
-        {uploadMutation.isPending ? <CircleNotchIcon className="size-4 animate-spin" /> : <PlusIcon className="size-4" />}
-        {uploadMutation.isPending ? "Đang tải ảnh lên..." : "Tải ảnh lên"}
-      </button>
-
       {photosQuery.isLoading ? (
         <div className="flex justify-center py-8">
-          <CircleNotchIcon className="size-5 text-zinc-500 animate-spin" />
+          <CircleNotchIcon className="size-5 animate-spin text-zinc-500" />
         </div>
-      ) : photos.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/40 p-10 text-center">
-          <ImageIcon className="size-8 text-zinc-700 mx-auto mb-2" />
-          <p className="text-sm text-zinc-500">Chưa có ảnh nào — tải lên ít nhất một ảnh để khách hình dung được không gian tập luyện.</p>
-        </div>
+      ) : photosQuery.isError ? (
+        <p className="text-sm text-red-400">{gymListingErrorMessage(photosQuery.error, "Không tải được danh sách ảnh.")}</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {photos.map((photo, index) => (
-            <div key={photo.id} className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 group">
-              <img src={gymPhotoUrl(photo.fileName, photo.url)} alt="" className="w-full aspect-square object-cover" />
-              {photo.isCover && (
-                <span className="absolute top-1.5 left-1.5 flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-black">
-                  <StarIcon className="size-3" weight="fill" /> Ảnh bìa
-                </span>
-              )}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 p-1.5 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="flex gap-0.5">
-                  <button
-                    type="button"
-                    aria-label="Di chuyển lên/trái"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    className="size-6 flex items-center justify-center rounded bg-white/10 text-white disabled:opacity-30 hover:bg-white/20"
-                  >
-                    <CaretLeftIcon className="size-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Di chuyển xuống/phải"
-                    disabled={index === photos.length - 1}
-                    onClick={() => move(index, 1)}
-                    className="size-6 flex items-center justify-center rounded bg-white/10 text-white disabled:opacity-30 hover:bg-white/20"
-                  >
-                    <CaretRightIcon className="size-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-0.5">
-                  {!photo.isCover && (
-                    <button
-                      type="button"
-                      aria-label="Đặt làm ảnh bìa"
-                      onClick={() => coverMutation.mutate(photo.id)}
-                      className="size-6 flex items-center justify-center rounded bg-white/10 text-white hover:bg-white/20"
-                    >
-                      <StarIcon className="size-3.5" />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    aria-label="Xoá ảnh"
-                    onClick={() => deleteMutation.mutate(photo.id)}
-                    className="size-6 flex items-center justify-center rounded bg-white/10 text-red-400 hover:bg-red-500/20"
-                  >
-                    <TrashIcon className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <PhotosSection
+          copy={{
+            intro: (n, max) => `${n}/${max} ảnh. Ảnh bìa hiện trên thẻ chi nhánh khi khách tìm phòng gym.`,
+            empty: "Chưa có ảnh nào — tải lên ít nhất một ảnh để khách hình dung được không gian tập luyện.",
+            removeLabel: "Xóa ảnh",
+            footer: "JPEG, PNG hoặc WebP, tối đa 8 MB mỗi ảnh.",
+          }}
+          ids={ids}
+          cover={cover}
+          photos={photoMap}
+          spare={[]}
+          max={MAX_DRAFT_BRANCH_PHOTOS}
+          uploads={uploads}
+          busy={busy}
+          onAdd={(files) => void onAdd(files)}
+          onMove={(id, dir) =>
+            void guarded(async () => {
+              const next = movePhoto(ids, id, dir);
+              if (next === ids) return;
+              queryClient.setQueryData(queryKey, await gymListingService.reorderPhotos(gymId, next));
+            }, "Không sắp xếp lại được ảnh")
+          }
+          onSetCover={(id) =>
+            void guarded(async () => {
+              queryClient.setQueryData(queryKey, await gymListingService.setCover(gymId, id));
+            }, "Không đặt được ảnh bìa")
+          }
+          onRemove={(id) => setDeleteId(id)}
+          onDeleteStaged={(id) => setDeleteId(id)}
+          onAddExisting={() => {}}
+          onRetryUpload={(key) => {
+            const entry = uploads.find((u) => u.key === key);
+            if (entry) void uploadOne(entry.file, key);
+          }}
+          onDropUpload={(key) => setUploads((prev) => prev.filter((u) => u.key !== key))}
+        />
       )}
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+        title="Xóa ảnh này?"
+        description="Ảnh sẽ bị xóa hẳn khỏi chi nhánh."
+        confirmLabel="Xóa ảnh"
+        onConfirm={async () => {
+          const id = deleteId;
+          setDeleteId(null);
+          if (!id) return;
+          await guarded(async () => {
+            await gymListingService.deletePhoto(gymId, id);
+            await queryClient.invalidateQueries({ queryKey });
+            toast.success("Đã xóa ảnh");
+          }, "Không xóa được ảnh");
+        }}
+      />
     </div>
   );
 }

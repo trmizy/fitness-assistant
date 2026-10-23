@@ -7,34 +7,161 @@ import {
   PackageType,
   SessionMode,
   Prisma,
-  SessionSettlementKind,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
-import { authServiceClient } from "../clients/auth-service.client";
+import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-service.client";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
-import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
+import { ptServicePackageRepository, type LockedPackageRow } from "../repositories/pt_service_package.repository";
 import { clientReviewRepository } from "../repositories/clientReview.repository";
 import { availabilityService } from "./availability.service";
-import { auditService } from "./audit.service";
-import { terminateContractMoney } from "./contract-payout.service";
-import { settleTracked } from "./session-settlement.service";
+import { auditService, SYSTEM_ACTOR } from "./audit.service";
+import { completeContractRecordingEnding, recordTerminationAttemptFailed, releaseHoldbackMoney, terminateContractMoney } from "./contract-payout.service";
+import { resolvePtHoldbackRate } from "./pt-holdback-rate";
+import { ptTermsService } from "./pt-terms.service";
+import { PT_TERMS_VERSION } from "./pt-terms";
+import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
+import { toPublicPtPackageDto } from "./pt-public-dto";
+import { recordClientCompatEvent } from "./client-compat.service";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
+import {
+  activeRestrictedContractIds,
+  activeRestrictedPtUserIds,
+  assertPtAcceptsNewBusiness,
+  assertPtMayAct,
+  assertPtMayActOnContract,
+  getActiveRestriction,
+  getBlockingRestriction,
+  getEffectiveContractStatuses,
+  isContractRestricted,
+} from "./pt-restriction.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** Machine-readable code of the 409 activate-after-payment answers when the contract cannot be
+ * activated by the payment that just landed. payment-service matches on it to refund the
+ * client — keep the two in step (payment-service reconciliation.service.ts). */
+export const CONTRACT_NOT_ACTIVATABLE = "CONTRACT_NOT_ACTIVATABLE";
+
 /** Vòng 4 / Phase E2 — how many confirmed PT no-shows on one contract earn the client the
  * right to terminate it themselves for a full refund (TerminationReason PT_REPEATED_NO_SHOW,
  * enforced in contract.controller.ts's terminate()). */
 export const PT_REPEATED_NO_SHOW_THRESHOLD = 3;
+
+/** Hạn thanh toán: một hợp đồng phải được trả trong vòng bao nhiêu giờ kể từ lúc nó VÀO
+ * PENDING_PAYMENT. Quá hạn mà chưa trả thì contract-expiry-sweep tự huỷ (và `pay` từ chối từ
+ * lúc quá hạn, không đợi sweep). Cấu hình qua env, mặc định 12 giờ. */
+export const CONTRACT_PAYMENT_DEADLINE_HOURS = (() => {
+  const n = Number(process.env.CONTRACT_PAYMENT_DEADLINE_HOURS ?? 12);
+  return Number.isFinite(n) && n > 0 ? n : 12;
+})();
+
+/** Thời gian (phút) mà một checkout cổng thanh toán đã khởi tạo vẫn có thể được hoàn tất. `pay`
+ * đẩy `paymentDueAt` tới ít nhất `now + giá trị này` để sweep không huỷ hợp đồng khi học viên còn
+ * đang ở trang ngân hàng (tiền về sau khi hợp đồng đã CANCELLED = đã trả mà bị huỷ). Phải >= hạn
+ * checkout dài nhất của các cổng trong payment-service + độ trễ webhook/polling (5 phút).
+ * VNPay đặt vnp_ExpireDate = +15 phút; ZaloPay/PayOS/MoMo không truyền hạn nên dùng mặc định của
+ * cổng (không đọc được từ code). Mặc định 60 phút, cấu hình qua env. */
+export const CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES = (() => {
+  const n = Number(process.env.CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES ?? 60);
+  return Number.isFinite(n) && n > 0 ? n : 60;
+})();
+
+/** D13 (owner decision APPROVED): a contract's payment deadline is extended by a checkout AT MOST ONCE (one 60-minute extension per contract).
+ * ON by default. Only an explicit `false` (CHECKOUT_EXTENSION_ONCE=false, trimmed, case-insensitive) turns it off - an emergency switch that
+ * restores the old unlimited extension and is warned about every time it is used. Read on every call so tests and ops can flip it. */
+export function checkoutExtensionOnce(): boolean {
+  return (process.env.CHECKOUT_EXTENSION_ONCE ?? "").trim().toLowerCase() !== "false";
+}
+
+/** Giá trị `paymentDueAt` cho một hợp đồng vừa vào PENDING_PAYMENT lúc `from`. Mọi đường đi vào
+ * PENDING_PAYMENT (PT chấp nhận, webhook ký xong, admin bỏ qua e-sign) phải đặt cột này. */
+export function computePaymentDueAt(from: Date = new Date()): Date {
+  return new Date(from.getTime() + CONTRACT_PAYMENT_DEADLINE_HOURS * 60 * 60 * 1000);
+}
+
+/** Lỗi mang mã máy đọc được (`code`) — controller chuyển `code` ra response. */
+function codedErr(message: string, status: number, code: string) {
+  return Object.assign(err(message, status), { code });
+}
+
+/**
+ * D25/D74 - THE one terms gate for taking a NEW contract: the PT of a PENDING_REVIEW request must have confirmed the CURRENT PT
+ * terms. Used by acceptContract (the PT) AND by the admin "skip e-sign" path in updateStatus: an admin may skip e-sign but can never
+ * accept the terms on the PT's behalf, so that path asks the SAME question about the contract's PT (never about the admin).
+ * A contract past PENDING_REVIEW was already accepted (under the terms of its time) and is not asked again.
+ * Refuses with 409 PT_TERMS_NOT_ACCEPTED and writes nothing.
+ */
+async function assertPtTermsForNewContract(contract: { ptUserId: string; status: ContractStatus }): Promise<void> {
+  if (contract.status !== ContractStatus.PENDING_REVIEW) return;
+  await ptTermsService.assertAcceptedCurrent(contract.ptUserId);
+}
+
+export const GYM_NOT_ACCEPTING_CONTRACTS = "GYM_NOT_ACCEPTING_CONTRACTS";
+export const GYM_TERMS_CHANGED = "GYM_TERMS_CHANGED";
+export const PAYMENT_DEADLINE_PASSED = "PAYMENT_DEADLINE_PASSED";
+
+/**
+ * Hợp đồng gắn phòng gym: hỏi lại gym-service xem thoả thuận PT–gym còn dùng được cho hợp đồng
+ * MỚI không. `requestContract` chỉ hỏi một lần lúc tạo yêu cầu; trong lúc chờ PT chấp nhận /
+ * khách thanh toán, gym có thể bị đóng / ngừng hoạt động hoặc thoả thuận bắt đầu bị chấm dứt.
+ * Chỉ hợp đồng ĐÃ TRẢ TIỀN mới là cam kết đã có — hợp đồng chưa trả vẫn là "mới".
+ *
+ *  - gym-service không với tới được → 503 (không bao giờ coi "không kiểm tra được" là hợp lệ
+ *    hay không hợp lệ).
+ *  - không còn thoả thuận → 409 GYM_NOT_ACCEPTING_CONTRACTS, hợp đồng giữ nguyên trạng thái.
+ *  - còn thoả thuận nhưng 3 tỷ lệ khác bản đã chụp vào hợp đồng → 409 GYM_TERMS_CHANGED; không
+ *    bao giờ ghi đè tỷ lệ của hợp đồng, không bao giờ đi tiếp với tỷ lệ lệch.
+ * Hợp đồng không có gymId: không gọi gym-service.
+ */
+export async function assertGymStillAcceptsContract(contract: {
+  gymId: string | null;
+  ptUserId: string;
+  platformRate: Prisma.Decimal | string;
+  ptRate: Prisma.Decimal | string;
+  gymRate: Prisma.Decimal | string;
+}): Promise<void> {
+  if (!contract.gymId) return;
+  let collab;
+  try {
+    collab = await gymClient.getActiveCollaboration(contract.gymId, contract.ptUserId);
+  } catch (e) {
+    if (e instanceof GymServiceUnavailableError) {
+      throw err(
+        "Không thể xác nhận thoả thuận hợp tác với phòng gym lúc này, vui lòng thử lại",
+        503,
+      );
+    }
+    throw e;
+  }
+  if (!collab) {
+    throw codedErr(
+      "Phòng gym này hiện không còn nhận hợp đồng PT mới. Vui lòng chọn phòng gym khác hoặc hình thức tập khác.",
+      409,
+      GYM_NOT_ACCEPTING_CONTRACTS,
+    );
+  }
+  // So sánh dạng số thập phân, không so chuỗi ("0.5" bằng "0.5000").
+  const same =
+    new Prisma.Decimal(collab.platformRate).equals(contract.platformRate) &&
+    new Prisma.Decimal(collab.ptRate).equals(contract.ptRate) &&
+    new Prisma.Decimal(collab.gymRate).equals(contract.gymRate);
+  if (!same) {
+    throw codedErr(
+      "Điều khoản hợp tác giữa PT và phòng gym đã thay đổi kể từ lúc yêu cầu được tạo. Vui lòng huỷ yêu cầu này và tạo yêu cầu mới.",
+      409,
+      GYM_TERMS_CHANGED,
+    );
+  }
+}
 
 /**
  * Money-flow plan 1.5 — the single shared formula for "how many sessions does this contract
@@ -74,17 +201,39 @@ export interface CompleteContractDeps {
 
 const defaultCompleteContractDeps: CompleteContractDeps = {
   findById: (id) => contractRepository.findById(id),
-  updateStatus: (id, status, extra) => contractRepository.updateStatus(id, status, extra),
+  // F4: guarded - only an ACTIVE contract is completed. A contract that was ended another way between the read and this write
+  // (client cancel, expiry, ban) is NOT rewritten to COMPLETED (null = lost the race; checkAndCompleteContract then stops).
+  // FH-3b (DQ-8): the CONTRACT_TERMINATION intent is written in the SAME transaction as the status flip, so a crash right after
+  // "COMPLETED" can no longer leave a completed contract the settlement sweep does not know about. (`status` is always COMPLETED here.)
+  updateStatus: (id, _status, extra) => completeContractRecordingEnding(id, extra),
   deriveClientJourney: (id) => deriveForCompletedContract(id),
   // Money-flow plan 1.6: tracked, because by the time this runs updateStatus has already
   // committed the contract to COMPLETED — there is no going back to retry a failed settlement
-  // through any status-gated endpoint, so the sweep is the only path left for it.
-  settleMoney: (id, reason) =>
-    settleTracked(
-      { kind: SessionSettlementKind.CONTRACT_TERMINATION, idempotencyKey: `CONTRACT_TERMINATE:${id}`, contractId: id, reason },
-      () => terminateContractMoney(id, reason),
-    ),
+  // through any status-gated endpoint, so the sweep is the only path left for it. The CONTRACT_TERMINATION intent row was
+  // written together with that status (FH-3b); the ending here carries it through and settles it on payment-service's
+  // confirmation. recordTerminationAttemptFailed stays as a belt-and-braces upsert for a contract with no row (it is a no-op
+  // for a row that exists) so the sweep still finds the ending if the ending itself died before it could look at the row.
+  settleMoney: async (id, reason) => {
+    try {
+      return await terminateContractMoney(id, reason);
+    } catch (e) {
+      await recordTerminationAttemptFailed(id, reason, (e as Error).message).catch(() => undefined);
+      throw e;
+    }
+  },
 };
+
+/**
+ * 409 PACKAGE_CHANGED: the package the client showed is not the package the server would sell. Carries the CURRENT
+ * package (public shape, with its version) so the UI can show the new terms and let the person decide again.
+ */
+function packageChangedError(current: LockedPackageRow | NonNullable<Awaited<ReturnType<typeof ptServicePackageRepository.findById>>>) {
+  return Object.assign(new Error("Gói dịch vụ đã thay đổi. Hãy xem lại giá và nội dung mới trước khi tiếp tục."), {
+    status: 409,
+    code: "PACKAGE_CHANGED",
+    package: toPublicPtPackageDto(current),
+  });
+}
 
 /** The subset of a PTServicePackage a contract copies. */
 export interface SnapshotSource {
@@ -250,10 +399,14 @@ function fullName(
 }
 
 /**
- * Best-effort check whether a user is active (auth.users.isActive).
- * Returns `true` if the column does not yet exist (pre-migration) or if auth
- * is unreachable — i.e. fail-open for compatibility, but log so admins notice.
- * After the migration BUG-002 lands, this becomes the source of truth.
+ * Whether a user's account is active (auth.users.isActive), asked of auth-service.
+ *
+ * FAILS CLOSED. If auth-service cannot answer (unreachable, timeout, 5xx, rejected service secret) this THROWS
+ * AuthServiceUnavailableError - it never guesses "active". The two callers (chat eligibility, call permission)
+ * exist precisely to keep deactivated/banned accounts out, so treating an outage as "active" let a banned user chat or
+ * call for as long as auth-service was down. The controllers turn the error into 503, and chat-service denies on a
+ * failed check. Only "auth-service answered and has no such user" (404) or "answered with no isActive column yet"
+ * (pre-migration) count as active, because in those cases nothing says the account is blocked.
  */
 async function isUserActive(userId: string): Promise<boolean> {
   try {
@@ -265,8 +418,75 @@ async function isUserActive(userId: string): Promise<boolean> {
     if (!u) return true;
     if (typeof u.isActive === "boolean") return u.isActive;
     return true; // pre-migration: treat as active
-  } catch {
-    return true; // fail-open; alternative would block everything on auth outage
+  } catch (e: any) {
+    if (e?.response?.status === 404) return true; // auth-service has no such account: nothing marks it blocked
+    logger.warn({ status: e?.response?.status, code: e?.code }, "isUserActive: auth-service check failed - failing closed");
+    throw e instanceof AuthServiceUnavailableError ? e : new AuthServiceUnavailableError(e);
+  }
+}
+
+/** Account-status codes on the contract paths (Codex #4). */
+export const ACCOUNT_STATUS_UNAVAILABLE = "ACCOUNT_STATUS_UNAVAILABLE";
+export const ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE";
+
+function accountStatusUnavailable() {
+  return codedErr(
+    "Chưa xác minh được trạng thái tài khoản lúc này, vui lòng thử lại sau ít phút",
+    503,
+    ACCOUNT_STATUS_UNAVAILABLE,
+  );
+}
+function accountInactive() {
+  return codedErr(
+    "Không thể tạo hoặc chấp nhận hợp đồng vì một trong hai tài khoản hiện không hoạt động",
+    403,
+    ACCOUNT_INACTIVE,
+  );
+}
+
+/**
+ * Codex #4 - both parties of a NEW contract must be active accounts, asked of auth-service, and the answer must be an answer:
+ * unreachable / timeout / 5xx / rejected service secret -> 503 ACCOUNT_STATUS_UNAVAILABLE (never "assume active"); a deactivated
+ * (banned) account -> 403 ACCOUNT_INACTIVE. Called before anything is written. Deliberately NOT used by createMarketplaceContract:
+ * that runs after the order is paid, and refusing there would strand the money.
+ */
+async function assertContractPartiesActive(userIds: string[]): Promise<void> {
+  let results: boolean[];
+  try {
+    results = await Promise.all(userIds.map((id) => isUserActive(id)));
+  } catch (e) {
+    if (e instanceof AuthServiceUnavailableError) throw accountStatusUnavailable();
+    throw e;
+  }
+  if (results.some((active) => active === false)) throw accountInactive();
+}
+
+/**
+ * auth-service's record of an account (e-mail, name, isActive) for acceptContract, which needs the e-mails anyway - one lookup
+ * per party, so the active check and the e-mail come from the same answer. STRICT, unlike getUserInfo: an outage is a 503 (the
+ * lookup used to collapse into null and surface as a misleading 500 "account not found"); only "auth-service has no such user"
+ * (404) returns null.
+ */
+async function getUserInfoStrict(userId: string): Promise<{
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  isActive: boolean;
+} | null> {
+  try {
+    const { data } = await authServiceClient.internalGet(`/auth/internal/users/${userId}`, { timeoutMs: 3000 });
+    const u = data?.user;
+    if (!u?.email) return null;
+    return {
+      email: u.email,
+      firstName: u.firstName ?? null,
+      lastName: u.lastName ?? null,
+      isActive: typeof u.isActive === "boolean" ? u.isActive : true, // pre-migration: no column yet
+    };
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null;
+    logger.warn({ status: e?.response?.status, code: e?.code }, "getUserInfoStrict: auth-service lookup failed - failing closed");
+    throw accountStatusUnavailable();
   }
 }
 
@@ -290,8 +510,16 @@ export const contractService = {
        * Required when availableSlotsNext28Days < package.sessionCount.
        */
       acknowledgedLowAvailability?: boolean;
+      /**
+       * The `version` of the package the client was showing when the person pressed buy. When it no longer matches
+       * the package row the contract would snapshot, the request is refused 409 PACKAGE_CHANGED with the current
+       * package. Absent (an old app) -> the request proceeds with the package as it is right now and is counted in
+       * client_compat_events (PACKAGE_VERSION_MISSING).
+       */
+      expectedPackageVersion?: number;
     },
     agent?: { actionId: string; expectedPrice: number; expectedSessions: number; expectedMinutes: number; expectedMode: string },
+    ctx?: { clientHeader?: string | null },
   ) {
     if (agent) {
       const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
@@ -316,12 +544,32 @@ export const contractService = {
     if (pkg.ptUserId !== data.ptUserId)
       throw err("Gói dịch vụ không thuộc PT này", 400);
 
+    // expectedPackageVersion: fail fast on the cheap read (a stale buyer should not wait for the slow checks below);
+    // the AUTHORITATIVE comparison is repeated inside the transaction against the locked row (step 6).
+    const expectedPackageVersion = data.expectedPackageVersion;
+    if (expectedPackageVersion !== undefined && expectedPackageVersion !== null) {
+      if (!Number.isInteger(expectedPackageVersion) || expectedPackageVersion < 1)
+        throw err("expectedPackageVersion phải là số nguyên >= 1", 400);
+      if (expectedPackageVersion !== pkg.version) throw packageChangedError(pkg);
+    } else if (!agent) {
+      // An app that predates the listing flow does not send the version: it still gets its contract (at the price
+      // the row has right now, snapshotted atomically below) - but every such request is counted, so the
+      // compatibility behaviour can be retired with evidence rather than on a guess.
+      await recordClientCompatEvent({
+        route: "POST /contracts/request",
+        actorUserId: clientUserId,
+        clientHeader: ctx?.clientHeader ?? null,
+        outcome: "PACKAGE_VERSION_MISSING",
+      });
+    }
+
     // 2. Check PT profile
     const ptProfile = await profileRepository.findByUserId(data.ptUserId);
     if (!ptProfile || !ptProfile.isPT)
       throw err("PT không tồn tại hoặc chưa được duyệt", 404);
-    if (ptProfile.ptSuspended)
-      throw err("PT đang bị tạm ngưng, không thể tạo hợp đồng", 422);
+    // A restricted PT (temporarily suspended OR banned) takes no new business. The restriction record
+    // decides (pt-restriction.service.ts); the profile flag is only its mirror and fails closed there.
+    await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
     if (!(ptProfile as any).isAcceptingClients)
       throw err("PT hiện đang tạm ngưng nhận khách mới", 422);
 
@@ -355,6 +603,14 @@ export const contractService = {
     // 4. Resolve revenue split BEFORE any DB write — money-flow plan §1.4/B1.
     let rates: { platformRate: string; ptRate: string; gymRate: string };
     let source: ContractSource = ContractSource.INDEPENDENT;
+    // Phase 3 / P3.2 — which agreement the rates came from, snapshotted beside them. All null for an
+    // independent contract, and for any field gym-service did not send (never guessed).
+    let gymSnapshot: {
+      gymBrandId: string | null;
+      gymAgreementId: string | null;
+      gymAgreementScope: string | null;
+      gymMembershipId: string | null;
+    } = { gymBrandId: null, gymAgreementId: null, gymAgreementScope: null, gymMembershipId: null };
     if (data.gymId) {
       if (pkg.sessionMode === SessionMode.ONLINE) {
         throw err(
@@ -381,6 +637,23 @@ export const contractService = {
         );
       }
       rates = { platformRate: collab.platformRate, ptRate: collab.ptRate, gymRate: collab.gymRate };
+      gymSnapshot = {
+        gymBrandId: collab.brandId ?? null,
+        gymAgreementId: collab.collaborationId ?? null,
+        gymAgreementScope: collab.agreementScope ?? null,
+        gymMembershipId: null, // set just below, once the membership check passes
+      };
+      // Phase 3 / P3.3 (D18, D67): the client must hold an active membership at this gym's brand that
+      // lasts at least as long as the contract would. Nothing has been written yet - a refusal here
+      // (422 MEMBERSHIP_REQUIRED / MEMBERSHIP_DOES_NOT_COVER_CONTRACT, 503 if gym-service is down)
+      // leaves no contract row. Contracts without a gym (online / independent) never reach this.
+      const membership = await assertClientMayRequestGymContract({
+        clientUserId,
+        gymId: data.gymId,
+        brandId: collab.brandId,
+        validityDays: pkg.validityDays,
+      });
+      gymSnapshot.gymMembershipId = membership.membershipId;
       source = ContractSource.GYM;
     } else {
       rates = { platformRate: "0.10", ptRate: "0.90", gymRate: "0" };
@@ -394,34 +667,88 @@ export const contractService = {
 
     // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
     //    the client request. This is the security-critical step.
-    const snapshot = buildPackageSnapshot(pkg);
-    const contract = await contractRepository.create({
-      agentActionId: agent?.actionId,
-      ptUserId: data.ptUserId,
-      clientUserId,
-      status: ContractStatus.PENDING_REVIEW,
-      packageType: PackageType.PACKAGE,
-      // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
-      // anything out of `data`. Price and session count come from the package alone.
-      packageName: snapshot.packageName,
-      totalSessions: snapshot.totalSessions,
-      price: snapshot.price,
-      sessionMode: snapshot.sessionMode,
-      clientMessage: data.clientMessage,
-      gymId: data.gymId,
-      source,
-      platformRate: rates.platformRate,
-      ptRate: rates.ptRate,
-      gymRate: rates.gymRate,
-      // Package audit trail + slot warning evidence
-      ...({
-        packageId: snapshot.packageId,
-        packageSourceName: snapshot.packageSourceName,
-        sessionDurationMinutes: snapshot.sessionDurationMinutes,
-        validityDays: snapshot.validityDays,
-        lowAvailabilityWarned: availableSlots < pkg.sessionCount,
-        slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
-      } as any),
+    //
+    //    ATOMIC with the package: the package row is read, checked and snapshotted inside ONE transaction that holds
+    //    `SELECT ... FOR SHARE` on it. The listing-apply transaction takes FOR UPDATE on the package rows, so the
+    //    two serialise: a contract created before the apply carries the OLD price and version, one created after it
+    //    carries the NEW ones - never new terms with an old version (or the reverse). The slow checks above
+    //    (availability, gym collaboration, membership) deliberately stay outside; only the version check and the
+    //    snapshot live in here.
+    // Codex #4: both accounts must be active, and auth-service must actually have said so. Nothing has been written yet.
+    await assertContractPartiesActive([clientUserId, data.ptUserId]);
+
+    const ptHoldbackRate = await resolvePtHoldbackRate(data.ptUserId);
+    const contract = await prisma.$transaction(async (tx) => {
+      // BR-27 race guard. The pre-check at step 5 is a fast refusal, not a guarantee: two concurrent requests
+      // for the same PT-client pair both pass it. Serialise on the pair here and look again - the loser waits for
+      // the winner's commit, sees its row and is refused (the partial unique index is the last-resort backstop).
+      await contractRepository.lockPtClientPair(tx, data.ptUserId, clientUserId);
+      if (await contractRepository.findActiveByPair(data.ptUserId, clientUserId, tx)) {
+        throw err("You already have an active or pending contract with this PT", 409);
+      }
+      const locked = await ptServicePackageRepository.findByIdForShare(data.packageId, tx);
+      if (!locked) throw err("Gói dịch vụ không tồn tại", 404);
+      if (!locked.isActive || locked.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
+      if (locked.ptUserId !== data.ptUserId) throw err("Gói dịch vụ không thuộc PT này", 400);
+      if (expectedPackageVersion !== undefined && expectedPackageVersion !== null && expectedPackageVersion !== locked.version) {
+        throw packageChangedError(locked);
+      }
+      if (data.gymId && locked.sessionMode === SessionMode.ONLINE) {
+        // The package may have been switched to ONLINE after the pre-check above.
+        throw err(
+          "Buổi tập trực tuyến không thể gắn với phòng gym cụ thể — chọn hình thức Offline hoặc bỏ chọn phòng gym",
+          400,
+        );
+      }
+
+      if (data.gymId) {
+        // Codex #6 on the LOCKED row (the pre-check above read the package earlier): a package edited to "no duration" in between, or to a
+        // longer one than the membership was checked against, must not slip into a gym contract. Nothing has been written yet.
+        if (!hasFixedDuration(locked.validityDays)) {
+          throw Object.assign(
+            new Error("Hợp đồng PT tại phòng gym phải có thời hạn cố định, nhưng gói PT này chưa có thời hạn. Hãy chọn gói PT có thời hạn cụ thể, hoặc tập không qua phòng gym."),
+            { status: 409, code: GYM_CONTRACT_REQUIRES_FIXED_DURATION },
+          );
+        }
+        if (pkg.validityDays != null && locked.validityDays > pkg.validityDays) throw packageChangedError(locked);
+      }
+
+      const snapshot = buildPackageSnapshot(locked);
+      return contractRepository.create(
+        {
+          agentActionId: agent?.actionId,
+          ptUserId: data.ptUserId,
+          clientUserId,
+          status: ContractStatus.PENDING_REVIEW,
+          packageType: PackageType.PACKAGE,
+          // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
+          // anything out of `data`. Price and session count come from the package alone.
+          packageName: snapshot.packageName,
+          totalSessions: snapshot.totalSessions,
+          price: snapshot.price,
+          sessionMode: snapshot.sessionMode,
+          clientMessage: data.clientMessage,
+          gymId: data.gymId,
+          source,
+          platformRate: rates.platformRate,
+          ptRate: rates.ptRate,
+          gymRate: rates.gymRate,
+          ...gymSnapshot,
+          // PT holdback — a snapshot like the rates above, from the one place that decides it
+          // (today always "0": the rule is built but switched off).
+          ptHoldbackRate,
+          // Package audit trail + slot warning evidence
+          ...({
+            packageId: snapshot.packageId,
+            packageSourceName: snapshot.packageSourceName,
+            sessionDurationMinutes: snapshot.sessionDurationMinutes,
+            validityDays: snapshot.validityDays,
+            lowAvailabilityWarned: availableSlots < locked.sessionCount,
+            slotsAtPurchase: availableSlots < locked.sessionCount ? availableSlots : undefined,
+          } as any),
+        },
+        tx,
+      );
     });
 
     // 7. Notify PT
@@ -461,19 +788,41 @@ export const contractService = {
     price: number;
     paymentTransactionId?: string;
   }) {
-    return contractRepository.create({
-      ptUserId: data.ptUserId,
-      clientUserId: data.clientUserId,
-      status: ContractStatus.ACTIVE,
-      source: ContractSource.MARKETPLACE,
-      packageType: PackageType.PACKAGE,
-      packageName: data.packageName,
-      description: data.description,
-      totalSessions: 0, // marketplace personalized services are not session-count-based
-      price: data.price,
-      startDate: new Date(),
-      paymentTransactionId: data.paymentTransactionId,
+    // The order is ALREADY PAID when this runs, so a conflicting PT contract is never refused here (that would strand
+    // the money): the conflict check lives before payment (ai-service purchaseService -> hasStandingPtContract).
+    // What this does guarantee, under the pair lock: a retry of the same paid order returns its contract instead of
+    // creating a second one.
+    return prisma.$transaction(async (tx) => {
+      await contractRepository.lockPtClientPair(tx, data.ptUserId, data.clientUserId);
+      if (data.paymentTransactionId) {
+        const prior = await contractRepository.findByPaymentTransactionId(data.paymentTransactionId, tx);
+        if (prior && prior.ptUserId === data.ptUserId && prior.clientUserId === data.clientUserId) return prior;
+      }
+      return contractRepository.create(
+        {
+          ptUserId: data.ptUserId,
+          clientUserId: data.clientUserId,
+          status: ContractStatus.ACTIVE,
+          source: ContractSource.MARKETPLACE,
+          packageType: PackageType.PACKAGE,
+          packageName: data.packageName,
+          description: data.description,
+          totalSessions: 0, // marketplace personalized services are not session-count-based
+          price: data.price,
+          startDate: new Date(),
+          paymentTransactionId: data.paymentTransactionId,
+        },
+        tx,
+      );
     });
+  },
+
+  /**
+   * Internal-only - ai-service asks this BEFORE it starts a personalized-service checkout. True when the pair already
+   * has a live PT contract (any non-terminal status, PENDING_PAYMENT included) that is not itself a marketplace one.
+   */
+  async hasStandingPtContract(ptUserId: string, clientUserId: string): Promise<boolean> {
+    return !!(await contractRepository.findNonMarketplaceActiveByPair(ptUserId, clientUserId));
   },
 
   // ── PT accepts a pending contract ─────────────────────────────────
@@ -481,15 +830,30 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    // Restricted mode: a suspended PT cannot take on a new contract (the request waits, the client may cancel it).
+    await assertPtMayAct(ptUserId);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
 
+    // D25: a PT takes a NEW contract only after confirming the CURRENT PT terms. Refused here, before the claim,
+    // the PDF, any notification or any money step - nothing is written. Contracts already accepted/active are never
+    // read by this check (they are past PENDING_REVIEW), so they keep running on the terms they were accepted under.
+    await assertPtTermsForNewContract(contract);
+
+    // 0. Gym-tied: the partnership may have been closed/terminated since the request was made, and the client's membership
+    //    may have ended or been cancelled (Codex #6: a gym contract needs a fixed duration the membership covers).
+    await assertGymStillAcceptsContract(contract);
+    await assertGymContractStillCovered(contract, "PT");
+
     // 1. Fetch real emails + names (fail-fast: e-sign requires real emails)
+    //    Codex #4: the same lookup tells us whether either account is deactivated; an auth-service outage is a 503 and
+    //    nothing has been claimed or written yet.
     const [ptInfo, clientInfo] = await Promise.all([
-      getUserInfo(ptUserId),
-      getUserInfo(contract.clientUserId),
+      getUserInfoStrict(ptUserId),
+      getUserInfoStrict(contract.clientUserId),
     ]);
+    if (ptInfo?.isActive === false || clientInfo?.isActive === false) throw accountInactive();
     if (!ptInfo?.email)
       throw err("PT account not found or email unavailable", 500);
     if (!clientInfo?.email)
@@ -513,7 +877,9 @@ export const contractService = {
         clientSignerEmail: clientInfo.email,
         ptSignerEmail: ptInfo.email,
         eSignTestMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
-        ...(REQUIRE_CONTRACT_ESIGN ? {} : { eSignStatus: "SKIPPED" }),
+        ...(REQUIRE_CONTRACT_ESIGN
+          ? {}
+          : { eSignStatus: "SKIPPED", paymentDueAt: computePaymentDueAt() }),
       },
     );
     if (affected.count === 0) {
@@ -599,7 +965,7 @@ export const contractService = {
       }
     }
 
-    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget);
+    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget, { ptTermsVersion: PT_TERMS_VERSION });
 
     // 5. Notify client
     await notificationService
@@ -627,6 +993,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    await assertPtMayAct(ptUserId); // restricted mode
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err(`Cannot reject contract in ${contract.status} status`, 400);
     }
@@ -671,6 +1038,8 @@ export const contractService = {
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err("Not authorized", 403);
     }
+    // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
+    if (contract.ptUserId === userId) await assertPtMayAct(userId);
     if (
       contract.status !== ContractStatus.PENDING_REVIEW &&
       contract.status !== ContractStatus.PENDING_PAYMENT
@@ -682,14 +1051,21 @@ export const contractService = {
       );
     }
 
-    const updated = await contractRepository.updateStatus(
+    // Ghi có điều kiện theo đúng trạng thái vừa đọc: nếu trong lúc đó một khoản thanh toán đã kích
+    // hoạt hợp đồng (PENDING_PAYMENT -> ACTIVE), lệnh huỷ này KHÔNG được đè lên — sẽ thành một
+    // hợp đồng đã trả tiền mà bị huỷ không hoàn tiền. Hợp đồng ACTIVE phải đi qua terminate.
+    const updated = await contractRepository.updateStatusIfCurrent(
       contractId,
+      contract.status,
       ContractStatus.CANCELLED,
       {
         cancelledBy: userId,
         cancellationReason: reason.trim(),
       },
     );
+    if (!updated) {
+      throw err("The contract changed while you were cancelling it — reload and check its status", 409);
+    }
 
     await auditContractStatus(userId, contractId, contract.status, ContractStatus.CANCELLED, {
       reason: reason.trim(),
@@ -725,7 +1101,8 @@ export const contractService = {
    * contract stayed in the pending buckets forever.
    *
    * Best-effort on the money side: the session lifecycle has already moved on (`status`
-   * flips to COMPLETED first), so a payment-service outage here must not leave the contract
+   * flips to COMPLETED first, in the same transaction that records the durable CONTRACT_TERMINATION
+   * intent - FH-3b), so a payment-service outage here must not leave the contract
    * stuck ACTIVE — it is retried safely later, since `terminateContractMoney` carries the
    * `CONTRACT_TERMINATE:<id>` idempotency key (plan 1.1) and the reconciliation sweep (plan
    * 1.6) picks up anything a first attempt missed.
@@ -740,6 +1117,7 @@ export const contractService = {
       const updated = await deps.updateStatus(contractId, ContractStatus.COMPLETED, {
         completedAt: new Date(),
       });
+      if (updated === null) return null; // ended another way meanwhile - that ending owns the contract and its money
       try {
         await deps.settleMoney(contractId, "COMPLETED");
       } catch (e) {
@@ -796,8 +1174,10 @@ export const contractService = {
 
   async getByPT(ptUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    const contracts = await contractRepository.findByPT(ptUserId, s);
-    if (contracts.length === 0) return contracts;
+    const rawContracts = await contractRepository.findByPT(ptUserId, s);
+    if (rawContracts.length === 0) return rawContracts;
+    // `effectiveStatus` (ACTIVE vs PAUSED_BY_ADMIN) rides along; `status` keeps its stored value.
+    const contracts = await getEffectiveContractStatuses(rawContracts);
 
     const clientIds = contracts.map((c) => c.clientUserId);
     const [profileMap, ratingMap] = await Promise.all([
@@ -819,8 +1199,9 @@ export const contractService = {
 
   async getByClient(clientUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    const contracts = await contractRepository.findByClient(clientUserId, s);
-    if (contracts.length === 0) return contracts;
+    const rawContracts = await contractRepository.findByClient(clientUserId, s);
+    if (rawContracts.length === 0) return rawContracts;
+    const contracts = await getEffectiveContractStatuses(rawContracts);
 
     const profileMap = await counterpartyProfiles(
       contracts.map((c) => c.ptUserId),
@@ -833,7 +1214,10 @@ export const contractService = {
   },
 
   async getById(id: string) {
-    return contractRepository.findByIdWithSessions(id);
+    const contract = await contractRepository.findByIdWithSessions(id);
+    if (!contract) return contract;
+    const [withEffective] = await getEffectiveContractStatuses([contract]);
+    return withEffective;
   },
 
   /**
@@ -867,6 +1251,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    await assertPtMayActOnContract(ptUserId, contractId); // restricted mode: no coaching messages while suspended (account or this contract)
     if (contract.status !== ContractStatus.ACTIVE) {
       throw err("Feedback can only be sent on an active contract", 409);
     }
@@ -910,6 +1295,8 @@ export const contractService = {
       (contract.status === ContractStatus.PENDING_SIGNATURE ||
         contract.status === ContractStatus.PENDING_REVIEW)
     ) {
+      // D74: skipping e-sign is the admin's power; accepting the PT terms for the PT is not. Same gate as acceptContract.
+      await assertPtTermsForNewContract(contract);
       logger.warn(
         {
           event: "CONTRACT_FORCE_PENDING_PAYMENT",
@@ -922,7 +1309,7 @@ export const contractService = {
       return contractRepository.updateStatus(
         id,
         ContractStatus.PENDING_PAYMENT,
-        {},
+        { paymentDueAt: computePaymentDueAt() },
       );
     }
 
@@ -1105,15 +1492,124 @@ export const contractService = {
    * retry safe against double settlement.
    */
   async expireContracts() {
-    const expired = await contractRepository.findExpiredContracts();
+    // A contract whose PT is restricted is PAUSED_BY_ADMIN (getEffectiveContractStatus): its clock is
+    // stopped, so it must never be ended as EXPIRED — that settles with a zero refund and hands the
+    // whole unused value to the PT/gym/platform, i.e. it would make the client pay for the pause.
+    // The end date is moved forward by the blocked time when the restriction is lifted.
+    // A contract paused on its own (CONTRACT-scope restriction) has the same stopped clock, for that contract only.
+    const restricted = await activeRestrictedPtUserIds();
+    const expired = await contractRepository.findExpiredContracts(restricted, await activeRestrictedContractIds());
     let count = 0;
     for (const c of expired) {
       try {
+        // Re-check right before the money call: a suspension may have begun since the list was read.
+        if (await isContractRestricted(c)) continue;
         await terminateContractMoney(c.id, "EXPIRED");
         count++;
       } catch (e) {
         logger.error({
           error: "Failed to settle an expired contract's money",
+          contractId: c.id,
+          message: (e as Error).message,
+        });
+      }
+    }
+    return count;
+  },
+
+  /**
+   * Huỷ hợp đồng PENDING_PAYMENT quá hạn thanh toán (paymentDueAt đã qua). Chưa có đồng nào
+   * được chuyển cho hợp đồng ở trạng thái này nên đây là huỷ thường — cùng dạng với
+   * cancelContract (status CANCELLED + cancelledBy + cancellationReason + audit + thông báo),
+   * không đi qua terminateContractMoney.
+   *
+   * Cập nhật có điều kiện (xem contractRepository.cancelIfPaymentOverdue): chỉ ăn nếu dòng vẫn
+   * là PENDING_PAYMENT, chưa có paymentTransactionId và vẫn quá hạn ở thời điểm ghi — nên một
+   * lần thanh toán vừa thành công không bao giờ bị biến thành "đã huỷ mà đã trả tiền".
+   * Lỗi từng hợp đồng được bắt riêng để không chặn cả lượt.
+   */
+  async cancelOverduePaymentContracts(): Promise<number> {
+    const overdue = await contractRepository.findOverduePendingPayment(new Date());
+    let count = 0;
+    for (const c of overdue) {
+      try {
+        const reason = `Quá hạn thanh toán ${CONTRACT_PAYMENT_DEADLINE_HOURS} giờ kể từ khi PT chấp nhận`;
+        const { count: affected } = await contractRepository.cancelIfPaymentOverdue(
+          c.id,
+          new Date(),
+          reason,
+        );
+        if (affected === 0) continue; // vừa được trả / huỷ ở nơi khác — không động vào
+        count++;
+        await auditContractStatus(
+          SYSTEM_ACTOR,
+          c.id,
+          ContractStatus.PENDING_PAYMENT,
+          ContractStatus.CANCELLED,
+          { reason, cancelledBy: "SYSTEM", paymentDueAt: c.paymentDueAt?.toISOString() ?? null },
+        );
+        await Promise.all([
+          notificationService
+            .create({
+              userId: c.clientUserId,
+              text: "Hợp đồng PT của bạn đã bị huỷ vì quá hạn thanh toán. Bạn có thể gửi yêu cầu mới.",
+              eventType: "CONTRACT_CANCELLED",
+              entityType: "CONTRACT",
+              entityId: c.id,
+              link: "/client/contracts",
+            })
+            .catch(() => {}),
+          notificationService
+            .create({
+              userId: c.ptUserId,
+              text: "Hợp đồng đã bị huỷ vì học viên không thanh toán trong thời hạn.",
+              eventType: "CONTRACT_CANCELLED",
+              entityType: "CONTRACT",
+              entityId: c.id,
+              link: "/pt/contracts",
+            })
+            .catch(() => {}),
+        ]);
+      } catch (e) {
+        logger.error({
+          error: "Failed to cancel a payment-overdue contract",
+          contractId: c.id,
+          message: (e as Error).message,
+        });
+      }
+    }
+    return count;
+  },
+
+  /**
+   * FH-9: the sweep that picks up the PT holdback of ENDED contracts. A running contract's holdback is never released here (there is
+   * no idle clock any more): the ending itself returns everything that is not related to an unreconciled item of the contract, inside
+   * payment-service's TERMINATE operation, and this sweep releases what that left held (an OPEN obligation of the contract, an
+   * undecided session) as soon as the contract is reconciled - and finds the contracts whose ending reached payment-service later
+   * than the status (natural completion) so none is ever stuck.
+   *
+   * Per contract: payment-service is asked to release. It decides - from its own ledger - whether the release is due (the ending is
+   * recorded, nothing of the contract is unreconciled), moves the money in the same transaction that empties the contract's HOLDBACK
+   * (so a repeated or concurrent call finds nothing), and answers what is still held. Only when nothing is held any more AND the
+   * contract is reconciled is the contract marked (a flag so the sweep stops asking; the ledger stays the authority for amounts).
+   * Z4: the mark does not depend on the contract's status, and no amount is copied to this service - nothing can be released but not
+   * recorded. Errors are caught per contract so one bad contract does not block the batch. Returns how many contracts THIS run closed.
+   */
+  async releaseDueHoldbacks(now: Date = new Date()): Promise<number> {
+    const candidates = await contractRepository.findEndedHoldbackCandidates();
+    let count = 0;
+    for (const c of candidates) {
+      try {
+        const result = await releaseHoldbackMoney(c.id);
+        if (!result) continue; // not payable (no transaction) - nothing to release
+        if (!result.reconciled || Number(result.heldAfter) > 0) continue; // not due yet: asked again on the next tick
+        const { count: marked } = await contractRepository.markHoldbackReleased(c.id, now);
+        if (marked === 0) continue; // someone else recorded it first
+        count++;
+        logger.info(`[HoldbackSweep] Contract ${c.id} ended and reconciled - released ${result.released} to the PT, nothing is held any more`);
+      } catch (e) {
+        logger.error({
+          error: "Failed to release an ended contract's PT holdback",
           contractId: c.id,
           message: (e as Error).message,
         });
@@ -1146,6 +1642,11 @@ export const contractService = {
 
   async checkActivePtClientRelationship(ptUserId: string, clientUserId: string) {
     const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
+    // A PAUSED_BY_ADMIN contract is not a working coaching relationship: fitness-service (which asks
+    // this before every PT client-data / plan-assignment request) must refuse a restricted PT.
+    if (contract && (await getBlockingRestriction({ id: contract.id, ptUserId }))) {
+      return { active: false, contractId: null, reason: "PT_RESTRICTED" as const };
+    }
     return { active: !!contract, contractId: contract?.id ?? null };
   },
 
@@ -1253,6 +1754,26 @@ export const contractService = {
     }
     if (!contract.price) throw err("Contract has no price set", 400);
 
+    // No new business with a restricted PT: payment is refused BEFORE any checkout exists, so the
+    // client is never charged. The contract itself is left exactly as it is — its payment deadline
+    // keeps running and the deadline sweep may cancel it.
+    await assertPtAcceptsNewBusiness(contract.ptUserId, "PAY_CONTRACT");
+
+    // Quá hạn thanh toán thì từ chối ngay, không đợi sweep kịp huỷ.
+    if (contract.paymentDueAt && contract.paymentDueAt.getTime() <= Date.now()) {
+      throw codedErr(
+        `Hợp đồng đã quá hạn thanh toán (${CONTRACT_PAYMENT_DEADLINE_HOURS} giờ kể từ khi PT chấp nhận) nên không thể thanh toán. Vui lòng tạo yêu cầu mới.`,
+        409,
+        PAYMENT_DEADLINE_PASSED,
+      );
+    }
+
+    // Gym-tied: re-check the partnership BEFORE any money can move (the checkout below is the
+    // first point at which the client's money is touched).
+    await assertGymStillAcceptsContract(contract);
+    // Codex #6: and the membership must still cover the whole fixed-duration contract (nothing is charged on a refusal).
+    await assertGymContractStillCovered(contract, "CLIENT");
+
     // Each attempt gets its own key: an abandoned checkout must not block a fresh one, and
     // the gateway itself dedupes a genuine double-submit by transaction id.
     const attemptId = randomUUID();
@@ -1279,6 +1800,33 @@ export const contractService = {
       returnBaseUrl,
     });
 
+    // Checkout đã khởi tạo thành công: từ giờ học viên có thể trả tiền thêm một lúc nữa, nên dời
+    // hạn tới ít nhất now + grace (không bao giờ lùi hạn). Cập nhật có điều kiện — chỉ khi hợp
+    // đồng còn PENDING_PAYMENT. Thất bại ở đây KHÔNG làm hỏng yêu cầu thanh toán (checkout đã
+    // tạo, học viên cần link): chỉ log; hậu quả là hạn cũ giữ nguyên và sweep có thể huỷ hợp đồng
+    // trong lúc checkout còn mở.
+    if (contract.paymentDueAt) {
+      try {
+        const extendTo = new Date(Date.now() + CONTRACT_PAYMENT_CHECKOUT_GRACE_MINUTES * 60 * 1000);
+        const once = checkoutExtensionOnce();
+        if (!once) {
+          logger.warn(
+            { contractId: contract.id },
+            "pay: CHECKOUT_EXTENSION_ONCE=false - the one-extension-per-contract rule (D13) is DISABLED, the payment deadline can be extended again and again",
+          );
+        }
+        const { count } = await contractRepository.extendPaymentDueAt(contract.id, extendTo, { once });
+        if (once && count === 0 && contract.paymentDueAt.getTime() < extendTo.getTime()) {
+          logger.info({ contractId: contract.id }, "pay: payment deadline NOT extended again (CHECKOUT_EXTENSION_ONCE: one extension per contract)");
+        }
+      } catch (e) {
+        logger.error(
+          { contractId: contract.id, err: (e as Error)?.message },
+          "pay: failed to extend paymentDueAt after checkout creation",
+        );
+      }
+    }
+
     return {
       contract: await contractRepository.findById(contract.id),
       payment: result,
@@ -1296,16 +1844,57 @@ export const contractService = {
     ) {
       throw err("Transaction verification failed", 400);
     }
-    const before = await contractRepository.findById(contractId);
-    const wasAlreadyActive = before?.status === ContractStatus.ACTIVE;
-    const activated = await contractRepository.activateIfPending(contractId, transactionId);
+    // A payment that was already in flight when the PT got restricted must not start a new contract:
+    // answered with the definite 409 CONTRACT_NOT_ACTIVATABLE so payment-service refunds the client in
+    // full (the existing path). A replay of a payment that ALREADY activated the contract (status
+    // ACTIVE with this transaction) is not "new business" and falls through to the idempotent branch.
+    // (prisma directly, like activateIfPendingGuarded below: this is a read of the row, not a repository seam)
+    const beforeActivation = await prisma.contract.findUnique({ where: { id: contractId }, select: { status: true, ptUserId: true } });
+    if (beforeActivation?.status === ContractStatus.PENDING_PAYMENT && (await getActiveRestriction(beforeActivation.ptUserId))) {
+      logger.warn(
+        { contractId, transactionId },
+        "activate-after-payment: PT is restricted — refusing the activation, payment-service will refund the client",
+      );
+      throw Object.assign(
+        err("Contract cannot be activated by this payment (the trainer is temporarily unavailable)", 409),
+        { code: CONTRACT_NOT_ACTIVATABLE, currentStatus: beforeActivation.status },
+      );
+    }
+    // Một lần ghi có điều kiện (WHERE status = PENDING_PAYMENT) thay cho đọc-rồi-ghi: một lệnh huỷ
+    // chen vào giữa không thể bị ghi đè thành ACTIVE. `flipped` chỉ đúng cho lần gọi thực sự
+    // chuyển trạng thái — các lần webhook/sweep gọi lại không gửi lại email.
+    const { contract: current, flipped } = await contractRepository.activateIfPendingGuarded(
+      contractId,
+      transactionId,
+    );
+
+    // Câu trả lời PHẢI phân biệt được cho payment-service (nó đã chuyển tiền vào escrow TRƯỚC khi
+    // gọi tới đây): chỉ coi là kích hoạt khi hợp đồng đang ACTIVE bằng đúng giao dịch NÀY (vừa
+    // chuyển, hoặc phát lại cùng giao dịch). Mọi trường hợp khác — đã huỷ/từ chối/hết hạn/hoàn
+    // thành, chưa tới bước thanh toán, hoặc ACTIVE bằng một giao dịch KHÁC — là câu trả lời dứt
+    // khoát "không kích hoạt được" (409), không phải lỗi 5xx, để payment-service hoàn tiền cho
+    // học viên thay vì đánh dấu đã kích hoạt rồi để tiền kẹt.
+    const activatedByThisPayment =
+      current?.status === ContractStatus.ACTIVE && current.paymentTransactionId === transactionId;
+    if (!activatedByThisPayment) {
+      const currentStatus = current?.status ?? "NOT_FOUND";
+      logger.warn(
+        { contractId, transactionId, currentStatus, activePaymentTransactionId: current?.paymentTransactionId ?? null },
+        "activate-after-payment: contract cannot be activated by this payment — payment-service will refund it",
+      );
+      throw Object.assign(
+        err(`Contract cannot be activated by this payment (status ${currentStatus})`, 409),
+        { code: CONTRACT_NOT_ACTIVATABLE, currentStatus },
+      );
+    }
+    const activated = current;
 
     // Payment confirmation is where the two parties currently have the least confirmation
     // they've actually got a deal — send the notice here rather than at signing, since
     // signing may itself be bypassed (REQUIRE_CONTRACT_ESIGN). Only on the transition that
     // actually just happened: activateIfPending is called again on webhook retries, and a
     // retry must not re-email both parties.
-    if (activated && !wasAlreadyActive && activated.status === ContractStatus.ACTIVE) {
+    if (flipped) {
       const [ptInfo, clientInfo] = await Promise.all([
         getUserInfo(activated.ptUserId),
         getUserInfo(activated.clientUserId),

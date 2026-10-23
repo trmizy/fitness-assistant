@@ -24,7 +24,12 @@ export type GymRow = {
   city: string | null;
   address: string | null;
   description: string | null;
+  /** Legacy mirror of the amenities (enum codes) — kept for old payloads; read `amenities`. */
   facilities: string[];
+  /** Listing Management: the branch's ACTIVE amenities as the server publishes them (slug, name, category, iconKey). */
+  amenities: PublicAmenity[];
+  /** The cover photo (a /media/gym-photos/:id path), or null. */
+  coverPhotoUrl: string | null;
   rating: number | null;
   reviewCount: number;
   fromPrice: number | null;
@@ -49,6 +54,7 @@ export type GymRow = {
   brandBranches: BranchPin[];
 };
 
+export type PublicAmenity = { slug: string; name: string; category: string; iconKey: string };
 export type SocialKey = "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl";
 export type GymPhoto = { id: string; url: string; category: string | null };
 export type BranchPin = { id: string; name: string; address: string; latitude: number | null; longitude: number | null };
@@ -68,6 +74,8 @@ export function normalizeGym(raw: any): GymRow {
     address: text(raw?.approvedAddress ?? raw?.address),
     description: text(raw?.description),
     facilities: Array.isArray(raw?.facilities) ? raw.facilities.map((f: any) => String(f)) : [],
+    amenities: normalizeAmenities(raw),
+    coverPhotoUrl: text(raw?.coverPhotoUrl),
     rating: typeof raw?.averageRating === "number" && raw.averageRating > 0 ? raw.averageRating : null,
     reviewCount: Number(raw?.reviewCount) || 0,
     fromPrice: raw?.fromPrice != null ? Number(raw.fromPrice) : null,
@@ -102,6 +110,53 @@ export function normalizeGym(raw: any): GymRow {
         }))
       : [],
   };
+}
+
+/**
+ * The public amenities of a gym (gym-public.ts#toPublicAmenityDto: slug, name, category, iconKey). Only when the server did
+ * not send `amenities` at all (an older gateway / cached answer) are the `facilities` enum codes turned into amenities, from the
+ * 18 SYSTEM amenities' own names / categories / icons. An empty `amenities` array is an answer: no amenities, no fallback.
+ */
+export function normalizeAmenities(raw: any): PublicAmenity[] {
+  if (Array.isArray(raw?.amenities)) {
+    return raw.amenities
+      .filter((a: any) => a && typeof a.name === "string" && a.name.trim())
+      .map((a: any) => ({ slug: String(a.slug ?? a.name), name: a.name.trim(), category: String(a.category ?? ""), iconKey: String(a.iconKey ?? "") }));
+  }
+  const codes: string[] = Array.isArray(raw?.facilities) ? raw.facilities.map((f: any) => String(f)) : [];
+  return codes.flatMap((c) => (SYSTEM_AMENITY_FALLBACK[c] ? [{ slug: c, ...SYSTEM_AMENITY_FALLBACK[c] }] : []));
+}
+
+/** Mirror of the 18 SYSTEM rows of gym-service amenity-catalog.ts (name / category / icon) — used ONLY by the `facilities` fallback. */
+export const SYSTEM_AMENITY_FALLBACK: Record<string, Omit<PublicAmenity, "slug">> = {
+  FREE_WEIGHTS: { name: "Tạ tự do", category: "TRAINING_ZONE", iconKey: "dumbbell" },
+  CARDIO_MACHINES: { name: "Máy cardio", category: "TRAINING_ZONE", iconKey: "heart-pulse" },
+  FUNCTIONAL_TRAINING_AREA: { name: "Khu tập functional", category: "TRAINING_ZONE", iconKey: "activity" },
+  GROUP_CLASSES: { name: "Lớp tập nhóm", category: "SERVICE", iconKey: "users" },
+  YOGA_STUDIO: { name: "Phòng Yoga", category: "TRAINING_ZONE", iconKey: "flower" },
+  SWIMMING_POOL: { name: "Hồ bơi", category: "TRAINING_ZONE", iconKey: "waves" },
+  PERSONAL_TRAINER: { name: "Huấn luyện viên cá nhân", category: "SERVICE", iconKey: "user-check" },
+  INBODY_SCAN: { name: "Máy đo InBody", category: "SERVICE", iconKey: "scan-line" },
+  LOCKER_ROOM: { name: "Phòng thay đồ / tủ khoá", category: "FACILITY", iconKey: "lock" },
+  SHOWER: { name: "Phòng tắm", category: "FACILITY", iconKey: "shower-head" },
+  SAUNA: { name: "Xông hơi", category: "RECOVERY", iconKey: "flame" },
+  TOWEL_SERVICE: { name: "Dịch vụ khăn tắm", category: "SERVICE", iconKey: "shirt" },
+  PARKING: { name: "Bãi đỗ xe", category: "FACILITY", iconKey: "car" },
+  WIFI: { name: "Wifi miễn phí", category: "FACILITY", iconKey: "wifi" },
+  AIR_CONDITIONING: { name: "Máy lạnh", category: "FACILITY", iconKey: "snowflake" },
+  DRINKING_WATER: { name: "Nước uống miễn phí", category: "FACILITY", iconKey: "droplets" },
+  KIDS_AREA: { name: "Khu vui chơi trẻ em", category: "FACILITY", iconKey: "baby" },
+  VENDING_MACHINE: { name: "Máy bán hàng tự động", category: "SERVICE", iconKey: "cup-soda" },
+};
+
+/** A public gym route answered 404: the branch is not (or no longer) publicly visible — hidden, closed or gone. */
+export function isGymGone(error: unknown): boolean {
+  return (error as any)?.response?.status === 404;
+}
+
+/** The chips a directory card shows: the first `max` amenities and how many more there are. */
+export function amenityChips(gym: Pick<GymRow, "amenities">, max = 4): { shown: PublicAmenity[]; more: number } {
+  return { shown: gym.amenities.slice(0, max), more: Math.max(0, gym.amenities.length - max) };
 }
 
 function num(value: any): number | null {

@@ -155,7 +155,7 @@ function MethodList({
   );
 }
 
-function Notice({ tone, text }: { tone: "danger" | "warning"; text: string }) {
+export function Notice({ tone, text }: { tone: "danger" | "warning"; text: string }) {
   const color = tone === "danger" ? darkColors.destructive : designTokens.warning;
   return (
     <View

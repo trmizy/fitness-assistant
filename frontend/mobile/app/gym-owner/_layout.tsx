@@ -8,7 +8,7 @@ import {
   type WorkspaceTab,
 } from "../../src/components/navigation/WorkspaceTabs";
 import { useApp } from "../../src/context/AppContext";
-import { isManagerAccount } from "../../src/features/gymOwner/gymOwner";
+import { isManagerAccount, staffRoleOf } from "../../src/features/gymOwner/gymOwner";
 import { gymService } from "../../src/services/api";
 
 /**
@@ -43,7 +43,10 @@ export default function GymOwnerLayout() {
   );
 }
 
-const hiddenRoutes = ["plans", "collaborations", "managers", "checkin-qr", "branch"];
+/** Listing Management (M2): "Tin đăng & tiện ích" is a drill-down from Phòng gym / the branch screen, never a tab. */
+const LISTING_HIDDEN_ROUTES = ["listing"];
+
+const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch"];
 
 /** The "Ví" tab is OWNER-only (gym-service 403s a manager), so a manager's bar leaves it out. */
 function GymTabs() {
@@ -53,6 +56,14 @@ function GymTabs() {
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const manager = isManagerAccount(status.data);
+  // D15 — hai vai trò hẹp chỉ giữ tab dùng được (backend 403 phần còn lại): lễ tân = Phòng gym (QR check-in) + Hồ sơ;
+  // kế toán = Hồ sơ (màn Tài chính chỉ-đọc trên mobile chưa có — xem báo cáo D15). Chưa biết vai trò → tab của quản lý.
+  const staff = staffRoleOf(status.data);
+  const keep: string[] | null = staff === "RECEPTIONIST" ? ["gyms", "profile"] : staff === "ACCOUNTANT" ? ["profile"] : null;
+  if (keep) {
+    const hidden = [...hiddenRoutes, ...gymTabs.map((t) => t.name).filter((n) => !keep.includes(n))];
+    return <WorkspaceTabs workspace="gym" tabs={gymTabs.filter((t) => keep.includes(t.name))} hiddenRoutes={hidden} />;
+  }
   return (
     <WorkspaceTabs
       workspace="gym"

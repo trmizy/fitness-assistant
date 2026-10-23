@@ -29,10 +29,6 @@ function deps(overrides: Partial<AutoConfirmDeps> = {}): { deps: AutoConfirmDeps
       calls.push("deductQuotaOnce");
       return true;
     },
-    updateStatus: async () => {
-      calls.push("updateStatus");
-      return {};
-    },
     notify: async () => {
       calls.push("notify");
       return {};
@@ -56,7 +52,26 @@ test("a session past its confirmation deadline is charged and released via deduc
 
   assert.deepEqual(result, { scanned: 1, confirmed: 1 });
   assert.deepEqual(args[0], ["s1", "c1"], "the exact session and contract the deadline sweep found");
-  assert.deepEqual(calls, ["findExpiredPendingConfirmation", "deductQuotaOnce", "updateStatus", "notify"]);
+  // F3: the status change is part of the claim (one compare-and-set), so there is no separate updateStatus step
+  assert.deepEqual(calls, ["findExpiredPendingConfirmation", "deductQuotaOnce", "notify"]);
+});
+
+test("F3: a session the claim did NOT win (disputed / ruled / cancelled in the meantime) is not counted, not overwritten and nobody is told it was auto-confirmed", async () => {
+  const transitions: unknown[] = [];
+  const { deps: d, calls } = deps({
+    deductQuotaOnce: async (_s, _c, transition) => {
+      calls.push("deductQuotaOnce");
+      transitions.push(transition);
+      return false;
+    },
+  });
+
+  const result = await runAutoConfirm(d);
+
+  assert.deepEqual(result, { scanned: 1, confirmed: 0 });
+  assert.deepEqual(calls, ["findExpiredPendingConfirmation", "deductQuotaOnce"], "no status write, no notification");
+  assert.deepEqual((transitions[0] as any).from, ["PENDING_CLIENT_CONFIRMATION"], "the claim is conditional on the status the sweep read");
+  assert.equal((transitions[0] as any).extra.autoConfirmed, true);
 });
 
 test("nothing to confirm short-circuits without touching quota or status", async () => {
@@ -86,10 +101,6 @@ test("a per-row failure does not stop the rest of the batch", async () => {
       if (sessionId === "s1") throw new Error("transient DB error");
       return true;
     },
-    updateStatus: async () => {
-      calls.push("updateStatus");
-      return {};
-    },
   });
 
   const result = await runAutoConfirm(d);
@@ -97,5 +108,5 @@ test("a per-row failure does not stop the rest of the batch", async () => {
   assert.deepEqual(deducted, ["s1", "s2"], "both rows are attempted");
   assert.equal(result.scanned, 2);
   assert.equal(result.confirmed, 1, "only the row that did not throw counts as confirmed");
-  assert.equal(calls.filter((c) => c === "updateStatus").length, 1);
+  assert.equal(calls.filter((c) => c === "notify").length, 1);
 });

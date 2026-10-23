@@ -1,52 +1,81 @@
+import { randomUUID } from 'node:crypto';
 import { logger } from '@gym-coach/shared';
 import { gymRepository } from '../repositories/gym.repository';
-import { brandRepository } from '../repositories/brand.repository';
 import { reviewRepository } from '../repositories/review.repository';
 import { membershipRepository } from '../repositories/membership.repository';
 import { planRepository } from '../repositories/plan.repository';
 import { brandService } from './brand.service';
-import { partnerGuard } from './partner-guard.service';
-import type { GymOperationalStatus } from '../generated/prisma';
+import { brandRepository } from '../repositories/brand.repository';
 import { prisma } from '../repositories/prisma';
-import { brandLogoUrl, resolvePhotoUrl } from './gym-photo-url';
+import { withCompatWriter } from '../repositories/compat-writer';
+import { replaceDraftSystemAmenitiesTx } from './gym-amenity.service';
+import { applyAmenitySelectionTx, type AmenitySelectionInput } from './gym-amenity-selection.service';
+import { LEGACY_NO_HEADER, createdFlowVersionData, amenitiesRequired, amenitiesRequiredError, recordLegacyCompatTx, recordLegacyRejectedEvent, type ListingCompat } from './legacy-compat.service';
+import { listingReviewRequiredError } from './client-compat.service';
+import type { GymOperationalStatus, PartnerAccountRole } from '../generated/prisma';
+import { brandLogoUrl } from './gym-photo-url';
+import { gymPublicRepository, toPublicGymDto, toPublicGymPhotos } from './gym-public';
+import { directEditTx } from './gym-listing-apply.service';
+import { recordPartnerAudit, resolvePartnerId } from './gym-listing.helpers';
+import { partnerAuditService } from './partner-audit.service';
+import { sendListingNotices } from './gym-listing-notify';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** The account actually making an operational-status change — see setOperationalStatus. */
+export interface OperationalStatusActor {
+  /** The logged-in user (req.user.userId). For a MANAGER this is NOT the owner principal. */
+  userId: string;
+  role: PartnerAccountRole;
+}
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Public-facing shape: substitutes the moderation-approved name/address (and, if the gym
- * belongs to a brand, the brand's own approved name) in place of the owner's raw working
- * values. Vòng 4 / Phase C1/C2 — "public pages always read approvedName/approvedAddress". */
-function toPublicGym<
-  T extends {
-    name: string;
-    address: string;
-    approvedName: string | null;
-    approvedAddress: string | null;
-    brand?: { name: string; approvedName: string | null } | null;
-  },
->(gym: T) {
-  return {
-    ...gym,
-    name: gym.approvedName ?? gym.name,
-    address: gym.approvedAddress ?? gym.address,
-    ...(gym.brand ? { brand: { ...gym.brand, name: gym.brand.approvedName ?? gym.brand.name } } : {}),
-  };
+/** Audit row for an admin action on a branch, right after the change (partnerAuditService.record never throws). */
+async function auditGymAdminAction(
+  gym: { id: string; ownerId: string; brandId: string | null },
+  actorUserId: string | undefined,
+  action: 'GYM_ADMIN_STATUS_CHANGED' | 'GYM_ADMIN_RENAME_APPROVED',
+  metadata: Record<string, unknown>,
+) {
+  if (!actorUserId) return;
+  const partnerId = await resolvePartnerId(prisma, gym);
+  if (!partnerId) {
+    logger.warn({ gymId: gym.id, action }, '[Gym] owner has no partner record - PartnerAuditLog row skipped');
+    return;
+  }
+  await partnerAuditService.record({ partnerId, actorUserId, action, metadata: { gymId: gym.id, ...metadata } });
+}
+
+/** GYM_ADMIN_UPDATED: who changed which operational / identity columns of a branch, from what to what, and why. */
+async function auditAdminUpdate(
+  tx: Parameters<typeof recordPartnerAudit>[0],
+  before: { id: string; ownerId: string; brandId: string | null } & Record<string, any>,
+  patch: Record<string, unknown>,
+  ctx: { adminId?: string; reason?: string },
+) {
+  if (!ctx.adminId) return;
+  const changed: Record<string, { from: unknown; to: unknown }> = {};
+  for (const key of ['name', 'address', 'city', 'phone', 'email', 'description'] as const) {
+    if (key in patch) changed[key] = { from: before[key] ?? null, to: patch[key] ?? null };
+  }
+  if (Object.keys(changed).length === 0) return;
+  await recordPartnerAudit(tx, before, {
+    actorUserId: ctx.adminId,
+    action: 'GYM_ADMIN_UPDATED',
+    reason: ctx.reason ?? null,
+    metadata: { changed },
+  });
 }
 
 export const gymService = {
   async listApproved() {
-    const [allGyms, hiddenOwnerIds] = await Promise.all([
-      gymRepository.findApproved(),
-      partnerGuard.hiddenFromPublicOwnerUserIds(),
-    ]);
-    // Phase 5 mục 5.1 — tạm khoá/chấm dứt đối tác thì ẩn khỏi trang tìm kiếm công khai,
-    // dù `status`/`operationalStatus` riêng của từng chi nhánh không đổi (khách cũ vẫn
-    // check-in bình thường — chỉ khách MỚI không tìm thấy để đăng ký).
-    const hidden = new Set(hiddenOwnerIds);
-    const gyms = hidden.size > 0 ? allGyms.filter((g) => !hidden.has(g.ownerId)) : allGyms;
+    // Listing Management B1 — one visibility rule (gymPublicWhere: APPROVED + OPEN + owner not hidden). Phase 5 mục 5.1:
+    // tạm khoá/chấm dứt đối tác thì ẩn khỏi trang tìm kiếm công khai, dù `status`/`operationalStatus` riêng của từng
+    // chi nhánh không đổi (khách cũ vẫn check-in bình thường — chỉ khách MỚI không tìm thấy để đăng ký).
+    const gyms = await gymPublicRepository.findPublishedList();
     const brandIds = [...new Set(gyms.map((g) => g.brandId).filter((id): id is string => !!id))];
     const [ratings, cheapestByBrand] = await Promise.all([
       reviewRepository.aggregateForGyms(gyms.map((g) => g.id)),
@@ -59,7 +88,7 @@ export const gymService = {
     return gyms.map((g) => {
       const r = ratings.get(g.id);
       return {
-        ...toPublicGym(g),
+        ...toPublicGymDto(g),
         averageRating: round2(r?.averageRating ?? 0),
         reviewCount: r?.count ?? 0,
         fromPrice: g.brandId ? (cheapestByBrand.get(g.brandId) ?? null) : null,
@@ -77,32 +106,20 @@ export const gymService = {
   },
 
   async getApprovedById(id: string) {
-    const gym = await gymRepository.findApprovedById(id);
+    const gym = await gymPublicRepository.findPublishedById(id);
     if (!gym) throw err('Gym not found', 404);
-    const hiddenOwnerIds = await partnerGuard.hiddenFromPublicOwnerUserIds();
-    if (hiddenOwnerIds.includes(gym.ownerId)) throw err('Gym not found', 404);
-    const [r, photos, siblings] = await Promise.all([
+    const [r, siblings, logoUrl] = await Promise.all([
       reviewRepository.aggregateForGym(id),
-      prisma.gymPhoto.findMany({ where: { gymId: id }, orderBy: [{ isCover: 'desc' }, { sortOrder: 'asc' }] }),
-      gym.brandId
-        ? prisma.gym.findMany({
-            where: { brandId: gym.brandId, status: 'APPROVED', operationalStatus: 'OPEN' },
-            select: { id: true, name: true, approvedName: true, address: true, approvedAddress: true, latitude: true, longitude: true },
-            orderBy: { createdAt: 'asc' },
-          })
-        : Promise.resolve([]),
+      gym.brandId ? gymPublicRepository.findPublishedBranchesOfBrand(gym.brandId) : Promise.resolve([]),
+      brandLogoUrl(gym.brand?.logoKey),
     ]);
-    const pub = toPublicGym(gym);
     return {
-      ...pub,
+      ...toPublicGymDto(gym, { brandLogoUrl: logoUrl }),
       averageRating: round2(r.averageRating),
       reviewCount: r.count,
-      // Chỉ tới được đây khi chi nhánh ĐÃ DUYỆT (findApprovedById) — ảnh nộp lúc xin duyệt giờ mới
-      // hiện cho khách. Bucket vẫn riêng tư: mỗi ảnh là link ký tạm (resolvePhotoUrl).
-      photos: (
-        await Promise.all(photos.map(async (p) => ({ id: p.id, category: p.category, isCover: p.isCover, url: await resolvePhotoUrl(p) })))
-      ).filter((p) => p.url),
-      brand: pub.brand ? { ...pub.brand, logoUrl: await brandLogoUrl(gym.brand?.logoKey) } : pub.brand,
+      // Chỉ ảnh PUBLISHED (kiểu PublishedGymSource bảo đảm), URL cố định /media/gym-photos/:id — bucket vẫn riêng tư,
+      // mỗi lần tải lại sẽ được chuyển hướng sang link ký tạm mới.
+      photos: toPublicGymPhotos(gym),
       // Mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ chi nhánh.
       brandBranches: siblings.map((b) => ({
         id: b.id,
@@ -131,29 +148,76 @@ export const gymService = {
     data: {
       name: string; description?: string; address: string; city?: string; phone?: string; email?: string;
       provinceCode?: number | null; wardCode?: number | null; latitude?: number | null; longitude?: number | null;
-    },
+    } & AmenitySelectionInput,
+    compat: ListingCompat = LEGACY_NO_HEADER,
   ) {
     const existingBrands = await brandService.listOwned(ownerId);
     const brand = existingBrands[0];
     if (!brand) {
       throw err('Hãy đặt tên thương hiệu của bạn trước khi tạo phòng gym', 400);
     }
-    return gymRepository.create({
-      ownerId,
-      name: data.name,
-      pendingName: data.name,
-      description: data.description,
-      address: data.address,
-      pendingAddress: data.address,
-      city: data.city,
-      phone: data.phone,
-      email: data.email,
-      provinceCode: data.provinceCode ?? undefined,
-      wardCode: data.wardCode ?? undefined,
-      latitude: data.latitude ?? undefined,
-      longitude: data.longitude ?? undefined,
-      brand: { connect: { id: brand.id } },
-    });
+    // Listing Management B3 (plan 3, 12.8) - quick create. The branch is PENDING_REVIEW and its amenities (catalogue rows + own
+    // proposals) are saved with it in ONE transaction, like the wizard's. New client: >= 1 amenity or 422 AMENITIES_REQUIRED. Old
+    // client (no header): accepted without any when LISTING_LEGACY_CLIENT_COMPAT is on (the branch is labelled legacy_no_amenities,
+    // ACCEPTED event + legacy_client_at in this transaction); refused 422 + REJECTED_422 event when it is off.
+    const gymId = randomUUID();
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await withCompatWriter(tx);
+        const created = await tx.gym.create({
+          data: {
+            id: gymId,
+            ownerId,
+            name: data.name,
+            pendingName: data.name,
+            description: data.description,
+            address: data.address,
+            pendingAddress: data.address,
+            city: data.city,
+            phone: data.phone,
+            email: data.email,
+            provinceCode: data.provinceCode ?? undefined,
+            wardCode: data.wardCode ?? undefined,
+            latitude: data.latitude ?? undefined,
+            longitude: data.longitude ?? undefined,
+            ...createdFlowVersionData(compat),
+            brand: { connect: { id: brand.id } },
+          },
+        });
+        const counts = await applyAmenitySelectionTx(tx, created, ownerId, {
+          amenityIds: data.amenityIds,
+          proposals: data.proposals,
+          proposalIds: data.proposalIds,
+        });
+        const total = counts.amenityCount + counts.pendingProposalCount;
+        if (total === 0 && amenitiesRequired(compat, created.createdFlowVersion)) throw amenitiesRequiredError(compat);
+        await recordLegacyCompatTx(tx, {
+          action: 'BRANCH_CREATE_QUICK',
+          entityType: 'GYM',
+          entityId: created.id,
+          actorUserId: ownerId,
+          flowHeader: compat.flowHeader,
+          clientHeader: compat.clientHeader,
+          outcome: 'ACCEPTED',
+          legacyNoAmenities: total === 0,
+        });
+        return tx.gym.findUniqueOrThrow({ where: { id: created.id } });
+      });
+    } catch (e) {
+      if ((e as { code?: string })?.code === 'AMENITIES_REQUIRED' && !compat.newClient) {
+        // The branch was never created (rolled back), so the event points at the applicant's partner record when there is one.
+        const partnerId = await resolvePartnerId(prisma, { ownerId, brandId: brand.id });
+        await recordLegacyRejectedEvent({
+          action: 'BRANCH_CREATE_QUICK',
+          entityType: partnerId ? 'GYM_PARTNER' : 'GYM',
+          entityId: partnerId ?? gymId,
+          actorUserId: ownerId,
+          flowHeader: compat.flowHeader,
+          clientHeader: compat.clientHeader,
+        });
+      }
+      throw e;
+    }
   },
 
   async getOwnedGym(gymId: string, ownerId: string) {
@@ -210,10 +274,14 @@ export const gymService = {
     const gym = await this.getOwnedGym(gymId, ownerId);
     const patch: Record<string, unknown> = {};
 
+    // Listing Management B3/B4 — description and facilities are part of the PUBLIC LISTING: once a branch has left DRAFT
+    // they change only through a reviewed revision, never by a direct write. The whole request is refused (409
+    // LISTING_REVIEW_REQUIRED) before anything is written. A DRAFT branch (the wizard) is not affected.
+    if (gym.status !== 'DRAFT' && (data.description !== undefined || data.facilities !== undefined)) {
+      throw listingReviewRequiredError();
+    }
+
     if (data.locationNote !== undefined) patch.locationNote = data.locationNote;
-    // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 4. Free edit, no pending*/material-change
-    // overlay like name/address above — same discipline as locationNote.
-    if (data.facilities !== undefined) patch.facilities = data.facilities;
     if (data.name !== undefined) {
       patch.name = data.name;
       if (data.name !== gym.name) patch.pendingName = data.name;
@@ -245,7 +313,16 @@ export const gymService = {
       patch.changesRequestedBy = null;
     }
 
-    return gymRepository.update(gymId, patch);
+    // `facilities` is only a mirror of gym_amenities (B4): a DRAFT branch's selection goes to gym_amenities and the
+    // mirror is re-synced; nothing writes the array directly.
+    if (data.facilities === undefined) return gymRepository.update(gymId, patch);
+    const facilities = data.facilities;
+    return prisma.$transaction(async (tx) => {
+      await withCompatWriter(tx);
+      if (Object.keys(patch).length > 0) await tx.gym.update({ where: { id: gymId }, data: patch });
+      await replaceDraftSystemAmenitiesTx(tx, gymId, facilities);
+      return tx.gym.findUniqueOrThrow({ where: { id: gymId } });
+    });
   },
 
   /**
@@ -280,7 +357,7 @@ export const gymService = {
    * here since approvedName is already non-null by then — it must not silently wave through a
    * rename that was never sent through approveRename.
    */
-  async setStatus(gymId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED') {
+  async setStatus(gymId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED', actorUserId?: string) {
     const gym = await gymRepository.findById(gymId);
     if (!gym) throw err('Gym not found', 404);
 
@@ -306,7 +383,11 @@ export const gymService = {
       }
     }
 
-    return gymRepository.updateStatus(gymId, status);
+    const updated = await gymRepository.updateStatus(gymId, status);
+    // Listing Management B2 - GYM_ADMIN_STATUS_CHANGED. Written right after the change (best effort: partnerAuditService.record
+    // never throws). Without an acting admin (internal callers / old tests) no audit row is written.
+    await auditGymAdminAction(gym, actorUserId, 'GYM_ADMIN_STATUS_CHANGED', { from: gym.status, to: status });
+    return updated;
   },
 
   /**
@@ -314,13 +395,13 @@ export const gymService = {
    * ALREADY-approved gym's later rename. Promotes whichever of name/address actually has
    * something pending; leaves the other untouched if only one was changed.
    */
-  async approveRename(gymId: string) {
+  async approveRename(gymId: string, actorUserId?: string) {
     const gym = await gymRepository.findById(gymId);
     if (!gym) throw err('Gym not found', 404);
     if (gym.pendingName === null && gym.pendingAddress === null) {
       throw err('Phòng gym này không có tên/địa chỉ nào đang chờ duyệt', 409);
     }
-    return gymRepository.update(gymId, {
+    const updated = await gymRepository.update(gymId, {
       ...(gym.pendingName !== null ? { approvedName: gym.pendingName, pendingName: null } : {}),
       ...(gym.pendingAddress !== null ? { approvedAddress: gym.pendingAddress, pendingAddress: null } : {}),
       pendingNameNote: null,
@@ -328,6 +409,11 @@ export const gymService = {
       changesRequestedAt: null,
       changesRequestedBy: null,
     });
+    await auditGymAdminAction(gym, actorUserId, 'GYM_ADMIN_RENAME_APPROVED', {
+      ...(gym.pendingName !== null ? { name: { from: gym.approvedName, to: gym.pendingName } } : {}),
+      ...(gym.pendingAddress !== null ? { address: { from: gym.approvedAddress, to: gym.pendingAddress } } : {}),
+    });
+    return updated;
   },
 
   /**
@@ -342,6 +428,7 @@ export const gymService = {
   async updateGymAsAdmin(
     gymId: string,
     data: Partial<{ name: string; description: string; address: string; city: string; phone: string; email: string }>,
+    ctx: { adminId?: string; reason?: string; expectedListingVersion?: number } = {},
   ) {
     const gym = await gymRepository.findById(gymId);
     if (!gym) throw err('Gym not found', 404);
@@ -359,16 +446,50 @@ export const gymService = {
       patch.pendingAddress = null;
       patch.pendingAddressNote = null;
     }
-    if (data.description !== undefined) patch.description = data.description;
     if (data.city !== undefined) patch.city = data.city;
     if (data.phone !== undefined) patch.phone = data.phone;
     if (data.email !== undefined) patch.email = data.email;
-    if ((data.name !== undefined || data.address !== undefined)) {
+    if (data.name !== undefined || data.address !== undefined) {
       patch.changesRequestedAt = null;
       patch.changesRequestedBy = null;
     }
 
-    return gymRepository.update(gymId, patch);
+    // Listing Management B2 - `description` is part of the PUBLIC LISTING: for a branch that has left DRAFT it is an ADMIN_DIRECT
+    // revision (reason >= 10 characters stored on it, expectedListingVersion honoured when given, listing_version + 1,
+    // previous_snapshot, mirror sync, LISTING_ADMIN_EDITED audit, a pending revision becomes STALE + a rebased draft). A DRAFT
+    // branch has no listing yet - the wizard owns it - so its description is written directly, as before.
+    const descriptionNow = data.description !== undefined ? data.description.trim() || null : undefined;
+    const descriptionChanged = descriptionNow !== undefined && descriptionNow !== ((gym.description ?? '').trim() || null);
+    const viaRevision = descriptionChanged && gym.status !== 'DRAFT';
+    if (descriptionChanged && !viaRevision) patch.description = descriptionNow;
+
+    if (!viaRevision) {
+      if (Object.keys(patch).length === 0) return gym;
+      return prisma.$transaction(async (tx) => {
+        await withCompatWriter(tx);
+        const updated = await tx.gym.update({ where: { id: gymId }, data: patch });
+        await auditAdminUpdate(tx, gym, patch, ctx);
+        return updated;
+      });
+    }
+
+    const out = await prisma.$transaction(async (tx) => {
+      // lock order: the listing edit (open revision -> gym) first, then the plain columns
+      const direct = await directEditTx(tx, ctx.adminId ?? 'system', gymId, {
+        description: descriptionNow,
+        reason: ctx.reason as string,
+        expectedListingVersion: ctx.expectedListingVersion ?? null,
+      });
+      let updated = await tx.gym.findUniqueOrThrow({ where: { id: gymId } });
+      if (Object.keys(patch).length > 0) {
+        await withCompatWriter(tx);
+        updated = await tx.gym.update({ where: { id: gymId }, data: patch });
+        await auditAdminUpdate(tx, gym, patch, ctx);
+      }
+      return { gym: updated, direct };
+    });
+    await sendListingNotices(out.direct.notices);
+    return Object.assign(out.gym, { listing: { revisionId: out.direct.revisionId, listingVersion: out.direct.listingVersion } });
   },
 
   /**
@@ -377,6 +498,17 @@ export const gymService = {
    * required); TEMPORARILY_CLOSED -> OPEN (reopen) or PERMANENTLY_CLOSED; PERMANENTLY_CLOSED is
    * terminal — nothing here transitions out of it (that would need actual admin/manual
    * intervention, out of this phase's scope).
+   *
+   * Who may do what: a branch MANAGER may close temporarily and reopen the branches in their
+   * scope (the route's requireGymScope); PERMANENTLY_CLOSED is OWNER-only. It is irreversible
+   * and ends the branch's business — memberships left for admin refund review, PT partnerships
+   * that can no longer take a new contract — which is an owner's call, not a branch manager's.
+   *
+   * `ownerId` is the owner PRINCIPAL the gym is keyed to (a MANAGER's request carries their
+   * owner's id there), so it cannot answer "who is acting". That is what `actor` is for: the
+   * role rule reads `actor.role`, and `closedBy` is stamped with `actor.userId`. The rule is
+   * enforced here rather than only on the route so no caller can reach the write without it,
+   * and it fails closed — a permanent closure with no actor is refused.
    */
   async setOperationalStatus(
     gymId: string,
@@ -384,7 +516,15 @@ export const gymService = {
     target: GymOperationalStatus,
     reason?: string,
     expectedReopenAt?: Date,
+    actor?: OperationalStatusActor,
   ) {
+    if (target === 'PERMANENTLY_CLOSED' && actor?.role !== 'OWNER') {
+      throw Object.assign(
+        err('Chỉ chủ sở hữu mới được đóng cửa vĩnh viễn chi nhánh — tài khoản quản lý chỉ có thể tạm đóng cửa hoặc mở lại', 403),
+        { code: 'OWNER_ROLE_REQUIRED' },
+      );
+    }
+
     const gym = await this.getOwnedGym(gymId, ownerId);
     if (gym.operationalStatus === 'PERMANENTLY_CLOSED') {
       throw err('Phòng gym đã đóng cửa vĩnh viễn, không thể đổi trạng thái', 409);
@@ -399,6 +539,8 @@ export const gymService = {
       }
       return gymRepository.setOperationalStatus(gymId, 'OPEN', {
         closureReason: null,
+        // Cleared with the reason: the pair describes the CURRENT closure, and an open gym has none.
+        closedBy: null,
         expectedReopenAt: null,
         reopenedAt: new Date(),
       });
@@ -411,6 +553,9 @@ export const gymService = {
     const updated = await gymRepository.setOperationalStatus(gymId, target, {
       closureReason: reason.trim(),
       closedAt: new Date(),
+      // The audit stamp for this closure: who (the acting account, not the owner principal),
+      // alongside when (closedAt) and why (closureReason) on the branch's own row.
+      closedBy: actor?.userId ?? null,
       // Reopen date is only meaningful for a temporary closure — a permanent one has none.
       expectedReopenAt: target === 'TEMPORARILY_CLOSED' ? expectedReopenAt ?? null : null,
     });
@@ -419,7 +564,7 @@ export const gymService = {
       const memberships = await membershipRepository.findByGym(gymId);
       const activeCount = memberships.filter((m) => m.status === 'ACTIVE').length;
       logger.warn(
-        `[Gym] ${gymId} (${gym.name}) PERMANENTLY_CLOSED by owner — ${activeCount} active membership(s) need admin review for a refund (reason: GYM_CLOSED)`,
+        `[Gym] ${gymId} (${gym.name}) PERMANENTLY_CLOSED by owner ${actor?.userId} — ${activeCount} active membership(s) need admin review for a refund (reason: GYM_CLOSED)`,
       );
     }
 
@@ -434,7 +579,7 @@ export const gymService = {
    * a slow/erroring payment-service must not block the warning screen from showing at all.
    */
   async closureImpact(gymId: string, ownerId: string) {
-    await this.getOwnedGym(gymId, ownerId); // ownership check only — throws if not this owner's gym
+    const ownedGym = await this.getOwnedGym(gymId, ownerId); // ownership check — throws if not this owner's gym
 
     const { membershipService } = await import('./membership.service');
     const { paymentClient } = await import('../clients/payment.client');
@@ -442,7 +587,15 @@ export const gymService = {
 
     const [activeMemberships, activeCollaborations, wallet] = await Promise.all([
       membershipRepository.findActiveByGyms([gymId]),
-      prisma.gymPtCollaboration.count({ where: { gymId, status: 'ACCEPTED' } }),
+      // "Partnerships affected" = live branch-level rows for this branch (a row folded into a brand
+      // agreement is superseded and no longer counts on its own) + ACCEPTED brand agreements of this
+      // branch's brand, each of which covers this branch too.
+      Promise.all([
+        prisma.gymPtCollaboration.count({ where: { gymId, status: 'ACCEPTED', supersededByAgreementId: null } }),
+        ownedGym.brandId
+          ? prisma.gymBrandPtAgreement.count({ where: { brandId: ownedGym.brandId, status: 'ACCEPTED' } })
+          : Promise.resolve(0),
+      ]).then(([legacy, brand]) => legacy + brand),
       paymentClient.getWallet('GYM', gymId).catch(() => null),
     ]);
 

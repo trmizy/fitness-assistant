@@ -24,6 +24,17 @@ const CASES: [eventType: string, entityType: string][] = [
   ["CONTRACT_CANCELLED_PT_DEACTIVATED", "CONTRACT"],
   ["REFUND_NEEDS_MANUAL_SETTLEMENT", "CONTRACT"],
   ["PT_APPLICATION_REVIEWED", "PT_APPLICATION"],
+  // PT-suspension slice 4
+  ["CONTRACT_PAUSED_PT_SUSPENDED", "CONTRACT"],
+  ["CONTRACT_RESUMED_PT_REINSTATED", "CONTRACT"],
+  // Listing Management (gym side) — sent by gym-service through POST /internal/notifications
+  ["GYM_LISTING_APPROVED", "GYM_BRANCH"],
+  ["GYM_LISTING_REJECTED", "GYM_BRANCH"],
+  ["GYM_LISTING_CHANGES_REQUESTED", "GYM_BRANCH"],
+  ["GYM_LISTING_INVALIDATED", "GYM_BRANCH"],
+  ["GYM_AMENITY_PROPOSAL_REVIEWED", "GYM_BRANCH"],
+  // payment-service: late payment for a cancelled order / membership / contract was auto-refunded
+  ["PAYMENT_AUTO_REFUNDED", "PAYMENT"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

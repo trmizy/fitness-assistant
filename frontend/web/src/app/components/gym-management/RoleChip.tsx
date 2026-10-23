@@ -8,7 +8,14 @@ import { cn } from "../ui/utils";
  * status, it never changes on its own, and mixing it into the same tone system would blur
  * that distinction.
  */
-export function RoleChip({ role, className }: { role: "OWNER" | "MANAGER"; className?: string }) {
+const ROLE_TEXT: Record<"OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT", string> = {
+  OWNER: "Chủ sở hữu",
+  MANAGER: "Quản lý",
+  RECEPTIONIST: "Lễ tân",
+  ACCOUNTANT: "Kế toán",
+};
+
+export function RoleChip({ role, className }: { role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT"; className?: string }) {
   const isOwner = role === "OWNER";
   return (
     <span
@@ -21,7 +28,7 @@ export function RoleChip({ role, className }: { role: "OWNER" | "MANAGER"; class
       )}
     >
       {isOwner ? <CrownSimpleIcon className="size-3" weight="fill" /> : <UserIcon className="size-3" weight="bold" />}
-      {isOwner ? "Chủ sở hữu" : "Quản lý"}
+      {ROLE_TEXT[role] ?? role}
     </span>
   );
 }

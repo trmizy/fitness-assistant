@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { affiliationService } from '../services/affiliation.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { requirePubliclyVisibleGym } from '../services/gym-public';
 
 export const affiliationController = {
   async listPublic(req: Request, res: Response) {
+    if (!(await requirePubliclyVisibleGym(req, res))) return;
     const list = await affiliationService.listPublicByGym(req.params.gymId);
     res.json({ success: true, data: list });
   },

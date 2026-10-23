@@ -112,7 +112,8 @@ export default function PtStudentDetailScreen() {
 
   const name = clientName(contract);
   const st = ptContractStatus(contract.status);
-  const used = Number(contract.usedSessions ?? 0);
+  // A session the PT missed and the client was refunded for is closed and counted (DQ-2(a)): used = delivered + refunded-closed.
+  const used = Number(contract.usedSessions ?? 0) + Number(contract.compensatedSessions ?? 0);
   const total = Number(contract.totalSessions ?? 0);
   const remaining = Math.max(0, total - used);
   const isActive = contract.status === "ACTIVE";
@@ -255,7 +256,7 @@ export default function PtStudentDetailScreen() {
             ) : (
               <Card className="overflow-hidden">
                 {sessions.map((s: any, i: number) => {
-                  const ss = ptSessionStatus(s.status);
+                  const ss = ptSessionStatus(s.status, s);
                   return (
                     <View key={s.id} className={`flex-row items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
                       <View className="min-w-0 flex-1">

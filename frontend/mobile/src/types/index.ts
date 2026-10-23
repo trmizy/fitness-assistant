@@ -269,6 +269,8 @@ export type NotificationEventType =
   | "CONTRACT_ACCEPTED"
   | "CONTRACT_REJECTED"
   | "CONTRACT_CANCELLED"
+  | "CONTRACT_PAUSED_PT_SUSPENDED"
+  | "CONTRACT_RESUMED_PT_REINSTATED"
   | "SESSION_BOOKED"
   | "SESSION_CONFIRMED"
   | "SESSION_COMPLETED"
@@ -398,6 +400,8 @@ export interface WalletLedgerEntry {
   balanceBefore: string;
   balanceAfter: string;
   description?: string;
+  /** Derived by payment-service (wallet-entry-category.ts); the label comes from this, never from `description`. */
+  category?: string | null;
   createdAt: string;
 }
 

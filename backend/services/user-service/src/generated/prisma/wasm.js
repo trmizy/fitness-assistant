@@ -130,6 +130,9 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   email: 'email',
   isPT: 'isPT',
   ptSuspended: 'ptSuspended',
+  listingVersion: 'listingVersion',
+  listingPublishedAt: 'listingPublishedAt',
+  ptLockSeq: 'ptLockSeq',
   referralCode: 'referralCode',
   dateOfBirth: 'dateOfBirth',
   age: 'age',
@@ -299,11 +302,22 @@ exports.Prisma.ContractScalarFieldEnum = {
   gymId: 'gymId',
   source: 'source',
   paymentTransactionId: 'paymentTransactionId',
+  paymentDueAt: 'paymentDueAt',
+  paymentDeadlineExtendedAt: 'paymentDeadlineExtendedAt',
+  ptHoldbackRate: 'ptHoldbackRate',
+  ptHoldbackPolicyVersion: 'ptHoldbackPolicyVersion',
+  holdbackReleasedAt: 'holdbackReleasedAt',
   platformRate: 'platformRate',
   ptRate: 'ptRate',
   gymRate: 'gymRate',
+  gymBrandId: 'gymBrandId',
+  gymAgreementId: 'gymAgreementId',
+  gymAgreementScope: 'gymAgreementScope',
+  gymMembershipId: 'gymMembershipId',
   terminationReason: 'terminationReason',
   terminatedAt: 'terminatedAt',
+  clientExitAcceptedAt: 'clientExitAcceptedAt',
+  clientExitRestrictionId: 'clientExitRestrictionId',
   releasedToPt: 'releasedToPt',
   releasedToGym: 'releasedToGym',
   releasedToPlatform: 'releasedToPlatform',
@@ -470,6 +484,7 @@ exports.Prisma.PTServicePackageScalarFieldEnum = {
   validityDays: 'validityDays',
   isActive: 'isActive',
   archivedAt: 'archivedAt',
+  version: 'version',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -527,7 +542,8 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   metadata: 'metadata',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  legalHoldUntil: 'legalHoldUntil'
 };
 
 exports.Prisma.SessionSettlementScalarFieldEnum = {
@@ -542,7 +558,12 @@ exports.Prisma.SessionSettlementScalarFieldEnum = {
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  settledAt: 'settledAt'
+  settledAt: 'settledAt',
+  requestSnapshot: 'requestSnapshot',
+  result: 'result',
+  appliedAt: 'appliedAt',
+  conflictNote: 'conflictNote',
+  nextAttemptAt: 'nextAttemptAt'
 };
 
 exports.Prisma.ClientJourneyScalarFieldEnum = {
@@ -601,6 +622,107 @@ exports.Prisma.UserPreferenceScalarFieldEnum = {
   smartPrefill: 'smartPrefill',
   showMacros: 'showMacros',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PtRestrictionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  type: 'type',
+  reasonCategory: 'reasonCategory',
+  reasonText: 'reasonText',
+  publicReason: 'publicReason',
+  imposedBy: 'imposedBy',
+  lockSeq: 'lockSeq',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  endKind: 'endKind',
+  liftedBy: 'liftedBy',
+  liftReason: 'liftReason',
+  lastJustifiedAt: 'lastJustifiedAt',
+  lastJustifiedBy: 'lastJustifiedBy',
+  lastJustification: 'lastJustification',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  scope: 'scope',
+  contractId: 'contractId',
+  supersedesRestrictionId: 'supersedesRestrictionId'
+};
+
+exports.Prisma.PtRestrictionContractExtensionScalarFieldEnum = {
+  id: 'id',
+  restrictionId: 'restrictionId',
+  contractId: 'contractId',
+  blockedMs: 'blockedMs',
+  previousEndDate: 'previousEndDate',
+  newEndDate: 'newEndDate',
+  appliedAt: 'appliedAt'
+};
+
+exports.Prisma.PtListingRevisionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  status: 'status',
+  source: 'source',
+  parentRevisionId: 'parentRevisionId',
+  baseVersion: 'baseVersion',
+  draftVersion: 'draftVersion',
+  payload: 'payload',
+  previousSnapshot: 'previousSnapshot',
+  systemAdjustments: 'systemAdjustments',
+  submittedBy: 'submittedBy',
+  submittedAt: 'submittedAt',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote',
+  ownerNote: 'ownerNote',
+  adminReason: 'adminReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PtPhysiquePhotoScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  storageKey: 'storageKey',
+  status: 'status',
+  sortOrder: 'sortOrder',
+  isCover: 'isCover',
+  mime: 'mime',
+  bytes: 'bytes',
+  contentHash: 'contentHash',
+  uploadedBy: 'uploadedBy',
+  retiredAt: 'retiredAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PtMediaUploadIntentScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  objectKey: 'objectKey',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ClientCompatEventScalarFieldEnum = {
+  id: 'id',
+  route: 'route',
+  actorUserId: 'actorUserId',
+  clientHeader: 'clientHeader',
+  outcome: 'outcome',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PtTermsAcceptanceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  version: 'version',
+  source: 'source',
+  acceptedAt: 'acceptedAt',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  legalHoldUntil: 'legalHoldUntil'
 };
 
 exports.Prisma.SortOrder = {
@@ -721,7 +843,9 @@ exports.TerminationReason = exports.$Enums.TerminationReason = {
   MUTUAL: 'MUTUAL',
   EXPIRED: 'EXPIRED',
   COMPLETED: 'COMPLETED',
-  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW'
+  PT_REPEATED_NO_SHOW: 'PT_REPEATED_NO_SHOW',
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION: 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+  SERVICE_DISCONTINUED_BY_PLATFORM: 'SERVICE_DISCONTINUED_BY_PLATFORM'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {
@@ -772,7 +896,19 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   SESSION_PT_NO_SHOW_REPORTED: 'SESSION_PT_NO_SHOW_REPORTED',
   CONTRACT_CANCELLED_PT_DEACTIVATED: 'CONTRACT_CANCELLED_PT_DEACTIVATED',
   REFUND_NEEDS_MANUAL_SETTLEMENT: 'REFUND_NEEDS_MANUAL_SETTLEMENT',
-  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED'
+  PT_APPLICATION_REVIEWED: 'PT_APPLICATION_REVIEWED',
+  CONTRACT_PAUSED_PT_SUSPENDED: 'CONTRACT_PAUSED_PT_SUSPENDED',
+  CONTRACT_RESUMED_PT_REINSTATED: 'CONTRACT_RESUMED_PT_REINSTATED',
+  PT_LISTING_APPROVED: 'PT_LISTING_APPROVED',
+  PT_LISTING_REJECTED: 'PT_LISTING_REJECTED',
+  PT_LISTING_CHANGES_REQUESTED: 'PT_LISTING_CHANGES_REQUESTED',
+  PT_LISTING_INVALIDATED: 'PT_LISTING_INVALIDATED',
+  GYM_LISTING_APPROVED: 'GYM_LISTING_APPROVED',
+  GYM_LISTING_REJECTED: 'GYM_LISTING_REJECTED',
+  GYM_LISTING_CHANGES_REQUESTED: 'GYM_LISTING_CHANGES_REQUESTED',
+  GYM_LISTING_INVALIDATED: 'GYM_LISTING_INVALIDATED',
+  GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
+  PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -784,7 +920,9 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   TRAINING_CYCLE: 'TRAINING_CYCLE',
   GYM_COMPLAINT: 'GYM_COMPLAINT',
   GYM_BRANCH: 'GYM_BRANCH',
-  PT_APPLICATION: 'PT_APPLICATION'
+  PT_APPLICATION: 'PT_APPLICATION',
+  PT_LISTING: 'PT_LISTING',
+  PAYMENT: 'PAYMENT'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {
@@ -814,21 +952,83 @@ exports.AuditEntityType = exports.$Enums.AuditEntityType = {
   CONTRACT: 'CONTRACT',
   SESSION: 'SESSION',
   SERVICE_PACKAGE: 'SERVICE_PACKAGE',
-  PT_PROFILE: 'PT_PROFILE'
+  PT_PROFILE: 'PT_PROFILE',
+  PT_LISTING: 'PT_LISTING'
 };
 
 exports.SessionSettlementKind = exports.$Enums.SessionSettlementKind = {
   PT_NO_SHOW_COMPENSATION: 'PT_NO_SHOW_COMPENSATION',
   SESSION_RELEASE: 'SESSION_RELEASE',
   CONTRACT_TERMINATION: 'CONTRACT_TERMINATION',
-  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION'
+  PT_LATE_ARRIVAL_COMPENSATION: 'PT_LATE_ARRIVAL_COMPENSATION',
+  UNRESOLVED_SESSION_RESOLUTION: 'UNRESOLVED_SESSION_RESOLUTION'
 };
 
 exports.SessionSettlementStatus = exports.$Enums.SessionSettlementStatus = {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',
   SETTLED: 'SETTLED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  UNCONFIRMED: 'UNCONFIRMED',
+  NEEDS_HUMAN: 'NEEDS_HUMAN',
+  CONFLICT: 'CONFLICT'
+};
+
+exports.PtRestrictionType = exports.$Enums.PtRestrictionType = {
+  TEMPORARY_SUSPENSION: 'TEMPORARY_SUSPENSION',
+  PERMANENT_BAN: 'PERMANENT_BAN'
+};
+
+exports.PtRestrictionReasonCategory = exports.$Enums.PtRestrictionReasonCategory = {
+  COMPLAINT_REVIEW: 'COMPLAINT_REVIEW',
+  CONDUCT_REVIEW: 'CONDUCT_REVIEW',
+  PAYMENT_REVIEW: 'PAYMENT_REVIEW',
+  DOCUMENT_VERIFICATION: 'DOCUMENT_VERIFICATION',
+  ACCOUNT_SECURITY: 'ACCOUNT_SECURITY',
+  OTHER: 'OTHER',
+  UNSPECIFIED: 'UNSPECIFIED'
+};
+
+exports.PtRestrictionEndKind = exports.$Enums.PtRestrictionEndKind = {
+  LIFTED: 'LIFTED',
+  CONVERTED_TO_PERMANENT: 'CONVERTED_TO_PERMANENT',
+  SCOPE_RAISED: 'SCOPE_RAISED',
+  SCOPE_NARROWED: 'SCOPE_NARROWED',
+  CONTRACT_ENDED: 'CONTRACT_ENDED'
+};
+
+exports.PtRestrictionScope = exports.$Enums.PtRestrictionScope = {
+  ACCOUNT: 'ACCOUNT',
+  CONTRACT: 'CONTRACT'
+};
+
+exports.PtListingRevisionStatus = exports.$Enums.PtListingRevisionStatus = {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  WITHDRAWN: 'WITHDRAWN',
+  STALE: 'STALE'
+};
+
+exports.PtListingRevisionSource = exports.$Enums.PtListingRevisionSource = {
+  OWNER: 'OWNER',
+  ADMIN_DIRECT: 'ADMIN_DIRECT'
+};
+
+exports.PtPhysiquePhotoStatus = exports.$Enums.PtPhysiquePhotoStatus = {
+  STAGED: 'STAGED',
+  PUBLISHED: 'PUBLISHED',
+  RETIRED: 'RETIRED',
+  DISCARDED: 'DISCARDED'
+};
+
+exports.PtMediaUploadIntentStatus = exports.$Enums.PtMediaUploadIntentStatus = {
+  PENDING: 'PENDING',
+  CONFIRMING: 'CONFIRMING',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED'
 };
 
 exports.Prisma.ModelName = {
@@ -855,7 +1055,14 @@ exports.Prisma.ModelName = {
   SessionSettlement: 'SessionSettlement',
   ClientJourney: 'ClientJourney',
   AgentContractDraft: 'AgentContractDraft',
-  UserPreference: 'UserPreference'
+  UserPreference: 'UserPreference',
+  PtRestriction: 'PtRestriction',
+  PtRestrictionContractExtension: 'PtRestrictionContractExtension',
+  PtListingRevision: 'PtListingRevision',
+  PtPhysiquePhoto: 'PtPhysiquePhoto',
+  PtMediaUploadIntent: 'PtMediaUploadIntent',
+  ClientCompatEvent: 'ClientCompatEvent',
+  PtTermsAcceptance: 'PtTermsAcceptance'
 };
 
 /**

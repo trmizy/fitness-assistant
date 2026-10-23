@@ -12,6 +12,7 @@
  */
 import type { PartnerAccessState } from "../../services/api";
 import { canRespondAs, collabStatusFor, type CollabRow } from "../collaboration/collaboration";
+import { awaitingMyReplyCount, partneredPtCount } from "../collaboration/brandPartnership";
 export { withdrawableCeiling } from "../wallet/wallet";
 
 // ── Access state: who may see the operational workspace ────────────────────────────────────
@@ -117,7 +118,9 @@ export function accessStateText(state: PartnerAccessState | null | undefined) {
  * controls are hidden rather than shown and then 403'd (GYM_MANAGEMENT master spec §61).
  */
 export function isBrandOwner(onboardingStatus: unknown): boolean {
-  return (onboardingStatus as any)?.role !== "MANAGER";
+  const role = (onboardingStatus as any)?.role;
+  // D15: only the OWNER names the brand / adds a branch — manager, receptionist and accountant all lose the controls.
+  return role == null || role === "OWNER";
 }
 
 /**
@@ -126,7 +129,15 @@ export function isBrandOwner(onboardingStatus: unknown): boolean {
  * them from a manager's nav): hide them instead of showing a load error.
  */
 export function isManagerAccount(onboardingStatus: unknown): boolean {
-  return (onboardingStatus as any)?.role === "MANAGER";
+  const role = (onboardingStatus as any)?.role;
+  // D15: receptionist and accountant are narrower than a manager, so they hide at least the same owner-only surfaces.
+  return role === "MANAGER" || role === "RECEPTIONIST" || role === "ACCOUNTANT";
+}
+
+/** D15 narrow roles — they get a reduced workspace tab bar (see app/gym-owner/_layout.tsx). */
+export function staffRoleOf(onboardingStatus: unknown): "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT" | null {
+  const role = (onboardingStatus as any)?.role;
+  return role === "OWNER" || role === "MANAGER" || role === "RECEPTIONIST" || role === "ACCOUNTANT" ? role : null;
 }
 
 // ── Branches ───────────────────────────────────────────────────────────────────────────────
@@ -310,14 +321,18 @@ export function countByStatus(rows: { status?: string | null }[], status: string
   return rows.filter((r) => r?.status === status).length;
 }
 
-/** PTs actually working at THIS branch — a collaboration is per gym, not per brand. */
-export function acceptedCollabCount(collabs: { gymId?: string | null; status?: string | null }[], gymId: string) {
-  return collabs.filter((c) => c?.gymId === gymId && c?.status === "ACCEPTED").length;
+/**
+ * PTs actually working at THIS branch. An ACCEPTED brand agreement covers EVERY branch of the brand (its
+ * `gymId` is only a representative branch), so counting by `gymId` undercounted every other branch; legacy
+ * per-branch rows still count at their own branch. Distinct trainers, winding-down agreements excluded.
+ */
+export function acceptedCollabCount(collabs: unknown, gym: { id?: string | null; brandId?: string | null } | null | undefined) {
+  return partneredPtCount(collabs, gym);
 }
 
-/** Offers waiting on the owner's answer — the turn-taking is the same enum Phase 11 mapped. */
-export function pendingCollabCount(collabs: { status?: string | null }[]) {
-  return collabs.filter((c) => c?.status === "PENDING" || c?.status === "COUNTERED").length;
+/** Offers waiting on the OWNER's answer - not the owner's own proposals, which wait on the trainer. */
+export function pendingCollabCount(collabs: unknown) {
+  return awaitingMyReplyCount(collabs, "GYM");
 }
 
 /** Members are anonymous to the owner beyond their id — never invent a name. */

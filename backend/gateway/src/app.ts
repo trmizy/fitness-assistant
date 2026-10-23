@@ -61,6 +61,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   delete req.headers["x-user-role"];
   delete req.headers["x-gateway-secret"];
   req.headers["x-gateway-secret"] = GATEWAY_SECRET;
+  // Client IP for downstream audit trails (user-service: PT terms acceptance, audit_logs). Computed HERE with this gateway's own
+  // `trust proxy` setting (req.ip = the entry the one trusted front proxy saw, else the socket peer), never copied from the client:
+  // any client-supplied x-client-ip is dropped first, and X-Forwarded-For (which http-proxy forwards unchanged) is no longer the only source.
+  delete req.headers["x-client-ip"];
+  if (req.ip) req.headers["x-client-ip"] = req.ip;
   next();
 });
 

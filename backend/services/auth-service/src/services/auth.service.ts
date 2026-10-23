@@ -432,19 +432,42 @@ export const authService = {
   // best-effort: a failure is recorded for retry (see pt-deactivation-relay.service.ts) rather
   // than thrown here, because the account lock/unlock itself is the primary action and must
   // not be blocked or rolled back by a secondary one failing.
+  //
+  // PT-lock slice 1: the lock/unlock is also written to this service's AuditLog (who, whom, why;
+  // `reason` is optional — the admin screens do not send one yet, so it is stored as null rather
+  // than rejected), and `reason` + `adminId` are what the relay carries to user-service. The audit
+  // write never throws: a missing log row must not undo or block the lock itself.
   async setUserActive(
     userId: string,
     isActive: boolean,
     adminId: string,
     reason?: string,
-    deps: { relay: typeof relayPtActiveStateChange } = { relay: relayPtActiveStateChange },
+    deps: {
+      relay?: typeof relayPtActiveStateChange;
+      audit?: (entry: { userId: string; action: string; metadata: any }) => Promise<unknown>;
+    } = {},
   ) {
+    const relay = deps.relay ?? relayPtActiveStateChange;
+    const audit = deps.audit ?? ((entry) => authRepository.createAuditLog(entry));
     const updated = await authRepository.updateUser(userId, {
       isActive,
     } as any);
+    try {
+      await audit({
+        userId,
+        action: isActive ? "ACCOUNT_UNLOCKED" : "ACCOUNT_LOCKED",
+        metadata: { actorUserId: adminId, reason: reason ?? null, targetRole: (updated as any).role },
+      });
+    } catch (e) {
+      logger.error({
+        error: "Failed to write the lock/unlock audit entry — the account change still applied",
+        userId,
+        message: (e as Error).message,
+      });
+    }
     if ((updated as any).role === "PT") {
       try {
-        await deps.relay(userId, isActive ? "REACTIVATE" : "DEACTIVATE", adminId, reason);
+        await relay(userId, isActive ? "REACTIVATE" : "DEACTIVATE", adminId, reason);
       } catch (e) {
         // Defense in depth — the real relay already swallows its own failures internally
         // (recording them for the sweep to retry), but a custom `deps.relay` must not be able

@@ -1,0 +1,16 @@
+# Keep seeded databases available for manual testing, but disable temporary seed capabilities.
+# Apply after compose.seedrun.override.yml and compose.restore.override.yml.
+services:
+  auth-service:
+    environment:
+      PARTNER_APPLICATION_DEV_ECHO: "false"
+  gym-service:
+    environment:
+      PARTNER_APPLICATION_DEV_ECHO: "false"
+  payment-service:
+    environment:
+      VNPAY_SIMULATE: "false"
+  api-gateway:
+    environment:
+      PARTNER_APPLICATION_START_RATE_MAX: "200"
+      PARTNER_APPLICATION_RATE_MAX: "600"

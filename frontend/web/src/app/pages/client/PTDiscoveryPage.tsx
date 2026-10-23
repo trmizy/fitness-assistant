@@ -25,12 +25,20 @@ import {
   contractService,
   locationService,
   ptServicePackageService,
-  collaborationService,
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
+import { ListingImage } from "../../components/listing/ListingImage";
+import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageChanged } from "../../utils/listingErrors";
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { Stars } from "../../components/gym/Stars";
+import { GymDetailModal } from "../../components/gym/GymDetailModal";
+import {
+  normalizeGymOptions,
+  pickableGym,
+  readEligibilityRefusal,
+  type EligibilityReason,
+} from "../../utils/contractGymOptions";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 
 const isValidPrice = (p: unknown): p is number =>
@@ -82,6 +90,8 @@ function groupAvailabilityByDay(
 }
 
 function getLowestPerSessionPrice(app: any): number | null {
+  // Listing Management: the public DTO derives this from the live packages (fromPricePerSession).
+  if (isValidPrice(app?.fromPricePerSession)) return app.fromPricePerSession;
   const prices = [
     app?.onlinePricePerSession,
     app?.offlinePricePerSession,
@@ -139,6 +149,10 @@ export function PTDiscoveryPage() {
   );
   useEffect(() => setDetailTab("detail"), [selectedId]);
 
+  // 409 PACKAGE_CHANGED: the package was edited (and approved) after this page loaded it. `current` is the package
+  // as the server holds it now, when the body carried one.
+  const [packageChanged, setPackageChanged] = useState<{ current: Record<string, any> | null } | null>(null);
+
   // Filter panel state
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState(emptyFilters);
@@ -157,6 +171,13 @@ export function PTDiscoveryPage() {
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
+  // P3.6: the server's own 422 on the membership rule (wins over what was shown before sending),
+  // and the branch whose membership plans are open on top of the request dialog.
+  const [eligibilityRefusal, setEligibilityRefusal] = useState<{
+    reason: EligibilityReason;
+    message: string;
+  } | null>(null);
+  const [membershipGymId, setMembershipGymId] = useState<string | null>(null);
   const [lowAvailabilityData, setLowAvailabilityData] = useState<{
     availableSlots: number;
     packageSessions: number;
@@ -237,10 +258,30 @@ export function PTDiscoveryPage() {
       setRequestMessage("");
       setSelectedPackage(null);
       setSelectedGymId("");
+      setEligibilityRefusal(null);
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      const changed = readPackageChanged(err);
+      if (changed) {
+        setPackageChanged(changed);
+        setLowAvailabilityData(null);
+        setEligibilityRefusal(null);
+        queryClient.invalidateQueries({ queryKey: ["pt-packages", selectedId] });
+        queryClient.invalidateQueries({ queryKey: ["pts-list"] });
+        queryClient.invalidateQueries({ queryKey: ["pt-detail", selectedId] });
+        return;
+      }
+      const refused = readEligibilityRefusal(err);
+      if (refused) {
+        // The server is the authority: show its verdict and re-read the branch list so the
+        // per-branch status matches it.
+        setEligibilityRefusal(refused);
+        setLowAvailabilityData(null);
+        refetchGymOptions();
+        return;
+      }
       if (
         err?.response?.status === 409 &&
         err?.response?.data?.code === "LOW_AVAILABILITY"
@@ -259,15 +300,18 @@ export function PTDiscoveryPage() {
   const handleRequestCoaching = (pkg: any) => {
     setSelectedPackage(pkg);
     setLowAvailabilityData(null);
+    setEligibilityRefusal(null);
+    setSelectedGymId("");
     setShowRequestModal(true);
   };
 
   const submitRequest = (acknowledgedLowAvailability = false) => {
     if (!selectedPT || !selectedPackage) return;
     
-    // Only an offline package can run at a gym; an online one never carries a gym share.
+    // Only an offline package can run at a gym; an online one never carries a gym share. A branch
+    // the server flagged as not eligible is never sent (and a stale pick is dropped).
     const gymId =
-      selectedPackage.sessionMode === "OFFLINE" && selectedGymId ? selectedGymId : undefined;
+      selectedPackage.sessionMode === "OFFLINE" && pickedGym ? pickedGym.gymId : undefined;
 
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
@@ -275,19 +319,29 @@ export function PTDiscoveryPage() {
       clientMessage: requestMessage || undefined,
       gymId,
       acknowledgedLowAvailability,
+      // The version of the package as this page showed it: a package edited since then answers 409 PACKAGE_CHANGED.
+      ...(Number.isInteger(selectedPackage.version) ? { expectedPackageVersion: selectedPackage.version } : {}),
     });
   };
 
   /**
-   * Gyms this trainer has an ACCEPTED partnership with. Only these may be picked: the split
-   * has to come from terms both sides agreed to, and the server refuses a gymId with no
-   * accepted collaboration rather than quietly falling back to the independent rate.
+   * P3.6 - branches for this trainer + package, with the client's own membership facts per branch
+   * (and the server's per-branch eligibility once it sends one). Facts only: nothing is computed
+   * here. Keyed by trainer + package; the whole cache is cleared on account switch (AppContext).
    */
-  const { data: partnerGyms = [] } = useQuery<any[]>({
-    queryKey: ["pt-partner-gyms", selectedId],
-    queryFn: () => collaborationService.listGymsForPt(selectedId!),
-    enabled: !!selectedId && showRequestModal,
+  const {
+    data: gymOptionsRaw,
+    isLoading: gymOptionsLoading,
+    isError: gymOptionsError,
+    refetch: refetchGymOptions,
+  } = useQuery<any>({
+    queryKey: ["contract-gym-options", selectedId, selectedPackage?.id ?? null],
+    queryFn: () => contractService.getGymOptions(selectedId!, selectedPackage.id),
+    enabled: !!selectedId && showRequestModal && !!selectedPackage,
+    staleTime: 0,
   });
+  const gymOptionsView = gymOptionsRaw ? normalizeGymOptions(gymOptionsRaw) : null;
+  const pickedGym = pickableGym(gymOptionsView, selectedGymId || null);
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ["pt-packages", selectedId],
@@ -297,11 +351,14 @@ export function PTDiscoveryPage() {
 
   // Only carries what the list row doesn't already have — recentReviews — but fetched
   // whenever a PT is opened since the list endpoint has no comments at all.
-  const { data: ptDetail, isLoading: ptDetailLoading } = useQuery({
+  const { data: ptDetail, isLoading: ptDetailLoading, error: ptDetailError } = useQuery({
     queryKey: ["pt-detail", selectedId],
     queryFn: () => profileService.getPTDetail(selectedId!),
     enabled: !!selectedId,
   });
+
+  // 404 on the detail: the trainer was hidden / suspended / is no longer approved (the id cannot be probed past the list).
+  const ptGone = !!selectedId && !!ptDetailError && isPtGone(ptDetailError);
 
   const { data: ptsData, isLoading } = useQuery({
 
@@ -571,10 +628,14 @@ export function PTDiscoveryPage() {
                   className={`w-full text-left bg-zinc-900 rounded-xl border-2 p-4 transition-all ${selectedId === pt.userId ? "border-green-500 bg-green-500/5" : "border-zinc-800/60 hover:border-zinc-700"}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-sm flex-shrink-0">
-                      {pt.firstName?.[0]}
-                      {pt.lastName?.[0]}
-                    </div>
+                    {pt.coverPhotoUrl ? (
+                      <ListingImage url={pt.coverPhotoUrl} alt={`${pt.firstName ?? ""} ${pt.lastName ?? ""}`.trim()} className="w-12 h-12 rounded-xl flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-sm flex-shrink-0">
+                        {pt.firstName?.[0]}
+                        {pt.lastName?.[0]}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -617,7 +678,7 @@ export function PTDiscoveryPage() {
                         </div>
                         {lowestPrice && (
                           <span className="text-xs font-bold text-green-400 whitespace-nowrap">
-                            từ {formatVND(lowestPrice)}
+                            từ {formatVND(lowestPrice)}/buổi
                           </span>
                         )}
                       </div>
@@ -651,7 +712,7 @@ export function PTDiscoveryPage() {
         </div>
 
         {/* Detail panel */}
-        {selectedPT &&
+        {selectedPT && !ptGone &&
           (() => {
             const app = selectedPT.ptApplication;
             const ptMode = app?.serviceMode;
@@ -817,6 +878,22 @@ export function PTDiscoveryPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Physique photos (Listing Management): published ones only, cover first as the server ordered them */}
+                  {(() => {
+                    const photos: { id: string; url: string }[] = (ptDetail?.physiquePhotos ?? selectedPT.physiquePhotos ?? []).filter((p: any) => p?.url);
+                    if (photos.length === 0) return null;
+                    return (
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Hình ảnh</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          {photos.map((p, i) => (
+                            <ListingImage key={p.id} url={p.url} alt={`Ảnh ${i + 1} của huấn luyện viên`} className="aspect-square w-full rounded-lg" />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Education & Work Experience */}
                   {(app?.educationBackground ||
@@ -1100,6 +1177,11 @@ export function PTDiscoveryPage() {
                   <div>
                     <h4 className="text-sm font-bold text-zinc-200 mb-3">
                       Bảng giá
+                      {isValidPrice(ptDetail?.fromPackagePrice ?? selectedPT.fromPackagePrice) && (
+                        <span className="ml-2 text-xs font-semibold text-green-400">
+                          Gói từ {formatVND(ptDetail?.fromPackagePrice ?? selectedPT.fromPackagePrice)}
+                        </span>
+                      )}
                     </h4>
                     <div className="space-y-3">
                       {packagesLoading ? (
@@ -1223,13 +1305,68 @@ export function PTDiscoveryPage() {
           })()}
       </div>
 
+      {/* Trainer no longer visible (404 on the detail): a calm empty state, not a broken panel. */}
+      {selectedId && ptGone && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedId(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+            <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+            <h3 className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</h3>
+            <p className="text-sm text-zinc-500 mt-1">Hồ sơ có thể đã được ẩn hoặc tạm ngưng. Hãy chọn một huấn luyện viên khác trong danh sách.</p>
+            <button
+              onClick={() => {
+                setSelectedId(null);
+                queryClient.invalidateQueries({ queryKey: ["pts-list"] });
+              }}
+              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+            >
+              Quay lại danh sách
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* 409 PACKAGE_CHANGED — shown above the request modal (z-[70]). "Xem giá mới" closes the request and opens the (re-fetched) price list. */}
+      {packageChanged && createPortal(
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div role="alertdialog" aria-labelledby="pkg-changed-title" className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
+            <h3 id="pkg-changed-title" className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</h3>
+            <p className="text-sm text-zinc-400 mt-2">{PACKAGE_CHANGED_MESSAGE}</p>
+            {packageChanged.current && (
+              <div className="mt-3 rounded-xl border border-zinc-700/60 bg-zinc-800/40 p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-zinc-200">{packageChanged.current.name}</span>
+                  <span className="font-bold text-green-400">{formatVND(Number(packageChanged.current.price))}</span>
+                </div>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {packageChanged.current.sessionCount} buổi · {packageChanged.current.sessionMode === "ONLINE" ? "Online" : "Trực tiếp"}
+                  {packageChanged.current.isActive === false ? " · đang tạm ngưng bán" : ""}
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setPackageChanged(null);
+                setShowRequestModal(false);
+                setSelectedPackage(null);
+                setDetailTab("pricing");
+              }}
+              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+            >
+              Xem giá mới
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
+
       {/* Request Coaching Modal — portaled to <body> and above the mobile detail sheet's
           z-[60] (see the PT-detail bottom sheet above). Without the portal, this fixed
           overlay's containing block becomes AppShell's animated page-transition wrapper
           (it applies a `transform`, which per spec creates a new containing block for any
           `position: fixed` descendant) instead of the real viewport — same class of bug as
           the PT-detail panel fix, just left unfixed here originally. */}
-      {showRequestModal && selectedPT && createPortal(
+      {showRequestModal && selectedPT && !membershipGymId && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
@@ -1334,40 +1471,126 @@ export function PTDiscoveryPage() {
                 </div>
               )}
 
+              {gymOptionsView?.requestBlockedCopy && (
+                <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500">
+                  <p className="text-xs leading-snug">{gymOptionsView.requestBlockedCopy}</p>
+                </div>
+              )}
+
               {selectedPackage?.sessionMode === "OFFLINE" && (
                 <div>
-                  <label
-                    htmlFor="contract-gym"
+                  <div
+                    id="contract-gym-label"
                     className="text-xs font-semibold text-zinc-400 mb-1.5 block"
                   >
                     Tập tại phòng gym nào?
-                  </label>
-                  <select
-                    id="contract-gym"
-                    value={selectedGymId}
-                    onChange={(e) => setSelectedGymId(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                  >
-                    <option value="">Không qua phòng gym</option>
-                    {partnerGyms.map((g: any) => (
-                      <option key={g.gym.id} value={g.gym.id}>
-                        {g.gym.name}
-                        {g.gym.city ? ` — ${g.gym.city}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-zinc-600 mt-1.5 leading-snug">
-                    {selectedGymId
-                      ? (() => {
-                          const g = partnerGyms.find((x: any) => x.gym.id === selectedGymId);
-                          return g
-                            ? `Chia doanh thu: PT ${Math.round(Number(g.ptRate) * 100)}% · phòng gym ${Math.round(Number(g.gymRate) * 100)}% · nền tảng ${Math.round(Number(g.platformRate) * 100)}%.`
-                            : "";
-                        })()
-                      : partnerGyms.length > 0
-                        ? "Chọn phòng gym nếu bạn tập tại đó — phòng gym sẽ được chia một phần doanh thu."
-                        : "Huấn luyện viên này chưa hợp tác với phòng gym nào."}
-                  </p>
+                  </div>
+                  {gymOptionsLoading ? (
+                    <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                  ) : gymOptionsError ? (
+                    <div className="flex items-center gap-3">
+                      <p className="text-[11px] text-zinc-500 leading-snug">
+                        Chưa tải được danh sách phòng gym. Bạn có thể thử lại.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => refetchGymOptions()}
+                        className="shrink-0 px-3 py-1.5 border border-zinc-700/60 text-zinc-300 text-xs font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                      >
+                        Tải lại
+                      </button>
+                    </div>
+                  ) : gymOptionsView && gymOptionsView.gyms.length > 0 ? (
+                    <div role="radiogroup" aria-labelledby="contract-gym-label" className="space-y-2">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!pickedGym}
+                        onClick={() => {
+                          setSelectedGymId("");
+                          setEligibilityRefusal(null);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
+                          !pickedGym
+                            ? "border-green-500/50 bg-green-500/10 text-zinc-100"
+                            : "border-zinc-700/60 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-800"
+                        }`}
+                      >
+                        Không qua phòng gym
+                      </button>
+                      {gymOptionsView.gyms.map((g) => {
+                        const active = g.gymId === pickedGym?.gymId;
+                        return (
+                          <div
+                            key={g.gymId}
+                            className={`rounded-lg border px-3 py-2.5 ${
+                              active
+                                ? "border-green-500/50 bg-green-500/10"
+                                : "border-zinc-700/60 bg-zinc-800/50"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              disabled={!g.selectable}
+                              onClick={() => {
+                                setEligibilityRefusal(null);
+                                setSelectedGymId(g.gymId);
+                              }}
+                              className="w-full text-left disabled:cursor-not-allowed"
+                            >
+                              <span className="block text-sm font-semibold text-zinc-200 break-words">
+                                {g.name}
+                                {g.city ? ` — ${g.city}` : ""}
+                              </span>
+                              <span className="block text-[11px] text-zinc-500 mt-0.5">
+                                {g.membershipLabel}
+                              </span>
+                            </button>
+                            {g.blockedCopy && (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-[11px] text-amber-500 leading-snug">{g.blockedCopy}</p>
+                                {g.offersMembershipPurchase && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMembershipGymId(g.gymId)}
+                                    className="px-3 py-1.5 border border-green-500/40 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/10 transition-colors"
+                                  >
+                                    Mua gói hội viên
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-zinc-600 leading-snug">
+                      {gymOptionsView?.gymsReasonCopy ??
+                        "Huấn luyện viên hiện chưa có phòng gym nào để bạn chọn."}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {selectedPackage?.sessionMode !== "OFFLINE" && gymOptionsView?.gymsReasonCopy && (
+                <p className="text-[11px] text-zinc-600 leading-snug">{gymOptionsView.gymsReasonCopy}</p>
+              )}
+
+              {eligibilityRefusal && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 space-y-2">
+                  <p className="text-xs leading-snug">{eligibilityRefusal.message}</p>
+                  {eligibilityRefusal.reason === "MEMBERSHIP_REQUIRED" && pickedGym && (
+                    <button
+                      type="button"
+                      onClick={() => setMembershipGymId(pickedGym.gymId)}
+                      className="px-3 py-1.5 border border-green-500/40 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/10 transition-colors"
+                    >
+                      Mua gói hội viên
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1394,7 +1617,7 @@ export function PTDiscoveryPage() {
               {!lowAvailabilityData && (
                 <button
                   onClick={() => submitRequest()}
-                  disabled={requestMutation.isPending}
+                  disabled={requestMutation.isPending || !!gymOptionsView?.requestBlockedCode}
                   className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                 >
                   {requestMutation.isPending ? (
@@ -1407,6 +1630,22 @@ export function PTDiscoveryPage() {
           </div>
         </div>,
         document.body,
+      )}
+
+      {/* P3.6 - buy a gym membership from inside the request flow. The trainer's referral code is
+          only PRE-FILLED in the (optional) referral field; the client still presses buy. */}
+      {membershipGymId && (
+        <GymDetailModal
+          gymId={membershipGymId}
+          initialTab="pricing"
+          initialReferralCode={gymOptionsView?.ptReferralCode ?? undefined}
+          onClose={() => {
+            setMembershipGymId(null);
+            // Back from buying a plan: re-read memberships instead of trusting the earlier answer.
+            queryClient.invalidateQueries({ queryKey: ["contract-gym-options"] });
+            queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
+          }}
+        />
       )}
     </div>
   );

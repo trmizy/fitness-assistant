@@ -1,40 +1,69 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { getProvider } from '../services/payment.service';
-import { handleEvent } from '../services/webhook.service';
+import { handleEvent, type HandleEventOutcome } from '../services/webhook.service';
+import { handleVnpayCallback } from '../services/vnpay-callback.service';
 import { webhookRepository } from '../repositories/webhook.repository';
+import { transactionRepository } from '../repositories/transaction.repository';
 import type { Prisma } from '../generated/prisma';
 
 const router = Router();
 
 // GET /payments/webhook/vnpay — VNPay's IPN is a GET whose query string is the payload.
-// Verified synchronously so we can answer VNPay's expected {RspCode} contract.
+// Verified synchronously so we can answer VNPay's expected {RspCode} contract. ALL validation (signature,
+// merchant, currency, order exists, EXACT amount, not already confirmed) lives in handleVnpayCallback so the
+// browser-return route is held to the identical rules — see vnpay-callback.service.ts for the code table:
+// 00 confirmed · 01 order/merchant unknown · 02 already confirmed · 04 invalid amount · 97 bad signature ·
+// 99 unexpected failure (VNPay retries, which is what we want when settlement itself could not complete).
 router.get('/vnpay', async (req: Request, res: Response) => {
   try {
     const rawQuery = req.originalUrl.split('?')[1] ?? '';
-    const { valid, normalized } = getProvider('VNPAY').verifyWebhookSignature(Buffer.from(rawQuery, 'utf-8'));
-    if (!valid || !normalized) {
-      return res.json({ RspCode: '97', Message: 'Invalid signature' });
-    }
-    await handleEvent({
-      provider: 'VNPAY',
-      providerEventId: `vnpay_ipn_${normalized.providerTransactionId}`,
-      providerTransactionId: normalized.providerTransactionId,
-      payload: normalized.raw ?? {},
-      status: normalized.status,
-    });
-    return res.json({ RspCode: '00', Message: 'Confirm Success' });
+    const result = await handleVnpayCallback(rawQuery, 'IPN');
+    return res.json({ RspCode: result.rspCode, Message: result.message });
   } catch (err) {
     logger.error({ error: '[Webhook] VNPay IPN processing failed', message: (err as Error).message });
     return res.json({ RspCode: '99', Message: 'Unknown error' });
   }
 });
 
-// POST /payments/webhook/:provider
-// Mounted with express.raw() in app.ts — rawBody available as Buffer
+/**
+ * What a non-VNPay callback came to, in terms each gateway's own acknowledgement format is built from.
+ *
+ *   SETTLED / DUPLICATE   the callback was authentic and is fully dealt with (booked now, or booked before)
+ *   REFUSED_*             authentic enough to read, but nothing was booked: bad signature, someone else's merchant
+ *                         id, an order we do not know, an amount that is not the price, a gateway that may not
+ *                         settle real money here, a processing error
+ */
+type WebhookResult =
+  | { kind: 'SETTLED' }
+  | { kind: 'DUPLICATE' }
+  | { kind: 'IGNORED' } // authentic progress notice (MoMo 9000) or a failure notice: acknowledged, nothing to book
+  | { kind: 'REFUSED'; reason: 'BAD_SIGNATURE' | 'MERCHANT_MISMATCH' | 'MISSING_REFERENCE' | 'ORDER_NOT_FOUND' | 'AMOUNT_MISMATCH' | 'REFERENCE_MISMATCH' | 'GATEWAY_DISABLED' | 'ERROR' };
+
+const ZALOPAY_MESSAGES: Record<string, string> = {
+  BAD_SIGNATURE: 'mac not equal',
+  MERCHANT_MISMATCH: 'app_id not equal',
+  MISSING_REFERENCE: 'app_trans_id missing',
+  ORDER_NOT_FOUND: 'order not found',
+  AMOUNT_MISMATCH: 'invalid amount',
+  REFERENCE_MISMATCH: 'order reference mismatch',
+  GATEWAY_DISABLED: 'gateway not enabled',
+  ERROR: 'internal error',
+};
+
+// POST /payments/webhook/:provider  (ZaloPay, PayOS, MoMo)
+// Mounted with express.raw() in app.ts — rawBody available as Buffer.
+// VNPay is deliberately NOT served here: its IPN is the GET above, and its verification yields a query string, not a
+// JSON body. Any other name (MOCK was removed, STRIPE / MANUAL_BANK_TRANSFER have no verifier) is not a gateway door.
+const POST_GATEWAYS = new Set(['ZALOPAY', 'PAYOS', 'MOMO']);
+
 router.post('/:provider', async (req: Request, res: Response) => {
   const providerName = req.params.provider.toUpperCase();
   const rawBody = req.body as Buffer;
+
+  if (!POST_GATEWAYS.has(providerName)) {
+    return res.status(404).json({ success: false, error: { code: 'UNKNOWN_WEBHOOK_PROVIDER' } });
+  }
 
   // MoMo: fire-and-forget with the immediate 204 it requires.
   if (providerName === 'MOMO') {
@@ -45,20 +74,32 @@ router.post('/:provider', async (req: Request, res: Response) => {
     // the exact same idempotent upsert() handleEvent() itself calls first (unique on
     // (provider, providerEventId)), just done once more here, so processWebhook below still
     // runs unchanged and safely re-upserts the same row rather than duplicating it.
+    let verified: ReturnType<ReturnType<typeof getProvider>['verifyWebhookSignature']>;
     try {
-      const { valid, payload } = getProvider('MOMO').verifyWebhookSignature(rawBody);
-      if (valid && payload) {
+      verified = getProvider('MOMO').verifyWebhookSignature(rawBody);
+    } catch (err) {
+      logger.error({ error: '[Webhook] MoMo verification failed', message: (err as Error).message });
+      return res.status(500).send();
+    }
+    // Not from MoMo (bad signature) or not for us (another partner code): there is nothing to acknowledge. MoMo itself
+    // always sends a well-formed, correctly signed IPN, so a non-204 here only ever reaches a forger.
+    if (!verified.valid) {
+      logger.warn(`[Webhook] MoMo IPN refused: ${verified.reason ?? 'invalid'}`);
+      return res.status(400).send();
+    }
+    if (verified.normalized) {
+      try {
         await webhookRepository.upsert({
           provider: 'MOMO',
-          providerEventId: String(payload.transId ?? payload.orderId),
-          providerTransactionId: String(payload.orderId),
-          payload: payload as unknown as Prisma.InputJsonValue,
+          providerEventId: verified.normalized.providerEventId,
+          providerTransactionId: verified.normalized.providerTransactionId,
+          payload: (verified.normalized.raw ?? {}) as Prisma.InputJsonValue,
         });
+      } catch (err) {
+        // Never let the pre-persist step itself block MoMo's required fast 204 — worst case
+        // here is falling back to the old fire-and-forget behavior for this one delivery.
+        logger.error({ error: '[Webhook] MoMo pre-persist failed', message: (err as Error).message });
       }
-    } catch (err) {
-      // Never let the pre-persist step itself block MoMo's required fast 204 — worst case
-      // here is falling back to the old fire-and-forget behavior for this one delivery.
-      logger.error({ error: '[Webhook] MoMo pre-persist failed', message: (err as Error).message });
     }
     res.status(204).send();
     void processWebhook(providerName, rawBody);
@@ -66,71 +107,88 @@ router.post('/:provider', async (req: Request, res: Response) => {
   }
 
   // ZaloPay / PayOS expect a specific acknowledgement body → process synchronously.
-  const ok = await processWebhook(providerName, rawBody);
+  const result = await processWebhook(providerName, rawBody);
   if (providerName === 'ZALOPAY') {
-    return res.json(ok ? { return_code: 1, return_message: 'success' } : { return_code: -1, return_message: 'mac not equal' });
+    // ZaloPay: return_code 1 = success, 2 = already processed (neither is retried); anything else is retried.
+    // A callback we refused is answered -1 with the reason, so the gateway keeps it visible and retries a little
+    // (duplicates are harmless: one discrepancy record, one alert — see recordGatewayDiscrepancy).
+    if (result.kind === 'SETTLED' || result.kind === 'IGNORED') return res.json({ return_code: 1, return_message: 'success' });
+    if (result.kind === 'DUPLICATE') return res.json({ return_code: 2, return_message: 'order already processed' });
+    return res.json({ return_code: -1, return_message: ZALOPAY_MESSAGES[result.reason] ?? 'refused' });
   }
-  if (providerName === 'PAYOS') {
-    return res.json({ success: ok });
-  }
-  return res.status(ok ? 200 : 400).send();
+  // PayOS: HTTP 200 stops its retries and any other status triggers them. A refusal is therefore also a 200 — retrying a
+  // wrong amount or a forged body can never make it right — with success:false and the reason, and the case is in the
+  // discrepancy list for an admin when it is an amount.
+  if (result.kind === 'SETTLED' || result.kind === 'DUPLICATE' || result.kind === 'IGNORED') return res.json({ success: true });
+  return res.json({ success: false, code: result.reason });
 });
 
-/** Returns true when the webhook was valid and processed (credit is idempotent downstream). */
-async function processWebhook(providerName: string, rawBody: Buffer): Promise<boolean> {
+function fromOutcome(outcome: HandleEventOutcome): WebhookResult {
+  switch (outcome) {
+    case 'SETTLED':
+      return { kind: 'SETTLED' };
+    case 'ALREADY_PAID':
+    case 'DUPLICATE_EVENT':
+    case 'NOT_PAYABLE': // REFUNDED / retired flow: handled, nothing for the gateway to retry
+      return { kind: 'DUPLICATE' };
+    case 'NOT_PAID_EVENT':
+      return { kind: 'IGNORED' };
+    case 'NOT_FOUND':
+    case 'PROVIDER_MISMATCH':
+      return { kind: 'REFUSED', reason: 'ORDER_NOT_FOUND' };
+    case 'AMOUNT_MISMATCH':
+      return { kind: 'REFUSED', reason: 'AMOUNT_MISMATCH' };
+    case 'REFERENCE_MISMATCH':
+      return { kind: 'REFUSED', reason: 'REFERENCE_MISMATCH' };
+    case 'GATEWAY_DISABLED':
+      return { kind: 'REFUSED', reason: 'GATEWAY_DISABLED' };
+  }
+}
+
+async function processWebhook(providerName: string, rawBody: Buffer): Promise<WebhookResult> {
   try {
     const provider = getProvider(providerName);
-    const { valid, payload, normalized } = provider.verifyWebhookSignature(rawBody);
+    const { valid, reason, pending, normalized } = provider.verifyWebhookSignature(rawBody);
 
     if (!valid) {
-      logger.warn(`[Webhook] Invalid signature from provider ${providerName}`);
-      return false;
+      logger.warn(`[Webhook] Refused ${providerName} callback: ${reason ?? 'invalid signature'}`);
+      return { kind: 'REFUSED', reason: reason === 'MERCHANT_MISMATCH' || reason === 'MISSING_REFERENCE' ? reason : 'BAD_SIGNATURE' };
     }
 
-    // Providers implementing the provider-agnostic contract (VNPay, ZaloPay, PayOS, ...)
-    if (normalized) {
-      await handleEvent({
-        provider: providerName,
-        providerEventId: normalized.providerEventId,
-        providerTransactionId: normalized.providerTransactionId,
-        payload: normalized.raw ?? {},
-        status: normalized.status,
-      });
-      return true;
+    // An authentic progress notice with nothing to book yet (MoMo resultCode 9000: authorised, not captured).
+    if (pending) {
+      logger.info(`[Webhook] ${providerName} progress notice (authorised, not captured) — waiting for the capture`);
+      return { kind: 'IGNORED' };
     }
 
-    // Only MoMo still reports through `payload`; everything else fills `normalized` above.
-    // A provider that verifies but hands back neither is a bug, not a payment — do not
-    // invent an event from the unverified request body.
-    if (!payload) {
-      logger.warn(`[Webhook] ${providerName} verified but returned no payload — ignoring`);
-      return false;
+    // A provider that verifies but hands back no normalized event is a bug, not a payment — do not invent an event
+    // from the unverified request body.
+    if (!normalized) {
+      logger.warn(`[Webhook] ${providerName} verified but returned no event — ignoring`);
+      return { kind: 'REFUSED', reason: 'ERROR' };
     }
 
-    // MoMo IPN: resultCode=0 = PAID, resultCode=9000 = authorized (pending capture) — skip
-    if (payload.resultCode === 9000) {
-      logger.info(`[Webhook] MoMo resultCode=9000 (authorized, not captured) — waiting for next IPN`);
-      return true;
-    }
-
-    // Look up by MoMo's own orderId, not transId: providerTransactionId was stored at
-    // checkout time as the orderId we generated (see momo.provider.ts#createPaymentIntent —
-    // providerTransactionId: orderId). transId is MoMo's own transaction number, minted only
-    // once the payment settles, and was never written to our row — matching on it here would
-    // never find the transaction, silently dropping every real MoMo IPN. providerEventId can
-    // still use transId (or fall back to orderId): it only needs to be unique per delivery,
-    // not resolvable to a row.
-    await handleEvent({
+    const outcome = await handleEvent({
       provider: providerName,
-      providerEventId: String(payload.transId ?? payload.orderId),
-      providerTransactionId: String(payload.orderId),
-      payload: payload as unknown as Record<string, unknown>,
-      status: payload.resultCode === 0 ? 'PAID' : 'FAILED',
+      providerEventId: normalized.providerEventId,
+      providerTransactionId: normalized.providerTransactionId,
+      payload: normalized.raw ?? {},
+      status: normalized.status,
+      paidAmountVnd: normalized.paidAmountVnd,
+      source: 'IPN',
     });
-    return true;
+    // The very same callback was handled before. If that handling REFUSED it over the amount, say so again: a retry of a
+    // wrong-amount callback must hear the same thing the first delivery did (and must not be told "already processed",
+    // which reads as success). Mirrors VNPay's IPN, where a retry of a 04 is answered 04 (D50 V1).
+    if (outcome === 'DUPLICATE_EVENT') {
+      const txn = await transactionRepository.findByProviderTransactionId(normalized.providerTransactionId, providerName as never);
+      const flagged = (txn?.metadata as Record<string, unknown> | null)?.gatewayDiscrepancy;
+      if (txn && flagged && txn.status !== 'PAID') return { kind: 'REFUSED', reason: 'AMOUNT_MISMATCH' };
+    }
+    return fromOutcome(outcome);
   } catch (err) {
     logger.error({ error: `[Webhook] Processing failed for ${providerName}`, message: (err as Error).message });
-    return false;
+    return { kind: 'REFUSED', reason: 'ERROR' };
   }
 }
 

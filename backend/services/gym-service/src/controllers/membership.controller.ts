@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { membershipsFor } from '../services/staff-views';
 
 // See the identical helper's comment in ai-service/controllers/personalized-service.controller.ts
 // — same signal (Capacitor's fixed `http://localhost` WebView origin), same purpose (pick the
@@ -163,7 +164,8 @@ export const membershipController = {
     try {
       const ownerId = principalId(req);
       const list = await membershipService.listForOwner(req.params.gymId, ownerId);
-      res.json({ success: true, data: list });
+      // D15: lễ tân thấy hạn/lượt, kế toán thấy doanh số (không có danh tính hội viên), chủ/quản lý thấy đủ.
+      res.json({ success: true, data: req.partner ? membershipsFor(req.partner.role, list) : list });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

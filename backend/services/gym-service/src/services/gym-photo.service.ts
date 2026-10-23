@@ -26,7 +26,7 @@ async function withUrls<T extends { fileName: string; s3Key: string | null; visi
 export const gymPhotoService = {
   async listForOwner(gymId: string, ownerId: string) {
     await gymService.getOwnedGym(gymId, ownerId);
-    return withUrls(await gymPhotoRepository.listByGym(gymId));
+    return withUrls(await gymPhotoRepository.listByGym(gymId, ['STAGED', 'PUBLISHED']));
   },
 
   /** GYM_BRANCH_FORM_SPEC.md, Phase 6 — admin review workspace. No ownership check (an admin

@@ -2,6 +2,7 @@ import { logger } from "@gym-coach/shared";
 import { inbodyRepository } from "../repositories/inbody.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import { assertPtMayAct, assertPtMayActOnContract } from "./pt-restriction.service";
 import { extractInBodyVision } from "./inbody-vision.service";
 import { triggerInBodyReassessmentSafe } from "../clients/fitness-service.client";
 import {
@@ -51,15 +52,19 @@ export const inbodyService = {
     return inbodyRepository.findByUserId(userId);
   },
 
-  // BR-32: PT views a client's InBody — requires ACTIVE or COMPLETED contract
+  // BR-32 as tightened by audit finding #9 (owner decision, final): a PT reads a client's InBody history ONLY while a contract between
+  // them is ACTIVE. Unconditional - there is no flag and no fallback to COMPLETED. COMPLETED / CANCELLED / EXPIRED / REJECTED / never-paid
+  // contracts, another PT and "no relationship" are all 403. The client's own read (getHistory) is untouched and no InBody row is ever
+  // deleted by this rule. There is no client-granted access model; none exists to consult.
   async getClientHistory(ptUserId: string, clientUserId: string) {
-    const contract = await contractRepository.findActiveOrCompletedByPair(
-      ptUserId,
-      clientUserId,
-    );
+    // A restricted PT does not read clients' body data (coaching access is paused with the contract).
+    await assertPtMayAct(ptUserId);
+    const contract = await contractRepository.findActivePtClientPair(ptUserId, clientUserId);
     if (!contract) {
-      throw err("No contract relationship with this client", 403);
+      throw err("No active coaching relationship with this client", 403);
     }
+    // A contract paused on its own (CONTRACT scope) closes the PT's access to THAT client's body data too.
+    await assertPtMayActOnContract(ptUserId, contract.id);
     return inbodyRepository.findByUserId(clientUserId);
   },
 

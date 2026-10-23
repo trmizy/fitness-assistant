@@ -1,0 +1,46 @@
+# Temporary isolated live seed. Revert with compose.restore.override.yml after the run.
+x-seed-environment: &seed-environment
+  CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat_seedrun
+  SMTP_HOST: ""
+  SMTP_USER: ""
+  SMTP_PASS: ""
+services:
+  auth-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth_seedrun
+      PARTNER_APPLICATION_DEV_ECHO: "true"
+  user-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user_seedrun
+  fitness-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness_seedrun
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  ai-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai_seedrun
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+  chat-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat_seedrun
+  payment-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment_seedrun
+      VNPAY_SIMULATE: "true"
+  gym-service:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym_seedrun
+      PARTNER_APPLICATION_DEV_ECHO: "true"
+  api-gateway:
+    environment:
+      <<: *seed-environment
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth_seedrun
+      PARTNER_APPLICATION_START_RATE_MAX: "200"
+      PARTNER_APPLICATION_RATE_MAX: "5000"

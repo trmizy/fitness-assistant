@@ -13,7 +13,7 @@
  */
 import { CONTRACT_STATUS, type StatusTone } from "../services/contracts";
 import { canRespondAs, collabStatusFor } from "../collaboration/collaboration";
-import { SESSION_STATUS, type SessionTone } from "../services/sessions";
+import { noShowRefundLabel, SESSION_STATUS, type RefundFields, type SessionTone } from "../services/sessions";
 import { GOAL_OPTIONS } from "../profile/profile";
 
 // ── Naming a client ────────────────────────────────────────────────────────────────────────
@@ -79,14 +79,16 @@ const PT_SESSION_OVERRIDE: Record<string, { label: string; tone: SessionTone; no
     tone: "danger",
     note: "Hãy phản hồi báo cáo này — im lặng bị tính là đồng ý.",
   },
-  NO_SHOW: { label: "Học viên vắng", tone: "danger" },
+  // DQ-2(a): NO_SHOW is always the TRAINER's fault (a student's absence ends COMPLETED), so it never reads "học viên vắng". It is "không
+  // diễn ra", not delivered, not paid; the label says what happened to the client's refund (noShowRefundLabel) when the session is given.
+  NO_SHOW: { label: "Không diễn ra", tone: "danger" },
 };
 
-export function ptSessionStatus(status: string) {
-  return (
+export function ptSessionStatus(status: string, session?: RefundFields) {
+  const base =
     PT_SESSION_OVERRIDE[status] ??
-    SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone }
-  );
+    SESSION_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as SessionTone };
+  return status === "NO_SHOW" && session ? { ...base, label: noShowRefundLabel(session, "PT") } : base;
 }
 
 // ── Roster (PT-02) ─────────────────────────────────────────────────────────────────────────
@@ -98,7 +100,11 @@ export type PtContract = ClientRef & {
   packageName?: string | null;
   totalSessions?: number | null;
   usedSessions?: number | null;
+  /** Sessions the PT missed and the client was refunded for: counted as consumed, nothing left to deliver (DQ-2(a)). */
+  compensatedSessions?: number | null;
   price?: number | null;
+  /** The PT's frozen share of `price` (Decimal string, e.g. "0.5500"). The server sends it only to the contract's own PT. */
+  ptRate?: string | number | null;
   startDate?: string | null;
   endDate?: string | null;
   createdAt?: string | null;
@@ -133,7 +139,8 @@ export function studentsFromContracts(contracts: unknown): StudentRow[] {
     .filter((c) => c?.id)
     .map((c) => {
       const total = Number(c.totalSessions ?? 0);
-      const used = Number(c.usedSessions ?? 0);
+      // Used = delivered + missed-by-PT-and-refunded (closed and counted, no replacement).
+      const used = Number(c.usedSessions ?? 0) + Number(c.compensatedSessions ?? 0);
       return {
         contractId: c.id,
         clientUserId: c.clientUserId,
@@ -718,6 +725,9 @@ export function noShowReports(raw: unknown): any[] {
  */
 export function ptTransactionLabel(description: string | null | undefined, entryType: string): string {
   const d = (description ?? "").toLowerCase();
+  if (/pt holdback retained/.test(d)) return "Tạm giữ một phần thu nhập hợp đồng";
+  if (/pt holdback released/.test(d)) return "Trả lại khoản tạm giữ vào số dư";
+  if (/pt holdback used for compensation/.test(d)) return "Dùng khoản tạm giữ để bồi thường khách";
   if (/session earned/.test(d)) return "Thu nhập buổi tập";
   if (/release to available/.test(d)) return "Chuyển sang số dư khả dụng";
   if (/pending released on termination/.test(d)) return "Giải phóng tiền tạm giữ";

@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { walletService } from "../../services/api";
 import type { Wallet, WalletLedgerEntry } from "../../types";
+import { walletEntryLabel } from "../../utils/walletEntryLabel";
 import { formatVND } from "../../utils/currency";
+import { PtContractMoney } from "./PtContractMoney";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -127,6 +129,8 @@ export function PTWalletPage() {
         )}
       </div>
 
+      <PtContractMoney />
+
       <div>
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Transaction History</h2>
         {txLoading && (
@@ -152,7 +156,7 @@ export function PTWalletPage() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-zinc-200 font-medium truncate">{t.description || (t.entryType === "CREDIT" ? "Credit" : "Debit")}</div>
+                  <div className="text-sm text-zinc-200 font-medium break-words">{walletEntryLabel(t)}</div>
                   <div className="text-xs text-zinc-600">{formatDateTime(t.createdAt)}</div>
                 </div>
                 <div className={`text-sm font-bold flex-shrink-0 ${t.entryType === "CREDIT" ? "text-green-400" : "text-red-400"}`}>

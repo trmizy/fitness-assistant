@@ -5,9 +5,18 @@ import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
 import { withdrawalService } from '../services/withdrawal.service';
 import type { WalletOwnerType } from '../generated/prisma';
+import { classifyWalletEntry } from '../services/wallet-entry-category';
+import { buildPtWalletContractsView } from '../services/pt-wallet-contracts.service';
+import { logger } from '@gym-coach/shared';
 
 const router = Router();
 router.use(extractUser, requireAuth);
+
+/** History rows as stored plus the derived, additive `category` (see wallet-entry-category.ts). */
+async function historyFor(walletId: string) {
+  const entries = await walletRepository.findLedgerEntriesWithPurpose(walletId);
+  return entries.map(({ transaction, ...entry }) => ({ ...entry, category: classifyWalletEntry(entry, transaction) }));
+}
 
 // GET /me/wallet — always the CLIENT (buyer) wallet, regardless of the user's other roles.
 //
@@ -23,8 +32,7 @@ router.get('/wallet', async (req: Request, res: Response) => {
 router.get('/wallet/transactions', async (req: Request, res: Response) => {
   const wallet = await walletRepository.findByOwner('CLIENT', req.user!.userId);
   if (!wallet) return res.json({ success: true, data: [] });
-  const entries = await walletRepository.findLedgerEntries(wallet.id);
-  return res.json({ success: true, data: entries });
+  return res.json({ success: true, data: await historyFor(wallet.id) });
 });
 
 /**
@@ -58,6 +66,20 @@ router.get('/pt-wallet', async (req: Request, res: Response) => {
   return res.json({ success: true, data: wallet });
 });
 
+// GET /me/pt-wallet/contracts - FH-9: the PT's money PER CONTRACT, derived from the ledger (read only): value, expected income, pending
+// (not earned), earned, held back (earned, not withdrawable) and when it comes back. Always the caller's own wallet.
+router.get('/pt-wallet/contracts', async (req: Request, res: Response) => {
+  if (req.user!.role !== 'PT') {
+    return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'PT role required' } });
+  }
+  try {
+    return res.json({ success: true, data: await buildPtWalletContractsView(req.user!.userId) });
+  } catch (err) {
+    logger.error({ err: (err as Error).message }, '[payment-service] pt wallet contracts view failed');
+    return res.status(500).json({ success: false, error: { code: 'PT_WALLET_CONTRACTS_FAILED', message: 'Không tải được tiền theo từng hợp đồng.' } });
+  }
+});
+
 // GET /me/pt-wallet/transactions
 router.get('/pt-wallet/transactions', async (req: Request, res: Response) => {
   if (req.user!.role !== 'PT') {
@@ -65,8 +87,7 @@ router.get('/pt-wallet/transactions', async (req: Request, res: Response) => {
   }
   const wallet = await walletRepository.findByOwner('PT', req.user!.userId);
   if (!wallet) return res.json({ success: true, data: [] });
-  const entries = await walletRepository.findLedgerEntries(wallet.id);
-  return res.json({ success: true, data: entries });
+  return res.json({ success: true, data: await historyFor(wallet.id) });
 });
 
 // Money-flow plan 5.3 — self-service withdrawal requests for the two owner types payment-service

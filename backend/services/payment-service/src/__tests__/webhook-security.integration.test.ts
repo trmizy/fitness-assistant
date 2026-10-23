@@ -24,9 +24,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
+import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
 const databaseUrl = process.env.DATABASE_URL || '';
-const canUseIntegrationDb = /_test/i.test(databaseUrl);
+const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 
 const skipOpts = {
   skip: canUseIntegrationDb
@@ -160,6 +161,8 @@ test(
         providerTransactionId,
         payload: { real: true },
         status: 'PAID',
+        // VNPay PAID events must report what the gateway collected; a correct payment reports the price.
+        paidAmountVnd: '500000',
       });
 
       const after = await db.paymentTransaction.findUnique({ where: { id: txn.id } });
@@ -195,6 +198,8 @@ test(
         providerTransactionId,
         payload: {},
         status: 'PAID' as const,
+        // Every provider's PAID event must report what the gateway collected; a correct payment reports the price.
+        paidAmountVnd: '200000',
       };
 
       await handle(event);
@@ -234,6 +239,7 @@ test(
           providerTransactionId,
           payload: {},
           status: 'PAID',
+          paidAmountVnd: '300000',
         }),
         handle({
           provider: 'ZALOPAY',
@@ -241,6 +247,7 @@ test(
           providerTransactionId,
           payload: {},
           status: 'PAID',
+          paidAmountVnd: '300000',
         }),
       ]);
 

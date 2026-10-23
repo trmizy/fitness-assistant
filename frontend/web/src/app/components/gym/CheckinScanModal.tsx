@@ -5,6 +5,12 @@ import { XIcon as X, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2
 import { gymService } from "../../services/api";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import type { CheckinResult } from "../../types";
+import {
+  normalizePtCheckinResult,
+  ptCheckinDateLabel,
+  ptCheckinErrorMessage,
+  ptCheckinTimeLabel,
+} from "../../utils/ptGymCheckin";
 
 const ERR_MESSAGES: Record<string, string> = {
   INVALID_TOKEN: "Mã QR không hợp lệ. Hãy quét đúng mã tại quầy lễ tân.",
@@ -22,7 +28,15 @@ const ERR_MESSAGES: Record<string, string> = {
  * Decodes with jsQR over canvas frames rather than the native BarcodeDetector, which only
  * exists on Android/ChromeOS and silently never fires on most desktop browsers.
  */
-export function CheckinScanModal({ onClose }: { onClose: () => void }) {
+export function CheckinScanModal({
+  onClose,
+  mode = "member",
+}: {
+  onClose: () => void;
+  /** "pt": a trainer scanning to be let in to teach (POST /me/pt-gym-checkins) — no membership, no visits. */
+  mode?: "member" | "pt";
+}) {
+  const isPt = mode === "pt";
   const queryClient = useQueryClient();
   // Android Back closes the scanner (and releases the camera) rather than navigating away
   // with it still running.
@@ -49,16 +63,21 @@ export function CheckinScanModal({ onClose }: { onClose: () => void }) {
   };
 
   const checkIn = useMutation({
-    mutationFn: (token: string) => gymService.checkInByScan(token),
+    mutationFn: (token: string) =>
+      isPt ? gymService.ptCheckInByScan(token) : gymService.checkInByScan(token),
     onSuccess: () => {
       stopCamera(); // done — the camera has nothing left to do
-      queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
+      if (!isPt) queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
     },
     onError: (err: any) => {
-      const code = err?.response?.data?.error?.code;
-      setErrorText(
-        ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
-      );
+      if (isPt) {
+        setErrorText(ptCheckinErrorMessage(err));
+      } else {
+        const code = err?.response?.data?.error?.code;
+        setErrorText(
+          ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại.",
+        );
+      }
       // Let the member re-aim and try again instead of dead-ending.
       setTimeout(() => {
         busyRef.current = false;
@@ -121,27 +140,60 @@ export function CheckinScanModal({ onClose }: { onClose: () => void }) {
     return stopCamera; // eslint-disable-line react-hooks/exhaustive-deps
   }, []);
 
-  const result = checkIn.data as CheckinResult & {
-    clientName?: string | null;
-    gymName?: string | null;
-    planName?: string | null;
-    endDate?: string | null;
-  };
+  const result = (isPt ? undefined : checkIn.data) as
+    | (CheckinResult & {
+        clientName?: string | null;
+        gymName?: string | null;
+        planName?: string | null;
+        endDate?: string | null;
+      })
+    | undefined;
+  const ptResult = isPt && checkIn.data ? normalizePtCheckinResult(checkIn.data) : null;
+  const ptDate = ptCheckinDateLabel(ptResult?.localDate);
+  const ptTime = ptCheckinTimeLabel(ptResult?.firstScanAt);
+  const done = !!(result || ptResult);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
         <div className="p-4 border-b border-zinc-800/60 flex items-center justify-between">
           <h3 className="text-zinc-100 font-bold">
-            {result ? "Check-in thành công" : "Quét mã tại phòng gym"}
+            {done ? "Check-in thành công" : isPt ? "Check-in phòng gym" : "Quét mã tại phòng gym"}
           </h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Success: this is the screen the receptionist reads. */}
-        {result ? (
+        {/* PT success: attendance only — no visits, no plan, no client. */}
+        {ptResult ? (
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col items-center gap-2 py-2">
+              <CheckCircle2 className="w-14 h-14 text-green-400" />
+              <div className="text-lg font-bold text-zinc-100 text-center">
+                {ptResult.gymName || "Phòng gym"}
+              </div>
+              <span className="rounded-full bg-green-500/15 px-3 py-1 text-xs font-bold text-green-400">
+                Đã check-in
+              </span>
+            </div>
+
+            {(ptDate || ptTime) && (
+              <div className="rounded-xl border border-zinc-800/60 bg-zinc-800/30 divide-y divide-zinc-800/60 text-sm">
+                {ptDate && <Row label="Ngày" value={ptDate} />}
+                {ptTime && <Row label="Lần quét đầu tiên" value={ptTime} />}
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 rounded-lg bg-green-500 hover:bg-green-400 text-black text-sm font-bold transition-colors"
+            >
+              Xong
+            </button>
+          </div>
+        ) : result ? (
+          /* Member success: this is the screen the receptionist reads. */
           <div className="p-5 space-y-4">
             <div className="flex flex-col items-center gap-2 py-2">
               <CheckCircle2 className="w-14 h-14 text-green-400" />

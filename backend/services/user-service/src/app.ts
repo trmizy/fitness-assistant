@@ -3,8 +3,10 @@ import path from "path";
 import fs from "fs";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
-import { logger, httpLogSerializers, register, metricsMiddleware } from "@gym-coach/shared";
+import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { isLambdaRuntime } from "./utils/runtime.util";
+import { clientIpMiddleware } from "./middleware/client-ip.middleware";
+import { requestLogSerializers } from "./utils/request-log-serializers";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
 import ptApplicationRoutes from "./routes/pt_application.routes";
@@ -18,6 +20,7 @@ import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
+import mediaRoutes from "./routes/media.routes";
 
 import agenticFitnessRoutes from "./routes/agentic-fitness.routes";
 
@@ -33,8 +36,18 @@ app.use(
 // gateway's proxy, and a no-args cors() was overriding the gateway's own
 // origin-scoped CORS header with an invalid wildcard-plus-credentials
 // combination once http-proxy-middleware forwarded it through.
+// Client IP for the audit trail: read from X-Forwarded-For only on requests that carry the gateway secret (see the middleware).
+// Must run before any auth middleware, which deletes x-gateway-secret.
+app.use(clientIpMiddleware);
 app.use(express.json());
-app.use(pinoHttp({ logger, serializers: httpLogSerializers }));
+// The default request serializer logs every header (user-agent, x-forwarded-for, x-client-ip) and the socket's remoteAddress:
+// personal data that must not sit in the logs past its 12-month retention. Log only what is needed to follow a request.
+app.use(
+  pinoHttp({
+    logger,
+    serializers: requestLogSerializers,
+  }),
+);
 app.use(metricsMiddleware());
 
 // Ensure upload directories exist — local/Docker only. Skipped entirely on Lambda rather than
@@ -110,6 +123,9 @@ app.use("/availability", availabilityRoutes);
 
 // Admin-only operations owned by this service (disputed sessions, …)
 app.use("/admin", adminRoutes);
+
+// Public media: PT physique photos (302 to a short presigned GET, only for PUBLISHED photos of a visible trainer).
+app.use("/media", mediaRoutes);
 
 // Public location data (provinces/wards) — no auth required
 app.use("/locations", locationRoutes);

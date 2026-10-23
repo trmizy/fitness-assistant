@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import { contractService } from "../services/contract.service";
 import { contractRepository } from "../repositories/contract.repository";
 import { ContractStatus } from "../generated/prisma";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 2.3 — "nhóm endpoint hợp đồng cũ".
@@ -36,7 +43,7 @@ test("cancelContract refuses an ACTIVE (paid) contract — that money must go th
   let updateStatusCalled = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updateStatusCalled = true;
       return {} as any;
     }),
@@ -60,7 +67,7 @@ test("cancelContract still works for a PENDING_REVIEW contract — nothing was e
   let updated = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updated = true;
       return { ...contract, status: ContractStatus.CANCELLED } as any;
     }),
@@ -80,7 +87,7 @@ test("cancelContract still works for a PENDING_PAYMENT contract — signed but n
   let updated = false;
   const restores = [
     patch(contractRepository, "findById", async () => contract as any),
-    patch(contractRepository, "updateStatus", async () => {
+    patch(contractRepository, "updateStatusIfCurrent", async () => {
       updated = true;
       return { ...contract, status: ContractStatus.CANCELLED } as any;
     }),

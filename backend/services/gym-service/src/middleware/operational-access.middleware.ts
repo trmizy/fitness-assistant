@@ -81,3 +81,6 @@ export async function requireOperationalAccessForOwners(req: Request, res: Respo
     void requireOperationalAccess(req, res, next);
   });
 }
+
+// Nhãn cho cây route kiểm thử (partner-permissions.ts): đây là cổng "việc của chính tài khoản đang đăng nhập".
+(requirePartnerAccountOrLegacy as unknown as { permissions: readonly string[] }).permissions = ['account.self'];

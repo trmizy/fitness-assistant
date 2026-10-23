@@ -32,6 +32,8 @@ export function initSocket(httpServer: http.Server) {
       }
 
       const data = await verifyToken(token);
+      // Fail closed: a 2xx from auth-service without a user is not an authenticated connection.
+      if (!data?.user?.id) return next(new Error("Invalid token"));
 
       (socket as any).user = data.user;
       next();

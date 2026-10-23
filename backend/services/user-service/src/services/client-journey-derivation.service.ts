@@ -177,12 +177,22 @@ export async function deriveForCompletedContract(contractId: string): Promise<
       profile.goal, baselineEntry.weight, ending?.weight ?? null, baselineEntry.bodyFatPct ?? null, ending?.bodyFatPct ?? null,
     );
 
-    // Prisma may emulate an upsert with an empty update as read-then-insert.
-    // A native INSERT ... ON CONFLICT DO NOTHING keeps concurrent derivations
-    // idempotent using the existing contractId unique constraint.
-    const inserted = await prisma.clientJourney.createMany({
-      skipDuplicates: true,
-      data: {
+    // ADV-006 hardening (docs/ai-agent-adversarial-findings.md): upsert
+    // keyed on the now-DB-enforced-unique `contractId`
+    // (@@unique([contractId]), migration
+    // 20260914120000_client_journey_contract_id_unique) rather than a
+    // plain create — the earlier findFirst-then-create above is a fast
+    // path for the common case, but only this upsert is actually
+    // race-safe: two concurrent derivations for the same contract now
+    // resolve to exactly one INSERT and one no-op UPDATE at the database
+    // level, never two rows, regardless of timing.
+    await prisma.clientJourney.upsert({
+      where: { contractId: contract.id },
+      // A NON-empty `update` is required: with `update: {}` Prisma 5.22 cannot use its native
+      // INSERT .. ON CONFLICT upsert and falls back to find-then-create, which loses the race with
+      // P2002 (swallowed below as "derivation_error"). Re-assigning the same unique key is a no-op.
+      update: { contractId: contract.id },
+      create: {
         userId: contract.clientUserId,
         ptId: contract.ptUserId,
         contractId: contract.id,
@@ -211,7 +221,7 @@ export async function deriveForCompletedContract(contractId: string): Promise<
         baselineSnapshot: { baselineInBodyEntryId: baselineEntry.id, endingInBodyEntryId: ending?.id ?? null },
       },
     });
-    return { status: inserted.count === 1 ? "created" : "already_exists" };
+    return { status: "created" };
   } catch (err) {
     // Analytics derivation must never surface as a caller-visible failure
     // — see module doc comment.

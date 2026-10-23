@@ -144,10 +144,17 @@ model GymPhoto {
   /// PRIVATE cho tới khi hồ sơ được duyệt; sau đó ảnh được sao chép sang vùng công khai.
   visibility GymPhotoVisibility @default(PUBLIC)
   createdAt DateTime @default(now()) @map("created_at")
+  /// Listing Management (B1) — vòng đời ảnh. Khách CHỈ thấy PUBLISHED. Mặc định STAGED: ảnh mới chưa công khai.
+  status      GymPhotoStatus @default(STAGED)
+  /// sha256 của nội dung gốc (tính lúc xác nhận upload); NULL cho ảnh cũ.
+  contentHash String?   @map("content_hash")
+  retiredAt   DateTime? @map("retired_at") @db.Timestamptz(3)
+  uploadedBy  String?   @map("uploaded_by")
 
   gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
 
   @@index([gymId, sortOrder])
+  @@index([gymId, status, sortOrder])
   @@map("gym_photos")
 }
 
@@ -366,10 +373,16 @@ enum GymPartnerKind {
   INDIVIDUAL
 }
 
-/// Hai cấp, không hơn. Ranh giới một câu: **tiền và người thì chỉ chủ sở hữu**.
+/// Vai trò cố định trên danh mục quyền (services/partner-permissions.ts), mặc định TỪ CHỐI.
+/// Ranh giới một câu: **tiền và người thì chỉ chủ sở hữu** — hai vai trò thêm sau (D15) đều hẹp hơn MANAGER:
+///   RECEPTIONIST = lễ tân, chỉ việc quầy (QR check-in, hạn hội viên), không thấy tiền;
+///   ACCOUNTANT   = kế toán, CHỈ ĐỌC dữ liệu tài chính, không ghi gì.
+/// Hoãn: Facility Staff và vai trò tuỳ chỉnh.
 enum PartnerAccountRole {
   OWNER
   MANAGER
+  RECEPTIONIST
+  ACCOUNTANT
 }
 
 enum PartnerAccountStatus {
@@ -441,6 +454,8 @@ enum PartnerReviewCategory {
   PHOTOS
   LEGAL
   OTHER
+  /// Listing Management (B1) — tiện ích của chi nhánh trong hồ sơ đăng ký.
+  AMENITIES
 }
 
 /// Khác GymBranchReviewIssue (tự đóng khi chủ gym nộp lại): nộp lại KHÔNG chứng minh vấn đề
@@ -519,6 +534,19 @@ enum PartnerAuditAction {
   APPLICATION_REJECTED
   APPLICATION_REOPENED
   DOCUMENT_VIEWED
+  // ── Listing Management (B1) ──
+  LISTING_SUBMITTED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  LISTING_CHANGES_REQUESTED
+  LISTING_ADMIN_EDITED
+  AMENITY_PROPOSED
+  AMENITY_PROPOSAL_APPROVED
+  AMENITY_PROPOSAL_REJECTED
+  AMENITY_PROPOSAL_MERGED
+  GYM_ADMIN_STATUS_CHANGED
+  GYM_ADMIN_RENAME_APPROVED
+  GYM_ADMIN_UPDATED
 }
 
 model PartnerAuditLog {
@@ -649,6 +677,11 @@ model GymPartner {
   payoutBankAccountHolder String?         @map("payout_bank_account_holder")
   termsAcceptedVersion    String?         @map("terms_accepted_version")
   termsAcceptedAt         DateTime?       @map("terms_accepted_at")
+  /// Listing Management (B1) — luồng hồ sơ mà client đã dùng (NULL = hồ sơ có từ trước / client cũ);
+  /// cờ tương thích APK cũ và thời điểm thao tác tương thích gần nhất (cùng now() với legacy_compat_events.occurred_at).
+  applicationFlowVersion  Int?            @map("application_flow_version")
+  legacyNoAmenities       Boolean         @default(false) @map("legacy_no_amenities")
+  legacyClientAt          DateTime?       @map("legacy_client_at") @db.Timestamptz(6)
   createdBy              String?          @map("created_by")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
@@ -883,6 +916,9 @@ model GymBrand {
 
   branches Gym[]
   plans    GymMembershipPlan[]
+  /// Thoả thuận chia sẻ doanh thu với PT cấp thương hiệu (migration 20261010000000_brand_pt_agreements).
+  ptAgreements GymBrandPtAgreement[]
+  ptAgreementConflicts GymPtAgreementConflict[]
 
   /// Bất biến "1 Owner = đúng 1 Brand" ở cấp DB (trước đây chỉ GymPartner.brandId là unique).
   @@unique([ownerId])
@@ -970,7 +1006,22 @@ model Gym {
   /// tự động mở lại gym vào ngày này; chủ gym vẫn phải tự bấm "Mở lại".
   expectedReopenAt  DateTime?            @map("expected_reopen_at")
   closedAt          DateTime?            @map("closed_at")
+  /// Who closed the branch — the userId of the account that was actually logged in
+  /// (req.user.userId), NOT `ownerId`: a MANAGER acts on their owner's gym, so `ownerId` alone
+  /// cannot say which of the two did it. Together with `closedAt` + `closureReason` this is the
+  /// closure's audit stamp. Set on TEMPORARILY_CLOSED and PERMANENTLY_CLOSED (the latter is
+  /// OWNER-only — gymService.setOperationalStatus), cleared on reopen along with
+  /// `closureReason`. Null on rows closed before this column existed.
+  closedBy          String?              @map("closed_by")
   reopenedAt        DateTime?            @map("reopened_at")
+  /// Listing Management (B1) — phiên bản tin đăng CÔNG KHAI (0 = chưa từng công khai). `listingPublishedAt` NULL
+  /// cho dữ liệu cũ ("công khai trước khi có hệ thống tin đăng"); chỉ việc áp bản sửa mới đặt nó.
+  listingVersion     Int       @default(0) @map("listing_version")
+  listingPublishedAt DateTime? @map("listing_published_at") @db.Timestamptz(3)
+  /// Luồng tạo chi nhánh (NULL = tạo từ trước / client cũ), cờ tương thích APK cũ, thời điểm tương thích gần nhất.
+  createdFlowVersion Int?      @map("created_flow_version")
+  legacyNoAmenities  Boolean   @default(false) @map("legacy_no_amenities")
+  legacyClientAt     DateTime? @map("legacy_client_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -984,6 +1035,9 @@ model Gym {
   photos         GymPhoto[]
   branchDocuments GymBranchDocument[]
   reviewIssues    GymBranchReviewIssue[]
+  amenities        GymAmenity[]
+  amenityProposals AmenityProposal[]
+  listingRevisions GymListingRevision[]
 
   @@index([status])
   @@index([operationalStatus])
@@ -1061,6 +1115,10 @@ model GymMembershipContract {
   /// membership (blocked once status flips to CANCELLED), so this flag only ever needs to
   /// answer one question: did THIS refund's clawback step already run.
   refundClawbackDone   Boolean                      @default(false) @map("refund_clawback_done")
+  /// D15c — mã hội viên ngắn (8 ký tự hex, hiển thị XXXX-XXXX) để lễ tân tra cứu khi hội viên không dùng được QR.
+  /// CỘT SINH TỰ ĐỘNG (GENERATED ALWAYS ... STORED) từ client_id trong migration: một người một mã cho mọi lần
+  /// gia hạn, không bao giờ ghi từ ứng dụng — Prisma không được gửi giá trị cho cột này.
+  memberCode           String?                      @map("member_code")
   createdAt            DateTime                     @default(now()) @map("created_at")
   updatedAt            DateTime                     @updatedAt @map("updated_at")
 
@@ -1102,6 +1160,10 @@ model GymCheckIn {
   gymId        String   @map("gym_id")
   clientId     String   @map("client_id")
   checkedInBy  String   @map("checked_in_by") // owner userId who scanned
+  /// D15c — QR: hội viên tự quét (checkedInBy = chính họ). ASSISTED: nhân viên quầy check-in hộ sau khi xác minh
+  /// danh tính; checkedInBy = nhân viên, assistedEventId trỏ tới sự kiện kiểm toán (gym_assisted_checkin_events).
+  source          GymCheckInSource @default(QR)
+  assistedEventId String?          @map("assisted_event_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
   membership GymMembershipContract @relation(fields: [membershipId], references: [id])
@@ -1186,14 +1248,103 @@ model GymPtCollaboration {
   effectiveAt     DateTime?           @map("effective_at")
   note            String?
 
+  /// Brand-level migration markers (migration 20261010000000_brand_pt_agreements). All nullable, and
+  /// NOTHING in the running service reads or writes them yet — only the backfill script
+  /// (src/scripts/backfill-brand-pt-agreements.ts) sets the two superseded_* columns. Rate columns
+  /// above are never rewritten by the backfill: this row stays the record of the legacy terms.
+  /// Set when this branch-level row has been folded into a brand agreement.
+  supersededByAgreementId String?   @map("superseded_by_agreement_id")
+  supersededAt            DateTime? @map("superseded_at")
+  /// Reserved for the brand-agreement flow: when the PT/gym started winding this row down.
+  /// Separates "existing" contracts from "new" ones. Not written by the backfill.
+  terminationInitiatedAt  DateTime? @map("termination_initiated_at")
+
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 
   gym Gym @relation(fields: [gymId], references: [id])
+  supersededByAgreement GymBrandPtAgreement? @relation("LegacySupersededBy", fields: [supersededByAgreementId], references: [id], onDelete: SetNull)
 
   @@index([gymId, status])
   @@index([ptUserId, status])
+  @@index([supersededByAgreementId])
   @@map("gym_pt_collaborations")
+}
+
+/// A revenue-share agreement between a trainer and a whole BRAND — one agreement per (brand, PT),
+/// covering every operating branch of the brand. Successor of the per-branch GymPtCollaboration.
+///
+/// STORAGE LAYER ONLY (migration 20261010000000_brand_pt_agreements): nothing in the service reads
+/// this table yet, so runtime behaviour is unchanged. `origin` MIGRATED = created by the backfill
+/// script from legacy branch rows (at their existing rates); NATIVE = created by the brand flow.
+///
+/// Hai chỉ mục duy nhất MỘT PHẦN được tạo tay trong migration 20261010000000_brand_pt_agreements và
+/// KHÔNG khai báo được trong schema.prisma — `prisma migrate diff` sẽ coi chúng là thừa và đòi xoá,
+/// đừng làm theo:
+///   - gym_brand_pt_agreements_accepted_pair_key (brand_id, pt_user_id) WHERE status = 'ACCEPTED'
+///   - gym_brand_pt_agreements_open_pair_key     (brand_id, pt_user_id) WHERE status IN ('PENDING','COUNTERED')
+/// Cũng có hai CHECK constraint (origin, và status của bảng xung đột) mà Prisma không mô hình hoá.
+model GymBrandPtAgreement {
+  id              String              @id @default(uuid())
+  brandId         String              @map("brand_id")
+  ptUserId        String              @map("pt_user_id")
+
+  proposedPtRate  Decimal             @db.Decimal(6, 4) @map("proposed_pt_rate")
+  proposedGymRate Decimal             @db.Decimal(6, 4) @map("proposed_gym_rate")
+  platformRate    Decimal             @default("0.10") @db.Decimal(6, 4) @map("platform_rate")
+
+  status          CollaborationStatus @default(PENDING)
+  proposedBy      CollaborationParty  @map("proposed_by")
+  round           Int                 @default(1)
+  expiresAt       DateTime            @map("expires_at")
+
+  acceptedAt      DateTime?           @map("accepted_at")
+  /// The future marker separating "existing" contracts (started before this instant) from "new"
+  /// ones. Null = no termination started. Same meaning as the column of the same name on
+  /// GymPtCollaboration.
+  terminationInitiatedAt DateTime?    @map("termination_initiated_at")
+  effectiveAt     DateTime?           @map("effective_at")
+  terminatedAt    DateTime?           @map("terminated_at")
+  terminatedBy    String?             @map("terminated_by")
+  /// 'NATIVE' | 'MIGRATED' (CHECK constraint in the migration).
+  origin          String              @default("NATIVE")
+  note            String?
+
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  brand            GymBrand                 @relation(fields: [brandId], references: [id])
+  supersededLegacy GymPtCollaboration[]     @relation("LegacySupersededBy")
+  resolvedConflicts GymPtAgreementConflict[]
+
+  @@index([ptUserId, status])
+  @@index([brandId, status])
+  @@map("gym_brand_pt_agreements")
+}
+
+/// A (brand, PT) pair whose legacy ACCEPTED branch rows disagree on the rate table (or mix a clean
+/// row with one already winding down). The backfill creates NO agreement for it and touches no legacy
+/// row; each branch keeps its own old terms until owner and PT negotiate a brand agreement.
+///
+/// Chỉ mục duy nhất MỘT PHẦN tạo tay trong migration 20261010000000_brand_pt_agreements, không khai
+/// báo được ở đây (đừng để `prisma migrate diff` xoá nó):
+///   - gym_pt_agreement_conflicts_open_pair_key (brand_id, pt_user_id) WHERE status = 'OPEN'
+model GymPtAgreementConflict {
+  id                     String    @id @default(uuid())
+  brandId                String    @map("brand_id")
+  ptUserId               String    @map("pt_user_id")
+  legacyCollaborationIds String[]  @map("legacy_collaboration_ids")
+  /// 'OPEN' | 'RESOLVED' (CHECK constraint in the migration).
+  status                 String    @default("OPEN")
+  resolvedAgreementId    String?   @map("resolved_agreement_id")
+  detectedAt             DateTime  @default(now()) @map("detected_at")
+  resolvedAt             DateTime? @map("resolved_at")
+
+  brand             GymBrand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  resolvedAgreement GymBrandPtAgreement? @relation(fields: [resolvedAgreementId], references: [id], onDelete: SetNull)
+
+  @@index([ptUserId])
+  @@map("gym_pt_agreement_conflicts")
 }
 
 /// Commission owed to a PT for introducing a client who bought a gym membership.
@@ -1222,4 +1373,382 @@ model GymMembershipReferral {
   @@index([referrerPtUserId, status])
   @@index([gymId])
   @@map("gym_membership_referrals")
+}
+
+/// Phase 2 (PT QR check-in, D16/D17/D70) - a PT's entry to a branch on one local day.
+///
+/// One row per (branch, PT, local day): re-scans, concurrent scans and network retries all land on
+/// the SAME row (INSERT ... ON CONFLICT ... DO UPDATE), with `scan_count` counting the scans.
+/// Deliberately NOT `GymCheckIn`: that table is the member-visit ledger (membership_id required,
+/// counted by the owner dashboards); a PT entry must never be mistaken for a member visit and must
+/// never touch gym_membership_contracts. Reading this table never changes a session, a contract or
+/// any money - it is attendance, not Session Completion and not Settlement.
+///
+/// `local_date` is the calendar day in Asia/Ho_Chi_Minh of the instant the SERVER received the
+/// scan (utils/local-day.ts). `qualifying_session_ids` / `contract_ids` are the basis user-service
+/// reported at scan time (union across the day's scans); a session id stored here for one day is
+/// not accepted as basis for a different day once it has been moved (Q-B).
+model GymPtCheckIn {
+  id                   String   @id @default(uuid())
+  gymId                String   @map("gym_id")
+  brandId              String?  @map("brand_id")
+  ptUserId             String   @map("pt_user_id")
+  localDate            DateTime @map("local_date") @db.Date
+  firstScanAt          DateTime @map("first_scan_at")
+  lastScanAt           DateTime @map("last_scan_at")
+  scanCount            Int      @default(1) @map("scan_count")
+  qualifyingSessionIds String[] @map("qualifying_session_ids")
+  contractIds          String[] @map("contract_ids")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@unique([gymId, ptUserId, localDate], map: "gym_pt_check_ins_gym_pt_date_key")
+  @@index([gymId, localDate], map: "gym_pt_check_ins_gym_date_idx")
+  @@index([ptUserId, localDate], map: "gym_pt_check_ins_pt_date_idx")
+  @@map("gym_pt_check_ins")
+}
+
+// ── Listing Management (B1): danh mục tiện ích, tin đăng có kiểm duyệt, telemetry tương thích ─────────────────
+//
+// `Gym.facilities` (mảng enum GymFacility) chỉ còn là BẢN SAO của `gym_amenities` cho app cũ — xem
+// syncFacilitiesMirrorTx. Migration `*_amenity_catalog_listing_revisions` viết tay: các chỉ mục UNIQUE một phần
+// (WHERE ...), trigger bất biến và trigger compat-writer không biểu diễn được ở đây và Prisma bỏ qua chúng.
+
+enum AmenityCategory {
+  FACILITY
+  TRAINING_ZONE
+  SERVICE
+  RECOVERY
+}
+
+enum AmenitySource {
+  SYSTEM
+  CUSTOM
+}
+
+/// Danh mục chỉ có hai trạng thái. Đề xuất nằm ở AmenityProposal.
+enum AmenityStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AmenityProposalKind {
+  NEW
+  REENABLE
+}
+
+enum AmenityProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MERGED
+  CANCELLED
+}
+
+enum GymListingRevisionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  WITHDRAWN
+  STALE
+}
+
+enum GymListingRevisionSource {
+  OWNER
+  ADMIN_DIRECT
+}
+
+enum GymPhotoStatus {
+  STAGED
+  PUBLISHED
+  RETIRED
+  DISCARDED
+}
+
+enum LegacyCompatOutcome {
+  ACCEPTED
+  REJECTED_422
+  /// Any other 4xx refusal of an old-client request on a compat route (validation, locked, forbidden...).
+  REJECTED_OTHER
+  WRITER_ABSENT
+  NON_CLIENT
+}
+
+enum LegacyCompatEntityType {
+  GYM_PARTNER
+  GYM
+}
+
+model Amenity {
+  id             String          @id @default(uuid())
+  /// SYSTEM: đúng nguyên văn giá trị enum GymFacility.
+  slug           String          @unique
+  name           String
+  nameNormalized String          @unique @map("name_normalized")
+  category       AmenityCategory
+  iconKey        String          @map("icon_key")
+  sortOrder      Int             @default(0) @map("sort_order")
+  source         AmenitySource   @default(CUSTOM)
+  status         AmenityStatus   @default(ACTIVE)
+  createdFromProposalId String?  @map("created_from_proposal_id")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdFromProposal AmenityProposal?  @relation("AmenityCreatedFromProposal", fields: [createdFromProposalId], references: [id], onDelete: SetNull)
+  gyms                GymAmenity[]
+  targetedBy          AmenityProposal[] @relation("AmenityProposalTarget")
+  resultOf            AmenityProposal[] @relation("AmenityProposalResult")
+
+  @@index([status, category, sortOrder])
+  @@map("amenities")
+}
+
+/// CHECK trong DB: APPROVED/MERGED ⇒ resultingAmenityId khác null; REJECTED/CANCELLED ⇒ null.
+/// Unique một phần: (owner_user_id, gym_id, name_normalized) WHERE status = 'PENDING'.
+model AmenityProposal {
+  id                 String                @id @default(uuid())
+  ownerUserId        String                @map("owner_user_id")
+  gymId              String                @map("gym_id")
+  kind               AmenityProposalKind   @default(NEW)
+  targetAmenityId    String?               @map("target_amenity_id")
+  name               String
+  nameNormalized     String                @map("name_normalized")
+  suggestedCategory  AmenityCategory       @map("suggested_category")
+  note               String?
+  status             AmenityProposalStatus @default(PENDING)
+  resultingAmenityId String?               @map("resulting_amenity_id")
+  reviewedBy         String?               @map("reviewed_by")
+  reviewedAt         DateTime?             @map("reviewed_at") @db.Timestamptz(3)
+  rejectReason       String?               @map("reject_reason")
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym              Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  // Catalogue rows are never deleted (RESTRICT, not Prisma's optional-relation default SET NULL): a decided proposal
+  // always keeps pointing at the amenity it produced or joined.
+  targetAmenity    Amenity?  @relation("AmenityProposalTarget", fields: [targetAmenityId], references: [id], onDelete: Restrict)
+  resultingAmenity Amenity?  @relation("AmenityProposalResult", fields: [resultingAmenityId], references: [id], onDelete: Restrict)
+  createdAmenities Amenity[] @relation("AmenityCreatedFromProposal")
+
+  @@index([status, kind, nameNormalized])
+  @@index([ownerUserId, status])
+  @@index([gymId])
+  @@map("amenity_proposals")
+}
+
+/// Tập tiện ích chuẩn của một chi nhánh.
+model GymAmenity {
+  gymId     String   @map("gym_id")
+  amenityId String   @map("amenity_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym     Gym     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id])
+
+  @@id([gymId, amenityId])
+  @@index([amenityId])
+  @@map("gym_amenities")
+}
+
+/// Bản sửa tin đăng của một chi nhánh: payload {description, amenityIds, proposalIds, photoIds, coverPhotoId}.
+/// Unique một phần: một bản mở (DRAFT|PENDING) mỗi chi nhánh. Trigger chặn sửa/xoá bản đã đóng.
+model GymListingRevision {
+  id                String                   @id @default(uuid())
+  gymId             String                   @map("gym_id")
+  status            GymListingRevisionStatus @default(DRAFT)
+  source            GymListingRevisionSource @default(OWNER)
+  parentRevisionId  String?                  @map("parent_revision_id")
+  baseVersion       Int                      @map("base_version")
+  draftVersion      Int                      @default(1) @map("draft_version")
+  payload           Json
+  previousSnapshot  Json?                    @map("previous_snapshot")
+  systemAdjustments Json                     @default("[]") @map("system_adjustments")
+  submittedBy       String?                  @map("submitted_by")
+  submittedAt       DateTime?                @map("submitted_at") @db.Timestamptz(3)
+  reviewedBy        String?                  @map("reviewed_by")
+  reviewedAt        DateTime?                @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote        String?                  @map("review_note")
+  ownerNote         String?                  @map("owner_note")
+  adminReason       String?                  @map("admin_reason")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, createdAt])
+  @@index([status, submittedAt])
+  @@map("gym_listing_revisions")
+}
+
+/// Bằng chứng chính để tắt cờ tương thích APK cũ. Dòng WRITER_ABSENT / NON_CLIENT do TRIGGER ghi
+/// (gyms, gym_partners); ACCEPTED / REJECTED_422 do code ghi.
+model LegacyCompatEvent {
+  id           String                 @id @default(uuid())
+  occurredAt   DateTime               @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  outcome      LegacyCompatOutcome
+  action       String
+  entityType   LegacyCompatEntityType @map("entity_type")
+  entityId     String                 @map("entity_id")
+  actorUserId  String?                @map("actor_user_id")
+  flowHeader   String?                @map("flow_header")
+  clientHeader String?                @map("client_header")
+
+  @@index([occurredAt])
+  @@index([outcome, occurredAt])
+  @@index([entityType, entityId])
+  @@map("legacy_compat_events")
+}
+
+model CompatWriterHeartbeat {
+  id            String   @id @default(uuid())
+  instanceId    String   @map("instance_id")
+  gitSha        String?  @map("git_sha")
+  writerVersion String   @map("writer_version")
+  seenAt        DateTime @default(now()) @map("seen_at") @db.Timestamptz(3)
+
+  @@index([writerVersion, seenAt])
+  @@index([instanceId, seenAt])
+  @@map("compat_writer_heartbeats")
+}
+
+/// Telemetry best-effort của client cũ trên các route đã gỡ/chặn (cùng dạng với bảng cùng tên ở user-service).
+model ClientCompatEvent {
+  id           String   @id @default(uuid())
+  route        String
+  actorUserId  String?  @map("actor_user_id")
+  clientHeader String?  @map("client_header")
+  outcome      String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@map("client_compat_events")
+}
+
+/// Audit thao tác trên danh mục (không có partnerId nên không dùng PartnerAuditLog). Không có FK: audit sống lâu hơn đối tượng.
+model AmenityAuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String   @map("actor_user_id")
+  action      String
+  amenityId   String?  @map("amenity_id")
+  proposalId  String?  @map("proposal_id")
+  before      Json?
+  after       Json?
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([amenityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("amenity_audit_logs")
+}
+
+
+// ── D15c — Lễ tân check-in hộ hội viên (không dùng được QR) ─────────────────────────────────────────────────────
+// Không có hệ thống điểm danh thứ hai: lượt vào vẫn nằm trong gym_check_ins (source = ASSISTED). Ba bảng dưới đây
+// chỉ giữ BẰNG CHỨNG: sự kiện kiểm toán chỉ-thêm, thử thách OTP, yêu cầu ngoại lệ do quản lý duyệt.
+// Migration viết tay: cột sinh member_code, trigger chỉ-thêm và các chỉ mục UNIQUE một phần không biểu diễn được ở đây.
+
+enum GymCheckInSource {
+  QR
+  ASSISTED
+}
+
+enum AssistedCheckInMethod {
+  MEMBER_OTP
+  PHOTO_MATCH
+  MANAGER_EXCEPTION
+}
+
+enum AssistedCheckInEventType {
+  MEMBER_SEARCH
+  OTP_SENT
+  OTP_FAILED
+  CHECKIN_SUCCEEDED
+  CHECKIN_REFUSED
+  EXCEPTION_REQUESTED
+  EXCEPTION_APPROVED
+  EXCEPTION_REJECTED
+  EXCEPTION_EXPIRED
+}
+
+enum AssistedExceptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  USED
+}
+
+/// Nhật ký CHỈ-THÊM (trigger chặn UPDATE/DELETE). Mỗi lần tra cứu / gửi OTP / nhập sai / check-in hộ thành công hay bị
+/// từ chối / quyết định ngoại lệ là một dòng: ai (staff), hội viên nào, chi nhánh nào, lúc nào, bằng cách nào, kết quả,
+/// lý do, khoá idempotency. KHÔNG lưu từ khoá tìm kiếm, mã OTP, SĐT, e-mail.
+model GymAssistedCheckInEvent {
+  id             String                   @id @default(uuid())
+  eventType      AssistedCheckInEventType @map("event_type")
+  gymId          String                   @map("gym_id")
+  staffUserId    String                   @map("staff_user_id")
+  /// null = hệ thống (vd tự hết hạn ngoại lệ cuối ngày), staffUserId khi đó là 'system'.
+  staffRole      PartnerAccountRole?      @map("staff_role")
+  membershipId   String?                  @map("membership_id")
+  clientId       String?                  @map("client_id")
+  method         AssistedCheckInMethod?
+  /// 'OK' hoặc mã từ chối (NOT_ACTIVE, TOO_SOON, OTP_INVALID, ...).
+  outcome        String
+  reason         String?
+  idempotencyKey String?                  @map("idempotency_key")
+  requestHash    String?                  @map("request_hash")
+  checkinId      String?                  @map("checkin_id")
+  exceptionId    String?                  @map("exception_id")
+  challengeId    String?                  @map("challenge_id")
+  details        Json?
+  createdAt      DateTime                 @default(now()) @map("created_at")
+
+  @@index([gymId, createdAt])
+  @@index([staffUserId, idempotencyKey])
+  @@index([membershipId, createdAt])
+  @@map("gym_assisted_checkin_events")
+}
+
+/// Một mã OTP một lần gửi tới e-mail đã đăng ký của hội viên, gắn với (hội viên, chi nhánh, nhân viên). Chỉ lưu BĂM.
+model GymAssistedCheckInChallenge {
+  id           String    @id @default(uuid())
+  gymId        String    @map("gym_id")
+  membershipId String    @map("membership_id")
+  clientId     String    @map("client_id")
+  staffUserId  String    @map("staff_user_id")
+  otpHash      String    @map("otp_hash")
+  expiresAt    DateTime  @map("expires_at")
+  attempts     Int       @default(0)
+  maxAttempts  Int       @map("max_attempts")
+  lockedAt     DateTime? @map("locked_at")
+  consumedAt   DateTime? @map("consumed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([membershipId, createdAt])
+  @@index([gymId, staffUserId])
+  @@map("gym_assisted_checkin_challenges")
+}
+
+/// Ngoại lệ: không OTP, không ảnh → lễ tân xin, QUẢN LÝ/CHỦ chi nhánh đó duyệt (ghi lý do riêng). Hết hạn cuối ngày.
+model GymAssistedCheckInException {
+  id             String                  @id @default(uuid())
+  gymId          String                  @map("gym_id")
+  membershipId   String                  @map("membership_id")
+  clientId       String                  @map("client_id")
+  requestedBy    String                  @map("requested_by")
+  requestReason  String                  @map("request_reason")
+  status         AssistedExceptionStatus @default(PENDING)
+  decidedBy      String?                 @map("decided_by")
+  decidedByRole  PartnerAccountRole?     @map("decided_by_role")
+  decisionReason String?                 @map("decision_reason")
+  decidedAt      DateTime?               @map("decided_at")
+  expiresAt      DateTime                @map("expires_at")
+  usedCheckinId  String?                 @map("used_checkin_id")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  @@index([gymId, status, expiresAt])
+  @@index([membershipId, status])
+  @@map("gym_assisted_checkin_exceptions")
 }

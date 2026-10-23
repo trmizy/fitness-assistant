@@ -24,6 +24,8 @@ export type ContractRow = {
   price: number;
   totalSessions: number;
   usedSessions: number;
+  /** Sessions the PT did not deliver and the client was refunded for: closed "not delivered - refunded", still consumed (DQ-2(a)). */
+  compensatedSessions: number;
   source: string | null;
   gymId: string | null;
   startDate: string | null;
@@ -34,6 +36,8 @@ export type ContractRow = {
   cancellationReason: string | null;
   terminationReason: string | null;
   paid: boolean;
+  /** `"PAUSED_BY_ADMIN"` while the trainer is restricted; otherwise null (or the plain status). */
+  effectiveStatus: string | null;
 };
 
 function ptNameOf(raw: any): string {
@@ -54,6 +58,7 @@ export function normalizeContract(raw: any): ContractRow {
     price: Number(raw?.price) || 0,
     totalSessions: Number(raw?.totalSessions) || 0,
     usedSessions: Number(raw?.usedSessions) || 0,
+    compensatedSessions: Math.max(0, Number(raw?.compensatedSessions) || 0),
     source: raw?.source ?? null,
     gymId: raw?.gymId ?? null,
     startDate: raw?.startDate ?? null,
@@ -64,8 +69,17 @@ export function normalizeContract(raw: any): ContractRow {
     cancellationReason: raw?.cancellationReason ?? null,
     terminationReason: raw?.terminationReason ?? null,
     paid: Boolean(raw?.paymentTransactionId),
+    effectiveStatus: typeof raw?.effectiveStatus === "string" ? raw.effectiveStatus : null,
   };
 }
+
+/** The trainer is temporarily restricted; the contract itself is untouched. */
+export function isPausedByAdmin(contract: Pick<ContractRow, "effectiveStatus">): boolean {
+  return contract.effectiveStatus === "PAUSED_BY_ADMIN";
+}
+
+export const PAUSED_BY_ADMIN_NOTICE =
+  "Hợp đồng đang tạm dừng trong lúc huấn luyện viên tạm ngưng hoạt động. Buổi tập và thời hạn của bạn được giữ nguyên.";
 
 export function normalizeContracts(raw: any): ContractRow[] {
   const list = Array.isArray(raw?.contracts) ? raw.contracts : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
@@ -103,13 +117,22 @@ export function isOpen(contract: ContractRow): boolean {
   return OPEN_STATUSES.includes(contract.status);
 }
 
+/**
+ * Sessions the package has consumed: the ones trained plus the ones the PT missed and the client was refunded for.
+ * A refunded session is closed and counted, with no replacement (DQ-2(a)) - same arithmetic as web BookingPage and the
+ * server's getRemainingEntitlements.
+ */
+export function sessionsConsumed(contract: Pick<ContractRow, "usedSessions" | "compensatedSessions">): number {
+  return contract.usedSessions + (contract.compensatedSessions ?? 0);
+}
+
 export function sessionsLeft(contract: ContractRow): number {
-  return Math.max(0, contract.totalSessions - contract.usedSessions);
+  return Math.max(0, contract.totalSessions - sessionsConsumed(contract));
 }
 
 export function sessionProgress(contract: ContractRow): number {
   if (contract.totalSessions <= 0) return 0;
-  return Math.min(1, Math.max(0, contract.usedSessions / contract.totalSessions));
+  return Math.min(1, Math.max(0, sessionsConsumed(contract) / contract.totalSessions));
 }
 
 /** Which of the two endpoints ends this contract — they are not interchangeable. */
@@ -155,14 +178,19 @@ export type MoneyBreakdown = {
   /** Value of one session, and of the sessions not yet used. */
   unit: number | null;
   remaining: number | null;
-  /** What the ledger has ACTUALLY moved, as opposed to what the formula says it should have. */
-  releasedToPt: number | null;
-  releasedToGym: number | null;
-  releasedToPlatform: number | null;
-  pendingToPt: number | null;
-  pendingToGym: number | null;
-  pendingToPlatform: number | null;
+  /** What the client has paid for this contract (0 while unpaid). The server sends no per-party split to a client. */
+  paidTotal: number | null;
+  /** Value of the missed sessions the client was refunded for (closed as "not delivered - refunded", still counted). */
+  refundedSessionsValue: number | null;
   paid: boolean;
+  /** True only while the server says the client may end the contract with no fee (trainer restricted). */
+  canExitWithoutPenalty: boolean;
+  /** Sessions the trainer reported as done that still await the client's confirmation or a review. */
+  unresolvedSessions: number;
+  /** Value held for those sessions; null when the server did not say. */
+  unresolvedAmountHeld: number | null;
+  /** Server's label for the exit it would apply right now (informational; the screen never branches on it). */
+  exitReasonIfCancelledNow: string | null;
 };
 
 const money = (value: any): number | null => {
@@ -172,10 +200,9 @@ const money = (value: any): number | null => {
 };
 
 /**
- * `GET /contracts/:id/money-breakdown`. Every figure arrives as a STRING ("8100000.00"), and the
- * response deliberately carries two different truths side by side: `released` (what the formula
- * says) and `actuallyReleased` (what the ledger moved). The screen quotes the second, because that
- * is the one the client can check against their wallet.
+ * `GET /contracts/:id/money-breakdown`. Every figure arrives as a STRING ("8100000.00"). For a client the server returns
+ * aggregates about their own money only (paid, refunded, remaining, refund-if-cancelled) - never how the price is divided
+ * between trainer, gym and platform - so this reads nothing of the sort.
  */
 export function normalizeMoneyBreakdown(raw: any): MoneyBreakdown | null {
   if (!raw) return null;
@@ -183,14 +210,167 @@ export function normalizeMoneyBreakdown(raw: any): MoneyBreakdown | null {
     refundIfCancelledNow: money(raw?.refundIfCancelledNow),
     unit: money(raw?.unit),
     remaining: money(raw?.remaining),
-    releasedToPt: money(raw?.actuallyReleased?.pt),
-    releasedToGym: money(raw?.actuallyReleased?.gym),
-    releasedToPlatform: money(raw?.actuallyReleased?.platform),
-    pendingToPt: money(raw?.stillPending?.pt),
-    pendingToGym: money(raw?.stillPending?.gym),
-    pendingToPlatform: money(raw?.stillPending?.platform),
+    paidTotal: money(raw?.paidTotal),
+    refundedSessionsValue: money(raw?.refundedSessionsValue),
     paid: Boolean(raw?.paid),
+    // Strict `=== true`: a missing or malformed flag must never open the no-fee path.
+    canExitWithoutPenalty: raw?.canExitWithoutPenalty === true,
+    unresolvedSessions: wholeCount(raw?.unresolvedSessions),
+    unresolvedAmountHeld: money(raw?.unresolvedAmountHeld),
+    exitReasonIfCancelledNow:
+      typeof raw?.exitReasonIfCancelledNow === "string" ? raw.exitReasonIfCancelledNow : null,
   };
+}
+
+function wholeCount(value: any): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/** Text the end-contract sheet shows. Wording mirrors web's ContractPage cancel dialog. */
+export const END_TERMS_TEXT = {
+  loadFailed: "Không tải được số tiền hoàn. Vui lòng đóng cửa sổ này và thử lại.",
+  noFeeIntro:
+    "Huấn luyện viên của bạn đang tạm ngưng hoạt động. Nếu kết thúc hợp đồng bây giờ, bạn được hoàn toàn bộ giá trị các buổi chưa tập vào ví và không mất phí.",
+  termsChanged:
+    "Huấn luyện viên đã hoạt động trở lại nên điều kiện kết thúc không mất phí trước đó không còn áp dụng. Vui lòng xác nhận lại nếu bạn vẫn muốn hủy.",
+  refundLabelNoFee: "Hoàn về ví (không mất phí)",
+  refundLabelOrdinary: "Hoàn về ví nếu dừng bây giờ",
+  unresolvedAmountLabel: "Đang chờ xác nhận hoặc xem xét",
+  confirmNoFee: "Xác nhận kết thúc",
+  confirmAfterChange: "Vẫn hủy hợp đồng",
+  confirmDefault: "Xác nhận",
+} as const;
+
+export function unresolvedSessionsNote(count: number): string {
+  return `Có ${count} buổi huấn luyện viên đã báo là đã dạy nhưng đang chờ bạn xác nhận hoặc chờ xem xét. Giá trị các buổi này chưa nằm trong số tiền hoàn ở trên; chúng sẽ được xử lý sau khi bạn xác nhận hoặc buổi đó được xem xét xong.`;
+}
+
+/** Terminate answers 409 PT_RESTRICTION_LIFTED when the no-fee terms the client saw no longer apply. */
+export function isPtRestrictionLifted(error: any): boolean {
+  if (error?.response?.status !== 409) return false;
+  const d = error?.response?.data;
+  return [d?.code, d?.errorCode, d?.error, d?.error?.code].includes("PT_RESTRICTION_LIFTED");
+}
+
+/**
+ * The fresh preview a 409 carries, read defensively (`data.preview`, `preview`, or `data` itself).
+ * Returns null when the payload has none, so the caller re-fetches the breakdown instead.
+ */
+export function previewFromRestrictionLifted(error: any): Record<string, any> | null {
+  const body = error?.response?.data;
+  const candidate = body?.data?.preview ?? body?.preview ?? body?.data ?? null;
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+  return money(candidate.refundIfCancelledNow) == null ? null : candidate;
+}
+
+/**
+ * Cached raw breakdown after a 409: the previous figures overlaid with the server's fresh preview,
+ * forced to the ordinary terms. Null when the 409 had no usable preview (re-fetch instead).
+ */
+export function applyLiftedPreview(old: any, error: any): Record<string, any> | null {
+  const preview = previewFromRestrictionLifted(error);
+  if (!preview) return null;
+  return { ...(old && typeof old === "object" ? old : {}), ...preview, canExitWithoutPenalty: false };
+}
+
+export type EndSheetView = {
+  /** loading: figures not yet fresh; error: no usable server figure; ready: show the terms. */
+  phase: "loading" | "error" | "ready";
+  /** Show the no-fee wording and send `expectNoPenalty: true`. */
+  noFee: boolean;
+  expectNoPenalty: boolean;
+  /** The server's refund figure, shown only when it applies to the reason chosen. */
+  refund: number | null;
+  refundLabel: string;
+  intro: string | null;
+  unresolvedNote: string | null;
+  /** Value held for those sessions, only when there are some and the server said how much. */
+  unresolvedAmount: number | null;
+  changedNote: string | null;
+  /** The reason picker is offered only on the ordinary terms. */
+  showReasons: boolean;
+  confirmLabel: string;
+  canConfirm: boolean;
+};
+
+/**
+ * Which terms the client is looking at, what to say, and what to send. The refund is always the
+ * server's `refundIfCancelledNow` — nothing here computes money.
+ *
+ * `termsChanged` is set after a 409. From then on the no-fee terms are never offered again for this
+ * sheet; if the (re-fetched) breakdown still claims no-fee, the sheet reports an error instead of
+ * showing terms that contradict what the server just said.
+ */
+export function endSheetView(input: {
+  breakdown: MoneyBreakdown | null;
+  fetching: boolean;
+  failed: boolean;
+  reason: TerminationChoice["reason"];
+  termsChanged: boolean;
+}): EndSheetView {
+  const { breakdown, fetching, failed, reason, termsChanged } = input;
+  const base: EndSheetView = {
+    phase: "loading",
+    noFee: false,
+    expectNoPenalty: false,
+    refund: null,
+    refundLabel: END_TERMS_TEXT.refundLabelOrdinary,
+    intro: null,
+    unresolvedNote: null,
+    unresolvedAmount: null,
+    changedNote: null,
+    showReasons: false,
+    confirmLabel: termsChanged ? END_TERMS_TEXT.confirmAfterChange : END_TERMS_TEXT.confirmDefault,
+    canConfirm: false,
+  };
+
+  if (fetching) return base;
+  const stillNoFee = termsChanged && breakdown?.canExitWithoutPenalty === true;
+  if (failed || !breakdown || breakdown.refundIfCancelledNow == null || stillNoFee) {
+    return { ...base, phase: "error", intro: END_TERMS_TEXT.loadFailed };
+  }
+
+  const noFee = breakdown.canExitWithoutPenalty && !termsChanged && reason === "CLIENT_CANCELLED";
+  if (noFee) {
+    return {
+      ...base,
+      phase: "ready",
+      noFee: true,
+      expectNoPenalty: true,
+      refund: breakdown.refundIfCancelledNow,
+      refundLabel: END_TERMS_TEXT.refundLabelNoFee,
+      intro: END_TERMS_TEXT.noFeeIntro,
+      unresolvedNote:
+        breakdown.unresolvedSessions > 0 ? unresolvedSessionsNote(breakdown.unresolvedSessions) : null,
+      unresolvedAmount:
+        breakdown.unresolvedSessions > 0 && (breakdown.unresolvedAmountHeld ?? 0) > 0
+          ? breakdown.unresolvedAmountHeld
+          : null,
+      confirmLabel: END_TERMS_TEXT.confirmNoFee,
+      canConfirm: true,
+    };
+  }
+
+  return {
+    ...base,
+    phase: "ready",
+    // The preview is the CLIENT_CANCELLED figure; the no-show right has its own (full) refund.
+    refund: reason === "CLIENT_CANCELLED" ? breakdown.refundIfCancelledNow : null,
+    intro: "Lý do bạn chọn quyết định phần tiền được hoàn, nên hãy chọn đúng.",
+    changedNote: termsChanged ? END_TERMS_TEXT.termsChanged : null,
+    showReasons: true,
+    canConfirm: true,
+  };
+}
+
+/** Toast after a successful terminate; the no-fee exit says so, the ordinary one keeps today's wording. */
+export function terminateSuccessMessage(result: any, formatMoney: (n: number) => string): string {
+  if (result?.exitWithoutPenalty !== true) return "Đã cập nhật hợp đồng.";
+  const refund = Number(result?.settlement?.refund ?? 0);
+  return Number.isFinite(refund) && refund > 0
+    ? `Đã kết thúc hợp đồng — hoàn ${formatMoney(refund)} vào ví của bạn, không mất phí`
+    : "Đã kết thúc hợp đồng";
 }
 
 /**

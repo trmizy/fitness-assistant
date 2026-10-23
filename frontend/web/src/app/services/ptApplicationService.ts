@@ -96,7 +96,31 @@ export interface PTApplication {
   createdAt: string;
 }
 
+/** D25 - the PT terms exactly as the server serves them (one versioned source) plus this user's standing. */
+export interface PtTerms {
+  version: string;
+  isDraft: boolean;
+  title: string;
+  intro: string;
+  sections: { id: string; title: string; body: string[] }[];
+  accepted: boolean;
+  acceptedAt: string | null;
+  previouslyAcceptedVersion: string | null;
+  mustReconfirm: boolean;
+}
+
 export const ptApplicationService = {
+  getTerms: async (): Promise<PtTerms> => {
+    const { data } = await api.get("/pt-applications/terms");
+    return data;
+  },
+
+  /** Confirm the version the user just read. A stale version is refused (409) - re-open the terms. */
+  acceptTerms: async (version: string): Promise<{ version: string; acceptedAt: string; accepted: true }> => {
+    const { data } = await api.post("/pt-applications/terms/accept", { version });
+    return data;
+  },
+
   getMe: async (): Promise<PTApplication | null> => {
     try {
       const { data } = await api.get("/pt-applications/me");
@@ -115,8 +139,9 @@ export const ptApplicationService = {
     return response;
   },
 
-  submit: async (): Promise<PTApplication> => {
-    const { data: response } = await api.post("/pt-applications/me/submit");
+  /** `termsVersion`: the version of the terms whose box the applicant ticked (D25) - the server records it. */
+  submit: async (termsVersion?: string): Promise<PTApplication> => {
+    const { data: response } = await api.post("/pt-applications/me/submit", termsVersion ? { termsVersion } : {});
     return response;
   },
 

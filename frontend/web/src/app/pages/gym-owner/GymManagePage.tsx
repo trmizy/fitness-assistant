@@ -5,16 +5,16 @@ import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as A
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
-import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse, GymOperatingHoursDay, GymFacility } from "../../types";
+import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse, GymOperatingHoursDay } from "../../types";
+import { branchAvailability, normalizeBranchSelection } from "../../utils/gymListing";
+import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
-import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
 import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
 import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeningHours";
-import { StepFacilities } from "../../components/gym/AddBranchWizard/StepFacilities";
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
 
@@ -27,6 +27,34 @@ function defaultHours(gymId: string): GymOperatingHoursDay[] {
  * as the existing "Tên & địa chỉ"/"Vị trí"/"Trạng thái hoạt động" settings blocks but for the
  * 4 domains that used to only be editable inside the DRAFT-only wizard (§74: all 4 are free
  * edit regardless of approval status, so nothing here needs a pending/approval overlay). */
+/**
+ * Listing Management D2 — description, amenities and photos of a branch that has left DRAFT are part of its PUBLIC LISTING:
+ * they change only through a reviewed revision (the server answers 409 LISTING_REVIEW_REQUIRED to a direct write). This says
+ * so and links to the one place where they are edited. Phone / email / hours stay editable here.
+ */
+function ListingManagedNotice({ gym, canEdit, what }: { gym: Gym; canEdit: boolean; what: string }) {
+  const navigate = useNavigate();
+  const a = branchAvailability(gym);
+  return (
+    <div data-testid="gym-listing-managed-notice" className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+      <p className="text-xs leading-5 text-zinc-400">
+        {what} của chi nhánh đã duyệt được sửa trong mục <span className="font-semibold text-zinc-200">Tin đăng & tiện ích</span> và gửi duyệt trước khi hiển thị với khách.
+      </p>
+      {canEdit && a.editable ? (
+        <button
+          type="button"
+          onClick={() => navigate(`/gym-owner/listings?gymId=${gym.id}`)}
+          className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-all"
+        >
+          Sửa ở Tin đăng & tiện ích
+        </button>
+      ) : (
+        <p className="text-[11px] text-zinc-500">{!canEdit ? "Chỉ chủ sở hữu mới sửa được mục này." : a.reason}</p>
+      )}
+    </div>
+  );
+}
+
 function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -44,6 +72,12 @@ export function GymManagePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Same cache entry the sidebar reads (no extra request); the nav entry for collaborations is owner-only.
+  const { data: partnerStatus } = useQuery({
+    queryKey: ["partner-onboarding-status"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  const isManagerAccount = partnerStatus?.role === "MANAGER";
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -60,7 +94,6 @@ export function GymManagePage() {
   const [editAddress, setEditAddress] = useState("");
   const [editLocation, setEditLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
   const [editLocationNote, setEditLocationNote] = useState("");
-  const [editFacilities, setEditFacilities] = useState<GymFacility[]>([]);
   const [closeReason, setCloseReason] = useState("");
   const [closingMode, setClosingMode] = useState<"TEMPORARILY_CLOSED" | "PERMANENTLY_CLOSED" | null>(null);
   // GYM_MANAGEMENT master spec §61 — owner-entered expected reopen date, only meaningful for
@@ -84,12 +117,11 @@ export function GymManagePage() {
         longitude: gym.longitude ?? null,
       });
       setEditLocationNote(gym.locationNote ?? "");
-      setEditFacilities(gym.facilities ?? []);
       setEditDescription(gym.description ?? "");
       setEditPhone(gym.phone ?? "");
       setEditEmail(gym.email ?? "");
     }
-  }, [gym?.description, gym?.phone, gym?.email, gym?.id, gym?.name, gym?.address, gym?.provinceCode, gym?.wardCode, gym?.latitude, gym?.longitude, gym?.locationNote, gym?.facilities]);
+  }, [gym?.description, gym?.phone, gym?.email, gym?.id, gym?.name, gym?.address, gym?.provinceCode, gym?.wardCode, gym?.latitude, gym?.longitude, gym?.locationNote]);
 
   // GYM_BRANCH_FORM_SPEC.md, Phase 5 — same hours endpoints the wizard's Step 3 already
   // uses (§74: free edit regardless of DRAFT/APPROVED status).
@@ -157,7 +189,8 @@ export function GymManagePage() {
   const { data: reviews } = useQuery<GymReviewsResponse>({
     queryKey: ["gym-reviews", id],
     queryFn: () => gymService.getGymReviews(id!),
-    enabled: !!id,
+    // The public reviews endpoint 404s unless the gym is publicly visible.
+    enabled: !!id && gym?.status === "APPROVED" && gym?.operationalStatus === "OPEN",
   });
 
   // Money-flow plan 5.3 — manual withdrawal flow. Requesting only creates a PENDING row; no
@@ -298,18 +331,29 @@ export function GymManagePage() {
 
           <div className="space-y-2 pt-3 border-t border-zinc-800/60">
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Giới thiệu & liên hệ</p>
-            <p className="text-[11px] text-zinc-600">Hiện ở mục "Chi tiết" khi khách xem chi nhánh. Có hiệu lực ngay, không cần admin duyệt.</p>
-            <textarea
-              data-testid="gym-edit-description-input"
-              aria-label="Giới thiệu chi nhánh"
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              rows={4}
-              maxLength={Math.max(ABOUT_MAX, editDescription.length)}
-              placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
-            />
-            <AboutCounter value={editDescription} />
+            {gym.status === "DRAFT" ? (
+              <>
+                <p className="text-[11px] text-zinc-600">Hiện ở mục "Chi tiết" khi khách xem chi nhánh.</p>
+                <textarea
+                  data-testid="gym-edit-description-input"
+                  aria-label="Giới thiệu chi nhánh"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={4}
+                  maxLength={Math.max(ABOUT_MAX, editDescription.length)}
+                  placeholder="Không gian, thiết bị, lớp tập, đội ngũ huấn luyện viên…"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+                />
+                <AboutCounter value={editDescription} />
+              </>
+            ) : (
+              <>
+                <p data-testid="gym-description-readonly" className="whitespace-pre-line rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-300">
+                  {gym.description?.trim() || <span className="text-zinc-600">Chưa có phần giới thiệu.</span>}
+                </p>
+                <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Giới thiệu" />
+              </>
+            )}
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 data-testid="gym-edit-phone-input"
@@ -335,11 +379,17 @@ export function GymManagePage() {
             <button
               type="button"
               data-testid="gym-save-about-button"
-              onClick={() => updateGymMutation.mutate({ description: editDescription.trim(), phone: editPhone.trim(), email: editEmail.trim() })}
-              disabled={updateGymMutation.isPending || editDescription.trim().length > ABOUT_MAX}
+              onClick={() =>
+                updateGymMutation.mutate(
+                  gym.status === "DRAFT"
+                    ? { description: editDescription.trim(), phone: editPhone.trim(), email: editEmail.trim() }
+                    : { phone: editPhone.trim(), email: editEmail.trim() },
+                )
+              }
+              disabled={updateGymMutation.isPending || (gym.status === "DRAFT" && editDescription.trim().length > ABOUT_MAX)}
               className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
             >
-              Lưu giới thiệu & liên hệ
+              {gym.status === "DRAFT" ? "Lưu giới thiệu & liên hệ" : "Lưu liên hệ"}
             </button>
           </div>
 
@@ -390,17 +440,41 @@ export function GymManagePage() {
           </CollapsibleSection>
 
           <CollapsibleSection title="Tiện ích & Dịch vụ">
-            <StepFacilities
-              value={editFacilities}
-              onChange={(next) => {
-                setEditFacilities(next);
-                updateGymMutation.mutate({ facilities: next });
-              }}
-            />
+            {gym.status === "DRAFT" ? (
+              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+                {/* the OWNER's read-back of the draft: its real amenity rows (custom ones included) + its pending proposals */}
+                {(() => {
+                  const sel = normalizeBranchSelection(gym);
+                  const chosen = sel.amenities.filter((a) => a.status === "ACTIVE");
+                  return (
+                    <>
+                      {chosen.length > 0 ? (
+                        <AmenityChipGroups amenities={chosen} selectedIds={chosen.map((a) => a.id)} onToggle={() => {}} disabled />
+                      ) : (
+                        <p className="text-xs text-zinc-500">Chưa chọn tiện ích nào.</p>
+                      )}
+                      {sel.proposals.length > 0 && (
+                        <p className="text-xs text-blue-300">Đề xuất chờ Gymini duyệt: {sel.proposals.map((p) => p.name).join(", ")}</p>
+                      )}
+                    </>
+                  );
+                })()}
+                <p className="text-xs leading-5 text-zinc-400">Chi nhánh còn ở bước nháp — chọn tiện ích trong trình thiết lập chi nhánh.</p>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/gym-owner/gyms/wizard/${gym.id}`)}
+                  className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-all"
+                >
+                  Tiếp tục thiết lập
+                </button>
+              </div>
+            ) : (
+              <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Tiện ích" />
+            )}
           </CollapsibleSection>
 
           <CollapsibleSection title="Hình ảnh">
-            <StepPhotos gymId={id!} />
+            {gym.status === "DRAFT" ? <StepPhotos gymId={id!} /> : <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Ảnh" />}
           </CollapsibleSection>
 
           <CollapsibleSection title="Xác minh">
@@ -428,7 +502,7 @@ export function GymManagePage() {
                             <> — tổng giá trị chưa dùng ước tính <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.unusedValueTotal)}</span></>
                           )}
                         </li>
-                        <li><span className="text-zinc-200 font-semibold">{closureImpact.activeCollaborations}</span> cộng tác PT đang hoạt động tại chi nhánh này</li>
+                        <li><span className="text-zinc-200 font-semibold">{closureImpact.activeCollaborations}</span> thỏa thuận hợp tác PT đang áp dụng cho chi nhánh này</li>
                         <li>Số dư ví hiện tại: <span className="text-zinc-200 font-semibold">{formatVND(closureImpact.walletBalance)}</span></li>
                       </ul>
                     ) : (
@@ -596,14 +670,24 @@ export function GymManagePage() {
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />
 
-      {/* PT collaboration for THIS branch specifically — proposing/inviting only makes sense
-          in a specific gym's context, which is why this stays here even though there is now
-          also a brand-wide aggregate view (see GymCollaborationsPage.tsx, reachable from the
-          "Quản lý cộng tác" nav entry) for just glancing at every branch's offers at once
-          without hunting through each gym's own page. */}
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
-        <CollaborationPanel as="GYM" gymId={id!} />
-      </div>
+      {/* PT partnerships are agreed with the BRAND and apply to every open branch (D5/D72), so there
+          is nothing branch-specific to manage here: the one place is "Quản lý cộng tác". Only the
+          owner may read the terms (D14), so a branch manager gets no link. */}
+      {!isManagerAccount && (
+        <div data-testid="gym-collab-brand-note" className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-2">
+          <h3 className="text-zinc-100 font-bold text-sm">Hợp tác huấn luyện viên</h3>
+          <p className="text-xs text-zinc-500 leading-snug">
+            Hợp tác với huấn luyện viên được ký ở cấp thương hiệu và áp dụng một bộ điều khoản cho mọi chi nhánh, nên không quản lý riêng từng chi nhánh.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/gym-owner/collaborations")}
+            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-3 py-1.5 rounded-lg text-xs font-semibold"
+          >
+            Mở Quản lý cộng tác
+          </button>
+        </div>
+      )}
 
       {/* Plans moved to their own top-level page — a plan is sold by the BRAND now (see
           GymPlansPage.tsx), not this one branch, so there is nothing gym-specific left to

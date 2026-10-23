@@ -14,7 +14,10 @@ import {
   SignpostIcon as Signpost,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { gymService } from "../../services/api";
+import { API_URL, gymService } from "../../services/api";
+import { AmenityIcon } from "../listing/AmenityIcon";
+import { AMENITY_CATEGORY_LABEL } from "../../utils/amenityIcons";
+import { galleryPhotosOf, groupedPublicAmenities, isPublicGymGone } from "../../utils/gymPublic";
 import { openPaymentGateway } from "../../services/paymentGateway";
 import { toast } from "sonner";
 import type { Gym, GymMembershipPlan } from "../../types";
@@ -38,7 +41,19 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
  * Toàn bộ logic mua gói/cảnh báo nhiều phòng gym/thanh toán giữ nguyên xi từ
  * GymDetailPage.tsx cũ (route /client/gyms/:id giờ chỉ còn redirect — xem routes.tsx).
  */
-export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () => void }) {
+export function GymDetailModal({
+  gymId,
+  onClose,
+  initialReferralCode,
+  initialTab,
+}: {
+  gymId: string;
+  onClose: () => void;
+  /** P3.6: mã giới thiệu của PT, chỉ TỰ ĐIỀN vào ô (không tự mua) khi mở từ luồng đăng ký PT. */
+  initialReferralCode?: string;
+  /** Mở thẳng tab này (vd. "pricing" để mua gói hội viên). */
+  initialTab?: "detail" | "pricing" | "reviews";
+}) {
   const navigate = useNavigate();
   useBackDismissible(true, onClose);
 
@@ -50,22 +65,27 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  const [tab, setTab] = useState<"detail" | "pricing" | "reviews">("detail");
-  useEffect(() => setTab("detail"), [gymId]);
+  const [tab, setTab] = useState<"detail" | "pricing" | "reviews">(initialTab ?? "detail");
+  useEffect(() => setTab(initialTab ?? "detail"), [gymId, initialTab]);
 
   const [buyTarget, setBuyTarget] = useState<GymMembershipPlan | null>(null);
   const [warningTarget, setWarningTarget] = useState<GymMembershipPlan | null>(null);
   useBackDismissible(!!warningTarget, () => setWarningTarget(null));
-  const [referralCode, setReferralCode] = useState("");
+  const [referralCode, setReferralCode] = useState(() => (initialReferralCode ?? "").trim().toUpperCase());
 
-  const { data: gym, isLoading: gymLoading } = useQuery<Gym>({
+  const { data: gym, isLoading: gymLoading, error: gymError } = useQuery<Gym>({
     queryKey: ["gym", gymId],
     queryFn: () => gymService.getGym(gymId),
+    // 404 = hidden / closed / no longer approved since the list was loaded: retrying cannot help.
+    retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
-  const { data: plans = [], isLoading: plansLoading } = useQuery<GymMembershipPlan[]>({
+  const { data: plans = [], isLoading: plansLoading, error: plansError } = useQuery<GymMembershipPlan[]>({
     queryKey: ["gym-plans", gymId],
     queryFn: () => gymService.listPlans(gymId),
+    retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
+  const amenityGroups = groupedPublicAmenities(gym);
+  const galleryPhotos = galleryPhotosOf(gym, API_URL);
   const { data: multiGymWarnings = [] } = useQuery({
     queryKey: ["membership-warnings", gymId],
     queryFn: () => gymService.getMembershipWarnings(gymId),
@@ -136,9 +156,24 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
     },
   });
 
-  const content = gymLoading || !gym ? (
+  const content = gymLoading ? (
     <div className="flex h-64 items-center justify-center">
       <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+    </div>
+  ) : !gym ? (
+    <div className="flex flex-col items-center justify-center gap-3 p-10 text-center" data-testid="gym-unavailable">
+      <Dumbbell className="w-10 h-10 text-zinc-700" />
+      <p className="text-sm font-semibold text-zinc-200">
+        {isPublicGymGone(gymError) ? "Phòng gym này hiện không còn hiển thị" : "Không tải được thông tin phòng gym"}
+      </p>
+      <p className="max-w-xs text-xs text-zinc-500">
+        {isPublicGymGone(gymError)
+          ? "Chi nhánh có thể đã tạm ngừng hoạt động hoặc không còn được công khai. Hãy quay lại danh sách để chọn phòng gym khác."
+          : "Vui lòng kiểm tra kết nối rồi thử lại."}
+      </p>
+      <button type="button" onClick={onClose} className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500">
+        Quay lại danh sách
+      </button>
     </div>
   ) : (
     <>
@@ -205,7 +240,25 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
                 <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{about}</p>
               </section>
             )}
-            <GymPhotoGallery photos={gym.photos ?? []} title={gym.name} />
+            {amenityGroups.length > 0 && (
+              <section className="space-y-3" aria-label="Tiện ích">
+                <h3 className="text-sm font-bold text-zinc-200">Tiện ích</h3>
+                {amenityGroups.map((g) => (
+                  <div key={g.category} className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{AMENITY_CATEGORY_LABEL[g.category]}</p>
+                    <ul className="flex flex-wrap gap-2">
+                      {g.items.map((a) => (
+                        <li key={a.key} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/60 bg-zinc-800/50 px-3 py-1.5 text-xs text-zinc-200">
+                          <AmenityIcon iconKey={a.iconKey} className="size-4 text-green-400" />
+                          {a.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            )}
+            <GymPhotoGallery photos={galleryPhotos} title={gym.name} />
 
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2 text-zinc-300">
@@ -286,7 +339,7 @@ export function GymDetailModal({ gymId, onClose }: { gymId: string; onClose: () 
               <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
             ) : plans.length === 0 ? (
               <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-8 text-center text-sm text-zinc-500">
-                Chưa có gói hội viên nào.
+                {isPublicGymGone(plansError) ? "Các gói hội viên của phòng gym này hiện không còn hiển thị." : "Chưa có gói hội viên nào."}
               </div>
             ) : (
               <div className="space-y-3">

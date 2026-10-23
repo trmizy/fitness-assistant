@@ -1,14 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
-import { getProvider } from '../services/payment.service';
-import { buildSimulatedReturnQuery, isDefinitiveVnpayFailure } from '../providers/vnpay.provider';
+import { buildSimulatedReturnQuery, isVnpaySimulateEnabled } from '../providers/vnpay.provider';
 import { transactionRepository } from '../repositories/transaction.repository';
-import { failFromSignedGatewayResult, handleEvent } from '../services/webhook.service';
+import { handleVnpayCallback } from '../services/vnpay-callback.service';
 
 const router = Router();
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-const SIMULATE = (process.env.VNPAY_SIMULATE ?? 'false').toLowerCase() === 'true';
+// Single source of truth for "is the demo checkout on": VNPAY_SIMULATE=true AND not NODE_ENV=production
+// (see vnpay.provider.ts — in production the flag is ignored and logged as an error).
+const SIMULATE = isVnpaySimulateEnabled();
 
 // GET /payments/vnpay/sim?txnId=... — DEMO checkout page (only when VNPAY_SIMULATE=true).
 // Replaces VNPay's hosted page for a graduation demo with no real money / no live merchant.
@@ -56,8 +57,11 @@ router.get('/vnpay/sim', async (req: Request, res: Response) => {
 });
 
 // GET /payments/vnpay/return — where VNPay redirects the payer's browser after checkout.
-// The query string is signed (vnp_SecureHash), so a valid PAID result may credit here —
-// through the SAME idempotent handleEvent as IPN/sync, which guarantees single credit.
+// The query string is signed (vnp_SecureHash), so a valid PAID result may credit here — but only after
+// the SAME checks the IPN gets (signature, merchant, order exists, EXACT amount, not already confirmed;
+// see handleVnpayCallback), and through the SAME idempotent handleEvent as IPN/sync, which guarantees
+// single credit whichever of IPN / return / poll arrives first. A browser-supplied query is never a
+// weaker door than the server-to-server IPN.
 // The UI must still confirm via POST /me/wallet/topup/:id/sync; the redirect status is
 // display-only and never trusted by the frontend.
 router.get('/vnpay/return', async (req: Request, res: Response) => {
@@ -66,26 +70,8 @@ router.get('/vnpay/return', async (req: Request, res: Response) => {
 
   let uiStatus: 'success' | 'failed' | 'invalid' = 'invalid';
   try {
-    const { valid, normalized } = getProvider('VNPAY').verifyWebhookSignature(Buffer.from(rawQuery, 'utf-8'));
-    if (valid && normalized) {
-      uiStatus = normalized.status === 'PAID' ? 'success' : 'failed';
-      if (normalized.status === 'PAID') {
-        await handleEvent({
-          provider: 'VNPAY',
-          providerEventId: `vnpay_return_${normalized.providerTransactionId}`,
-          providerTransactionId: normalized.providerTransactionId,
-          payload: normalized.raw ?? {},
-          status: 'PAID',
-        });
-      } else if (isDefinitiveVnpayFailure((normalized.raw as Record<string, unknown> | undefined)?.vnp_ResponseCode)) {
-        // Signed "cancelled / expired / declined" — close the checkout instead of leaving it
-        // PENDING until the stale sweep (GAP-22).
-        await failFromSignedGatewayResult({
-          provider: 'VNPAY',
-          providerTransactionId: normalized.providerTransactionId,
-        });
-      }
-    }
+    const result = await handleVnpayCallback(rawQuery, 'RETURN');
+    uiStatus = result.uiStatus;
   } catch (err) {
     logger.error({ error: '[VNPayReturn] processing failed', txnRef, message: (err as Error).message });
   }

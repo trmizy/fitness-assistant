@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { contractController } from "../controllers/contract.controller";
+import contractReadRoutes from "./contract-read.routes";
 
 const router = Router();
 
@@ -42,6 +43,9 @@ router.patch(
   authMiddleware,
   contractController.cancelContract as any,
 );
+
+// ── Phase 3 read-only: GET /gym-options, GET /:id/checkout-context (must precede /:id) ──
+router.use(contractReadRoutes);
 
 // ── Relationship check (for call permission) ─────────────────────
 router.get(

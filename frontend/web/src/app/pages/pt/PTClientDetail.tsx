@@ -4,6 +4,7 @@ import { CaretLeftIcon as ChevronLeft, ChatTextIcon as MessageSquare, CalendarIc
 import { useQuery } from "@tanstack/react-query";
 import { contractService, sessionService, ptCoachService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
+import { noShowLabelForPt } from "../../utils/sessionRefund";
 import { ClientFitnessSummaryCard } from "./ClientFitnessSummaryCard";
 import { ClientRoadmapCard } from "./ClientRoadmapCard";
 import { ClientProgressCard } from "./ClientProgressCard";
@@ -52,7 +53,13 @@ function getVisibleScheduleRange() {
   return { startDate: toDateOnly(start), endDate: toDateOnly(end) };
 }
 
-function SessionStatusBadge({ status }: { status: string }) {
+function SessionStatusBadge({
+  status,
+  refund,
+}: {
+  status: string;
+  refund?: Parameters<typeof noShowLabelForPt>[0];
+}) {
   const map: Record<
     string,
     { label: string; cls: string; icon: React.ReactNode }
@@ -77,8 +84,10 @@ function SessionStatusBadge({ status }: { status: string }) {
       cls: "bg-red-500/10 text-red-400 border-red-500/20",
       icon: <XCircle className="w-3 h-3" />,
     },
+    // NO_SHOW is always the trainer's fault (DQ-2(a)): the session is not delivered and not paid; the label says what happened to the
+    // client's refund (the session's refundState).
     NO_SHOW: {
-      label: "Vắng mặt",
+      label: noShowLabelForPt({ ...refund, status: "NO_SHOW" }),
       cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",
       icon: <AlertCircle className="w-3 h-3" />,
     },
@@ -217,7 +226,8 @@ export function PTClientDetail() {
     enabled: !!clientUserId && contract?.status === "ACTIVE" && activeTab === "training",
   });
 
-  const sessionsUsed = contract?.usedSessions ?? 0;
+  // Used = delivered + missed-by-PT-and-refunded (closed and counted, no replacement): remaining = total - used.
+  const sessionsUsed = (contract?.usedSessions ?? 0) + (contract?.compensatedSessions ?? 0);
   const sessionsTotal = contract?.totalSessions ?? 0;
   const progressPct =
     sessionsTotal > 0
@@ -506,7 +516,7 @@ export function PTClientDetail() {
                         <span className="text-xs text-zinc-600 capitalize">
                           {s.sessionMode?.toLowerCase() ?? "–"}
                         </span>
-                        <SessionStatusBadge status={s.status} />
+                        <SessionStatusBadge status={s.status} refund={s} />
                       </div>
                     </div>
                   ))}

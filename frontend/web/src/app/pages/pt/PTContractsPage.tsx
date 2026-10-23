@@ -12,6 +12,10 @@ import type {
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
+import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
+import { ptContractShare } from "../../utils/ptContractShare";
+import { withRefundLabel } from "../../utils/sessionRefund";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -38,7 +42,7 @@ const SESSION_STATUS: Record<
     bg: "bg-red-500/10 border-red-500/20",
   },
   NO_SHOW: {
-    label: "No Show",
+    label: "Không diễn ra", // the refund-aware text comes from withRefundLabel at the render site
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
   },
@@ -178,14 +182,23 @@ export function PTContractsPage() {
     queryFn: () => contractService.getByPT(tab || undefined),
   });
 
+  // D25: a PT who has not confirmed the current PT terms is refused on accept - say so in plain words and open the terms.
+  const [termsOpen, setTermsOpen] = useState(false);
   const acceptMutation = useMutation({
     mutationFn: (id: string) => contractService.acceptContract(id),
     onSuccess: () => {
       toast.success("Contract accepted!");
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to accept"),
+    onError: (err: any) => {
+      if (isPtTermsRefusal(err)) {
+        toast.error(PT_TERMS_REFUSAL_MESSAGE);
+        queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+        setTermsOpen(true);
+        return;
+      }
+      toast.error(err?.response?.data?.error || "Failed to accept");
+    },
   });
 
   const rejectMutation = useMutation({
@@ -214,8 +227,8 @@ export function PTContractsPage() {
   // This button only ever shows for status === "ACTIVE" (real, paid money already split into
   // pending buckets) — cancelContract (a plain status flip, no money) must never be used
   // here. terminate settles everyone per PT_CANCELLED's formula: client gets 100% of the
-  // unused value back, PLUS a 10% penalty charged to the PT/gym pending buckets (symmetric
-  // to the client's own cancellation fee) — see docs/money-flow.md §3.5.
+  // unused value back. No extra penalty is charged to the PT today — payment-service only
+  // applies one when the contract itself carries a compensation rate, and no contract does yet.
   const cancelMutation = useMutation({
     mutationFn: (id: string) => contractService.terminateContract(id, "PT_CANCELLED"),
     onSuccess: (result: any) => {
@@ -336,7 +349,7 @@ export function PTContractsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+    <div className="w-full p-4 md:p-6 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
@@ -346,6 +359,8 @@ export function PTContractsPage() {
           Manage client coaching requests and agreements
         </p>
       </div>
+
+      <PtTermsBanner open={termsOpen} onOpenChange={setTermsOpen} />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -450,7 +465,7 @@ export function PTContractsPage() {
             const isExpanded = expanded === c.id;
             const sessionPct =
               c.totalSessions > 0
-                ? Math.round((c.usedSessions / c.totalSessions) * 100)
+                ? Math.round(((c.usedSessions + (c.compensatedSessions ?? 0)) / c.totalSessions) * 100)
                 : 0;
 
             return (
@@ -462,15 +477,15 @@ export function PTContractsPage() {
                   onClick={() => setExpanded(isExpanded ? null : c.id)}
                   className="w-full text-left p-4 hover:bg-zinc-800/30 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-3 sm:gap-4">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border ${cfg.bg}`}
+                      className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${cfg.bg}`}
                     >
                       <cfg.icon className={`w-5 h-5 ${cfg.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-zinc-200 truncate">
+                        <span className="text-sm font-bold text-zinc-200 break-words min-w-0 max-w-full">
                           {c.packageName}
                         </span>
                         <span
@@ -479,7 +494,7 @@ export function PTContractsPage() {
                           {cfg.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-zinc-500">
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" /> {partyName(c)}
                         </span>
@@ -493,7 +508,7 @@ export function PTContractsPage() {
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <Dumbbell className="w-3 h-3" /> {c.usedSessions}/
+                          <Dumbbell className="w-3 h-3" /> {c.usedSessions + (c.compensatedSessions ?? 0)}/
                           {c.totalSessions}
                         </span>
                         {c.price != null && (
@@ -502,25 +517,32 @@ export function PTContractsPage() {
                             {formatPrice(c.price)}
                           </span>
                         )}
+                        {/* The PT's own cut, from this contract's frozen split - shown before they accept. */}
+                        {c.status === "PENDING_REVIEW" && ptContractShare(c) && (
+                          <span className="font-semibold text-green-400">
+                            {ptContractShare(c)!.text}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Quick accept/reject for pending */}
+                    {/* Quick accept/reject for pending. Under sm it drops to its own full-width line (after the
+                        chevron) so it can never overlap the package / client name. */}
                     {c.status === "PENDING_REVIEW" && (
                       <div
-                        className="flex gap-2"
+                        className="flex gap-2 order-last w-full sm:order-none sm:w-auto"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           onClick={() => acceptMutation.mutate(c.id)}
                           disabled={acceptMutation.isPending}
-                          className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          className="flex flex-1 sm:flex-none items-center justify-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                         >
                           <Check className="w-3.5 h-3.5" /> Accept
                         </button>
                         <button
                           onClick={() => setRejectId(c.id)}
-                          className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                          className="flex flex-1 sm:flex-none items-center justify-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         >
                           <X className="w-3.5 h-3.5" /> Reject
                         </button>
@@ -537,9 +559,9 @@ export function PTContractsPage() {
                     </div>
 
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-zinc-600" />
+                      <ChevronUp className="w-4 h-4 shrink-0 text-zinc-600" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-zinc-600" />
+                      <ChevronDown className="w-4 h-4 shrink-0 text-zinc-600" />
                     )}
                   </div>
                 </button>
@@ -614,13 +636,18 @@ export function PTContractsPage() {
                         <div className="text-sm text-zinc-300 font-bold">
                           {formatPrice(c.price)}
                         </div>
+                        {ptContractShare(c) && (
+                          <div className="text-xs text-green-400 font-semibold mt-0.5">
+                            {ptContractShare(c)!.text}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Session progress */}
                     <div>
                       <div className="text-xs text-zinc-600 mb-2">
-                        Sessions: {c.usedSessions} / {c.totalSessions}
+                        Sessions: {c.usedSessions + (c.compensatedSessions ?? 0)} / {c.totalSessions}
                       </div>
                       <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
                         <div
@@ -640,7 +667,7 @@ export function PTContractsPage() {
                           </div>
                           <div className="space-y-2">
                             {(expandedSessions as Session[]).map((s) => {
-                              const scfg = SESSION_STATUS[s.status];
+                              const scfg = withRefundLabel(SESSION_STATUS[s.status], s, "PT");
                               return (
                                 <div
                                   key={s.id}
@@ -1015,9 +1042,7 @@ export function PTContractsPage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                This cannot be undone. The client is refunded 100% of the unused value —
-                <span className="text-amber-400 font-semibold"> plus a 10% cancellation penalty
-                charged against your (and the gym's, if any) pending balance.</span>
+                This cannot be undone. The client is refunded 100% of the unused value.
               </p>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">

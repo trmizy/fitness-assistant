@@ -1,5 +1,9 @@
 import axios from "axios";
 import { api } from "./api";
+// Listing Management D2: registers the "new client" headers (X-Gymini-Listing-Flow: 2 on every /owner/application call).
+import "./listingFlowHeaders";
+import { amenitySelectionPayload, type AmenitySelection } from "../utils/gymListing";
+import type { AmenityCategory } from "../types";
 
 /**
  * Hồ sơ đối tác tự đăng ký (Gym Owner onboarding). Ba nhóm: công khai (auth-service), ứng viên
@@ -38,12 +42,13 @@ export type BusinessScale = "ONE_BRANCH" | "MULTIPLE_BRANCHES";
 export type UploadKind = "PHOTO" | "DOCUMENT" | "LOGO";
 export type DocType = "BUSINESS_LICENSE" | "REPRESENTATIVE_ID" | "PREMISES_PROOF" | "TAX_CODE_CERTIFICATE" | "SITE_PHOTOS" | "FIRE_SAFETY_CERTIFICATE";
 export type PhotoCategory = "EXTERIOR" | "MAIN_TRAINING_AREA" | "EQUIPMENT" | "CARDIO" | "CHANGING_ROOM" | "AMENITIES" | "OTHER";
-export type ReviewCategory = "REPRESENTATIVE" | "BRAND" | "BRANCH" | "LOCATION" | "PHOTOS" | "LEGAL" | "OTHER";
+export type ReviewCategory = "REPRESENTATIVE" | "BRAND" | "BRANCH" | "LOCATION" | "AMENITIES" | "PHOTOS" | "LEGAL" | "OTHER";
 export type IssueStatus = "OPEN" | "RESUBMITTED" | "RESOLVED";
 export type DocStatus = "PENDING" | "RECEIVED" | "VERIFIED" | "REJECTED";
 
 export interface MissingItem {
-  section: "REPRESENTATIVE" | "BRAND" | "SCALE" | "BRANCH" | "LOCATION" | "PHOTOS" | "LEGAL" | "TERMS";
+  /** AMENITIES sits between LOCATION and PHOTOS; the server lists it only for a client that sends X-Gymini-Listing-Flow: 2. */
+  section: "REPRESENTATIVE" | "BRAND" | "SCALE" | "BRANCH" | "LOCATION" | "AMENITIES" | "PHOTOS" | "LEGAL" | "TERMS";
   message: string;
 }
 
@@ -102,6 +107,37 @@ export interface ApplicationBranch {
   locationNote: string | null;
 }
 
+/** An amenity of the application's DRAFT branch as the server lists it (gym-amenity-catalog.service.ts#amenityDto). */
+export interface ApplicationAmenity {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  iconKey: string;
+  sortOrder: number;
+  source: string;
+  status: string;
+  /** Admin detail only. */
+  disabled?: boolean;
+}
+
+/** One of the owner's custom-amenity proposals bound to the DRAFT branch (proposalDto). */
+export interface ApplicationAmenityProposal {
+  id: string;
+  gymId: string | null;
+  kind: "NEW" | "REENABLE";
+  targetAmenityId: string | null;
+  name: string;
+  suggestedCategory: AmenityCategory;
+  note: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "MERGED" | "CANCELLED";
+  resultingAmenityId: string | null;
+  rejectReason: string | null;
+  createdAt: string;
+  /** Admin detail only. */
+  ownerUserId?: string;
+}
+
 export interface ApplicationView {
   accessState: AccessState;
   editable: boolean;
@@ -134,6 +170,10 @@ export interface ApplicationView {
     youtubeUrl: string | null;
   } | null;
   branch: ApplicationBranch | null;
+  /** The chosen catalogue amenities of the DRAFT branch and the owner's own proposals (Listing Management B3). */
+  amenities?: ApplicationAmenity[];
+  amenityProposals?: ApplicationAmenityProposal[];
+  applicationFlowVersion?: number | null;
   photos: ApplicationPhoto[];
   documents: ApplicationDocument[];
   issues: ApplicationIssue[];
@@ -225,6 +265,10 @@ export const partnerApplication = {
   saveBranch: async (v: Record<string, unknown>) => unwrap(await api.put("/owner/application/branch", v)),
   saveSocial: async (v: { facebookUrl: string; instagramUrl: string; tiktokUrl: string; youtubeUrl: string }) =>
     unwrap(await api.put("/owner/application/social", v)),
+  /** The amenity step: amenityIds replace the branch's amenities, `proposals` are new custom ones, `proposalIds` the own pending ones to keep. */
+  saveAmenities: async (sel: AmenitySelection) => unwrap<{ amenities: ApplicationAmenity[]; amenityProposals: ApplicationAmenityProposal[]; amenityCount: number }>(
+    await api.put("/owner/application/amenities", amenitySelectionPayload(sel)),
+  ),
   saveLegal: async (v: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null }) =>
     unwrap(await api.put("/owner/application/legal", v)),
 
@@ -300,6 +344,12 @@ export interface AdminApplicationDetail {
   representativePhone: string | null;
   brand: ApplicationView["brand"];
   branch: (ApplicationBranch & { status: string }) | null;
+  /** Listing Management B12: what the applicant chose, the proposals the admin decides in place, and how the application was filed. */
+  amenities?: ApplicationAmenity[];
+  amenityProposals?: ApplicationAmenityProposal[];
+  legacyNoAmenities?: boolean;
+  /** "Từ ứng dụng cũ — chưa có tiện ích" when the application arrived from an old client without any amenity. */
+  legacyLabel?: string | null;
   photos: (ApplicationPhoto & { visibility: "PRIVATE" | "PUBLIC" })[];
   documents: (ApplicationDocument & { verifiedBy: string | null; verifiedAt: string | null; updatedAt: string | null })[];
   issues: ApplicationIssue[];
@@ -358,6 +408,7 @@ export const CATEGORY_LABEL: Record<ReviewCategory, string> = {
   BRAND: "Thương hiệu",
   BRANCH: "Chi nhánh",
   LOCATION: "Vị trí",
+  AMENITIES: "Tiện ích",
   PHOTOS: "Ảnh cơ sở",
   LEGAL: "Pháp lý",
   OTHER: "Khác",

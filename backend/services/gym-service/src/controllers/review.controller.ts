@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { reviewService } from '../services/review.service';
+import { requirePubliclyVisibleGym } from '../services/gym-public';
 
 export const reviewController = {
   async listForGym(req: Request, res: Response) {
     try {
+      if (!(await requirePubliclyVisibleGym(req, res))) return;
       const data = await reviewService.listForGym(req.params.gymId);
       res.json({ success: true, data });
     } catch (e: any) {

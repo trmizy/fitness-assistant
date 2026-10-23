@@ -140,7 +140,7 @@ export function AdminDisputes() {
                       {rulingAction === "COMPLETED"
                         ? "Buổi tập ĐÃ diễn ra — trừ quota, PT được trả tiền"
                         : rulingAction === "PT_NO_SHOW_CONFIRMED"
-                          ? "Xác nhận PT vắng mặt — bồi thường khách bằng tiền, KHÔNG trừ buổi (giống PT tự nhận vắng)"
+                          ? "Xác nhận PT vắng mặt — hoàn giá trị buổi cho khách; buổi được đóng là «không diễn ra — hoàn tiền» và vẫn tính là đã dùng (giống PT tự nhận vắng)"
                           : "Buổi tập KHÔNG diễn ra — không trừ quota"}
                     </span>
                   </p>
@@ -180,7 +180,7 @@ export function AdminDisputes() {
                   <button
                     onClick={() => openRuling(s.id, "PT_NO_SHOW_CONFIRMED")}
                     className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                    title="Xác nhận khiếu nại của khách là đúng — PT thực sự đã vắng mặt. Bồi thường khách bằng tiền, buổi tập KHÔNG bị trừ, giống hệt khi PT tự nhận vắng."
+                    title="Xác nhận khiếu nại của khách là đúng — PT thực sự đã vắng mặt. Hoàn giá trị buổi cho khách; buổi tập được đóng là «không diễn ra — hoàn tiền» và vẫn tính là đã dùng, giống hệt khi PT tự nhận vắng."
                   >
                     <UserX className="w-3.5 h-3.5" /> Xác nhận PT vắng mặt
                   </button>

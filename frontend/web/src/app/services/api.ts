@@ -3844,6 +3844,18 @@ export const adminService = {
     return data;
   },
 
+  // FH-4 phần 2 (chỉ đọc): khoản tiền cần người xem — sổ phụ âm, nợ phải thu, nghĩa vụ chưa trả, thanh toán chưa kích hoạt.
+  getObligationsReport: async (params?: { limit?: number; staleMinutes?: number }) => {
+    const { data } = await api.get("/admin/payments/obligations", { params });
+    return data;
+  },
+
+  // FH-4 phần 1 (chỉ đọc): tất toán cần người xử lý, kết thúc hợp đồng chưa xác nhận, tranh chấp theo hạn.
+  getSessionsReconciliation: async (params?: { limit?: number }) => {
+    const { data } = await api.get("/admin/sessions/reconciliation", { params });
+    return data;
+  },
+
   // "Tài chính" → tab Tổng quan: thu/chi/doanh thu ròng theo ngày/tuần/tháng/quý.
   getFinanceOverview: async (params: { groupBy: "day" | "week" | "month" | "quarter"; from?: string; to?: string }) => {
     const { data } = await api.get("/admin/payments/finance-overview", { params });
@@ -4805,6 +4817,17 @@ export const contractService = {
     const { data } = await api.post("/contracts/request", requestData);
     return data;
   },
+  // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
+  // client's own membership facts per branch (and, once the backend sends it, `eligibility`).
+  getGymOptions: async (ptUserId: string, packageId: string) => {
+    const { data } = await api.get("/contracts/gym-options", { params: { ptUserId, packageId } });
+    return data;
+  },
+  // Phase 3 / P3.6 — read-only summary of a PENDING_PAYMENT contract (amount, deadline, re-check).
+  getCheckoutContext: async (id: string) => {
+    const { data } = await api.get(`/contracts/${id}/checkout-context`);
+    return data;
+  },
   acceptContract: async (id: string) => {
     const { data } = await api.patch(`/contracts/${id}/accept`);
     return data;
@@ -4823,8 +4846,17 @@ export const contractService = {
   // — see docs/money-flow.md §3.3–3.6. CLIENT_CANCELLED refunds 90% of the unused value
   // (10% penalty); PT_REPEATED_NO_SHOW (Vòng 4 / Phase E2) refunds 100% — the backend
   // independently re-counts confirmed PT no-shows before allowing it, never trusting this call.
-  terminateContract: async (id: string, reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW") => {
-    const { data } = await api.post(`/contracts/${id}/terminate`, { reason });
+  // `expectNoPenalty` (client cancel only): the client was shown a no-fee exit. If those terms no
+  // longer apply the server answers 409 PT_RESTRICTION_LIFTED instead of silently charging a fee.
+  terminateContract: async (
+    id: string,
+    reason: "CLIENT_CANCELLED" | "PT_CANCELLED" | "PT_REPEATED_NO_SHOW",
+    options?: { expectNoPenalty?: boolean },
+  ) => {
+    const { data } = await api.post(`/contracts/${id}/terminate`, {
+      reason,
+      ...(options?.expectNoPenalty ? { expectNoPenalty: true } : {}),
+    });
     return data;
   },
   // Read-only preview of what a CLIENT_CANCELLED termination would pay out right now —
@@ -5788,6 +5820,60 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/checkins`);
     return data?.data ?? data;
   },
+  // PT (Phase 2): scanned the branch's QR — records that the trainer is on site. Attendance only.
+  ptCheckInByScan: async (token: string) => {
+    const { data } = await api.post(`/me/pt-gym-checkins`, { token });
+    return data?.data ?? data;
+  },
+  // Owner/manager: trainers who checked in at one branch (never member check-ins, never clients).
+  listPtCheckins: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
+    return data?.data ?? data;
+  },
+  // D15b — lễ tân (và chủ/quản lý): PT đã check-in HÔM NAY tại đúng chi nhánh này (tên + giờ), chỉ đọc.
+  listPtCheckinsToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins/today`);
+    return data?.data ?? data;
+  },
+  // D15b — khách có lịch / đã check-in tại chi nhánh HÔM NAY (chỉ tên hiển thị), chỉ đọc.
+  getFrontDeskToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
+    return data?.data ?? data;
+  },
+  // D15c — check-in HỘ hội viên không dùng được QR (lễ tân / quản lý / chủ). Danh tính nhân viên do máy chủ lấy từ phiên.
+  getAssistedConfig: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/assisted-checkin/config`);
+    return data?.data ?? data;
+  },
+  searchFrontDeskMembers: async (gymId: string, params: { code?: string; name?: string; last4?: string }) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/members`, { params });
+    return data?.data ?? data;
+  },
+  requestAssistedOtp: async (gymId: string, membershipId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin/otp`, { membershipId });
+    return data?.data ?? data;
+  },
+  assistedCheckIn: async (gymId: string, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin`, payload);
+    return data?.data ?? data;
+  },
+  requestCheckinException: async (gymId: string, payload: { membershipId: string; reason: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions`, payload);
+    return data?.data ?? data;
+  },
+  listCheckinExceptions: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  decideCheckinException: async (gymId: string, exceptionId: string, decision: "approve" | "reject", reason: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions/${exceptionId}/${decision}`, { reason });
+    return data?.data ?? data;
+  },
+  // D15b — kế toán/chủ: TỔNG hoa hồng PT theo kỳ trong phạm vi (không theo PT, không tỷ lệ).
+  getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });
+    return data?.data ?? data;
+  },
   listMyCheckins: async () => {
     const { data } = await api.get(`/me/gym-checkins`);
     return data?.data ?? data;
@@ -5871,7 +5957,8 @@ export const gymService = {
     const { data } = await api.get('/owner/partner-invitations');
     return data?.data ?? data;
   },
-  inviteManager: async (payload: { email: string; scopedGymIds: string[] }) => {
+  // D15: `role` MANAGER (mặc định, như client cũ) | RECEPTIONIST | ACCOUNTANT. Kế toán có thể để trống chi nhánh = cả thương hiệu.
+  inviteManager: async (payload: { email: string; scopedGymIds?: string[]; role?: 'MANAGER' | 'RECEPTIONIST' | 'ACCOUNTANT' }) => {
     const { data } = await api.post('/owner/partner-invitations', payload);
     return data?.data ?? data;
   },

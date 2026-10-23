@@ -68,6 +68,17 @@ export function pushTapRoute(
   role: UserRole | null | undefined,
 ): string | null {
   if (!role || !isForCurrentUser(data, currentUserId)) return null;
+  // Listing Management (M1): a PT's listing decision opens that PT's "Tin đăng" screen. Only a PT has one;
+  // anyone else falls through to their own home like every other workspace-specific link.
+  if (!data.kind && role === "pt") {
+    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    if (own?.startsWith("/pt/")) return own;
+  }
+  // Listing Management (M2): the same for a Gym Owner — their listing decisions open "Tin đăng & tiện ích" on that branch.
+  if (!data.kind && role === "gym_owner") {
+    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    if (own?.startsWith("/gym-owner/")) return own;
+  }
   // E2/E3: straight to the conversation (a PT chats from the client-side screen too). An incoming
   // call needs no route of its own — the overlay rings over whatever screen this opens (call:sync).
   if (data.kind) {
@@ -76,7 +87,9 @@ export function pushTapRoute(
   }
   const clientSide = role === "client" || (role === "pt" && (data.link ?? "").startsWith("/client"));
   if (clientSide) {
-    return notificationRoute({ link: data.link, entityType: data.entityType }) ?? "/client/notifications";
+    const route = notificationRoute({ link: data.link, entityType: data.entityType });
+    // A /pt/... target is for the PT workspace (handled above); a plain client has no such screen.
+    return route && !route.startsWith("/pt/") && !route.startsWith("/gym-owner/") ? route : "/client/notifications";
   }
   return ROLE_HOME[role];
 }

@@ -3,6 +3,7 @@ import { MoMoProvider } from '../providers/momo.provider';
 import { VNPayProvider } from '../providers/vnpay.provider';
 import { ZaloPayProvider } from '../providers/zalopay.provider';
 import { PayOSProvider } from '../providers/payos.provider';
+import { isGatewayEnabledForRealMoney, productionVerificationEnvName } from './gateway-policy';
 
 /**
  * Every top-up now goes through a real gateway in its sandbox environment.
@@ -46,6 +47,13 @@ export function providerConfigStatus(name: string): { configured: boolean; missi
   const upper = name.toUpperCase();
   if (REMOVED_PROVIDERS.has(upper)) {
     return { configured: false, missing: [removedMessage(upper)] };
+  }
+  // A gateway nobody has verified against its production system may not start a real checkout (see gateway-policy.ts).
+  if (!isGatewayEnabledForRealMoney(upper)) {
+    return {
+      configured: false,
+      missing: [`${upper} is not enabled for production payments yet (set ${productionVerificationEnvName(upper)}=true once it has been verified)`],
+    };
   }
   switch (upper) {
     case 'VNPAY':

@@ -20,6 +20,36 @@ export interface CheckoutResult {
   provider: string;
 }
 
+/**
+ * FH-1: what a PT-fault money step could actually pay out of the contract's OWN money. `owed` is what the formulas ask
+ * for, `paid` what was credited to the client (and the only figure that may be reported as paid), `unpaid` the rest -
+ * an OPEN obligation (`obligationId`), never a PT debt. Absent on results stored before FH-1 (treat as paid = owed).
+ */
+export interface MoneyOutcomeFigures {
+  owed?: string;
+  paid?: string;
+  unpaid?: string;
+  obligationId?: string;
+}
+
+/** FH-2a: one stored ledger operation, as `GET /internal/ledger-operations/:key` and `/lookup` return it. */
+export interface LedgerOperationRecord {
+  key: string;
+  /** RELEASE_SESSION | NO_SHOW | LATE_ARRIVAL | TERMINATE | RESOLVE_UNRESOLVED | RELEASE_HOLDBACK | ... (null if unknown). */
+  kind: string | null;
+  transactionId: string | null;
+  /** The result payment-service stored and replays for this key. */
+  result: Record<string, unknown>;
+  createdAt: string;
+  /** false for rows written before request fingerprints existed. */
+  fingerprinted: boolean;
+  /**
+   * Present when `result.obligationId` names an unpaid obligation: its LIVE status. OPEN = still owed; RESOLVED = handled outside
+   * the ledger with a reference; WAIVED = the owner decided it is not pursued (the client was not paid).
+   */
+  obligation?: { id: string; status: 'OPEN' | 'RESOLVED' | 'WAIVED' | string; owed: string; paid: string; unpaid: string };
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a contract. The client pays the gateway directly — no wallet
@@ -88,9 +118,69 @@ export const paymentClient = {
     return data.data;
   },
 
+  /**
+   * D77, RECORD-ONLY: the late-arrival compensation of a session was never performed by the ledger and the contract is ending.
+   * payment-service writes it down as an OPEN unpaid obligation to the client under the ORIGINAL `PT_LATE_ARRIVAL:<sessionId>` key
+   * (owed = the late-arrival formula, paid = 0, `reason` in words). NO MONEY MOVES. Idempotent per key; if the compensation had in
+   * fact been performed the stored real result comes back instead (no `recordedOnly: true`).
+   */
+  async recordLateArrivalObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/late-arrival-obligation`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * RECORD-ONLY PT no-show compensation (same contract as {@link recordLateArrivalObligation}): the `PT_NO_SHOW:<sessionId>` step was never
+   * performed by the ledger and the contract has ended. One OPEN unpaid obligation of kind NO_SHOW (owed = one session's value, paid 0)
+   * under the ORIGINAL key; no money moves. Idempotent per key.
+   */
+  async recordNoShowObligation(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/no-show-obligation`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * A session whose value payment-service HELD at termination (`unresolvedSessions` on terminate) has been
+   * decided: DELIVERED releases it to PT/gym/platform like a completed session, NOT_DELIVERED refunds it to
+   * the client. Idempotent per `UNRESOLVED_SESSION:<sessionId>`; a session is never resolved twice or both ways.
+   */
+  async resolveUnresolvedSession(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/resolve-unresolved-session`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
   async terminate(body: Record<string, unknown>): Promise<any> {
     const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/terminate`, body, { headers, timeout: 20_000 });
     return data.data;
+  },
+
+  /** Idle contract: hand the PT the amount held back on it (payment-service reads the amount from its ledger). */
+  async releaseHoldback(body: Record<string, unknown>): Promise<any> {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/release-holdback`, body, { headers, timeout: 15_000 });
+    return data.data;
+  },
+
+  /**
+   * FH-2a, read-only: did payment-service already perform the operation with this idempotency key, and with what
+   * result? Returns null when it has not (404). Any other failure (payment-service unreachable, 5xx) throws -
+   * "unknown" must never be read as "not done".
+   */
+  async lookupLedgerOperation(key: string): Promise<LedgerOperationRecord | null> {
+    try {
+      const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/ledger-operations/${encodeURIComponent(key)}`, { headers, timeout: 10_000 });
+      return data.data as LedgerOperationRecord;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  },
+
+  /** FH-2a, read-only: up to 100 keys at once. `missing` are the keys payment-service has no record of. */
+  async lookupLedgerOperations(keys: string[]): Promise<{ operations: LedgerOperationRecord[]; missing: string[] }> {
+    if (keys.length === 0) return { operations: [], missing: [] };
+    if (keys.length > 100) throw new Error('lookupLedgerOperations: at most 100 keys per call');
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/ledger-operations/lookup`, { keys }, { headers, timeout: 15_000 });
+    return data.data as { operations: LedgerOperationRecord[]; missing: string[] };
   },
 
   async moneyBreakdown(body: Record<string, unknown>): Promise<any> {

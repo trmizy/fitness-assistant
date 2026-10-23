@@ -1,52 +1,44 @@
-import { useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Handshake, Repeat, X } from "lucide-react-native";
+import { Building2, Handshake, Repeat } from "lucide-react-native";
 
-import {
-  Badge,
-  BottomSheet,
-  Button,
-  Card,
-  EmptyState,
-  Input,
-  ScreenHeader,
-  Stagger,
-  StaggerItem,
-  useToast,
-} from "../../src/components/ui";
+import { BottomSheet, Button, Card, EmptyState, Input, ScreenHeader, useToast } from "../../src/components/ui";
 import { SelectField } from "../../src/components/SelectSheet";
 import { collaborationService, gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
-import { designTokens } from "../../src/theme/colors";
-import { shortDate } from "../../src/features/wallet/wallet";
+import { MIN_PLATFORM_RATE, ratesError, ratesPayload } from "../../src/features/collaboration/collaboration";
 import {
-  MIN_PLATFORM_RATE,
-  canRespondToCollab,
-  collabStatus,
-  ratePercent,
-  ratesError,
-  ratesPayload,
-} from "../../src/features/pt/pt";
+  SIGNED_CONTRACTS_NOTE,
+  brandOptionsFromGyms,
+  brandsBlockedForProposal,
+  buildPartnershipSections,
+  optionLabel,
+  optionNote,
+  proposeCopy,
+  terminatedToast,
+} from "../../src/features/collaboration/brandPartnership";
+import {
+  PartnershipList,
+  TerminateSheet,
+  type CounterTarget,
+  type ProposeTarget,
+  type TerminateTarget,
+} from "../../src/features/collaboration/PartnershipCards";
 
 type RateForm = { pt: string; gym: string; platform: string; note: string };
 const DEFAULT_RATES: RateForm = { pt: "60", gym: "30", platform: "10", note: "" };
+const pctOf = (fraction: string | null, fallback: string) => (fraction == null ? fallback : String(Math.round(Number(fraction) * 100)));
 
 /**
- * PT-13 — "Hợp tác phòng gym". Web nests `CollaborationPanel as="PT"` inside PTProfilePage; on a
- * phone it is its own screen off the profile hub.
- *
- * The three shares are the revenue split that lands on every contract signed under the
- * partnership. gym-service refuses a table that does not sum to exactly 1 with the platform at or
- * above its floor (`validateRates`), so the form checks the same rule before sending — see
- * `ratesError`. The rates are a TEMPLATE: the schema notes a signed contract copies them onto
- * itself, so renegotiating later does not move money on contracts already running, and the screen
- * says that rather than implying otherwise.
- *
- * Whose turn it is comes from `proposedBy`, not from the status — see `collabStatus`.
+ * PT-13 - "Hợp tác phòng gym", nhìn từ ghế HUẤN LUYỆN VIÊN. Thỏa thuận được ký với THƯƠNG HIỆU (D5/D72): một
+ * PT + một thương hiệu = một thỏa thuận, một bộ tỷ lệ cho mọi chi nhánh đang mở. Màn này đề nghị / thương
+ * thảo / chấp nhận / chấm dứt (có thời gian báo trước do máy chủ đặt) với thương hiệu, và liệt kê chi nhánh
+ * được áp dụng - không hiện tỷ lệ riêng của từng chi nhánh. Điều khoản cũ theo chi nhánh (dữ liệu trước đây)
+ * hiện đúng là điều khoản cũ, không gộp, không tự chọn tỷ lệ. Mọi ánh xạ nằm trong brandPartnership.ts.
  */
 export default function PtCollaborationsScreen() {
   const insets = useSafeAreaInsets();
@@ -56,51 +48,59 @@ export default function PtCollaborationsScreen() {
   const { user } = useApp();
   const uid = user?.id ?? "guest";
 
-  const [proposeOpen, setProposeOpen] = useState(false);
-  const [gymId, setGymId] = useState("");
+  const [propose, setPropose] = useState<ProposeTarget | null>(null);
+  const [brandId, setBrandId] = useState("");
   const [form, setForm] = useState<RateForm>(DEFAULT_RATES);
-  const [respondTo, setRespondTo] = useState<any>(null);
+  const [counterFor, setCounterFor] = useState<CounterTarget | null>(null);
   const [counter, setCounter] = useState<RateForm>(DEFAULT_RATES);
+  const [terminateFor, setTerminateFor] = useState<TerminateTarget | null>(null);
 
   const query = useQuery({ queryKey: ["pt-collaborations", uid], queryFn: () => collaborationService.listMine() });
-  const rows: any[] = Array.isArray(query.data) ? query.data : [];
-  const gymsQuery = useQuery({ queryKey: ["all-gyms"], queryFn: () => gymService.listGyms(), staleTime: 5 * 60_000 });
-  const gyms: any[] = Array.isArray(gymsQuery.data) ? gymsQuery.data : [];
+  const sections = useMemo(() => buildPartnershipSections(query.data, "PT"), [query.data]);
+  const hasAny = sections.needsReply.length + sections.current.length + sections.ended.length > 0;
+
+  const gymsQuery = useQuery({
+    queryKey: ["all-gyms"],
+    queryFn: () => gymService.listGyms(),
+    staleTime: 5 * 60_000,
+    enabled: !!propose,
+  });
+  const options = useMemo(() => brandOptionsFromGyms(gymsQuery.data), [gymsQuery.data]);
+  const blocked = useMemo(() => brandsBlockedForProposal(query.data), [query.data]);
+  const picked = options.find((o) => o.brandId === (propose?.brandId ?? brandId));
+  const doorBranchId = propose?.doorBranchId ?? picked?.proposeBranchId ?? "";
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["pt-collaborations", uid] });
   const fail = (e: any, fallback: string) =>
     toast.show(e?.response?.data?.error?.message || e?.response?.data?.error || fallback, "danger");
 
-  const propose = useMutation({
+  const send = useMutation({
     mutationFn: () =>
-      collaborationService.proposeAsPt(gymId, {
+      collaborationService.proposeAsPt(doorBranchId, {
         ...ratesPayload(form.pt, form.gym, form.platform),
         note: form.note.trim() || undefined,
       }),
     onSuccess: () => {
       toast.show("Đã gửi đề nghị hợp tác", "success");
-      setProposeOpen(false);
+      setPropose(null);
       setForm(DEFAULT_RATES);
-      setGymId("");
+      setBrandId("");
       invalidate();
     },
     onError: (e) => fail(e, "Không gửi được đề nghị"),
   });
 
   const respond = useMutation({
-    mutationFn: (action: "ACCEPT" | "REJECT" | "COUNTER") =>
-      collaborationService.respond(respondTo.id, "PT", {
-        action,
-        ...(action === "COUNTER"
+    mutationFn: (v: { id: string; action: "ACCEPT" | "REJECT" | "COUNTER" }) =>
+      collaborationService.respond(v.id, "PT", {
+        action: v.action,
+        ...(v.action === "COUNTER"
           ? { ...ratesPayload(counter.pt, counter.gym, counter.platform), note: counter.note.trim() || undefined }
           : {}),
       }),
-    onSuccess: (_d, action) => {
-      toast.show(
-        action === "ACCEPT" ? "Đã nhận hợp tác" : action === "REJECT" ? "Đã từ chối" : "Đã gửi tỷ lệ đề nghị lại",
-        "success",
-      );
-      setRespondTo(null);
+    onSuccess: (_d, v) => {
+      toast.show(v.action === "ACCEPT" ? "Đã nhận hợp tác" : v.action === "REJECT" ? "Đã từ chối" : "Đã gửi tỷ lệ đề nghị lại", "success");
+      setCounterFor(null);
       invalidate();
     },
     onError: (e) => fail(e, "Không gửi được phản hồi"),
@@ -108,29 +108,22 @@ export default function PtCollaborationsScreen() {
 
   const terminate = useMutation({
     mutationFn: (id: string) => collaborationService.terminate(id, "PT"),
-    onSuccess: () => {
-      toast.show("Đã chấm dứt hợp tác", "success");
+    onSuccess: (result) => {
+      toast.show(terminatedToast(result), "success");
+      setTerminateFor(null);
       invalidate();
     },
     onError: (e) => fail(e, "Không chấm dứt được hợp tác"),
   });
 
-  const askTerminate = (row: any) =>
-    Alert.alert(
-      "Chấm dứt hợp tác?",
-      "Hợp đồng đang chạy vẫn giữ nguyên tỷ lệ đã thoả thuận; chỉ hợp đồng mới là không còn áp dụng.",
-      [
-        { text: "Không", style: "cancel" },
-        { text: "Chấm dứt", style: "destructive", onPress: () => terminate.mutate(row.id) },
-      ],
-    );
-
-  const gymName = (row: any) =>
-    row?.gym?.name ?? gyms.find((g) => g.id === row?.gymId)?.name ?? "Phòng gym";
-
-  const proposeError = gymId ? ratesError(form.pt, form.gym, form.platform) : "Chọn phòng gym muốn hợp tác.";
+  const proposeError = !doorBranchId ? "Chọn thương hiệu hoặc chi nhánh muốn hợp tác." : ratesError(form.pt, form.gym, form.platform);
   const counterError = ratesError(counter.pt, counter.gym, counter.platform);
   const back = () => (router.canGoBack() ? router.back() : router.replace("/pt/profile"));
+  const openPropose = (t: ProposeTarget) => {
+    setForm(DEFAULT_RATES);
+    setBrandId(t.brandId ?? "");
+    setPropose(t);
+  };
 
   return (
     <View className="flex-1 bg-background">
@@ -138,23 +131,18 @@ export default function PtCollaborationsScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
         refreshControl={
-          <RefreshControl
-            refreshing={query.isRefetching}
-            onRefresh={() => void query.refetch()}
-            tintColor={accent.primary}
-            colors={[accent.primary]}
-          />
+          <RefreshControl refreshing={query.isRefetching} onRefresh={() => void query.refetch()} tintColor={accent.primary} colors={[accent.primary]} />
         }
       >
         <Card className="mb-4 flex-row items-start gap-2.5 p-4">
           <Handshake size={17} color={accent.primary} />
           <Text className="flex-1 font-body text-sm leading-5 text-muted-foreground">
-            Hợp tác là thoả thuận chia doanh thu với một phòng gym. Tỷ lệ ở đây là{" "}
-            <Text className="font-body-semibold text-foreground">bản mẫu</Text> — hợp đồng đã ký giữ nguyên tỷ lệ lúc ký.
+            Hợp tác được ký với <Text className="font-body-semibold text-foreground">cả thương hiệu</Text> và áp dụng một bộ tỷ lệ
+            cho mọi chi nhánh đang mở. {SIGNED_CONTRACTS_NOTE}
           </Text>
         </Card>
 
-        <Button full icon={Handshake} className="mb-4" onPress={() => setProposeOpen(true)}>
+        <Button full icon={Handshake} className="mb-4" onPress={() => openPropose({})}>
           Đề nghị hợp tác
         </Button>
 
@@ -162,148 +150,97 @@ export default function PtCollaborationsScreen() {
           <ActivityIndicator className="mt-6" color={accent.primary} />
         ) : query.isError ? (
           <Text className="font-body text-sm text-destructive">Không tải được danh sách hợp tác. Kéo xuống để thử lại.</Text>
-        ) : rows.length === 0 ? (
+        ) : !hasAny ? (
           <EmptyState
             icon={Building2}
             title="Chưa có hợp tác nào"
-            description="Đề nghị hợp tác với một phòng gym để nhận học viên tại đó."
+            description="Đề nghị hợp tác với một thương hiệu phòng gym để nhận học viên tại các chi nhánh của họ."
           />
         ) : (
-          <Stagger className="gap-3">
-            {rows.map((row) => {
-              const st = collabStatus(row);
-              const mine = canRespondToCollab(row);
-              return (
-                <StaggerItem key={row.id}>
-                  <Card className="gap-3 p-4">
-                    <View className="flex-row items-center gap-3">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-panel">
-                        <Building2 size={18} color={designTokens.mutedForeground} />
-                      </View>
-                      <View className="min-w-0 flex-1">
-                        <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
-                          {gymName(row)}
-                        </Text>
-                        <Text className="font-body text-xs text-muted-foreground">
-                          Vòng {row.round ?? 1}
-                          {row.expiresAt ? ` · hạn trả lời ${shortDate(row.expiresAt)}` : ""}
-                        </Text>
-                      </View>
-                      <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>
-                    </View>
-
-                    <View className="flex-row gap-2 rounded-xl bg-panel px-3.5 py-2.5">
-                      <Share label="Bạn" value={ratePercent(row.proposedPtRate)} highlight />
-                      <Share label="Phòng gym" value={ratePercent(row.proposedGymRate)} />
-                      <Share label="Nền tảng" value={ratePercent(row.platformRate)} />
-                    </View>
-
-                    {mine ? (
-                      <Button
-                        size="sm"
-                        onPress={() => {
-                          setRespondTo(row);
-                          setCounter({
-                            pt: String(Math.round(Number(row.proposedPtRate ?? 0.6) * 100)),
-                            gym: String(Math.round(Number(row.proposedGymRate ?? 0.3) * 100)),
-                            platform: String(Math.round(Number(row.platformRate ?? 0.1) * 100)),
-                            note: "",
-                          });
-                        }}
-                      >
-                        Trả lời đề nghị
-                      </Button>
-                    ) : row.status === "ACCEPTED" ? (
-                      <Button size="sm" variant="ghost" disabled={terminate.isPending} onPress={() => askTerminate(row)}>
-                        Chấm dứt hợp tác
-                      </Button>
-                    ) : null}
-                  </Card>
-                </StaggerItem>
-              );
-            })}
-          </Stagger>
+          <PartnershipList
+            sections={sections}
+            viewer="PT"
+            nameOf={() => ""}
+            handlers={{
+              busy: respond.isPending || terminate.isPending,
+              onAccept: (id) => respond.mutate({ id, action: "ACCEPT" }),
+              onReject: (id) => respond.mutate({ id, action: "REJECT" }),
+              onCounter: (t) => {
+                setCounter({ pt: pctOf(t.pt, "60"), gym: pctOf(t.gym, "30"), platform: pctOf(t.platform, "10"), note: "" });
+                setCounterFor(t);
+              },
+              onTerminate: setTerminateFor,
+              onPropose: openPropose,
+            }}
+          />
         )}
       </ScrollView>
 
-      <BottomSheet open={proposeOpen} onClose={() => setProposeOpen(false)} title="Đề nghị hợp tác">
+      <BottomSheet open={!!propose} onClose={() => setPropose(null)} title={proposeCopy("PT", !!propose?.repartner).title}>
         <ScrollView className="max-h-[440px]" keyboardShouldPersistTaps="handled">
           <View className="gap-3 pb-2">
             <SelectField
-              label="Phòng gym *"
-              value={gymId}
-              options={gyms.map((g: any) => ({ value: g.id, label: g.name }))}
+              label="Hợp tác với *"
+              value={propose?.brandId ?? brandId}
+              options={options.map((o) => ({
+                value: o.brandId,
+                label: `${optionLabel(o)}${blocked.has(o.brandId) ? " — đã có đề xuất/thỏa thuận" : ""}`,
+              }))}
               loading={gymsQuery.isLoading}
-              onChange={setGymId}
+              onChange={(v) => {
+                if (!blocked.has(v)) setBrandId(v);
+              }}
             />
-            <RateFields form={form} setForm={setForm} />
-            <Input label="Lời nhắn" value={form.note} onChangeText={(t) => setForm((f) => ({ ...f, note: t }))} placeholder="Tôi muốn nhận học viên tại chi nhánh này…" multiline />
+            {picked ? (
+              <Text testID="collab-option-note" className="font-body text-xs text-muted-foreground">{optionNote(picked)}</Text>
+            ) : null}
+            <RateFields form={form} setForm={setForm} branchOnly={picked?.scope === "BRANCH"} />
+            <Input
+              label="Lời nhắn"
+              value={form.note}
+              onChangeText={(t) => setForm((f) => ({ ...f, note: t }))}
+              placeholder="Tôi muốn nhận học viên tại thương hiệu này…"
+              multiline
+            />
             {proposeError ? <Text className="font-body text-xs text-destructive">{proposeError}</Text> : null}
-            <Button full disabled={!!proposeError || propose.isPending} onPress={() => propose.mutate()}>
-              {propose.isPending ? "Đang gửi…" : "Gửi đề nghị"}
+            <Button full disabled={!!proposeError || send.isPending} onPress={() => send.mutate()}>
+              {send.isPending ? "Đang gửi…" : proposeCopy("PT", false).submit}
             </Button>
           </View>
         </ScrollView>
       </BottomSheet>
 
-      <BottomSheet open={!!respondTo} onClose={() => setRespondTo(null)} title="Trả lời đề nghị">
+      <BottomSheet open={!!counterFor} onClose={() => setCounterFor(null)} title="Đề xuất lại">
         <ScrollView className="max-h-[440px]" keyboardShouldPersistTaps="handled">
           <View className="gap-3 pb-2">
-            <Text className="font-body text-sm text-muted-foreground">
-              Phòng gym đề nghị: bạn {ratePercent(respondTo?.proposedPtRate)} · phòng gym{" "}
-              {ratePercent(respondTo?.proposedGymRate)} · nền tảng {ratePercent(respondTo?.platformRate)}.
-            </Text>
-            <View className="flex-row gap-2">
-              <Button
-                icon={Check}
-                className="flex-1"
-                disabled={respond.isPending}
-                onPress={() => respond.mutate("ACCEPT")}
-              >
-                Đồng ý
-              </Button>
-              <Button
-                variant="secondary"
-                icon={X}
-                className="flex-1"
-                disabled={respond.isPending}
-                onPress={() => respond.mutate("REJECT")}
-              >
-                Từ chối
-              </Button>
-            </View>
-            <View className="mt-1 border-t border-border pt-3">
-              <Text className="mb-2 font-body-semibold text-sm text-foreground">Hoặc đề nghị tỷ lệ khác</Text>
-              <RateFields form={counter} setForm={setCounter} />
-              <View className="mt-3">
-                <Input label="Lời nhắn" value={counter.note} onChangeText={(t) => setCounter((f) => ({ ...f, note: t }))} multiline />
-              </View>
-              {counterError ? <Text className="mt-2 font-body text-xs text-destructive">{counterError}</Text> : null}
-              <Button
-                full
-                variant="secondary"
-                icon={Repeat}
-                className="mt-3"
-                disabled={!!counterError || respond.isPending}
-                onPress={() => respond.mutate("COUNTER")}
-              >
-                Gửi tỷ lệ đề nghị lại
-              </Button>
-            </View>
+            <Text className="font-body text-sm text-muted-foreground">{counterFor?.title}</Text>
+            <RateFields form={counter} setForm={setCounter} branchOnly={!!counterFor?.branchOnly} />
+            <Input label="Lời nhắn" value={counter.note} onChangeText={(t) => setCounter((f) => ({ ...f, note: t }))} multiline />
+            {counterError ? <Text className="font-body text-xs text-destructive">{counterError}</Text> : null}
+            <Button
+              full
+              variant="secondary"
+              icon={Repeat}
+              disabled={!!counterError || respond.isPending}
+              onPress={() => counterFor && respond.mutate({ id: counterFor.id, action: "COUNTER" })}
+            >
+              Gửi tỷ lệ đề nghị lại
+            </Button>
           </View>
         </ScrollView>
       </BottomSheet>
+
+      <TerminateSheet target={terminateFor} pending={terminate.isPending} onClose={() => setTerminateFor(null)} onConfirm={(id) => terminate.mutate(id)} />
     </View>
   );
 }
 
-function RateFields({ form, setForm }: { form: RateForm; setForm: (f: (p: RateForm) => RateForm) => void }) {
+function RateFields({ form, setForm, branchOnly }: { form: RateForm; setForm: (f: (p: RateForm) => RateForm) => void; branchOnly: boolean }) {
   const sum = Number(form.pt) + Number(form.gym) + Number(form.platform);
   return (
     <View className="gap-2">
       <Text className="font-body text-xs text-muted-foreground">
-        Chia doanh thu theo phần trăm — ba ô phải cộng đúng 100%, phần nền tảng tối thiểu{" "}
-        {MIN_PLATFORM_RATE * 100}%.
+        {branchOnly ? "Tỷ lệ chỉ áp dụng riêng cho chi nhánh này" : "Một bộ tỷ lệ cho cả thương hiệu"}, theo phần trăm — ba ô phải cộng đúng 100%, phần nền tảng tối thiểu {MIN_PLATFORM_RATE * 100}%.
       </Text>
       <View className="flex-row gap-2">
         <View className="flex-1">
@@ -332,19 +269,8 @@ function RateFields({ form, setForm }: { form: RateForm; setForm: (f: (p: RateFo
         </View>
       </View>
       {Number.isFinite(sum) ? (
-        <Text className={`font-body text-xs ${sum === 100 ? "text-muted-foreground" : "text-warning"}`}>
-          Tổng hiện tại: {sum}%
-        </Text>
+        <Text className={`font-body text-xs ${sum === 100 ? "text-muted-foreground" : "text-warning"}`}>Tổng hiện tại: {sum}%</Text>
       ) : null}
-    </View>
-  );
-}
-
-function Share({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <View className="flex-1 items-center">
-      <Text className={`font-display text-sm ${highlight ? "text-primary" : "text-foreground"}`}>{value}</Text>
-      <Text className="font-body text-[11px] text-muted-foreground">{label}</Text>
     </View>
   );
 }

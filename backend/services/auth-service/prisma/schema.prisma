@@ -161,6 +161,8 @@ enum PtDeactivationCallStatus {
   PENDING
   SETTLED
   FAILED
+  // A later lock/unlock for the same PT exists, so this command must never be (re)sent.
+  SUPERSEDED
 }
 
 model PtDeactivationCall {
@@ -172,9 +174,16 @@ model PtDeactivationCall {
   status    PtDeactivationCallStatus @default(PENDING)
   attempts  Int                      @default(0)
   lastError String?                  @map("last_error")
+  // The command's place in the order of all lock/unlock commands, allocated by the database when
+  // the row is created. It travels with the call: user-service stores the last one it applied per
+  // PT and ignores anything lower, and the sweep never re-sends a row while a higher one exists
+  // for the same PT. Ordering by this number — not by arrival time or createdAt — is what stops a
+  // retried lock from undoing a later unlock.
+  seq       BigInt                   @unique @default(autoincrement())
   createdAt DateTime                 @default(now()) @map("created_at")
   updatedAt DateTime                 @updatedAt @map("updated_at")
 
   @@index([status])
+  @@index([ptUserId, seq])
   @@map("pt_deactivation_calls")
 }

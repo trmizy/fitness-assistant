@@ -11,16 +11,9 @@ import {
   type IssueStatus,
   type ReviewCategory,
 } from "../../services/partnerApplication";
+import { CATEGORY_STEP as CATEGORY_TO_STEP } from "../../utils/applicationSteps";
 
-export const CATEGORY_STEP: Record<ReviewCategory, string> = {
-  REPRESENTATIVE: "representative",
-  BRAND: "brand",
-  BRANCH: "branch",
-  LOCATION: "location",
-  PHOTOS: "photos",
-  LEGAL: "legal",
-  OTHER: "review",
-};
+export const CATEGORY_STEP: Record<ReviewCategory, string> = CATEGORY_TO_STEP;
 
 const BADGE: Record<IssueStatus, string> = {
   OPEN: "bg-amber-500/10 text-amber-300",

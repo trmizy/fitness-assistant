@@ -17,8 +17,12 @@ import {
   computeSessionRelease,
   computeTermination,
   countsAsUsed,
+  holdbackCompensationBase,
+  holdbackTarget,
+  ptExpectedIncome,
   remainingValue,
   resolveRates,
+  splitReleaseWithHoldback,
   splitThreeWays,
   unitValue,
   type RateTable,
@@ -252,10 +256,12 @@ test('a rate table where the platform would round to a negative remainder is cau
 
 // ── Every termination reason ─────────────────────────────────────────────────
 
-test('all seven termination reasons produce a reconciling outcome', () => {
+test('all nine termination reasons produce a reconciling outcome', () => {
   const reasons: TerminationReason[] = [
     'CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED',
     'PT_REPEATED_NO_SHOW', // Vòng 4 / Phase E2
+    'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+    'SERVICE_DISCONTINUED_BY_PLATFORM', // D49
   ];
   const input = { price: D(1_000_000), totalSessions: 10, usedSessions: 4, rates: WITH_GYM };
 
@@ -268,6 +274,10 @@ test('all seven termination reasons produce a reconciling outcome', () => {
     COMPLETED: '0',
     // Same 100%-of-remaining formula as PT_BANNED/MUTUAL — the PT is at fault either way.
     PT_REPEATED_NO_SHOW: '600000',
+    // The PT is suspended, not proven at fault: the same 100% of what is left as MUTUAL.
+    CLIENT_EXIT_DUE_TO_PT_RESTRICTION: '600000',
+    // D49: the platform ends the service; nobody proven at fault: the same 100% of what is left as MUTUAL.
+    SERVICE_DISCONTINUED_BY_PLATFORM: '600000',
   };
 
   for (const reason of reasons) {
@@ -286,16 +296,158 @@ test('a banned PT costs the client nothing — unlike the client walking away', 
   const walked = computeTermination(input, 'CLIENT_CANCELLED');
   eq(banned.refund, '800000', 'full remaining value returned');
   assert.ok(banned.refund.greaterThan(walked.refund), 'no cancellation fee when the fault is the PT’s');
-  eq(banned.penalty, '0', 'a ban is not an extra fine on top');
+  eq(banned.ptFaultCompensationTarget, '0', 'a contract with no holdback owes no compensation');
 });
 
-test('PT_CANCELLED mirrors the client fee as a penalty charged to the PT side', () => {
-  const out = computeTermination(
-    { price: D(1_000_000), totalSessions: 10, usedSessions: 2, rates: PT_ONLY },
-    'PT_CANCELLED',
+test("CLIENT_EXIT_DUE_TO_PT_RESTRICTION is MUTUAL's arithmetic exactly: 100% of the unused value, no fee, and no PT-fault compensation even with a holdback rate", () => {
+  // Every shape that has ever distinguished one reason from another: used / compensated / none
+  // left, with and without a gym, a price that does not divide evenly, with and without holdback.
+  const shapes = [
+    { price: D(1_000_000), totalSessions: 10, usedSessions: 0, rates: PT_ONLY },
+    { price: D(1_000_000), totalSessions: 10, usedSessions: 4, rates: WITH_GYM },
+    { price: D(1_000_000), totalSessions: 10, usedSessions: 10, rates: WITH_GYM },
+    { price: D(1_000_000), totalSessions: 3, usedSessions: 1, rates: WITH_GYM },
+    { price: D(5_000_000), totalSessions: 10, usedSessions: 3, compensatedSessions: 3, rates: PT_ONLY },
+    { price: D(5_000_000), totalSessions: 10, usedSessions: 3, compensatedSessions: 3, rates: WITH_GYM, ptHoldbackRate: D('0.10') },
+    { price: D(5_000_000), totalSessions: 10, usedSessions: 0, rates: PT_ONLY, ptHoldbackRate: D('0.10') },
+  ];
+  for (const input of shapes) {
+    const exit = computeTermination(input, 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION');
+    const mutual = computeTermination(input, 'MUTUAL');
+    assert.equal(exit.reason, 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION');
+    eq(exit.refund, mutual.refund.toString(), 'same refund as MUTUAL');
+    eq(exit.remaining, mutual.remaining.toString(), 'same remaining');
+    eq(exit.withheld, mutual.withheld.toString(), 'same withheld');
+    assert.deepEqual(exit.entitlement, mutual.entitlement, 'every party keeps what MUTUAL leaves it');
+    eq(exit.refund, remainingValue(input).toDecimalPlaces(0, Prisma.Decimal.ROUND_UP).toString(), 'refund = 100% of the unused value, rounded up');
+    eq(exit.ptFaultCompensationTarget, '0', 'not a PT-fault ending: nothing is owed out of the held-back earnings');
+  }
+  // The pinned numbers: 4 of 10 used on 1.000.000 — 600.000 back, no 10% fee (cf. CLIENT_CANCELLED 540.000).
+  const out = computeTermination(shapes[1], 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION');
+  eq(out.refund, '600000', 'refund');
+  eq(out.entitlement.pt, '220000', '0.55 × 400.000 for the delivered sessions');
+  eq(out.entitlement.gym, '140000', '0.35 × 400.000');
+  eq(out.entitlement.platform, '40000', '0.10 × 400.000');
+  // 1.000.000 / 3 sessions, 1 used: 666.666,67 rounds up in the client's favour.
+  eq(computeTermination(shapes[3], 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION').refund, '666667', 'rounded up');
+  // Not a PT-fault reason, so it never has a base to draw on the held-back pot with.
+  eq(holdbackCompensationBase(shapes[5], 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION', remainingValue(shapes[5])), '0', 'no compensation base');
+});
+
+// ── PT holdback ──────────────────────────────────────────────────────────────
+
+test('holdbackTarget is h × the PT’s expected income (frozen rates) in whole đồng, rounded down, and zero without a rate', () => {
+  eq(holdbackTarget(D(5_000_000), D('0.10'), PT_ONLY), '450000', 'H = 10% of the PT’s 4.500.000, not of the 5.000.000 the client paid');
+  eq(holdbackTarget(D(5_000_000), D('0.10'), WITH_GYM), '275000', 'gym 35%: the PT’s expected income is 2.750.000');
+  eq(holdbackTarget(D(5_000_000), undefined, PT_ONLY), '0', 'no rate');
+  eq(holdbackTarget(D(5_000_000), D(0), PT_ONLY), '0', 'rate zero');
+  eq(holdbackTarget(D('5000001'), D('0.10'), PT_ONLY), '450000', '4.500.000,9 → 4.500.000 → 450.000: the sub-đồng remainder is never held');
+  eq(holdbackTarget(D(999), D('0.10'), PT_ONLY), '89', '899 → 89,9 → 89');
+  eq(ptExpectedIncome(D(1_000_000), PT_ONLY), '900000', 'expected income');
+  assert.throws(() => holdbackTarget(D(1000), D('-0.01'), PT_ONLY), /ptHoldbackRate must be between 0 and 1/);
+  assert.throws(() => holdbackTarget(D(1000), D('1.01'), PT_ONLY), /ptHoldbackRate must be between 0 and 1/);
+});
+
+/** Runs the per-session split `sessions` times and returns what the PT was released / holds after each. */
+function simulateReleases(share: string, target: string, sessions: number) {
+  let held = D(0);
+  let releasedTotal = D(0);
+  const rows: { released: string; cumulativeReleased: string; held: string }[] = [];
+  for (let i = 0; i < sessions; i++) {
+    const split = splitReleaseWithHoldback(D(share), held, D(target));
+    held = held.plus(split.held);
+    releasedTotal = releasedTotal.plus(split.released);
+    rows.push({ released: split.released.toString(), cumulativeReleased: releasedTotal.toString(), held: held.toString() });
+  }
+  return rows;
+}
+
+test('holdback release: PT 0.90 on 5.000.000 / 10 sessions / h 0.10 → 0, then 450.000 each (target 450.000)', () => {
+  const unit = computeSessionRelease(D(5_000_000), 10, PT_ONLY); // 450.000 to the PT
+  eq(unit.pt, '450000', 'PT share per session');
+  const rows = simulateReleases(unit.pt.toString(), holdbackTarget(D(5_000_000), D('0.10'), PT_ONLY).toString(), 10);
+  assert.deepEqual(rows.slice(0, 3), [
+    { released: '0', cumulativeReleased: '0', held: '450000' },
+    { released: '450000', cumulativeReleased: '450000', held: '450000' },
+    { released: '450000', cumulativeReleased: '900000', held: '450000' },
+  ]);
+  // The cumulative law: after u sessions the PT has been released exactly max(0, E − H).
+  rows.forEach((r, i) => {
+    const earned = D(450_000).mul(i + 1);
+    eq(D(r.cumulativeReleased), Prisma.Decimal.max(earned.minus(450_000), 0).toString(), `after ${i + 1}`);
+    eq(D(r.held), Prisma.Decimal.min(earned, 450_000).toString(), `held after ${i + 1}`);
+  });
+  // The owner’s examples, from the same pure rule: 1.000.000 / 20 sessions → target 90.000, S1 and S2 hold 45.000 each.
+  const twenty = simulateReleases('45000', '90000', 4);
+  assert.deepEqual(twenty.map((r) => [r.released, r.held]), [['0', '45000'], ['0', '90000'], ['45000', '90000'], ['45000', '90000']]);
+  const four = simulateReleases('225000', '90000', 3);
+  assert.deepEqual(four.map((r) => [r.released, r.held]), [['135000', '90000'], ['225000', '90000'], ['225000', '90000']]);
+});
+
+test('holdback release: PT 0.50 → the target 250.000 is held at S1, then 250.000 each', () => {
+  const rates = { platformRate: D('0.50'), ptRate: D('0.50'), gymRate: D(0) };
+  const unit = computeSessionRelease(D(5_000_000), 10, rates);
+  eq(unit.pt, '250000', 'PT share per session');
+  const rows = simulateReleases(unit.pt.toString(), holdbackTarget(D(5_000_000), D('0.10'), rates).toString(), 4);
+  assert.deepEqual(rows.map((r) => [r.released, r.held]), [['0', '250000'], ['250000', '250000'], ['250000', '250000'], ['250000', '250000']]);
+});
+
+test('holdback release: a zero target releases every session in full — the legacy contract', () => {
+  assert.deepEqual(simulateReleases('450000', '0', 3).map((r) => [r.released, r.held]), [['450000', '0'], ['450000', '0'], ['450000', '0']]);
+});
+
+test('PT-fault compensation base: remaining for PT_CANCELLED; remaining + already-compensated for PT_REPEATED_NO_SHOW; none for PT_BANNED (not PT fault any more)', () => {
+  // 5.000.000 / 10 sessions, PT taught 3, and the PT no-showed 3 more (already compensated).
+  const noShows = { price: D(5_000_000), totalSessions: 10, usedSessions: 3, compensatedSessions: 3, rates: PT_ONLY, ptHoldbackRate: D('0.10') };
+  const remaining = remainingValue(noShows);
+  eq(remaining, '2000000', '4 sessions never delivered nor compensated');
+  eq(holdbackCompensationBase(noShows, 'PT_CANCELLED', remaining), '2000000', 'PT_CANCELLED base is the remaining value');
+  eq(holdbackCompensationBase(noShows, 'PT_BANNED', remaining), '0', 'PT_BANNED is a platform decision, not proof of PT fault (D49)');
+  eq(holdbackCompensationBase(noShows, 'PT_REPEATED_NO_SHOW', remaining), '3500000', 'remaining 2.000.000 + 3 compensated sessions 1.500.000');
+  for (const r of ['CLIENT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION', 'SERVICE_DISCONTINUED_BY_PLATFORM'] as TerminationReason[]) {
+    eq(holdbackCompensationBase(noShows, r, remaining), '0', `${r} is not the PT’s fault`);
+  }
+});
+
+test('the PT-fault compensation target is h × base, only for PT-fault reasons, and never moves a refund or a share', () => {
+  const input = { price: D(5_000_000), totalSessions: 10, usedSessions: 3, rates: PT_ONLY };
+  const withRate = { ...input, ptHoldbackRate: D('0.10') };
+
+  for (const reason of ['PT_CANCELLED'] as TerminationReason[]) {
+    const out = computeTermination(withRate, reason);
+    const legacy = computeTermination(input, reason);
+    eq(out.ptFaultCompensationTarget, '350000', `${reason}: 10% × 3.500.000`);
+    eq(out.refund, legacy.refund.toString(), `${reason}: the refund is unchanged — compensation is on top of it`);
+    eq(out.withheld, legacy.withheld.toString(), `${reason}: and outside the three-way split`);
+    assert.deepEqual(out.entitlement, legacy.entitlement, `${reason}: no share moves`);
+    eq(legacy.ptFaultCompensationTarget, '0', `${reason}: no rate, no compensation`);
+  }
+
+  // PT cancels vs PT stops showing up: never cheaper to disappear.
+  const cancelled = computeTermination({ ...withRate, usedSessions: 3 }, 'PT_CANCELLED');
+  const noShow = computeTermination({ ...withRate, usedSessions: 3, compensatedSessions: 3 }, 'PT_REPEATED_NO_SHOW');
+  eq(cancelled.ptFaultCompensationTarget, '350000', 'PT cancels after teaching 3');
+  eq(noShow.ptFaultCompensationTarget, '350000', 'PT no-shows 4,5,6 after teaching 3 and the client ends it: 2.000.000 + 1.500.000');
+
+  for (const reason of ['CLIENT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'PT_BANNED', 'SERVICE_DISCONTINUED_BY_PLATFORM', 'CLIENT_EXIT_DUE_TO_PT_RESTRICTION'] as TerminationReason[]) {
+    eq(computeTermination(withRate, reason).ptFaultCompensationTarget, '0', `${reason}: not the PT’s fault`);
+  }
+});
+
+test('the compensation target rounds up for the client, is zero when nothing is left, and the rate must lie in 0..1', () => {
+  const input = { price: D(1_000_000), totalSessions: 3, usedSessions: 1, rates: WITH_GYM, ptHoldbackRate: D('0.10') };
+  // 2 of 3 unused on 1.000.000 = 666.666,67; 10% of that is 66.666,67 → rounded up.
+  eq(computeTermination(input, 'PT_CANCELLED').ptFaultCompensationTarget, '66667', 'rounded up to the đồng');
+  eq(computeTermination({ ...input, totalSessions: 10, usedSessions: 10 }, 'PT_CANCELLED').ptFaultCompensationTarget, '0', 'a fully delivered contract owes none');
+  // A compensated no-show session is not "unused" for PT_CANCELLED: 12 − 2 − 1 = 9 of 12 on 1.200.000.
+  eq(
+    computeTermination({ ...input, price: D(1_200_000), totalSessions: 12, usedSessions: 2, compensatedSessions: 1 }, 'PT_CANCELLED').ptFaultCompensationTarget,
+    '90000',
+    'charged on what is still unused, not on the session already paid back',
   );
-  eq(out.refund, '800000', 'client made whole');
-  eq(out.penalty, '80000', '10% of the remaining value, the same slice a client would forfeit');
+  for (const bad of ['-0.01', '1.01']) {
+    assert.throws(() => computeTermination({ ...input, ptHoldbackRate: D(bad) }, 'PT_CANCELLED'), /ptHoldbackRate must be between 0 and 1/);
+  }
 });
 
 // ── Scenario C: PT no-show ───────────────────────────────────────────────────

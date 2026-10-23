@@ -9,7 +9,10 @@ import {
   PlusIcon as Plus,
   TrashIcon as Trash2,
 } from "@phosphor-icons/react";
+import { useNavigate } from "react-router";
 import { SOCIALS } from "../../components/gym/SocialLinks";
+import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
+import { amenityCategoryLabel } from "../../utils/amenityIcons";
 import {
   CATEGORY_LABEL,
   DOC_LABEL,
@@ -273,6 +276,8 @@ function Content({ d }: { d: AdminApplicationDetail }) {
         )}
       </section>
 
+      <AmenitiesBlock d={d} />
+
       <section className={box}>
         <h3 className="text-sm font-bold text-zinc-200 mb-3">Ảnh cơ sở ({d.photos.length})</h3>
         {d.photos.length === 0 ? (
@@ -294,6 +299,64 @@ function Content({ d }: { d: AdminApplicationDetail }) {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Listing Management B12: the amenities the applicant chose for the first branch, the custom ones waiting for a decision (decided
+ * in "Tin đăng & tiện ích → Đề xuất tiện ích"; approve is blocked while any is pending) and — for an application filed by an old
+ * app — the label saying it arrived without amenities. "Yêu cầu chỉnh sửa → Tiện ích" is the way out when none is left.
+ */
+function AmenitiesBlock({ d }: { d: AdminApplicationDetail }) {
+  const navigate = useNavigate();
+  const amenities = d.amenities ?? [];
+  const proposals = (d.amenityProposals ?? []).filter((p) => p.status !== "CANCELLED");
+  const pending = proposals.filter((p) => p.status === "PENDING");
+  const decided = proposals.filter((p) => p.status !== "PENDING");
+  return (
+    <section className={box} data-testid="admin-application-amenities">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-zinc-200">Tiện ích ({amenities.length})</h3>
+        {d.legacyLabel && <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">{d.legacyLabel}</span>}
+      </div>
+      {amenities.length === 0 ? (
+        <p className="text-sm text-zinc-500">Chưa chọn tiện ích nào trong danh mục.</p>
+      ) : (
+        <AmenityChipGroups
+          amenities={amenities.map((a) => ({ ...a, status: a.disabled ? "DISABLED" : "ACTIVE" }))}
+          selectedIds={amenities.map((a) => a.id)}
+          onToggle={() => {}}
+          disabled
+        />
+      )}
+
+      {pending.length > 0 && (
+        <div className="mt-4 space-y-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+          <p className="text-xs font-semibold text-blue-300">Đề xuất đang chờ duyệt ({pending.length})</p>
+          <ul className="space-y-1">
+            {pending.map((p) => (
+              <li key={p.id} className="text-xs text-zinc-300">
+                <span className="font-semibold text-zinc-100">{p.name}</span> · {amenityCategoryLabel(p.suggestedCategory)}
+                {p.kind === "REENABLE" ? " · yêu cầu bật lại" : ""}
+                {p.note ? <span className="text-zinc-500"> — {p.note}</span> : null}
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => navigate("/admin/listings?tab=proposals")} className="inline-block text-xs font-semibold text-green-400 hover:text-green-300">
+            Xử lý đề xuất tiện ích →
+          </button>
+        </div>
+      )}
+      {decided.length > 0 && (
+        <ul className="mt-3 space-y-0.5">
+          {decided.map((p) => (
+            <li key={p.id} className="text-[11px] text-zinc-500">
+              {p.name}: {p.status === "REJECTED" ? `đã từ chối${p.rejectReason ? " — " + p.rejectReason : ""}` : p.status === "MERGED" ? "đã gộp vào tiện ích có sẵn" : "đã duyệt"}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

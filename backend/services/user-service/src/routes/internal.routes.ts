@@ -9,25 +9,57 @@ import { ptDeactivationService } from "../services/pt-deactivation.service";
 import { notificationService } from "../services/notification.service";
 import { pushService } from "../services/push.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { PtRestrictionError, getActiveRestriction, ptRestrictionService } from "../services/pt-restriction.service";
+import { parsePtGymSessionsQuery, ptGymSessionsService } from "../services/pt-gym-sessions.service";
+import gymBookedClientsRoutes from "./internal-gym-booked-clients.routes";
 
 const router = Router();
 
 // All routes under /internal are protected by service-secret. Not exposed to public via the gateway.
 router.use(serviceSecretMiddleware);
 
+// D15: lễ tân xem khách có lịch tập PT tại chi nhánh (chỉ id khách, chỉ đọc) - route nằm ở file riêng.
+router.use("/gyms", gymBookedClientsRoutes);
+
+/**
+ * Parses the lock command auth-service relays. `seq` is auth-service's durable per-command number
+ * (PtDeactivationCall.seq): without it the receiver cannot order this command against a later
+ * unlock, so a body without one is refused rather than guessed at. `reason` is optional — the
+ * admin screens do not send one yet — and stored as null when absent.
+ */
+function parseLockCommand(req: { params: { ptUserId: string }; body?: any }) {
+  const { adminId, reason, seq } = req.body ?? {};
+  if (seq === undefined || seq === null || !/^\d+$/.test(String(seq))) return null;
+  return {
+    ptUserId: req.params.ptUserId,
+    adminId: typeof adminId === "string" && adminId ? adminId : "SYSTEM",
+    reason: typeof reason === "string" && reason.trim() ? reason.trim().slice(0, 500) : null,
+    seq: BigInt(String(seq)),
+  };
+}
+
 /**
  * auth-service calls this right after an admin disables a PT's account: disabling only
  * blocked the login, leaving live contracts, booked sessions and a searchable profile
  * behind. Unwinds every open contract with a prorated refund and hides the PT.
+ *
+ * 200 means "nothing left for this command to do": every contract done, or the command was
+ * superseded by a later one (`stale: true`). Anything else is an error status, so the relay keeps
+ * the command FAILED and calls again; the body lists each contract's outcome either way.
  */
 router.post("/pt/:ptUserId/deactivate", async (req, res) => {
   try {
-    const { adminId, reason } = req.body ?? {};
-    const result = await ptDeactivationService.deactivatePT(
-      req.params.ptUserId,
-      adminId || "SYSTEM",
-      reason,
-    );
+    const cmd = parseLockCommand(req);
+    if (!cmd) {
+      res.status(400).json({ error: "seq (số thứ tự lệnh) là bắt buộc" });
+      return;
+    }
+    const result = await ptDeactivationService.deactivatePT(cmd);
+    if (!result.complete) {
+      const pending = result.outcomes.filter((o) => o.status === "FAILED").length;
+      res.status(500).json({ error: `${pending} hợp đồng chưa xử lý xong — cần thử lại`, ...result });
+      return;
+    }
     res.json(result);
   } catch (error: any) {
     logger.error(error, "PT deactivation failed");
@@ -35,16 +67,70 @@ router.post("/pt/:ptUserId/deactivate", async (req, res) => {
   }
 });
 
-/** Re-enabling the account lifts the discovery/booking block. Contracts are NOT restored. */
+/**
+ * Re-enabling the account lifts the discovery/booking block. Contracts are NOT restored.
+ * A repeated unlock answers `duplicate: true`; one older than the last applied command answers
+ * `stale: true` and changes nothing.
+ */
 router.post("/pt/:ptUserId/reactivate", async (req, res) => {
   try {
-    const found = await ptDeactivationService.setPtSuspended(
-      req.params.ptUserId,
-      false,
-    );
-    res.json({ reactivated: found });
+    const cmd = parseLockCommand(req);
+    if (!cmd) {
+      res.status(400).json({ error: "seq (số thứ tự lệnh) là bắt buộc" });
+      return;
+    }
+    res.json(await ptDeactivationService.reactivatePT(cmd));
   } catch (error: any) {
     logger.error(error, "PT reactivation failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * The ONE internal read for "is this PT restricted right now, and how" — what gym-service's future
+ * PT coaching check-in (and any other service) must ask before giving a PT coaching access:
+ *   { ptUserId, restricted, type: TEMPORARY_SUSPENSION | PERMANENT_BAN | null, since, mayCoach, mayTakeNewBusiness,
+ *     restrictedContractIds }
+ * Reads only; the answer comes from the restriction record (a flag-only lock fails closed).
+ *
+ * `restricted` / `mayCoach` here are about the PT as a WHOLE (account restriction): a restriction on ONE
+ * contract must not stop the PT teaching another client. For a check-in that is about a session of a
+ * specific contract pass `?contractId=`: the answer then also carries { contractId, contractRestricted,
+ * scope } and `mayCoach` is false when the account is restricted OR that contract is. A contractId that is
+ * not this PT's answers 404 CONTRACT_NOT_FOUND.
+ */
+router.get("/pt/:ptUserId/restriction", async (req, res) => {
+  try {
+    const contractId = typeof req.query.contractId === "string" && req.query.contractId ? req.query.contractId : null;
+    res.json(await ptRestrictionService.internalStatus(req.params.ptUserId, contractId));
+  } catch (error: any) {
+    if (error instanceof PtRestrictionError) {
+      res.status(error.status).json({ error: error.message, code: error.code });
+      return;
+    }
+    logger.error(error, "PT restriction read failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PT QR check-in (Phase 2 / P2.1, D16 / D17 / D38 / D59 / D70) - READ-ONLY. gym-service asks, per scan, which of this PT's
+ * face-to-face sessions at `gymId` touch the window [from, to) (the UTC instants of the local day, computed by gym-service):
+ *   { ptUserId, gymId, ptActive, ptBlockedReason: null | PT_NOT_FOUND | NOT_A_PT | PT_ACCOUNT_RESTRICTED | PT_BANNED,
+ *     sessions: [{ sessionId, contractId, status, scheduledStartAt, scheduledEndAt }] }
+ * 400 INVALID_QUERY: gymId missing, from/to not ISO-8601 instants with a zone, from >= to, or a window over 48 h. No client
+ * identity is returned and nothing is written - see pt-gym-sessions.service.ts for the exact rules.
+ */
+router.get("/pt/:ptUserId/gym-sessions", async (req, res) => {
+  const q = parsePtGymSessionsQuery(req.query);
+  if (!q.ok) {
+    res.status(400).json({ error: q.error, code: "INVALID_QUERY" });
+    return;
+  }
+  try {
+    res.json(await ptGymSessionsService.list(req.params.ptUserId, q.gymId, q.from, q.to));
+  } catch (error: any) {
+    logger.error(error, "PT gym-sessions read failed");
     res.status(500).json({ error: error.message });
   }
 });
@@ -93,6 +179,13 @@ router.post(
   contractController.createMarketplaceContract as any,
 );
 
+// ai-service asks this before it starts a personalized-service checkout (BR-27: no second live contract with the
+// same PT while one is requested, awaiting payment or running).
+router.get(
+  "/contracts/pair-conflict",
+  contractController.hasStandingPtContract as any,
+);
+
 // ai-service workers run without an end-user bearer token. These read-only
 // endpoints expose the same user-owned context after service-secret validation.
 router.get("/profile/:userId", async (req, res) => {
@@ -103,11 +196,16 @@ router.get("/profile/:userId", async (req, res) => {
 router.get("/pt-marketplace-eligibility/:userId", async (req, res) => {
   const profile = await profileRepository.findPtMarketplaceEligibilityByUserId(req.params.userId);
   const application = profile?.ptApplication ?? null;
-  const isApprovedPt = profile?.isPT === true && application?.status === "APPROVED";
+  // A PT who is restricted right now (temporarily suspended, or banned) is NOT offered for new business:
+  // ai-service gates personalized-service publishing, browsing and purchase on this flag.
+  const restriction = profile?.isPT === true ? await getActiveRestriction(req.params.userId) : null;
+  const isApprovedPt = profile?.isPT === true && application?.status === "APPROVED" && restriction === null;
 
   res.json({
     userId: req.params.userId,
     isApprovedPt,
+    ptRestricted: restriction !== null,
+    ptRestrictionType: restriction?.type ?? null,
     isPT: profile?.isPT === true,
     ptApplicationStatus: application?.status ?? null,
     approvedAt: application?.approvedAt ?? null,

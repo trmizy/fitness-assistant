@@ -149,6 +149,12 @@ export function GymMembershipsPage() {
                   {m.startDate ? `${formatDate(m.startDate)} – ${formatDate(m.endDate)}` : `${m.durationDaysSnapshot} days`}
                   {m.totalVisits ? ` · ${m.usedVisits}/${m.totalVisits} visits` : ""}
                 </div>
+                {m.status === "ACTIVE" && m.memberCode && (
+                  <div className="mt-2 text-xs text-zinc-500" data-testid="member-code">
+                    Mã hội viên: <span className="font-mono font-bold text-zinc-300 tracking-wider">{`${m.memberCode.slice(0, 4)}-${m.memberCode.slice(4)}`}</span>
+                    <span className="text-zinc-600"> · đọc cho lễ tân khi cần check-in hộ</span>
+                  </div>
+                )}
                 {m.status === "ACTIVE" && (
                   <div className="mt-3 flex gap-2">
                     <button

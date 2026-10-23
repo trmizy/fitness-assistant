@@ -1,5 +1,6 @@
 import { ContractStatus } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
+import { computePaymentDueAt } from "./contract.service";
 
 function normalizeEmail(email?: string | null): string {
   return (email || "").toLowerCase().trim();
@@ -31,6 +32,7 @@ export const dropboxSignWebhookService = {
         const updates: Record<string, unknown> = {
           eSignStatus: "SIGNED",
           status: ContractStatus.PENDING_PAYMENT,
+          paymentDueAt: computePaymentDueAt(),
           fullySignedAt: new Date(),
         };
         for (const sig of signatures) {
@@ -90,6 +92,7 @@ export const dropboxSignWebhookService = {
       const updates: Record<string, unknown> = {
         eSignStatus: "SIGNED",
         status: ContractStatus.PENDING_PAYMENT,
+        paymentDueAt: computePaymentDueAt(),
         fullySignedAt: new Date(),
       };
 

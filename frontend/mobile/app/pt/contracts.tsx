@@ -31,9 +31,12 @@ import {
 } from "../../src/components/ui";
 import { contractService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
+import { PtTermsBanner } from "../../src/features/ptTerms/PtTerms";
+import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../src/features/ptTerms/ptTermsModel";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { formatVND } from "../../src/utils/currency";
 import { shortDate } from "../../src/features/wallet/wallet";
+import { ptContractShare } from "../../src/features/pt/ptContractShare";
 import { StarInput, StarRow } from "../../src/features/plans/PlanWidgets";
 import {
   CONTRACT_TABS,
@@ -96,6 +99,9 @@ export default function PtContractsScreen() {
   const fail = (e: any, fallback: string) =>
     toast.show(e?.response?.data?.error?.message || e?.response?.data?.error || fallback, "danger");
 
+  // D25: a PT who has not confirmed the current PT terms is refused on accept - say so in plain words and open the terms.
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsNotice, setTermsNotice] = useState<string | null>(null);
   const accept = useMutation({
     mutationFn: (id: string) => contractService.acceptContract(id),
     onSuccess: () => {
@@ -104,7 +110,16 @@ export default function PtContractsScreen() {
       setTab("waiting");
       refresh();
     },
-    onError: (e) => fail(e, "Không nhận được hợp đồng"),
+    onError: (e) => {
+      if (isPtTermsRefusal(e)) {
+        toast.show(PT_TERMS_REFUSAL_MESSAGE, "danger");
+        void queryClient.invalidateQueries({ queryKey: ["pt-terms"] });
+        setTermsNotice(PT_TERMS_REFUSAL_MESSAGE);
+        setTermsOpen(true);
+        return;
+      }
+      fail(e, "Không nhận được hợp đồng");
+    },
   });
 
   const reject = useMutation({
@@ -166,6 +181,15 @@ export default function PtContractsScreen() {
           />
         }
       >
+        <PtTermsBanner
+          className="mb-4"
+          open={termsOpen}
+          notice={termsNotice}
+          onOpenChange={(v) => {
+            setTermsOpen(v);
+            if (!v) setTermsNotice(null);
+          }}
+        />
         <Segmented
           options={CONTRACT_TABS.map((t) => `${t.label} · ${counts[t.key]}`)}
           value={`${CONTRACT_TABS.find((t) => t.key === tab)!.label} · ${counts[tab]}`}
@@ -198,7 +222,7 @@ export default function PtContractsScreen() {
             {visible.map((c) => {
               const st = ptContractStatus(c.status);
               const name = clientName(c);
-              const used = Number(c.usedSessions ?? 0);
+              const used = Number(c.usedSessions ?? 0) + Number(c.compensatedSessions ?? 0); // delivered + refunded-closed
               const total = Number(c.totalSessions ?? 0);
               const isOpen = expanded === c.id;
               return (
@@ -216,6 +240,10 @@ export default function PtContractsScreen() {
                         </Text>
                         {c.price != null ? (
                           <Text className="font-display text-sm text-primary">{formatVND(Number(c.price))}</Text>
+                        ) : null}
+                        {/* The PT's own cut from this contract's frozen split, visible before they accept. */}
+                        {ptContractShare(c) ? (
+                          <Text className="font-body-semibold text-xs text-foreground">{ptContractShare(c)!.text}</Text>
                         ) : null}
                       </View>
                       <Badge tone={st.tone === "neutral" ? "info" : st.tone}>{st.label}</Badge>
@@ -445,7 +473,7 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
   return (
     <View className="gap-2.5">
       {sessions.map((s: any) => {
-        const st = ptSessionStatus(s.status);
+        const st = ptSessionStatus(s.status, s);
         const actions = sessionActions(s);
         return (
           <View key={s.id} className="gap-2 rounded-xl bg-panel p-3">

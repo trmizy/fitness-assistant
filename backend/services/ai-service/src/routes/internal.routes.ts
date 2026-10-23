@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { conversationRepository } from "../repositories/conversation.repository";
-import { personalizedServiceService } from "../services/personalized-service.service";
+import { personalizedServiceService, PersonalizedOrderNotActivatableError } from "../services/personalized-service.service";
 import {
   enqueueLocalEvidenceRefresh,
   enqueuePubMedRefresh,
@@ -387,6 +387,14 @@ router.post(
       const order = await personalizedServiceService.activateAfterPayment(req.params.id, transactionId);
       res.json({ success: true, data: order });
     } catch (err) {
+      // 409 NOT_ACTIVATABLE is a definite answer, not a failure: payment-service refunds the buyer on it.
+      if (err instanceof PersonalizedOrderNotActivatableError) {
+        res.status(409).json({
+          success: false,
+          error: { code: err.code, message: err.message, currentStatus: err.currentStatus },
+        });
+        return;
+      }
       next(err);
     }
   },

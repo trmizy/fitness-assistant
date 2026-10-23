@@ -1,11 +1,13 @@
 import type { Request } from 'express';
 import { prisma } from '../repositories/prisma';
+import { withCompatWriter } from '../repositories/compat-writer';
 import type { Prisma, PartnerDocumentType, PartnerReviewCategory } from '../generated/prisma';
 import { partnerAuditService } from './partner-audit.service';
 import { partnerS3 } from './partner-s3.service';
 import { brandLogoUrl, resolvePhotoUrl } from './gym-photo-url';
 import { socialOf } from './partner-application.service';
 import { applyGymApprovalTx } from './gym-approval.tx';
+import { amenityDto, proposalDto } from './gym-amenity-catalog.service';
 import { appError } from './partner-application.service';
 import { applicantEmails, sendApplicantMail } from './partner-application.emails';
 import {
@@ -34,6 +36,9 @@ import {
 type Tx = Prisma.TransactionClient;
 
 async function lockPartner(tx: Tx, partnerId: string) {
+  // Every transaction here that writes gym_partners / gyms starts with this call, so it is also where it declares
+  // itself an event-aware writer (see repositories/compat-writer.ts).
+  await withCompatWriter(tx);
   await tx.$queryRaw`SELECT id FROM gym_partners WHERE id = ${partnerId} FOR UPDATE`;
 }
 
@@ -49,6 +54,15 @@ async function loadSelfServicePartner(tx: Tx | typeof prisma, partnerId: string)
 /** Đọc mọi thứ cần để quyết định APPROVE, bằng client truyền vào (toàn cục hoặc của transaction). */
 async function gatherApproveInput(db: Tx | typeof prisma, partnerId: string, ownerUserId: string | null): Promise<ApproveInput> {
   const partner = await db.gymPartner.findUniqueOrThrow({ where: { id: partnerId } });
+  const draftGym = ownerUserId
+    ? await db.gym.findFirst({ where: { ownerId: ownerUserId, status: 'DRAFT' }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+    : null;
+  const [amenityCount, pendingProposals] = draftGym
+    ? await Promise.all([
+        db.gymAmenity.count({ where: { gymId: draftGym.id, amenity: { status: 'ACTIVE' } } }),
+        db.amenityProposal.count({ where: { gymId: draftGym.id, status: 'PENDING' } }),
+      ])
+    : [0, 0];
   const [issues, docs, draftCount, nonDraftCount] = await Promise.all([
     db.gymPartnerReviewIssue.count({ where: { partnerId, status: { in: ['OPEN', 'RESUBMITTED'] } } }),
     db.gymPartnerDocument.findMany({
@@ -72,6 +86,9 @@ async function gatherApproveInput(db: Tx | typeof prisma, partnerId: string, own
     docStatuses,
     draftBranchCount: draftCount,
     nonDraftBranchCount: nonDraftCount,
+    applicationFlowVersion: partner.applicationFlowVersion,
+    amenityCount,
+    pendingAmenityProposalCount: pendingProposals,
   };
 }
 
@@ -98,6 +115,18 @@ export const partnerApplicationReviewService = {
 
     const gym = gyms[0] ?? null;
     const photos = gym ? await prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: { sortOrder: 'asc' } }) : [];
+    // Listing Management B3 (B12): what the applicant chose for the branch, and the custom proposals the admin decides in place
+    // (POST /admin/amenities/proposals/approve | reject | merge).
+    const [amenityRows, proposalRows] = gym
+      ? await Promise.all([
+          prisma.gymAmenity.findMany({ where: { gymId: gym.id }, include: { amenity: true } }),
+          prisma.amenityProposal.findMany({ where: { gymId: gym.id, status: { not: 'CANCELLED' } }, orderBy: { createdAt: 'asc' } }),
+        ])
+      : [[], []];
+    const amenities = amenityRows
+      .map((r) => r.amenity)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+      .map((a) => ({ ...amenityDto(a), disabled: a.status !== 'ACTIVE' }));
 
     const byType = new Map(docs.map((d) => [d.docType, d]));
     // Đúng danh sách ứng viên thấy — admin không thấy ô nào mà ứng viên không có chỗ để tải.
@@ -138,6 +167,8 @@ export const partnerApplicationReviewService = {
           }
         : null,
       photoCount: photos.length,
+      amenityCount: (approveInput.amenityCount ?? 0) + (approveInput.pendingAmenityProposalCount ?? 0),
+      requireAmenities: (partner.applicationFlowVersion ?? 0) >= 2,
       legalName: partner.legalName,
       contactEmail: partner.contactEmail,
       docStatuses,
@@ -172,7 +203,16 @@ export const partnerApplicationReviewService = {
         rejectedAt: partner.rejectedAt,
         rejectionReason: partner.rejectionReason,
         termsAcceptedAt: partner.termsAcceptedAt,
+        // How the application was filed (B3): flow 2 = new client (amenities required); legacyNoAmenities = arrived from an old
+        // client without any amenity (the admin sees the label and may still approve).
+        applicationFlowVersion: partner.applicationFlowVersion,
+        legacyNoAmenities: partner.legacyNoAmenities,
+        legacyClientAt: partner.legacyClientAt,
       },
+      legacyNoAmenities: partner.legacyNoAmenities,
+      legacyLabel: partner.legacyNoAmenities ? 'Từ ứng dụng cũ — chưa có tiện ích' : null,
+      amenities,
+      amenityProposals: proposalRows.map((p) => ({ ...proposalDto(p), ownerUserId: p.ownerUserId })),
       representativePhone: ownerAccount?.contactPhone ?? null,
       brand: brand
         ? { id: brand.id, name: brand.name, description: brand.description, logoUrl: await brandLogoUrl(brand.logoKey), ...socialOf(brand) }

@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+  },
   "permissions": {
     "allow": [
       "PowerShell(cd \"d:\\\\project_personal\\\\fitness-assistant\"; docker compose -f infra/compose/docker-compose.dev.yml build web ai-service fitness-service 2>&1 | Tee-Object \"C:\\\\Users\\\\ASUS\\\\AppData\\\\Local\\\\Temp\\\\build-output.txt\"; Write-Output \"BUILD DONE with exit: $LASTEXITCODE\")",

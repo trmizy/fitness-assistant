@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { WalletIcon, CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
+import { AdminReconciliationBlocks } from "./AdminReconciliationBlocks";
 
 /**
  * Whole-platform money invariant (docs/money-flow.md §1.3) — extracted out of
@@ -37,8 +38,10 @@ export function AdminReconciliationPanel() {
       setRefreshing(true);
       const res = await adminService.getReconciliation();
       setRecon(res?.data ?? null);
-    } catch {
-      setRecon(null);
+    } catch (err) {
+      // Khi sổ cái lệch, server trả 409 kèm đầy đủ báo cáo — đó chính là lúc admin cần thấy số liệu, không phải "không tải được".
+      const body = (err as { response?: { status?: number; data?: { data?: ReconciliationReport } } })?.response;
+      setRecon(body?.status === 409 && body.data?.data ? body.data.data : null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -52,6 +55,7 @@ export function AdminReconciliationPanel() {
   }, []);
 
   return (
+    <div className="space-y-6">
     <div
       className={`rounded-xl p-4 border ${
         loading
@@ -158,6 +162,8 @@ export function AdminReconciliationPanel() {
           )}
         </>
       )}
+    </div>
+    <AdminReconciliationBlocks />
     </div>
   );
 }

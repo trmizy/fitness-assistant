@@ -1,0 +1,29 @@
+# EXAMPLE ONLY - NOT APPLIED. Copy it to a scratch location, review it, and use it ONLY for the duration of the Tier B seed run
+# (approved by Ngài as a TEMPORARY override; see SEED.md "Tier B prerequisites").
+#
+# Turn on  (from D:\FitnessAssistant):
+#   docker compose -f infra/compose/docker-compose.dev.yml -f <copy of this file> up -d --force-recreate auth-service gym-service payment-service api-gateway
+# Turn off (same command WITHOUT the override file) once the seed and verify-integrity are done:
+#   docker compose -f infra/compose/docker-compose.dev.yml up -d --force-recreate auth-service gym-service payment-service api-gateway
+#
+# Why each line:
+#  PARTNER_APPLICATION_DEV_ECHO     auth-service returns devVerifyLink from POST /auth/partner-applications/start, so the 25 owner
+#                                   accounts can be created without real e-mail. Ignored when NODE_ENV=production.
+#  VNPAY_SIMULATE                   payment-service serves /payments/vnpay/sim and signs the "paid" return with its own secret, so a PT
+#                                   contract / gym membership can be PAID with play money (the old MOCK gateway no longer exists).
+#                                   Ignored (and logged as an error) when NODE_ENV=production.
+#  PARTNER_APPLICATION_*_RATE_MAX   the gateway allows 10 /start calls per 15 min per IP; the seed makes 25.
+services:
+  auth-service:
+    environment:
+      PARTNER_APPLICATION_DEV_ECHO: "true"
+  gym-service:
+    environment:
+      PARTNER_APPLICATION_DEV_ECHO: "true"
+  payment-service:
+    environment:
+      VNPAY_SIMULATE: "true"
+  api-gateway:
+    environment:
+      PARTNER_APPLICATION_START_RATE_MAX: "200"
+      PARTNER_APPLICATION_RATE_MAX: "5000"

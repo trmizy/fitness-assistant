@@ -6,6 +6,7 @@
  * hồ sơ: tất cả suy từ danh sách đó, **không** từ một bộ kiểm hợp lệ thứ hai ở máy. Hai bộ luật song
  * song là hai bộ luật sẽ lệch nhau.
  */
+import { normalizeProposal } from "../gymListing/gymListing";
 import type { PartnerAccessState, PartnerDocType, PartnerPhotoCategory, PartnerRepresentativeRole } from "../../services/api";
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral" | "info";
@@ -16,6 +17,8 @@ export type MissingSection =
   | "SCALE"
   | "BRANCH"
   | "LOCATION"
+  // Listing Management: sits between LOCATION and PHOTOS; the server lists it only for a client that sends X-Gymini-Listing-Flow.
+  | "AMENITIES"
   | "PHOTOS"
   | "LEGAL"
   | "TERMS";
@@ -29,6 +32,7 @@ export type StepId =
   | "scale"
   | "branch"
   | "location"
+  | "amenities"
   | "photos"
   | "legal"
   | "review";
@@ -41,6 +45,8 @@ export const STEPS: { id: StepId; title: string; sections: MissingSection[] }[] 
   { id: "scale", title: "Quy mô", sections: ["SCALE"] },
   { id: "branch", title: "Chi nhánh đầu tiên", sections: ["BRANCH"] },
   { id: "location", title: "Vị trí", sections: ["LOCATION"] },
+  // Bước 7 trên máy chủ (giữa Vị trí và Ảnh): khoá `missing` AMENITIES ánh xạ về đây để mở lại hồ sơ đứng đúng bước.
+  { id: "amenities", title: "Tiện ích", sections: ["AMENITIES"] },
   { id: "photos", title: "Ảnh cơ sở", sections: ["PHOTOS"] },
   { id: "legal", title: "Xác minh doanh nghiệp", sections: ["LEGAL"] },
   { id: "review", title: "Xem lại & gửi", sections: ["TERMS"] },
@@ -58,6 +64,11 @@ export type ApplicationView = {
   documents?: any[] | null;
   issues?: any[] | null;
   missing?: MissingItem[] | null;
+  /** Listing Management: the ACTIVE catalogue amenities of the application's branch, and the owner's proposals for it (any status except CANCELLED). */
+  amenities?: any[] | null;
+  amenityProposals?: any[] | null;
+  applicationFlowVersion?: number | null;
+  legacyNoAmenities?: boolean | null;
 };
 
 export function missingItems(view: ApplicationView | null | undefined): MissingItem[] {
@@ -92,7 +103,7 @@ export function firstIncompleteStep(view: ApplicationView | null | undefined): n
   return idx === -1 ? STEPS.length - 1 : idx;
 }
 
-/** Tiến độ tính trên tám bước nhập liệu; bước "xem lại" không phải là một phần việc. */
+/** Tiến độ tính trên chín bước nhập liệu; bước "xem lại" không phải là một phần việc. */
 export function progressPercent(view: ApplicationView | null | undefined): number {
   const filling = STEPS.filter((s) => s.id !== "review");
   const done = filling.filter((s) => stepDone(view, s)).length;
@@ -221,6 +232,7 @@ export const ISSUE_CATEGORY: Record<string, string> = {
   BRAND: "Thương hiệu",
   BRANCH: "Chi nhánh",
   LOCATION: "Vị trí",
+  AMENITIES: "Tiện ích",
   PHOTOS: "Ảnh cơ sở",
   LEGAL: "Xác minh doanh nghiệp",
   OTHER: "Khác",
@@ -379,4 +391,27 @@ export function inviteFormError(f: { firstName: string; password: string; confir
   if (f.password.length < 8) return "Mật khẩu tối thiểu 8 ký tự";
   if (f.password !== f.confirm) return "Mật khẩu nhập lại không khớp";
   return null;
+}
+
+// ── Tiện ích (Listing Management) ─────────────────────────────────────────────────────────
+
+/** Ids of the catalogue amenities the server holds for the application's branch. */
+export function applicationAmenityIds(view: ApplicationView | null | undefined): string[] {
+  return (Array.isArray(view?.amenities) ? view!.amenities! : []).map((a: any) => a?.id).filter((id: unknown): id is string => typeof id === "string");
+}
+
+/** The owner's proposals for the application's branch that are still waiting (the ones a save keeps unless the owner drops them). */
+export function applicationPendingProposals(view: ApplicationView | null | undefined) {
+  return (Array.isArray(view?.amenityProposals) ? view!.amenityProposals! : [])
+    .filter((p: any) => p && typeof p.id === "string" && typeof p.name === "string" && p.status === "PENDING")
+    .map((p: any) => normalizeProposal(p))
+    .filter((p): p is NonNullable<ReturnType<typeof normalizeProposal>> => p !== null);
+}
+
+/** Proposals the admin turned down: shown so the owner can propose again under another name. */
+export function applicationRejectedProposals(view: ApplicationView | null | undefined) {
+  return (Array.isArray(view?.amenityProposals) ? view!.amenityProposals! : [])
+    .filter((p: any) => p && p.status === "REJECTED")
+    .map((p: any) => normalizeProposal(p))
+    .filter((p): p is NonNullable<ReturnType<typeof normalizeProposal>> => p !== null);
 }

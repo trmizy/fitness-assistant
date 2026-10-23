@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
@@ -169,6 +170,40 @@ export const partnerS3 = {
     const cfg = readConfig();
     if (!cfg.privateBucket) throw unavailable();
     await clients(cfg).internal.send(new DeleteObjectCommand({ Bucket: cfg.privateBucket, Key: key }));
+  },
+
+  /**
+   * Listing Management B2 — đọc TOÀN BỘ nội dung một đối tượng (tối đa `maxBytes`) để xét trên byte thật (magic bytes,
+   * sha256, giải mã bằng sharp). Vượt trần thì ném `{ tooLarge: true }` ngay khi đọc, không nạp hết vào bộ nhớ.
+   * Trả null nếu đối tượng không tồn tại.
+   */
+  async getObjectBytes(key: string, maxBytes: number): Promise<Buffer | null> {
+    const cfg = readConfig();
+    if (!cfg.privateBucket) throw unavailable();
+    try {
+      const out = await clients(cfg).internal.send(new GetObjectCommand({ Bucket: cfg.privateBucket, Key: key }));
+      const chunks: Buffer[] = [];
+      let total = 0;
+      for await (const chunk of out.Body as AsyncIterable<Uint8Array>) {
+        total += chunk.length;
+        if (total > maxBytes) throw Object.assign(new Error('object too large'), { tooLarge: true });
+        chunks.push(Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    } catch (e: any) {
+      if (e?.tooLarge) throw e;
+      if (e?.$metadata?.httpStatusCode === 404 || e?.name === 'NoSuchKey') return null;
+      throw e;
+    }
+  },
+
+  /** Ghi một đối tượng (bản WebP đã chuẩn hoá của ảnh tin đăng). Mã hoá dùng default-encryption của bucket. */
+  async putObject(params: { key: string; body: Buffer; contentType: string }): Promise<void> {
+    const cfg = readConfig();
+    if (!cfg.privateBucket) throw unavailable();
+    await clients(cfg).internal.send(
+      new PutObjectCommand({ Bucket: cfg.privateBucket, Key: params.key, Body: params.body, ContentType: params.contentType }),
+    );
   },
 
 };

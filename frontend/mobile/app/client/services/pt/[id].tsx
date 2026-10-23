@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
@@ -14,6 +14,7 @@ import {
   Star,
   TriangleAlert,
   UserSearch,
+  UserX,
 } from "lucide-react-native";
 
 import {
@@ -29,7 +30,6 @@ import {
   useToast,
 } from "../../../../src/components/ui";
 import {
-  collaborationService,
   contractService,
   profileService,
   ptServicePackageService,
@@ -38,21 +38,32 @@ import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { useOpenChat } from "../../../../src/features/chat/useOpenChat";
 import { formatVND } from "../../../../src/utils/currency";
 import {
+  PACKAGE_CHANGED_MESSAGE,
+  PACKAGE_CHANGED_TITLE,
   buildContractRequestPayload,
+  isPtGone,
   lowAvailabilityMessage,
   mergePtSources,
   normalizePackages,
-  normalizePartnerGyms,
   normalizePts,
   pricePerSession,
-  ratesLabel,
   readLowAvailability,
+  readPackageChanged,
   requestBlockedReason,
   serviceModeLabel,
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
+import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { contractRequestError } from "../../../../src/features/services/contracts";
+import {
+  normalizeGymOptions,
+  pickableGym,
+  readEligibilityRefusal,
+  type EligibilityReason,
+  type GymOption,
+} from "../../../../src/features/services/contractGymOptions";
+import { Notice } from "../../../../src/components/payment/PaymentMethodSheet";
 import { GOAL_OPTIONS, TARGET_OPTIONS } from "../../../../src/features/ptApplication/ptApplication";
 
 const SEGMENTS = ["Giới thiệu", "Gói dịch vụ", "Đánh giá"];
@@ -83,6 +94,10 @@ export default function TrainerDetailScreen() {
   const [gymId, setGymId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [lowAvailability, setLowAvailability] = useState<LowAvailability | null>(null);
+  // 409 PACKAGE_CHANGED: the trainer changed the package after this screen loaded it. Holds the package as it is NOW.
+  const [packageChanged, setPackageChanged] = useState<{ current: ServicePackage | null } | null>(null);
+  // The server's own 422 on the membership rule: it wins over anything shown before sending.
+  const [refusal, setRefusal] = useState<{ reason: EligibilityReason; message: string } | null>(null);
 
   const detailQuery = useQuery({
     queryKey: ["pt-detail", ptUserId],
@@ -93,12 +108,6 @@ export default function TrainerDetailScreen() {
   const packagesQuery = useQuery({
     queryKey: ["pt-packages", ptUserId],
     queryFn: () => ptServicePackageService.getPackagesForPT(ptUserId),
-    enabled: !!ptUserId,
-  });
-
-  const gymsQuery = useQuery({
-    queryKey: ["pt-partner-gyms", ptUserId],
-    queryFn: () => collaborationService.listGymsForPt(ptUserId),
     enabled: !!ptUserId,
   });
 
@@ -119,10 +128,31 @@ export default function TrainerDetailScreen() {
   const pt = useMemo(() => mergePtSources(raw, listRow), [raw, listRow]);
   const packages = useMemo(() => normalizePackages(packagesQuery.data), [packagesQuery.data]);
   const selected = packages.find((p) => p.id === packageId) ?? null;
-  const partnerGyms = useMemo(() => normalizePartnerGyms(gymsQuery.data), [gymsQuery.data]);
+  // P3.6: branches for THIS package, with the client's membership facts per branch. Keyed by
+  // trainer + package; the whole cache is cleared on account switch (AppContext).
+  const gymOptionsQuery = useQuery({
+    queryKey: ["contract-gym-options", ptUserId, selected?.id ?? null],
+    queryFn: () => contractService.getGymOptions(ptUserId, selected!.id),
+    enabled: !!ptUserId && !!selected,
+    staleTime: 0,
+  });
+  const gymOptions = useMemo(
+    () => (gymOptionsQuery.data ? normalizeGymOptions(gymOptionsQuery.data) : null),
+    [gymOptionsQuery.data],
+  );
+  const pickedGym = pickableGym(gymOptions, gymId);
+  // Coming back from buying a plan: re-read the memberships instead of trusting the earlier answer.
+  useFocusEffect(
+    useCallback(() => {
+      if (selected) void gymOptionsQuery.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selected?.id]),
+  );
   const reviews: any[] = Array.isArray((raw as any)?.recentReviews) ? (raw as any).recentReviews : [];
 
-  const blocked = pt ? requestBlockedReason(pt, selected) : "Đang tải huấn luyện viên...";
+  const blocked = pt
+    ? (requestBlockedReason(pt, selected) ?? gymOptions?.requestBlockedCopy ?? null)
+    : "Đang tải huấn luyện viên...";
   const { openChat, opening } = useOpenChat();
 
   const requestMutation = useMutation({
@@ -131,19 +161,37 @@ export default function TrainerDetailScreen() {
         buildContractRequestPayload({
           ptUserId,
           pkg: selected!,
-          gymId,
+          gymId: pickedGym?.gymId ?? null,
           message,
           acknowledgedLowAvailability: acknowledged,
         }) as any,
       ),
     onSuccess: () => {
       setLowAvailability(null);
+      setRefusal(null);
       void queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
       toast.show("Đã gửi yêu cầu — huấn luyện viên sẽ xem xét và phản hồi.", "success");
       if (router.canGoBack()) router.back();
       else router.replace("/client/services");
     },
     onError: (error: any) => {
+      const refused = readEligibilityRefusal(error);
+      if (refused) {
+        // The server is the authority: show its verdict and re-read the branch list so the
+        // per-branch status matches it.
+        setRefusal(refused);
+        setLowAvailability(null);
+        void gymOptionsQuery.refetch();
+        return;
+      }
+      const changed = readPackageChanged(error);
+      if (changed) {
+        // The price the client was looking at is no longer the price: show the new terms, never send silently.
+        setPackageChanged(changed);
+        setLowAvailability(null);
+        void packagesQuery.refetch();
+        return;
+      }
       const info = readLowAvailability(error);
       if (info) {
         // Not a failure: the server is asking whether the client accepts a thinner calendar.
@@ -176,6 +224,18 @@ export default function TrainerDetailScreen() {
           <View className="items-center py-16">
             <ActivityIndicator color={accent.primary} />
           </View>
+        ) : isPtGone(detailQuery.error) ? (
+          // 404 = hidden, suspended or no longer approved. Not an error the client can fix by retrying.
+          <EmptyState
+            icon={UserX}
+            title="Huấn luyện viên không còn hiển thị"
+            description="Hồ sơ này đã được ẩn hoặc tạm ngưng nhận khách. Hãy chọn huấn luyện viên khác."
+            actionLabel="Xem danh sách huấn luyện viên"
+            onAction={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/client/services");
+            }}
+          />
         ) : !pt ? (
           <EmptyState
             icon={UserSearch}
@@ -262,6 +322,12 @@ export default function TrainerDetailScreen() {
 
             {segment === "Giới thiệu" ? (
               <Card className="gap-3 p-4">
+                {pt.physiquePhotos.length > 0 ? (
+                  <GymPhotoGallery
+                    title={pt.name}
+                    photos={pt.physiquePhotos.map((photo) => ({ id: photo.id, url: photo.url, category: null }))}
+                  />
+                ) : null}
                 {pt.bio ? (
                   <Text className="font-body text-sm leading-6 text-foreground">{pt.bio}</Text>
                 ) : (
@@ -323,6 +389,9 @@ export default function TrainerDetailScreen() {
 
             {segment === "Gói dịch vụ" ? (
               <View className="gap-3">
+                {pt.fromPackagePrice != null && packages.length > 0 ? (
+                  <Text className="px-1 font-body text-xs text-muted-foreground">{`Gói từ ${formatVND(pt.fromPackagePrice)}`}</Text>
+                ) : null}
                 {packagesQuery.isLoading ? (
                   <View className="items-center py-10">
                     <ActivityIndicator color={accent.primary} />
@@ -341,6 +410,7 @@ export default function TrainerDetailScreen() {
                       selected={pkg.id === packageId}
                       onPress={() => {
                         setPackageId(pkg.id);
+                        setRefusal(null);
                         if (pkg.sessionMode !== "OFFLINE") setGymId(null);
                       }}
                     />
@@ -352,42 +422,79 @@ export default function TrainerDetailScreen() {
                     <Text className="font-body-medium text-sm text-foreground">
                       Tập tại phòng gym nào?
                     </Text>
-                    <Text className="font-body text-xs text-muted-foreground">
-                      Chỉ chọn được phòng gym đã hợp tác với huấn luyện viên — phần chia doanh thu
-                      phải đến từ thoả thuận có thật.
-                    </Text>
-                    {partnerGyms.length === 0 ? (
-                      <Text className="mt-1 font-body text-xs text-muted-foreground">
-                        Huấn luyện viên chưa hợp tác với phòng gym nào; yêu cầu sẽ được gửi dạng độc lập.
-                      </Text>
-                    ) : (
-                      <View className="mt-1 gap-2">
-                        {partnerGyms.map((gym) => {
-                          const active = gym.gymId === gymId;
-                          const rates = ratesLabel(gym);
-                          return (
-                            <Tappable
-                              key={gym.gymId}
-                              className={`flex-row items-center justify-between gap-2 rounded-xl border px-3.5 py-3 ${
-                                active ? "border-primary bg-primary/10" : "border-border bg-panel"
-                              }`}
-                              onPress={() => setGymId(active ? null : gym.gymId)}
-                            >
-                              <View className="flex-1">
-                                <Text className="font-body text-sm text-foreground" numberOfLines={1}>
-                                  {gym.name}
-                                </Text>
-                                <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
-                                  {[gym.city, rates].filter(Boolean).join(" · ")}
-                                </Text>
-                              </View>
-                              {active ? <Check size={16} color={accent.primary} /> : null}
-                            </Tappable>
-                          );
-                        })}
+                    {gymOptionsQuery.isLoading ? (
+                      <ActivityIndicator color={accent.primary} />
+                    ) : gymOptionsQuery.isError ? (
+                      <View className="gap-2">
+                        <Text className="font-body text-xs text-muted-foreground">
+                          Chưa tải được danh sách phòng gym. Bạn có thể thử lại.
+                        </Text>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="self-start"
+                          onPress={() => void gymOptionsQuery.refetch()}
+                        >
+                          Tải lại
+                        </Button>
                       </View>
+                    ) : gymOptions && gymOptions.gyms.length > 0 ? (
+                      <View className="mt-1 gap-2">
+                        {gymOptions.gyms.map((gym) => (
+                          <GymOptionCard
+                            key={gym.gymId}
+                            gym={gym}
+                            active={gym.gymId === pickedGym?.gymId}
+                            onPress={() => {
+                              setRefusal(null);
+                              setGymId(gym.gymId === gymId ? null : gym.gymId);
+                            }}
+                            onBuyMembership={() =>
+                              router.push({
+                                pathname: "/client/services/gyms/[id]",
+                                params: {
+                                  id: gym.gymId,
+                                  ...(gymOptions.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
+                                },
+                              })
+                            }
+                          />
+                        ))}
+                      </View>
+                    ) : (
+                      <Text className="mt-1 font-body text-xs text-muted-foreground">
+                        {gymOptions?.gymsReasonCopy ?? "Huấn luyện viên hiện chưa có phòng gym nào để bạn chọn."}
+                      </Text>
                     )}
                   </Card>
+                ) : selected && gymOptions?.gymsReasonCopy ? (
+                  <Text className="px-1 font-body text-xs text-muted-foreground">
+                    {gymOptions.gymsReasonCopy}
+                  </Text>
+                ) : null}
+
+                {refusal ? (
+                  <View className="gap-2">
+                    <Notice tone="warning" text={refusal.message} />
+                    {refusal.reason === "MEMBERSHIP_REQUIRED" && pickedGym ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="self-start"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/client/services/gyms/[id]",
+                            params: {
+                              id: pickedGym.gymId,
+                              ...(gymOptions?.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
+                            },
+                          })
+                        }
+                      >
+                        Mua gói hội viên
+                      </Button>
+                    ) : null}
+                  </View>
                 ) : null}
 
                 <Card className="gap-2 p-4">
@@ -453,6 +560,33 @@ export default function TrainerDetailScreen() {
         )}
       </ScrollView>
 
+      <BottomSheet open={!!packageChanged} onClose={() => setPackageChanged(null)} title={PACKAGE_CHANGED_TITLE}>
+        <View className="gap-4 pb-2">
+          <Text className="font-body text-sm leading-6 text-foreground">{PACKAGE_CHANGED_MESSAGE}</Text>
+          {packageChanged?.current ? (
+            <Card className="gap-1 p-3">
+              <Text className="font-body-semibold text-sm text-foreground">{packageChanged.current.name}</Text>
+              <Text className="font-body text-xs text-muted-foreground">
+                {`${packageChanged.current.sessionCount} buổi · ${serviceModeLabel(packageChanged.current.sessionMode)}`}
+              </Text>
+              <Text className="font-display text-base" style={{ color: accent.primary }}>
+                {formatVND(packageChanged.current.price)}
+              </Text>
+            </Card>
+          ) : null}
+          <Button
+            full
+            onPress={() => {
+              setPackageChanged(null);
+              setRefusal(null);
+              void packagesQuery.refetch();
+            }}
+          >
+            Xem giá mới
+          </Button>
+        </View>
+      </BottomSheet>
+
       <BottomSheet
         open={!!lowAvailability}
         onClose={() => setLowAvailability(null)}
@@ -476,6 +610,54 @@ export default function TrainerDetailScreen() {
           </View>
         </View>
       </BottomSheet>
+    </View>
+  );
+}
+
+function GymOptionCard({
+  gym,
+  active,
+  onPress,
+  onBuyMembership,
+}: {
+  gym: GymOption;
+  active: boolean;
+  onPress: () => void;
+  onBuyMembership: () => void;
+}) {
+  const accent = useWorkspaceAccent();
+  return (
+    <View
+      className={`rounded-xl border px-3.5 py-3 ${
+        active ? "border-primary bg-primary/10" : "border-border bg-panel"
+      }`}
+    >
+      <Tappable
+        className="flex-row items-center justify-between gap-2"
+        disabled={!gym.selectable}
+        onPress={onPress}
+      >
+        <View className="flex-1">
+          <Text className="font-body text-sm text-foreground">{gym.name}</Text>
+          {gym.city ? (
+            <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+              {gym.city}
+            </Text>
+          ) : null}
+          <Text className="mt-0.5 font-body text-xs text-muted-foreground">{gym.membershipLabel}</Text>
+        </View>
+        {active ? <Check size={16} color={accent.primary} /> : null}
+      </Tappable>
+      {gym.blockedCopy ? (
+        <View className="mt-2 gap-2">
+          <Text className="font-body text-xs text-warning">{gym.blockedCopy}</Text>
+          {gym.offersMembershipPurchase ? (
+            <Button variant="secondary" size="sm" className="self-start" onPress={onBuyMembership}>
+              Mua gói hội viên
+            </Button>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

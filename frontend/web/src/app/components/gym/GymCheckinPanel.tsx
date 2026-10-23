@@ -5,6 +5,13 @@ import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maxi
 import { gymService } from "../../services/api";
 import type { GymCheckIn } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { useApp } from "../../context/AppContext";
+import {
+  normalizeOwnerPtCheckins,
+  ownerPtCheckinWhen,
+  ownerPtScanLabel,
+} from "../../utils/ptGymCheckin";
+import { clockLabel, normalizeTodayPts } from "../../utils/frontDeskToday";
 
 const shortId = (id: string) => `${id.slice(0, 8)}…`;
 const timeAgo = (iso: string) =>
@@ -20,7 +27,9 @@ const timeAgo = (iso: string) =>
  * needs no scanner hardware and no camera permission — and the member's identity comes
  * from their logged-in session rather than from anything encoded in this image.
  */
-export function GymCheckinPanel({ gymId }: { gymId: string }) {
+export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: string; ptCheckinsMode?: "all" | "today" | "none" }) {
+  const showPtCheckins = ptCheckinsMode === "all";
+  const { user } = useApp();
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   useBackDismissible(!!fullscreen, () => setFullscreen(false));
@@ -38,6 +47,24 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
     // The desk watches this list to see arrivals appear as members scan.
     refetchInterval: 10000,
     queryFn: () => gymService.listCheckins(gymId),
+  });
+
+  // Trainers who scanned the same QR to be let in to teach — a separate list from the members above:
+  // it never feeds a member count and carries no client identity (gym-service guarantees that).
+  const { data: ptCheckins = [], isError: ptCheckinsError } = useQuery({
+    queryKey: ["gym-pt-checkins", user?.id ?? "guest", gymId],
+    // D15: lễ tân không có quyền xem lịch sử lượt vào của PT (server trả 403) → không gọi; họ dùng khối "hôm nay" bên dưới.
+    enabled: showPtCheckins,
+    refetchInterval: 10000,
+    queryFn: async () => normalizeOwnerPtCheckins(await gymService.listPtCheckins(gymId)),
+  });
+
+  // D15b — quầy lễ tân: CHỈ PT đã check-in HÔM NAY tại chi nhánh (tên + giờ), không số lần quét/buổi dạy.
+  const { data: todayPts = [], isError: todayPtsError } = useQuery({
+    queryKey: ["gym-pt-checkins-today", user?.id ?? "guest", gymId],
+    enabled: ptCheckinsMode === "today",
+    refetchInterval: 15000,
+    queryFn: async () => normalizeTodayPts(await gymService.listPtCheckinsToday(gymId)),
   });
 
   useEffect(() => {
@@ -107,9 +134,10 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
               {checkins.slice(0, 6).map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
+                  className="flex items-center justify-between gap-2 text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
                 >
-                  <span>{shortId(c.clientId)}</span>
+                  <span className="min-w-0 truncate">{c.clientName ?? (c.clientId ? shortId(c.clientId) : "Hội viên")}</span>
+                  {c.source === "ASSISTED" && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 whitespace-nowrap">Check-in hộ</span>}
                   <span className="text-zinc-600">{timeAgo(c.createdAt)}</span>
                 </div>
               ))}
@@ -117,6 +145,59 @@ export function GymCheckinPanel({ gymId }: { gymId: string }) {
           )}
         </div>
       </div>
+
+      {showPtCheckins && (
+      <div className="border-t border-zinc-800/60 pt-4">
+        <div className="text-[11px] text-zinc-600 uppercase tracking-wide mb-2">
+          Huấn luyện viên đã check-in
+        </div>
+        {ptCheckinsError ? (
+          <div className="text-xs text-zinc-600">Chưa tải được danh sách. Thử lại sau.</div>
+        ) : ptCheckins.length === 0 ? (
+          <div className="text-xs text-zinc-600">Chưa có huấn luyện viên nào check-in.</div>
+        ) : (
+          <div className="space-y-1">
+            {ptCheckins.slice(0, 6).map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between gap-3 text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-zinc-300">{c.ptName}</span>
+                  <span className="block text-zinc-600">{ownerPtCheckinWhen(c)}</span>
+                </span>
+                <span className="flex-shrink-0 text-zinc-600">{ownerPtScanLabel(c.scanCount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {ptCheckinsMode === "today" && (
+        <div className="border-t border-zinc-800/60 pt-4" data-testid="pt-today">
+          <div className="text-[11px] text-zinc-600 uppercase tracking-wide mb-2">
+            Huấn luyện viên đã check-in hôm nay
+          </div>
+          {todayPtsError ? (
+            <div className="text-xs text-zinc-600">Chưa tải được danh sách. Thử lại sau.</div>
+          ) : todayPts.length === 0 ? (
+            <div className="text-xs text-zinc-600">Hôm nay chưa có huấn luyện viên nào check-in tại chi nhánh này.</div>
+          ) : (
+            <div className="space-y-1">
+              {todayPts.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
+                >
+                  <span className="min-w-0 truncate text-zinc-300">{p.ptName}</span>
+                  <span className="flex-shrink-0 text-zinc-600">{clockLabel(p.firstScanAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Blown up so a phone can read it from across the desk. */}
       {fullscreen && dataUrl && (

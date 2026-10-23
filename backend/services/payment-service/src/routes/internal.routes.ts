@@ -6,8 +6,20 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
-import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
-import { compensateLateArrival, compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
+import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
+import {
+  compensateLateArrival,
+  compensateNoShow,
+  releasePtHoldback,
+  releaseSession,
+  recordLateArrivalObligation,
+  recordNoShowObligation,
+  loadLateArrivalDeductions,
+  ledgerPrisma,
+  resolveUnresolvedSession,
+  terminateContract,
+  UnresolvedSessionError,
+} from '../services/contract-ledger.service';
 import {
   settleMembershipReferral,
   clawbackMembershipReferral,
@@ -15,11 +27,36 @@ import {
 } from '../services/membership-ledger.service';
 import { releaseOrder, refundOrder } from '../services/personalized-service-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
+import { IdempotencyKeyConflictError } from '../services/ledger-idempotency';
+import { RequestDoesNotMatchTransactionError } from '../services/contract-request-guard';
+import ledgerOperationRoutes from './ledger-operations.routes';
 import { withdrawalService } from '../services/withdrawal.service';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
+
+// FH-2a: read-only lookup of ledger operations by idempotency key (no writes).
+router.use('/ledger-operations', ledgerOperationRoutes);
+
+/**
+ * FH-2b. The two refusals every contract-money route can raise BEFORE any ledger row is written:
+ * the same idempotency key reused for a different request (409) and a request that disagrees with the
+ * payment transaction it names (422). Returns true when it answered.
+ */
+function respondLedgerRefusal(err: unknown, res: Response): boolean {
+  if (err instanceof IdempotencyKeyConflictError) {
+    logger.warn({ error: 'idempotency key conflict', key: err.key });
+    res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT', message: err.message } });
+    return true;
+  }
+  if (err instanceof RequestDoesNotMatchTransactionError) {
+    logger.warn({ error: 'request does not match transaction', message: err.message });
+    res.status(422).json({ success: false, error: { code: 'REQUEST_DOES_NOT_MATCH_TRANSACTION', message: err.message } });
+    return true;
+  }
+  return false;
+}
 
 const DEFAULT_COMMISSION_RATE = Number(process.env.PLATFORM_COMMISSION_RATE ?? '0.10');
 
@@ -440,10 +477,27 @@ const releaseSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
+// The PT holdback rate frozen onto THIS contract when it was created — a decimal string like
+// the rate table, e.g. "0.10". Optional, and absent means "this contract carries no holdback":
+// nothing is held back and the settlement is exactly what it was before this field existed
+// (user-service sends nothing for every contract today). payment-service never substitutes a
+// default of its own, because a platform-wide figure would impose the term on contracts signed
+// without it. A value that is present but malformed or outside 0..1 is a 400, not a silent
+// fall-back to "no holdback" — the caller meant to hold something back.
+const ptHoldbackRateSchema = z
+  .string()
+  .refine((v) => /^\d+(\.\d+)?$/.test(v) && new Prisma.Decimal(v).lessThanOrEqualTo(1), {
+    message: 'ptHoldbackRate must be a decimal string between 0 and 1',
+  })
+  .optional();
+
+const releaseSessionSchema = releaseSchema.extend({ ptHoldbackRate: ptHoldbackRateSchema });
+
 // POST /internal/contracts/release-session — one confirmed session's worth of money moves
-// from every party's pending bucket to their available bucket.
+// from every party's pending bucket to their available bucket (less the PT's holdback, if the
+// contract carries one).
 router.post('/contracts/release-session', async (req: Request, res: Response) => {
-  const parsed = releaseSchema.safeParse(req.body);
+  const parsed = releaseSessionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
@@ -457,9 +511,11 @@ router.post('/contracts/release-session', async (req: Request, res: Response) =>
       parties: d.parties,
       label: d.label,
       idempotencyKey: d.idempotencyKey,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'release-session failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
   }
@@ -485,6 +541,7 @@ router.post('/contracts/no-show', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'no-show compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
   }
@@ -510,19 +567,122 @@ router.post('/contracts/late-arrival', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'late-arrival compensation failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
   }
 });
 
-const terminateSchema = releaseSchema.extend({
-  usedSessions: z.number().int().min(0),
-  // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
-  // left, but defensive) does not 400.
-  compensatedSessions: z.number().int().min(0).optional(),
-  reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED', 'PT_REPEATED_NO_SHOW']),
-  alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
+// POST /internal/contracts/late-arrival-obligation - D77, RECORD-ONLY: the late-arrival compensation of a session was never
+// performed by the ledger and the contract is ending; write it down as an OPEN unpaid obligation to the client under the
+// ORIGINAL `PT_LATE_ARRIVAL:<sessionId>` key. No wallet is touched. Idempotent on that key (a retry or a concurrent
+// ending replays the stored result), so there is never a second obligation and never a second payment.
+const lateArrivalObligationSchema = releaseSchema.extend({
+  reason: z.string().trim().min(5).max(300),
 });
+// POST /internal/contracts/no-show-obligation - the same, for a PT no-show step (`PT_NO_SHOW:<sessionId>`) the ledger never performed
+// before the contract ended. No money moves; one OPEN obligation of kind NO_SHOW, idempotent on the original key.
+router.post('/contracts/no-show-obligation', async (req: Request, res: Response) => {
+  const parsed = lateArrivalObligationSchema.safeParse(req.body);
+  if (!parsed.success || !parsed.data.idempotencyKey.startsWith('PT_NO_SHOW:')) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', details: parsed.success ? { idempotencyKey: ['must be PT_NO_SHOW:<sessionId>'] } : parsed.error.flatten() },
+    });
+  }
+  const d = parsed.data;
+  try {
+    const result = await recordNoShowObligation({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      reason: d.reason,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'no-show obligation record failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
+  }
+});
+router.post('/contracts/late-arrival-obligation', async (req: Request, res: Response) => {
+  const parsed = lateArrivalObligationSchema.safeParse(req.body);
+  if (!parsed.success || !parsed.data.idempotencyKey.startsWith('PT_LATE_ARRIVAL:')) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', details: parsed.success ? { idempotencyKey: ['must be PT_LATE_ARRIVAL:<sessionId>'] } : parsed.error.flatten() },
+    });
+  }
+  const d = parsed.data;
+  try {
+    const result = await recordLateArrivalObligation({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      reason: d.reason,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'late-arrival obligation record failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'OBLIGATION_RECORD_FAILED', message: (err as Error).message } });
+  }
+});
+
+// Every reason computeTermination knows. One list for the terminate endpoint and the preview, so
+// the two can never accept different reasons.
+const terminationReasonSchema = z.enum([
+  'CLIENT_CANCELLED',
+  'PT_BANNED',
+  'PT_CANCELLED',
+  'MUTUAL',
+  'EXPIRED',
+  'COMPLETED',
+  'PT_REPEATED_NO_SHOW',
+  'CLIENT_EXIT_DUE_TO_PT_RESTRICTION',
+  'SERVICE_DISCONTINUED_BY_PLATFORM',
+]) satisfies z.ZodType<TerminationReason>;
+
+// Sessions that are neither used nor unused when the contract ends (reported delivered but not
+// yet confirmed, or disputed). 0 / absent = none. Bounded by what is actually left to hold:
+// refusing here, with a 400, means a wrong count never reaches the ledger.
+const unresolvedSessionsSchema = z.number().int().min(0).optional();
+function refineUnresolvedBound(
+  d: { totalSessions: number; usedSessions: number; compensatedSessions?: number; unresolvedSessions?: number },
+  ctx: z.RefinementCtx,
+): void {
+  const n = d.unresolvedSessions ?? 0;
+  const room = d.totalSessions - d.usedSessions - (d.compensatedSessions ?? 0);
+  if (n > room) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['unresolvedSessions'],
+      message: `unresolvedSessions (${n}) cannot exceed totalSessions − usedSessions − compensatedSessions (${room})`,
+    });
+  }
+}
+
+const terminateSchema = releaseSchema
+  .extend({
+    usedSessions: z.number().int().min(0),
+    // Cụm A1 — optional/defaulted so a caller that predates this field (there should be none
+    // left, but defensive) does not 400.
+    compensatedSessions: z.number().int().min(0).optional(),
+    unresolvedSessions: unresolvedSessionsSchema,
+    reason: terminationReasonSchema,
+    alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
+    // See ptHoldbackRateSchema above: the contract's own snapshot, or absent for none.
+    ptHoldbackRate: ptHoldbackRateSchema,
+  })
+  .superRefine(refineUnresolvedBound);
 
 // POST /internal/contracts/terminate — settle everyone to their final entitlement and refund
 // the client per the reason's formula.
@@ -539,6 +699,7 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       totalSessions: d.totalSessions,
       usedSessions: d.usedSessions,
       compensatedSessions: d.compensatedSessions,
+      unresolvedSessions: d.unresolvedSessions,
       rates: toRates(d.rates),
       reason: d.reason,
       alreadyReleased: {
@@ -549,11 +710,85 @@ router.post('/contracts/terminate', async (req: Request, res: Response) => {
       parties: d.parties,
       label: d.label,
       idempotencyKey: d.idempotencyKey,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
     });
     return res.json({ success: true, data: result });
   } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
     logger.error({ error: 'termination failed', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+const resolveUnresolvedSchema = releaseSchema.extend({
+  // UNRESOLVED_SESSION:<sessionId> (the base schema's idempotencyKey): the same session can only
+  // ever be decided once; a retry — or the other outcome — replays the first result.
+  outcome: z.enum(['DELIVERED', 'NOT_DELIVERED']),
+  ptHoldbackRate: ptHoldbackRateSchema,
+});
+
+// POST /internal/contracts/resolve-unresolved-session — a session left unresolved when its
+// contract ended has been decided: DELIVERED moves its value to the parties' available balances
+// (as release-session would have), NOT_DELIVERED refunds it to the client. Only the contract's own
+// pending is ever touched; whatever it cannot fund comes back as `shortfall`.
+router.post('/contracts/resolve-unresolved-session', async (req: Request, res: Response) => {
+  const parsed = resolveUnresolvedSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await resolveUnresolvedSession({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+      outcome: d.outcome,
+      ptHoldbackRate: d.ptHoldbackRate === undefined ? undefined : new Prisma.Decimal(d.ptHoldbackRate),
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof UnresolvedSessionError) {
+      return res.status(409).json({ success: false, error: { code: err.code, message: err.message } });
+    }
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'resolve-unresolved-session failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'RESOLVE_UNRESOLVED_FAILED', message: (err as Error).message } });
+  }
+});
+
+const releaseHoldbackSchema = z.object({
+  transactionId: z.string().min(1),
+  parties: partiesSchema,
+  label: z.string().min(1),
+  // HOLDBACK_RELEASE:<contractId> — a retry replays the first result instead of releasing twice.
+  idempotencyKey: z.string().min(1),
+});
+
+// POST /internal/contracts/release-holdback - FH-9: what is still held for the PT on an ENDED contract goes to their available
+// balance once the contract is reconciled (no OPEN obligation, no unresolved session of its own). Never before the ending is
+// recorded. The amount is read from the ledger, never from the request.
+router.post('/contracts/release-holdback', async (req: Request, res: Response) => {
+  const parsed = releaseHoldbackSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await releasePtHoldback({
+      transactionId: d.transactionId,
+      parties: d.parties,
+      label: d.label,
+      idempotencyKey: d.idempotencyKey,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    if (respondLedgerRefusal(err, res)) return;
+    logger.error({ error: 'holdback release failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'HOLDBACK_RELEASE_FAILED', message: (err as Error).message } });
   }
 });
 
@@ -567,13 +802,24 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
     // Cụm A1 — without this, the preview shown before a cancel/refund never reflects sessions
     // already paid out as no-show compensation, disagreeing with what termination actually pays.
     compensatedSessions: z.number().int().min(0).optional(),
+    // The preview answers "what would the refund be if the contract ended now for THIS reason",
+    // using the very function terminateContract uses. Absent = CLIENT_CANCELLED, the only figure
+    // it used to give, so a caller that sends neither field sees no change.
+    reason: terminationReasonSchema.optional(),
+    unresolvedSessions: unresolvedSessionsSchema,
     rates: rateSchema,
+    // D77: when the contract's payment transaction is named, the preview accounts for the late-arrival compensations
+    // the ledger holds for it - the very facts terminate uses - so the quote equals what is credited.
+    transactionId: z.string().min(1).optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
   try {
+    const lateArrival = parsed.data.transactionId
+      ? await loadLateArrivalDeductions(ledgerPrisma, parsed.data.transactionId, parsed.data.unresolvedSessions ?? 0)
+      : undefined;
     return res.json({
       success: true,
       data: buildMoneyBreakdown({
@@ -581,8 +827,10 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
         totalSessions: parsed.data.totalSessions,
         usedSessions: parsed.data.usedSessions,
         compensatedSessions: parsed.data.compensatedSessions,
+        unresolvedSessions: parsed.data.unresolvedSessions,
         rates: toRates(parsed.data.rates),
-      }),
+        lateArrival,
+      }, parsed.data.reason ?? 'CLIENT_CANCELLED'),
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: (err as Error).message } });
@@ -825,9 +1073,10 @@ const personalizedRefundSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
-// POST /internal/personalized-service/refund — hands the client back refundAmount, pulling
-// from whatever is still PENDING first, then clawing back from AVAILABLE, then (only for the
-// PT's share) falling back to a PartnerReceivable if even that comes up short.
+// POST /internal/personalized-service/refund — hands the client back refundAmount out of THIS
+// order's own pending money only (D48/DQ-3). The client is credited exactly `paid`; any `unpaid`
+// part is an OPEN REFUND_SHORT obligation. No pooled AVAILABLE draw, no platform fronting, no
+// PartnerReceivable.
 router.post('/personalized-service/refund', async (req: Request, res: Response) => {
   const parsed = personalizedRefundSchema.safeParse(req.body);
   if (!parsed.success) {

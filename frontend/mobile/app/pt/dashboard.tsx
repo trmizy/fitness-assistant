@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
+  Dumbbell,
   FileSignature,
   Package,
   Sparkles,
@@ -34,6 +35,7 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { money } from "../../src/features/wallet/wallet";
+import { PtTermsBanner } from "../../src/features/ptTerms/PtTerms";
 import {
   DAY_LABELS,
   clientName,
@@ -155,6 +157,8 @@ export default function PtDashboardScreen() {
           </Tappable>
         </View>
 
+        <PtTermsBanner className="mx-5 mt-5" />
+
         <Stagger className="gap-5 px-5 pt-5">
           {/* Money hero */}
           <StaggerItem>
@@ -270,6 +274,12 @@ export default function PtDashboardScreen() {
                 hint={pendingPlans > 0 ? `${pendingPlans} chờ duyệt` : "Không có giáo án chờ"}
                 badge={pendingPlans}
                 onPress={() => router.push("/pt/plan-review")}
+              />
+              <ActionTile
+                icon={Dumbbell}
+                label="Check-in"
+                hint="Quét QR gym"
+                onPress={() => router.push("/pt/gym-checkin" as never)}
               />
             </View>
           </StaggerItem>

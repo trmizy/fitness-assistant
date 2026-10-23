@@ -5,9 +5,14 @@ import { profileController } from "../controllers/profile.controller";
 import { ptServicePackageController } from "../controllers/pt_service_package.controller";
 import { isLambdaRuntime } from "../utils/runtime.util";
 import agenticFitnessRoutes from "./agentic-fitness.routes";
+import { ptRestrictionController } from "../controllers/pt-restriction.controller";
+import { publicNoCache } from "../controllers/pt-listing.controller";
+import ptListingRoutes from "./pt-listing.routes";
 
 const router = Router();
 router.use("/agentic", agenticFitnessRoutes);
+// The trainer's own listing workflow (drafts, submit, physique photos). Declared before the /me routes below.
+router.use("/me/listing", ptListingRoutes);
 
 // multer({dest: <string>}) constructs a DiskStorage engine that synchronously calls
 // `fs.mkdirSync(dest, { recursive: true })` INSIDE ITS OWN CONSTRUCTOR (see
@@ -90,13 +95,17 @@ router.patch(
   profileController.toggleAcceptingClients as any,
 );
 router.delete("/me", authMiddleware, profileController.deleteProfile as any);
+// A PT's OWN restriction status (restricted mode still lets them read it). No id in the path: the
+// identity is the verified token, so one PT can never read another PT's restriction through this.
+router.get("/me/restriction", authMiddleware, ptRestrictionController.ownStatus as any);
 
 // Listing PT users — used by the chat-service to validate PT-client conversations
-router.get("/pts", authMiddleware, profileController.listPTs as any);
+router.get("/pts", authMiddleware, publicNoCache, profileController.listPTs as any);
 // Declared after /pts so the literal path is never shadowed by this parameterised one.
 router.get(
   "/pts/:userId",
   authMiddleware,
+  publicNoCache,
   profileController.getPTDetail as any,
 );
 router.patch(
@@ -109,6 +118,7 @@ router.patch(
 router.get(
   "/pts/:ptUserId/service-packages",
   authMiddleware,
+  publicNoCache,
   ptServicePackageController.getPackagesForPT as any,
 );
 

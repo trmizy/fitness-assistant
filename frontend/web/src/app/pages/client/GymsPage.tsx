@@ -16,6 +16,10 @@ import type { Gym } from "../../types";
 import { Stars } from "../../components/gym/Stars";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
 import { formatVND } from "../../utils/currency";
+import { ListingImage } from "../../components/listing/ListingImage";
+import { AmenityIcon } from "../../components/listing/AmenityIcon";
+import { cardAmenityChips, coverUrlOf } from "../../utils/gymPublic";
+import { API_URL } from "../../services/api";
 
 // ── Vị trí khách đang tìm kiếm + khoảng cách ─────────────────────────────────
 // Đúng như đã chốt với Ngài: đây là vị trí của CHÍNH KHÁCH đang mở trang này (khác toạ độ
@@ -184,17 +188,40 @@ function PriceTag({ fromPrice }: { fromPrice: string | null }) {
   return <div className="text-xs font-bold text-green-400 mt-1.5">Từ {formatVND(Number(fromPrice))}</div>;
 }
 
+/** Up to 4 amenity chips (from `amenities`, falling back to the legacy `facilities`) and "+N" for the rest. */
+function AmenityChips({ gym }: { gym: Gym }) {
+  const { chips, extra } = cardAmenityChips(gym, 4);
+  if (chips.length === 0) return null;
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Tiện ích">
+      {chips.map((a) => (
+        <li key={a.key} className="inline-flex max-w-full items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300">
+          <AmenityIcon iconKey={a.iconKey} className="size-3 shrink-0" />
+          <span className="truncate">{a.name}</span>
+        </li>
+      ))}
+      {extra > 0 && <li className="inline-flex items-center rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-500">+{extra}</li>}
+    </ul>
+  );
+}
+
 function GymResultCard({ gym, distance, onSelect }: { gym: Gym; distance: number | null; onSelect: () => void }) {
+  const cover = coverUrlOf(gym, API_URL);
   return (
     <button
       type="button"
       onClick={onSelect}
       className="text-left bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4 hover:border-green-500/40 hover:-translate-y-0.5 transition-all"
     >
+      {cover && <ListingImage url={cover} alt={`Ảnh bìa ${gym.name}`} className="mb-3 h-36 w-full rounded-xl" />}
       <div className="flex items-start justify-between mb-3">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 flex items-center justify-center">
-          <Dumbbell className="w-5 h-5 text-green-400" />
-        </div>
+        {cover ? (
+          <span />
+        ) : (
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 flex items-center justify-center">
+            <Dumbbell className="w-5 h-5 text-green-400" />
+          </div>
+        )}
         {distance != null && (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2 py-0.5">
             <Navigation className="w-3 h-3" /> {formatDistance(distance)}
@@ -210,6 +237,7 @@ function GymResultCard({ gym, distance, onSelect }: { gym: Gym; distance: number
           <Stars value={gym.averageRating ?? 0} /> {(gym.averageRating ?? 0).toFixed(1)} <span className="text-zinc-600">({gym.reviewCount})</span>
         </div>
       )}
+      <AmenityChips gym={gym} />
       <PriceTag fromPrice={gym.fromPrice ?? null} />
     </button>
   );

@@ -11,6 +11,7 @@ import { buildReconciliationReport } from '../services/reconcile.service';
 import { buildFinanceOverview, isFinanceGroupBy } from '../services/finance-report.service';
 import { withdrawalService } from '../services/withdrawal.service';
 import { postServiceJson } from '../clients/service-lambda.client';
+import adminObligationsRoutes from './admin-obligations.routes';
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -25,10 +26,22 @@ const router = Router();
 // route in this file now requires a verified ADMIN token independently.
 router.use(extractUser, requireAuth, requireRoles('ADMIN'));
 
+// FH-4 part 2 - read-only obligations report (must stay above the '/:id/...' routes below).
+router.use('/obligations', adminObligationsRoutes);
+
 // GET /admin/payments — real transaction list (was a hardcoded empty array
 // regardless of what data actually existed).
 router.get('/', async (_req: Request, res: Response) => {
   const transactions = await transactionRepository.findRecent(200);
+  res.json({ success: true, data: transactions });
+});
+
+// GET /admin/payments/gateway-discrepancies — gateway callbacks whose amount did not match the transaction's
+// price. Nothing was settled for these (no escrow credit, no activation); each needs a manual decision (refund the
+// payer at the gateway, or reconcile). metadata.gatewayDiscrepancy holds expected vs reported amount, the source
+// (IPN / RETURN / POLL), VNPay's transaction number and an occurrence count.
+router.get('/gateway-discrepancies', async (_req: Request, res: Response) => {
+  const transactions = await transactionRepository.findWithGatewayDiscrepancy(200);
   res.json({ success: true, data: transactions });
 });
 
@@ -313,6 +326,13 @@ router.post('/:transactionId/retry-activation', async (req: Request, res: Respon
           body,
           headers,
         });
+      } else if (txn.relatedEntityType === 'PT_CONTRACT') {
+        // Same handling as the webhook and the reconcile sweep — user-service's definite
+        // "cannot be activated" answer refunds the client instead of being marked activated
+        // (activateOrRefund marks the transaction itself, in both outcomes).
+        const { activateOrRefund } = await import('../services/reconciliation.service');
+        const outcome = await activateOrRefund(txn);
+        return res.json({ success: true, data: { outcome } });
       } else {
         await postServiceJson({
           service: 'user',

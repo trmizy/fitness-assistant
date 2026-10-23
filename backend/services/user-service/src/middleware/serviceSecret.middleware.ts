@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "crypto";
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@gym-coach/shared";
 
@@ -42,6 +43,21 @@ if (ACCEPTED.length === 0) {
   logger.error(
     "Neither INTERNAL_SERVICE_SECRET nor INTERNAL_API_SECRET is set; /internal/* endpoints will reject all requests",
   );
+}
+
+/**
+ * True when `value` is one of the accepted shared secrets (constant-time). Used by the client-IP middleware to tell a request that
+ * came through the gateway (which stamps x-gateway-secret) from one that did not. Never true for an empty value.
+ */
+export function isAcceptedServiceSecret(value: string | undefined | null): boolean {
+  if (!value) return false;
+  const digest = (v: string) => createHash("sha256").update(v).digest();
+  const given = digest(value);
+  let ok = false;
+  for (const accepted of ACCEPTED) {
+    if (timingSafeEqual(given, digest(accepted))) ok = true;
+  }
+  return ok;
 }
 
 /**

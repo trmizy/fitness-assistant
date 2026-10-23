@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
+import { withRefundLabel } from "../../utils/sessionRefund";
 import type { Contract, Session, SessionStatus } from "../../types";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
@@ -109,8 +110,11 @@ const SESSION_STATUS_CONFIG: Record<
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
+  // The only way a session ends NO_SHOW is the PT's fault (no-show, late cancel, blocked day, never entered the room, or an
+  // admin ruling): the session is closed, still counts and is never delivered (DQ-2(a)). Whether the money is back follows the
+  // session's refundState (withRefundLabel at the render sites) - "đã hoàn tiền" only when it is FULL.
   NO_SHOW: {
-    label: "Khách vắng mặt",
+    label: "Không diễn ra",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
@@ -1238,7 +1242,7 @@ export function BookingPage() {
           ) : (
             <div className="space-y-3">
               {pastSessions.map((s) => {
-                const cfg = SESSION_STATUS_CONFIG[s.status];
+                const cfg = withRefundLabel(SESSION_STATUS_CONFIG[s.status], s, "CLIENT");
                 return (
                   <div
                     key={s.id}

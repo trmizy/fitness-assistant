@@ -610,13 +610,19 @@ for (const action of ["disable", "enable"] as const) {
     `/admin/users/:userId/${action}`,
     authMiddleware,
     requireRoles("ADMIN"),
+    // The gateway does not parse bodies globally (it streams them to the proxied services), so
+    // this route parses its own — a few KB at most, just the optional `reason`.
+    json({ limit: "4kb" }),
     async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         const { userId } = req.params;
+        // Only `reason` is passed on (never the whole body: auth-service reads `isActive` from it).
+        // The acting admin is taken from the forwarded Authorization header by auth-service.
+        const reason = typeof req.body?.reason === "string" ? req.body.reason : undefined;
         const response = await axios.patch(
           `${AUTH_SERVICE_URL}/auth/users/${userId}/${action}`,
-          {},
+          reason !== undefined ? { reason } : {},
           {
             headers: authHeader ? { Authorization: authHeader } : undefined,
             timeout: 5000,
@@ -1344,6 +1350,71 @@ router.use(
   }),
 );
 
+// Admin — temporary PT suspension: suspend / lift / history / list / justify (User Service). The
+// gateway gates by role; user-service re-checks ADMIN and takes the acting admin from the verified token.
+router.use(
+  "/admin/pts",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (admin PT restrictions)"),
+  }),
+);
+
+// Admin — PT listing management (User Service): review queue, approve / reject / request-changes, direct edit,
+// physique-photo retire, history. The gateway gates by role; user-service re-checks ADMIN and takes the acting admin
+// from the verified token. Only the /pts sub-prefix is declared here: /admin/listings/gyms belongs to gym-service.
+router.use(
+  "/admin/listings/pts",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (admin PT listings)"),
+  }),
+);
+
+// Public — PT physique photos (User Service). No auth, GET/HEAD only: the service answers 404 unless the photo is
+// PUBLISHED and its trainer is publicly visible, otherwise a 302 to a short presigned URL. Anything but a read
+// never reaches the service.
+router.use(
+  "/media/pt-physique",
+  (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.setHeader("Allow", "GET, HEAD");
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+    return next();
+  },
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (media)"),
+  }),
+);
+
+// Public — gym branch photos (Gym Service). No auth, GET/HEAD only: the service answers 404 unless the photo is
+// PUBLISHED and its branch is publicly visible, otherwise a 302 to a short presigned URL (or streams a disk photo).
+// Anything but a read never reaches the service.
+router.use(
+  "/media/gym-photos",
+  (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.setHeader("Allow", "GET, HEAD");
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+    return next();
+  },
+  createProxyMiddleware({
+    target: GYM_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("Gym service (media)"),
+  }),
+);
+
 // Protected — Notifications (User Service)
 router.use(
   "/notifications",
@@ -1498,6 +1569,15 @@ router.post(
     onError: serviceUnavailable('Payment service (webhook)'),
   }),
 );
+// FH E2E: VNPay IPN is GET
+router.get(
+  '/payments/webhook/:provider',
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service (webhook)'),
+  }),
+);
 
 // VNPay's own return-URL handler (no auth — this is VNPay redirecting the payer's browser
 // back, not an authenticated app call; the query string is itself signature-verified inside
@@ -1589,6 +1669,14 @@ router.use(
   '/me/gym-checkins',
   authMiddleware,
   requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Phase 2 (D16/D17/D70): a PT scans the branch QR to record their own on-site presence. Distinct
+// path from /me/gym-checkins (Q-C) and PT-only here; gym-service re-checks the PT role itself.
+router.use(
+  '/me/pt-gym-checkins',
+  authMiddleware,
+  requireRoles('PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
@@ -1802,6 +1890,29 @@ router.use(
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// Listing Management B2 — branch listing moderation and the amenity catalogue (Gym Service). Sibling prefixes outside
+// /admin/gyms and /owner/gyms, so each needs its own explicit declaration or it 404s at the gateway. The gateway only
+// gates by role; gym-service re-checks ADMIN / GYM_OWNER and takes the actor from the verified token.
+// (/admin/listings/pts belongs to user-service and is declared above; /owner/gyms/:id/listing/* is covered by /owner/gyms.)
+router.use(
+  '/admin/listings/gyms',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin listings)') }),
+);
+router.use(
+  '/admin/amenities',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin amenities)') }),
+);
+router.use(
+  '/owner/amenities',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (amenities)') }),
 );
 
 export default router;

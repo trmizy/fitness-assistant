@@ -12,12 +12,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'crypto';
 import type { AddressInfo } from 'net';
+import { isTestDatabaseUrl } from './support/test-db-guard'; // D57-6-5 / D64: the database NAME must end with _test (the old /_test/i on the whole URL also matched the user name gymcoach_test)
 
 // vnpay.provider reads its secret at import time; sign/verify only need it to be consistent.
 process.env.VNPAY_HASH_SECRET ??= 'test-only-vnpay-hash-secret';
 
 const databaseUrl = process.env.DATABASE_URL || '';
-const canUseIntegrationDb = /_test/i.test(databaseUrl);
+const canUseIntegrationDb = isTestDatabaseUrl(databaseUrl);
 const skipOpts = {
   skip: canUseIntegrationDb ? false : 'Requires DATABASE_URL pointing at a *_test database.',
 };
@@ -141,6 +142,8 @@ test('a genuine PAID arriving after the failure still settles it (no real paymen
       providerTransactionId: txn.id,
       payload: {},
       status: 'PAID',
+      // The late payment is genuine: it reports exactly the 50,000 VND price (a VNPay PAID event without it is refused).
+      paidAmountVnd: '50000',
     });
     assert.equal((await db.paymentTransaction.findUnique({ where: { id: txn.id } }))!.status, 'PAID');
     const fresh = await db.wallet.findUnique({ where: { id: wallet.id } });

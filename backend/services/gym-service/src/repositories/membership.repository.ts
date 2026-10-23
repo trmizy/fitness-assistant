@@ -115,39 +115,44 @@ export const membershipRepository = {
     return null;
   },
 
-  /** Idempotent activation: only flips PENDING_PAYMENT -> ACTIVE; a repeat call is a no-op. */
+  /**
+   * Idempotent activation: only flips PENDING_PAYMENT -> ACTIVE; a repeat call is a no-op.
+   * FH-5: the flip is a CONDITIONAL write (where status is still PENDING_PAYMENT), the same guard cancelIfPending uses,
+   * so a concurrent client cancel and this activation can never both "win": `affected` is 1 only for the call that
+   * really made the transition, and the caller must treat affected 0 + a row that is not ACTIVE-by-this-payment as
+   * "not activatable" (payment-service then refunds), never as success.
+   */
   async activateIfPending(id: string, paymentTxnId: string) {
     const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
     if (!contract) return { affected: 0, contract: null };
-    if (contract.status === 'ACTIVE') return { affected: 0, contract }; // already done — no-op
-    if (contract.status !== 'PENDING_PAYMENT') return { affected: 0, contract };
+    if (contract.status !== 'PENDING_PAYMENT') return { affected: 0, contract }; // already done / not payable — no-op
 
     const endDate = new Date(Date.now() + contract.durationDaysSnapshot * 24 * 60 * 60 * 1000);
-    const updated = await prisma.gymMembershipContract.update({
-      where: { id },
+    const flipped = await prisma.gymMembershipContract.updateMany({
+      where: { id, status: 'PENDING_PAYMENT' },
       data: { status: 'ACTIVE', startDate: new Date(), endDate, paymentTxnId },
     });
-    return { affected: 1, contract: updated };
+    return { affected: flipped.count, contract: await prisma.gymMembershipContract.findUnique({ where: { id } }) };
   },
 
+  /** Cancels an unpaid membership - conditional write (FH-5); a row that is no longer PENDING_PAYMENT is returned untouched. */
   async cancelIfPending(id: string) {
-    const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
-    if (!contract) return null;
-    if (contract.status !== 'PENDING_PAYMENT') return contract;
-    return prisma.gymMembershipContract.update({ where: { id }, data: { status: 'CANCELLED' } });
+    await prisma.gymMembershipContract.updateMany({ where: { id, status: 'PENDING_PAYMENT' }, data: { status: 'CANCELLED' } });
+    return prisma.gymMembershipContract.findUnique({ where: { id } });
   },
 
   /** P0 cluster E2 — idempotent: only flips PENDING_PAYMENT -> PENDING_ISSUE. A membership
    * already PENDING_ISSUE (a retried webhook) or that moved on some other way returns as-is
    * so the caller can tell whether IT was the one that just made the transition. Records
    * paymentTxnId here (normally only set on real activation) so a later admin-triggered
-   * manual resolution has the transaction id to refund without needing it passed in again. */
+   * manual resolution has the transaction id to refund without needing it passed in again.
+   * Conditional write (FH-5), like activateIfPending. */
   async markPendingIssueIfPending(id: string, paymentTxnId: string) {
-    const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
-    if (!contract) return { affected: 0, contract: null };
-    if (contract.status !== 'PENDING_PAYMENT') return { affected: 0, contract };
-    const updated = await prisma.gymMembershipContract.update({ where: { id }, data: { status: 'PENDING_ISSUE', paymentTxnId } });
-    return { affected: 1, contract: updated };
+    const flipped = await prisma.gymMembershipContract.updateMany({
+      where: { id, status: 'PENDING_PAYMENT' },
+      data: { status: 'PENDING_ISSUE', paymentTxnId },
+    });
+    return { affected: flipped.count, contract: await prisma.gymMembershipContract.findUnique({ where: { id } }) };
   },
 
   /** The admin queue P0 cluster E2 leaves behind when an auto-refund itself failed. */

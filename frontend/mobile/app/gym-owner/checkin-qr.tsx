@@ -9,10 +9,16 @@ import { Maximize2, QrCode as QrIcon, RefreshCw, Share2, X } from "lucide-react-
 import { Button, Card, EmptyState, ScreenHeader, useToast } from "../../src/components/ui";
 import { QrCode } from "../../src/components/QrCode";
 import { gymService } from "../../src/services/api";
+import { useApp } from "../../src/context/AppContext";
 import { shareLocalFile, writeLocalBase64File } from "../../src/services/files";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { darkColors } from "../../src/theme/colors";
 import { checkinTimeLabel, qrExpiryLabel, shortMemberId } from "../../src/features/gymOwner/checkinQr";
+import {
+  normalizeOwnerPtCheckins,
+  ownerPtCheckinWhen,
+  ownerPtScanLabel,
+} from "../../src/features/services/ptCheckin";
 
 type QrResponse = { token: string; expiresAt?: number; gymId: string; gymName: string };
 type Checkin = { id: string; clientId: string; createdAt: string };
@@ -32,6 +38,8 @@ export default function GymCheckinQrScreen() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const toast = useToast();
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
   const { width, height } = useWindowDimensions();
   const svgRef = useRef<Svg>(null);
   const [full, setFull] = useState(false);
@@ -50,6 +58,15 @@ export default function GymCheckinQrScreen() {
     },
     enabled: !!gymId,
     // The desk watches arrivals appear as members scan (web polls the same 10 s).
+    refetchInterval: 10_000,
+  });
+
+  // Trainers who scanned the same QR to be let in to teach. A separate list from the members above:
+  // it never feeds a member count and it carries no client identity (gym-service guarantees that).
+  const ptCheckinsQuery = useQuery({
+    queryKey: ["gym-pt-checkins", uid, gymId],
+    queryFn: async () => normalizeOwnerPtCheckins(await gymService.listPtCheckins(gymId)),
+    enabled: !!gymId,
     refetchInterval: 10_000,
   });
 
@@ -85,10 +102,11 @@ export default function GymCheckinQrScreen() {
         contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
-            refreshing={qrQuery.isRefetching || checkinsQuery.isRefetching}
+            refreshing={qrQuery.isRefetching || checkinsQuery.isRefetching || ptCheckinsQuery.isRefetching}
             onRefresh={() => {
               void qrQuery.refetch();
               void checkinsQuery.refetch();
+              void ptCheckinsQuery.refetch();
             }}
             tintColor={accent.primary}
             colors={[accent.primary]}
@@ -160,6 +178,31 @@ export default function GymCheckinQrScreen() {
                 <View key={c.id} className="flex-row items-center justify-between rounded-lg bg-panel px-3 py-2">
                   <Text className="font-body text-xs text-foreground">{shortMemberId(c.clientId)}</Text>
                   <Text className="font-body text-xs text-muted-foreground">{checkinTimeLabel(c.createdAt)}</Text>
+                </View>
+              ))
+            )}
+          </Card>
+        ) : null}
+
+        {!forbidden ? (
+          <Card className="gap-2 p-4">
+            <Text className="font-body-semibold text-sm text-foreground">Huấn luyện viên đã check-in</Text>
+            {ptCheckinsQuery.isLoading ? (
+              <ActivityIndicator color={accent.primary} />
+            ) : ptCheckinsQuery.isError ? (
+              <Text className="font-body text-xs text-muted-foreground">Chưa tải được danh sách. Kéo xuống để thử lại.</Text>
+            ) : (ptCheckinsQuery.data ?? []).length === 0 ? (
+              <Text className="font-body text-xs text-muted-foreground">Chưa có huấn luyện viên nào check-in.</Text>
+            ) : (
+              (ptCheckinsQuery.data ?? []).slice(0, 20).map((c) => (
+                <View key={c.id} className="flex-row items-center gap-3 rounded-lg bg-panel px-3 py-2">
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-body text-xs text-foreground" numberOfLines={1}>
+                      {c.ptName}
+                    </Text>
+                    <Text className="font-body text-[11px] text-muted-foreground">{ownerPtCheckinWhen(c)}</Text>
+                  </View>
+                  <Text className="font-body text-xs text-muted-foreground">{ownerPtScanLabel(c.scanCount)}</Text>
                 </View>
               ))
             )}

@@ -21,6 +21,7 @@ import http from "node:http";
 import express from "express";
 import { prisma } from "../repositories/prisma";
 import { transactionRepository } from "../repositories/transaction.repository";
+import { skip as dbSkip } from "./support/test-db-guard";
 
 // Mock database call to prevent Prisma from hanging on connection in the 6th test
 transactionRepository.findRecent = async () => [];
@@ -105,7 +106,10 @@ test("SECURITY: PATCH .../commissions/:id/settle with no auth is rejected (befor
   assert.equal(res.status, 401);
 });
 
-test("a real ADMIN token is allowed through to GET /admin/payments", async () => {
+// D57-6-5: the five rejection tests above never reach the database (middleware answers 401/403 first), so they keep running
+// everywhere. This is the only test that gets past auth into a handler that reads the ledger (findRecent is replaced above, but a
+// future edit could drop that), so it is the one gated to a database whose name ends with _test.
+test("a real ADMIN token is allowed through to GET /admin/payments", { skip: dbSkip }, async () => {
   const res = await fetch(`${baseUrl}/admin/payments`, {
     headers: { Authorization: "Bearer real-admin-token" },
   });

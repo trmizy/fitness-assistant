@@ -4,12 +4,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CircleNotchIcon } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
-import type { Gym, GymBrand, GymFacility, GymOperatingHoursDay, GymBranchReviewIssue } from "../../types";
+import { useApp } from "../../context/AppContext";
+import { branchDraftAmenityService, ownerAmenityService } from "../../services/gymListingApi";
+import {
+  amenityPool,
+  amenityTotal,
+  errorCodeOf,
+  gymListingErrorMessage,
+  initialDraftSelection,
+  ownerAmenitiesKey,
+  proposalsOfGym,
+  mergeProposals,
+  normalizeBranchSelection,
+  GYM_LISTING_ERROR_VI,
+} from "../../utils/gymListing";
+import type { Gym, GymBrand, GymOperatingHoursDay, GymBranchReviewIssue } from "../../types";
 import { WizardShell, WIZARD_STEP_LABELS, type SaveStatus } from "../../components/gym/AddBranchWizard/WizardShell";
 import { StepBasicInfo, validateBasicInfo, type BasicInfoValue } from "../../components/gym/AddBranchWizard/StepBasicInfo";
 import { StepLocation, validateLocation, type LocationValue } from "../../components/gym/AddBranchWizard/StepLocation";
 import { StepOpeningHours, validateOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeningHours";
-import { StepFacilities } from "../../components/gym/AddBranchWizard/StepFacilities";
+import { StepFacilities, type AmenitySelectionState } from "../../components/gym/AddBranchWizard/StepFacilities";
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
 import { StepReviewSubmit, type SubmitIssue } from "../../components/gym/AddBranchWizard/StepReviewSubmit";
@@ -59,7 +73,13 @@ export function AddBranchWizardPage() {
   const [basicInfo, setBasicInfo] = useState<BasicInfoValue | null>(null);
   const [location, setLocation] = useState<LocationValue | null>(null);
   const [hours, setHours] = useState<GymOperatingHoursDay[] | null>(null);
-  const [facilities, setFacilities] = useState<GymFacility[] | null>(null);
+  // Step 4: the amenity selection (catalogue ids + the owner's own pending proposals). null until the draft AND the catalogue loaded.
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
+  const [sel, setSel] = useState<AmenitySelectionState | null>(null);
+  const selRef = useRef<AmenitySelectionState | null>(null);
+  const selSaveChain = useRef<Promise<unknown>>(Promise.resolve());
+  const [selSaving, setSelSaving] = useState(false);
   const [submitIssues, setSubmitIssues] = useState<SubmitIssue[]>([]);
 
   // No :id yet — create a draft once, then own the URL so a refresh resumes correctly
@@ -98,6 +118,45 @@ export function AddBranchWizardPage() {
   });
   const openReviewIssues = reviewIssuesQuery.data ?? [];
 
+  // The amenity catalogue + the owner's proposals (user-scoped key: a previous account's proposals never show).
+  const catalogQuery = useQuery({ queryKey: ownerAmenitiesKey(uid), queryFn: () => ownerAmenityService.catalog(), enabled: !!id && !!user, staleTime: 30_000 });
+  const catalog = catalogQuery.data?.amenities ?? [];
+  const pool = amenityPool(catalog, normalizeBranchSelection(draftQuery.data).amenities.filter((a) => a.status === "ACTIVE"));
+  // The branch's own read-back (GET /owner/gyms/:id: `amenities` incl. custom ones, `amenityProposals` = its PENDING proposals) is the
+  // starting selection; the catalogue answer adds the rejected / decided proposals for the "bị từ chối" list.
+  const myProposals = proposalsOfGym(mergeProposals(normalizeBranchSelection(draftQuery.data).proposals, catalogQuery.data?.proposals ?? []), id ?? "");
+
+  useEffect(() => {
+    if (sel || !draftQuery.data || !id) return;
+    const init = initialDraftSelection(draftQuery.data);
+    selRef.current = init;
+    setSel(init);
+  }, [sel, draftQuery.data, id]);
+
+  /** Applies a new selection and saves it with the draft PATCH (serialised, always the latest state). */
+  function changeSelection(next: AmenitySelectionState) {
+    selRef.current = next;
+    setSel(next);
+    setSelSaving(true);
+    setSaveStatus("saving");
+    selSaveChain.current = selSaveChain.current.then(async () => {
+      const latest = selRef.current;
+      if (!latest) return;
+      try {
+        await branchDraftAmenityService.save(id!, { amenityIds: latest.amenityIds, proposals: [], proposalIds: latest.proposalIds });
+        if (selRef.current === latest) {
+          setSaveStatus("saved");
+          setSavedAt(new Date());
+        }
+      } catch (e) {
+        setSaveStatus("error");
+        toast.error(gymListingErrorMessage(e, "Không lưu được tiện ích"));
+      } finally {
+        if (selRef.current === latest) setSelSaving(false);
+      }
+    });
+  }
+
   // Resume at the saved step exactly once, when the draft first loads, and seed local form
   // state from the server's current values.
   useEffect(() => {
@@ -118,7 +177,6 @@ export function AddBranchWizardPage() {
         longitude: draftQuery.data.longitude ?? null,
         locationNote: draftQuery.data.locationNote ?? "",
       });
-      setFacilities(draftQuery.data.facilities ?? []);
     }
   }, [draftQuery.data]);
 
@@ -152,6 +210,12 @@ export function AddBranchWizardPage() {
       navigate(`/gym-owner/gyms/${id}`, { replace: true });
     },
     onError: (e: any) => {
+      // 422 AMENITIES_REQUIRED (no amenity saved on the server): point at step 4 instead of a generic failure.
+      if (errorCodeOf(e) === "AMENITIES_REQUIRED") {
+        setSubmitIssues([{ field: "amenities", message: GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED }]);
+        toast.error(GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED);
+        return;
+      }
       const issues = e?.response?.data?.error?.issues;
       setSubmitIssues(Array.isArray(issues) ? issues : []);
       toast.error(e?.response?.data?.error?.message || "Không thể gửi duyệt");
@@ -199,6 +263,7 @@ export function AddBranchWizardPage() {
       const issues = validateOpeningHours(hours);
       if (issues.length > 0) return setStepIssues(issues);
     }
+    if (step === 4 && sel && amenityTotal(sel) === 0) return setStepIssues([GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED]);
     goToStep(step + 1);
   }
 
@@ -301,15 +366,30 @@ export function AddBranchWizardPage() {
         />
       )}
 
-      {step === 4 && facilities && (
-        <StepFacilities
-          value={facilities}
-          onChange={(next) => {
-            setFacilities(next);
-            scheduleDraftSave({ facilities: next });
-          }}
-        />
-      )}
+      {step === 4 &&
+        (sel ? (
+          <StepFacilities
+            gymId={draft.id}
+            catalog={pool}
+            proposals={myProposals}
+            loading={catalogQuery.isLoading}
+            error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
+            onRetry={() => void catalogQuery.refetch()}
+            value={sel}
+            onChange={(next) => {
+              setStepIssues([]);
+              changeSelection(next);
+            }}
+            onRefresh={() => void queryClient.invalidateQueries({ queryKey: ownerAmenitiesKey(uid) })}
+            saving={selSaving}
+          />
+        ) : catalogQuery.isError ? (
+          <ErrorState kind="server" message={gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.")} onRetry={() => void catalogQuery.refetch()} />
+        ) : (
+          <div className="flex justify-center py-10">
+            <CircleNotchIcon className="size-5 text-green-500 animate-spin" />
+          </div>
+        ))}
 
       {step === 5 && <StepPhotos gymId={draft.id} />}
 
@@ -322,7 +402,8 @@ export function AddBranchWizardPage() {
           basicInfo={basicInfo}
           location={location}
           hours={hours ?? defaultHours(draft.id)}
-          facilities={facilities ?? []}
+          amenityLabels={(sel?.amenityIds ?? []).map((aid) => pool.find((a) => a.id === aid)?.name).filter((n): n is string => !!n)}
+          pendingAmenityNames={myProposals.filter((p) => p.status === "PENDING" && (sel?.proposalIds ?? []).includes(p.id)).map((p) => p.name)}
           openReviewIssues={openReviewIssues}
           submitIssues={submitIssues}
           submitting={submitMutation.isPending}

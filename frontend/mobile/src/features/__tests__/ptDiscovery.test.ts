@@ -17,6 +17,7 @@ import {
   filterError,
   lowAvailabilityMessage,
   hasMorePts,
+  isPtGone,
   lowestPerSessionPrice,
   matchesSpecialty,
   mergePtPages,
@@ -29,6 +30,7 @@ import {
   pricePerSession,
   ratesLabel,
   readLowAvailability,
+  readPackageChanged,
   requestBlockedReason,
   serviceModeLabel,
   type ServicePackage,
@@ -102,9 +104,11 @@ describe("normalizePt", () => {
     assert.deepEqual(pt.specialties, ["Tăng cơ", "Yoga"]);
   });
 
-  it("falls back to the email, then to a generic name, rather than rendering blank", () => {
-    assert.equal(normalizePt({ userId: "u", email: "a@b.c" }).name, "a@b.c");
+  it("falls back to a generic name, never to an e-mail address, rather than rendering blank", () => {
+    // Listing Management: the public DTO no longer carries an e-mail; an old server that still does must not leak it onto a card.
+    assert.equal(normalizePt({ userId: "u", email: "a@b.c" }).name, "Huấn luyện viên");
     assert.equal(normalizePt({ userId: "u" }).name, "Huấn luyện viên");
+    assert.equal(normalizePt({ userId: "u", firstName: "Huy" }).name, "Huy");
   });
 
   it("joins area from the parts the profile actually stores", () => {
@@ -369,5 +373,164 @@ describe("paging the trainer list", () => {
     const rows = mergePtPages([page(0, 3), { pts: [...page(2, 1).pts, ...page(3, 2).pts] }]);
     assert.deepEqual(rows.map((r) => r.userId), ["pt-0", "pt-1", "pt-2", "pt-3", "pt-4"]);
     assert.deepEqual(mergePtPages(undefined), []);
+  });
+});
+
+// ── Listing Management (M1): the DTO user-service's toPublicPtDto now answers ───────────────────────
+// Trimmed from pt-public-dto.ts: no e-mail, derived legacy prices, fromPricePerSession / fromPackagePrice,
+// physiquePhotos with /media paths, coverPhotoUrl.
+const NEW_DTO_ROW = {
+  userId: "pt-new",
+  firstName: "Lan",
+  lastName: "Trần",
+  photoUrl: null,
+  specialties: ["Tăng cơ"],
+  isAcceptingClients: true,
+  notAcceptingReason: null,
+  ptSuspended: false,
+  avgRating: 4.5,
+  ratingCount: 12,
+  availableSlotsNext28Days: 10,
+  ptApplication: {
+    serviceMode: "HYBRID",
+    professionalBio: "Bio",
+    // derived (deprecated) legacy fields — min over packages, floored to 1.000đ
+    desiredSessionPrice: 200000,
+    onlinePricePerSession: 250000,
+    offlinePricePerSession: 200000,
+    onlinePackagePrice: 1250000,
+    offlinePackagePrice: 2000000,
+    monthlyProgramPrice: null,
+    packagePrice: null,
+    sessionsPerPackage: null,
+    additionalPricingNotes: null,
+    fromPricePerSession: 200000,
+    fromPackagePrice: 300000,
+  },
+  servicePackages: [],
+  fromPricePerSession: 200000,
+  fromPackagePrice: 300000,
+  physiquePhotos: [
+    { id: "ph-2", url: "/media/pt-physique/ph-2", isCover: false, sortOrder: 1 },
+    { id: "ph-1", url: "/media/pt-physique/ph-1", isCover: true, sortOrder: 0 },
+  ],
+  coverPhotoUrl: "/media/pt-physique/ph-1",
+};
+
+describe("normalizePt — the new public DTO", () => {
+  it("reads the card price from fromPricePerSession and the package price from fromPackagePrice", () => {
+    const pt = normalizePt(NEW_DTO_ROW);
+    assert.equal(pt.lowestPrice, 200000);
+    assert.equal(pt.fromPackagePrice, 300000);
+  });
+
+  it("prefers fromPricePerSession over the (derived) legacy fields", () => {
+    const row = { ...NEW_DTO_ROW, ptApplication: { ...NEW_DTO_ROW.ptApplication, fromPricePerSession: 150000, onlinePricePerSession: 250000, offlinePricePerSession: 200000 } };
+    assert.equal(normalizePt(row).lowestPrice, 150000);
+  });
+
+  it("works from the top-level field alone, and from the legacy fields alone (an older server)", () => {
+    assert.equal(normalizePt({ userId: "u", fromPricePerSession: 180000, ptApplication: {} }).lowestPrice, 180000);
+    assert.equal(normalizePt({ userId: "u", ptApplication: { offlinePricePerSession: 300000, onlinePricePerSession: 250000 } }).lowestPrice, 250000);
+  });
+
+  it("a trainer with no package on sale shows no price — null, never zero", () => {
+    const pt = normalizePt({ ...NEW_DTO_ROW, fromPricePerSession: null, fromPackagePrice: null, ptApplication: { serviceMode: "ONLINE", fromPricePerSession: null, fromPackagePrice: null, onlinePricePerSession: null, offlinePricePerSession: null, desiredSessionPrice: null } });
+    assert.equal(pt.lowestPrice, null);
+    assert.equal(pt.fromPackagePrice, null);
+    assert.equal(normalizePt({ userId: "u", fromPricePerSession: 0, ptApplication: {} }).lowestPrice, null);
+  });
+
+  it("reads the cover and the physique photos in display order", () => {
+    const pt = normalizePt(NEW_DTO_ROW);
+    assert.equal(pt.coverPhotoUrl, "/media/pt-physique/ph-1");
+    assert.deepEqual(pt.physiquePhotos.map((p) => p.id), ["ph-1", "ph-2"]);
+    assert.equal(pt.physiquePhotos[0].isCover, true);
+  });
+
+  it("a row from an older server has no photos and no cover", () => {
+    const pt = normalizePt(REAL_ROW);
+    assert.equal(pt.coverPhotoUrl, null);
+    assert.deepEqual(pt.physiquePhotos, []);
+  });
+
+  it("drops photo entries without an id or url instead of rendering a broken image", () => {
+    const pt = normalizePt({ userId: "u", physiquePhotos: [{ id: "a" }, { url: "/x" }, { id: "b", url: "/media/pt-physique/b" }] });
+    assert.deepEqual(pt.physiquePhotos.map((p) => p.id), ["b"]);
+  });
+
+  it("the card never carries an e-mail address, even if an old server sent one", () => {
+    const pt = normalizePt({ ...NEW_DTO_ROW, firstName: null, lastName: null, email: "private@example.com" });
+    assert.equal(pt.name, "Huấn luyện viên");
+    assert.equal(JSON.stringify(pt).includes("private@example.com"), false);
+  });
+
+  it("photos and the package price come from the DETAIL, not from a cached list row that may still show a removed photo", () => {
+    const listRow = normalizePt(NEW_DTO_ROW);
+    const detail = { ...NEW_DTO_ROW, physiquePhotos: [], coverPhotoUrl: null, fromPackagePrice: null, ptApplication: { ...NEW_DTO_ROW.ptApplication, fromPackagePrice: null } };
+    const merged = mergePtSources(detail, listRow)!;
+    assert.deepEqual(merged.physiquePhotos, []);
+    assert.equal(merged.coverPhotoUrl, null);
+    assert.equal(merged.fromPackagePrice, null);
+  });
+});
+
+describe("packages with a version", () => {
+  const pkg = { id: "p1", name: "Gói 10 buổi", sessionCount: 10, price: "2000000", sessionMode: "OFFLINE", sessionDurationMinutes: 60, validityDays: 90, isActive: true, archivedAt: null, version: 3 };
+
+  it("keeps the version the server showed (Decimal price arrives as a string)", () => {
+    const [p] = normalizePackages({ packages: [pkg] });
+    assert.equal(p.version, 3);
+    assert.equal(p.price, 2000000);
+    assert.equal(p.sessionDurationMinutes, 60);
+  });
+
+  it("an older server (no version) gives null, not 0", () => {
+    const { version: _v, ...old } = pkg;
+    assert.equal(normalizePackages({ packages: [old] })[0].version, null);
+  });
+
+  it("the contract request echoes the version as expectedPackageVersion", () => {
+    const [p] = normalizePackages({ packages: [pkg] });
+    const body = buildContractRequestPayload({ ptUserId: "pt-1", pkg: p });
+    assert.equal(body.expectedPackageVersion, 3);
+    assert.equal(body.packageId, "p1");
+    assert.equal("price" in body, false, "still never a price");
+  });
+
+  it("no version known → the field is omitted (there is nothing to echo)", () => {
+    const { version: _v, ...old } = pkg;
+    const [p] = normalizePackages({ packages: [old] });
+    assert.equal("expectedPackageVersion" in buildContractRequestPayload({ ptUserId: "pt-1", pkg: p }), false);
+  });
+});
+
+describe("the PACKAGE_CHANGED 409", () => {
+  const err = (data: any, status = 409) => ({ response: { status, data } });
+  const current = { id: "p1", name: "Gói 10 buổi", sessionCount: 10, price: "2500000", sessionMode: "OFFLINE", isActive: true, version: 4 };
+
+  it("reads the package as it is NOW (new price, new version)", () => {
+    const changed = readPackageChanged(err({ code: "PACKAGE_CHANGED", error: "msg", package: current }))!;
+    assert.equal(changed.current?.price, 2500000);
+    assert.equal(changed.current?.version, 4);
+  });
+
+  it("still means 'changed' when the body carries no usable package", () => {
+    assert.deepEqual(readPackageChanged(err({ code: "PACKAGE_CHANGED" })), { current: null });
+  });
+
+  it("is not confused with another 409 or another status", () => {
+    assert.equal(readPackageChanged(err({ code: "LOW_AVAILABILITY" })), null);
+    assert.equal(readPackageChanged(err({ code: "PACKAGE_CHANGED" }, 422)), null);
+    assert.equal(readPackageChanged(new Error("network")), null);
+  });
+});
+
+describe("a hidden / suspended trainer", () => {
+  it("404 on the detail is 'gone', not a retryable error", () => {
+    assert.equal(isPtGone({ response: { status: 404, data: { error: "PT not found" } } }), true);
+    assert.equal(isPtGone({ response: { status: 500 } }), false);
+    assert.equal(isPtGone(new Error("Network Error")), false);
+    assert.equal(isPtGone(null), false);
   });
 });

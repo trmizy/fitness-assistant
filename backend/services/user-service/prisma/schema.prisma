@@ -68,6 +68,17 @@ model UserProfile {
   // suspension and can be restored by simply re-enabling the account. While true the PT
   // is hidden from discovery and cannot take new bookings.
   ptSuspended Boolean @default(false) @map("pt_suspended")
+  // Listing management (PT): version of the PUBLIC listing. 0 = never published (not an approved PT yet),
+  // 1 = the approved application itself is listing v1, +1 every time a listing revision is applied.
+  // Written only by the revision-apply transaction (and the admin-direct edit) - never by a profile PUT.
+  listingVersion     Int       @default(0) @map("listing_version")
+  // When the current public listing went live. NULL = published before the listing system existed.
+  listingPublishedAt DateTime? @map("listing_published_at") @db.Timestamptz(3)
+  // Sequence number (auth-service's PtDeactivationCall.seq) of the last lock/unlock command applied to
+  // this PT. A command carrying a LOWER number than this is stale and is ignored, so a lock that was
+  // retried or delayed past a later unlock (or lock) can never undo it — ordering is decided by this
+  // durable number, not by arrival order. Null = no command received yet.
+  ptLockSeq   BigInt? @map("pt_lock_seq")
   // Short human-typeable code a client enters when buying a gym membership to credit this
   // PT with the referral commission (money-flow plan §2.1). Assigned once, at PT approval —
   // never regenerated, so a code a PT has already shared never goes stale.
@@ -203,6 +214,8 @@ model UserProfile {
   ptApplication      PTApplication?
   trainingLocations  PTTrainingLocation[]
   servicePackages    PTServicePackage[]
+  physiquePhotos     PtPhysiquePhoto[]
+  mediaUploadIntents PtMediaUploadIntent[]
 
   @@map("user_profiles")
 }
@@ -384,6 +397,8 @@ enum TerminationReason {
   EXPIRED          // ran past its end date with sessions unused — nothing refunded
   COMPLETED        // quota fully used — nothing to refund
   PT_REPEATED_NO_SHOW // Vòng 4 / E2 — client's own right after a 3rd confirmed PT no-show, full refund
+  CLIENT_EXIT_DUE_TO_PT_RESTRICTION // client left because the PT is suspended/banned — full refund of the unused value, no fee, nobody at fault; substituted by the server, never sent by a client
+  SERVICE_DISCONTINUED_BY_PLATFORM // D49 — the platform ends the service (e.g. a permanent PT ban): full refund of the unused value, no fee, NOT PT fault; replaces PT_BANNED for every new ending
 }
 
 enum PackageType {
@@ -506,6 +521,30 @@ enum NotificationEventType {
   // Admin approved / rejected / asked for more on a trainer application — the result the
   // applicant's own status screen promises a notification for.
   PT_APPLICATION_REVIEWED
+  // PT-suspension slice 4 — a temporary suspension opened / lifted, told to the PT and to every client
+  // with a live paid contract with them. Direct consequences of the recipient's own contract, so no
+  // opt-out preference entry (same reasoning as CONTRACT_CANCELLED_PT_DEACTIVATED).
+  CONTRACT_PAUSED_PT_SUSPENDED
+  CONTRACT_RESUMED_PT_REINSTATED
+  // Listing management (PT) - the admin's decision on a submitted listing revision, told to the PT.
+  // Direct replies to something the recipient initiated, so no opt-out preference entry.
+  PT_LISTING_APPROVED
+  PT_LISTING_REJECTED
+  PT_LISTING_CHANGES_REQUESTED
+  // The PT's open revision was invalidated (STALE) because an admin changed the public listing meanwhile.
+  PT_LISTING_INVALIDATED
+  // Listing management (gym) - sent by gym-service to the branch owner via POST /internal/notifications
+  // (entity GYM_BRANCH): the admin's decision on a branch listing revision / an amenity proposal.
+  GYM_LISTING_APPROVED
+  GYM_LISTING_REJECTED
+  GYM_LISTING_CHANGES_REQUESTED
+  GYM_LISTING_INVALIDATED
+  GYM_AMENITY_PROPOSAL_REVIEWED
+  // Payment (client) - sent by payment-service via POST /internal/notifications after the platform auto-refunded a LATE
+  // payment for a personalized order / gym membership / contract that was already cancelled (entity PAYMENT,
+  // entityId = the payment transaction id). A direct consequence of the recipient's own payment, so no opt-out
+  // preference entry.
+  PAYMENT_AUTO_REFUNDED
 }
 
 enum NotificationEntityType {
@@ -532,6 +571,10 @@ enum NotificationEntityType {
   GYM_BRANCH
   // PT_APPLICATION_REVIEWED's entityId (this service's own PTApplication.id).
   PT_APPLICATION
+  // PT_LISTING_* notices - entityId = the PT's userId (the listing is one-per-PT).
+  PT_LISTING
+  // PAYMENT_AUTO_REFUNDED's entityId = payment-service's PaymentTransaction.id (cross-service reference by convention).
+  PAYMENT
 }
 
 enum RescheduleStatus {
@@ -624,6 +667,27 @@ model Contract {
   gymId              String?        @map("gym_id")
   source             ContractSource @default(INDEPENDENT)
   paymentTransactionId String?      @map("payment_transaction_id")
+  // Hạn thanh toán: đặt = lúc hợp đồng VÀO PENDING_PAYMENT + CONTRACT_PAYMENT_DEADLINE_HOURS (12h).
+  // Quá hạn mà chưa trả → contract-expiry-sweep tự huỷ. NULL = không có hạn (hợp đồng
+  // marketplace tạo thẳng ACTIVE, hoặc chưa từng qua PENDING_PAYMENT).
+  paymentDueAt         DateTime?      @map("payment_due_at")
+  // D13 (APPROVED): set by the first checkout-driven extension that really moved paymentDueAt. Enforced unless CHECKOUT_EXTENSION_ONCE=false
+  // (one extension per contract); recorded either way so switching the rule off and on again does not forget extensions already used.
+  paymentDeadlineExtendedAt DateTime? @map("payment_deadline_extended_at")
+
+  // ── PT financial holdback (FH-9; final owner rules; OFF for new contracts until the flag is enabled) ──
+  // Snapshot, like the three rates below: the share of the PT's EXPECTED INCOME on this contract (computed by payment-service from the
+  // frozen rates, never from the client's payment) that is held back from the PT's first earnings until the contract has ended and
+  // is reconciled. 0 = no holdback - every contract that exists today, and every new one while resolvePtHoldbackRate (pt-holdback-rate.ts)
+  // returns 0. A contract that carries a holdback keeps it whatever the flag says later: the rules live in this snapshot.
+  ptHoldbackRate       Decimal        @default("0") @db.Decimal(6, 4) @map("pt_holdback_rate")
+  // Version of the holdback policy the rate was snapshotted under (0 = none / not a FH-9 contract). Only a contract created under a
+  // known version is sent to payment-service with a rate, so an old row can never start holding money (non-retroactive).
+  ptHoldbackPolicyVersion Int         @default(0) @map("pt_holdback_policy_version")
+  // Set (once) when payment-service confirmed the contract ended AND nothing is held for the PT any more (everything was returned in
+  // the ending, or released by the sweep once the contract was reconciled). It only stops the sweep from asking again; the ledger is
+  // the authority for the amounts.
+  holdbackReleasedAt   DateTime?      @map("holdback_released_at")
 
   // ── Revenue split, frozen at signing ──────────────────────────────────────
   // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,
@@ -636,9 +700,34 @@ model Contract {
   ptRate             Decimal        @default("0.90") @db.Decimal(6, 4) @map("pt_rate")
   gymRate            Decimal        @default("0")    @db.Decimal(6, 4) @map("gym_rate")
 
+  // ── Which PT↔gym agreement the rates above came from (Phase 3, slice P3.2) ──
+  // Snapshots like the rates: written once by requestContract from what gym-service answered at
+  // that moment, never refreshed. All four are NULL on every contract created before this slice and
+  // on every contract without a gym (INDEPENDENT) — NULL means "not recorded", not "no agreement".
+  // They are cross-service references: no foreign key (the rows live in gym-service's database).
+  // Nothing reads them yet — the Membership check (P3.3) and the agreement re-check are later slices.
+  /// Brand of `gymId` at request time (gym-service GymBrand.id). Null when gym-service did not say.
+  gymBrandId         String?        @map("gym_brand_id")
+  /// The agreement that produced the rates (gym-service GymBrandPtAgreement.id, or the legacy per-branch row id).
+  gymAgreementId     String?        @map("gym_agreement_id")
+  /// 'BRAND' | 'BRANCH' — which kind of agreement `gymAgreementId` names. Vocabulary is owned by gym-service.
+  gymAgreementScope  String?        @map("gym_agreement_scope")
+  /// The Client's gym membership relied on for this contract. Reserved for P3.3; stays null until that slice ships.
+  gymMembershipId    String?        @map("gym_membership_id")
+
   // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
   terminationReason  TerminationReason? @map("termination_reason")
   terminatedAt       DateTime?          @map("terminated_at")
+  /// PT-suspension slice 4 (bổ sung 11/10, B): set — durably, BEFORE the money call — at the moment the
+  /// server ACCEPTS a client's request to leave a restricted PT's contract without a fee. From then on that
+  /// request keeps the no-fee terms even if the restriction is lifted before it finishes (a retry after a
+  /// failed money call completes as CLIENT_EXIT_DUE_TO_PT_RESTRICTION, never silently as a 10% cancellation).
+  /// Honoured for a bounded time only (CLIENT_EXIT_ACCEPTANCE_TTL_MS), so an abandoned attempt cannot
+  /// grant a free exit months later. Null on every contract nobody tried to leave.
+  clientExitAcceptedAt DateTime? @map("client_exit_accepted_at")
+  /// The restriction episode in force when the exit was accepted (null if the accepted request is replayed
+  /// after the episode ended, or the episode id is the synthetic legacy-flag one).
+  clientExitRestrictionId String? @map("client_exit_restriction_id")
   /// Money already moved out of the pending buckets for this contract, per party. Lets
   /// termination top each party up to their final entitlement instead of double-paying the
   /// part already released session by session.
@@ -665,10 +754,16 @@ model Contract {
   sessions           Session[]
   reviews            SessionReview[]
   clientReviews      ClientReview[]
+  /// Contract-scoped restriction episodes (PtRestriction.scope = CONTRACT) placed on this contract.
+  ptRestrictions     PtRestriction[]
 
   @@index([ptUserId])
   @@index([clientUserId])
   @@index([status])
+  // Constraint that lives ONLY in the migration SQL (the schema DSL cannot express a WHERE-conditioned unique index):
+  // contracts_one_live_per_pair UNIQUE (pt_user_id, client_user_id) WHERE status IN (PENDING_REVIEW, PENDING_SIGNATURE,
+  // PENDING_PAYMENT, ACTIVE) AND source <> 'MARKETPLACE'  (migration 20261021130000; skipped with a NOTICE on a database that
+  // already holds duplicate live pairs).
   @@map("contracts")
 }
 
@@ -963,6 +1058,10 @@ model PTServicePackage {
   // Soft-delete: never hard-delete because existing contracts reference this package id.
   // archivedAt non-null means the package is no longer sold but historical data is intact.
   archivedAt             DateTime?   @map("archived_at")
+  // Commercial-terms version: +1 only when a commercial field (name, description, price, sessionCount,
+  // sessionMode, sessionDurationMinutes, validityDays, isActive) really changes, or the package is archived.
+  // A client buying the package sends the version it saw (expectedPackageVersion); a mismatch is 409 PACKAGE_CHANGED.
+  version                Int         @default(1)
   createdAt              DateTime    @default(now()) @map("created_at")
   updatedAt              DateTime    @updatedAt @map("updated_at")
 
@@ -1062,6 +1161,8 @@ enum AuditEntityType {
   SESSION
   SERVICE_PACKAGE
   PT_PROFILE
+  // Listing management (PT): the PT's public listing as a whole (entityId = the PT's userId).
+  PT_LISTING
 }
 
 model AuditLog {
@@ -1074,9 +1175,14 @@ model AuditLog {
   entityId     String          @map("entity_id")
   /// Before/after values and any context worth keeping. Shape varies by action.
   metadata     Json?
+  /// IP and browser of the request. PERSONAL DATA: kept 12 months, then both are set to NULL by the retention sweep
+  /// (services/ip-ua-retention.service.ts); the row itself is never deleted. Never returned by a public/PT/client DTO, never logged.
   ipAddress    String?         @map("ip_address")
   userAgent    String?         @map("user_agent")
   createdAt    DateTime        @default(now()) @map("created_at")
+  /// Legal hold: while this is in the future the retention sweep leaves ip_address/user_agent of this row alone. NULL = no hold.
+  /// Written by admin tooling only (scripts/ip-ua-legal-hold.ts) - there is no public API that sets it.
+  legalHoldUntil DateTime?       @map("legal_hold_until") @db.Timestamptz(3)
 
   // Reading the history of one contract or session is the query this table exists for.
   @@index([entityType, entityId, createdAt])
@@ -1103,6 +1209,10 @@ enum SessionSettlementKind {
   CONTRACT_TERMINATION
   /// Open-room online session — PT joined after the grace window (compensateLateArrivalMoney).
   PT_LATE_ARRIVAL_COMPENSATION
+  /// A session the PT reported delivered (or that is disputed) when the client left a restricted PT's contract:
+  /// its value was held by payment-service, and this row carries the money step that settles it once the
+  /// session is decided (key UNRESOLVED_SESSION:<sessionId>, `reason` = DELIVERED | NOT_DELIVERED).
+  UNRESOLVED_SESSION_RESOLUTION
 }
 
 enum SessionSettlementStatus {
@@ -1110,6 +1220,12 @@ enum SessionSettlementStatus {
   PROCESSING
   SETTLED
   FAILED
+  /// FH-3a. Reserved for D65-B (ledger outcome not known yet; needs the admin path). Nothing writes it yet.
+  UNCONFIRMED
+  /// FH-3a. Parked for a person (was FAILED + last_error 'NEEDS_RECONCILIATION: ...'). Never retried by code.
+  NEEDS_HUMAN
+  /// FH-3a. payment-service answered something else than what was recorded (was FAILED + 'CONFLICT: ...'). Never retried by code.
+  CONFLICT
 }
 
 model SessionSettlement {
@@ -1131,9 +1247,20 @@ model SessionSettlement {
   createdAt      DateTime                @default(now()) @map("created_at")
   updatedAt      DateTime                @updatedAt @map("updated_at")
   settledAt      DateTime?               @map("settled_at")
+  /// FH-3a: the immutable request recorded together with the intent (kind, key, session, contract, reason + the contract's money facts).
+  requestSnapshot Json?                  @map("request_snapshot")
+  /// FH-3a (reserved): payment-service's stored answer.
+  result         Json?
+  /// FH-3a (reserved): when the sub-ledger bookkeeping of the answer was applied.
+  appliedAt      DateTime?               @map("applied_at") @db.Timestamptz(3)
+  /// FH-3a: why a CONFLICT row is a conflict (the text also stays in lastError).
+  conflictNote   String?                 @map("conflict_note")
+  /// FH-3a (reserved): persisted back-off.
+  nextAttemptAt  DateTime?               @map("next_attempt_at") @db.Timestamptz(3)
 
   // The sweep's own query: "everything not yet SETTLED".
   @@index([status])
+  @@index([status, nextAttemptAt])
   @@map("session_settlements")
 }
 
@@ -1242,4 +1369,281 @@ model UserPreference {
   // cannot be declared here. Documented, not silently dropped: `prisma
   // migrate diff` will always show this one constraint as a delta
   // against a datamodel-only comparison; it is not a data-bearing drift.
+}
+
+// ── PT restriction history (PT-suspension slices 2–3) ─────────────────────────────────────
+//
+// One row per restriction EPISODE of a PT — a history, not a flag. TEMPORARY_SUSPENSION is the
+// reversible "the PT is paused" state (contracts stay ACTIVE; see pt-restriction.service.ts,
+// getEffectiveContractStatus); PERMANENT_BAN is the existing account lock (slice 1), which unwinds
+// and refunds every open contract. A PT can be suspended, lifted and suspended again: each episode
+// is its own row, closed (endedAt set) rather than updated back.
+//
+// Source of truth: a row with endedAt IS NULL means the PT is restricted RIGHT NOW. The column
+// UserProfile.ptSuspended is only a denormalised mirror of "such a row exists" (kept so the many
+// `ptSuspended: false` discovery filters stay a plain column read); it is written ONLY by
+// pt-restriction.service.ts, in the same transaction that opens or closes an episode — never
+// directly. UserProfile.ptLockSeq is NOT part of this record: it remains the ordering token for the
+// auth-service lock/unlock command stream (a stale or retried command must not undo a newer one).
+//
+// "At most one ACTIVE episode per PT" was enforced by a raw-SQL partial unique index (Prisma's
+// schema DSL can't express a WHERE-conditioned unique index). Since the contract-scope slice
+// (migration 20261012100000_pt_restriction_contract_scope) the rule is split in two, by `scope`:
+//   · pt_restrictions_one_active_account_per_pt  ON (pt_user_id) WHERE ended_at IS NULL AND scope = 'ACCOUNT'
+//   · pt_restrictions_one_active_per_contract    ON (contract_id) WHERE ended_at IS NULL AND scope = 'CONTRACT'
+// i.e. one active ACCOUNT-or-BAN episode per PT, and one active CONTRACT episode per contract. A PT can
+// therefore have one account episode AND several contract episodes at the same time (the combined
+// state). `prisma migrate dev` would try to drop these indexes; this repo applies migrations with
+// `migrate deploy`.
+//
+// SCOPE (owner's decision D38 — three levels): CONTRACT scope restricts coaching on ONE contract only
+// (type is always TEMPORARY_SUSPENSION; contractId set); ACCOUNT scope with type TEMPORARY_SUSPENSION is
+// the PT-wide pause; ACCOUNT scope with type PERMANENT_BAN is the account lock. Every row that existed
+// before the scope column is ACCOUNT scope. UserProfile.ptSuspended mirrors ACCOUNT-scope rows ONLY.
+enum PtRestrictionType {
+  TEMPORARY_SUSPENSION
+  PERMANENT_BAN
+}
+
+enum PtRestrictionReasonCategory {
+  COMPLAINT_REVIEW        // a complaint about the PT is being looked at
+  CONDUCT_REVIEW          // conduct / safety concern under review
+  PAYMENT_REVIEW          // payment or fraud concern under review
+  DOCUMENT_VERIFICATION   // credentials / documents need re-verification
+  ACCOUNT_SECURITY        // suspected account takeover
+  OTHER
+  UNSPECIFIED             // the lock command carried no category (auth-service lock, legacy rows)
+}
+
+enum PtRestrictionEndKind {
+  LIFTED                  // an admin lifted it (or the account was unlocked)
+  CONVERTED_TO_PERMANENT  // closed at the instant a permanent ban replaced it
+  SCOPE_RAISED            // a contract episode closed because an admin raised it to an account episode
+  SCOPE_NARROWED          // an account episode closed because an admin narrowed it to specific contracts
+  CONTRACT_ENDED          // a contract episode closed because its contract ended (nothing left to extend)
+}
+
+enum PtRestrictionScope {
+  ACCOUNT   // the PT as a whole (temporary suspension) or the account lock (permanent ban)
+  CONTRACT  // one contract only; the PT keeps coaching everyone else
+}
+
+model PtRestriction {
+  id             String                      @id @default(uuid())
+  ptUserId       String                      @map("pt_user_id")
+  type           PtRestrictionType
+  reasonCategory PtRestrictionReasonCategory @default(UNSPECIFIED) @map("reason_category")
+  /// Internal note — admins only, never shown to the PT.
+  reasonText     String?                     @map("reason_text")
+  /// What the PT may be told (shown by GET /profile/me/restriction). Null = category label only.
+  publicReason   String?                     @map("public_reason")
+  imposedBy      String                      @map("imposed_by")
+  /// Auth-service command number that opened a PERMANENT_BAN (traceability only; null for a temporary suspension).
+  lockSeq        BigInt?                     @map("lock_seq")
+  /// A true instant (timestamp, UTC). Contract end dates are shifted by differences of these instants.
+  startedAt      DateTime                    @default(now()) @map("started_at")
+  /// Null while the episode is active.
+  endedAt        DateTime?                   @map("ended_at")
+  endKind        PtRestrictionEndKind?       @map("end_kind")
+  liftedBy       String?                     @map("lifted_by")
+  liftReason     String?                     @map("lift_reason")
+  /// Overdue tracking: the last time an admin justified continuing (null = never; the clock then runs from startedAt).
+  lastJustifiedAt     DateTime?              @map("last_justified_at")
+  lastJustifiedBy     String?                @map("last_justified_by")
+  lastJustification   String?                @map("last_justification")
+  createdAt      DateTime                    @default(now()) @map("created_at")
+  updatedAt      DateTime                    @updatedAt @map("updated_at")
+
+  /// ACCOUNT (default; every row from before the column existed) or CONTRACT. See the comment above the enums.
+  scope          PtRestrictionScope          @default(ACCOUNT)
+  /// Set exactly when scope = CONTRACT (a CHECK constraint says so): the one contract this episode restricts.
+  contractId     String?                     @map("contract_id")
+  /// The episode this one replaces when an admin changed the scope (raise: the contract episode; narrow: the
+  /// account episode). Traceability only, no foreign key. The reason and instant of the change are this row's
+  /// reasonText/startedAt and the closed row's liftReason/endedAt/endKind.
+  supersedesRestrictionId String?            @map("supersedes_restriction_id")
+
+  contract           Contract? @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractExtensions PtRestrictionContractExtension[]
+
+  @@index([ptUserId, startedAt])
+  @@index([contractId])
+  @@map("pt_restrictions")
+}
+
+/// What one lifted episode added to one contract's endDate. The unique (restrictionId, contractId)
+/// is the idempotency guard: a repeated "lift" (or a retry after a crash) cannot extend a contract
+/// twice for the same episode, and it is the audit record of "by how much, from what to what".
+model PtRestrictionContractExtension {
+  id              String        @id @default(uuid())
+  restrictionId   String        @map("restriction_id")
+  contractId      String        @map("contract_id")
+  /// Milliseconds of the contract's own running time the episode blocked (lift − max(episode start, activation)).
+  blockedMs       BigInt        @map("blocked_ms")
+  previousEndDate DateTime      @map("previous_end_date")
+  newEndDate      DateTime      @map("new_end_date")
+  appliedAt       DateTime      @default(now()) @map("applied_at")
+
+  restriction     PtRestriction @relation(fields: [restrictionId], references: [id], onDelete: Cascade)
+
+  @@unique([restrictionId, contractId], map: "pt_restriction_ext_restriction_contract_key")
+  @@index([contractId])
+  @@map("pt_restriction_contract_extensions")
+}
+
+// ─── PT listing management (migration 20261017173131_pt_listing_revisions) ───────────────────
+// The PT's public listing is edited through REVISIONS, never in place: a draft is submitted, an admin
+// approves it, and only the approval transaction writes the public columns (profile specialties/languages,
+// packages, photos) and bumps UserProfile.listingVersion.
+//
+// Constraints that live ONLY in the migration SQL (Prisma's schema DSL cannot express a WHERE-conditioned
+// unique index or a trigger; same arrangement as the pt_restrictions partial indexes above):
+//   pt_listing_revisions_one_open_per_pt   UNIQUE (pt_user_id)               WHERE status IN ('DRAFT','PENDING')
+//   pt_listing_revisions_immutable          BEFORE UPDATE OR DELETE trigger: a row whose OLD.status is closed
+//                                           (APPROVED, REJECTED, WITHDRAWN, CHANGES_REQUESTED, STALE) cannot be
+//                                           deleted, and may only have system_adjustments (and updated_at) changed
+//   pt_physique_photos_one_cover            UNIQUE (pt_user_id)               WHERE is_cover AND status = 'PUBLISHED'
+//   pt_physique_photos_unique_hash          UNIQUE (pt_user_id, content_hash) WHERE status IN ('STAGED','PUBLISHED') AND content_hash IS NOT NULL
+
+enum PtListingRevisionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  WITHDRAWN
+  STALE
+}
+
+enum PtListingRevisionSource {
+  OWNER
+  ADMIN_DIRECT
+}
+
+model PtListingRevision {
+  id                String                  @id @default(uuid())
+  /// The PT whose listing this edits. No FK on purpose: closed revisions are immutable history.
+  ptUserId          String                  @map("pt_user_id")
+  status            PtListingRevisionStatus @default(DRAFT)
+  source            PtListingRevisionSource @default(OWNER)
+  /// The revision this one was copied from / rebased from (null for a first draft).
+  parentRevisionId  String?                 @map("parent_revision_id")
+  /// UserProfile.listingVersion the draft was started from. Submitting requires it to still equal listingVersion.
+  baseVersion       Int                     @map("base_version")
+  /// Optimistic concurrency token of the DRAFT (PUT .../listing/draft must send the expected value).
+  draftVersion      Int                     @default(1) @map("draft_version")
+  /// { profile: {...}, packages: [...], photoIds: [...], coverPhotoId }
+  payload           Json
+  /// The public listing as it was just before this revision was applied (set when it is approved).
+  previousSnapshot  Json?                   @map("previous_snapshot")
+  /// Fix-ups the server made on its own (e.g. a photo dropped because its file is gone).
+  systemAdjustments Json                    @default("[]") @map("system_adjustments")
+  submittedBy       String?                 @map("submitted_by")
+  submittedAt       DateTime?               @map("submitted_at") @db.Timestamptz(3)
+  reviewedBy        String?                 @map("reviewed_by")
+  reviewedAt        DateTime?               @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote        String?                 @map("review_note")
+  ownerNote         String?                 @map("owner_note")
+  adminReason       String?                 @map("admin_reason")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([ptUserId, createdAt])
+  @@index([status, submittedAt])
+  @@map("pt_listing_revisions")
+}
+
+enum PtPhysiquePhotoStatus {
+  STAGED
+  PUBLISHED
+  RETIRED
+  DISCARDED
+}
+
+model PtPhysiquePhoto {
+  id          String                @id @default(uuid())
+  ptUserId    String                @map("pt_user_id")
+  storageKey  String                @map("storage_key")
+  status      PtPhysiquePhotoStatus @default(STAGED)
+  sortOrder   Int                   @default(0) @map("sort_order")
+  isCover     Boolean               @default(false) @map("is_cover")
+  mime        String
+  bytes       Int
+  /// sha256 of the file, computed when the upload is confirmed. NULL for rows that have none.
+  contentHash String?               @map("content_hash")
+  uploadedBy  String                @map("uploaded_by")
+  retiredAt   DateTime?             @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ptProfile   UserProfile           @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId, status, sortOrder])
+  @@map("pt_physique_photos")
+}
+
+enum PtMediaUploadIntentStatus {
+  PENDING
+  CONFIRMING
+  CONFIRMED
+  REJECTED
+}
+
+/// One presigned upload the server handed out; confirming it is what turns an object into a STAGED photo.
+model PtMediaUploadIntent {
+  id        String                    @id @default(uuid())
+  ptUserId  String                    @map("pt_user_id")
+  objectKey String                    @unique @map("object_key")
+  status    PtMediaUploadIntentStatus @default(PENDING)
+  expiresAt DateTime                  @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  ptProfile UserProfile               @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([ptUserId, status])
+  @@map("pt_media_upload_intents")
+}
+
+/// Best-effort telemetry of old-client traffic (LEGACY_ACCEPTED, REVIEW_REQUIRED_409, UPLOAD_RETIRED_410,
+/// PACKAGE_VERSION_MISSING, ...). Never read by product logic; a failed insert must not fail the request.
+model ClientCompatEvent {
+  id           String   @id @default(uuid())
+  route        String
+  actorUserId  String?  @map("actor_user_id")
+  /// X-Gymini-Client header value, null when the client sent none.
+  clientHeader String?  @map("client_header")
+  outcome      String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@map("client_compat_events")
+}
+
+/// D25 - a trainer's confirmation of one version of the platform's PT terms (the text lives in
+/// src/services/pt-terms.ts; `version` is its identifier). Append-only: a row is never updated or deleted, and
+/// "has accepted the current terms" means a row exists for (userId, CURRENT version). `source` is APPLICATION (the
+/// applicant ticked the box when submitting) or RECONFIRM (an existing PT confirmed from the banner). No FK on
+/// purpose - same cross-service-id pattern as AuditLog.actorUserId.
+model PtTermsAcceptance {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  version    String
+  source     String
+  acceptedAt DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  /// PERSONAL DATA, evidence that this PT confirmed the terms and fraud prevention. Kept 12 months, then both columns are set to NULL by
+  /// the retention sweep (services/ip-ua-retention.service.ts); the acceptance row itself stays. Admin-only: never in a PT/client DTO, never logged.
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  /// Legal hold: while in the future the retention sweep keeps ip_address/user_agent. NULL = no hold. Admin tooling only
+  /// (scripts/ip-ua-legal-hold.ts), no public API sets it.
+  legalHoldUntil DateTime? @map("legal_hold_until") @db.Timestamptz(3)
+
+  // Raw-SQL partial indexes (migration 20261021160000_ip_ua_retention_legal_hold; Prisma cannot express them, same arrangement as
+  // contracts_one_live_per_pair): pt_terms_acceptances_ip_retention_idx ON (accepted_at) WHERE ip_address IS NOT NULL OR user_agent IS NOT NULL,
+  // and the matching audit_logs_ip_retention_idx ON (created_at).
+
+  @@unique([userId, version])
+  @@map("pt_terms_acceptances")
 }

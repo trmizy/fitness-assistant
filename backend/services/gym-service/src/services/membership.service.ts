@@ -17,6 +17,17 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** Machine-readable code of the 409 activate answers when the membership cannot be activated by the payment that
+ * just landed (cancelled while the client was at the bank, or already owned by another payment). payment-service
+ * matches on it to refund the client in full - keep in step with its reconciliation.service.ts (NOT_ACTIVATABLE). */
+export const NOT_ACTIVATABLE = 'NOT_ACTIVATABLE';
+function notActivatable(currentStatus: string) {
+  return Object.assign(err(`Membership cannot be activated by this payment (status ${currentStatus})`, 409), {
+    code: NOT_ACTIVATABLE,
+    currentStatus,
+  });
+}
+
 /** PT's cut of a membership sale they referred — carved out of the GYM's own share, never
  * the platform's (money-flow plan §2.5/A3). */
 const REFERRAL_RATE = (() => {
@@ -220,7 +231,13 @@ export const membershipService = {
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
     if (contract.status !== 'PENDING_PAYMENT') throw err(`Cannot cancel membership in ${contract.status} status`, 400);
-    return membershipRepository.cancelIfPending(membershipId);
+    const after = await membershipRepository.cancelIfPending(membershipId);
+    // FH-5: the cancel is a conditional write. If it lost a race with a payment that just activated (or parked) the
+    // membership, it is paid now - never report it cancelled, and never overwrite it without a refund.
+    if (after && after.status !== 'CANCELLED') {
+      throw err('Gói đã được thanh toán, vui lòng tải lại', 409);
+    }
+    return after;
   },
 
   /** Compute the prorated refund (by remaining days) for an ACTIVE membership, without mutating. */
@@ -408,8 +425,17 @@ export const membershipService = {
       return membershipRepository.findById(membershipId);
     }
     if (before.status !== 'PENDING_PAYMENT') {
-      // Already ACTIVE (idempotent replay of a webhook that already succeeded) or some other
-      // terminal state — nothing left to do.
+      // FH-5 / R2: payment-service has ALREADY put the price in escrow before calling here, so "ok" for a
+      // membership this payment did not activate leaves the client's money stuck. paymentTxnId is only ever
+      // written by a real activation (activateIfPending) or the PENDING_ISSUE refund path, so:
+      //  - same transaction -> an idempotent replay (ACTIVE, or CANCELLED after the PENDING_ISSUE refund): ok;
+      //  - CANCELLED with no payment on record -> the client cancelled while at the bank: 409 NOT_ACTIVATABLE;
+      //  - a DIFFERENT transaction already owns it -> this second payment can never activate it: 409.
+      // Anything else (e.g. a legacy ACTIVE/EXPIRED row with no txn recorded) stays the old "ok" - never refund on a guess.
+      if (before.paymentTxnId === transactionId) return before;
+      if ((before.status === 'CANCELLED' && !before.paymentTxnId) || (before.paymentTxnId && before.paymentTxnId !== transactionId)) {
+        throw notActivatable(before.status);
+      }
       return before;
     }
 
@@ -420,13 +446,23 @@ export const membershipService = {
     const gym = await gymRepository.findById(before.gymId);
     if (!gym || gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
       const { affected, contract: marked } = await membershipRepository.markPendingIssueIfPending(membershipId, transactionId);
-      if (affected === 0 || !marked) return membershipRepository.findById(membershipId); // lost a race — another call is already handling it
+      if (affected === 0 || !marked) {
+        // Lost a race. Another activation call may already be handling THIS payment (fine), but if the client's cancel
+        // won, this payment cannot be honoured: 409 so payment-service refunds instead of marking it ACTIVATED.
+        const current = await membershipRepository.findById(membershipId);
+        if (current?.status === 'PENDING_ISSUE' || current?.paymentTxnId === transactionId) return current;
+        throw notActivatable(current?.status ?? 'NOT_FOUND');
+      }
       logger.warn(`[Membership] ${membershipId} could not activate — gym ${before.gymId} is ${gym?.status ?? 'missing'}/${gym?.operationalStatus ?? 'missing'}, refunding in full`);
       await this.refundPendingIssue(marked, transactionId);
       return membershipRepository.findById(membershipId);
     }
 
-    const { contract } = await membershipRepository.activateIfPending(membershipId, transactionId);
+    const { affected, contract } = await membershipRepository.activateIfPending(membershipId, transactionId);
+    // Lost a race with the client's cancel between the read above and the write: not activated by this payment.
+    if (affected === 0 && !(contract?.status === 'ACTIVE' && contract.paymentTxnId === transactionId)) {
+      throw notActivatable(contract?.status ?? 'NOT_FOUND');
+    }
 
     // P0 cluster E4: referral commission moves from the gym's pending bucket to the PT's the
     // moment the membership actually activates — not at purchase time, when the client might

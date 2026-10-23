@@ -30,6 +30,7 @@ import {
   isApplicant,
   isBrandOwner,
   isManagerAccount,
+  staffRoleOf,
   memberLabel,
   membershipMix,
   needsBrandFirst,
@@ -109,6 +110,8 @@ describe("access state gate", () => {
   it("only a MANAGER loses the brand controls — anything else is treated as the owner", () => {
     assert.equal(isBrandOwner({ role: "OWNER" }), true);
     assert.equal(isBrandOwner({ role: "MANAGER" }), false);
+    assert.equal(isBrandOwner({ role: "RECEPTIONIST" }), false);
+    assert.equal(isBrandOwner({ role: "ACCOUNTANT" }), false);
     // Status not loaded yet: web shows the owner controls, and the server refuses a manager
     // anyway — so the default must match web rather than hiding a real owner's own buttons.
     assert.equal(isBrandOwner(undefined), true);
@@ -116,6 +119,10 @@ describe("access state gate", () => {
 
   it("isManagerAccount is only true once the status says MANAGER (owner-only money/collab surfaces)", () => {
     assert.equal(isManagerAccount({ role: "MANAGER" }), true);
+    assert.equal(isManagerAccount({ role: "RECEPTIONIST" }), true);
+    assert.equal(isManagerAccount({ role: "ACCOUNTANT" }), true);
+    assert.equal(staffRoleOf({ role: "ACCOUNTANT" }), "ACCOUNTANT");
+    assert.equal(staffRoleOf({ role: "FACILITY_STAFF" }), null);
     assert.equal(isManagerAccount({ role: "OWNER" }), false);
     assert.equal(isManagerAccount(undefined), false);
   });
@@ -270,16 +277,21 @@ describe("dashboard figures", () => {
     ]);
   });
 
-  it("counts by status, and a collaboration belongs to one branch not the whole brand", () => {
+  it("counts by status; a brand agreement counts at EVERY branch of the brand, a legacy row only at its own branch", () => {
     assert.equal(countByStatus([{ status: "ACTIVE" }, { status: "INACTIVE" }], "ACTIVE"), 1);
     const collabs = [
-      { gymId: "g1", status: "ACCEPTED" },
-      { gymId: "g2", status: "ACCEPTED" },
-      { gymId: "g1", status: "PENDING" },
-      { gymId: "g1", status: "COUNTERED" },
+      // brand agreement: gymId is only the representative branch (g1)
+      { id: "b1", scope: "BRAND", brandId: "br", ptUserId: "pt-a", gymId: "g1", status: "ACCEPTED", proposedBy: "PT" },
+      // legacy rows
+      { id: "l1", scope: "BRANCH", gymId: "g2", ptUserId: "pt-b", status: "ACCEPTED", proposedBy: "GYM", supersededByAgreementId: null },
+      { id: "l2", scope: "BRANCH", gymId: "g1", ptUserId: "pt-c", status: "PENDING", proposedBy: "PT", supersededByAgreementId: null },
+      { id: "l3", scope: "BRANCH", gymId: "g1", ptUserId: "pt-d", status: "COUNTERED", proposedBy: "GYM", supersededByAgreementId: null },
     ];
-    assert.equal(acceptedCollabCount(collabs, "g1"), 1);
-    assert.equal(pendingCollabCount(collabs), 2);
+    assert.equal(acceptedCollabCount(collabs, { id: "g1", brandId: "br" }), 1);
+    assert.equal(acceptedCollabCount(collabs, { id: "g3", brandId: "br" }), 1, "a branch that is not the representative one counts the brand agreement too");
+    assert.equal(acceptedCollabCount(collabs, { id: "g2", brandId: "br" }), 2, "brand agreement + the legacy row of exactly this branch");
+    // only offers whose turn is the OWNER's (pt-c proposed; pt-d is the owner's own counter)
+    assert.equal(pendingCollabCount(collabs), 1);
   });
 
   it("a member is shown by a short id — the owner is never handed an invented name", () => {

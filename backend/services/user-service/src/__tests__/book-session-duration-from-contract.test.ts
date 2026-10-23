@@ -5,6 +5,13 @@ import { contractRepository } from "../repositories/contract.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { availabilityRepository } from "../repositories/availability.repository";
+import { stubPtRestrictionReads } from "./pt-restriction-reads.stub";
+import { stubSessionSettlements } from "./session-settlement-memory.stub";
+
+// pt-restriction.service reads the restriction tables directly: answer them like an empty database (no restriction) so this unit test needs no DB.
+stubPtRestrictionReads();
+// the money steps track their progress in session_settlements: keep that table in memory too (no DB writes from a unit test).
+stubSessionSettlements();
 
 /**
  * Money-flow redesign plan item 3.4 — "thời lượng buổi tập nhận từ phía khách".

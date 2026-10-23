@@ -28,7 +28,7 @@ const btnCls =
   "inline-flex items-center gap-1.5 rounded-lg bg-green-500 px-4 py-2 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-50";
 
 type Payout = { bankName: string | null; accountNumber: string | null; accountHolder: string | null };
-type OnboardingStatus = { role: "OWNER" | "MANAGER"; hasPartnerAccount?: boolean; contactPhone?: string | null; payout?: Payout | null };
+type OnboardingStatus = { role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT"; hasPartnerAccount?: boolean; contactPhone?: string | null; payout?: Payout | null };
 
 const errMessage = (e: any, fallback: string) => {
   const err = e?.response?.data?.error;
@@ -67,7 +67,7 @@ export function GymOwnerProfilePage() {
   const { data: brands = [] } = useQuery<GymBrand[]>({ queryKey: ["owned-brands"], queryFn: () => gymService.listOwnedBrands() });
   const { data: gyms = [] } = useQuery<Gym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const brand = brands[0];
-  const isOwner = status?.role !== "MANAGER";
+  const isOwner = (status?.role ?? "OWNER") === "OWNER"; // quản lý/lễ tân/kế toán không thấy phần nhận tiền
   const brandName = brand ? brand.approvedName ?? brand.name : null;
 
   // ── Thương hiệu ──

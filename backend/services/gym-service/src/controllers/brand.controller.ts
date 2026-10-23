@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { brandLogoUrl } from '../services/gym-photo-url';
 import { brandService } from '../services/brand.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { filterByScope } from '../services/partner-permissions';
+import { branchInfoFor } from '../services/staff-views';
 
 export const brandController = {
   async create(req: Request, res: Response) {
@@ -26,6 +28,14 @@ export const brandController = {
     try {
       const ownerId = principalId(req);
       const brand = await brandService.getOwnedBrandWithBranches(req.params.id, ownerId);
+      // Chi nhánh ngoài phạm vi KHÔNG được lộ qua thương hiệu (trước D15 quản lý thấy cả chuỗi); vai trò chỉ-xem
+      // nhận bản chi nhánh rút gọn.
+      const ctx = req.partner;
+      if (brand && ctx && ctx.role !== 'OWNER' && Array.isArray((brand as any).branches)) {
+        const branches = filterByScope(ctx, (brand as any).branches).map((b: any) => branchInfoFor(ctx.role, b));
+        res.json({ success: true, data: { ...brand, branches } });
+        return;
+      }
       res.json({ success: true, data: brand });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
