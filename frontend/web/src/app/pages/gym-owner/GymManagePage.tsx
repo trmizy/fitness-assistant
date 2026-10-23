@@ -189,7 +189,8 @@ export function GymManagePage() {
   const { data: reviews } = useQuery<GymReviewsResponse>({
     queryKey: ["gym-reviews", id],
     queryFn: () => gymService.getGymReviews(id!),
-    enabled: !!id,
+    // The public reviews endpoint 404s unless the gym is publicly visible.
+    enabled: !!id && gym?.status === "APPROVED" && gym?.operationalStatus === "OPEN",
   });
 
   // Money-flow plan 5.3 — manual withdrawal flow. Requesting only creates a PENDING row; no

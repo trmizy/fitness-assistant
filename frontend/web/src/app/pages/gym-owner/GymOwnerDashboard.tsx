@@ -236,7 +236,11 @@ export function GymOwnerDashboard() {
   const { data: reviews, isLoading: reviewsLoading } = useQuery({
     queryKey: ["owned-gym-reviews", activeGymId],
     queryFn: () => gymService.getGymReviews(activeGymId),
-    enabled: !!activeGymId,
+    // The public reviews endpoint 404s unless the gym is publicly visible.
+    enabled:
+      !!activeGymId &&
+      gyms.find((g) => g.id === activeGymId)?.status === "APPROVED" &&
+      gyms.find((g) => g.id === activeGymId)?.operationalStatus === "OPEN",
   });
 
   const { data: collaborations = [] } = useQuery<Collaboration[]>({
