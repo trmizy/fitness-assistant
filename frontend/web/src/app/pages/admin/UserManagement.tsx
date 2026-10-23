@@ -6,18 +6,40 @@ import { Button } from "../ui/button";
 // refresh. A hand-rolled axios call with a manually-read token skips all three and dies
 // the moment the access token expires.
 import { api } from "../../services/api";
+import { adminUsersApi, type AssignableRole } from "../../services/adminUsersApi";
+import { useApp } from "../../context/AppContext";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: "Client" | "PT" | "Admin";
+  role: "Client" | "PT" | "Admin" | "Gym Owner";
   status: "Active" | "Inactive" | "Pending";
   joined: string;
   lastActive: string;
   sessions: number;
   contracts: number;
 }
+
+const ROLE_LABEL_TO_ENUM: Record<string, string> = {
+  Client: "CUSTOMER",
+  PT: "PT",
+  "Gym Owner": "GYM_OWNER",
+  Admin: "ADMIN",
+};
+const ROLE_OPTIONS: { value: AssignableRole; label: string }[] = [
+  { value: "CUSTOMER", label: "Khách hàng" },
+  { value: "PT", label: "Huấn luyện viên (PT)" },
+  { value: "GYM_OWNER", label: "Chủ phòng gym" },
+];
 
 const initials = (name: string) =>
   name
@@ -35,6 +57,44 @@ export function UserManagement() {
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const { user: me } = useApp();
+  const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
+  const [newRole, setNewRole] = useState<AssignableRole>("CUSTOMER");
+  const [lockTarget, setLockTarget] = useState<AdminUser | null>(null);
+  const isSelf = (u: AdminUser) => !!me && u.id === me.id;
+
+  const openRoleDialog = (u: AdminUser) => {
+    const cur = ROLE_LABEL_TO_ENUM[u.role];
+    setNewRole(cur === "ADMIN" ? "CUSTOMER" : (cur as AssignableRole));
+    setRoleTarget(u);
+  };
+
+  const confirmRole = async () => {
+    if (!roleTarget) return;
+    try {
+      await adminUsersApi.updateRole(roleTarget.id, newRole);
+      toast.success(`Đã đổi vai trò của ${roleTarget.name}`);
+      setRoleTarget(null);
+      setSelectedUser(null);
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Không thể đổi vai trò");
+    }
+  };
+
+  const confirmLock = async () => {
+    if (!lockTarget) return;
+    const unlocking = lockTarget.status === "Inactive";
+    try {
+      await adminUsersApi.setActive(lockTarget.id, unlocking);
+      toast.success(unlocking ? `Đã mở khóa ${lockTarget.name}` : `Đã khóa tài khoản ${lockTarget.name}`);
+      setLockTarget(null);
+      setSelectedUser(null);
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Thao tác thất bại");
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -233,9 +293,28 @@ export function UserManagement() {
                         {u.lastActive}
                       </td>
                       <td className="px-4 py-3">
-                        <button className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label="Thao tác"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onSelect={() => setSelectedUser(u)}>
+                              Xem hồ sơ
+                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => openRoleDialog(u)}>
+                              Đổi vai trò
+                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => setLockTarget(u)}>
+                              {u.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))}
@@ -309,14 +388,66 @@ export function UserManagement() {
                     <UserCheck className="w-4 h-4" /> Approve PT
                   </button>
                 )}
-                <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                  <UserX className="w-4 h-4" /> Suspend account
+                <button
+                  disabled={isSelf(selectedUser)}
+                  onClick={() => openRoleDialog(selectedUser)}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <UserCheck className="w-4 h-4 text-blue-400" /> Đổi vai trò
+                </button>
+                <button
+                  disabled={isSelf(selectedUser)}
+                  onClick={() => setLockTarget(selectedUser)}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <UserX className="w-4 h-4" />{" "}
+                  {selectedUser.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
                 </button>
               </div>
             </div>
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!roleTarget}
+        onOpenChange={(o) => !o && setRoleTarget(null)}
+        title="Đổi vai trò"
+        description={roleTarget ? `Chọn vai trò mới cho ${roleTarget.name} (${roleTarget.email}).` : undefined}
+        confirmLabel="Xác nhận"
+        danger={false}
+        confirmDisabled={!!roleTarget && ROLE_LABEL_TO_ENUM[roleTarget.role] === newRole}
+        onConfirm={confirmRole}
+      >
+        <select
+          aria-label="Vai trò mới"
+          value={newRole}
+          onChange={(e) => setNewRole(e.target.value as AssignableRole)}
+          className="w-full px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+        >
+          {ROLE_OPTIONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!lockTarget}
+        onOpenChange={(o) => !o && setLockTarget(null)}
+        title={lockTarget?.status === "Inactive" ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+        description={
+          lockTarget
+            ? lockTarget.status === "Inactive"
+              ? `${lockTarget.name} sẽ có thể đăng nhập lại.`
+              : `${lockTarget.name} sẽ không thể đăng nhập cho đến khi được mở khóa.`
+            : undefined
+        }
+        confirmLabel={lockTarget?.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
+        danger={lockTarget?.status !== "Inactive"}
+        onConfirm={confirmLock}
+      />
     </div>
   );
 }
