@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 // attaches the token, refreshes it on a 401, and queues concurrent callers behind one
 // refresh. A hand-rolled axios call with a manually-read token skips all three and dies
 // the moment the access token expires.
-import { api } from "../../services/api";
+import { getAdminUsers } from "../../services/adminAggregates";
 
 interface AdminUser {
   id: string;
@@ -40,10 +40,10 @@ export function UserManagement() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get("/admin/users");
-      setUsers(data.data?.users ?? []);
+      const result = await getAdminUsers();
+      setUsers(result.users ?? []);
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? "Failed to load users");
+      setError(err?.response?.data?.error?.message ?? err?.response?.data?.error ?? "Failed to load users");
     } finally {
       setLoading(false);
     }

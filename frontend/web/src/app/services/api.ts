@@ -404,10 +404,26 @@ export const profileService = {
 
   uploadPhoto: async (file: File) => {
     const contentType = profilePhotoContentType(file);
-    const { data: target } = await api.post<PresignedUploadTarget>(
-      "/profile/me/photo/presign",
-      { contentType },
-    );
+    let target: PresignedUploadTarget;
+    try {
+      const res = await api.post<PresignedUploadTarget>(
+        "/profile/me/photo/presign",
+        { contentType },
+      );
+      target = res.data;
+    } catch (e: any) {
+      // Local dev stack has no upload bucket ("USER_UPLOAD_BUCKET is not configured");
+      // the legacy multipart route is the only one that works there. AWS/Lambda
+      // never hits this branch (presign succeeds, or fails with a different error).
+      const msg = String(e?.response?.data?.error ?? "");
+      if (!/not configured/i.test(msg)) throw e;
+      const form = new FormData();
+      form.append("photo", file);
+      const { data } = await api.post("/profile/me/photo", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data as { photoUrl: string };
+    }
     await uploadFileToPresignedUrl(target, file, contentType);
     const { data } = await api.post("/profile/me/photo/confirm", {
       key: target.key,
@@ -3863,11 +3879,12 @@ export const adminService = {
    * khác và từng gây ra hai nút "đình chỉ" mang hai nghĩa khác nhau.
    */
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
-    const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
+    // Straight to auth-service: the old `/admin/users/:id/...` path was a gateway-only alias.
+    const { data } = await api.patch(`/auth/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
   },
   updateGymOwnerName: async (userId: string, payload: { firstName?: string; lastName?: string }) => {
-    const { data } = await api.patch(`/admin/users/${userId}/name`, payload);
+    const { data } = await api.patch(`/auth/users/${userId}/name`, payload);
     return data?.data ?? data;
   },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
