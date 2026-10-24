@@ -50,37 +50,38 @@ export function AdminGymManagementOverview() {
   const q = stats.needsAttention;
 
   const attentionItems = [
+    // Khóa chuẩn của /admin/partners/overview-stats (needsAttention) — cùng con số với trang Đối tác, Duyệt và app admin.
     {
-      key: "pendingProspects",
-      count: q.pendingProspects,
-      title: "Hồ sơ tiềm năng chưa xem",
+      key: "applicationsAwaitingReview",
+      count: q.applicationsAwaitingReview ?? q.pendingProspects,
+      title: "Hồ sơ đối tác chờ duyệt",
       icon: MagnifyingGlassIcon,
       to: "/admin/partners",
     },
     {
-      key: "pendingVerification",
-      count: q.pendingVerification,
-      title: "Đang thẩm định / chờ bổ sung hồ sơ",
+      key: "applicationsWaitingApplicant",
+      count: q.applicationsWaitingApplicant ?? 0,
+      title: "Hồ sơ đã gửi lại, đang chờ người nộp bổ sung",
       icon: WarningCircleIcon,
       to: "/admin/partners",
     },
     {
-      key: "pendingGyms",
-      count: q.pendingGyms,
+      key: "branchesFirstApproval",
+      count: q.branchesFirstApproval ?? q.pendingGyms,
       title: "Chi nhánh chờ duyệt lần đầu",
       icon: BuildingsIcon,
       to: "/admin/gyms",
     },
     {
-      key: "pendingBranchChanges",
-      count: q.pendingBranchChanges,
-      title: "Chi nhánh đang chờ chủ gym sửa lại theo yêu cầu",
+      key: "branchRenames",
+      count: q.branchRenames ?? 0,
+      title: "Chi nhánh chờ duyệt đổi tên / địa chỉ",
       icon: NotePencilIcon,
       to: "/admin/gyms",
     },
     {
-      key: "pendingBrandRenames",
-      count: q.pendingBrandRenames,
+      key: "brandRenames",
+      count: q.brandRenames ?? q.pendingBrandRenames,
       title: "Thương hiệu chờ duyệt đổi tên",
       icon: StorefrontIcon,
       to: "/admin/gyms",

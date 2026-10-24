@@ -6,7 +6,7 @@ import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
 import { emailLinkOrigin, isAllowedOrigin } from "./utils/corsOrigins";
-import { storageProxy } from "./routes/storage.proxy";
+import { storageProxies } from "./routes/storage.proxy";
 import { validateInternalSecret } from "./utils/internal-secret";
 
 const app = express();
@@ -24,7 +24,7 @@ app.set("trust proxy", 1);
 // Tệp riêng tư (MinIO, CHỈ môi trường dev) đi qua cùng cửa với API — xem routes/storage.proxy.ts. Đặt
 // TRƯỚC helmet/cors: MinIO tự trả header CORS của nó, cors ở đây sẽ nhân đôi Access-Control-Allow-Origin
 // và trình duyệt từ chối. Không cần đăng nhập — chữ ký trên URL chính là quyền truy cập.
-if (storageProxy) app.use(storageProxy.path, storageProxy.handler);
+for (const proxy of storageProxies) app.use(proxy.path, proxy.handler);
 
 app.use(
   helmet({

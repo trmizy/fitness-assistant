@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { CurrencyCircleDollarIcon as CircleDollarSign } from "@phosphor-icons/react";
 import { AdminFinanceOverviewTab } from "./AdminFinanceOverviewTab";
 import { AdminReconciliationPanel } from "./AdminReconciliationPanel";
@@ -20,7 +21,10 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export function AdminFinancePage() {
-  const [tab, setTab] = useState<Tab>("overview");
+  // ?tab=withdrawals|refunds|reconciliation: đích của các đường dẫn cũ (/admin/withdrawals, /admin/pt-service-refunds).
+  const [searchParams] = useSearchParams();
+  const initialTab = TABS.find((t) => t.key === searchParams.get("tab"))?.key ?? "overview";
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">

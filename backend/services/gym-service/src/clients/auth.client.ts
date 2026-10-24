@@ -56,6 +56,21 @@ export const authClient = {
     return data.user as { id: string; email: string; firstName: string | null; lastName: string | null; role: string };
   },
 
+  /**
+   * B10 - does an auth account already use this email, and of which kind? Used before a staff invitation is created.
+   * Best-effort by design: returns null when auth-service cannot be asked (unreachable, 5xx, 401, 400) so an outage never
+   * blocks an invite - the accept step still refuses an existing email.
+   */
+  async emailStatus(email: string): Promise<{ exists: boolean; role: string | null } | null> {
+    try {
+      const { data } = await axios.post(`${AUTH_SERVICE_URL}/auth/internal/partner-auth/email-status`, { email }, { headers, timeout: 4000 });
+      return { exists: Boolean(data?.exists), role: typeof data?.role === 'string' ? data.role : null };
+    } catch (e) {
+      logger.warn({ err: (e as Error).message }, '[gym-service] không tra được trạng thái email ở auth-service - bỏ qua kiểm tra khi mời nhân sự');
+      return null;
+    }
+  },
+
   async getUser(userId: string) {
     const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/internal/users/${userId}`, { headers, timeout: 5000 });
     return data.user as { id: string; email: string; firstName: string | null; lastName: string | null; role: string; isActive: boolean };

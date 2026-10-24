@@ -110,7 +110,7 @@ export function ChatPage() {
             <Search className="w-4 h-4 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Tìm cuộc trò chuyện..."
               className="bg-transparent text-sm outline-none flex-1 text-zinc-300 placeholder-zinc-600"
             />
           </div>
@@ -147,11 +147,11 @@ export function ChatPage() {
                     </span>
                   </div>
                   <div className="text-xs text-zinc-600 mb-0.5">
-                    {c.otherUser?.role === "PT" ? "Personal Trainer" : "Client"}
+                    {c.otherUser?.role === "PT" ? "Huấn luyện viên" : "Học viên"}
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-zinc-500 truncate">
-                      {c.lastMessage?.content || "No messages yet"}
+                      {c.lastMessage?.content || "Chưa có tin nhắn"}
                     </p>
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export function ChatPage() {
                     {activeConv.otherUser?.firstName}{" "}
                     {activeConv.otherUser?.lastName}
                   </div>
-                  <div className="text-xs text-green-400">Online now</div>
+                  <div className="text-xs text-green-400">Đang hoạt động</div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -214,7 +214,7 @@ export function ChatPage() {
                       initiateCall(otherUserId, "VOICE", activeConvId);
                   }}
                   className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="Voice call"
+                  title="Gọi thoại"
                 >
                   <Phone className="w-4 h-4" />
                 </button>
@@ -225,7 +225,7 @@ export function ChatPage() {
                       initiateCall(otherUserId, "VIDEO", activeConvId);
                   }}
                   className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="Video call"
+                  title="Gọi video"
                 >
                   <Video className="w-4 h-4" />
                 </button>
@@ -288,7 +288,7 @@ export function ChatPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-zinc-600">
                   <MessageSquare className="w-8 h-8 mb-2 opacity-20" />
-                  <p className="text-xs">No messages here yet. Say hi!</p>
+                  <p className="text-xs">Chưa có tin nhắn nào. Hãy gửi lời chào!</p>
                 </div>
               )}
               <div ref={bottomRef} />
@@ -311,7 +311,7 @@ export function ChatPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  placeholder="Type a message..."
+                  placeholder="Nhập tin nhắn..."
                   className="flex-1 px-4 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
                 />
                 <button
@@ -330,10 +330,10 @@ export function ChatPage() {
               <MessageSquare className="w-10 h-10 text-zinc-700" />
             </div>
             <h3 className="text-zinc-100 font-bold mb-1">
-              Select a conversation
+              Chọn một cuộc trò chuyện
             </h3>
             <p className="text-zinc-500 text-sm max-w-xs">
-              Pick an existing chat from the left or start a new one with a PT.
+              Chọn một cuộc trò chuyện ở bên trái hoặc bắt đầu cuộc trò chuyện mới với PT.
             </p>
           </div>
         )}

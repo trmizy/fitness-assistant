@@ -164,6 +164,24 @@ export const authRepository = {
   markPasswordResetUsed: (id: string) =>
     prisma.passwordResetToken.update({ where: { id }, data: { usedAt: new Date() } }),
 
+  /** Claim the single-use link and change credentials atomically. A failed write rolls back the claim. */
+  consumePasswordReset: (id: string, userId: string, password: string) =>
+    prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id, userId, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (claimed.count !== 1) return null;
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: { password, mustChangePassword: false },
+        select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      return user;
+    }),
+
   /** Vô hiệu hoá mọi link đặt lại còn hiệu lực của một người — dùng khi phát hành link mới. */
   invalidatePasswordResets: (userId: string) =>
     prisma.passwordResetToken.updateMany({

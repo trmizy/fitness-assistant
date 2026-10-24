@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { isLambdaRuntime } from "./utils/runtime.util";
 import { clientIpMiddleware } from "./middleware/client-ip.middleware";
+import { requestContextMiddleware } from "./middleware/request-context.middleware";
 import { requestLogSerializers } from "./utils/request-log-serializers";
 import profileRoutes from "./routes/profile.routes";
 import inbodyRoutes from "./routes/inbody.routes";
@@ -39,6 +40,8 @@ app.use(
 // Client IP for the audit trail: read from X-Forwarded-For only on requests that carry the gateway secret (see the middleware).
 // Must run before any auth middleware, which deletes x-gateway-secret.
 app.use(clientIpMiddleware);
+// B05: remembers the caller's public base URL (trusted only from the gateway) for per-request presigned links.
+app.use(requestContextMiddleware);
 app.use(express.json());
 // The default request serializer logs every header (user-agent, x-forwarded-for, x-client-ip) and the socket's remoteAddress:
 // personal data that must not sit in the logs past its 12-month retention. Log only what is needed to follow a request.

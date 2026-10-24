@@ -16,6 +16,23 @@ function publicBaseUrl(req: Request): string | undefined {
   return typeof h === 'string' ? h : undefined;
 }
 
+/** Vietnamese fallbacks for payment-service error codes whose upstream message is just the code. */
+const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
+  PROVIDER_NOT_CONFIGURED: 'Cổng thanh toán này chưa sẵn sàng — hãy chọn cổng thanh toán khác',
+  GATEWAY_ERROR: 'Cổng thanh toán đang gặp sự cố, vui lòng thử lại hoặc chọn cổng khác',
+  CHECKOUT_FAILED: 'Không tạo được giao dịch thanh toán, vui lòng thử lại hoặc chọn cổng khác',
+};
+
+/**
+ * B24 - the final catch of purchase / pay used to answer { error: { message } } and so dropped the `code` payment-service
+ * gave (PROVIDER_NOT_CONFIGURED 400, GATEWAY_ERROR 502, ...). Status, code and a readable message are kept.
+ */
+function failBody(e: any) {
+  const code: string | undefined = typeof e?.code === 'string' ? e.code : undefined;
+  const message = code && (!e.message || e.message === code) ? (PAYMENT_ERROR_MESSAGES[code] ?? e.message ?? code) : e.message;
+  return { success: false, error: { ...(code ? { code } : {}), message }, message };
+}
+
 export const membershipController = {
   async purchase(req: Request, res: Response) {
     try {
@@ -55,7 +72,7 @@ export const membershipController = {
         return res.status(400).json({ success: false, error: { code: e.message } });
       }
       logger.error(e, 'membership purchase error');
-      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      return res.status(e.status || 500).json(failBody(e));
     }
   },
 
@@ -77,7 +94,7 @@ export const membershipController = {
       if (e.message === 'ALREADY_PAID') {
         return res.status(409).json({ success: false, error: { code: e.message } });
       }
-      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      return res.status(e.status || 500).json(failBody(e));
     }
   },
 
@@ -102,6 +119,10 @@ export const membershipController = {
       const result = await membershipService.cancelByClient(req.params.id, clientId);
       return res.json({ success: true, data: result });
     } catch (e: any) {
+      if (e.code === 'MEMBERSHIP_CANCEL_DISABLED') {
+        // B47: an expected refusal, not an error to log.
+        return res.status(e.status || 409).json({ success: false, error: { code: e.code, message: e.message }, message: e.message });
+      }
       logger.error(e, 'membership self-cancel error');
       return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
     }

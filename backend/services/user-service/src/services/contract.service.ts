@@ -46,6 +46,14 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** B33: 422 - the trainer has switched "accepting new clients" off. */
+export const PT_NOT_ACCEPTING_CLIENTS = "PT_NOT_ACCEPTING_CLIENTS";
+/** B44: 400 - a gym contract was requested but the trainer has no active agreement with that gym's brand (none, or it is being terminated). */
+export const GYM_AGREEMENT_NOT_ACTIVE = "GYM_AGREEMENT_NOT_ACTIVE";
+function codedError(message: string, status: number, code: string) {
+  return Object.assign(new Error(message), { status, code });
+}
+
 /** Machine-readable code of the 409 activate-after-payment answers when the contract cannot be
  * activated by the payment that just landed. payment-service matches on it to refund the
  * client — keep the two in step (payment-service reconciliation.service.ts). */
@@ -571,7 +579,7 @@ export const contractService = {
     // decides (pt-restriction.service.ts); the profile flag is only its mirror and fails closed there.
     await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
     if (!(ptProfile as any).isAcceptingClients)
-      throw err("PT hiện đang tạm ngưng nhận khách mới", 422);
+      throw codedError("PT hiện đang tạm ngưng nhận khách mới", 422, PT_NOT_ACCEPTING_CLIENTS);
 
     // 3. Slot availability warning (L3 from plan)
     //    Count available slots; if fewer than package.sessionCount, require acknowledgement.
@@ -631,9 +639,11 @@ export const contractService = {
         throw e;
       }
       if (!collab) {
-        throw err(
-          "PT chưa có thoả thuận hợp tác với phòng gym này — không thể tạo hợp đồng qua phòng gym",
+        // B44: also the answer while the PT-brand agreement is being terminated (gym-service reports no active collaboration).
+        throw codedError(
+          "Huấn luyện viên hiện không có thoả thuận hợp tác còn hiệu lực với phòng gym này (chưa có hoặc đang được chấm dứt) nên chưa thể tạo hợp đồng qua phòng gym. Bạn có thể chọn hợp đồng không gắn phòng gym hoặc chọn phòng gym khác.",
           400,
+          GYM_AGREEMENT_NOT_ACTIVE,
         );
       }
       rates = { platformRate: collab.platformRate, ptRate: collab.ptRate, gymRate: collab.gymRate };
@@ -662,7 +672,7 @@ export const contractService = {
     // 5. No duplicate active/pending contract with same PT (BR-27)
     const existing = await contractRepository.findActiveByPair(data.ptUserId, clientUserId);
     if (existing) {
-      throw err("You already have an active or pending contract with this PT", 409);
+      throw err("Bạn đang có hợp đồng hoặc yêu cầu hợp đồng còn hiệu lực với huấn luyện viên này", 409);
     }
 
     // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
@@ -684,7 +694,7 @@ export const contractService = {
       // the winner's commit, sees its row and is refused (the partial unique index is the last-resort backstop).
       await contractRepository.lockPtClientPair(tx, data.ptUserId, clientUserId);
       if (await contractRepository.findActiveByPair(data.ptUserId, clientUserId, tx)) {
-        throw err("You already have an active or pending contract with this PT", 409);
+        throw err("Bạn đang có hợp đồng hoặc yêu cầu hợp đồng còn hiệu lực với huấn luyện viên này", 409);
       }
       const locked = await ptServicePackageRepository.findByIdForShare(data.packageId, tx);
       if (!locked) throw err("Gói dịch vụ không tồn tại", 404);
@@ -1080,8 +1090,8 @@ export const contractService = {
       .create({
         userId: otherUserId,
         text: isClient
-          ? "Client cancelled the contract"
-          : "Trainer cancelled the contract",
+          ? "Khách đã huỷ hợp đồng."
+          : "Huấn luyện viên đã huỷ hợp đồng.",
         eventType: "CONTRACT_CANCELLED",
         entityType: "CONTRACT",
         entityId: contractId,
@@ -1459,7 +1469,7 @@ export const contractService = {
       throw err("Only the PT can log sessions", 403);
     }
     if (contract.status !== "ACTIVE") {
-      throw err("Contract is not active", 400);
+      throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
     }
     const updated = await contractRepository.incrementSession(id);
     await this.checkAndCompleteContract(id);

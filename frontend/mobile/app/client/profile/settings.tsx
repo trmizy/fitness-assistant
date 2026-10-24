@@ -128,10 +128,10 @@ export default function SettingsScreen() {
           <Text className="font-body text-xs text-muted-foreground">Email: {user?.email}</Text>
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Input label="Họ" value={lastName} onChangeText={setLastName} />
+              <Input label="Họ" value={firstName} onChangeText={setFirstName} />
             </View>
             <View className="flex-1">
-              <Input label="Tên" value={firstName} onChangeText={setFirstName} />
+              <Input label="Tên" value={lastName} onChangeText={setLastName} />
             </View>
           </View>
           <Button size="sm" disabled={!dirty || !firstName.trim() || nameMutation.isPending} onPress={() => nameMutation.mutate()}>

@@ -194,7 +194,7 @@ export const partnerService = {
     invitedBy: string,
   ) {
     if (!isInvitableStaffRole(data.role)) {
-      throw err('Vai trò không hợp lệ — chỉ mời được quản lý, lễ tân hoặc kế toán', 400);
+      throw Object.assign(err('Vai trò không hợp lệ — chỉ mời được quản lý, lễ tân hoặc kế toán', 400), { code: 'INVALID_ROLE' });
     }
     const role = data.role;
     const scopedGymIds = Array.isArray(data.scopedGymIds) ? [...new Set(data.scopedGymIds)] : [];
@@ -214,6 +214,7 @@ export const partnerService = {
       role,
       scopedGymIds,
       createdBy: invitedBy,
+      enforceUniqueEmail: true,
     });
   },
 

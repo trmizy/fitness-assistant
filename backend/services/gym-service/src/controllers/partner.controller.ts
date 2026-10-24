@@ -142,6 +142,40 @@ export const partnerController = {
     }
   },
 
+  /**
+   * B41 - GET /admin/partner-accounts/roles?userIds=a,b,c (admin only, at most 200 ids). The admin user list labels every
+   * GYM_OWNER login "Chủ phòng gym", but a manager / receptionist / accountant invited by an owner is a GYM_OWNER at
+   * auth-service too. This tells the list which one each user really is.
+   * Answer: { success, data: [{ userId, partnerRole: OWNER|MANAGER|RECEPTIONIST|ACCOUNTANT|null, accountStatus, partnerId,
+   * partnerName }] } - one entry per requested id; partnerRole null = a GYM_OWNER login with no partner account (legacy owner).
+   */
+  async rolesByUserIds(req: Request, res: Response) {
+    const raw = typeof req.query.userIds === 'string' ? req.query.userIds : '';
+    const ids = [...new Set(raw.split(',').map((s) => s.trim()).filter(Boolean))];
+    if (ids.length === 0 || ids.length > 200) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_USER_IDS', message: 'Cần từ 1 đến 200 mã người dùng, cách nhau bằng dấu phẩy' },
+      });
+      return;
+    }
+    const rows = await partnerRepository.findAccountsByUserIds(ids);
+    const byUser = new Map(rows.map((r) => [r.userId, r]));
+    res.json({
+      success: true,
+      data: ids.map((userId) => {
+        const a = byUser.get(userId);
+        return {
+          userId,
+          partnerRole: a?.role ?? null,
+          accountStatus: a?.status ?? null,
+          partnerId: a?.partnerId ?? null,
+          partnerName: a?.partner.legalName ?? null,
+        };
+      }),
+    });
+  },
+
   // ── Hành động lên từng tài khoản ──────────────────────────────────────────
   async resetPassword(req: Request, res: Response) {
     try {

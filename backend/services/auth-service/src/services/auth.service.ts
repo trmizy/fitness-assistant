@@ -677,11 +677,14 @@ export const authService = {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    // updateUserPasswordById cũng xoá luôn cờ mustChangePassword — mọi đường đổi mật khẩu
-    // đều đi qua đó nên không cần xử lý riêng ở đây.
-    const updated = await authRepository.updateUserPasswordById(record.userId, passwordHash);
-    await authRepository.markPasswordResetUsed(record.id);
-    await authRepository.deleteRefreshTokensByUserId(record.userId);
+    const updated = await authRepository.consumePasswordReset(record.id, record.userId, passwordHash);
+    if (!updated) {
+      // Another request consumed/invalidated the link, or it expired while hashing.
+      if (record.expiresAt.getTime() <= Date.now()) {
+        throw { status: 410, message: "Liên kết đặt lại đã hết hạn" };
+      }
+      throw { status: 409, message: "Liên kết này đã được sử dụng" };
+    }
 
     return { user: updated };
   },

@@ -137,9 +137,10 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
   const q = queueQuery.data;
   const queueItems = q
     ? [
-        { count: q.pendingProspects, label: "Hồ sơ chờ thẩm định", filter: "PROSPECT" },
-        { count: q.pendingGyms, label: "Chi nhánh chờ duyệt", filter: null },
-        { count: q.pendingBrandRenames, label: "Tên thương hiệu chờ duyệt", filter: null },
+        // Khóa chuẩn của /admin/partners/queue — cùng định nghĩa với trang Duyệt, Quản lý Gym và app admin.
+        { count: q.applicationsAwaitingReview ?? q.pendingProspects, label: "Hồ sơ đối tác chờ duyệt", filter: null },
+        { count: q.branchesToReview ?? q.pendingGyms, label: "Chi nhánh chờ duyệt", filter: null },
+        { count: q.brandRenames ?? q.pendingBrandRenames, label: "Thương hiệu chờ duyệt đổi tên", filter: null },
         { count: q.expiringDocs, label: "Giấy phép sắp hết hạn", filter: null },
       ].filter((item) => item.count > 0)
     : [];

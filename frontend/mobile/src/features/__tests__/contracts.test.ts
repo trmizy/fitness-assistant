@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   CLIENT_TERMINATION_CHOICES,
   contractStatus,
+  contractStatusFor,
   endActionFor,
   isOpen,
   normalizeContract,
@@ -101,6 +102,25 @@ describe("statuses", () => {
     ]) {
       assert.notEqual(contractStatus(status).label, status, `${status} chưa có nhãn tiếng Việt`);
     }
+  });
+
+  it("labels a CANCELLED contract by what really happened (B38)", () => {
+    const at = (extra: Record<string, unknown>) => normalizeContract({ ...RAW_CONTRACT, status: "CANCELLED", ...extra });
+    // Withdrawn before any payment.
+    assert.equal(contractStatusFor(at({ cancelledBy: RAW_CONTRACT.clientUserId, cancellationReason: "Khách rút yêu cầu" })).label, "Đã huỷ");
+    // The payment-deadline sweep.
+    assert.equal(
+      contractStatusFor(at({ cancelledBy: "SYSTEM", cancellationReason: "Quá hạn thanh toán 24 giờ kể từ khi PT chấp nhận" })).label,
+      "Hết hạn thanh toán",
+    );
+    // Ran, then ended: paid, or ended with a termination reason.
+    assert.equal(contractStatusFor(at({ paymentTransactionId: "tx-1", cancelledBy: "SYSTEM" })).label, "Đã chấm dứt");
+    assert.equal(contractStatusFor(at({ terminationReason: "CLIENT_CANCELLED" })).label, "Đã chấm dứt");
+    // A wished start date alone does not make it an ended contract.
+    assert.equal(contractStatusFor(at({ startDate: "2026-11-01T00:00:00.000Z" })).label, "Đã huỷ");
+    // Other statuses are untouched; a rejected request reads "Bị từ chối".
+    assert.equal(contractStatusFor(normalizeContract({ ...RAW_CONTRACT, status: "REJECTED" })).label, "Bị từ chối");
+    assert.equal(contractStatusFor(normalizeContract({ ...RAW_CONTRACT, status: "ACTIVE" })).label, "Đang hiệu lực");
   });
 
   it("shows an unknown status as itself instead of inventing one", () => {

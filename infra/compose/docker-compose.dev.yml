@@ -127,6 +127,8 @@ services:
       # gateway chuyển /<bucket>/… sang MinIO (src/routes/storage.proxy.ts). Chỉ dev — production gọi S3.
       MINIO_PROXY_TARGET: http://minio:9000
       PARTNER_S3_PRIVATE_BUCKET: gymini-partner-private
+      # Ảnh tin đăng PT (user-service ký theo địa chỉ người gọi khi bật PT_MEDIA_S3_PUBLIC_VIA_REQUEST) — cùng proxy.
+      PT_MEDIA_S3_BUCKET: gymini-user-media
       # Địa chỉ web công khai hiện tại, do Khoi-dong-Tunnel-Web.bat ghi (src/utils/publicWebOrigin.ts):
       # dùng làm host cho link trong email + được CORS tin. Không có tệp / tệp cũ >2 phút = bỏ qua.
       PUBLIC_WEB_ORIGIN_FILE: /run/gymini/public-web-origin
@@ -285,6 +287,8 @@ services:
       # lưu ảnh đại diện / hồ sơ PT / hợp đồng sang S3 — ngoài phạm vi việc này.
       PT_MEDIA_S3_ENDPOINT: http://minio:9000
       PT_MEDIA_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      # Dev only: sign photo links for the address the caller used (LAN IP / tunnel) - the gateway proxies /<bucket>/... to MinIO.
+      PT_MEDIA_S3_PUBLIC_VIA_REQUEST: "true"
       PT_MEDIA_S3_REGION: us-east-1
       PT_MEDIA_S3_FORCE_PATH_STYLE: "true"
       PT_MEDIA_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-gymini_minio}

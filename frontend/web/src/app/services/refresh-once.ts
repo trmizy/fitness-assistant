@@ -5,13 +5,17 @@
  *
  * Zero browser dependencies — importable in Node.js unit tests.
  */
-export function makeRefreshOnce<T>(fn: () => Promise<T>): () => Promise<T> {
+export function makeRefreshOnce<T>(fn: () => Promise<T>, sessionKey: () => unknown = () => 0): () => Promise<T> {
   let pending: Promise<T> | null = null;
+  let key: unknown;
   return function refreshOnce(): Promise<T> {
-    if (!pending) {
-      pending = fn().finally(() => {
-        pending = null;
+    const nextKey = sessionKey();
+    if (!pending || key !== nextKey) {
+      key = nextKey;
+      const request = fn().finally(() => {
+        if (pending === request) pending = null;
       });
+      pending = request;
     }
     return pending;
   };

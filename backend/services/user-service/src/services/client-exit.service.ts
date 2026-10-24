@@ -145,8 +145,13 @@ export async function previewClientExit(contractId: string): Promise<Record<stri
   const terms = reasonIfCancelledNow ? await terminationTermsFor(contract.id, reasonIfCancelledNow) : undefined;
   const breakdown = await moneyBreakdown(contract.id, terms);
   if (!breakdown) return null;
+  // B31: a contract that was never paid has nothing to refund. The formula still prices the (unpaid) price, which made
+  // an unpaid contract quote "you would get 2.700.000 back"; report no estimate instead, and say why. Paid contracts
+  // are untouched, and no settlement math changes (this is the preview only).
+  const refundEstimate = breakdown.paid === false ? { refundIfCancelledNow: null, refundEstimateAvailable: false } : {};
   return {
     ...breakdown,
+    ...refundEstimate,
     canExitWithoutPenalty: Boolean(override),
     exitReasonIfCancelledNow: reasonIfCancelledNow,
     // On an ended exit, how many sessions are still waiting for a decision.

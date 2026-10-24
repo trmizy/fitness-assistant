@@ -13,6 +13,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
+import { sessionGuard } from "../services/sessionGuard";
 import { onSessionExpired } from "../services/sessionEvents";
 import { clearPendingAiState } from "../stores/pendingAiTasks";
 
@@ -67,6 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const result = await bootstrapSession();
       if (cancelled) return;
+      if (result.status === "superseded") { setIsInitializing(false); return; }
       if (result.status === "authenticated") {
         setUser(result.user);
         setIsAuth(true);
@@ -137,7 +139,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const listener = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
       if (!isActive || !isAuthenticated) return;
       void (async () => {
+        const generation = sessionGuard.current();
         const stillValid = await ensureFreshAccessToken();
+        if (generation !== sessionGuard.current()) return;
         // Only false when the server actively rejected the refresh token — an unreachable
         // server returns true, so a bad connection never logs anyone out.
         if (!stillValid) {
@@ -185,13 +189,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authService.login(email, password);
       if (res.success && res.user) {
+        if (res.sessionGeneration !== undefined) sessionGuard.assertCurrent(res.sessionGeneration);
         // gymini-account-session-isolation — same reasoning as the
         // session-expired listener above: cancel before clearing so a
         // still-in-flight request from whoever was logged in before this
         // call can't paint its result into the incoming account's screen.
         void queryClient.cancelQueries();
         queryClient.clear();
-        await Preferences.set({ key: "user", value: JSON.stringify(res.user) });
         setUser(res.user);
         setIsAuth(true);
         return true;

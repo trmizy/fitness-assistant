@@ -26,7 +26,13 @@ export type PtRow = {
   serviceMode: string | null;
   rating: number | null;
   ratingCount: number;
+  /**
+   * Place NAMES only (e.g. a district typed by the PT). The profile also stores the province / ward as
+   * numeric CODES in `searchCity` / `searchWard` — those are never shown raw (B18: cards read "27073, 79");
+   * they travel in `areaCodes` and are turned into names by `usePtArea`.
+   */
   area: string | null;
+  areaCodes?: { province: number | null; ward: number | null };
   lowestPrice: number | null;
   /** "Gói từ Y" — the cheapest package on sale, whole package (`fromPackagePrice`). */
   fromPackagePrice: number | null;
@@ -93,11 +99,30 @@ function normalizePhysiquePhotos(raw: any): PtPhysiquePhoto[] {
     .sort((a: PtPhysiquePhoto, b: PtPhysiquePhoto) => a.sortOrder - b.sortOrder);
 }
 
-/** City/ward as the profile stores them — the row has no single "area" field. */
+const isPlaceCode = (v: unknown): boolean => typeof v === "string" && /^\d+$/.test(v.trim());
+const asCode = (v: unknown): number | null => (isPlaceCode(v) ? Number(String(v).trim()) : null);
+
+/**
+ * City/ward/district as the profile stores them — the row has no single "area" field. `searchCity` and
+ * `searchWard` hold province/ward CODES for PTs whose location came from the application wizard, so a
+ * purely numeric value is dropped here (it would render as "27073, 79"); legacy rows that stored a name
+ * keep working.
+ */
 export function areaLabel(raw: any): string | null {
   const parts = [raw?.searchWard, raw?.searchDistrict, raw?.searchCity].filter(
-    (p) => typeof p === "string" && p.trim(),
+    (p) => typeof p === "string" && p.trim() && !isPlaceCode(p),
   );
+  return parts.length ? parts.join(", ") : null;
+}
+
+/** The province / ward codes behind `searchCity` / `searchWard`, when they are codes. */
+export function areaCodes(raw: any): { province: number | null; ward: number | null } {
+  return { province: asCode(raw?.searchCity), ward: asCode(raw?.searchWard) };
+}
+
+/** Join the resolved names with whatever name-typed parts the row already carries. */
+export function composeArea(pt: Pick<PtRow, "area">, wardName: string | null, provinceName: string | null): string | null {
+  const parts = [wardName, pt.area, provinceName].filter((p): p is string => !!p && !!p.trim());
   return parts.length ? parts.join(", ") : null;
 }
 
@@ -115,6 +140,7 @@ export function normalizePt(raw: any): PtRow {
     rating: typeof raw?.avgRating === "number" ? raw.avgRating : null,
     ratingCount: Number(raw?.ratingCount) || 0,
     area: areaLabel(raw),
+    areaCodes: areaCodes(raw),
     lowestPrice: cardPricePerSession(raw),
     fromPackagePrice: [app?.fromPackagePrice, raw?.fromPackagePrice].find(isValidPrice) ?? null,
     coverPhotoUrl: text(raw?.coverPhotoUrl),
@@ -170,6 +196,7 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
     slots28: fromDetail.slots28 ?? listRow.slots28,
     specialties: fromDetail.specialties.length ? fromDetail.specialties : listRow.specialties,
     area: fromDetail.area ?? listRow.area,
+    areaCodes: fromDetail.areaCodes?.province || fromDetail.areaCodes?.ward ? fromDetail.areaCodes : listRow.areaCodes,
     rating: fromDetail.rating ?? listRow.rating,
     ratingCount: fromDetail.ratingCount || listRow.ratingCount,
   };

@@ -2,7 +2,7 @@ import type { Request, RequestHandler } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
 /**
- * Tệp riêng tư của hồ sơ đối tác (ảnh cơ sở, giấy tờ, logo) — CHỈ bật ở dev, khi có MINIO_PROXY_TARGET.
+ * Tệp riêng tư dev (hồ sơ đối tác: ảnh cơ sở, giấy tờ, logo; và ảnh tin đăng PT) — CHỈ bật ở dev, khi có MINIO_PROXY_TARGET.
  *
  * Vấn đề: link ký tạm (presigned) từng ký cho `http://localhost:9000`, nên chỉ mở được trên đúng máy chạy
  * Docker; điện thoại, máy khác trong mạng, app Android qua tunnel Cloudflare đều không tải/không xem được.
@@ -22,14 +22,14 @@ function publicHost(req: Request): string | undefined {
   return (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(",")[0]?.trim() || req.get("host") || undefined;
 }
 
-function build(): { path: string; handler: RequestHandler } | null {
-  const target = process.env.MINIO_PROXY_TARGET;
-  const bucket = process.env.PARTNER_S3_PRIVATE_BUCKET;
-  if (!target || !bucket) return null;
-  if (process.env.NODE_ENV === "production") {
-    // Không bao giờ phơi MinIO ở production — production dùng S3 thật.
-    throw new Error("MINIO_PROXY_TARGET must not be set in production");
-  }
+/**
+ * Một proxy cho mỗi bucket riêng tư cần đi qua cổng gateway ở dev:
+ *   - PARTNER_S3_PRIVATE_BUCKET: giấy tờ/ảnh cơ sở/logo của đối tác gym (gym-service ký theo địa chỉ người gọi);
+ *   - PT_MEDIA_S3_BUCKET: ảnh tin đăng PT (ảnh thể hình…) — user-service PHẢI ký theo địa chỉ người gọi
+ *     thì link mới mở được qua tunnel/IP LAN (xem ghi chú bàn giao trong báo cáo B05).
+ * Cùng MinIO (MINIO_PROXY_TARGET), cùng cách chuyển tiếp; trùng tên bucket thì chỉ mount một lần.
+ */
+function buildFor(bucket: string, target: string): { path: string; handler: RequestHandler } {
   return {
     path: `/${bucket}`,
     handler: createProxyMiddleware({
@@ -54,4 +54,17 @@ function build(): { path: string; handler: RequestHandler } | null {
   };
 }
 
-export const storageProxy = build();
+function build(): { path: string; handler: RequestHandler }[] {
+  const target = process.env.MINIO_PROXY_TARGET;
+  const buckets = Array.from(
+    new Set([process.env.PARTNER_S3_PRIVATE_BUCKET, process.env.PT_MEDIA_S3_BUCKET].filter((b): b is string => Boolean(b))),
+  );
+  if (!target || buckets.length === 0) return [];
+  if (process.env.NODE_ENV === "production") {
+    // Không bao giờ phơi MinIO ở production — production dùng S3 thật.
+    throw new Error("MINIO_PROXY_TARGET must not be set in production");
+  }
+  return buckets.map((bucket) => buildFor(bucket, target));
+}
+
+export const storageProxies = build();

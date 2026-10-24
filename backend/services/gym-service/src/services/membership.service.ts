@@ -17,6 +17,11 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** B47 (Ngài chốt): clients cannot cancel an ACTIVE membership for now. Read at CALL time so a test (or ops) can flip it. */
+function clientCancelActiveEnabled(): boolean {
+  return (process.env.GYM_CLIENT_CANCEL_ACTIVE_ENABLED ?? '').trim().toLowerCase() === 'true';
+}
+
 /** Machine-readable code of the 409 activate answers when the membership cannot be activated by the payment that
  * just landed (cancelled while the client was at the bank, or already owned by another payment). payment-service
  * matches on it to refund the client in full - keep in step with its reconciliation.service.ts (NOT_ACTIVATABLE). */
@@ -48,7 +53,7 @@ export type AdminRefundReason = (typeof ADMIN_REFUND_REASONS)[number];
  * activating on this response would mean trusting the browser about whether money moved.
  */
 async function attemptPayment(
-  contract: { id: string; gymId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null },
+  contract: { id: string; gymId: string; planId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null },
   clientId: string,
   provider?: string,
   platform?: 'web' | 'mobile',
@@ -68,6 +73,7 @@ async function attemptPayment(
   // đổi trước lúc webhook xác nhận về.
   const gymForRate = await gymRepository.findById(contract.gymId);
   const platformRate = await commissionRateService.resolveEffectiveRateForOwner(gymForRate!.ownerId);
+  const plan = await planRepository.findById(contract.planId);
 
   const result = await paymentClient.checkout({
     membershipId: contract.id,
@@ -77,13 +83,23 @@ async function attemptPayment(
     platformRate,
     idempotencyKey,
     provider,
-    orderInfo: `Goi hoi vien ${contract.id}`.slice(0, 100),
+    orderInfo: membershipOrderInfo(plan?.name, gymForRate!.approvedName ?? gymForRate!.name),
     platform,
     returnBaseUrl,
   });
 
   logger.info(`[Membership] Checkout started for ${contract.id} via ${result.provider}`);
   return { membership: await membershipRepository.findById(contract.id), payment: result };
+}
+
+/**
+ * B25 - what the payer sees on the gateway page (MoMo/VNPay/ZaloPay order info): the plan and the branch, never an id.
+ * payment-service folds it to ASCII and cuts it to 100 characters; the cut is repeated here so the text we send is final.
+ */
+export function membershipOrderInfo(planName: string | null | undefined, gymName: string | null | undefined): string {
+  const parts = ['Gói hội viên', planName?.trim(), gymName?.trim()].filter((p): p is string => !!p);
+  const [head, ...rest] = parts;
+  return (rest.length > 0 ? `${head} ${rest.join(' - ')}` : head).slice(0, 100);
 }
 
 export const membershipService = {
@@ -272,6 +288,15 @@ export const membershipService = {
       throw err('Membership has already expired', 409);
     }
     if (contract.status !== 'ACTIVE') throw err(`Cannot cancel a membership in ${contract.status} status`, 409);
+    // B47 (Ngài chốt): for now a client may NOT cancel an ACTIVE membership - the unused part would be forfeited with no
+    // preview of the loss. Cancelling a PENDING_PAYMENT purchase (POST /me/gym-memberships/:id/cancel) is unaffected.
+    // GYM_CLIENT_CANCEL_ACTIVE_ENABLED=true restores the old forfeit-on-cancel behaviour without a code change.
+    if (!clientCancelActiveEnabled()) {
+      throw Object.assign(
+        new Error('Hiện chưa hỗ trợ tự huỷ gói hội viên đang hiệu lực. Gói sẽ dùng đến hết hạn; nếu cần hỗ trợ hãy liên hệ Gymini.'),
+        { status: 409, code: 'MEMBERSHIP_CANCEL_DISABLED' },
+      );
+    }
 
     if (contract.paymentTxnId) {
       await paymentClient.forfeitMembershipOnCancel({
@@ -391,7 +416,7 @@ export const membershipService = {
    * a membership elsewhere" warning shown before confirming a new purchase. */
   async warnOtherActiveMemberships(clientId: string, gymId: string) {
     const others = await membershipRepository.findOtherActiveMemberships(clientId, gymId);
-    return others.map((m) => ({ gymId: m.gymId, gymName: m.gym.name, endDate: m.endDate }));
+    return others.map((m) => ({ gymId: m.gymId, gymName: m.gym.approvedName ?? m.gym.name, endDate: m.endDate }));
   },
 
   /**

@@ -34,6 +34,17 @@ test("names are natural and unique; no placeholder patterns", () => {
   assert.ok(all.includes("Phạm Thu Uyên") && all.includes("Trần Minh Khoa") && all.includes("Nguyễn Trường Thành"));
 });
 
+test("name split follows the registration convention: firstName = first word (họ), lastName = the rest", () => {
+  const all = [...world.clients, ...world.pts, ...world.owners].map((x) => x.person);
+  for (const p of all) {
+    assert.equal(p.firstName, p.full.split(" ")[0], p.full);
+    assert.equal(p.lastName, p.full.split(" ").slice(1).join(" "), p.full);
+    assert.equal(`${p.firstName} ${p.lastName}`, p.full, "screens render `${firstName} ${lastName}`");
+  }
+  const uyen = all.find((p) => p.full === "Phạm Thu Uyên");
+  assert.deepEqual([uyen.firstName, uyen.lastName], ["Phạm", "Thu Uyên"]);
+});
+
 test("emails: <slug>@seed.gymini.test, unique, ASCII", () => {
   const emails = [...world.clients.map((c) => c.profile.email), ...world.pts.map((p) => p.email), ...world.owners.map((o) => o.email)];
   assert.equal(new Set(emails).size, emails.length);

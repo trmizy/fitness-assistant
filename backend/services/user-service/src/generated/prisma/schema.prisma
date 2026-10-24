@@ -545,6 +545,10 @@ enum NotificationEventType {
   // entityId = the payment transaction id). A direct consequence of the recipient's own payment, so no opt-out
   // preference entry.
   PAYMENT_AUTO_REFUNDED
+  // Gym partner onboarding - sent by gym-service to the applicant via POST /internal/notifications when an admin REJECTS
+  // the partner application (entity GYM_PARTNER_APPLICATION, entityId = gym-service's GymPartner id). A direct consequence
+  // of something the recipient submitted, so no opt-out preference entry.
+  GYM_PARTNER_APPLICATION_REJECTED
 }
 
 enum NotificationEntityType {
@@ -575,6 +579,8 @@ enum NotificationEntityType {
   PT_LISTING
   // PAYMENT_AUTO_REFUNDED's entityId = payment-service's PaymentTransaction.id (cross-service reference by convention).
   PAYMENT
+  // GYM_PARTNER_APPLICATION_REJECTED's entityId = gym-service's GymPartner.id (cross-service reference by convention).
+  GYM_PARTNER_APPLICATION
 }
 
 enum RescheduleStatus {

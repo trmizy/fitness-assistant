@@ -1,3 +1,4 @@
+import { internalEmailStatusController } from "../controllers/internal-email-status.controller";
 import { Router } from "express";
 import { authController } from "../controllers/auth.controller";
 import { loginRateLimit } from "../middleware/loginRateLimit.middleware";
@@ -40,6 +41,8 @@ router.post(
   createEmailActionRateLimit("password-reset-request"),
   authController.requestPasswordReset,
 );
+// B10: gym-service hỏi email đã có tài khoản chưa (và vai trò) trước khi mời. Đặt TRƯỚC route :op bên dưới.
+router.post("/internal/partner-auth/email-status", internalEmailStatusController.emailStatus);
 // Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
 router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);

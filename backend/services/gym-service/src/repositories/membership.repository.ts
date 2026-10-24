@@ -44,7 +44,7 @@ export const membershipRepository = {
   async findOtherActiveMemberships(clientId: string, excludingGymId: string) {
     return prisma.gymMembershipContract.findMany({
       where: { clientId, status: 'ACTIVE', gymId: { not: excludingGymId }, endDate: { gt: new Date() } },
-      include: { gym: { select: { name: true } } },
+      include: { gym: { select: { name: true, approvedName: true } } },
     });
   },
 

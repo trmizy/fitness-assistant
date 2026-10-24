@@ -74,6 +74,14 @@ export const partnerRepository = {
     return prisma.gymPartnerAccount.findUnique({ where: { id }, include: { partner: true } });
   },
 
+  /** B41 - the partner role of many users at once (admin user list). One row per user (user_id is UNIQUE). */
+  findAccountsByUserIds(userIds: string[]) {
+    return prisma.gymPartnerAccount.findMany({
+      where: { userId: { in: userIds } },
+      select: { userId: true, role: true, status: true, partnerId: true, partner: { select: { legalName: true } } },
+    });
+  },
+
   listAccountsByPartner(partnerId: string) {
     return prisma.gymPartnerAccount.findMany({
       where: { partnerId },

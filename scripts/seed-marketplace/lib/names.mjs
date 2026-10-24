@@ -55,9 +55,9 @@ export class NameBook {
     if (this.usedNames.has(full)) throw new Error(`duplicate fixed name: ${full}`);
     this.usedNames.add(full);
     const parts = full.split(" ");
-    // The web/mobile UIs render `${firstName} ${lastName}`, so firstName carries "Họ + đệm" and lastName the given name:
-    // that is what makes the screen read "Trần Minh Khoa" (not "Khoa Trần Minh").
-    return { full, firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1], surname: parts[0], gender, slug: this.slugFor(full) };
+    // Same split as the registration forms (web RegisterPage / mobile register): firstName = the first word (họ),
+    // lastName = the rest; screens render `${firstName} ${lastName}` -> "Trần Minh Khoa".
+    return { full, firstName: parts[0], lastName: parts.slice(1).join(" "), surname: parts[0], gender, slug: this.slugFor(full) };
   }
 
   next(gender) {
@@ -71,7 +71,7 @@ export class NameBook {
       const full = `${surname} ${middle} ${given}`;
       if (this.usedNames.has(full) || !isNaturalName(full)) continue;
       this.usedNames.add(full);
-      return { full, firstName: `${surname} ${middle}`, lastName: given, surname, gender: g, slug: this.slugFor(full) };
+      return { full, firstName: surname, lastName: `${middle} ${given}`, surname, gender: g, slug: this.slugFor(full) };
     }
     throw new Error("name pool exhausted");
   }

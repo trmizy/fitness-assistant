@@ -20,6 +20,7 @@ import {
 import { adminService } from "../../src/services/api";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
+import { fetchPartnerRoles } from "../../src/features/admin/partnerRoles";
 import { friendlyError } from "../../src/features/partnerApplication/partnerApplication";
 import {
   ROLE_FILTERS,
@@ -28,7 +29,8 @@ import {
   initials,
   isLocked,
   lockConsequences,
-  roleLabel,
+  partnerRoleMap,
+  userRoleLabel,
   userCounts,
   userRows,
   type AdminUserRow,
@@ -78,6 +80,16 @@ export default function AdminUsersScreen() {
   const key = ["admin-user-directory"];
   const query = useQuery({ queryKey: key, queryFn: () => adminService.listUserDirectory() });
   const rows = useMemo(() => userRows(query.data), [query.data]);
+  // B41 — partner staff (manager, receptionist, accountant) share the "Gym Owner" account role; ask the
+  // partner directory who is the real owner. A failure only leaves the generic label.
+  const gymOwnerIds = useMemo(() => rows.filter((u) => u.role === "Gym Owner").map((u) => u.id), [rows]);
+  const rolesQuery = useQuery({
+    queryKey: ["admin-partner-account-roles", gymOwnerIds.join(",")],
+    queryFn: () => fetchPartnerRoles(gymOwnerIds),
+    enabled: gymOwnerIds.length > 0,
+    staleTime: 60_000,
+  });
+  const partnerRoles = useMemo(() => partnerRoleMap(rolesQuery.data), [rolesQuery.data]);
   const shown = useMemo(() => filterUsers(rows, q, role, status), [rows, q, role, status]);
   const counts = userCounts(rows);
 
@@ -177,7 +189,7 @@ export default function AdminUsersScreen() {
                   </Text>
                 </View>
                 <View className="items-end gap-1">
-                  <Badge tone="neutral">{roleLabel(u.role)}</Badge>
+                  <Badge tone="neutral">{userRoleLabel(u, partnerRoles)}</Badge>
                   {isLocked(u) ? <Badge tone="danger">Đã khoá</Badge> : null}
                 </View>
               </Card>
@@ -198,7 +210,7 @@ export default function AdminUsersScreen() {
                 {selected.email}
               </Text>
               <View className="mt-1 flex-row gap-1.5">
-                <Badge tone="neutral">{roleLabel(selected.role)}</Badge>
+                <Badge tone="neutral">{userRoleLabel(selected, partnerRoles)}</Badge>
                 <Badge tone={isLocked(selected) ? "danger" : "success"}>{isLocked(selected) ? "Đã khoá" : "Đang hoạt động"}</Badge>
               </View>
             </View>

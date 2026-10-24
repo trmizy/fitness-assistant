@@ -12,6 +12,7 @@ import { hasUsableToken } from "./token";
 import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
+import { sessionGuard, SessionChangedError } from "./sessionGuard";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -47,6 +48,7 @@ export const api = axios.create({
 });
 
 type RetriableRequestConfig = {
+  _sessionGeneration?: number;
   _retry?: boolean;
   /**
    * Set by the startup/session-restore path (services/session.ts), which owns its own
@@ -113,18 +115,22 @@ const refreshClient = axios.create({
 
 /** Shared across the app: concurrent 401s and the startup path all funnel through this one
  *  in-flight refresh instead of each firing their own /auth/refresh. */
-export const refreshOnce = makeRefreshOnce(refreshAccessToken);
+export const refreshOnce = makeRefreshOnce(refreshAccessToken, sessionGuard.current);
 
 /** Clears only the session keys — theme, language and other preferences survive. */
-export async function clearStoredSession(): Promise<void> {
-  await Preferences.remove({ key: "accessToken" });
+export async function clearStoredSession(expected = sessionGuard.current()): Promise<void> {
+  sessionGuard.assertCurrent(expected);
+  const generation = sessionGuard.begin();
   tokenStore.set(null);
-  await clearRefreshToken();
-  await Preferences.remove({ key: "user" });
+  await sessionGuard.run(generation, async () => {
+    await Preferences.remove({ key: "accessToken" });
+    await clearRefreshToken();
+    await Preferences.remove({ key: "user" });
+  });
 }
 
-async function clearSessionAndRedirectToLogin() {
-  await clearStoredSession();
+async function clearSessionAndRedirectToLogin(expected: number) {
+  await clearStoredSession(expected);
   // Emit rather than assigning window.location: this module is outside the React tree, and
   // a location assignment reloads the entire app just to reach /login. AppContext listens
   // and navigates with the router instead (see services/sessionEvents.ts).
@@ -149,33 +155,45 @@ export class RefreshUnavailableError extends Error {
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = await readRefreshToken();
+  const generation = sessionGuard.current();
+  const refreshToken = await sessionGuard.run(generation, readRefreshToken);
   if (!hasUsableToken(refreshToken)) return null;
 
   try {
     const { data } = await refreshClient.post("/auth/refresh", {
       refreshToken,
     });
+    sessionGuard.assertCurrent(generation);
     if (hasUsableToken(data?.accessToken)) {
-      await Preferences.set({ key: "accessToken", value: data.accessToken });
-      tokenStore.set(data.accessToken);
-      if (hasUsableToken(data?.refreshToken)) {
-        await writeRefreshToken(data.refreshToken);
-      }
+      await sessionGuard.run(generation, async () => {
+        if (await readRefreshToken() !== refreshToken) throw new SessionChangedError();
+        await Preferences.set({ key: "accessToken", value: data.accessToken });
+        if (hasUsableToken(data?.refreshToken)) await writeRefreshToken(data.refreshToken);
+        sessionGuard.assertCurrent(generation);
+        tokenStore.set(data.accessToken);
+      });
       return data.accessToken;
     }
-    // 2xx with no usable token in the body — treat as a real rejection, not a transport fault.
-    return null;
+    throw new RefreshUnavailableError();
   } catch (err) {
+    sessionGuard.assertCurrent(generation);
+    if (err instanceof SessionChangedError) throw err;
+    await sessionGuard.run(generation, async () => {
+      if (await readRefreshToken() !== refreshToken) throw new SessionChangedError();
+    });
     const status = (err as { response?: { status?: number } })?.response?.status;
-    // The server answered and said no — the session really is over.
-    if (typeof status === "number" && status >= 400 && status < 500) return null;
+    // Only authentication refusals revoke a session; 408/429 and malformed
+    // responses must not erase valid credentials.
+    if (status === 401 || status === 403) return null;
     // No response, or the server failed on its own account: we simply don't know.
     throw new RefreshUnavailableError(err);
   }
 }
 
 api.interceptors.request.use(async (config) => {
+  const request = config as typeof config & RetriableRequestConfig;
+  if (request._sessionGeneration !== undefined) sessionGuard.assertCurrent(request._sessionGeneration);
+  request._sessionGeneration = sessionGuard.current();
   // Vòng 4 / Phase D3 — was `await Preferences.get({ key: "accessToken" })` here: a
   // native-bridge round-trip on EVERY single request. tokenStore is kept in sync with
   // storage on every write (see tokenStore.ts's doc comment) — reading it is synchronous.
@@ -189,9 +207,15 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const generation = (response.config as RetriableRequestConfig)._sessionGeneration;
+    if (generation !== undefined) sessionGuard.assertCurrent(generation);
+    return response;
+  },
   async (error) => {
     const originalRequest = (error?.config || {}) as RetriableRequestConfig;
+    const generation = originalRequest._sessionGeneration ?? sessionGuard.current();
+    sessionGuard.assertCurrent(generation);
     const status = error?.response?.status;
     const requestUrl = originalRequest.url || "";
 
@@ -218,12 +242,13 @@ api.interceptors.response.use(
         // RefreshUnavailableError: we could not reach /auth/refresh, so we do NOT know the
         // session is dead. Fail this one request and leave the stored session intact —
         // destroying it here would log the user out over a flaky connection.
-        if (refreshErr instanceof RefreshUnavailableError) {
-          return Promise.reject(error);
+        if (refreshErr instanceof RefreshUnavailableError || refreshErr instanceof SessionChangedError) {
+          return Promise.reject(refreshErr);
         }
         throw refreshErr;
       }
 
+      sessionGuard.assertCurrent(generation);
       if (hasUsableToken(newToken)) {
         originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -233,7 +258,7 @@ api.interceptors.response.use(
       // Refresh genuinely failed — the session is over. The bootstrap path opts out of the
       // redirect because it renders the login screen itself, without reloading the app.
       if (!originalRequest._skipAuthRedirect) {
-        clearSessionAndRedirectToLogin();
+        await clearSessionAndRedirectToLogin(generation);
       }
     }
 
@@ -282,13 +307,20 @@ export async function uploadFileToPresignedUrl(
 
 export const authService = {
   login: async (email: string, password: string) => {
+    let generation = sessionGuard.begin();
     const { data } = await api.post("/auth/login", { email, password });
     // Store tokens directly from auth service response
     if (data.accessToken) {
-      await Preferences.set({ key: "accessToken", value: data.accessToken });
-      tokenStore.set(data.accessToken);
-      await writeRefreshToken(data.refreshToken);
-      return { success: true, user: data.user };
+      sessionGuard.assertCurrent(generation);
+      generation = sessionGuard.begin();
+      await sessionGuard.run(generation, async () => {
+        await Preferences.set({ key: "accessToken", value: data.accessToken });
+        await writeRefreshToken(data.refreshToken);
+        await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
+        sessionGuard.assertCurrent(generation);
+        tokenStore.set(data.accessToken);
+      });
+      return { success: true, user: data.user, sessionGeneration: generation };
     }
     return { success: false };
   },
@@ -309,12 +341,18 @@ export const authService = {
   },
 
   verifyRegistration: async (email: string, otp: string) => {
+    let generation = sessionGuard.begin();
     const { data } = await api.post("/auth/register/verify", { email, otp });
     if (data.accessToken) {
-      await Preferences.set({ key: "accessToken", value: data.accessToken });
-      tokenStore.set(data.accessToken);
-      await writeRefreshToken(data.refreshToken);
-      await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
+      sessionGuard.assertCurrent(generation);
+      generation = sessionGuard.begin();
+      await sessionGuard.run(generation, async () => {
+        await Preferences.set({ key: "accessToken", value: data.accessToken });
+        await writeRefreshToken(data.refreshToken);
+        await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
+        sessionGuard.assertCurrent(generation);
+        tokenStore.set(data.accessToken);
+      });
       return { success: true, user: data.user };
     }
     return { success: false };
@@ -340,12 +378,13 @@ export const authService = {
   },
 
   logout: async () => {
+    const generation = sessionGuard.begin();
     // Revoke the refresh token server-side FIRST. Clearing local storage alone left the
     // refresh token valid in the database, so a copy of it kept working after "logging out".
     // Best-effort by design: a network failure here must not trap the user in a session they
     // asked to end, so we always fall through to clearing locally either way.
     try {
-      const refreshToken = await readRefreshToken();
+      const refreshToken = await sessionGuard.run(generation, readRefreshToken);
       if (hasUsableToken(refreshToken)) {
         await api.post("/auth/logout", { refreshToken });
       }
@@ -354,7 +393,7 @@ export const authService = {
     }
 
     // Only clear session keys — keep theme, language and other non-session preferences.
-    await clearStoredSession();
+    await clearStoredSession(generation);
     // Same reasoning as clearSessionAndRedirectToLogin: router navigation, not a reload.
     emitSessionExpired();
   },
@@ -3603,6 +3642,16 @@ export const coachService = {
     },
     sessionId?: string,
   ): () => void {
+    const generation = sessionGuard.current();
+    let cancelled = false;
+    const isCurrent = () => !cancelled && sessionGuard.current() === generation;
+    const originalCallbacks = callbacks;
+    callbacks = {
+      onStatus: value => { if (isCurrent()) originalCallbacks.onStatus(value); },
+      onToken: value => { if (isCurrent()) originalCallbacks.onToken(value); },
+      onDone: value => { if (isCurrent()) originalCallbacks.onDone(value); },
+      onError: value => { if (isCurrent()) originalCallbacks.onError(value); },
+    };
     const controller = new AbortController();
     const slowNoticeTimer = window.setTimeout(() => {
       callbacks.onStatus(
@@ -3634,13 +3683,18 @@ export const coachService = {
         // Vòng 4 / Phase D3 — raw fetch() bypasses the axios interceptor above (needs a
         // streaming response body), so it used to do its own Preferences.get round-trip here.
         let response = await sendStreamRequest(tokenStore.get());
+        sessionGuard.assertCurrent(generation);
+        if (controller.signal.aborted) return;
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
+          sessionGuard.assertCurrent(generation);
+          if (controller.signal.aborted) return;
           if (hasUsableToken(newToken) && !controller.signal.aborted) {
             response = await sendStreamRequest(newToken);
+            sessionGuard.assertCurrent(generation);
           } else {
-            clearSessionAndRedirectToLogin();
+            await clearSessionAndRedirectToLogin(generation);
             callbacks.onError(
               "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
             );
@@ -3690,6 +3744,7 @@ export const coachService = {
 
         for (;;) {
           const { done, value } = await reader.read();
+          sessionGuard.assertCurrent(generation);
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
@@ -3714,6 +3769,10 @@ export const coachService = {
           callbacks.onError("Kết nối AI bị ngắt. Vui lòng thử lại.");
         }
       } catch (err: unknown) {
+        if (!isCurrent()) {
+          controller.abort();
+          return;
+        }
         if (err instanceof Error && err.name === "AbortError") {
           callbacks.onError(
             "AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.",
@@ -3727,7 +3786,7 @@ export const coachService = {
       }
     })();
 
-    return () => controller.abort();
+    return () => { cancelled = true; controller.abort(); };
   },
 };
 

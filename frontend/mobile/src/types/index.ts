@@ -675,7 +675,11 @@ export interface GymCheckIn {
 export interface GymReview {
   id: string;
   gymId: string;
-  clientId: string;
+  /** B45 — no longer sent for other people's reviews; identify the viewer's own with `isMine`. */
+  clientId?: string;
+  reviewerName?: string;
+  /** True for the signed-in viewer's own review (set by the server). */
+  isMine?: boolean;
   rating: number;
   comment?: string | null;
   createdAt: string;

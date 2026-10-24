@@ -351,8 +351,8 @@ export const router = createBrowserRouter([
           { path: "finance", Component: AdminFinancePage },
           // Gom vào "Tài chính" — giữ lại 2 đường dẫn cũ dưới dạng redirect để không vỡ
           // bookmark/liên kết cũ, thay vì để 404.
-          { path: "pt-service-refunds", element: <Navigate to="/admin/finance" replace /> },
-          { path: "withdrawals", element: <Navigate to="/admin/finance" replace /> },
+          { path: "pt-service-refunds", element: <Navigate to="/admin/finance?tab=refunds" replace /> },
+          { path: "withdrawals", element: <Navigate to="/admin/finance?tab=withdrawals" replace /> },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
           { path: "gym-management", Component: AdminGymManagementOverview },

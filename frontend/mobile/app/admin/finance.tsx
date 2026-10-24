@@ -100,8 +100,19 @@ function Overview() {
           <View className="gap-2.5">
             <Total icon={TrendingUp} color={accent.primary} label="Tổng thu" value={report.totals.income} />
             <Total icon={TrendingDown} color={darkColors.destructive} label="Tổng chi" value={report.totals.expense} />
-            <Total icon={Coins} color={designTokens.warning} label="Doanh thu ròng nền tảng" value={report.totals.netRevenue} />
+            <Total icon={Coins} color={designTokens.warning} label="Doanh thu ròng nền tảng (trong kỳ)" value={report.totals.netRevenue} />
           </View>
+
+          {report.platformRevenue ? (
+            // B29 — the same wallet figures as the dashboard and the reconciliation report; not period-bound.
+            <Card className="gap-1 p-4">
+              <Text className="font-body text-xs text-muted-foreground">Doanh thu nền tảng hiện có</Text>
+              <Text className="font-display text-lg text-foreground">{formatVND(report.platformRevenue.available)}</Text>
+              {report.platformRevenue.pending > 0 ? (
+                <Text className="font-body text-xs text-muted-foreground">{`${formatVND(report.platformRevenue.pending)} đang chờ (hoa hồng chưa được giải phóng)`}</Text>
+              ) : null}
+            </Card>
+          ) : null}
 
           {report.buckets.length === 0 ? (
             <Card className="p-6">

@@ -238,6 +238,19 @@ export const sessionRepository = {
    * COMPLETED/CANCELLED/NO_SHOW are excluded on purpose: each of those has already been
    * accounted for elsewhere (usedSessions, compensatedSessions, or simply never happened).
    */
+  /**
+   * B30: how many sessions START in [from, to). A session counts once it is agreed (REQUESTED = still an unanswered
+   * request, CANCELLED = off); everything from CONFIRMED through COMPLETED / NO_SHOW / DISPUTED is a session that was
+   * on that day's timetable.
+   */
+  countScheduledBetween: (from: Date, to: Date, db: Db = prisma) =>
+    db.session.count({
+      where: {
+        scheduledStartAt: { gte: from, lt: to },
+        status: { notIn: [SessionStatus.REQUESTED, SessionStatus.CANCELLED] },
+      },
+    }),
+
   countActiveByContract: (contractId: string, db: Db = prisma) =>
     db.session.count({
       where: {

@@ -240,6 +240,16 @@ router.get(
   },
 );
 
+// B30: user-service read-only internal endpoint returning how many coaching sessions are scheduled
+// today (Vietnam day). Expected body: { count: number } (also accepts { data: { count } }).
+const USER_SERVICE_SESSIONS_TODAY_COUNT_URL = `${USER_SERVICE_URL}/internal/admin/sessions/today-count`;
+
+/** A non-negative integer count, or null when the upstream gave anything else (never a guess). */
+export function parseSessionsTodayCount(body: any): number | null {
+  const raw = body?.count ?? body?.data?.count;
+  return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 ? raw : null;
+}
+
 router.get(
   "/admin/dashboard",
   authMiddleware,
@@ -250,7 +260,7 @@ router.get(
     try {
       const authHeader = req.headers.authorization;
 
-      const [usersResult, ptsResult, statsResult, probesResult, reconResult] =
+      const [usersResult, ptsResult, statsResult, probesResult, reconResult, sessionsTodayResult] =
         await Promise.allSettled([
           axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
             headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -272,6 +282,12 @@ router.get(
             headers: authHeader ? { Authorization: authHeader } : undefined,
             timeout: 6000,
             validateStatus: () => true, // 409 (unbalanced) is still data we want to show
+          }),
+          // B30: coaching sessions scheduled today (Vietnam day) — owned by user-service. Read-only
+          // internal endpoint; any failure leaves the KPI null rather than showing a wrong number.
+          axios.get(USER_SERVICE_SESSIONS_TODAY_COUNT_URL, {
+            headers: { "x-service-secret": INTERNAL_SERVICE_SECRET },
+            timeout: 4000,
           }),
         ]);
 
@@ -330,10 +346,15 @@ router.get(
         (u) => u.role === "PT" || ptSet.has(u.id),
       ).length;
       const now = new Date();
-      const todayIso = now.toISOString().slice(0, 10);
-      const sessionsToday = users.filter(
-        (u) => u.updatedAt?.slice(0, 10) === todayIso,
-      ).length;
+      const sessionsToday = parseSessionsTodayCount(
+        sessionsTodayResult.status === "fulfilled" ? sessionsTodayResult.value?.data : null,
+      );
+      if (sessionsTodayResult.status === "rejected") {
+        logger.warn(
+          { error: sessionsTodayResult.reason?.message },
+          "Admin dashboard sessions-today upstream failed — KPI left null",
+        );
+      }
       const pendingPT = users.filter(
         (u) => u.role !== "PT" && ptSet.has(u.id),
       ).length;
@@ -596,7 +617,8 @@ router.patch(
       res.status(status).json({
         success: false,
         error: {
-          code: "UPDATE_ROLE_FAILED",
+          // Keep a specific upstream code (e.g. CANNOT_CHANGE_OWN_ROLE) instead of masking it.
+          code: error?.response?.data?.code || "UPDATE_ROLE_FAILED",
           message: error?.response?.data?.error || "Failed to update user role",
         },
       });
@@ -635,10 +657,10 @@ for (const action of ["disable", "enable"] as const) {
         res.status(status).json({
           success: false,
           error: {
+            // Keep a specific upstream code (CANNOT_DISABLE_SELF, LAST_ADMIN) instead of masking it.
             code:
-              action === "disable"
-                ? "DISABLE_USER_FAILED"
-                : "ENABLE_USER_FAILED",
+              error?.response?.data?.code ||
+              (action === "disable" ? "DISABLE_USER_FAILED" : "ENABLE_USER_FAILED"),
             message: error?.response?.data?.error || `Failed to ${action} user`,
           },
         });

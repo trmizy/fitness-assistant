@@ -36,7 +36,7 @@ export const checkinController = {
       const data = await checkinService.getGymQr(req.params.gymId, ownerId);
       return res.json({ success: true, data });
     } catch (e: any) {
-      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), message: e.message } });
     }
   },
 

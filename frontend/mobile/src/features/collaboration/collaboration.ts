@@ -34,6 +34,10 @@ export type CollabRow = {
   note?: string | null;
   createdAt?: string | null;
   expiresAt?: string | null;
+  /** B44 — explicit lifecycle (PENDING, COUNTERED, ACTIVE, TERMINATING, REJECTED, EXPIRED, TERMINATED). */
+  lifecycle?: string | null;
+  /** B44 — end of the notice period; only set while TERMINATING. */
+  terminationEffectiveAt?: string | null;
 };
 
 /**
@@ -92,10 +96,19 @@ export const COLLAB_STATUS: Record<string, { label: string; tone: StatusTone }> 
  * trong hàm. Hai chỗ gọi cùng hàm này thì không thể lệch nhau.
  */
 export function collabStatusFor(
-  row: { status?: string | null; proposedBy?: string | null } | null | undefined,
+  row: { status?: string | null; proposedBy?: string | null; lifecycle?: string | null; terminationEffectiveAt?: string | null } | null | undefined,
   viewer: CollabParty,
 ) {
   const status = row?.status ?? "";
+  if (status === "ACCEPTED" && row?.lifecycle === "TERMINATING") {
+    const d = row.terminationEffectiveAt ? new Date(row.terminationEffectiveAt) : null;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const date = d && !Number.isNaN(d.getTime()) ? `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}` : "";
+    return {
+      label: date ? `Đang chấm dứt — hiệu lực đến ${date}` : "Đang chấm dứt",
+      tone: "warning" as StatusTone,
+    };
+  }
   const base = COLLAB_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as StatusTone };
   if ((status === "PENDING" || status === "COUNTERED") && row?.proposedBy) {
     // `proposedBy` là bên ĐÃ ra giá, nên lượt thuộc về bên kia.
@@ -120,6 +133,6 @@ export function canRespondAs(
 }
 
 /** Hợp tác còn hiệu lực mới chấm dứt được; chấm dứt một đề nghị chưa ai nhận là vô nghĩa. */
-export function canTerminateCollab(row: { status?: string | null } | null | undefined): boolean {
-  return row?.status === "ACCEPTED";
+export function canTerminateCollab(row: { status?: string | null; lifecycle?: string | null } | null | undefined): boolean {
+  return row?.status === "ACCEPTED" && row?.lifecycle !== "TERMINATING";
 }

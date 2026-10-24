@@ -110,6 +110,18 @@ jobs:
         env:
           DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_fitness_test?schema=public
         run: npx prisma migrate status
+      - name: Password reset single-use and rollback regressions
+        working-directory: backend/services/auth-service
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_auth_test?schema=public
+        run: npx tsx --test src/__tests__/password-reset-concurrency.integration.test.ts
+      - name: Withdrawal concurrency and wallet regressions
+        working-directory: backend/services/payment-service
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@localhost:55433/gymcoach_payment_test?schema=public
+        run: npx tsx --test --test-concurrency=1 src/__tests__/withdrawal-concurrency.integration.test.ts src/__tests__/withdrawal-locking.integration.test.ts src/__tests__/withdrawal.integration.test.ts src/__tests__/withdrawal-minimum.integration.test.ts
       - name: Equipment eligibility DB regression (REQUIRED / ALTERNATIVE / OPTIONAL semantics)
         working-directory: backend/services/fitness-service
         env:

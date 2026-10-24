@@ -8,6 +8,7 @@ import type { WalletOwnerType } from '../generated/prisma';
 import { classifyWalletEntry } from '../services/wallet-entry-category';
 import { buildPtWalletContractsView } from '../services/pt-wallet-contracts.service';
 import { logger } from '@gym-coach/shared';
+import { INVALID_AMOUNT_BODY, isParsableAmount } from '../utils/withdrawal-amount';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -105,6 +106,7 @@ router.post('/withdrawals', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
+  if (!isParsableAmount(parsed.data.amount)) return res.status(400).json(INVALID_AMOUNT_BODY);
   try {
     const request = await withdrawalService.requestWithdrawal(ownerType, req.user!.userId, parsed.data.amount, parsed.data.payoutInfo);
     return res.status(201).json({ success: true, data: request });

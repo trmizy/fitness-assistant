@@ -24,6 +24,7 @@ import {
 } from "../../services/api";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { formatVND } from "../../utils/currency";
+import { givenName } from "../../utils/givenName";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
@@ -292,7 +293,7 @@ export function PTDashboard() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-zinc-100">Xin chào, {user?.firstName || "Coach"}</h1>
+          <h1 className="text-zinc-100">Xin chào, {givenName(user, "Coach")}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">{today}</p>
         </div>
         <div className="flex flex-wrap gap-2">

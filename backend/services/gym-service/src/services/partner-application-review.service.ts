@@ -10,6 +10,7 @@ import { applyGymApprovalTx } from './gym-approval.tx';
 import { amenityDto, proposalDto } from './gym-amenity-catalog.service';
 import { appError } from './partner-application.service';
 import { applicantEmails, sendApplicantMail } from './partner-application.emails';
+import { userClient } from '../clients/user.client';
 import {
   computeApproveBlockers,
   computeMissing,
@@ -484,7 +485,7 @@ export const partnerApplicationReviewService = {
   },
 
   async reject(partnerId: string, adminId: string, reason: string, adminNote?: string, req?: Request) {
-    const email = await prisma.$transaction(async (tx) => {
+    const { email, applicantUserId } = await prisma.$transaction(async (tx) => {
       await lockPartner(tx, partnerId);
       const partner = await loadSelfServicePartner(tx, partnerId);
       const res = await tx.gymPartner.updateMany({
@@ -506,9 +507,21 @@ export const partnerApplicationReviewService = {
         req,
         reason,
       });
-      return partner.contactEmail;
+      return { email: partner.contactEmail, applicantUserId: await ownerUserIdOf(tx, partnerId) };
     });
     void sendApplicantMail(email, applicantEmails.rejected(reason));
+    // B14: the in-app notification, after the commit; a failure is only logged (notifyUser never throws) and never undoes
+    // the rejection. Only the reason shown to the applicant goes in - never the internal adminNote.
+    if (applicantUserId) {
+      void userClient.notifyUser({
+        userId: applicantUserId,
+        text: `Hồ sơ đối tác phòng gym của bạn chưa được duyệt. Lý do: ${reason}`,
+        eventType: 'GYM_PARTNER_APPLICATION_REJECTED',
+        entityType: 'GYM_PARTNER_APPLICATION',
+        entityId: partnerId,
+        link: '/partner/application',
+      });
+    }
     return { ok: true };
   },
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { collaborationService } from '../services/collaboration.service';
 import { principalId } from '../middleware/partner-context.middleware';
 import { partnerGuard } from '../services/partner-guard.service';
+import { withCollaborationLifecycle } from '../services/collaboration-lifecycle';
 
 /**
  * Both sides of a negotiation share this one controller. Which side is acting is never taken
@@ -120,7 +121,7 @@ export const collaborationController = {
     try {
       const effectiveAt = parseEffectiveAt(req.body?.effectiveAt);
       const row = await collaborationService.terminate(req.params.id, 'PT', req.user!.userId, effectiveAt);
-      res.json({ success: true, data: row });
+      res.json({ success: true, data: withCollaborationLifecycle(row) });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
@@ -130,7 +131,7 @@ export const collaborationController = {
     try {
       const effectiveAt = parseEffectiveAt(req.body?.effectiveAt);
       const row = await collaborationService.terminate(req.params.id, 'GYM', principalId(req), effectiveAt);
-      res.json({ success: true, data: row });
+      res.json({ success: true, data: withCollaborationLifecycle(row) });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

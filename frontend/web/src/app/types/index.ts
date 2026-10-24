@@ -624,6 +624,9 @@ export interface Gym {
   expectedReopenAt?: string | null;
   closedAt?: string | null;
   reopenedAt?: string | null;
+  /** GET /gyms/:id (public) — chi nhánh đóng cửa tạm thời vẫn trả về, kèm cờ trạng thái. */
+  isOpen?: boolean;
+  isTemporarilyClosed?: boolean;
   createdAt: string;
   updatedAt: string;
   averageRating?: number; // public DTO only
@@ -720,7 +723,9 @@ export interface GymCheckIn {
 export interface GymReview {
   id: string;
   gymId: string;
-  clientId: string;
+  /** Server không còn gửi clientId của người khác — chỉ tên hiển thị + cờ "của tôi". */
+  reviewerName?: string | null;
+  isMine?: boolean;
   rating: number;
   comment?: string | null;
   createdAt: string;

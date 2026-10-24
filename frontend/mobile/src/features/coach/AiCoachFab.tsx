@@ -1,8 +1,19 @@
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { AppState, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { Sparkles } from "lucide-react-native";
 
 import { Tappable } from "../../components/ui";
@@ -16,6 +27,12 @@ const TAB_ROOTS = new Set(["/client/dashboard", "/client/workout", "/client/serv
 // Tab bar height set in WorkspaceTabs + the design's 20px gap above it (bottom: safe-bottom + 82px).
 const TAB_BAR_HEIGHT = 62;
 
+// The attention ring plays this many cycles and then STOPS (B16). It used to repeat forever, which kept
+// the render thread busy on every tab (75-95% CPU on a low-end phone, release build) and stopped
+// uiautomator from ever seeing the screen as idle. At rest the ring is fully transparent (pulse = 1).
+const PULSE_CYCLES = 2;
+const PULSE_CYCLE_MS = 1800;
+
 /**
  * WB-12 — the design's `AICoachFab` (App.tsx): 56px primary circle, Sparkles, a pulsing ring and a
  * warning-coloured "live" dot, springing in 400ms after the workspace appears. Web shows the same
@@ -28,12 +45,39 @@ export function AiCoachFab() {
   const accent = workspaceAccents.client;
   const visible = TAB_ROOTS.has(pathname);
 
+  const reduceMotion = useReducedMotion();
+  const [appActive, setAppActive] = useState(AppState.currentState === "active");
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => setAppActive(state === "active"));
+    return () => sub.remove();
+  }, []);
+
   const enter = useSharedValue(0);
-  const pulse = useSharedValue(0);
+  const pulse = useSharedValue(1); // 1 = resting (ring invisible)
   useEffect(() => {
     enter.value = withDelay(400, withSpring(1, { stiffness: 300, damping: 20 }));
-    pulse.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.ease) }), -1, false);
-  }, [enter, pulse]);
+  }, [enter]);
+
+  // A short, finite pulse each time the button (re)appears on a tab root or the app returns to the
+  // foreground. Never runs while hidden, backgrounded or when the OS asks for reduced motion.
+  const pulsing = visible && appActive && !reduceMotion;
+  useEffect(() => {
+    if (!pulsing) {
+      cancelAnimation(pulse);
+      pulse.value = 1;
+      return;
+    }
+    // Each cycle snaps to 0 (ring at full size/opacity) then fades out to the resting 1.
+    pulse.value = withDelay(
+      600,
+      withRepeat(
+        withSequence(withTiming(0, { duration: 0 }), withTiming(1, { duration: PULSE_CYCLE_MS, easing: Easing.out(Easing.ease) })),
+        PULSE_CYCLES,
+        false,
+      ),
+    );
+    return () => cancelAnimation(pulse);
+  }, [pulsing, pulse]);
 
   const enterStyle = useAnimatedStyle(() => ({ opacity: enter.value, transform: [{ scale: enter.value }] }));
   const ringStyle = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - pulse.value), transform: [{ scale: 1 + 0.55 * pulse.value }] }));

@@ -30,6 +30,11 @@ export const checkinService = {
   /** The QR a gym prints for its front desk. Owner-only. */
   async getGymQr(gymId: string, ownerId: string) {
     const gym = await gymService.getOwnedGym(gymId, ownerId); // 403/404 if not the owner
+    // B46: no new QR for a branch nobody may check in at (temporarily/permanently closed, not approved) - the scan would be
+    // refused anyway (assertGymOpenForCheckin), and a printed QR for a closed branch only invites a pointless scan.
+    if (gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') {
+      throw Object.assign(new Error('Chi nhánh đang đóng cửa hoặc chưa hoạt động nên chưa cấp mã QR check-in'), { status: 409, code: 'GYM_NOT_OPEN' });
+    }
     const { token, expiresAt } = signGymCheckinToken(gym.id);
     return { token, expiresAt, gymId: gym.id, gymName: gym.name };
   },

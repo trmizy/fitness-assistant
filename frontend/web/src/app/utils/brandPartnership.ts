@@ -180,7 +180,7 @@ function stageOf(row: any, viewer: Viewer): Stage {
     const by = asParty(row?.proposedBy);
     return by && by !== viewer ? "MY_TURN" : "THEIR_TURN";
   }
-  if (status === "ACCEPTED") return row?.terminationInitiatedAt || row?.effectiveAt ? "TERMINATING" : "ACTIVE";
+  if (status === "ACCEPTED") return row?.lifecycle === "TERMINATING" || row?.terminationInitiatedAt || row?.terminationEffectiveAt || row?.effectiveAt ? "TERMINATING" : "ACTIVE";
   if (status === "TERMINATED") return "TERMINATED";
   if (status === "REJECTED") return "REJECTED";
   return "EXPIRED";
@@ -195,7 +195,7 @@ export function stageLabel(stage: Stage, viewer: Viewer): { label: string; tone:
     case "ACTIVE":
       return { label: "Đang hợp tác", tone: "success" };
     case "TERMINATING":
-      return { label: "Đang báo chấm dứt", tone: "warning" };
+      return { label: "Đang chấm dứt", tone: "warning" };
     case "TERMINATED":
       return { label: "Đã chấm dứt", tone: "neutral" };
     case "REJECTED":
@@ -283,7 +283,7 @@ function toBrandView(row: any, viewer: Viewer, all: any[]): BrandAgreementView {
     proposedBy: asParty(row?.proposedBy),
     round: Number(row?.round) || 1,
     expiresAt: row?.expiresAt ?? null,
-    effectiveDate: dateVi(row?.effectiveAt),
+    effectiveDate: dateVi(row?.terminationEffectiveAt ?? row?.effectiveAt),
     terminatedDate: dateVi(row?.terminatedAt),
     note: str(row?.note) || null,
     branches,
@@ -291,7 +291,7 @@ function toBrandView(row: any, viewer: Viewer, all: any[]): BrandAgreementView {
     canRespond: stage === "MY_TURN",
     canTerminate: stage === "ACTIVE",
     canRepartner: stage === "TERMINATED" && !anyLive && newestEnded?.id === row.id && !!proposeBranchId,
-    noticeLine: stage === "TERMINATING" ? noticeLineFor(row?.effectiveAt) : null,
+    noticeLine: stage === "TERMINATING" ? noticeLineFor(row?.terminationEffectiveAt ?? row?.effectiveAt) : null,
   };
 }
 
@@ -318,7 +318,7 @@ function toLegacyRow(row: any, viewer: Viewer, branded: boolean): LegacyRowView 
     rates: rateTriple(row),
     proposedBy: asParty(row?.proposedBy),
     round: Number(row?.round) || 1,
-    effectiveDate: dateVi(row?.effectiveAt),
+    effectiveDate: dateVi(row?.terminationEffectiveAt ?? row?.effectiveAt),
     note: str(row?.note) || null,
     canReject: stage === "MY_TURN",
     canAcceptOrCounter: stage === "MY_TURN" && !branded,
@@ -421,7 +421,7 @@ export function partneredPtCount(rawRows: unknown, gym: { id?: string | null; br
   if (!gym) return 0;
   const pts = new Set<string>();
   for (const r of Array.isArray(rawRows) ? (rawRows as any[]) : []) {
-    if (!r || str(r.status) !== "ACCEPTED" || r.terminationInitiatedAt || r.effectiveAt) continue;
+    if (!r || str(r.status) !== "ACCEPTED" || r.lifecycle === "TERMINATING" || r.terminationInitiatedAt || r.terminationEffectiveAt || r.effectiveAt) continue;
     if (r.scope === "BRAND") {
       if (gym.brandId && str(r.brandId) === gym.brandId) pts.add(str(r.ptUserId));
     } else if (!r.supersededByAgreementId && str(r.gymId) === gym.id) {

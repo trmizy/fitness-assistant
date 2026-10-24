@@ -3,7 +3,7 @@ import { onboardingService } from '../services/onboarding.service';
 import { principalId } from '../middleware/partner-context.middleware';
 
 function fail(res: Response, e: any) {
-  res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
+  res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message || 'Đã có lỗi xảy ra' } });
 }
 
 /** Mọi handler ở đây đọc `req.partner!.accountId` trực tiếp — KHÔNG qua principalId() —
@@ -69,6 +69,8 @@ export const onboardingController = {
   async submitPayout(req: Request, res: Response) {
     try {
       if (req.partner!.role !== 'OWNER') throw Object.assign(new Error('Chỉ chủ sở hữu nhập thông tin nhận tiền'), { status: 403 });
+      // B09: chưa được duyệt thì chưa khai được tài khoản nhận tiền.
+      onboardingService.assertPayoutAllowed(req.partner!);
       const progress = await onboardingService.submitPayout(req.partner!.accountId!, req.partner!.partnerId!, req.body ?? {}, {
         userId: req.user!.userId,
         email: req.user!.email,

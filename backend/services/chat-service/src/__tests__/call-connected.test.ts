@@ -136,4 +136,7 @@ test("callLogContent: Vietnamese, duration from startedAt, 0:00 when never conne
   assert.equal(callLogContent({ callType: "VOICE", startedAt: null, endedAt }, false), "📞 Cuộc gọi thoại đã kết thúc (0:00)");
   assert.equal(callLogContent({ callType: "VOICE" }, true), "📞 Cuộc gọi thoại nhỡ");
   assert.equal(callLogContent({ callType: "VIDEO" }, true), "📞 Cuộc gọi video nhỡ");
+  // Callee declined: its own wording, never the "nhỡ" text (which stays for no-answer/timeout/cancel).
+  assert.equal(callLogContent({ callType: "VOICE" }, true, true), "📞 Cuộc gọi thoại bị từ chối");
+  assert.equal(callLogContent({ callType: "VIDEO" }, true, true), "📞 Cuộc gọi video bị từ chối");
 });

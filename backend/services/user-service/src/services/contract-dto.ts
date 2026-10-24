@@ -77,6 +77,7 @@ const CLIENT_BREAKDOWN_FIELDS = [
   "unit",
   "remaining",
   "refundIfCancelledNow",
+  "refundEstimateAvailable",
   "reasonUsed",
   "canExitWithoutPenalty",
   "exitReasonIfCancelledNow",

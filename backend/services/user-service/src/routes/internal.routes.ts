@@ -9,6 +9,8 @@ import { ptDeactivationService } from "../services/pt-deactivation.service";
 import { notificationService } from "../services/notification.service";
 import { pushService } from "../services/push.service";
 import { contractRepository } from "../repositories/contract.repository";
+import { sessionRepository } from "../repositories/session.repository";
+import { vietnamDayRange } from "../utils/vi-datetime.util";
 import { PtRestrictionError, getActiveRestriction, ptRestrictionService } from "../services/pt-restriction.service";
 import { parsePtGymSessionsQuery, ptGymSessionsService } from "../services/pt-gym-sessions.service";
 import gymBookedClientsRoutes from "./internal-gym-booked-clients.routes";
@@ -343,6 +345,23 @@ router.post("/contracts/count-active-by-gyms", async (req, res) => {
   } catch (error: any) {
     logger.error(error, "count-active-by-gyms failed");
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * B30: the admin dashboard's "sessions today" KPI. Read-only; the gateway calls it with the service secret.
+ * Counts coaching sessions that start today in Vietnam time (UTC+7), excluding cancelled and still-unanswered
+ * (REQUESTED) ones. Answers { count, date } where date is the Vietnam day as YYYY-MM-DD.
+ */
+router.get("/admin/sessions/today-count", async (_req, res) => {
+  try {
+    const { start, end } = vietnamDayRange(new Date());
+    const count = await sessionRepository.countScheduledBetween(start, end);
+    const date = new Date(start.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    res.json({ count, date });
+  } catch (error: any) {
+    logger.error(error, "sessions today-count failed");
+    res.status(500).json({ error: "Không đếm được số buổi tập hôm nay" });
   }
 });
 

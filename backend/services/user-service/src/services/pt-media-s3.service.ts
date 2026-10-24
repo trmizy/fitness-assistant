@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { currentPublicBaseUrl } from "../middleware/request-context.middleware";
 
 /**
  * Private object storage for PT physique photos (listing management, plan §12.2 / Q3).
@@ -74,6 +75,29 @@ function clients(cfg: S3Config) {
   return cached;
 }
 
+/**
+ * Client used ONLY to sign links for a browser (presign upload + read). Default: PT_MEDIA_S3_PUBLIC_ENDPOINT (one fixed host).
+ * In dev, PT_MEDIA_S3_PUBLIC_VIA_REQUEST=true signs for the address the caller is using right now (localhost:5173, a LAN IP, a
+ * Cloudflare tunnel...): the gateway forwards `/<bucket>/...` to MinIO (gateway/src/routes/storage.proxy.ts). With no request
+ * context (a job, a test) the default is used. The flag is ignored in production, where the browser talks to S3 directly.
+ * Server-side HEAD / GET / PUT / DELETE never use this client - they stay on PT_MEDIA_S3_ENDPOINT.
+ */
+const perRequestSigners = new Map<string, S3Client>();
+export function viaRequestEnabled(): boolean {
+  return process.env.PT_MEDIA_S3_PUBLIC_VIA_REQUEST === "true" && process.env.NODE_ENV !== "production";
+}
+function signingClient(cfg: S3Config): S3Client {
+  const base = viaRequestEnabled() ? currentPublicBaseUrl() : undefined;
+  if (!base) return clients(cfg).signing;
+  let c = perRequestSigners.get(base);
+  if (!c) {
+    if (perRequestSigners.size > 50) perRequestSigners.clear(); // LAN IPs / tunnels change constantly - do not keep them forever
+    c = new S3Client({ region: cfg.region, endpoint: base, forcePathStyle: true, credentials: cfg.credentials });
+    perRequestSigners.set(base, c);
+  }
+  return c;
+}
+
 function unavailable(): Error {
   return Object.assign(new Error("Tính năng tải ảnh chưa được cấu hình trên môi trường này"), {
     status: 503,
@@ -98,7 +122,7 @@ export const s3PtMediaStorage: PtMediaStorage = {
   async presignUpload({ key, contentType, maxBytes, expiresSec }) {
     const cfg = readConfig();
     if (!cfg.bucket) throw unavailable();
-    const { url, fields } = await createPresignedPost(clients(cfg).signing, {
+    const { url, fields } = await createPresignedPost(signingClient(cfg), {
       Bucket: cfg.bucket,
       Key: key,
       Expires: expiresSec ?? 600,
@@ -115,7 +139,7 @@ export const s3PtMediaStorage: PtMediaStorage = {
     const cfg = readConfig();
     if (!cfg.bucket) throw unavailable();
     return getSignedUrl(
-      clients(cfg).signing,
+      signingClient(cfg),
       new GetObjectCommand({ Bucket: cfg.bucket, Key: key, ResponseContentType: contentType, ResponseContentDisposition: "inline" }),
       { expiresIn: expiresSec ?? 600 },
     );

@@ -20,18 +20,22 @@ import { api, refreshOnce, clearStoredSession, RefreshUnavailableError } from ".
 import { hasUsableToken, isAccessTokenExpiringSoon } from "./token";
 import { readRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
+import { sessionGuard, SessionChangedError } from "./sessionGuard";
 
 export type BootstrapResult =
+  | { status: "superseded" }
   | { status: "authenticated"; user: User | null }
   | { status: "unauthenticated" };
 
 /** Reads the cached user object written at login. Only ever a fallback for display —
  *  the server's answer wins whenever we can reach it. */
-async function readCachedUser(): Promise<User | null> {
+async function readCachedUser(generation: number): Promise<User | null> {
   try {
     const { value } = await Preferences.get({ key: "user" });
+    sessionGuard.assertCurrent(generation);
     return value ? (JSON.parse(value) as User) : null;
-  } catch {
+  } catch (err) {
+    if (err instanceof SessionChangedError) throw err;
     return null;
   }
 }
@@ -72,20 +76,22 @@ async function verifySessionWithServer(): Promise<User | null> {
  * rather than destroying a perfectly valid session because the train went into a tunnel.
  */
 export async function bootstrapSession(): Promise<BootstrapResult> {
+  const generation = sessionGuard.current();
   try {
-    const [{ value: accessToken }, refreshToken] = await Promise.all([
+    const [{ value: accessToken }, refreshToken] = await sessionGuard.run(generation, () => Promise.all([
       Preferences.get({ key: "accessToken" }),
       readRefreshToken(),
-    ]);
+    ]));
     // Vòng 4 / Phase D3 — seed the in-memory token store from storage FIRST, before anything
     // below makes a request through the interceptor (which now reads tokenStore synchronously
     // instead of storage). Skipping this would make every request during/after bootstrap look
     // unauthenticated even though a perfectly good session is sitting in storage.
+    sessionGuard.assertCurrent(generation);
     tokenStore.set(accessToken);
 
     // The refresh token is what actually defines "there is a session here".
     if (!hasUsableToken(refreshToken)) {
-      await clearStoredSession();
+      await clearStoredSession(generation);
       return { status: "unauthenticated" };
     }
 
@@ -94,14 +100,14 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
         const refreshed = await refreshOnce();
         if (!hasUsableToken(refreshed)) {
           // The server rejected the refresh token — session genuinely over.
-          await clearStoredSession();
+          await clearStoredSession(generation);
           return { status: "unauthenticated" };
         }
       } catch (err) {
         if (err instanceof RefreshUnavailableError) {
           // Couldn't reach the server. Keep the session and let the user in offline on the
           // cached user — the first successful request later will sort it out.
-          return { status: "authenticated", user: await readCachedUser() };
+          return { status: "authenticated", user: await readCachedUser(generation) };
         }
         throw err;
       }
@@ -111,25 +117,27 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
       const user = await verifySessionWithServer();
       if (user) {
         // Keep the cache in step with the server (role changes, renames, etc.).
-        await Preferences.set({ key: "user", value: JSON.stringify(user) });
+        await sessionGuard.run(generation, () => Preferences.set({ key: "user", value: JSON.stringify(user) }));
         return { status: "authenticated", user };
       }
-      await clearStoredSession();
+      await clearStoredSession(generation);
       return { status: "unauthenticated" };
     } catch (err) {
+      sessionGuard.assertCurrent(generation);
       const status = (err as { response?: { status?: number } })?.response?.status;
 
       // 401/403 after a refresh attempt means the session is genuinely dead.
       if (status === 401 || status === 403) {
-        await clearStoredSession();
+        await clearStoredSession(generation);
         return { status: "unauthenticated" };
       }
 
       // Anything else (offline, 5xx, timeout) is the server's problem, not the session's.
       // Stay logged in on the cached user; the next successful request will correct it.
-      return { status: "authenticated", user: await readCachedUser() };
+      return { status: "authenticated", user: await readCachedUser(generation) };
     }
   } catch (err) {
+    if (err instanceof SessionChangedError) return { status: "superseded" };
     console.error("[session] bootstrap failed", err);
     return { status: "unauthenticated" };
   }
@@ -147,17 +155,20 @@ export async function bootstrapSession(): Promise<BootstrapResult> {
  * not the same as unauthenticated.
  */
 export async function ensureFreshAccessToken(): Promise<boolean> {
+  const generation = sessionGuard.current();
   try {
     // Vòng 4 / Phase D3 — tokenStore is already the freshest known value (seeded at bootstrap,
     // kept in sync on every login/refresh), so this no longer needs its own Preferences.get.
     const accessToken = tokenStore.get();
     const refreshToken = await readRefreshToken();
+    sessionGuard.assertCurrent(generation);
 
     if (!hasUsableToken(refreshToken)) return false;
     if (!isAccessTokenExpiringSoon(accessToken)) return true;
 
     try {
       const refreshed = await refreshOnce();
+      sessionGuard.assertCurrent(generation);
       return hasUsableToken(refreshed);
     } catch (err) {
       // Unreachable server is not a dead session — see doc comment.

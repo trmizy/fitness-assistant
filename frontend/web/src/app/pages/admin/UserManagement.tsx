@@ -41,6 +41,15 @@ const ROLE_OPTIONS: { value: AssignableRole; label: string }[] = [
   { value: "GYM_OWNER", label: "Chủ phòng gym" },
 ];
 
+// Vai trò thật trong đối tác gym (GET /admin/partner-accounts/roles) — tài khoản "Gym Owner" ở bảng
+// người dùng gồm cả nhân sự (quản lý, lễ tân, kế toán), không chỉ chủ phòng gym.
+const PARTNER_ROLE_LABEL: Record<string, string> = {
+  OWNER: "Chủ phòng gym",
+  MANAGER: "Quản lý chi nhánh",
+  RECEPTIONIST: "Lễ tân",
+  ACCOUNTANT: "Kế toán",
+};
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -58,6 +67,8 @@ export function UserManagement() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const { user: me } = useApp();
+  const [partnerRoles, setPartnerRoles] = useState<Record<string, string | null>>({});
+  const roleText = (u: AdminUser) => (u.role === "Gym Owner" ? PARTNER_ROLE_LABEL[partnerRoles[u.id] ?? "OWNER"] ?? u.role : u.role);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState<AssignableRole>("CUSTOMER");
   const [lockTarget, setLockTarget] = useState<AdminUser | null>(null);
@@ -112,6 +123,27 @@ export function UserManagement() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Tra vai trò đối tác cho các tài khoản Gym Owner (≤200 id mỗi lần gọi). Lỗi thì giữ nhãn mặc định.
+  useEffect(() => {
+    const ids = users.filter((u) => u.role === "Gym Owner").map((u) => u.id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string | null> = {};
+      try {
+        for (let i = 0; i < ids.length; i += 200) {
+          const { data } = await api.get("/admin/partner-accounts/roles", { params: { userIds: ids.slice(i, i + 200).join(",") } });
+          const rows: Array<{ userId: string; partnerRole: string | null }> = data?.data ?? data ?? [];
+          for (const r of Array.isArray(rows) ? rows : []) next[r.userId] = r.partnerRole;
+        }
+        if (!cancelled) setPartnerRoles(next);
+      } catch {
+        /* nhãn mặc định */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [users]);
 
   const filtered = users.filter(
     (u) =>
@@ -276,7 +308,7 @@ export function UserManagement() {
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${roleBadge(u.role)}`}
                         >
-                          {u.role}
+                          {roleText(u)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -364,7 +396,7 @@ export function UserManagement() {
 
               <div className="space-y-2.5 text-sm border-b border-zinc-800/60 pb-4 mb-4">
                 {[
-                  { label: "Role", value: selectedUser.role },
+                  { label: "Role", value: roleText(selectedUser) },
                   { label: "Joined", value: selectedUser.joined },
                   { label: "Last Active", value: selectedUser.lastActive },
                   { label: "Sessions", value: String(selectedUser.sessions) },

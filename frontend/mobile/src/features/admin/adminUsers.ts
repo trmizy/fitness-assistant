@@ -47,6 +47,36 @@ export function roleLabel(role: string): string {
   return ROLE_LABEL[role] ?? role;
 }
 
+export type PartnerRole = "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
+
+const PARTNER_ROLE_LABEL: Record<PartnerRole, string> = {
+  OWNER: "Chủ phòng gym",
+  MANAGER: "Quản lý chi nhánh",
+  RECEPTIONIST: "Lễ tân",
+  ACCOUNTANT: "Kế toán",
+};
+
+/** userId -> partner role, from `GET /admin/partner-accounts/roles` (`data: [{ userId, partnerRole }]`). */
+export function partnerRoleMap(raw: unknown): Map<string, PartnerRole> {
+  const d: any = (raw as any)?.data ?? raw;
+  const list = Array.isArray(d) ? d : [];
+  const map = new Map<string, PartnerRole>();
+  for (const row of list) {
+    const r = row?.partnerRole;
+    if (row?.userId && typeof r === "string" && r in PARTNER_ROLE_LABEL) map.set(String(row.userId), r as PartnerRole);
+  }
+  return map;
+}
+
+/** B41 — the account's own role label; partner staff are not "Chủ phòng gym". */
+export function userRoleLabel(u: Pick<AdminUserRow, "id" | "role">, partnerRoles?: Map<string, PartnerRole>): string {
+  if (u.role === "Gym Owner") {
+    const pr = partnerRoles?.get(u.id);
+    if (pr) return PARTNER_ROLE_LABEL[pr];
+  }
+  return roleLabel(u.role);
+}
+
 export function isLocked(u: AdminUserRow): boolean {
   return u.status === "Inactive";
 }

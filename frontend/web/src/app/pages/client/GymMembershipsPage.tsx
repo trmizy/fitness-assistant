@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, QrCodeIcon as QrCode, ArrowCounterClockwiseIcon as RotateCcw } from "@phosphor-icons/react";
+import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, QrCodeIcon as QrCode } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { openPaymentGateway } from "../../services/paymentGateway";
@@ -10,7 +10,6 @@ import { formatVND } from "../../utils/currency";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 import { ReportIssueDialog } from "../../components/gym/ReportIssueDialog";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { WarningCircleIcon } from "@phosphor-icons/react";
 
 /** GYM_MANAGEMENT master spec, Phase 5 — same 30-day window as the server-side guard
@@ -20,14 +19,6 @@ function isWithinReportWindow(endDate?: string | null): boolean {
   if (!endDate) return false;
   const days = (Date.now() - new Date(endDate).getTime()) / 86_400_000;
   return days <= 30;
-}
-
-/** Days left on an ACTIVE membership, for the cancel-warning copy (no refund is computed —
- * money-flow plan §2.4: self-cancel forfeits the unused portion, it is not estimated). */
-function daysRemaining(m: GymMembershipContract): number {
-  const now = Date.now();
-  const end = m.endDate ? new Date(m.endDate).getTime() : now;
-  return Math.max(0, Math.ceil((end - now) / 86_400_000));
 }
 
 const STATUS_CONFIG: Record<GymMembershipContractStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -47,8 +38,6 @@ export function GymMembershipsPage() {
   const navigate = useNavigate();
   // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
   const [scanning, setScanning] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState<GymMembershipContract | null>(null);
-  useBackDismissible(!!cancelTarget, () => setCancelTarget(null));
   // The membership awaiting a gateway choice; null while the picker is closed.
   const [payTarget, setPayTarget] = useState<GymMembershipContract | null>(null);
   const [reportTarget, setReportTarget] = useState<GymMembershipContract | null>(null);
@@ -95,19 +84,6 @@ export function GymMembershipsPage() {
       queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error?.code || "Failed to cancel"),
-  });
-
-  const cancelActiveMutation = useMutation({
-    mutationFn: (id: string) => gymService.cancelActiveMembership(id),
-    onSuccess: () => {
-      toast.success("Đã hủy membership");
-      setCancelTarget(null);
-      queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
-    },
-    onError: (err: any) => {
-      const code = err?.response?.data?.error?.code;
-      toast.error(code || err?.response?.data?.error?.message || "Hủy membership thất bại");
-    },
   });
 
   return (
@@ -163,13 +139,6 @@ export function GymMembershipsPage() {
                       className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                     >
                       <QrCode className="w-3.5 h-3.5" /> Quét mã check-in
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCancelTarget(m)}
-                      className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Hủy membership
                     </button>
                     <button
                       type="button"
@@ -234,43 +203,6 @@ export function GymMembershipsPage() {
         />
       )}
 
-      {cancelTarget && (() => {
-        const days = daysRemaining(cancelTarget);
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
-              <div className="p-5 border-b border-zinc-800/60">
-                <h3 className="text-zinc-100 font-bold">Hủy membership</h3>
-              </div>
-              <div className="p-5 space-y-3 text-sm text-zinc-300">
-                <p>Bạn sắp hủy gói còn <span className="font-semibold">{days} ngày / {cancelTarget.durationDaysSnapshot} ngày</span>.</p>
-                <div className="flex items-start gap-2 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  Bạn sẽ <span className="font-semibold">không được hoàn lại</span> số tiền của phần thời gian chưa sử dụng.
-                </div>
-              </div>
-              <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCancelTarget(null)}
-                  className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
-                >
-                  Giữ lại
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cancelActiveMutation.mutate(cancelTarget.id)}
-                  disabled={cancelActiveMutation.isPending}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:opacity-60 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {cancelActiveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Xác nhận hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

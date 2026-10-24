@@ -1,7 +1,6 @@
 import { diligenceRepository } from '../repositories/diligence.repository';
 import { partnerRepository } from '../repositories/partner.repository';
-import { gymRepository } from '../repositories/gym.repository';
-import { brandRepository } from '../repositories/brand.repository';
+import { countAdminQueues } from './admin-queue.definitions';
 import { prisma } from '../repositories/prisma';
 import type { PartnerDocumentType, PartnerDocumentStatus, PartnerContactChannel, PartnerVerificationStatus } from '../generated/prisma';
 
@@ -173,11 +172,11 @@ export const partnerDiligenceService = {
    * danh sách, mà là "còn bao nhiêu việc, mỗi việc mở ra là một hàng đợi".
    */
   async queue() {
-    const [pendingProspects, pendingGyms, pendingBrandRenames, invitedTooLong, expiringDocs, pendingVerification, pendingBranchChanges] =
+    // B40: the three review counts come from ONE definition (admin-queue.definitions.ts) shared with the admin apps'
+    // own queue logic, so "Duyệt", "Đối tác" and "Chi nhánh" can no longer disagree about the same data.
+    const [counts, invitedTooLong, expiringDocs, pendingVerification, pendingBranchChanges] =
       await Promise.all([
-        prisma.gymPartner.count({ where: { status: 'PROSPECT', rejectedAt: null } }),
-        gymRepository.findAllForAdmin('PENDING_REVIEW').then((r) => r.length),
-        brandRepository.findAllForAdmin().then((rows) => rows.filter((b) => b.pendingName).length),
+        countAdminQueues(),
         prisma.partnerInvitation.findMany({
           where: {
             status: 'PENDING',
@@ -197,15 +196,32 @@ export const partnerDiligenceService = {
       ]);
 
     return {
-      pendingProspects,
-      pendingGyms,
-      pendingBrandRenames,
+      // Canonical keys (use these in new UI):
+      applicationsAwaitingReview: counts.applicationsAwaitingReview, //     self-service application submitted, not decided
+      applicationsWaitingApplicant: counts.applicationsWaitingApplicant, // sent back for changes - the APPLICANT's turn
+      branchesFirstApproval: counts.branchesFirstApproval, //               branch PENDING_REVIEW
+      branchRenames: counts.branchRenames, //                              approved branch with a real pending name/address change
+      brandRenames: counts.brandRenames, //                                brand with a real pending name
+      branchesToReview: counts.branchesFirstApproval + counts.branchRenames, // what a "Chi nhánh" card should show
+      pendingLegacyProspects: counts.legacyProspectsAwaitingReview, //      admin-created PROSPECT not yet verified (retired flow)
+      // Older keys, kept for the apps already shipped - now aligned with the definitions above:
+      pendingProspects: counts.applicationsAwaitingReview,
+      pendingGyms: counts.branchesFirstApproval,
+      pendingBrandRenames: counts.brandRenames,
       invitedTooLong,
       expiringDocs,
       pendingVerification,
       pendingBranchChanges,
+      // Work that is the ADMIN's turn, each item counted once (pendingVerification overlaps applicationsAwaitingReview and
+      // pendingBranchChanges / applicationsWaitingApplicant are the partner's turn, so none of those three is in the sum).
       total:
-        pendingProspects + pendingGyms + pendingBrandRenames + invitedTooLong + expiringDocs + pendingVerification + pendingBranchChanges,
+        counts.applicationsAwaitingReview +
+        counts.legacyProspectsAwaitingReview +
+        counts.branchesFirstApproval +
+        counts.branchRenames +
+        counts.brandRenames +
+        invitedTooLong +
+        expiringDocs,
     };
   },
 
@@ -223,7 +239,6 @@ export const partnerDiligenceService = {
       suspendedPartners,
       terminatedPartners,
       totalBranches,
-      pendingBranches,
       temporarilyClosedBranches,
       needsAttention,
     ] = await Promise.all([
@@ -232,7 +247,6 @@ export const partnerDiligenceService = {
       prisma.gymPartner.count({ where: { status: 'SUSPENDED' } }),
       prisma.gymPartner.count({ where: { status: 'TERMINATED' } }),
       prisma.gym.count({ where: { status: 'APPROVED' } }),
-      prisma.gym.count({ where: { status: 'PENDING_REVIEW' } }),
       prisma.gym.count({ where: { operationalStatus: 'TEMPORARILY_CLOSED' } }),
       this.queue(),
     ]);
@@ -243,7 +257,7 @@ export const partnerDiligenceService = {
       suspendedPartners,
       terminatedPartners,
       totalBranches,
-      pendingBranches,
+      pendingBranches: needsAttention.branchesFirstApproval,
       temporarilyClosedBranches,
       needsAttention,
     };

@@ -152,16 +152,27 @@ describe("stages and labels (brand agreement)", () => {
     assert.equal(c.canRepartner, false);
   });
 
-  it("terminating: ACCEPTED + termination started -> 'Đang báo chấm dứt' with the SERVER's effective date, no second terminate", () => {
+  it("terminating: ACCEPTED + termination started -> 'Đang chấm dứt — hiệu lực đến <date>' with the SERVER's effective date, no second terminate", () => {
     const eff = "2026-11-01T10:00:00.000Z";
     const c = build(brandRow({ terminationInitiatedAt: "2026-10-18T10:00:00.000Z", effectiveAt: eff })).current[0] as any;
     assert.equal(c.stage, "TERMINATING");
-    assert.equal(c.label, "Đang báo chấm dứt");
+    assert.equal(c.label, `Đang chấm dứt — hiệu lực đến ${dateVi(eff)}`);
     assert.equal(c.effectiveDate, dateVi(eff));
     assert.ok(c.noticeLine.includes(dateVi(eff)));
     assert.ok(c.noticeLine.includes("Hợp đồng mới đã bị chặn"));
     assert.equal(c.canTerminate, false);
     assert.equal(c.canRepartner, false);
+  });
+
+  it("B44: the explicit lifecycle + terminationEffectiveAt win over the old heuristics", () => {
+    const eff = "2026-11-05T10:00:00.000Z";
+    const c = build(brandRow({ lifecycle: "TERMINATING", terminationEffectiveAt: eff })).current[0] as any;
+    assert.equal(c.stage, "TERMINATING");
+    assert.equal(c.label, `Đang chấm dứt — hiệu lực đến ${dateVi(eff)}`);
+    assert.equal(c.canTerminate, false);
+    // lifecycle ACTIVE with a stale effectiveAt is still an active agreement.
+    const a = build(brandRow({ lifecycle: "ACTIVE", effectiveAt: eff })).current[0] as any;
+    assert.equal(a.stage, "ACTIVE");
   });
 
   it("terminated: goes to the ended section; re-partner only on the newest ended row and only when nothing is live", () => {

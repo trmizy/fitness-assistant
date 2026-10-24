@@ -12,7 +12,7 @@ const ROLE_EMAIL_LABEL: Record<string, string> = {
 };
 
 function fail(res: Response, e: any) {
-  res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
+  res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message || 'Đã có lỗi xảy ra' } });
 }
 
 /** Host của link mời — cùng quy tắc với partner.controller.ts: header tin cậy của gateway, không

@@ -124,8 +124,10 @@ export function isCallParticipant(
 export function callLogContent(
   call: { callType: string; startedAt?: Date | null; endedAt?: Date | null },
   isMissed: boolean,
+  isRejected: boolean = false,
 ): string {
   const kind = call.callType === "VIDEO" ? "video" : "thoại";
+  if (isRejected) return `📞 Cuộc gọi ${kind} bị từ chối`;
   if (isMissed) return `📞 Cuộc gọi ${kind} nhỡ`;
   const durationMs = call.startedAt && call.endedAt ? Math.max(0, call.endedAt.getTime() - call.startedAt.getTime()) : 0;
   const durationMins = Math.floor(durationMs / 60000);
@@ -133,10 +135,10 @@ export function callLogContent(
   return `📞 Cuộc gọi ${kind} đã kết thúc (${durationMins}:${durationSecs.toString().padStart(2, "0")})`;
 }
 
-async function emitCallLogMessage(io: Server, call: any, isMissed: boolean = false) {
+async function emitCallLogMessage(io: Server, call: any, isMissed: boolean = false, isRejected: boolean = false) {
   if (!call.conversationId || call.origin !== CallOrigin.CHAT) return;
   try {
-    const content = callLogContent(call, isMissed);
+    const content = callLogContent(call, isMissed, isRejected);
     const msg = await chatRepository.createMessage(call.conversationId, "system", content);
     
     // Map senderId → authorId for frontend
@@ -429,7 +431,7 @@ export function registerCallHandlers(
         const call = result.call!;
 
         io.to(`user:${call.callerId}`).emit("call:rejected", { callSessionId });
-        await emitCallLogMessage(io, call, true);
+        await emitCallLogMessage(io, call, true, true);
 
         logger.info({ callSessionId, rejectedBy: user.id }, "Call rejected");
       } catch (error) {

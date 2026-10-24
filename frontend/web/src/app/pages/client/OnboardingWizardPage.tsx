@@ -452,7 +452,7 @@ export function OnboardingWizardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
+    <div className="w-full min-w-0 p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2">
           <Dumbbell className="w-5 h-5 text-green-400" /> Thiết lập hồ sơ tập luyện
@@ -508,7 +508,7 @@ export function OnboardingWizardPage() {
       </div>
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden flex flex-col min-h-[360px]">
-        <div className="p-6 flex-1 space-y-5">
+        <div className="p-4 sm:p-6 flex-1 min-w-0 space-y-5">
           {currentStep === 0 && (
             <>
               <div>
@@ -866,7 +866,7 @@ export function OnboardingWizardPage() {
         </div>
 
         {/* Footer nav */}
-        <div className="border-t border-zinc-800/60 p-4 flex items-center justify-between gap-2">
+        <div className="border-t border-zinc-800/60 p-4 flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
@@ -879,7 +879,7 @@ export function OnboardingWizardPage() {
             type="button"
             onClick={() => submitMutation.mutate(false)}
             disabled={submitMutation.isPending}
-            className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2"
+            className="order-last w-full text-center sm:order-none sm:w-auto text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2 py-1"
           >
             Bỏ qua, thiết lập sau
           </button>

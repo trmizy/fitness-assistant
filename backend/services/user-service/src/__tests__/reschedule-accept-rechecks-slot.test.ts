@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { bookingService } from "../services/booking.service";
 import { sessionRepository } from "../repositories/session.repository";
+import { contractRepository } from "../repositories/contract.repository";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { auditService } from "../services/audit.service";
 import { notificationService } from "../services/notification.service";
@@ -61,6 +62,8 @@ test("accepting a reschedule that now conflicts with another session is rejected
 
   const restores = [
     patch(sessionRepository, "findRescheduleRequestById", async () => request as any),
+    // B27: accept now re-reads the contract (validity window); this one has no end date.
+    patch(contractRepository, "findById", async () => ({ id: "contract-1", startDate: null, endDate: null }) as any),
     // Something else took the proposed slot in the meantime.
     patch(sessionRepository, "findConflict", async () => {
       calls.push("findConflict");
@@ -97,6 +100,7 @@ test("accepting a reschedule with a genuinely free slot still succeeds", async (
 
   const restores = [
     patch(sessionRepository, "findRescheduleRequestById", async () => request as any),
+    patch(contractRepository, "findById", async () => ({ id: "contract-1", startDate: null, endDate: null }) as any),
     patch(sessionRepository, "findConflict", async () => null),
     // Money-flow plan 3.5: an empty schedule now BLOCKS rather than allows — a published,
     // wide-open slot covering the proposed day is required for this "still succeeds" case.
