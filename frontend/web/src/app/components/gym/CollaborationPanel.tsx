@@ -254,7 +254,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
           <div data-testid="collab-notice" className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>
-              Hiệu lực chấm dứt: <b>{c.effectiveDate}</b>. {c.noticeLine}
+              Đang chấm dứt — hiệu lực đến <b>{c.effectiveDate}</b>. {c.noticeLine}
             </span>
           </div>
         )}
@@ -314,7 +314,7 @@ export function CollaborationPanel({ as }: { as: Viewer }) {
         <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold border whitespace-nowrap ${TONE_CLS[r.tone]}`}>{r.label}</span>
       </div>
       <p className="text-[11px] text-zinc-500">{r.ratesCaption}: {ratesLine(r.rates)}</p>
-      {r.stage === "TERMINATING" && r.effectiveDate && <p className="text-[11px] text-amber-400">Chấm dứt ngày {r.effectiveDate}.</p>}
+      {r.stage === "TERMINATING" && r.effectiveDate && <p className="text-[11px] text-amber-400">Đang chấm dứt — hiệu lực đến {r.effectiveDate}.</p>}
       {r.stage === "MY_TURN" && !r.canAcceptOrCounter && <p className="text-[11px] text-zinc-500">{LEGACY_OPEN_OFFER_NOTE}</p>}
       <div className="flex flex-wrap gap-2">
         {r.canAcceptOrCounter && (

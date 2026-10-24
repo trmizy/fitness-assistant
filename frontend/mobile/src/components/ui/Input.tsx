@@ -22,11 +22,26 @@ export const Input = forwardRef<TextInput, {
   label?: string;
   className?: string;
 } & TextInputProps>(function Input(
-  { icon: Icon, error, label, className = "", onFocus, onBlur, ...props },
+  { icon: Icon, error, label, className = "", onFocus, onBlur, style, ...props },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
   const accent = useWorkspaceAccent();
+
+  // A single-line field is a fixed 48px row. A multiline one must NOT be: the fixed height clipped the
+  // text to its bottom half on Android (B22 — gym owner's "Giới thiệu"). It gets a floor of
+  // `numberOfLines` rows (default 3) plus vertical padding, top-aligned text, and grows with its content
+  // up to a cap, after which it scrolls inside.
+  const multiline = props.multiline === true;
+  const multilineStyle = multiline
+    ? ({
+        minHeight: 24 + 20 * (props.numberOfLines ?? 3),
+        maxHeight: 240,
+        paddingTop: 12,
+        paddingBottom: 12,
+        textAlignVertical: "top",
+      } as const)
+    : null;
 
   const borderClass = error
     ? "border-destructive"
@@ -43,17 +58,19 @@ export const Input = forwardRef<TextInput, {
       ) : null}
 
       <View
-        className={`flex-row items-center gap-3 rounded-xl border bg-panel px-3.5 ${borderClass}`}
+        className={`flex-row ${multiline ? "items-start" : "items-center"} gap-3 rounded-xl border bg-panel px-3.5 ${borderClass}`}
       >
         {Icon ? (
-          <Icon
-            size={18}
-            color={focused && !error ? accent.primary : designTokens.mutedForeground}
-          />
+          <View className={multiline ? "pt-3.5" : undefined}>
+            <Icon
+              size={18}
+              color={focused && !error ? accent.primary : designTokens.mutedForeground}
+            />
+          </View>
         ) : null}
         <TextInput
           ref={ref}
-          className="h-12 flex-1 text-sm font-body text-foreground"
+          className={`${multiline ? "" : "h-12 "}flex-1 text-sm font-body text-foreground`}
           placeholderTextColor={designTokens.mutedForeground}
           selectionColor={accent.primary}
           // Android draws its own underline on top of the bordered wrapper otherwise.
@@ -68,6 +85,7 @@ export const Input = forwardRef<TextInput, {
             onBlur?.(event);
           }}
           {...props}
+          style={[multilineStyle, style]}
         />
       </View>
 

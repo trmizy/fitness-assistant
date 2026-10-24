@@ -45,6 +45,8 @@ import {
   socialLinks,
   gymBlockedReason,
   isGymGone,
+  isTemporarilyClosed,
+  reopenLabel,
   membershipStatusLabel,
   multiGymWarningText,
   normalizeGym,
@@ -200,7 +202,7 @@ export default function GymDetailScreen() {
           <View className="items-center py-16">
             <ActivityIndicator color={accent.primary} />
           </View>
-        ) : isGymGone(gymQuery.error) || isGymGone(plansQuery.error) ? (
+        ) : isGymGone(gymQuery.error) || (isGymGone(plansQuery.error) && !(gym && isTemporarilyClosed(gym))) ? (
           // 404 on the gym or its plans: the branch is no longer public (suspended, closed, or hidden) — a plain empty state, not a broken page.
           <EmptyState
             icon={Building2}
@@ -349,7 +351,24 @@ export default function GymDetailScreen() {
               </Card>
             ) : null}
 
-            {gymClosed ? (
+            {gym && isTemporarilyClosed(gym) ? (
+              // B43 — a temporarily closed branch is still shown (without plans, reviews or photos) with this banner.
+              <Card className="gap-1 border-destructive/50 p-4">
+                <View className="flex-row items-center gap-2">
+                  <TriangleAlert size={16} color="#ef4444" />
+                  <Text className="font-display text-base text-foreground">Tạm đóng cửa</Text>
+                </View>
+                {gym.closureReason ? (
+                  <Text className="font-body text-sm text-foreground">{`Lý do: ${gym.closureReason}`}</Text>
+                ) : null}
+                {reopenLabel(gym) ? (
+                  <Text className="font-body text-sm text-muted-foreground">{reopenLabel(gym)}</Text>
+                ) : null}
+                <Text className="font-body text-xs text-muted-foreground">
+                  Chi nhánh tạm thời không nhận hội viên mới. Bạn có thể xem các chi nhánh khác của thương hiệu.
+                </Text>
+              </Card>
+            ) : gymClosed ? (
               <Card className="flex-row items-start gap-2 p-4">
                 <TriangleAlert size={16} color="#ef4444" />
                 <Text className="flex-1 font-body text-sm text-foreground">{gymClosed}</Text>
@@ -373,6 +392,8 @@ export default function GymDetailScreen() {
               </Card>
             ) : null}
 
+            {isTemporarilyClosed(gym) ? null : (
+            <>
             <View className="gap-1">
               <Text className="font-display text-base text-foreground">Gói hội viên</Text>
               <Text className="font-body text-xs text-muted-foreground">
@@ -423,7 +444,7 @@ export default function GymDetailScreen() {
                   />
                 </Card>
 
-                <Button full disabled={!!blocked || checkout.submitting} onPress={() => startPurchase(false)}>
+                <Button full disabled={!!blocked || checkout.submitting || warningsQuery.isLoading} onPress={() => startPurchase(false)}>
                   {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
                 </Button>
                 <Text className="text-center font-body text-xs text-muted-foreground">
@@ -434,6 +455,8 @@ export default function GymDetailScreen() {
             ) : null}
             {/* 14B.6 (PG-B2) — reviews, and the member's own one to write / edit / delete. */}
             {gymId ? <GymReviews gymId={gymId} /> : null}
+            </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -441,7 +464,7 @@ export default function GymDetailScreen() {
       <BottomSheet
         open={warningOpen}
         onClose={() => setWarningOpen(false)}
-        title="Bạn đang có gói ở phòng gym khác"
+        title="Vẫn mua thêm gói hội viên?"
       >
         <View className="gap-4 pb-2">
           <Text className="font-body text-sm leading-6 text-foreground">
@@ -449,10 +472,10 @@ export default function GymDetailScreen() {
           </Text>
           <View className="flex-row gap-2">
             <Button variant="secondary" className="flex-1" onPress={() => setWarningOpen(false)}>
-              Để sau
+              Không mua
             </Button>
             <Button className="flex-1" onPress={() => startPurchase(true)}>
-              Tôi vẫn mua
+              Vẫn mua thêm
             </Button>
           </View>
         </View>

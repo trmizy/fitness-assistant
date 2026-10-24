@@ -12,6 +12,7 @@ import type {
 } from './payment-provider.interface';
 import { parseGatewayAmountVnd } from './amount-util';
 import { safeEqualHex } from './signature-util';
+import { buildMomoOrderInfo, buildMomoRedirectUrl } from './momo-request-fields';
 
 const ENDPOINT   = process.env.MOMO_ENDPOINT   ?? 'https://test-payment.momo.vn/v2/gateway/api/create';
 const PARTNER    = process.env.MOMO_PARTNER_CODE ?? '';
@@ -46,22 +47,24 @@ export class MoMoProvider implements PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
-    // MoMo is still deferred (no configured creds, no public IPN tunnel — see
-    // project_payment_gateways memory), so `platform` is accepted for interface
-    // conformance only; REDIRECT is not yet made platform-aware like VNPay/ZaloPay/PayOS.
     platform?: 'web' | 'mobile';
     returnBaseUrl?: string;
   }): Promise<PaymentIntentResult> {
-    const { transactionId, amount, orderInfo, extraData = '' } = params;
+    const { transactionId, amount, extraData = '' } = params;
+    // What MoMo's page shows the payer: short Vietnamese description, never an internal id (B25).
+    const orderInfo = buildMomoOrderInfo(params.orderInfo);
     const requestId = transactionId;
     const orderId   = transactionId;
     const requestType = 'payWithMethod';
-    // Same fix as vnpay/zalopay/payos: prefer the payer's actual request origin over the
-    // static `.env` MOMO_REDIRECT_URL, which goes stale the moment the dev machine's LAN
-    // IP/tunnel changes. Was declared in this method's params before but never read.
-    const effectiveRedirect = params.returnBaseUrl
-      ? `${params.returnBaseUrl}/client/payments/result`
-      : REDIRECT;
+    // "Quay ve" target (B25): the mobile app's deep link for platform 'mobile' (it used to be ignored,
+    // so the button led to a web page the phone could not open), else the payer's actual request
+    // origin over the static `.env` MOMO_REDIRECT_URL, which goes stale when the LAN IP/tunnel changes.
+    const effectiveRedirect = buildMomoRedirectUrl({
+      transactionId,
+      platform: params.platform,
+      returnBaseUrl: params.returnBaseUrl,
+      staticFallback: REDIRECT,
+    });
 
     // Field order is alphabetical and MUST match MoMo docs exactly
     const rawSignature = [

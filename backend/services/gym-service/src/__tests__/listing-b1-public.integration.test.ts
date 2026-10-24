@@ -146,8 +146,17 @@ for (const label of ['DRAFT', 'PENDING_REVIEW', 'REJECTED', 'SUSPENDED', 'TEMPOR
     const list = await get('/gyms');
     assert.ok(!list.json.data.some((g: any) => g.id === h.gymId), 'listed');
 
+    // B43: the DETAIL page of a TEMPORARILY_CLOSED branch stays reachable (it says "tạm đóng cửa"); everything else is 404.
+    const detailStays = label === 'TEMPORARILY_CLOSED';
     for (const p of [`/gyms/${h.gymId}`, `/gyms/${h.gymId}/plans`, `/gyms/${h.gymId}/trainers`, `/gyms/${h.gymId}/reviews`]) {
       const r = await get(p);
+      if (detailStays && p === `/gyms/${h.gymId}`) {
+        assert.equal(r.status, 200, p);
+        assert.equal(r.json.data.operationalStatus, 'TEMPORARILY_CLOSED');
+        assert.equal(r.json.data.isTemporarilyClosed, true);
+        assert.equal(r.json.data.isOpen, false);
+        continue;
+      }
       assert.equal(r.status, 404, p);
       assert.equal(r.json?.success, false, p);
     }
@@ -176,8 +185,15 @@ test('visibility follows the data: a gym that leaves APPROVED/OPEN disappears at
   assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 200);
 
   await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'TEMPORARILY_CLOSED' } }));
-  assert.equal((await get(`/gyms/${gymId}`)).status, 404);
+  // B43: still reachable by its direct link, flagged as closed; hidden from the list; photos/sub-resources stay hidden.
+  const closed = await get(`/gyms/${gymId}`);
+  assert.equal(closed.status, 200);
+  assert.equal(closed.json.data.isTemporarilyClosed, true);
+  assert.ok(!(await get('/gyms')).json.data.some((g: any) => g.id === gymId), 'a closed branch is not in the search list');
   assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 404);
+
+  await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'PERMANENTLY_CLOSED' } }));
+  assert.equal((await get(`/gyms/${gymId}`)).status, 404, 'permanently closed stays hidden');
 
   await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'OPEN' } }));
   assert.equal((await get(`/gyms/${gymId}`)).status, 200);

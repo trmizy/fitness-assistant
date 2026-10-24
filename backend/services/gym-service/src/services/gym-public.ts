@@ -25,6 +25,18 @@ export async function gymPublicWhere(): Promise<Prisma.GymWhereInput> {
   };
 }
 
+/**
+ * B43 - the visibility rule of the DETAIL page (GET /gyms/:id) only: like gymPublicWhere() but a TEMPORARILY_CLOSED branch
+ * stays reachable by its direct link, so a member or visitor sees "tạm đóng cửa" (with the reason and the expected reopen
+ * date when known) instead of "not found". Permanently closed, unapproved and hidden-partner branches stay 404. The LIST
+ * (GET /gyms) and every sub-resource (plans, trainers, reviews, photos) keep the strict rule above, and buying a plan or
+ * checking in stays blocked while the branch is closed.
+ */
+export async function gymDetailWhere(): Promise<Prisma.GymWhereInput> {
+  const where = await gymPublicWhere();
+  return { ...where, operationalStatus: { in: ['OPEN', 'TEMPORARILY_CLOSED'] } };
+}
+
 export async function isGymPubliclyVisible(gymId: string): Promise<boolean> {
   const where = await gymPublicWhere();
   const row = await prisma.gym.findFirst({ where: { AND: [{ id: gymId }, where] }, select: { id: true } });
@@ -95,8 +107,9 @@ export const gymPublicRepository = {
     return rows as PublishedGymListSource[];
   },
 
+  /** The detail page's lookup: an OPEN or TEMPORARILY_CLOSED branch (B43), see gymDetailWhere(). */
   async findPublishedById(id: string): Promise<PublishedGymSource | null> {
-    const where = await gymPublicWhere();
+    const where = await gymDetailWhere();
     const row = await prisma.gym.findFirst({ where: { AND: [{ id }, where] }, include: DETAIL_INCLUDE });
     return row as PublishedGymSource | null;
   },

@@ -411,7 +411,10 @@ export const partnerApplicationService = {
         // Lý do/ghi chú của admin chỉ hiện khi có nghĩa với ứng viên.
         rejectedAt: state === 'REJECTED' ? partner.rejectedAt : null,
         rejectionReason: state === 'REJECTED' ? partner.rejectionReason : null,
-        adminNote: state === 'REJECTED' || state === 'CHANGES_REQUESTED' ? partner.verificationNotes : null,
+        // B13 (Ngài chốt): khi TỪ CHỐI, ứng viên chỉ thấy rejectionReason - ghi chú nội bộ của admin (verificationNotes,
+        // nhập ở ô "adminNote" lúc từ chối) KHÔNG bao giờ ra phía ứng viên. Khi YÊU CẦU CHỈNH SỬA thì verificationNotes là
+        // bản tóm tắt dành cho ứng viên (requestChanges ghi) nên vẫn hiện.
+        adminNote: state === 'CHANGES_REQUESTED' ? partner.verificationNotes : null,
       },
       representativePhone: account.contactPhone,
       brand: brand

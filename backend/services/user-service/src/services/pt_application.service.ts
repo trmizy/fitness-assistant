@@ -53,7 +53,23 @@ async function fetchAuthUserInfo(userId: string): Promise<{
  * Enrich a PTApplication record with user display info.
  * Priority: auth-service data > cached userProfile fields.
  */
-async function enrichWithUserInfo(app: any): Promise<any> {
+/**
+ * B01: the application embeds the whole `userProfile` row, and that row carries `ptLockSeq`, a Postgres
+ * BIGINT (Prisma BigInt). `JSON.stringify` throws "Do not know how to serialize a BigInt" on it, so every
+ * admin list / detail response containing a trainer who has ever been locked (the PT lock command sets
+ * ptLockSeq and never clears it) died with a 500 - row-specific, which is why only some APPROVED rows broke
+ * the whole list. The sequence number is internal ordering state of the lock stream and the admin review
+ * screen never needs it, so it is dropped here rather than stringified.
+ */
+export function withoutInternalProfileFields<T extends { userProfile?: any }>(app: T): T {
+  const profile = app?.userProfile;
+  if (!profile || typeof profile !== "object" || !("ptLockSeq" in profile)) return app;
+  const { ptLockSeq: _ptLockSeq, ...safeProfile } = profile;
+  return { ...app, userProfile: safeProfile };
+}
+
+async function enrichWithUserInfo(rawApp: any): Promise<any> {
+  const app = withoutInternalProfileFields(rawApp);
   const userId = app.userProfile?.userId;
   if (!userId) return app;
 
@@ -379,6 +395,14 @@ export const ptApplicationService = {
     const status = statusMap[normalizedAction];
     if (!status) throw new Error(`Invalid action: ${action}`);
 
+    // B08: approving an application that is already APPROVED is a no-op that answers with the current
+    // state - no second role sync, no location rewrite, no new "approved" notification, no overwritten
+    // reviewer/approval timestamps. A REJECTED application may still be re-approved (the deliberate
+    // "reconsider" path): that is a real transition and runs in full.
+    if (normalizedAction === "APPROVED" && app.status === PTApplicationStatus.APPROVED) {
+      return signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
+    }
+
     // Money-flow plan 5.5: WHO acted, recorded on every review action — not just approval —
     // so a rejection or a request-for-more-info carries the same accountability an approval
     // does. reviewerUserId comes from the caller's own verified identity (req.user.id at the
@@ -477,9 +501,22 @@ export const ptApplicationService = {
 
   async listApplications(filters: any) {
     const apps = await ptApplicationRepository.findAll(filters);
-    // Enrich all applications with user info from auth-service (in parallel)
-    const enriched = await Promise.all(apps.map(enrichWithUserInfo));
-    return enriched.map(signPtApplicationDocumentUrls);
+    // Enrich all applications with user info from auth-service (in parallel). One row that cannot be
+    // enriched or have its document links signed must never take the whole admin list down (B01): it is
+    // logged and returned without enrichment instead.
+    return Promise.all(
+      apps.map(async (app: any) => {
+        try {
+          return signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
+        } catch (err: any) {
+          logger.error(
+            { err: err?.message, applicationId: app?.id },
+            "listApplications: row could not be prepared, returned unenriched",
+          );
+          return withoutInternalProfileFields(app);
+        }
+      }),
+    );
   },
 
   async getById(id: string) {

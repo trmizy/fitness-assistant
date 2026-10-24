@@ -116,6 +116,8 @@ router.post('/partners/:id/invitations/:invitationId/resend', asyncHandler(partn
 router.post('/partners/:id/invitations/:invitationId/revoke', asyncHandler(partnerController.revokeInvitation));
 
 // 2.3 — hành động lên từng tài khoản.
+// B41: partner role per user id, for the admin user list (declared before the /:accountId routes).
+router.get('/partner-accounts/roles', asyncHandler(partnerController.rolesByUserIds));
 router.post('/partner-accounts/:accountId/reset-password', asyncHandler(partnerController.resetPassword));
 router.post('/partner-accounts/:accountId/force-logout', asyncHandler(partnerController.forceLogout));
 router.delete('/partner-accounts/:accountId', asyncHandler(partnerController.revokeAccount));

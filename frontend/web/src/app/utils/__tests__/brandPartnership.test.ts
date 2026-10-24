@@ -152,11 +152,11 @@ describe("stages and labels (brand agreement)", () => {
     assert.equal(c.canRepartner, false);
   });
 
-  it("terminating: ACCEPTED + termination started -> 'Đang báo chấm dứt' with the SERVER's effective date, no second terminate", () => {
+  it("terminating: ACCEPTED + termination started -> 'Đang chấm dứt' with the SERVER's effective date, no second terminate", () => {
     const eff = "2026-11-01T10:00:00.000Z";
     const c = build(brandRow({ terminationInitiatedAt: "2026-10-18T10:00:00.000Z", effectiveAt: eff })).current[0] as any;
     assert.equal(c.stage, "TERMINATING");
-    assert.equal(c.label, "Đang báo chấm dứt");
+    assert.equal(c.label, "Đang chấm dứt");
     assert.equal(c.effectiveDate, dateVi(eff));
     assert.ok(c.noticeLine.includes(dateVi(eff)));
     assert.ok(c.noticeLine.includes("Hợp đồng mới đã bị chặn"));

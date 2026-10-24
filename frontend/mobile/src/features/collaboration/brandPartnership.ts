@@ -174,13 +174,30 @@ export interface PartnershipSections {
 
 const asParty = (v: unknown): Viewer | null => (v === "PT" || v === "GYM" ? v : null);
 
+/**
+ * B44 — the server now sends an explicit `lifecycle` (… ACTIVE / TERMINATING …) and `terminationEffectiveAt`
+ * on every row. It wins when present; older payloads fall back to the termination fields.
+ */
+function isTerminatingRow(row: any): boolean {
+  if (typeof row?.lifecycle === "string") return row.lifecycle === "TERMINATING";
+  return !!(row?.terminationInitiatedAt || row?.effectiveAt);
+}
+
+/** When the notice period ends — `terminationEffectiveAt` (B44), else the older `effectiveAt`. */
+const terminationDate = (row: any): string => dateVi(row?.terminationEffectiveAt ?? row?.effectiveAt);
+
+/** "Đang chấm dứt — hiệu lực đến 01/11/2026" (just "Đang chấm dứt" when the date is unknown). */
+export function terminatingLabel(date: string): string {
+  return date ? `Đang chấm dứt — hiệu lực đến ${date}` : "Đang chấm dứt";
+}
+
 function stageOf(row: any, viewer: Viewer): Stage {
   const status = str(row?.status);
   if (status === "PENDING" || status === "COUNTERED") {
     const by = asParty(row?.proposedBy);
     return by && by !== viewer ? "MY_TURN" : "THEIR_TURN";
   }
-  if (status === "ACCEPTED") return row?.terminationInitiatedAt || row?.effectiveAt ? "TERMINATING" : "ACTIVE";
+  if (status === "ACCEPTED") return isTerminatingRow(row) ? "TERMINATING" : "ACTIVE";
   if (status === "TERMINATED") return "TERMINATED";
   if (status === "REJECTED") return "REJECTED";
   return "EXPIRED";
@@ -195,7 +212,7 @@ export function stageLabel(stage: Stage, viewer: Viewer): { label: string; tone:
     case "ACTIVE":
       return { label: "Đang hợp tác", tone: "success" };
     case "TERMINATING":
-      return { label: "Đang báo chấm dứt", tone: "warning" };
+      return { label: "Đang chấm dứt", tone: "warning" };
     case "TERMINATED":
       return { label: "Đã chấm dứt", tone: "neutral" };
     case "REJECTED":
@@ -258,7 +275,9 @@ function brandNameOf(row: any): string {
 
 function toBrandView(row: any, viewer: Viewer, all: any[]): BrandAgreementView {
   const stage = stageOf(row, viewer);
-  const { label, tone } = stageLabel(stage, viewer);
+  const base = stageLabel(stage, viewer);
+  const tone = base.tone;
+  const label = stage === "TERMINATING" ? terminatingLabel(terminationDate(row)) : base.label;
   const branches = coveredBranches(row);
   const brandId = str(row?.brandId) || str(row?.brand?.id);
   const ptUserId = str(row?.ptUserId);
@@ -283,7 +302,7 @@ function toBrandView(row: any, viewer: Viewer, all: any[]): BrandAgreementView {
     proposedBy: asParty(row?.proposedBy),
     round: Number(row?.round) || 1,
     expiresAt: row?.expiresAt ?? null,
-    effectiveDate: dateVi(row?.effectiveAt),
+    effectiveDate: terminationDate(row),
     terminatedDate: dateVi(row?.terminatedAt),
     note: str(row?.note) || null,
     branches,
@@ -291,7 +310,7 @@ function toBrandView(row: any, viewer: Viewer, all: any[]): BrandAgreementView {
     canRespond: stage === "MY_TURN",
     canTerminate: stage === "ACTIVE",
     canRepartner: stage === "TERMINATED" && !anyLive && newestEnded?.id === row.id && !!proposeBranchId,
-    noticeLine: stage === "TERMINATING" ? noticeLineFor(row?.effectiveAt) : null,
+    noticeLine: stage === "TERMINATING" ? noticeLineFor(row?.terminationEffectiveAt ?? row?.effectiveAt) : null,
   };
 }
 
@@ -305,7 +324,12 @@ function isLiveLegacy(row: any): boolean {
 function toLegacyRow(row: any, viewer: Viewer, branded: boolean): LegacyRowView {
   const stage = stageOf(row, viewer);
   const base = stageLabel(stage, viewer);
-  const label = stage === "ACTIVE" ? (branded ? "Điều khoản cũ đang áp dụng" : "Đang hợp tác") : base.label;
+  const label =
+    stage === "ACTIVE"
+      ? branded ? "Điều khoản cũ đang áp dụng" : "Đang hợp tác"
+      : stage === "TERMINATING"
+        ? terminatingLabel(terminationDate(row))
+        : base.label;
   const branchName = str(row?.gym?.name) || BRANCH_NAME_FALLBACK;
   return {
     id: String(row.id),
@@ -318,7 +342,7 @@ function toLegacyRow(row: any, viewer: Viewer, branded: boolean): LegacyRowView 
     rates: rateTriple(row),
     proposedBy: asParty(row?.proposedBy),
     round: Number(row?.round) || 1,
-    effectiveDate: dateVi(row?.effectiveAt),
+    effectiveDate: terminationDate(row),
     note: str(row?.note) || null,
     canReject: stage === "MY_TURN",
     canAcceptOrCounter: stage === "MY_TURN" && !branded,
@@ -421,7 +445,7 @@ export function partneredPtCount(rawRows: unknown, gym: { id?: string | null; br
   if (!gym) return 0;
   const pts = new Set<string>();
   for (const r of Array.isArray(rawRows) ? (rawRows as any[]) : []) {
-    if (!r || str(r.status) !== "ACCEPTED" || r.terminationInitiatedAt || r.effectiveAt) continue;
+    if (!r || str(r.status) !== "ACCEPTED" || isTerminatingRow(r)) continue;
     if (r.scope === "BRAND") {
       if (gym.brandId && str(r.brandId) === gym.brandId) pts.add(str(r.ptUserId));
     } else if (!r.supersededByAgreementId && str(r.gymId) === gym.id) {

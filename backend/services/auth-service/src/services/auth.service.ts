@@ -684,19 +684,14 @@ export const authService = {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    // updateUserPasswordById cũng xoá luôn cờ mustChangePassword — mọi đường đổi mật khẩu
-    // đều đi qua đó nên không cần xử lý riêng ở đây.
-    //
-    // All three writes (password, marking the token used, revoking every refresh token)
-    // must commit or roll back together — otherwise a failure partway could leave a reset
-    // token re-usable, or a password changed with old sessions still alive. See
-    // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
-    const updated = await prisma.$transaction(async (tx) => {
-      const updatedUser = await authRepository.updateUserPasswordById(record.userId, passwordHash, tx);
-      await authRepository.markPasswordResetUsed(record.id, tx);
-      await authRepository.deleteRefreshTokensByUserId(record.userId, tx);
-      return updatedUser;
-    });
+    const updated = await authRepository.consumePasswordReset(record.id, record.userId, passwordHash);
+    if (!updated) {
+      // Another request consumed/invalidated the link, or it expired while hashing.
+      if (record.expiresAt.getTime() <= Date.now()) {
+        throw { status: 410, message: "Liên kết đặt lại đã hết hạn" };
+      }
+      throw { status: 409, message: "Liên kết này đã được sử dụng" };
+    }
 
     return { user: updated };
   },

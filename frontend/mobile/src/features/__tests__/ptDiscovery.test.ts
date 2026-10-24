@@ -25,6 +25,7 @@ import {
   nextPtPage,
   normalizePackages,
   normalizePartnerGyms,
+  composeArea,
   normalizePt,
   normalizePts,
   pricePerSession,
@@ -115,6 +116,16 @@ describe("normalizePt", () => {
     const pt = normalizePt({ ...REAL_ROW, searchWard: "Phường 1", searchCity: "TP.HCM" });
     assert.equal(pt.area, "Phường 1, TP.HCM");
     assert.equal(normalizePt(REAL_ROW).area, null);
+  });
+
+  it("never shows province/ward CODES as the area (B18) but keeps them for name lookup", () => {
+    const pt = normalizePt({ ...REAL_ROW, searchWard: "27073", searchCity: "79" });
+    assert.equal(pt.area, null);
+    assert.deepEqual(pt.areaCodes, { province: 79, ward: 27073 });
+    // A typed district name survives next to the codes.
+    assert.equal(normalizePt({ ...REAL_ROW, searchWard: "166", searchDistrict: "Quận 1", searchCity: "1" }).area, "Quận 1");
+    assert.equal(composeArea({ area: "Quận 1" }, "Phường Bến Nghé", "TP.HCM"), "Phường Bến Nghé, Quận 1, TP.HCM");
+    assert.equal(composeArea({ area: null }, null, null), null);
   });
 
   it("reads the list envelope and drops rows with no user id", () => {

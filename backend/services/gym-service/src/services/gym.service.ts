@@ -115,6 +115,10 @@ export const gymService = {
     ]);
     return {
       ...toPublicGymDto(gym, { brandLogoUrl: logoUrl }),
+      // B43: a temporarily closed branch is still returned here; the client shows "tạm đóng cửa" (+ closureReason and
+      // expectedReopenAt when the owner gave them) and must not offer purchase / check-in. `isOpen` is the one flag to read.
+      isOpen: gym.operationalStatus === 'OPEN',
+      isTemporarilyClosed: gym.operationalStatus === 'TEMPORARILY_CLOSED',
       averageRating: round2(r.averageRating),
       reviewCount: r.count,
       // Chỉ ảnh PUBLISHED (kiểu PublishedGymSource bảo đảm), URL cố định /media/gym-photos/:id — bucket vẫn riêng tư,

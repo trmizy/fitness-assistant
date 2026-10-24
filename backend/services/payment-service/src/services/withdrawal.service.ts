@@ -180,16 +180,21 @@ export const withdrawalService = {
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-    return walletService.withWallets([request.walletId], payoutTxn.id, (ops) =>
-      withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
+    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      // Every transition holds this wallet lock. Re-read AFTER acquiring it; the
+      // preflight snapshot may predate a rejection or a payout.
+      const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
+      if (current.status === 'APPROVED') return current;
+      if (current.status !== 'PENDING') throw err(`Không thể duyệt yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+      return withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
         await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
         await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
         return ops.tx.withdrawalRequest.update({
           where: { id },
           data: { status: 'APPROVED', reviewedBy: adminId, reviewedAt: new Date() },
         });
-      }),
-    );
+      });
+    });
   },
 
   /** P0 cluster F — a request rejected AFTER approval had its money moved to LOCKED; that
@@ -204,21 +209,22 @@ export const withdrawalService = {
       throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
     }
 
-    if (request.status === 'APPROVED') {
-      const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-      await walletService.withWallets([request.walletId], payoutTxn.id, (ops) =>
-        withIdempotentLedgerOp(ops, `WITHDRAWAL_UNLOCK:${request.id}`, async () => {
+    const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
+    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
+      if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
+      if (current.status === 'REJECTED') return current;
+      if (current.status === 'APPROVED') {
+        await withIdempotentLedgerOp(ops, `WITHDRAWAL_UNLOCK:${request.id}`, async () => {
           await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} rejected — restored from lock`, 'LOCKED');
           await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} rejected — restored from lock`, 'AVAILABLE');
           return { unlocked: request.amount.toFixed(2) };
-        }),
-      );
-    }
-
-    return withdrawalRepository.updateStatus(id, 'REJECTED', {
-      reviewedBy: adminId,
-      reviewedAt: new Date(),
-      rejectionReason: reason.trim(),
+        });
+      }
+      return ops.tx.withdrawalRequest.update({
+        where: { id },
+        data: { status: 'REJECTED', reviewedBy: adminId, reviewedAt: new Date(), rejectionReason: reason.trim() },
+      });
     });
   },
 
@@ -251,9 +257,14 @@ export const withdrawalService = {
     // wallet. withIdempotentLedgerOp guards the debit itself: two concurrent markPaid calls
     // serialize on the wallet's FOR UPDATE lock, and the loser finds this key already claimed
     // and replays instead of debiting a second time.
-    return walletService.withWallets([request.walletId, escrowWallet.id], payoutTxn.id, (ops) =>
-      withIdempotentLedgerOp(ops, `WITHDRAWAL:${request.id}`, async () => {
-        if (request.status === 'PENDING') {
+    return walletService.withWallets([request.walletId, escrowWallet.id], payoutTxn.id, async (ops) => {
+      const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
+      if (current.status === 'PAID') return current;
+      if (current.status !== 'PENDING' && current.status !== 'APPROVED') {
+        throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+      }
+      return withIdempotentLedgerOp(ops, `WITHDRAWAL:${request.id}`, async () => {
+        if (current.status === 'PENDING') {
           // Never explicitly approved — lock it now, in the same operation, so a request paid
           // this way leaves the exact same ledger trail (a LOCK move followed by a LOCKED
           // debit) as one that went through approve() first.
@@ -275,13 +286,13 @@ export const withdrawalService = {
           data: {
             status: 'PAID',
             bankReference: bankReference.trim(),
-            reviewedBy: request.reviewedBy ?? adminId,
-            reviewedAt: request.reviewedAt ?? new Date(),
+            reviewedBy: current.reviewedBy ?? adminId,
+            reviewedAt: current.reviewedAt ?? new Date(),
             paidAt: new Date(),
           },
         });
-      }),
-    ).catch((e) => {
+      });
+    }).catch((e) => {
       logger.error({ error: 'Withdrawal markPaid failed', withdrawalId: id, message: (e as Error).message });
       throw e;
     });

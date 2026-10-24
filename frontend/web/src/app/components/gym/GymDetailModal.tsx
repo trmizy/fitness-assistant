@@ -108,7 +108,10 @@ export function GymDetailModal({
   // Cắt ở khoảng trắng gần nhất để không đứt giữa chữ.
   const about = aboutRaw.length > ABOUT_MAX ? `${(cut.lastIndexOf(" ") > ABOUT_MAX - 40 ? cut.slice(0, cut.lastIndexOf(" ")) : cut).trimEnd()}…` : aboutRaw;
 
+  const closedTemporarily = !!gym && (gym.isTemporarilyClosed === true || gym.operationalStatus === "TEMPORARILY_CLOSED" || gym.isOpen === false);
+
   const startBuy = (plan: GymMembershipPlan) => {
+    if (closedTemporarily) return;
     if (multiGymWarnings.length > 0) setWarningTarget(plan);
     else setBuyTarget(plan);
   };
@@ -232,6 +235,17 @@ export function GymDetailModal({
       </div>
 
       <div className="p-5 space-y-5">
+        {closedTemporarily && (
+          <div role="status" data-testid="gym-temporarily-closed" className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-sm text-amber-300">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 break-words">
+              <div className="font-semibold">Tạm đóng cửa</div>
+              {gym?.closureReason && <div className="text-amber-300/90">Lý do: {gym.closureReason}</div>}
+              {gym?.expectedReopenAt && <div className="text-amber-300/90">Dự kiến mở lại: {new Date(gym.expectedReopenAt).toLocaleDateString("vi-VN")}</div>}
+              <div className="text-xs text-amber-300/70 mt-0.5">Hiện chưa thể mua gói hội viên tại chi nhánh này.</div>
+            </div>
+          </div>
+        )}
         {tab === "detail" && (
           <>
             {about && (
@@ -357,8 +371,8 @@ export function GymDetailModal({
                       <button
                         type="button"
                         onClick={() => startBuy(p)}
-                        disabled={buyMutation.isPending}
-                        className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                        disabled={buyMutation.isPending || closedTemporarily}
+                        className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       >
                         {buyMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                         Mua
@@ -400,12 +414,12 @@ export function GymDetailModal({
               <h3 className="text-zinc-100 font-bold">Bạn đang có gói ở phòng gym khác</h3>
             </div>
             <div className="p-5 space-y-2 text-sm text-zinc-300">
-              <p className="text-zinc-400">Bạn hoàn toàn có thể là hội viên nhiều phòng gym cùng lúc — chỉ là một lời nhắc trước khi mua thêm:</p>
+              <p className="text-zinc-300">Bạn đang có gói hội viên còn hạn ở phòng gym khác. Vẫn mua thêm?</p>
               <ul className="space-y-1.5">
                 {multiGymWarnings.map((w) => (
                   <li key={w.gymId} className="rounded-lg bg-zinc-800/60 px-3 py-2">
                     <span className="font-semibold text-zinc-200">{w.gymName}</span>
-                    <span className="text-zinc-500"> — còn hiệu lực đến {new Date(w.endDate).toLocaleDateString("vi-VN")}</span>
+                    <span className="text-zinc-500"> — còn hạn đến {new Date(w.endDate).toLocaleDateString("vi-VN")}</span>
                   </li>
                 ))}
               </ul>

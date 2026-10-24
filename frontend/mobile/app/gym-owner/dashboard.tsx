@@ -19,6 +19,7 @@ import {
 import { Badge, Card, CountUp, EmptyState, Stagger, StaggerItem, Tappable } from "../../src/components/ui";
 import { collaborationService, gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
+import { givenName } from "../../src/lib/personName";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
@@ -152,7 +153,7 @@ export default function GymOwnerDashboardScreen() {
       >
         <View className="px-5">
           <Text className="font-display text-xl text-foreground" numberOfLines={1}>
-            {user?.firstName ? `Xin chào, ${user.firstName}` : "Xin chào"}
+            {givenName(user) ? `Xin chào, ${givenName(user)}` : "Xin chào"}
           </Text>
           <Text className="mt-0.5 font-body text-xs text-muted-foreground">{today}</Text>
         </View>

@@ -61,10 +61,19 @@ export interface ProfilePhotoUploadTarget {
   maxBytes: number;
 }
 
+export const UPLOAD_STORAGE_NOT_CONFIGURED = "UPLOAD_STORAGE_NOT_CONFIGURED";
+
 function getUploadBucket(): string {
   const bucket = process.env[UPLOAD_BUCKET_ENV];
   if (!bucket) {
-    throw { status: 500, message: `${UPLOAD_BUCKET_ENV} is not configured` };
+    // B07: a deployment without an upload bucket is "service unavailable", not an internal error, and the
+    // machine code lets a client fall back (mobile falls back to the multipart route). The English
+    // "... is not configured" text is kept: the mobile fallback still matches on it.
+    throw {
+      status: 503,
+      code: UPLOAD_STORAGE_NOT_CONFIGURED,
+      message: `${UPLOAD_BUCKET_ENV} is not configured`,
+    };
   }
   return bucket;
 }

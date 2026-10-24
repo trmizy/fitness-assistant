@@ -5,7 +5,6 @@ import { Star, Trash2 } from "lucide-react-native";
 
 import { Button, Card, Input, Tappable, inputPlaceholderColor, useToast } from "../../components/ui";
 import { gymService } from "../../services/api";
-import { useApp } from "../../context/AppContext";
 import { designTokens } from "../../theme/colors";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import type { GymReviewsResponse } from "../../types";
@@ -16,18 +15,17 @@ import { isGymGone } from "./gymDirectory";
  * 14B.6 (PG-B2) — web `GymReviewsSection`: the public reviews of one gym, and for someone who has
  * held a membership here (ACTIVE or EXPIRED — the server's NOT_A_MEMBER rule) a form to write,
  * update or delete their own one review. Reviewer identity is shown the way web shows it (the
- * service exposes only the client id).
+ * server sends `reviewerName` and `isMine`, never another member's id).
  */
 export function GymReviews({ gymId }: { gymId: string }) {
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const qc = useQueryClient();
-  const { user } = useApp();
   const reviewsQuery = useQuery({ queryKey: ["gym-reviews", gymId], queryFn: () => gymService.getGymReviews(gymId) as Promise<GymReviewsResponse> });
   const membershipsQuery = useQuery({ queryKey: ["my-memberships"], queryFn: () => gymService.listMyMemberships() });
 
   const data = reviewsQuery.data;
-  const mine = data?.reviews?.find((r) => r.clientId === user?.id) ?? null;
+  const mine = data?.reviews?.find((r) => r.isMine === true) ?? null;
   const canReview = canReviewGym(membershipsQuery.data, gymId);
 
   const [rating, setRating] = useState(5);
@@ -142,7 +140,7 @@ export function GymReviews({ gymId }: { gymId: string }) {
           <View key={r.id} className="gap-1 border-t border-border pt-2.5">
             <View className="flex-row items-center justify-between gap-2">
               <Text className="font-body-semibold text-xs text-foreground">
-                {r.clientId === user?.id ? "Bạn" : `Hội viên ${r.clientId.slice(0, 6)}`}
+                {r.isMine ? "Bạn" : r.reviewerName?.trim() || "Hội viên"}
               </Text>
               <Text className="font-body text-[11px] text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("vi-VN")}</Text>
             </View>

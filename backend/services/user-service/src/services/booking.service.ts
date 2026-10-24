@@ -43,6 +43,7 @@ import {
   CONTRACT_ENDING,
 } from "./contract-lock";
 import { endOpenRoomCall } from "./open-room-call.service";
+import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
 
 /**
@@ -68,6 +69,38 @@ function err(message: string, status: number) {
 }
 
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** BR-30: a session must START at least this long from now - the same number for booking and for rescheduling (B27). */
+const BOOKING_LEAD_TIME_MS = CANCEL_WINDOW_MS;
+/** A reschedule may not be requested this close to the ORIGINAL start (unchanged rule). */
+const RESCHEDULE_ORIGINAL_CUTOFF_MS = 12 * 60 * 60 * 1000;
+
+export const RESCHEDULE_LEAD_TIME_TOO_SHORT = "RESCHEDULE_LEAD_TIME_TOO_SHORT";
+export const SESSION_OUTSIDE_CONTRACT_VALIDITY = "SESSION_OUTSIDE_CONTRACT_VALIDITY";
+
+/** BR-30: throws unless the session starts at least the booking lead time from now. The one validator booking and rescheduling both call. */
+function assertBookingLeadTime(startAt: Date, now: number, message: string, code?: string): void {
+  if (startAt.getTime() - now < BOOKING_LEAD_TIME_MS) {
+    throw code ? codedError(message, 400, code) : err(message, 400);
+  }
+}
+
+/**
+ * The session must start inside the contract's validity window: not after its end date (and not before its
+ * start date, when it has one). Booking checks the end date; rescheduling must too, or a move could push a
+ * paid session past the day the contract expires.
+ */
+function assertWithinContractValidity(
+  contract: { startDate?: Date | null; endDate?: Date | null },
+  startAt: Date,
+  message: string,
+  code?: string,
+): void {
+  const outside =
+    (contract.endDate != null && startAt > contract.endDate) ||
+    (contract.startDate != null && startAt < contract.startDate);
+  if (outside) throw code ? codedError(message, 400, code) : err(message, 400);
+}
 
 /**
  * D45 / L2 - the contract the session belongs to has ended (completed, expired, cancelled, ...). A PT's (or
@@ -305,7 +338,7 @@ export const bookingService = {
 
     // Contract must be ACTIVE
     if (contract.status !== ContractStatus.ACTIVE) {
-      throw err("Contract is not active", 400);
+      throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
     }
 
     // BR-28: session mode must match contract mode
@@ -336,13 +369,11 @@ export const bookingService = {
     }
 
     // BR-30: must be booked at least 24 hours in advance
-    if (startAt.getTime() - Date.now() < CANCEL_WINDOW_MS) {
-      throw err("Buổi tập cần được đặt trước ít nhất 24 giờ", 400);
-    }
+    assertBookingLeadTime(startAt, Date.now(), "Buổi tập cần được đặt trước ít nhất 24 giờ");
 
     // Check contract date range
     if (contract.endDate && startAt > contract.endDate) {
-      throw err("Session date is past the contract end date", 400);
+      throw err("Ngày buổi tập vượt quá ngày kết thúc hợp đồng", 400);
     }
 
     // Check PT availability. Money-flow plan 3.5: a PT who never published a weekly schedule
@@ -368,7 +399,7 @@ export const bookingService = {
           a.endTime >= endTimeStr,
       );
       if (!matchingSlot) {
-        throw err("This time is outside the trainer's available hours", 400);
+        throw err("Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên", 400);
       }
 
       // Check blocked dates
@@ -914,7 +945,7 @@ export const bookingService = {
       await notificationService
         .create({
           userId: otherUserId,
-          text: isClient ? "Client cancelled a session" : "Trainer cancelled the session",
+          text: isClient ? "Khách đã huỷ một buổi tập chưa xác nhận." : "Huấn luyện viên đã huỷ một buổi tập chưa xác nhận.",
           eventType: "SESSION_CANCELLED",
           entityType: "SESSION",
           entityId: sessionId,
@@ -988,10 +1019,14 @@ export const bookingService = {
       .create({
         userId: otherUserId,
         text: isClient
-          ? "Client cancelled a session"
+          ? outcome.ptPayout
+            ? // B32: the late cancel by the client still pays the trainer for the session. The amount is not known at
+              // this point (releaseSessionMoney reports nothing back, and a holdback can make the first one 0), so no number.
+              "Khách đã huỷ buổi tập sát giờ (dưới 24 giờ trước giờ bắt đầu). Buổi tập này vẫn được tính và bạn vẫn được thanh toán cho buổi tập."
+            : "Khách đã huỷ một buổi tập."
           : outcome.clientCompensation
             ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập sát giờ.", readPtFaultMoney(cancelMoneyAnswer))
-            : "Trainer cancelled the session",
+            : "Huấn luyện viên đã huỷ một buổi tập.",
         eventType: "SESSION_CANCELLED",
         entityType: "SESSION",
         entityId: sessionId,
@@ -1466,7 +1501,7 @@ export const bookingService = {
       throw err("Không thể dời lịch sau khi buổi tập đã bắt đầu", 400);
     }
     const timeUntilStart = session.scheduledStartAt.getTime() - now.getTime();
-    if (timeUntilStart < 12 * 60 * 60 * 1000) {
+    if (timeUntilStart < RESCHEDULE_ORIGINAL_CUTOFF_MS) {
       throw err("Không thể dời lịch trong vòng 12 giờ trước buổi tập", 400);
     }
 
@@ -1507,6 +1542,20 @@ export const bookingService = {
     if (!contract) throw err("Contract not found", 404);
     const durationMin = contract.sessionDurationMinutes ?? 60;
     const proposedEnd = new Date(proposedStart.getTime() + durationMin * 60 * 1000);
+
+    // B27: a move obeys the same lead time as a booking and must stay inside the contract's validity.
+    assertBookingLeadTime(
+      proposedStart,
+      now.getTime(),
+      "Thời gian dời lịch phải cách hiện tại ít nhất 24 giờ",
+      RESCHEDULE_LEAD_TIME_TOO_SHORT,
+    );
+    assertWithinContractValidity(
+      contract,
+      proposedStart,
+      "Không thể dời buổi tập sang ngày nằm ngoài thời hạn hợp đồng",
+      SESSION_OUTSIDE_CONTRACT_VALIDITY,
+    );
 
     // The proposed slot has to survive the SAME checks a fresh booking does. Skipping this
     // was the real hole: a reschedule could put the trainer in two places at once, or outside
@@ -1557,7 +1606,7 @@ export const bookingService = {
     const targetUserId = isClient ? session.ptUserId : session.clientUserId;
     notificationService.create({
       userId: targetUserId,
-      text: `Có yêu cầu dời lịch buổi tập sang ngày ${proposedStart.toLocaleString()}`,
+      text: `Có yêu cầu dời lịch buổi tập sang ${formatViDateTime(proposedStart)}`,
       // "SESSION_UPDATE" is not a NotificationEventType, so Prisma rejected every one of
       // these and the .catch swallowed it: the other party was never told a proposal had
       // been made. The enum has had the right value all along.
@@ -1647,7 +1696,7 @@ export const bookingService = {
     const expectedResponder = request.requestedBy === "CLIENT" ? "PT" : "CLIENT";
     const actualResponder = isClient ? "CLIENT" : "PT";
     if (actualResponder !== expectedResponder) {
-      throw err("You cannot respond to your own reschedule request", 403);
+      throw err("Bạn không thể phản hồi yêu cầu dời lịch do chính mình gửi", 403);
     }
 
     if (action === "ACCEPT") {
@@ -1658,6 +1707,22 @@ export const bookingService = {
       // advisory lock bookSession uses: the conflict re-check and both writes below are now
       // one atomic unit, not three separate statements a concurrent call can interleave with.
       await withPtScheduleLock(session.ptUserId, null, async (tx) => {
+        // B27: time has passed since the proposal - the 24 h lead time and the contract window are re-checked
+        // at the moment of acceptance, on the contract as it is now.
+        assertBookingLeadTime(
+          request.proposedStartAt,
+          Date.now(),
+          "Giờ đề xuất đã quá gần (dưới 24 giờ) nên không thể chấp nhận. Hãy gửi một yêu cầu dời lịch mới.",
+          RESCHEDULE_LEAD_TIME_TOO_SHORT,
+        );
+        const liveContract = await contractRepository.findById(session.contractId, tx);
+        if (!liveContract) throw err("Không tìm thấy hợp đồng", 404);
+        assertWithinContractValidity(
+          liveContract,
+          request.proposedStartAt,
+          "Giờ đề xuất nằm ngoài thời hạn hợp đồng nên không thể chấp nhận",
+          SESSION_OUTSIDE_CONTRACT_VALIDITY,
+        );
         await assertSlotBookable(
           session.ptUserId,
           request.proposedStartAt,
@@ -1729,7 +1794,7 @@ export const bookingService = {
         // request told the requester their session had moved. It had not.
         text:
           action === "ACCEPT"
-            ? `Yêu cầu dời lịch đã được chấp nhận. Giờ mới: ${request.proposedStartAt.toLocaleString("vi-VN")}`
+            ? `Yêu cầu dời lịch đã được chấp nhận. Giờ mới: ${formatViDateTime(request.proposedStartAt)}`
             : `Yêu cầu dời lịch đã bị từ chối. Buổi tập giữ nguyên giờ cũ.`,
         // Same invalid enum value as on the request side — the answer never reached the
         // person who had asked. The event type has to match the branch, or an acceptance

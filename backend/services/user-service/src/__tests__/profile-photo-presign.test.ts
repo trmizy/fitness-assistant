@@ -57,14 +57,14 @@ test("createProfilePhotoUploadUrl rejects a content type outside the allowed ima
   });
 });
 
-test("createProfilePhotoUploadUrl fails cleanly (500, not a crash) when USER_UPLOAD_BUCKET is unset", async () => {
+test("createProfilePhotoUploadUrl fails cleanly (503 + UPLOAD_STORAGE_NOT_CONFIGURED, not a crash) when USER_UPLOAD_BUCKET is unset", async () => {
   await withFakeAwsCreds(async () => {
     delete process.env.USER_UPLOAD_BUCKET;
     delete require.cache[require.resolve("../services/s3-upload.service")];
     const { createProfilePhotoUploadUrl } = require("../services/s3-upload.service");
     await assert.rejects(
       createProfilePhotoUploadUrl("user-123", "image/png"),
-      (err: any) => err.status === 500,
+      (err: any) => err.status === 503 && err.code === "UPLOAD_STORAGE_NOT_CONFIGURED",
     );
   });
 });

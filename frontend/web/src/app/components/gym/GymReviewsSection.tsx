@@ -7,19 +7,8 @@ import type { GymReviewsResponse } from "../../types";
 import { Stars } from "./Stars";
 import { isPublicGymGone } from "../../utils/gymPublic";
 
-function currentUserId(): string {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "{}")?.id ?? "";
-  } catch {
-    return "";
-  }
-}
-
-const shortId = (id: string) => `${id.slice(0, 8)}…`;
-
 export function GymReviewsSection({ gymId }: { gymId: string }) {
   const queryClient = useQueryClient();
-  const userId = currentUserId();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
@@ -42,7 +31,7 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
     (m) => m.gymId === gymId && ["ACTIVE", "EXPIRED"].includes(String(m.status)),
   );
 
-  const myReview = data?.reviews.find((r) => r.clientId === userId);
+  const myReview = data?.reviews.find((r) => r.isMine);
 
   // Prefill the form from an existing review once loaded.
   useEffect(() => {
@@ -153,7 +142,7 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
             <div key={r.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-300">
-                  {r.clientId === userId ? "Bạn" : shortId(r.clientId)}
+                  {r.isMine ? "Bạn" : r.reviewerName || "Hội viên"}
                 </span>
                 <Stars value={r.rating} />
               </div>

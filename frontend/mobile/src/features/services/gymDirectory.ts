@@ -80,7 +80,7 @@ export function normalizeGym(raw: any): GymRow {
     reviewCount: Number(raw?.reviewCount) || 0,
     fromPrice: raw?.fromPrice != null ? Number(raw.fromPrice) : null,
     status: String(raw?.status ?? ""),
-    operationalStatus: String(raw?.operationalStatus ?? ""),
+    operationalStatus: String(raw?.operationalStatus ?? (raw?.isTemporarilyClosed === true ? "TEMPORARILY_CLOSED" : "")),
     closureReason: text(raw?.closureReason),
     expectedReopenAt: raw?.expectedReopenAt ?? null,
     phone: text(raw?.phone),
@@ -409,10 +409,32 @@ export function normalizeWarnings(raw: any): MultiGymWarning[] {
  * were told.
  */
 export function multiGymWarningText(warnings: MultiGymWarning[]): string {
-  const names = warnings.map((w) => w.gymName).join(", ");
-  return warnings.length === 1
-    ? `Bạn đang có gói hội viên còn hiệu lực tại ${names}. Mua thêm ở đây vẫn được — chỉ là hai gói sẽ chạy song song.`
-    : `Bạn đang có gói hội viên còn hiệu lực tại ${warnings.length} phòng gym khác (${names}). Mua thêm ở đây vẫn được — các gói sẽ chạy song song.`;
+  const held = warnings
+    .map((w) => {
+      const until = formatWarningDate(w.endDate);
+      return `${w.gymName}${until ? ` (đến ${until})` : ""}`;
+    })
+    .join("; ");
+  return `Bạn đang có gói hội viên còn hạn ở ${held}. Vẫn mua thêm?`;
+}
+
+function formatWarningDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+/** B43 — the branch is closed for now: shown with a banner, nothing sold, plans/reviews not requested. */
+export function isTemporarilyClosed(gym: Pick<GymRow, "operationalStatus">): boolean {
+  return gym.operationalStatus === "TEMPORARILY_CLOSED";
+}
+
+/** "Dự kiến mở lại 01/12/2026" or null. */
+export function reopenLabel(gym: Pick<GymRow, "expectedReopenAt">): string | null {
+  const d = formatWarningDate(gym.expectedReopenAt);
+  return d ? `Dự kiến mở lại: ${d}` : null;
 }
 
 /** Why "Mua gói" is off. null means it is on. */

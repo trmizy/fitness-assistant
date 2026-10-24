@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { authService } from "../services/auth.service";
 import { authRepository } from "../repositories/auth.repository";
+import { adminAccountGuard } from "../services/admin-account-guard";
 import { sendPlainEmail } from "../services/email.service";
 import {
   registerStartSchema,
@@ -349,6 +350,16 @@ export const authController = {
         return;
       }
 
+      // B42: an admin must not demote/re-role their own account (the identity comes from the
+      // verified token, never from the body).
+      if (req.params.userId === actor.id) {
+        res.status(403).json({
+          error: "Admins cannot change their own role",
+          code: "CANNOT_CHANGE_OWN_ROLE",
+        });
+        return;
+      }
+
       const body = updateUserRoleSchema.parse(req.body);
       if (body.role === "ADMIN") {
         res
@@ -499,6 +510,30 @@ export const authController = {
           : req.path.endsWith("/disable")
             ? false
             : true;
+      if (!isActive) {
+        // B42: an admin must not lock their own account (the web only hid the button), and the
+        // system must never be left without an active admin — nobody could reopen it but a DB edit.
+        if (req.params.userId === verified.id) {
+          res.status(403).json({
+            error: "Admins cannot disable their own account",
+            code: "CANNOT_DISABLE_SELF",
+          });
+          return;
+        }
+        const target = await authRepository.findUserById(req.params.userId);
+        if (
+          target &&
+          (target as any).role === "ADMIN" &&
+          (target as any).isActive !== false &&
+          (await adminAccountGuard.countActiveAdmins()) <= 1
+        ) {
+          res.status(409).json({
+            error: "Cannot disable the last active admin",
+            code: "LAST_ADMIN",
+          });
+          return;
+        }
+      }
       // The reason is optional (the admin screens do not send one yet); anything but a
       // non-empty string is dropped, and it is capped so it cannot bloat the audit row.
       const rawReason = req.body?.reason;

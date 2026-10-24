@@ -54,6 +54,7 @@ import {
   type LowAvailability,
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
+import { usePtArea } from "../../../../src/features/services/usePtArea";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { contractRequestError } from "../../../../src/features/services/contracts";
 import {
@@ -126,6 +127,7 @@ export default function TrainerDetailScreen() {
     [listQuery.data, ptUserId],
   );
   const pt = useMemo(() => mergePtSources(raw, listRow), [raw, listRow]);
+  const area = usePtArea(pt ?? { area: null });
   const packages = useMemo(() => normalizePackages(packagesQuery.data), [packagesQuery.data]);
   const selected = packages.find((p) => p.id === packageId) ?? null;
   // P3.6: branches for THIS package, with the client's membership facts per branch. Keyed by
@@ -271,11 +273,11 @@ export default function TrainerDetailScreen() {
                     ) : (
                       <Text className="font-body text-xs text-muted-foreground">Chưa có đánh giá</Text>
                     )}
-                    {pt.area ? (
+                    {area ? (
                       <View className="flex-row items-center gap-1">
                         <MapPin size={12} color="#8b9299" />
                         <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
-                          {pt.area}
+                          {area}
                         </Text>
                       </View>
                     ) : null}

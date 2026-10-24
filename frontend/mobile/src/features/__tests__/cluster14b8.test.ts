@@ -17,6 +17,7 @@ import {
   partnerFormError,
   partnerFormPayload,
   percentLabel,
+  queueCounts,
   queueItems,
   reconciliation,
   searchPartners,
@@ -58,6 +59,11 @@ describe("PG-D1 partner list", () => {
       ["pendingBrandRenames", 2],
     ]);
     assert.deepEqual(queueItems(null), []);
+  });
+  it("B40: canonical keys win; branches = branchesToReview, brand renames stay separate", () => {
+    const q = { data: { applicationsAwaitingReview: 4, pendingProspects: 9, branchesToReview: 5, pendingGyms: 3, brandRenames: 2, branchRenames: 2, branchesFirstApproval: 3 } };
+    assert.deepEqual(queueCounts(q), { applications: 4, branches: 5, brandRenames: 2, expiringDocs: 0 });
+    assert.deepEqual(queueItems(q).map((i) => [i.key, i.count]), [["pendingProspects", 4], ["pendingGyms", 5], ["pendingBrandRenames", 2]]);
   });
   it("card meta counts accounts and partner age", () => {
     const p = {
@@ -161,6 +167,17 @@ describe("PG-D2 finance", () => {
     assert.equal(r.totals.income, 18_400_000);
     assert.equal(r.buckets[0].transactionCount, 8);
     assert.equal(financeReport({ data: {} }), null);
+    assert.equal(r.platformRevenue, null);
+  });
+  it("B29: reads the platform revenue wallet (available vs pending)", () => {
+    const r = financeReport({
+      data: {
+        buckets: [],
+        totals: { income: "0", expense: "0", netRevenue: "0", transactionCount: 0 },
+        platformRevenue: { available: "1250000.00", pending: "300000.00", asOf: "2026-10-24T01:00:00.000Z" },
+      },
+    })!;
+    assert.deepEqual(r.platformRevenue, { available: 1_250_000, pending: 300_000, asOf: "2026-10-24T01:00:00.000Z" });
   });
   it("reconciliation incl. the locked balances web does not show", () => {
     const r = reconciliation({

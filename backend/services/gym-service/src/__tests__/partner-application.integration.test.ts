@@ -412,18 +412,23 @@ s3Test('sau khi duyệt: chủ gym đổi tài khoản nhận tiền (có nhật
   const acc = await m.prisma.gymPartnerAccount.findFirstOrThrow({ where: { partnerId, role: 'OWNER' } });
   const actor = { userId: a.userId, email: 'owner@example.invalid' };
 
-  // Lần nhập đầu (trình thiết lập): không phải "đổi", không ghi nhật ký payoutBank.
+  // Lần khai đầu (trình thiết lập) cũng có nhật ký (B09): firstTime, chỉ 4 số cuối, không có số cũ.
   await onboardingService.submitPayout(acc.id, partnerId, { bankName: 'VCB', accountNumber: '0011223344', accountHolder: 'NGUYEN A' }, actor);
   const payoutLogs = async () =>
-    (await m.prisma.partnerAuditLog.findMany({ where: { partnerId, action: 'PARTNER_UPDATED' } })).filter((r) => (r.metadata as any)?.field === 'payoutBank');
-  assert.equal((await payoutLogs()).length, 0);
+    (await m.prisma.partnerAuditLog.findMany({ where: { partnerId, action: 'PARTNER_UPDATED' }, orderBy: { createdAt: 'asc' } })).filter((r) => (r.metadata as any)?.field === 'payoutBank');
+  const first = await payoutLogs();
+  assert.equal(first.length, 1);
+  assert.deepEqual({ last4: (first[0].metadata as any).last4, prev: (first[0].metadata as any).previousLast4, firstTime: (first[0].metadata as any).firstTime }, { last4: '3344', prev: null, firstTime: true });
 
   // Chủ gym tự đổi sang tài khoản khác → nhật ký chỉ có 4 số cuối, không có số đầy đủ.
   await onboardingService.submitPayout(acc.id, partnerId, { bankName: 'ACB', accountNumber: '9988776655', accountHolder: 'NGUYEN A' }, actor);
   const logs = await payoutLogs();
-  assert.equal(logs.length, 1);
-  assert.deepEqual({ last4: (logs[0].metadata as any).last4, prev: (logs[0].metadata as any).previousLast4 }, { last4: '6655', prev: '3344' });
-  assert.ok(!JSON.stringify(logs[0].metadata).includes('9988776655'), 'không lưu số tài khoản đầy đủ vào nhật ký');
+  assert.equal(logs.length, 2);
+  assert.deepEqual({ last4: (logs[1].metadata as any).last4, prev: (logs[1].metadata as any).previousLast4 }, { last4: '6655', prev: '3344' });
+  assert.ok(!JSON.stringify(logs.map((l) => l.metadata)).includes('9988776655'), 'không lưu số tài khoản đầy đủ vào nhật ký');
+  // Gọi lại y hệt (không đổi gì) thì không ghi thêm dòng.
+  await onboardingService.submitPayout(acc.id, partnerId, { bankName: 'ACB', accountNumber: '9988776655', accountHolder: 'NGUYEN A' }, actor);
+  assert.equal((await payoutLogs()).length, 2);
   const progress: any = await onboardingService.getProgress(acc.id);
   assert.deepEqual(progress.payout, { bankName: 'ACB', accountNumber: '9988776655', accountHolder: 'NGUYEN A' });
 
@@ -545,7 +550,8 @@ integrationTest('REJECTED là cuối với ứng viên: khoá sửa và nộp; c
 
   const view = await m.app.getApplication(ctx);
   assert.equal(view.partner.rejectionReason, 'Không đủ điều kiện');
-  assert.equal(view.partner.adminNote, 'Thiếu giấy phép');
+  assert.equal(view.partner.adminNote, null, 'B13: ghi chú nội bộ của admin không hiện cho ứng viên bị từ chối');
+  assert.ok(!JSON.stringify(view).includes('Thiếu giấy phép'));
 
   await m.review.reopen(a.partnerId, admin);
   ctx = await ctxOf(a.userId);

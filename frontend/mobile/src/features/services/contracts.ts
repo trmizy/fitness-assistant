@@ -35,6 +35,9 @@ export type ContractRow = {
   rejectionReason: string | null;
   cancellationReason: string | null;
   terminationReason: string | null;
+  /** Who cancelled: a user id, "SYSTEM" (payment deadline sweep) or a service name. */
+  cancelledBy: string | null;
+  clientUserId: string | null;
   paid: boolean;
   /** `"PAUSED_BY_ADMIN"` while the trainer is restricted; otherwise null (or the plain status). */
   effectiveStatus: string | null;
@@ -68,6 +71,8 @@ export function normalizeContract(raw: any): ContractRow {
     rejectionReason: raw?.rejectionReason ?? null,
     cancellationReason: raw?.cancellationReason ?? null,
     terminationReason: raw?.terminationReason ?? null,
+    cancelledBy: raw?.cancelledBy ?? null,
+    clientUserId: raw?.clientUserId ?? null,
     paid: Boolean(raw?.paymentTransactionId),
     effectiveStatus: typeof raw?.effectiveStatus === "string" ? raw.effectiveStatus : null,
   };
@@ -103,11 +108,39 @@ export const CONTRACT_STATUS: Record<string, { label: string; tone: StatusTone; 
   COMPLETED: { label: "Đã hoàn thành", tone: "neutral" },
   EXPIRED: { label: "Đã hết hạn", tone: "neutral" },
   CANCELLED: { label: "Đã chấm dứt", tone: "neutral" },
-  REJECTED: { label: "PT đã từ chối", tone: "danger" },
+  REJECTED: { label: "Bị từ chối", tone: "danger" },
 };
 
 export function contractStatus(status: string) {
   return CONTRACT_STATUS[status] ?? { label: status || "Không rõ", tone: "neutral" as StatusTone };
+}
+
+/**
+ * The badge for one contract. `CANCELLED` is the backend's single status for several different endings, so
+ * the label is chosen from what actually happened (B38):
+ *  - the payment deadline swept it (`cancelledBy` "SYSTEM", reason "Quá hạn thanh toán…") -> "Hết hạn thanh toán";
+ *  - money had settled or it had started (a payment transaction or a `terminationReason` — `startDate` is NOT used: a request can carry a wished start date) -> "Đã chấm dứt",
+ *    the contract really ran and was then ended;
+ *  - otherwise it was withdrawn before payment -> "Đã huỷ".
+ * Every other status keeps its plain label.
+ */
+export function contractStatusFor(
+  contract: Pick<ContractRow, "status" | "paid" | "terminationReason" | "cancelledBy" | "cancellationReason">,
+) {
+  const base = contractStatus(contract.status);
+  if (contract.status !== "CANCELLED") return base;
+  const ran = contract.paid || !!contract.terminationReason;
+  if (ran) return base; // "Đã chấm dứt"
+  const expired =
+    contract.cancelledBy === "SYSTEM" && /quá hạn thanh toán/i.test(contract.cancellationReason ?? "");
+  if (expired) {
+    return {
+      label: "Hết hạn thanh toán",
+      tone: "neutral" as StatusTone,
+      note: "Hợp đồng bị huỷ vì chưa thanh toán đúng hạn. Bạn có thể gửi yêu cầu mới.",
+    };
+  }
+  return { label: "Đã huỷ", tone: "neutral" as StatusTone };
 }
 
 /** Only these three ever move; everything else is history. */

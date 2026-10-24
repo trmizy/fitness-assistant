@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useReducer, useRef, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { MediaStream } from "react-native-webrtc";
 
 import { useToast } from "../../components/ui";
@@ -9,6 +10,8 @@ import type { CallType } from "../../types";
 import { callErrorMessage, callReducer, initialCallState, isFinishedCallStatus, type CallState } from "./callState";
 import { useRNWebRTC } from "./useRNWebRTC";
 import { dismissCallPush } from "../push/pushDevice";
+import { mergeMessage, normalizeMessage, type ChatMessage } from "../chat/chat";
+import { conversationsKey, messagesKey } from "../chat/useRealtimeChat";
 
 const DEFAULT_ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
 
@@ -57,6 +60,7 @@ export function useCall(): CallContextValue {
 export function CallProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useApp();
   const userId = user?.id ?? null;
+  const queryClient = useQueryClient();
   const isAuthenticatedRef = useRef(isAuthenticated);
   useLayoutEffect(() => {
     isAuthenticatedRef.current = isAuthenticated;
@@ -296,7 +300,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
       doCleanup();
     };
 
+    // B39 — chat-service posts the "Cuộc gọi … đã kết thúc (m:ss)" / nhỡ / bị từ chối line into the
+    // thread and announces it on THIS socket as `chat:message` (the chat screen listens on the
+    // gateway socket, which never sees it). Merge it into the cache so it shows live, not after a reload.
+    const onCallLogMessage = (raw: any) => {
+      if (!raw?.id || !raw?.conversationId || !userId) return;
+      const m = normalizeMessage(raw);
+      queryClient.setQueryData<ChatMessage[]>(messagesKey(userId, m.conversationId), (old) => (old ? mergeMessage(old, m) : old));
+      void queryClient.invalidateQueries({ queryKey: conversationsKey(userId) });
+    };
+
     const handlers: Record<string, (d: any) => void> = {
+      "chat:message": onCallLogMessage,
       "call:incoming": onIncoming,
       "call:initiated": onInitiated,
       "call:accepted": onAccepted,
@@ -332,7 +347,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // user, so it must go — otherwise their calls would ring for whoever is signed in now.
       disconnectSocket();
     };
-  }, [isAuthenticated, enabled, userId, doCleanup]);
+  }, [isAuthenticated, enabled, userId, doCleanup, queryClient]);
 
   // ── Actions: media first (inside the tap), then signal ───────────
   const realtimeOff = useCallback(() => {

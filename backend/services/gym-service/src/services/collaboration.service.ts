@@ -5,6 +5,7 @@ import { prisma } from '../repositories/prisma';
 import { gymService } from './gym.service';
 import { partnerGuard } from './partner-guard.service';
 import { gymPublicWhere } from './gym-public';
+import { withCollaborationLifecycle } from './collaboration-lifecycle';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -840,7 +841,8 @@ export const collaborationService = {
         brand: gym.brandId ? (ctx.get(gym.brandId)?.brand ?? null) : null,
       })),
     ];
-    return items.sort((x, y) => y.updatedAt.getTime() - x.updatedAt.getTime());
+    // B44: every row carries its explicit `lifecycle` (ACTIVE / TERMINATING / ...) next to the unchanged `status`.
+    return items.map(withCollaborationLifecycle).sort((x, y) => y.updatedAt.getTime() - x.updatedAt.getTime());
   },
 
   /**

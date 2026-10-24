@@ -37,6 +37,7 @@ import {
   Tappable,
 } from "../../src/components/ui";
 import { useApp } from "../../src/context/AppContext";
+import { fullName, givenName } from "../../src/lib/personName";
 import {
   inbodyService,
   nutritionService,
@@ -289,13 +290,13 @@ export default function ClientDashboardScreen() {
             {greetingForHour(today.getHours())}
           </Text>
           <Text className="font-display text-2xl text-foreground" numberOfLines={1}>
-            {user?.firstName || "Bạn"}
+            {givenName(user, "Bạn")}
           </Text>
         </View>
         <View className="flex-row items-center gap-3">
           <RoundButton icon={Search} onPress={() => router.push("/client/library/search")} />
           <RoundButton icon={Bell} dot={unreadNotifications > 0} onPress={() => router.push("/client/notifications")} />
-          <Avatar name={user?.firstName || "Bạn"} size={44} />
+          <Avatar name={fullName(user, "Bạn")} size={44} />
         </View>
       </View>
 

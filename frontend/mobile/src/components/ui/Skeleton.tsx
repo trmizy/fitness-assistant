@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
+  cancelAnimation,
   Easing,
+  useReducedMotion,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -27,13 +29,22 @@ export function Skeleton({
 }) {
   const opacity = useSharedValue(0.5);
 
+  const reduceMotion = useReducedMotion();
+
   useEffect(() => {
+    // Reduce-motion users get a static block; everyone else a pulse that is cancelled on unmount so a
+    // finished screen never leaves a loop running on the UI thread (B16).
+    if (reduceMotion) {
+      opacity.value = 0.75;
+      return;
+    }
     opacity.value = withRepeat(
       withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
     );
-  }, [opacity]);
+    return () => cancelAnimation(opacity);
+  }, [opacity, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

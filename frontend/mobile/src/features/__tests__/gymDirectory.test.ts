@@ -265,8 +265,8 @@ describe("the multi-gym warning", () => {
     assert.equal(warnings.length, 1);
     const text = multiGymWarningText(warnings);
     assert.match(text, /California Quận 1/);
-    // It warns, it does not forbid — the wording must not read like a refusal.
-    assert.match(text, /vẫn được/);
+    // It asks, it does not forbid — the wording must not read like a refusal.
+    assert.match(text, /còn hạn ở California Quận 1 \(đến 0?1\/12\/2026\)\. Vẫn mua thêm\?/);
   });
 });
 

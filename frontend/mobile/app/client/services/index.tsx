@@ -55,7 +55,7 @@ import {
   PAUSED_BY_ADMIN_NOTICE,
   END_TERMS_TEXT,
   applyLiftedPreview,
-  contractStatus,
+  contractStatusFor,
   endActionFor,
   endSheetView,
   isOpen,
@@ -83,6 +83,7 @@ import {
   type PtFilters,
   type PtRow,
 } from "../../../src/features/services/ptDiscovery";
+import { usePtArea } from "../../../src/features/services/usePtArea";
 
 const TABS = ["Tìm PT", "Phòng gym", "Hội viên", "Hợp đồng"] as const;
 const TAB_FROM_PARAM: Record<string, (typeof TABS)[number]> = {
@@ -340,6 +341,7 @@ function TrainerCover({ uri }: { uri: string }) {
 function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
   const accent = useWorkspaceAccent();
   const cover = absolutePhotoUrl(pt.coverPhotoUrl);
+  const area = usePtArea(pt);
   return (
     <Tappable onPress={onPress}>
       <Card className="overflow-hidden">
@@ -368,11 +370,11 @@ function TrainerCard({ pt, onPress }: { pt: PtRow; onPress: () => void }) {
               ) : (
                 <Text className="font-body text-xs text-muted-foreground">Chưa có đánh giá</Text>
               )}
-              {pt.area ? (
+              {area ? (
                 <View className="flex-row items-center gap-1">
                   <MapPin size={12} color="#8b9299" />
                   <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
-                    {pt.area}
+                    {area}
                   </Text>
                 </View>
               ) : null}
@@ -611,24 +613,18 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
     onError: (error: any) => toast.show(gymError(error, "Không huỷ được yêu cầu"), "danger"),
   });
 
-  // 14B.6 (PG-B1) — web's "Hủy membership" on an ACTIVE membership. The server forfeits the unused
-  // part (no refund — a prorated refund is an admin-only action), so the confirmation says so.
-  const cancelActiveMutation = useMutation({
-    mutationFn: (membershipId: string) => gymService.cancelActiveMembership(membershipId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
-      toast.show("Đã huỷ gói hội viên.", "success");
-    },
-    onError: (error: any) => toast.show(gymError(error, "Không huỷ được gói hội viên"), "danger"),
-  });
-  const confirmCancelActive = (membership: MembershipRow) => {
-    const left = daysRemaining(membership);
+  // B47 — a client can no longer cancel an ACTIVE membership (the server answers 409
+  // MEMBERSHIP_CANCEL_DISABLED), so there is no such button. Only a request still waiting for payment
+  // can be withdrawn (below).
+
+  // B23 — withdrawing a request waiting for payment used to fire on the first tap; ask first.
+  const confirmCancelPending = (membership: MembershipRow) => {
     Alert.alert(
-      "Huỷ gói hội viên?",
-      `${left != null ? `Gói còn ${left}/${membership.durationDays} ngày. ` : ""}Bạn sẽ không được hoàn lại tiền của phần thời gian chưa dùng.`,
+      "Huỷ yêu cầu hội viên?",
+      "Yêu cầu chờ thanh toán sẽ bị huỷ. Bạn có thể chọn lại gói tại phòng gym này sau.",
       [
         { text: "Giữ lại", style: "cancel" },
-        { text: "Xác nhận huỷ", style: "destructive", onPress: () => cancelActiveMutation.mutate(membership.id) },
+        { text: "Huỷ yêu cầu", style: "destructive", onPress: () => cancelMutation.mutate(membership.id) },
       ],
     );
   };
@@ -694,12 +690,6 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                       Quét mã check-in
                     </Button>
                   ) : null}
-                  {membership.status === "ACTIVE" ? (
-                    <Button variant="ghost" size="sm" disabled={cancelActiveMutation.isPending} onPress={() => confirmCancelActive(membership)}>
-                      Huỷ gói hội viên
-                    </Button>
-                  ) : null}
-
                   {canReportMembership(membership) ? (
                     <Button
                       variant="ghost"
@@ -730,7 +720,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                           size="sm"
                           className="flex-1"
                           disabled={cancelMutation.isPending || checkout.submitting}
-                          onPress={() => cancelMutation.mutate(membership.id)}
+                          onPress={() => confirmCancelPending(membership)}
                         >
                           Huỷ yêu cầu
                         </Button>
@@ -1041,7 +1031,7 @@ function ContractCard({
   paying?: boolean;
 }) {
   const accent = useWorkspaceAccent();
-  const status = contractStatus(contract.status);
+  const status = contractStatusFor(contract);
   const action = endActionFor(contract);
 
   // Only an ACTIVE contract has money in escrow worth previewing, and the server is the one that

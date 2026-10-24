@@ -3,7 +3,28 @@ import { partnerInvitationService } from '../services/partner-invitation.service
 import { authClient } from '../clients/auth.client';
 
 function fail(res: Response, e: any) {
-  res.status(e.status || 500).json({ success: false, error: { message: e.message || 'Đã có lỗi xảy ra' } });
+  res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message || 'Đã có lỗi xảy ra' } });
+}
+
+const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * B11 - lỗi từ auth-service khi lập tài khoản cho người nhận lời mời. axios ném "Request failed with status code 400" và
+ * người dùng không biết sai gì; ở đây lấy đúng thông điệp (tiếng Việt) auth-service trả về và gắn mã:
+ *   409 -> EMAIL_IN_USE · 400 mật khẩu -> WEAK_PASSWORD · 400 khác -> INVALID_ACCOUNT_DATA · không gọi được -> AUTH_SERVICE_UNAVAILABLE.
+ */
+export function describeAuthAccountError(e: any): Error & { status: number; code: string } {
+  const status: number | undefined = e?.response?.status;
+  const raw = e?.response?.data;
+  const upstream: string = typeof raw?.error === 'string' ? raw.error : typeof raw?.error?.message === 'string' ? raw.error.message : typeof raw?.message === 'string' ? raw.message : '';
+  const make = (st: number, code: string, message: string) => Object.assign(new Error(message), { status: st, code });
+  if (status === 409) return make(409, 'EMAIL_IN_USE', 'Email này đã có tài khoản Gymini nên không dùng để nhận lời mời được — hãy nhờ người mời gửi lời mời tới một email khác');
+  if (status === 400) {
+    const weak = /mật khẩu|password/i.test(upstream);
+    return make(400, weak ? 'WEAK_PASSWORD' : 'INVALID_ACCOUNT_DATA', upstream || (weak ? 'Mật khẩu chưa đủ mạnh' : 'Thông tin tạo tài khoản chưa hợp lệ'));
+  }
+  if (status && status >= 400 && status < 500) return make(status, 'ACCOUNT_CREATION_REFUSED', upstream || 'Không tạo được tài khoản');
+  return make(502, 'AUTH_SERVICE_UNAVAILABLE', 'Chưa tạo được tài khoản lúc này, vui lòng thử lại sau ít phút');
 }
 
 /**
@@ -37,17 +58,26 @@ export const publicPartnerController = {
   async acceptInvitation(req: Request, res: Response) {
     try {
       const { password, firstName, lastName } = req.body ?? {};
-      if (!password || !firstName?.trim()) {
-        res.status(400).json({ success: false, error: { message: 'password và firstName là bắt buộc' } });
+      if (!password || typeof password !== 'string' || !firstName?.trim()) {
+        res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'Vui lòng nhập mật khẩu và tên của bạn' } });
+        return;
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự` } });
         return;
       }
       const invitation = await partnerInvitationService.validateToken(req.params.token);
-      const user = await authClient.createInvitedAccount({
-        email: invitation.email,
-        password,
-        firstName: firstName.trim(),
-        lastName: lastName?.trim(),
-      });
+      let user;
+      try {
+        user = await authClient.createInvitedAccount({
+          email: invitation.email,
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName?.trim(),
+        });
+      } catch (authError) {
+        throw describeAuthAccountError(authError);
+      }
       const account = await partnerInvitationService.acceptInvitation(req.params.token, user.id);
       res.status(201).json({ success: true, data: { email: user.email, role: account.role } });
     } catch (e: any) {

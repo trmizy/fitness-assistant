@@ -31,6 +31,7 @@ import {
 } from "../../src/components/ui";
 import { contractService, personalizedServiceApi, ptPlanReviewService, sessionService, walletService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
+import { fullName, givenName } from "../../src/lib/personName";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
@@ -140,11 +141,11 @@ export default function PtDashboardScreen() {
       >
         {/* Header + workspace switch */}
         <View className="flex-row items-center gap-3 px-5">
-          <Avatar name={user?.firstName ? `${user.firstName} ${user.lastName ?? ""}`.trim() : "PT"} size={44} />
+          <Avatar name={fullName(user, "PT")} size={44} />
           <View className="min-w-0 flex-1">
             <Text className="font-body text-xs text-muted-foreground">Không gian Huấn luyện viên</Text>
             <Text className="font-display text-lg text-foreground" numberOfLines={1}>
-              {user?.firstName ? `PT ${user.firstName}` : "Huấn luyện viên"}
+              {givenName(user) ? `PT ${givenName(user)}` : "Huấn luyện viên"}
             </Text>
           </View>
           <Tappable

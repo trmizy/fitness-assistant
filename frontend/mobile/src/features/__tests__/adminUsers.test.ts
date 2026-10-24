@@ -12,7 +12,9 @@ import {
   isLocked,
   lockConsequences,
   roleLabel,
+  partnerRoleMap,
   userCounts,
+  userRoleLabel,
   userRows,
 } from "../admin/adminUsers";
 import { roleBreakdown, recentUsers, unclassifiedUsers } from "../admin/adminDashboard";
@@ -90,5 +92,29 @@ describe("GAP-21 trên tổng quan", () => {
     assert.equal(unclassifiedUsers(d), 0);
     assert.equal(recentUsers(d)[0].role, "Chủ phòng gym");
     assert.equal(recentUsers(d)[0].active, false);
+  });
+});
+
+describe("B41 partner staff are not labelled as the owner", () => {
+  const roles = partnerRoleMap({
+    data: [
+      { userId: "o1", partnerRole: "OWNER" },
+      { userId: "m1", partnerRole: "MANAGER" },
+      { userId: "r1", partnerRole: "RECEPTIONIST" },
+      { userId: "a1", partnerRole: "ACCOUNTANT" },
+      { userId: "x1", partnerRole: null },
+    ],
+  });
+  it("maps the four partner roles", () => {
+    const u = (id: string) => ({ id, role: "Gym Owner" });
+    assert.equal(userRoleLabel(u("o1"), roles), "Chủ phòng gym");
+    assert.equal(userRoleLabel(u("m1"), roles), "Quản lý chi nhánh");
+    assert.equal(userRoleLabel(u("r1"), roles), "Lễ tân");
+    assert.equal(userRoleLabel(u("a1"), roles), "Kế toán");
+  });
+  it("falls back to the account role when unknown, and never touches other roles", () => {
+    assert.equal(userRoleLabel({ id: "x1", role: "Gym Owner" }, roles), "Chủ phòng gym");
+    assert.equal(userRoleLabel({ id: "m1", role: "Client" }, roles), "Khách hàng");
+    assert.equal(userRoleLabel({ id: "o1", role: "Gym Owner" }), "Chủ phòng gym");
   });
 });

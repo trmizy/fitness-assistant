@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { givenName } from "../../utils/givenName";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -168,7 +169,7 @@ export function ClientDashboard() {
         }),
     });
 
-  const firstName = user?.firstName || "Bạn";
+  const firstName = givenName(user);
   const isLoading =
     profileLoading ||
     inbodyLoading ||

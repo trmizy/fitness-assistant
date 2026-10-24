@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { INVALID_AMOUNT_BODY, isParsableAmount } from '../utils/withdrawal-amount';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
@@ -993,6 +994,7 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
   }
+  if (!isParsableAmount(parsed.data.amount)) return res.status(400).json(INVALID_AMOUNT_BODY);
   try {
     const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
     return res.status(201).json({ success: true, data: request });

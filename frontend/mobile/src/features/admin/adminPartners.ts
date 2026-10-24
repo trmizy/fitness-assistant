@@ -146,15 +146,33 @@ export const opensApplication = (p: AdminPartner) => p.source === "SELF_SERVICE"
  */
 export const legacyEditsBlocked = (p: AdminPartner) => p.source === "SELF_SERVICE";
 
+/**
+ * B40 — the canonical counts of GET /admin/partners/queue (and /overview-stats): applications awaiting the
+ * admin, branches to review (first approval + renames/address changes) and brand renames, which are a
+ * separate line and never added into the branch count. Older servers only send the legacy keys.
+ */
+export function queueCounts(raw: unknown): { applications: number; branches: number; brandRenames: number; expiringDocs: number } {
+  const q: any = (raw as any)?.data ?? raw;
+  const n = (v: unknown) => Number(v) || 0;
+  if (!q || typeof q !== "object") return { applications: 0, branches: 0, brandRenames: 0, expiringDocs: 0 };
+  return {
+    applications: n(q.applicationsAwaitingReview ?? q.pendingProspects),
+    branches: n(q.branchesToReview ?? q.pendingGyms),
+    brandRenames: n(q.brandRenames ?? q.pendingBrandRenames),
+    expiringDocs: n(q.expiringDocs),
+  };
+}
+
 /** "Cần bạn xử lý" — web's four queue lines, only those with work in them. */
 export function queueItems(raw: unknown): { key: string; count: number; label: string; filter: string | null }[] {
   const q = (raw as any)?.data ?? raw;
   if (!q || typeof q !== "object") return [];
+  const c = queueCounts(q);
   return [
-    { key: "pendingProspects", count: Number(q.pendingProspects) || 0, label: "Hồ sơ chờ thẩm định", filter: "PROSPECT" },
-    { key: "pendingGyms", count: Number(q.pendingGyms) || 0, label: "Chi nhánh chờ duyệt", filter: null },
-    { key: "pendingBrandRenames", count: Number(q.pendingBrandRenames) || 0, label: "Tên thương hiệu chờ duyệt", filter: null },
-    { key: "expiringDocs", count: Number(q.expiringDocs) || 0, label: "Giấy phép sắp hết hạn", filter: null },
+    { key: "pendingProspects", count: c.applications, label: "Hồ sơ chờ thẩm định", filter: "PROSPECT" },
+    { key: "pendingGyms", count: c.branches, label: "Chi nhánh chờ duyệt", filter: null },
+    { key: "pendingBrandRenames", count: c.brandRenames, label: "Tên thương hiệu chờ duyệt", filter: null },
+    { key: "expiringDocs", count: c.expiringDocs, label: "Giấy phép sắp hết hạn", filter: null },
   ].filter((i) => i.count > 0);
 }
 
@@ -345,7 +363,9 @@ export function compactVND(value: number): string {
 }
 
 export type FinanceBucket = { period: string; income: number; expense: number; netRevenue: number; transactionCount: number };
-export type FinanceReport = { buckets: FinanceBucket[]; totals: Omit<FinanceBucket, "period"> };
+/** B29 — the platform's revenue wallet right now (not period-bound): earned & released vs still held. */
+export type PlatformRevenue = { available: number; pending: number; asOf: string | null };
+export type FinanceReport = { buckets: FinanceBucket[]; totals: Omit<FinanceBucket, "period">; platformRevenue: PlatformRevenue | null };
 
 /** payment-service sends Decimal columns as strings ("18400000.00"). */
 export function financeReport(raw: unknown): FinanceReport | null {
@@ -357,7 +377,12 @@ export function financeReport(raw: unknown): FinanceReport | null {
     netRevenue: Number(b.netRevenue) || 0,
     transactionCount: Number(b.transactionCount) || 0,
   });
-  return { buckets: d.buckets.map((b: any) => ({ period: String(b.period), ...row(b) })), totals: row(d.totals) };
+  const pr = d.platformRevenue;
+  const platformRevenue: PlatformRevenue | null =
+    pr && typeof pr === "object"
+      ? { available: Number(pr.available) || 0, pending: Number(pr.pending) || 0, asOf: typeof pr.asOf === "string" ? pr.asOf : null }
+      : null;
+  return { buckets: d.buckets.map((b: any) => ({ period: String(b.period), ...row(b) })), totals: row(d.totals), platformRevenue };
 }
 
 export type Reconciliation = {
