@@ -22,6 +22,7 @@ import {
 } from "../repositories/session-settlement.repository";
 import { invalidMoneyFigures, ledgerRefusalOf, settlingD65bEnabled } from "./session-settlement-answers";
 import { closeContractEpisodeOnContractEnd } from "./pt-restriction.service";
+import { declaredEndingNoticeHooks } from "./contract-termination-notices";
 
 /** Every termination reason ends the contract in exactly one of these two final states. */
 function statusFor(reason: string): ContractStatus {
@@ -763,7 +764,7 @@ export interface TerminationStatusExtra {
 export interface TerminationHooks {
   inStatusWrite?: (tx: Prisma.TransactionClient, info: { contract: ContractRow; terms: TerminationTerms }) => Promise<void>;
   /** Runs once, after the transaction that wrote the status committed (push nudges); the ending is already written when it runs. */
-  afterCommit?: () => void | Promise<void>;
+  afterCommit?: (info: { contract: ContractRow; terms: TerminationTerms; result: any }) => void | Promise<void>;
 }
 
 /**
@@ -775,6 +776,11 @@ const terminationHookRegistry = new Map<string, () => TerminationHooks>();
 export function registerTerminationHooks(reason: TerminationReason, factory: () => TerminationHooks): void {
   terminationHookRegistry.set(reason, factory);
 }
+
+// C2-05: the reasons a party declares themselves tell the other party (and, for PT_CANCELLED, confirm to the PT) after the commit.
+registerTerminationHooks("PT_CANCELLED", () => declaredEndingNoticeHooks("PT_CANCELLED"));
+registerTerminationHooks("CLIENT_CANCELLED", () => declaredEndingNoticeHooks("CLIENT_CANCELLED"));
+registerTerminationHooks("PT_REPEATED_NO_SHOW", () => declaredEndingNoticeHooks("PT_REPEATED_NO_SHOW"));
 
 export interface ContractTerminationResult {
   /** The reason the ending carries: the one RECORDED with it (D59) - which is not the requested one when an earlier ending was resumed. */
@@ -1533,7 +1539,7 @@ export async function completeContractTermination(
     );
     // Only now, after the status and its notices committed: the realtime / phone nudge. A failure here loses the nudge, never
     // the notice (it is already stored) and never the ending (it is already written) - it reaches the caller, as it always did.
-    if (hooks?.afterCommit) await hooks.afterCommit();
+    if (hooks?.afterCommit) await hooks.afterCommit({ contract: seen.written, terms, result });
     return { reason: intent.reason, result, statusWritten: true, contract: seen.written, unresolvedSessions: terms.unresolvedSessions };
   }
   const after = (await contractRepository.findById(contractId)) ?? seen.current ?? fresh;
