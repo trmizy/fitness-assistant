@@ -8,7 +8,7 @@ import { walletEntryLabel } from "../../utils/walletEntryLabel";
 import { formatVND } from "../../utils/currency";
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 // Money-flow §16: PENDING/APPROVED are not an eligibility gate — the balance was already
@@ -68,14 +68,14 @@ export function WalletPage() {
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <WalletIcon className="w-5 h-5 text-green-400" /> My Wallet
+          <WalletIcon className="w-5 h-5 text-green-400" /> Ví của tôi
         </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">Refunds and no-show compensation land here</p>
+        <p className="text-zinc-500 text-sm mt-0.5">Tiền hoàn trả và bồi thường buổi vắng sẽ về ví này</p>
       </div>
 
       {/* Balance card */}
       <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-6">
-        <div className="text-xs text-zinc-400 mb-1">Available Balance</div>
+        <div className="text-xs text-zinc-400 mb-1">Số dư khả dụng</div>
         {walletLoading ? (
           <Loader2 className="w-6 h-6 text-green-500 animate-spin mt-2" />
         ) : (
@@ -140,7 +140,7 @@ export function WalletPage() {
 
       {/* Transaction history */}
       <div>
-        <h2 className="text-sm font-bold text-zinc-300 mb-2">Transaction History</h2>
+        <h2 className="text-sm font-bold text-zinc-300 mb-2">Lịch sử giao dịch</h2>
         {txLoading && (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
@@ -149,7 +149,7 @@ export function WalletPage() {
         {!txLoading && transactions.length === 0 && (
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-12 text-center">
             <WalletIcon className="w-10 h-10 text-zinc-800 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No transactions yet</p>
+            <p className="text-sm text-zinc-500">Chưa có giao dịch</p>
           </div>
         )}
         {!txLoading && transactions.length > 0 && (

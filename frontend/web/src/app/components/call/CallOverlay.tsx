@@ -98,10 +98,10 @@ function IncomingCallUI() {
           {info.callerName?.charAt(0) || "U"}
         </div>
         <h3 className="text-zinc-100 font-bold text-lg mb-1">
-          {info.callerName || "Unknown"}
+          {info.callerName || "Không rõ tên"}
         </h3>
         <p className="text-zinc-400 text-sm mb-6">
-          Incoming {info.callType === "VIDEO" ? "video" : "voice"} call...
+          Cuộc gọi {info.callType === "VIDEO" ? "video" : "thoại"} đến...
         </p>
         <div className="flex items-center justify-center gap-6">
           <button
@@ -132,10 +132,9 @@ function OutgoingCallUI() {
         <div className="w-16 h-16 bg-blue-500/15 border border-blue-500/20 rounded-full flex items-center justify-center text-2xl font-bold text-blue-400 mx-auto mb-4">
           <Phone className="w-7 h-7 animate-bounce" />
         </div>
-        <h3 className="text-zinc-100 font-bold text-lg mb-1">Calling...</h3>
+        <h3 className="text-zinc-100 font-bold text-lg mb-1">Đang gọi...</h3>
         <p className="text-zinc-400 text-sm mb-6">
-          {state.callInfo?.callType === "VIDEO" ? "Video" : "Voice"} call —
-          waiting for answer
+          Cuộc gọi {state.callInfo?.callType === "VIDEO" ? "video" : "thoại"} — đang chờ đối phương trả lời
         </p>
         <button
           onClick={cancelCall}
@@ -354,13 +353,13 @@ function ActiveCallUI() {
             {state.callInfo?.callerName?.charAt(0) || "U"}
           </div>
           <h3 className="text-zinc-100 font-bold text-xl mb-1">
-            {state.callInfo?.callerName || "In Call"}
+            {state.callInfo?.callerName || "Đang trong cuộc gọi"}
           </h3>
           <p className="text-green-400 text-sm font-medium mb-2">
             {formatDuration(state.callDuration)}
           </p>
           {state.remoteMuted && (
-            <p className="text-zinc-500 text-xs">Other party is muted</p>
+            <p className="text-zinc-500 text-xs">Đối phương đã tắt micro</p>
           )}
           {/* Hidden audio element for voice calls */}
           <audio ref={remoteVideoRef as any} autoPlay />

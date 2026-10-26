@@ -15,6 +15,7 @@
  * 5. **Tất cả chi nhánh** — tìm và sửa trực tiếp thông tin.
  */
 import { foldVi } from "../../lib/text";
+import { normalizeEmail } from "../../lib/email";
 
 export type AdminGym = {
   id: string;
@@ -243,8 +244,10 @@ export function gymEditError(f: GymEditForm): string | null {
 /** Chỉ gửi trường đã đổi — sửa trực tiếp không nên chạm những gì người sửa không đụng tới. */
 export function gymEditPayload(before: GymEditForm, after: GymEditForm): Partial<GymEditForm> {
   const out: Partial<GymEditForm> = {};
+  // C1-01: an email is compared and sent in its normalised form, so a capital letter alone is not a change worth saving.
+  const norm = (k: keyof GymEditForm, v: string) => (k === "email" ? normalizeEmail(v) : v.trim());
   (Object.keys(after) as (keyof GymEditForm)[]).forEach((k) => {
-    if (after[k].trim() !== before[k].trim()) out[k] = after[k].trim();
+    if (norm(k, after[k]) !== norm(k, before[k])) out[k] = norm(k, after[k]);
   });
   return out;
 }

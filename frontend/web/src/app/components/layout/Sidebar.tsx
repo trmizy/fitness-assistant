@@ -41,10 +41,9 @@ import {
  */
 const clientNavFull = [
   {
-    label: "Dashboard",
+    label: "Tổng quan",
     icon: GyminiDashboardIcon,
     to: "/client/dashboard",
-    sourceLang: "en" as const,
   },
   {
     label: "InBody",
@@ -81,10 +80,9 @@ const clientNavFull = [
  */
 const gymOwnerNavFull = [
   {
-    label: "Dashboard",
+    label: "Tổng quan",
     icon: GyminiDashboardIcon,
     to: "/gym-owner/dashboard",
-    sourceLang: "en" as const,
   },
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
   { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
@@ -107,20 +105,18 @@ const ptClientNav = clientNavFull;
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
   {
-    label: "PT Dashboard",
+    label: "Tổng quan PT",
     icon: GyminiDashboardIcon,
     to: "/pt/dashboard",
-    sourceLang: "en" as const,
   },
   { label: "Học viên", icon: GyminiUsersIcon, to: "/pt/clients" },
   { label: "Hợp đồng", icon: GyminiContractIcon, to: "/pt/contracts" },
   { label: "Duyệt kế hoạch", icon: GyminiPlanIcon, to: "/pt/plans" },
   { label: "Lịch dạy", icon: GyminiScheduleIcon, to: "/pt/schedule" },
   {
-    label: "Chat",
+    label: "Trò chuyện",
     icon: GyminiChatIcon,
     to: "/pt/chat",
-    sourceLang: "en" as const,
   },
   { label: "Ví thu nhập", icon: GyminiWalletIcon, to: "/pt/wallet" },
   { label: "Hồ sơ PT", icon: GyminiProfileIcon, to: "/pt/profile" },
@@ -130,10 +126,9 @@ const ptWorkspaceNav = [
 /** Admin nav */
 const adminNav = [
   {
-    label: "Dashboard",
+    label: "Tổng quan",
     icon: GyminiDashboardIcon,
     to: "/admin/dashboard",
-    sourceLang: "en" as const,
   },
   { label: "Người dùng", icon: GyminiUsersIcon, to: "/admin/users" },
   { label: "Quản lý PT", icon: GyminiAdminIcon, to: "/admin/pts" },
@@ -161,10 +156,9 @@ const adminNav = [
   // session disputes below) — same underlying concept, different domain.
   { label: "Khiếu nại", icon: GyminiDisputeIcon, to: "/admin/complaints" },
   {
-    label: "AI Observability",
+    label: "Giám sát AI",
     icon: GyminiSystemIcon,
     to: "/admin/ai-observability",
-    sourceLang: "en" as const,
   },
 ];
 
@@ -294,7 +288,7 @@ export function Sidebar() {
   // ── Workspace label + color for the header pill ──
   const workspaceConfig = isAdmin
     ? {
-        label: "Admin Portal",
+        label: "Cổng quản trị",
         color: "bg-violet-600",
         textColor: "text-violet-400",
         pillBg: "bg-violet-500/10",
@@ -304,7 +298,7 @@ export function Sidebar() {
     : isPT
       ? activeView === "pt"
         ? {
-            label: "Trainer Workspace",
+            label: "Không gian huấn luyện",
             color: "bg-green-500",
             textColor: "text-green-400",
             pillBg: "bg-green-500/10",
@@ -312,7 +306,7 @@ export function Sidebar() {
             icon: Zap,
           }
         : {
-            label: "Client Workspace",
+            label: "Không gian thành viên",
             color: "bg-zinc-700",
             textColor: "text-zinc-300",
             pillBg: "bg-zinc-800",
@@ -368,7 +362,7 @@ export function Sidebar() {
               }`}
             >
               <User className="w-3 h-3" />
-              <AutoText sourceLang="en">Client</AutoText>
+              <AutoText>Thành viên</AutoText>
             </button>
             <button
               onClick={switchToPTView}
@@ -379,7 +373,7 @@ export function Sidebar() {
               }`}
             >
               <Zap className="w-3 h-3" />
-              <AutoText sourceLang="en">Trainer</AutoText>
+              <AutoText>Huấn luyện viên</AutoText>
             </button>
           </div>
         </div>
@@ -411,7 +405,7 @@ export function Sidebar() {
               {user
                 ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
                   user.email.split("@")[0]
-                : "Client"}
+                : "Thành viên"}
             </div>
             <div className="text-xs text-zinc-500 truncate">
               <AutoText>

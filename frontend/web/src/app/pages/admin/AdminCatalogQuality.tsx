@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { TableIcon as Table2, MagnifyingGlassIcon as Search, VideoCameraIcon as Video, VideoCameraSlashIcon as VideoOff, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { catalogQualityService } from "../../services/api";
+import { EQUIPMENT_VI } from "../../utils/labels.vi";
 
 /**
  * Roadmap P1.8 "Logging-mode catalog discoverability"
@@ -20,10 +21,24 @@ import { catalogQualityService } from "../../services/api";
 const LOGGING_MODES = ["", "REPS_LOAD", "BODYWEIGHT_REPS", "TIME", "TIME_LOAD", "DISTANCE_TIME"];
 const STATUSES = ["", "STAGING", "PUBLISHED"];
 
+// Tên hiển thị cho các giá trị kỹ thuật — admin không cần đọc tên enum thô.
+const LOGGING_MODE_LABEL: Record<string, string> = {
+  REPS_LOAD: "Số lần x Tạ",
+  BODYWEIGHT_REPS: "Trọng lượng cơ thể (số lần)",
+  TIME: "Thời gian",
+  TIME_LOAD: "Thời gian + Tạ",
+  DISTANCE_TIME: "Quãng đường + Thời gian",
+};
+const PUBLICATION_STATUS_LABEL: Record<string, string> = {
+  STAGING: "Nháp (chưa phát hành)",
+  PUBLISHED: "Đã phát hành",
+};
+const equipmentLabel = (v?: string | null) => (v ? EQUIPMENT_VI[v] ?? v.replace(/_/g, " ").toLowerCase() : "—");
+
 const REVIEW_STATUS_LABEL: Record<string, string> = {
-  NO_REVIEW_RECORD: "Chưa có quyết định review",
+  NO_REVIEW_RECORD: "Chưa có quyết định duyệt",
   NO_SOURCE_RECORD: "Không có nguồn dữ liệu",
-  APPROVE_AS_NEW_STAGING: "Đã duyệt: bài mới (STAGING)",
+  APPROVE_AS_NEW_STAGING: "Đã duyệt: bài mới (nháp)",
   LINK_AS_ALIAS_OF_EXISTING: "Đã gắn làm alias",
   MARK_AS_DUPLICATE_SKIP: "Đã đánh dấu trùng, bỏ qua",
   NEEDS_MORE_INFO: "Cần xem thêm",
@@ -64,7 +79,7 @@ export function AdminCatalogQuality() {
           <Table2 className="w-5 h-5 text-emerald-400" /> Ma trận chất lượng catalog
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Chế độ ghi log, trạng thái phát hành, thiết bị, nhóm cơ, giấy phép media và trạng thái review — chỉ xem, không tự publish.
+          Cách ghi kết quả, trạng thái phát hành, thiết bị, nhóm cơ, giấy phép hình/video và trạng thái duyệt — chỉ xem, không tự phát hành.
         </p>
       </div>
 
@@ -76,11 +91,11 @@ export function AdminCatalogQuality() {
           </div>
           <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/40 p-3">
             <p className="text-2xl text-zinc-100 font-semibold">{summary.byPublicationStatus.STAGING ?? 0}</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">STAGING</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Nháp (chưa phát hành)</p>
           </div>
           <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/40 p-3">
             <p className="text-2xl text-zinc-100 font-semibold">{summary.byPublicationStatus.PUBLISHED ?? 0}</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">PUBLISHED</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Đã phát hành</p>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
             <p className="text-2xl text-amber-300 font-semibold" data-testid="catalog-quality-missing-video-count">
@@ -92,7 +107,7 @@ export function AdminCatalogQuality() {
             <p className="text-2xl text-amber-300 font-semibold" data-testid="catalog-quality-no-review-count">
               {summary.noReviewRecord}
             </p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Chưa qua review</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Chưa qua duyệt</p>
           </div>
         </div>
       )}
@@ -109,7 +124,7 @@ export function AdminCatalogQuality() {
         >
           {LOGGING_MODES.map((m) => (
             <option key={m} value={m}>
-              {m || "Mọi loggingMode"}
+              {m ? LOGGING_MODE_LABEL[m] ?? m : "Mọi cách ghi"}
             </option>
           ))}
         </select>
@@ -124,7 +139,7 @@ export function AdminCatalogQuality() {
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s || "Mọi trạng thái"}
+              {s ? PUBLICATION_STATUS_LABEL[s] ?? s : "Mọi trạng thái"}
             </option>
           ))}
         </select>
@@ -154,20 +169,20 @@ export function AdminCatalogQuality() {
             <thead>
               <tr className="border-b border-zinc-800/40 text-zinc-500">
                 <th className="text-left p-2.5">Bài tập</th>
-                <th className="text-left p-2.5">Logging mode</th>
+                <th className="text-left p-2.5">Cách ghi</th>
                 <th className="text-left p-2.5">Trạng thái</th>
                 <th className="text-left p-2.5">Thiết bị</th>
                 <th className="text-left p-2.5">Nhóm cơ</th>
                 <th className="text-left p-2.5">Media</th>
                 <th className="text-left p-2.5">Giấy phép</th>
-                <th className="text-left p-2.5">Review</th>
+                <th className="text-left p-2.5">Duyệt</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-zinc-900/60" data-testid={`catalog-quality-row-${r.id}`}>
                   <td className="p-2.5 text-zinc-100">{r.exerciseName}</td>
-                  <td className="p-2.5 text-zinc-400">{r.loggingMode}</td>
+                  <td className="p-2.5 text-zinc-400">{LOGGING_MODE_LABEL[r.loggingMode] ?? r.loggingMode}</td>
                   <td className="p-2.5">
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full border ${
@@ -176,10 +191,10 @@ export function AdminCatalogQuality() {
                           : "border-zinc-600/40 bg-zinc-700/20 text-zinc-400"
                       }`}
                     >
-                      {r.publicationStatus}
+                      {PUBLICATION_STATUS_LABEL[r.publicationStatus] ?? r.publicationStatus}
                     </span>
                   </td>
-                  <td className="p-2.5 text-zinc-400">{r.equipment}</td>
+                  <td className="p-2.5 text-zinc-400">{equipmentLabel(r.equipment)}</td>
                   <td className="p-2.5 text-zinc-400">{r.muscles.join(", ") || "—"}</td>
                   <td className="p-2.5">
                     {r.hasVideo ? (
@@ -190,7 +205,7 @@ export function AdminCatalogQuality() {
                   </td>
                   <td className="p-2.5 text-zinc-500">
                     {r.dataLicense || "—"}
-                    {r.mediaLicense ? ` / ${r.mediaLicense}` : " / chưa có media license"}
+                    {r.mediaLicense ? ` / ${r.mediaLicense}` : " / chưa có giấy phép hình/video"}
                   </td>
                   <td className="p-2.5 text-zinc-500">{REVIEW_STATUS_LABEL[r.reviewStatus] ?? r.reviewStatus}</td>
                 </tr>

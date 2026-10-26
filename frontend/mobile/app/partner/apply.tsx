@@ -12,6 +12,7 @@ import {
   applyEmailError,
   friendlyError,
 } from "../../src/features/partnerApplication/partnerApplication";
+import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
 /**
  * WB-15 — "Trở thành đối tác". Màn công khai: chưa có tài khoản nào, nên không có gì ở đây đi qua
@@ -33,7 +34,7 @@ export default function PartnerApplyScreen() {
   const [sent, setSent] = useState<PartnerApplyStartResult | null>(null);
 
   const start = useMutation({
-    mutationFn: () => partnerApplyPublic.start(email.trim()),
+    mutationFn: () => partnerApplyPublic.start(normalizeEmail(email)),
     onSuccess: (data) => setSent(data),
     onError: (e) => toast.show(friendlyError(e, "Không gửi được liên kết xác minh"), "danger"),
   });
@@ -61,8 +62,7 @@ export default function PartnerApplyScreen() {
                 label="Email"
                 value={email}
                 onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
+                {...emailInputProps}
                 placeholder="ban@phonggym.vn"
                 placeholderTextColor={inputPlaceholderColor}
               />

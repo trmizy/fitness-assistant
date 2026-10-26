@@ -53,7 +53,7 @@ test.after(async () => {
 test("a non-admin (CUSTOMER) token cannot change another user's role — 403, and the update never runs", async () => {
   const updateCalls: unknown[] = [];
   const restoreFindById = patch(authRepository, "findUserById", async () => ({
-    id: "customer-1",
+    id: "55555555-5555-4555-8555-555555555555",
     email: "customer@example.com",
     role: "CUSTOMER",
     isActive: true,
@@ -64,8 +64,8 @@ test("a non-admin (CUSTOMER) token cannot change another user's role — 403, an
   });
 
   try {
-    const token = signAccessToken("customer-1", "CUSTOMER", "customer@example.com");
-    const res = await fetch(`${baseUrl}/auth/users/victim-1/role`, {
+    const token = signAccessToken("55555555-5555-4555-8555-555555555555", "CUSTOMER", "customer@example.com");
+    const res = await fetch(`${baseUrl}/auth/users/44444444-4444-4444-8444-444444444444/role`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ role: "PT" }),
@@ -80,15 +80,15 @@ test("a non-admin (CUSTOMER) token cannot change another user's role — 403, an
 
 test("a PT token also cannot change roles — the guard is ADMIN-only, not just non-CUSTOMER", async () => {
   const restoreFindById = patch(authRepository, "findUserById", async () => ({
-    id: "pt-1",
+    id: "33333333-3333-4333-8333-333333333333",
     email: "pt@example.com",
     role: "PT",
     isActive: true,
   }));
 
   try {
-    const token = signAccessToken("pt-1", "PT", "pt@example.com");
-    const res = await fetch(`${baseUrl}/auth/users/victim-1/role`, {
+    const token = signAccessToken("33333333-3333-4333-8333-333333333333", "PT", "pt@example.com");
+    const res = await fetch(`${baseUrl}/auth/users/44444444-4444-4444-8444-444444444444/role`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ role: "GYM_OWNER" }),
@@ -100,7 +100,7 @@ test("a PT token also cannot change roles — the guard is ADMIN-only, not just 
 });
 
 test("with no Authorization header at all, the role-change route is rejected 401", async () => {
-  const res = await fetch(`${baseUrl}/auth/users/victim-1/role`, {
+  const res = await fetch(`${baseUrl}/auth/users/44444444-4444-4444-8444-444444444444/role`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ role: "PT" }),
@@ -111,7 +111,7 @@ test("with no Authorization header at all, the role-change route is rejected 401
 test("a real ADMIN token CAN change another user's role, and the correct id/role reach the repository", async () => {
   const updateCalls: unknown[] = [];
   const restoreFindById = patch(authRepository, "findUserById", async () => ({
-    id: "admin-1",
+    id: "11111111-1111-4111-8111-111111111111",
     email: "admin@example.com",
     role: "ADMIN",
     isActive: true,
@@ -122,8 +122,8 @@ test("a real ADMIN token CAN change another user's role, and the correct id/role
   });
 
   try {
-    const token = signAccessToken("admin-1", "ADMIN", "admin@example.com");
-    const res = await fetch(`${baseUrl}/auth/users/victim-1/role`, {
+    const token = signAccessToken("11111111-1111-4111-8111-111111111111", "ADMIN", "admin@example.com");
+    const res = await fetch(`${baseUrl}/auth/users/44444444-4444-4444-8444-444444444444/role`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ role: "PT" }),
@@ -131,7 +131,7 @@ test("a real ADMIN token CAN change another user's role, and the correct id/role
     assert.equal(res.status, 200);
     const body = (await res.json()) as { user: { role: string } };
     assert.equal(body.user.role, "PT");
-    assert.deepEqual(updateCalls, [["victim-1", "PT"]]);
+    assert.deepEqual(updateCalls, [["44444444-4444-4444-8444-444444444444", "PT"]]);
   } finally {
     restoreFindById();
     restoreUpdate();
@@ -141,7 +141,7 @@ test("a real ADMIN token CAN change another user's role, and the correct id/role
 test("even an ADMIN cannot grant the ADMIN role itself — privilege escalation is blocked regardless of caller", async () => {
   const updateCalls: unknown[] = [];
   const restoreFindById = patch(authRepository, "findUserById", async () => ({
-    id: "admin-1",
+    id: "11111111-1111-4111-8111-111111111111",
     email: "admin@example.com",
     role: "ADMIN",
     isActive: true,
@@ -152,8 +152,8 @@ test("even an ADMIN cannot grant the ADMIN role itself — privilege escalation 
   });
 
   try {
-    const token = signAccessToken("admin-1", "ADMIN", "admin@example.com");
-    const res = await fetch(`${baseUrl}/auth/users/victim-1/role`, {
+    const token = signAccessToken("11111111-1111-4111-8111-111111111111", "ADMIN", "admin@example.com");
+    const res = await fetch(`${baseUrl}/auth/users/44444444-4444-4444-8444-444444444444/role`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ role: "ADMIN" }),

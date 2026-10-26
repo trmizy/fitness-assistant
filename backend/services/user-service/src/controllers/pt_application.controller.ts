@@ -22,6 +22,28 @@ import {
   ptApplicationDocumentUrlForKey,
 } from "../services/s3-upload.service";
 
+const MAX_PAGE_SIZE = 200;
+
+/**
+ * C1-10: optional pagination for the admin list. Neither `page` nor `limit` present -> null (the caller keeps
+ * receiving every row, exactly as before). Either present -> both validated (positive integers, limit capped);
+ * the missing one defaults (page 1, limit 20). Anything malformed is a 400, never silently ignored.
+ */
+function parsePaging(query: any): { page: number; limit: number } | null | "invalid" {
+  const rawPage = query?.page;
+  const rawLimit = query?.limit;
+  if (rawPage === undefined && rawLimit === undefined) return null;
+  const toInt = (raw: unknown, fallback: number): number | null => {
+    if (raw === undefined) return fallback;
+    if (typeof raw !== "string" || !/^\d{1,9}$/.test(raw)) return null;
+    return Number(raw);
+  };
+  const page = toInt(rawPage, 1);
+  const limit = toInt(rawLimit, 20);
+  if (page === null || limit === null || page < 1 || limit < 1 || limit > MAX_PAGE_SIZE) return "invalid";
+  return { page, limit };
+}
+
 const INVALID_INPUT = "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại các trường đã nhập.";
 
 const PT_APPLICATION_STATUSES = Object.values(PTApplicationStatus) as string[];
@@ -42,7 +64,7 @@ export const ptApplicationController = {
       return res.json(await ptTermsService.getForUser(req.user!.id, profile?.isPT === true));
     } catch (error: any) {
       logger.error(error, "Get PT terms error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -59,7 +81,7 @@ export const ptApplicationController = {
       if (error?.status && typeof error.code === "string") {
         return res.status(error.status).json({ error: error.message, code: error.code, termsVersion: error.termsVersion });
       }
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -69,7 +91,7 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Get my PT application error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -79,7 +101,7 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Save PT application draft error");
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT) });
+      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 
@@ -100,7 +122,7 @@ export const ptApplicationController = {
   async upload(req: AuthRequest, res: Response) {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ error: "Chưa chọn tệp để tải lên" });
       }
       // `url` is the STABLE, canonical reference the frontend stores in form
       // state and round-trips through saveDraft — it is deliberately never
@@ -119,7 +141,7 @@ export const ptApplicationController = {
       });
     } catch (error: any) {
       logger.error(error, "PT application upload error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -127,7 +149,7 @@ export const ptApplicationController = {
     try {
       const contentType = req.body?.contentType;
       if (typeof contentType !== "string" || !contentType) {
-        return res.status(400).json({ error: "contentType is required" });
+        return res.status(400).json({ error: "Thiếu loại tệp (contentType)" });
       }
       const target = await createPtApplicationDocumentUploadUrl(
         req.user!.id,
@@ -139,7 +161,7 @@ export const ptApplicationController = {
         return res.status(error.status).json({ error: error.message, ...errorCodeBody(error) });
       }
       logger.error(error, "PT application presign upload error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -147,10 +169,10 @@ export const ptApplicationController = {
     try {
       const key = req.body?.key;
       if (typeof key !== "string" || !key) {
-        return res.status(400).json({ error: "key is required" });
+        return res.status(400).json({ error: "Thiếu khoá tệp (key)" });
       }
       if (!isOwnPtApplicationDocumentKey(req.user!.id, key)) {
-        return res.status(403).json({ error: "key does not belong to this user" });
+        return res.status(403).json({ error: "Tệp này không thuộc về bạn" });
       }
       const url = ptApplicationDocumentUrlForKey(key);
       return res.json({
@@ -164,7 +186,7 @@ export const ptApplicationController = {
         return res.status(error.status).json({ error: error.message });
       }
       logger.error(error, "PT application confirm upload error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -181,20 +203,20 @@ export const ptApplicationController = {
     const { exp, sig } = req.query;
 
     if (!SAFE_FILENAME_RE.test(filename)) {
-      return res.status(400).json({ error: "Invalid filename" });
+      return res.status(400).json({ error: "Tên tệp không hợp lệ" });
     }
     if (!verifyDocumentUrl(filename, exp as string | undefined, sig as string | undefined)) {
-      return res.status(403).json({ error: "Invalid or expired link" });
+      return res.status(403).json({ error: "Liên kết không hợp lệ hoặc đã hết hạn" });
     }
 
     const filePath = path.join(UPLOADS_DIR, filename);
     // Defense in depth against path.join surprises: the resolved path must
     // still live inside UPLOADS_DIR.
     if (!filePath.startsWith(UPLOADS_DIR + path.sep) && filePath !== UPLOADS_DIR) {
-      return res.status(400).json({ error: "Invalid filename" });
+      return res.status(400).json({ error: "Tên tệp không hợp lệ" });
     }
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: "Not found" });
+      return res.status(404).json({ error: "Không tìm thấy" });
     }
     return res.sendFile(filePath);
   },
@@ -205,7 +227,7 @@ export const ptApplicationController = {
     const sig = req.query.sig as string | undefined;
 
     if (!verifyDocumentS3Key(key, exp, sig)) {
-      return res.status(403).json({ error: "Invalid or expired link" });
+      return res.status(403).json({ error: "Liên kết không hợp lệ hoặc đã hết hạn" });
     }
 
     try {
@@ -216,7 +238,7 @@ export const ptApplicationController = {
         return res.status(error.status).json({ error: error.message });
       }
       logger.error(error, "PT application S3 document redirect error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -233,7 +255,21 @@ export const ptApplicationController = {
           code: "INVALID_STATUS_FILTER",
         });
       }
-      const apps = await ptApplicationService.listApplications(req.query);
+      const paging = parsePaging(req.query);
+      if (paging === "invalid") {
+        return res.status(400).json({
+          error: `Phân trang không hợp lệ: page là số nguyên từ 1, limit là số nguyên từ 1 đến ${MAX_PAGE_SIZE}.`,
+          code: "INVALID_PAGINATION",
+        });
+      }
+      const apps = await ptApplicationService.listApplications(req.query, paging ?? undefined);
+      if (paging) {
+        // Backward compatible: the body stays the same plain array; the totals travel in headers.
+        res.setHeader("X-Total-Count", String(await ptApplicationService.countApplications(req.query)));
+        res.setHeader("X-Page", String(paging.page));
+        res.setHeader("X-Limit", String(paging.limit));
+        res.setHeader("Access-Control-Expose-Headers", "X-Total-Count, X-Page, X-Limit");
+      }
       const mapped = apps.map((app: any) => ({
         ...app,
         user: {
@@ -245,14 +281,14 @@ export const ptApplicationController = {
       return res.json(mapped);
     } catch (error: any) {
       logger.error(error, "List PT applications error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
   async getById(req: AuthRequest, res: Response) {
     try {
       const app: any = await ptApplicationService.getById(req.params.id);
-      if (!app) return res.status(404).json({ error: "Application not found" });
+      if (!app) return res.status(404).json({ error: "Không tìm thấy đơn ứng tuyển", code: "PT_APPLICATION_NOT_FOUND" });
 
       const mapped = {
         ...app,
@@ -265,7 +301,7 @@ export const ptApplicationController = {
       return res.json(mapped);
     } catch (error: any) {
       logger.error(error, "Get PT application by ID error");
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Lỗi hệ thống. Vui lòng thử lại sau" });
     }
   },
 
@@ -281,7 +317,9 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Admin review action error");
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT) });
+      // C1-06: an unknown application is a 404 (the service tags it), not a generic 400.
+      const status = error?.status === 404 ? 404 : 400;
+      return res.status(status).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 };

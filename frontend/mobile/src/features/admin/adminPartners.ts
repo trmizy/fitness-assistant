@@ -1,3 +1,4 @@
+import { normalizeEmail } from "../../lib/email";
 /**
  * 14B.8 (PG-D1/D2) — admin "Đối tác" (web AdminPartnersPage → partner list + detail) and "Tài chính"
  * (web AdminFinancePage → overview + reconciliation). Pure, so the screens stay thin and testable.
@@ -273,7 +274,7 @@ export function partnerFormPayload(f: PartnerForm) {
   const pct = f.commissionPercent.trim() ? Number(f.commissionPercent.replace(",", ".")) : null;
   return {
     legalName: f.legalName.trim(),
-    contactEmail: f.contactEmail.trim(),
+    contactEmail: normalizeEmail(f.contactEmail),
     contactPhone: f.contactPhone.trim() || null,
     taxCode: f.taxCode.trim() || null,
     businessLicenseNo: f.businessLicenseNo.trim() || null,

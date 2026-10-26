@@ -502,13 +502,13 @@ export function useAiCoachSession(userId?: string, sessionKey?: string) {
       id: Date.now(),
       from: "user",
       text: question.trim(),
-      time: "Now",
+      time: "Bây giờ",
     };
     const placeholderMessage: AiChatMessage = {
       id: `ai-${taskId}`,
       from: "ai",
       text: "AI đang trả lời...",
-      time: "Now",
+      time: "Bây giờ",
     };
     const nextTask: PendingAiTask = upsertTask(userId, {
       id: taskId,

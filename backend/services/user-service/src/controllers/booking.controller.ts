@@ -21,7 +21,7 @@ export const bookingController = {
       logger.error(error, "Book session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to book session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không đặt được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -38,7 +38,7 @@ export const bookingController = {
     } catch (error: any) {
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to get session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không tải được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -55,7 +55,7 @@ export const bookingController = {
       logger.error(error, "Get contract sessions error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to fetch sessions", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không tải được danh sách buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -68,7 +68,7 @@ export const bookingController = {
       res.json(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined }));
     } catch (error: any) {
       logger.error(error, "Get upcoming sessions error");
-      res.status(500).json({ error: "Failed to fetch upcoming sessions" });
+      res.status(500).json({ error: "Không tải được các buổi tập sắp tới" });
     }
   },
 
@@ -85,7 +85,7 @@ export const bookingController = {
       logger.error(error, "Confirm session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to confirm session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không xác nhận được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -104,7 +104,7 @@ export const bookingController = {
       logger.error(error, "Complete session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to complete session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không hoàn thành được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -121,7 +121,7 @@ export const bookingController = {
       logger.error(error, "Client confirm session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to confirm session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không xác nhận được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -140,7 +140,7 @@ export const bookingController = {
       logger.error(error, "Dispute session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to dispute session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được khiếu nại buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -159,7 +159,7 @@ export const bookingController = {
       logger.error(error, "Report PT no-show error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to report no-show", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được báo vắng mặt", ...errorCodeBody(error) });
     }
   },
 
@@ -180,7 +180,7 @@ export const bookingController = {
       logger.error(error, "Respond to no-show report error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to respond to no-show report", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không phản hồi được báo vắng mặt", ...errorCodeBody(error) });
     }
   },
 
@@ -231,7 +231,7 @@ export const bookingController = {
       logger.error(error, "Resolve dispute error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to resolve dispute", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không giải quyết được khiếu nại", ...errorCodeBody(error) });
     }
   },
 
@@ -250,7 +250,7 @@ export const bookingController = {
       logger.error(error, "Cancel session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to cancel session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không huỷ được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -269,7 +269,7 @@ export const bookingController = {
       logger.error(error, "Mark no-show error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to mark no-show", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không đánh dấu được vắng mặt", ...errorCodeBody(error) });
     }
   },
 
@@ -277,7 +277,7 @@ export const bookingController = {
   async joinSession(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      if (!userId) return res.status(401).json({ error: "Bạn cần đăng nhập để thực hiện thao tác này" });
       const result = await bookingService.joinSession(req.params.id, userId);
       return res.json(result);
     } catch (error: any) {
@@ -304,7 +304,7 @@ export const bookingController = {
       logger.error(error, "Review session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to review session", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được đánh giá buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -324,7 +324,7 @@ export const bookingController = {
       logger.error(error, "Review client error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to review client", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được đánh giá khách", ...errorCodeBody(error) });
     }
   },
 
@@ -346,7 +346,7 @@ export const bookingController = {
       logger.error(error, "Request reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to request reschedule", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được yêu cầu đổi lịch", ...errorCodeBody(error) });
     }
   },
 
@@ -358,7 +358,7 @@ export const bookingController = {
       res.json(result);
     } catch (error: any) {
       logger.error(error, "Cancel reschedule error");
-      res.status(error.status || 500).json({ error: error.message || "Failed to cancel", ...errorCodeBody(error) });
+      res.status(error.status || 500).json({ error: error.message || "Không huỷ được", ...errorCodeBody(error) });
     }
   },
 
@@ -370,7 +370,7 @@ export const bookingController = {
       res.json(result);
     } catch (error: any) {
       logger.error(error, "Reschedule history error");
-      res.status(error.status || 500).json({ error: error.message || "Failed to load history", ...errorCodeBody(error) });
+      res.status(error.status || 500).json({ error: error.message || "Không tải được lịch sử", ...errorCodeBody(error) });
     }
   },
 
@@ -389,7 +389,7 @@ export const bookingController = {
       logger.error(error, "Respond to reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to respond to reschedule", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không phản hồi được yêu cầu đổi lịch", ...errorCodeBody(error) });
     }
   },
 };

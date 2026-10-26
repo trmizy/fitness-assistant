@@ -532,7 +532,7 @@ export const contractService = {
     if (agent) {
       const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
       if (prior) {
-        if (prior.clientUserId !== clientUserId) throw err("Action not found", 404);
+        if (prior.clientUserId !== clientUserId) throw err("Không tìm thấy thao tác", 404);
         return prior;
       }
     }
@@ -838,12 +838,12 @@ export const contractService = {
   // ── PT accepts a pending contract ─────────────────────────────────
   async acceptContract(contractId: string, ptUserId: string) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
-    if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+    if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     // Restricted mode: a suspended PT cannot take on a new contract (the request waits, the client may cancel it).
     await assertPtMayAct(ptUserId);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
-      throw err(`Cannot accept contract in ${contract.status} status`, 400);
+      throw err("Không thể chấp nhận hợp đồng ở trạng thái hiện tại", 400);
     }
 
     // D25: a PT takes a NEW contract only after confirming the CURRENT PT terms. Refused here, before the claim,
@@ -865,9 +865,9 @@ export const contractService = {
     ]);
     if (ptInfo?.isActive === false || clientInfo?.isActive === false) throw accountInactive();
     if (!ptInfo?.email)
-      throw err("PT account not found or email unavailable", 500);
+      throw err("Không tìm thấy tài khoản huấn luyện viên hoặc tài khoản chưa có email", 500);
     if (!clientInfo?.email)
-      throw err("Client account not found or email unavailable", 500);
+      throw err("Không tìm thấy tài khoản khách hoặc tài khoản chưa có email", 500);
 
     const ptName = fullName(ptInfo, "Personal Trainer");
     const clientName = fullName(clientInfo, "Client");
@@ -893,7 +893,7 @@ export const contractService = {
       },
     );
     if (affected.count === 0) {
-      throw err("Contract already being processed by another request", 409);
+      throw err("Hợp đồng đang được xử lý bởi một yêu cầu khác. Vui lòng thử lại sau ít giây", 409);
     }
 
     // 3. Generate PDF (after claim — only 1 request reaches here)
@@ -930,7 +930,7 @@ export const contractService = {
       await contractRepository
         .update(contractId, { eSignStatus: "ERROR", eSignError: shortMsg })
         .catch(() => {});
-      throw err("Failed to generate contract PDF", 500);
+      throw err("Không tạo được tệp PDF của hợp đồng", 500);
     }
 
     // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails).
@@ -998,14 +998,14 @@ export const contractService = {
 
   // ── PT rejects a pending contract ─────────────────────────────────
   async rejectContract(contractId: string, ptUserId: string, reason: string) {
-    if (!reason?.trim()) throw err("Rejection reason is required", 400);
+    if (!reason?.trim()) throw err("Cần nhập lý do từ chối", 400);
 
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
-    if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+    if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     await assertPtMayAct(ptUserId); // restricted mode
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
-      throw err(`Cannot reject contract in ${contract.status} status`, 400);
+      throw err("Không thể từ chối hợp đồng ở trạng thái hiện tại", 400);
     }
 
     const updated = await contractRepository.updateStatus(
@@ -1041,12 +1041,12 @@ export const contractService = {
   // unrefunded. An ACTIVE contract has money in escrow and MUST go through
   // POST /:id/terminate instead, which settles it per the termination reason's formula.
   async cancelContract(contractId: string, userId: string, reason: string) {
-    if (!reason?.trim()) throw err("Cancellation reason is required", 400);
+    if (!reason?.trim()) throw err("Cần nhập lý do huỷ", 400);
 
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
     // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
     if (contract.ptUserId === userId) await assertPtMayAct(userId);
@@ -1055,8 +1055,9 @@ export const contractService = {
       contract.status !== ContractStatus.PENDING_PAYMENT
     ) {
       throw err(
-        `Cannot cancel a contract in ${contract.status} status through this endpoint` +
-          (contract.status === ContractStatus.ACTIVE ? " — use terminate instead, which settles the escrowed money" : ""),
+        contract.status === ContractStatus.ACTIVE
+          ? "Hợp đồng đang hoạt động không huỷ bằng cách này được. Hãy dùng chức năng kết thúc hợp đồng để hệ thống tính hoàn tiền"
+          : "Không thể huỷ hợp đồng ở trạng thái hiện tại",
         400,
       );
     }
@@ -1074,7 +1075,7 @@ export const contractService = {
       },
     );
     if (!updated) {
-      throw err("The contract changed while you were cancelling it — reload and check its status", 409);
+      throw err("Hợp đồng vừa thay đổi trong lúc bạn huỷ. Hãy tải lại và kiểm tra trạng thái trước khi thử lại", 409);
     }
 
     await auditContractStatus(userId, contractId, contract.status, ContractStatus.CANCELLED, {
@@ -1255,15 +1256,15 @@ export const contractService = {
   // needed at all.
   async sendFeedback(contractId: string, ptUserId: string, text: string) {
     const trimmed = text?.trim();
-    if (!trimmed) throw err("Feedback text is required", 400);
-    if (trimmed.length > 1000) throw err("Feedback text must be 1000 characters or fewer", 400);
+    if (!trimmed) throw err("Cần nhập nội dung nhận xét", 400);
+    if (trimmed.length > 1000) throw err("Nội dung nhận xét tối đa 1000 ký tự", 400);
 
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
-    if (contract.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+    if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     await assertPtMayActOnContract(ptUserId, contractId); // restricted mode: no coaching messages while suspended (account or this contract)
     if (contract.status !== ContractStatus.ACTIVE) {
-      throw err("Feedback can only be sent on an active contract", 409);
+      throw err("Chỉ gửi được nhận xét khi hợp đồng đang hoạt động", 409);
     }
 
     const notification = await notificationService.create({
@@ -1285,7 +1286,7 @@ export const contractService = {
     userRole?: string,
   ) {
     const contract = await contractRepository.findById(id);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
 
     const isAdmin = userRole === "ADMIN";
     if (
@@ -1293,7 +1294,7 @@ export const contractService = {
       contract.ptUserId !== userId &&
       contract.clientUserId !== userId
     ) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
 
     // Admin fail-safe: force past a broken e-sign (PENDING_SIGNATURE/PENDING_REVIEW →
@@ -1343,7 +1344,7 @@ export const contractService = {
     }
 
     throw err(
-      `Invalid status transition: ${contract.status} → ${newStatus}`,
+      "Không thể chuyển hợp đồng sang trạng thái này",
       400,
     );
   },
@@ -1361,9 +1362,9 @@ export const contractService = {
     contractId: string,
   ): Promise<{ requestId: string; provider: string }> {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
-      throw err("Contract is not in PENDING_SIGNATURE state", 400);
+      throw err("Hợp đồng không ở bước chờ ký", 400);
     }
     // Controller already guards ERROR/EXPIRED, but service enforces for defense-in-depth
     if (!["ERROR", "EXPIRED"].includes(contract.eSignStatus || "")) {
@@ -1447,12 +1448,12 @@ export const contractService = {
    */
   async update(id: string, ptUserId: string, data: Record<string, unknown>) {
     const contract = await contractRepository.findById(id);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) {
-      throw err("Only the PT can edit this contract", 403);
+      throw err("Chỉ huấn luyện viên mới sửa được hợp đồng này", 403);
     }
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
-      throw err(`Cannot edit a contract in ${contract.status} status — only PENDING_REVIEW contracts may still be edited`, 400);
+      throw err("Chỉ sửa được hợp đồng khi đang chờ huấn luyện viên xem xét", 400);
     }
     const EDITABLE_FIELDS = ["description", "notes", "terms"] as const;
     const patch: Record<string, unknown> = {};
@@ -1464,9 +1465,9 @@ export const contractService = {
 
   async incrementSession(id: string, ptUserId: string) {
     const contract = await contractRepository.findById(id);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) {
-      throw err("Only the PT can log sessions", 403);
+      throw err("Chỉ huấn luyện viên mới ghi nhận được buổi tập", 403);
     }
     if (contract.status !== "ACTIVE") {
       throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
@@ -1745,9 +1746,9 @@ export const contractService = {
     contractId: string, clientUserId: string, provider?: string, platform?: "web" | "mobile", returnBaseUrl?: string,
   ) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.clientUserId !== clientUserId)
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (
       contract.status === ContractStatus.ACTIVE ||
       contract.paymentTransactionId
@@ -1755,9 +1756,9 @@ export const contractService = {
       throw err("ALREADY_PAID", 409);
     }
     if (contract.status !== ContractStatus.PENDING_PAYMENT) {
-      throw err(`Cannot pay for contract in ${contract.status} status`, 400);
+      throw err("Hợp đồng ở trạng thái hiện tại không thể thanh toán", 400);
     }
-    if (!contract.price) throw err("Contract has no price set", 400);
+    if (!contract.price) throw err("Hợp đồng chưa có giá", 400);
 
     // No new business with a restricted PT: payment is refused BEFORE any checkout exists, so the
     // client is never charged. The contract itself is left exactly as it is — its payment deadline
@@ -1847,7 +1848,7 @@ export const contractService = {
       txn.relatedEntityType !== "PT_CONTRACT" ||
       txn.relatedEntityId !== contractId
     ) {
-      throw err("Transaction verification failed", 400);
+      throw err("Không xác minh được giao dịch thanh toán", 400);
     }
     // A payment that was already in flight when the PT got restricted must not start a new contract:
     // answered with the definite 409 CONTRACT_NOT_ACTIVATABLE so payment-service refunds the client in
@@ -1861,7 +1862,7 @@ export const contractService = {
         "activate-after-payment: PT is restricted — refusing the activation, payment-service will refund the client",
       );
       throw Object.assign(
-        err("Contract cannot be activated by this payment (the trainer is temporarily unavailable)", 409),
+        err("Không thể kích hoạt hợp đồng bằng khoản thanh toán này (huấn luyện viên đang tạm thời không khả dụng)", 409),
         { code: CONTRACT_NOT_ACTIVATABLE, currentStatus: beforeActivation.status },
       );
     }
@@ -1888,7 +1889,7 @@ export const contractService = {
         "activate-after-payment: contract cannot be activated by this payment — payment-service will refund it",
       );
       throw Object.assign(
-        err(`Contract cannot be activated by this payment (status ${currentStatus})`, 409),
+        err("Không thể kích hoạt hợp đồng bằng khoản thanh toán này vì hợp đồng không còn ở trạng thái chờ thanh toán", 409),
         { code: CONTRACT_NOT_ACTIVATABLE, currentStatus },
       );
     }
@@ -1940,14 +1941,14 @@ export const contractService = {
       original.status !== "REFUNDED" ||
       original.relatedEntityId !== contractId
     ) {
-      throw err("Original transaction verification failed", 400);
+      throw err("Không xác minh được giao dịch gốc", 400);
     }
     if (
       !refund ||
       refund.status !== "PAID" ||
       refund.refundOfTransactionId !== originalTransactionId
     ) {
-      throw err("Refund transaction verification failed", 400);
+      throw err("Không xác minh được giao dịch hoàn tiền", 400);
     }
     return contractRepository.cancelAfterRefund(contractId);
   },

@@ -133,7 +133,7 @@ Cài đặt: `countsAsUsed()` trong `contract-money.ts`.
 |---|---|---|---|
 | `CLIENT_CANCELLED` | `0,90 × remaining` | không | khách, admin |
 | `PT_BANNED` | `remaining` (100%) | không | **chỉ admin** |
-| `PT_CANCELLED` | `remaining` (100%) | `0,10 × remaining` trừ phía PT | PT, admin |
+| `PT_CANCELLED` | `remaining` (100%) | không (quyết định của chủ 25/10: PT tự huỷ không bị phạt 10% — khách được hoàn 100% từ phần đang chờ của PT và nền tảng; holdback đang tắt) | PT, admin |
 | `MUTUAL` | `remaining` (100%) | không | **chỉ admin** |
 | `EXPIRED` | `0` | không | **chỉ admin** |
 | `COMPLETED` | `0` | không | **chỉ admin** |

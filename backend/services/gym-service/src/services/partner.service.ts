@@ -75,8 +75,12 @@ export const partnerService = {
       };
     }
 
+    if (account.status === 'REVOKED') {
+      // C1-11: mã riêng để ứng dụng hiện "đã bị thu hồi" thay vì màn lỗi chung PARTNER_CONTEXT_UNRESOLVED.
+      throw Object.assign(err('Quyền truy cập của bạn vào phòng gym đã bị thu hồi', 403), { code: 'PARTNER_ACCESS_REVOKED' });
+    }
     if (account.status !== 'ACTIVE') {
-      throw err('Tài khoản đối tác chưa kích hoạt hoặc đã bị thu hồi', 403);
+      throw err('Tài khoản đối tác chưa kích hoạt', 403);
     }
 
     // Với OWNER, chính họ là gốc quyền sở hữu. Với MANAGER, phải tìm về tài khoản OWNER
@@ -192,7 +196,12 @@ export const partnerService = {
     ownerId: string,
     data: { email: string; role: InvitableStaffRole | string; scopedGymIds?: string[] },
     invitedBy: string,
+    inviterEmail?: string | null,
   ) {
+    // C1-02: chủ không tự mời chính email của mình (lời mời PENDING treo, gửi thư cho chính mình).
+    if (inviterEmail && data.email && data.email.trim().toLowerCase() === inviterEmail.trim().toLowerCase()) {
+      throw Object.assign(err('Đây là email của chính bạn — hãy nhập email của người bạn muốn mời', 409), { code: 'CANNOT_INVITE_SELF' });
+    }
     if (!isInvitableStaffRole(data.role)) {
       throw Object.assign(err('Vai trò không hợp lệ — chỉ mời được quản lý, lễ tân hoặc kế toán', 400), { code: 'INVALID_ROLE' });
     }

@@ -36,9 +36,9 @@ export function AccountSection() {
     mutationFn: () => authService.updateMe({ firstName, lastName }),
     onSuccess: () => {
       updateUser({ firstName, lastName });
-      toast.success("Da cap nhat ten hien thi");
+      toast.success("Đã cập nhật tên hiển thị");
     },
-    onError: () => toast.error("Khong the cap nhat - thu lai sau"),
+    onError: () => toast.error("Không thể cập nhật — thử lại sau"),
   });
 
   const passwordMutation = useMutation({
@@ -48,11 +48,11 @@ export function AccountSection() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast.success("Da cap nhat mat khau");
+      toast.success("Đã cập nhật mật khẩu");
     },
     onError: (error: any) => {
       const message =
-        error?.response?.data?.error || "Khong the doi mat khau - thu lai sau";
+        error?.response?.data?.error || "Không thể đổi mật khẩu — thử lại sau";
       toast.error(message);
     },
   });
@@ -67,8 +67,8 @@ export function AccountSection() {
     <SectionCard
       id="account"
       icon={UserIcon}
-      title="Tai khoan"
-      description="Ten hien thi, email, mat khau va dang xuat"
+      title="Tài khoản"
+      description="Tên hiển thị, email, mật khẩu và đăng xuất"
     >
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-base font-bold text-black flex-shrink-0">
@@ -77,7 +77,7 @@ export function AccountSection() {
         <div className="min-w-0">
           <p className="text-sm text-zinc-200 font-semibold truncate">
             {`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
-              "Chua dat ten"}
+              "Chưa đặt tên"}
           </p>
           <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
           <button
@@ -85,14 +85,14 @@ export function AccountSection() {
             onClick={() => navigate("/client/profile")}
             className="text-xs text-emerald-400 hover:text-emerald-300 mt-0.5"
           >
-            Doi anh dai dien trong Ho so
+            Đổi ảnh đại diện trong Hồ sơ
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="block text-[11px] text-zinc-500 mb-1">Ho</span>
+          <span className="block text-[11px] text-zinc-500 mb-1">Họ</span>
           <input
             data-testid="settings-account-lastname"
             className={inputClass}
@@ -101,7 +101,7 @@ export function AccountSection() {
           />
         </label>
         <label className="block">
-          <span className="block text-[11px] text-zinc-500 mb-1">Ten</span>
+          <span className="block text-[11px] text-zinc-500 mb-1">Tên</span>
           <input
             data-testid="settings-account-firstname"
             className={inputClass}
@@ -119,7 +119,7 @@ export function AccountSection() {
           disabled
         />
         <span className="block text-[11px] text-zinc-600 mt-1">
-          Doi email chua duoc ho tro trong phien ban nay.
+          Chưa hỗ trợ đổi email trong phiên bản này.
         </span>
       </label>
 
@@ -135,18 +135,18 @@ export function AccountSection() {
         ) : (
           <Check className="w-4 h-4" />
         )}
-        Luu thay doi
+        Lưu thay đổi
       </button>
 
       <div className="space-y-3 pt-3 border-t border-zinc-800/60">
         <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
           <KeyRound className="w-4 h-4 text-emerald-400" />
-          Doi mat khau
+          Đổi mật khẩu
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <label className="block">
             <span className="block text-[11px] text-zinc-500 mb-1">
-              Mat khau hien tai
+              Mật khẩu hiện tại
             </span>
             <input
               data-testid="settings-account-current-password"
@@ -159,7 +159,7 @@ export function AccountSection() {
           </label>
           <label className="block">
             <span className="block text-[11px] text-zinc-500 mb-1">
-              Mat khau moi
+              Mật khẩu mới
             </span>
             <input
               data-testid="settings-account-new-password"
@@ -172,7 +172,7 @@ export function AccountSection() {
           </label>
           <label className="block">
             <span className="block text-[11px] text-zinc-500 mb-1">
-              Xac nhan
+              Xác nhận
             </span>
             <input
               data-testid="settings-account-confirm-password"
@@ -186,12 +186,12 @@ export function AccountSection() {
         </div>
         {newPassword.length > 0 && newPassword.length < 8 ? (
           <p className="text-[11px] text-amber-300">
-            Mat khau moi can it nhat 8 ky tu.
+            Mật khẩu mới cần ít nhất 8 ký tự.
           </p>
         ) : null}
         {confirmPassword.length > 0 && newPassword !== confirmPassword ? (
           <p className="text-[11px] text-amber-300">
-            Xac nhan mat khau chua khop.
+            Xác nhận mật khẩu chưa khớp.
           </p>
         ) : null}
         <button
@@ -206,7 +206,7 @@ export function AccountSection() {
           ) : (
             <KeyRound className="w-4 h-4" />
           )}
-          Doi mat khau
+          Đổi mật khẩu
         </button>
       </div>
 
@@ -220,7 +220,7 @@ export function AccountSection() {
           }}
           className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
         >
-          <LogOut className="w-4 h-4" /> Dang xuat
+          <LogOut className="w-4 h-4" /> Đăng xuất
         </button>
       </div>
     </SectionCard>

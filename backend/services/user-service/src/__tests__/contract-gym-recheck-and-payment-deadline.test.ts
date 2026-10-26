@@ -336,7 +336,7 @@ test("accept: matching agreement passes the gym gate (flow then stops at the stu
   try {
     await assert.rejects(
       () => contractService.acceptContract("c1", "pt-1"),
-      (e: any) => e.status === 500 && /email unavailable|not found/.test(e.message),
+      (e: any) => e.status === 500 && /chưa có email|Không tìm thấy/.test(e.message),
     );
     assert.equal(w.calls.gym, 1);
   } finally {

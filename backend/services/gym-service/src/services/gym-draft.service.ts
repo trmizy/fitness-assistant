@@ -53,6 +53,8 @@ function acceptedEvent(tx: Parameters<typeof recordLegacyCompatTx>[0], gymId: st
  * APPROVED, and PENDING_REVIEW/REJECTED/SUSPENDED are already excluded from those same
  * reads, so DRAFT needs no new exclusion logic anywhere).
  */
+const DEFAULT_DRAFT_NAME = 'Chi nhánh mới';
+
 export const gymDraftService = {
   /** "Add Branch" — one click, no required fields, matches §3's precondition check. */
   async createDraft(ownerId: string, compat: ListingCompat = LEGACY_NO_HEADER) {
@@ -61,12 +63,51 @@ export const gymDraftService = {
     if (!brand) {
       throw err('Bạn cần hoàn tất thiết lập thương hiệu trước khi tạo chi nhánh', 400);
     }
+    // C3-11: the web wizard POSTs this on mount of /gym-owner/gyms/wizard (no :id), so merely opening the page minted a new row each
+    // time. For a NEW client (X-Gymini-Listing-Flow >= 2: the web) an UNTOUCHED draft - default name, nothing entered, nothing attached,
+    // created by the same flow version - is reused instead. An OLD client (APK) keeps one draft per explicit "create" exactly as before,
+    // so the per-request compat evidence (plan 12.14) is unchanged for it.
+    if (compat.flowVersion !== null) {
+      const candidates = await prisma.gym.findMany({
+        where: {
+          ownerId,
+          brandId: brand.id,
+          status: 'DRAFT',
+          name: DEFAULT_DRAFT_NAME,
+          address: '',
+          description: null,
+          city: null,
+          provinceCode: null,
+          wardCode: null,
+          latitude: null,
+          longitude: null,
+          locationNote: null,
+          phone: null,
+          email: null,
+          pendingName: null,
+          pendingAddress: null,
+          changesRequestedAt: null,
+          createdFlowVersion: compat.flowVersion,
+          OR: [{ wizardStep: null }, { wizardStep: 1 }],
+          photos: { none: {} },
+          amenities: { none: {} },
+          amenityProposals: { none: {} },
+          operatingHours: { none: {} },
+          branchDocuments: { none: {} },
+          reviewIssues: { none: {} },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 20,
+      });
+      const untouched = candidates.find((g) => g.facilities.length === 0);
+      if (untouched) return untouched;
+    }
     return prisma.$transaction(async (tx) => {
       await withCompatWriter(tx);
       const created = await tx.gym.create({
         data: {
           ownerId,
-          name: 'Chi nhánh mới',
+          name: DEFAULT_DRAFT_NAME,
           address: '',
           status: 'DRAFT',
           wizardStep: 1,

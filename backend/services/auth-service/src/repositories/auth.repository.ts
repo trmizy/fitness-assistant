@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from "../generated/prisma";
+import { logger } from "@gym-coach/shared";
 
 export const prisma = new PrismaClient();
 
@@ -24,8 +25,37 @@ export const authRepository = {
       },
     }),
 
-  findUserByEmail: (email: string) =>
-    prisma.user.findUnique({ where: { email } }),
+  /**
+   * C4-01 / C1-01 — find an account by email regardless of letter case.
+   *
+   * 1. exact spelling first (indexed; also how a legacy case-duplicate pair is told apart),
+   * 2. otherwise a case-insensitive match, accepted only when it is unambiguous.
+   *
+   * If several accounts differ only by case (legacy duplicates created before emails were
+   * normalised) and none is the exact spelling, this refuses with 409 EMAIL_CASE_AMBIGUOUS and
+   * logs a warning — it never guesses which account is meant and never merges or deletes any.
+   */
+  async findUserByEmail(email: string) {
+    const exact = await prisma.user.findUnique({ where: { email } });
+    if (exact) return exact;
+    const matches = await prisma.user.findMany({
+      where: { email: { equals: email, mode: "insensitive" } },
+      take: 3,
+    });
+    if (matches.length > 1) {
+      logger.warn(
+        { matchedAccounts: matches.length },
+        "Several accounts share this email ignoring letter case; refusing to pick one",
+      );
+      throw {
+        status: 409,
+        code: "EMAIL_CASE_AMBIGUOUS",
+        message:
+          "Có nhiều tài khoản trùng email này (chỉ khác chữ hoa/chữ thường). Hãy nhập email đúng như lúc đăng ký hoặc liên hệ hỗ trợ.",
+      };
+    }
+    return matches[0] ?? null;
+  },
 
   findUserById: (id: string) =>
     prisma.user.findUnique({

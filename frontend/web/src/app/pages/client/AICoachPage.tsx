@@ -60,8 +60,15 @@ const initialMessage = (latest: any, prev: any) => {
   return {
     id: 1,
     from: "ai" as const,
-    text: `Hi! I'm your AI Fitness Coach. I've analyzed your fitness data. How can I help you today?\n\n📊 **Latest Stats:**\n- Weight: ${weightStr} (${weightDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(weightDiff))} kg)\n- Muscle: ${muscleStr} (${muscleDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(muscleDiff))} kg)\n- Body Fat: ${fatStr}\n\nAsk me anything about your progress!`,
-    time: "Now",
+    text: `Xin chào! Tôi là huấn luyện viên AI của bạn. Tôi đã phân tích dữ liệu tập luyện của bạn. Hôm nay tôi có thể giúp gì?
+
+📊 **Chỉ số mới nhất:**
+- Cân nặng: ${weightStr} (${weightDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(weightDiff))} kg)
+- Cơ: ${muscleStr} (${muscleDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(muscleDiff))} kg)
+- Mỡ cơ thể: ${fatStr}
+
+Hãy hỏi tôi bất cứ điều gì về tiến trình của bạn!`,
+    time: "Bây giờ",
   };
 };
 
@@ -181,8 +188,8 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
   const [input, setInput] = useState("");
   const { text: inputPlaceholder } = useAutoTranslate(
-    "Ask your AI coach anything...",
-    "en",
+    "Hỏi huấn luyện viên AI bất cứ điều gì...",
+    "vi",
   );
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messages = session.messages;
@@ -656,19 +663,19 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-zinc-200 truncate">
-              {compact ? "AI Coach" : "AI Fitness Coach"}
+              {compact ? "AI Coach" : "Huấn luyện viên AI"}
             </div>
             {!compact && (
               <div className="flex items-center gap-1 text-xs text-green-400">
                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-                Analyzing your data
+                Đang phân tích dữ liệu của bạn
               </div>
             )}
           </div>
           <div className="ml-auto flex items-center gap-2">
             {compact ? (
               <span
-                title="Not medical advice"
+                title="Không phải tư vấn y tế"
                 className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-400"
               >
                 <AlertCircle className="w-3 h-3" />
@@ -676,7 +683,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
             ) : (
               <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
-                <AutoText sourceLang="en">Not medical advice</AutoText>
+                <AutoText>Không phải tư vấn y tế</AutoText>
               </span>
             )}
             {onClose && (
@@ -932,8 +939,8 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
             className="text-center text-xs mt-2"
             style={{ color: "var(--muted-text-color)" }}
           >
-            <AutoText sourceLang="en">
-              AI responses are based on your fitness data and are not medical advice.
+            <AutoText>
+              Phản hồi của AI dựa trên dữ liệu tập luyện của bạn và không phải tư vấn y tế.
             </AutoText>
           </p>
         </div>

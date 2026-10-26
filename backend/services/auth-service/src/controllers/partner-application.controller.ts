@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
 import { authRepository } from "../repositories/auth.repository";
+import { resolveFrontendUrl } from "../config/frontend-url";
 import { partnerApplicationService } from "../services/partner-application.service";
 import {
   partnerApplicationStartSchema,
@@ -23,7 +24,7 @@ function linkBaseUrlFor(req: Request): string {
     (Array.isArray(gatewaySecret) ? gatewaySecret[0] : gatewaySecret) === INTERNAL_SERVICE_SECRET;
   const trustedHeader = fromGateway ? req.headers["x-trusted-web-origin"] : undefined;
   const trustedOrigin = Array.isArray(trustedHeader) ? trustedHeader[0] : trustedHeader;
-  return trustedOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+  return trustedOrigin || resolveFrontendUrl();
 }
 
 function handleError(res: Response, error: any, context: string) {

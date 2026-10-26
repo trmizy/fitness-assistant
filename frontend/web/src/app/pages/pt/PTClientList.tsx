@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlassIcon as Search, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, WarningCircleIcon as AlertCircle } from "@phosphor-icons/react";
 import { contractService } from "../../services/api";
+import { GOAL_VI } from "../../utils/labels.vi";
 
 type Contract = {
   id: string;
@@ -33,25 +34,26 @@ function initials(firstName?: string, lastName?: string): string {
 }
 
 function contractStatusLabel(status: string) {
-  if (status === "ACTIVE") return "Active";
-  if (status === "PENDING_REVIEW") return "Pending";
-  if (status === "COMPLETED") return "Completed";
-  if (status === "EXPIRED") return "Expired";
-  if (status === "CANCELLED") return "Cancelled";
+  if (status === "ACTIVE") return "Đang hiệu lực";
+  if (status === "PENDING_REVIEW") return "Chờ duyệt";
+  if (status === "COMPLETED") return "Hoàn thành";
+  if (status === "EXPIRED") return "Đã hết hạn";
+  if (status === "CANCELLED") return "Đã hủy";
   return status;
 }
 
 function goalLabel(goal?: string): string {
   if (!goal) return "—";
-  return goal.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return GOAL_VI[goal] ?? goal.replace(/_/g, " ").toLowerCase();
 }
 
-const FILTER_OPTIONS = ["All", "Active", "Pending", "Completed", "Expired"];
+const FILTER_ALL = "Tất cả";
+const FILTER_OPTIONS = [FILTER_ALL, "Đang hiệu lực", "Chờ duyệt", "Hoàn thành", "Đã hết hạn"];
 
 export function PTClientList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState(FILTER_ALL);
 
   const {
     data: contracts = [],
@@ -71,18 +73,18 @@ export function PTClientList() {
       name.includes(search.toLowerCase()) ||
       c.packageName.toLowerCase().includes(search.toLowerCase());
     const matchFilter =
-      filter === "All" || contractStatusLabel(c.status) === filter;
+      filter === FILTER_ALL || contractStatusLabel(c.status) === filter;
     return matchSearch && matchFilter;
   });
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
       <div>
-        <h1 className="text-zinc-100">My Clients</h1>
+        <h1 className="text-zinc-100">Học viên của tôi</h1>
         <p className="text-zinc-500 text-sm mt-0.5">
           {isLoading
-            ? "Loading…"
-            : `${contracts.length} coaching relationship${contracts.length !== 1 ? "s" : ""}`}
+            ? "Đang tải…"
+            : `${contracts.length} mối quan hệ huấn luyện`}
         </p>
       </div>
 
@@ -92,7 +94,7 @@ export function PTClientList() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search clients…"
+            placeholder="Tìm học viên…"
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
@@ -115,13 +117,13 @@ export function PTClientList() {
           <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-red-300">
-              Failed to load clients
+              Không tải được danh sách học viên
             </p>
             <button
               onClick={() => refetch()}
               className="text-xs text-red-400 hover:text-red-300 mt-0.5 underline"
             >
-              Try again
+              Thử lại
             </button>
           </div>
         </div>
@@ -133,12 +135,12 @@ export function PTClientList() {
           <table className="w-full">
             <thead>
               <tr className="text-left text-xs text-zinc-600 bg-zinc-800/30 border-b border-zinc-800/60 uppercase tracking-wider">
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Goal</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Sessions</th>
-                <th className="px-4 py-3">Package</th>
-                <th className="px-4 py-3">Progress</th>
+                <th className="px-4 py-3">Học viên</th>
+                <th className="px-4 py-3">Mục tiêu</th>
+                <th className="px-4 py-3">Trạng thái</th>
+                <th className="px-4 py-3">Số buổi</th>
+                <th className="px-4 py-3">Gói</th>
+                <th className="px-4 py-3">Tiến độ</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -166,9 +168,9 @@ export function PTClientList() {
                     colSpan={7}
                     className="text-center py-12 text-zinc-600 text-sm"
                   >
-                    {search || filter !== "All"
-                      ? "No clients match your filters."
-                      : "No clients yet."}
+                    {search || filter !== FILTER_ALL
+                      ? "Không có học viên nào khớp bộ lọc."
+                      : "Chưa có học viên."}
                   </td>
                 </tr>
               ) : (
@@ -285,9 +287,9 @@ export function PTClientList() {
             ))
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-zinc-600 text-sm">
-              {search || filter !== "All"
-                ? "No clients match your filters."
-                : "No clients yet."}
+              {search || filter !== FILTER_ALL
+                ? "Không có học viên nào khớp bộ lọc."
+                : "Chưa có học viên."}
             </div>
           ) : (
             filtered.map((c) => {
@@ -336,13 +338,13 @@ export function PTClientList() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
-                      <div className="text-zinc-600">Sessions</div>
+                      <div className="text-zinc-600">Số buổi</div>
                       <div className="text-zinc-300 font-semibold">
                         {c.usedSessions + (c.compensatedSessions ?? 0)}/{c.totalSessions}
                       </div>
                     </div>
                     <div>
-                      <div className="text-zinc-600">Progress</div>
+                      <div className="text-zinc-600">Tiến độ</div>
                       <div
                         className={`font-bold ${progress >= 80 ? "text-amber-400" : "text-green-400"}`}
                       >
@@ -350,7 +352,7 @@ export function PTClientList() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-zinc-600">Package</div>
+                      <div className="text-zinc-600">Gói</div>
                       <div className="text-zinc-300 font-semibold truncate">
                         {c.packageName}
                       </div>

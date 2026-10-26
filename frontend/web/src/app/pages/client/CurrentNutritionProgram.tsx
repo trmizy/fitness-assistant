@@ -751,12 +751,12 @@ export function CurrentNutritionProgram() {
                 color: "text-green-400",
               },
               {
-                label: "Carbs",
+                label: "Tinh bột",
                 val: `${currentProgram.carbTargetGrams ?? 0}g`,
                 color: "text-blue-400",
               },
               {
-                label: "Fat",
+                label: "Chất béo",
                 val: `${currentProgram.fatTargetGrams ?? 0}g`,
                 color: "text-amber-400",
               },
@@ -865,7 +865,7 @@ export function CurrentNutritionProgram() {
                     <option value="Cutting">Cutting (siết mỡ, giữ cơ)</option>
                     <option value="Bulking">Bulking (tăng cơ, calo cao)</option>
                     <option value="Lean Bulk">Lean Bulk (tăng cơ sạch)</option>
-                    <option value="Recomposition">Recomposition</option>
+                    <option value="Recomposition">Giảm mỡ tăng cơ (recomp)</option>
                     <option value="Duy trì vóc dáng">Duy trì vóc dáng</option>
                     <option value="Cải thiện sức khỏe">
                       Cải thiện sức khỏe
@@ -929,12 +929,12 @@ export function CurrentNutritionProgram() {
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50"
                     >
                       <option value="Không">Không đặc biệt</option>
-                      <option value="high_protein">High protein</option>
-                      <option value="low_carb">Low carb</option>
-                      <option value="low_fat">Low fat</option>
+                      <option value="high_protein">Nhiều protein</option>
+                      <option value="low_carb">Ít tinh bột</option>
+                      <option value="low_fat">Ít chất béo</option>
                       <option value="Keto">Keto</option>
                       <option value="vegetarian">Chay</option>
-                      <option value="Eat Clean">Eat Clean</option>
+                      <option value="Eat Clean">Eat clean (ăn sạch)</option>
                     </select>
                   </div>
                   <div>
@@ -1154,12 +1154,12 @@ export function CurrentNutritionProgram() {
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none"
                         >
                           <option value="">--</option>
-                          <option value="cutting">Cutting</option>
-                          <option value="bulking">Bulking</option>
-                          <option value="lean_bulk">Lean Bulk</option>
-                          <option value="maintenance">Maintenance</option>
+                          <option value="cutting">Giảm mỡ (cutting)</option>
+                          <option value="bulking">Tăng cơ (bulking)</option>
+                          <option value="lean_bulk">Tăng cơ sạch (lean bulk)</option>
+                          <option value="maintenance">Duy trì</option>
                           <option value="contest_prep">Chuẩn bị thi đấu</option>
-                          <option value="deload">Deload</option>
+                          <option value="deload">Giảm tải (deload)</option>
                         </select>
                       </div>
                       <div>

@@ -10,15 +10,15 @@ import type { ExerciseBlock } from "./normalizeWorkout";
  */
 
 export const SET_TYPE_OPTIONS = [
-  { value: "WARMUP", label: "Warm-up" },
-  { value: "WORKING", label: "Working" },
-  { value: "TOP", label: "Top set" },
+  { value: "WARMUP", label: "Khởi động" },
+  { value: "WORKING", label: "Set chính" },
+  { value: "TOP", label: "Set đỉnh" },
   { value: "BACKOFF", label: "Back-off" },
   { value: "FAILURE", label: "Failure" },
 ];
 
 export function setTypeLabel(value: string | null | undefined): string {
-  return SET_TYPE_OPTIONS.find((o) => o.value === (value || "WORKING"))?.label ?? "Working";
+  return SET_TYPE_OPTIONS.find((o) => o.value === (value || "WORKING"))?.label ?? "Set chính";
 }
 
 export const blockDone = (b: ExerciseBlock) => b.sets.length > 0 && b.sets.every((s) => s.completed);

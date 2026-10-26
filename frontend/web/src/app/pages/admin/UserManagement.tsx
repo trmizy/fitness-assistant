@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { adminRoleVi, adminShortDateVi, adminStatusVi } from "../../utils/adminLabels";
 
 interface AdminUser {
   id: string;
@@ -68,7 +69,9 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const { user: me } = useApp();
   const [partnerRoles, setPartnerRoles] = useState<Record<string, string | null>>({});
-  const roleText = (u: AdminUser) => (u.role === "Gym Owner" ? PARTNER_ROLE_LABEL[partnerRoles[u.id] ?? "OWNER"] ?? u.role : u.role);
+  const roleText = (u: AdminUser) => (u.role === "Gym Owner" ? PARTNER_ROLE_LABEL[partnerRoles[u.id] ?? "OWNER"] ?? adminRoleVi(u.role) : adminRoleVi(u.role));
+  // Khóa dùng để lọc theo vai trò: tài khoản đối tác tách theo vai trò thật (chủ / quản lý / lễ tân / kế toán).
+  const roleKey = (u: AdminUser) => (u.role === "Gym Owner" ? (partnerRoles[u.id] ?? "OWNER") : u.role);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState<AssignableRole>("CUSTOMER");
   const [lockTarget, setLockTarget] = useState<AdminUser | null>(null);
@@ -114,7 +117,7 @@ export function UserManagement() {
       const { data } = await api.get("/admin/users");
       setUsers(data.data?.users ?? []);
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? "Failed to load users");
+      setError(err?.response?.data?.error?.message ?? "Không tải được danh sách người dùng");
     } finally {
       setLoading(false);
     }
@@ -149,7 +152,7 @@ export function UserManagement() {
     (u) =>
       (u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())) &&
-      (roleFilter === "All" || u.role === roleFilter) &&
+      (roleFilter === "All" || roleKey(u) === roleFilter) &&
       (statusFilter === "All" || u.status === statusFilter),
   );
 
@@ -182,10 +185,10 @@ export function UserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-zinc-100">User Management</h1>
+          <h1 className="text-zinc-100">Quản lý người dùng</h1>
           {!loading && !error && (
             <p className="text-zinc-500 text-sm mt-0.5">
-              {users.length} registered users · {activeCount} active
+              {users.length} người dùng đã đăng ký · {activeCount} đang hoạt động
             </p>
           )}
         </div>
@@ -197,7 +200,7 @@ export function UserManagement() {
           <RefreshCw
             className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
           />
-          Refresh
+          Làm mới
         </button>
       </div>
 
@@ -208,30 +211,34 @@ export function UserManagement() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users…"
+            placeholder="Tìm người dùng…"
             className="flex-1 text-sm bg-transparent outline-none text-zinc-300 placeholder-zinc-600"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 [&>select]:min-w-0 [&>select]:flex-1">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
           >
-            <option value="All">All Roles</option>
-            <option value="Client">Client</option>
-            <option value="PT">PT</option>
-            <option value="Admin">Admin</option>
+            <option value="All">Tất cả vai trò</option>
+            <option value="Client">Hội viên</option>
+            <option value="PT">Huấn luyện viên (PT)</option>
+            <option value="OWNER">Chủ phòng gym</option>
+            <option value="MANAGER">Quản lý chi nhánh</option>
+            <option value="RECEPTIONIST">Lễ tân</option>
+            <option value="ACCOUNTANT">Kế toán</option>
+            <option value="Admin">Quản trị viên</option>
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
           >
-            <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Pending">Pending</option>
+            <option value="All">Tất cả trạng thái</option>
+            <option value="Active">Đang hoạt động</option>
+            <option value="Inactive">Đã khóa</option>
+            <option value="Pending">Chờ duyệt</option>
           </select>
         </div>
       </div>
@@ -240,7 +247,7 @@ export function UserManagement() {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading users…</p>
+          <p className="text-zinc-500 text-sm">Đang tải người dùng…</p>
         </div>
       )}
 
@@ -252,7 +259,7 @@ export function UserManagement() {
             onClick={fetchUsers}
             className="text-xs px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"
           >
-            Try again
+            Thử lại
           </button>
         </div>
       )}
@@ -266,12 +273,12 @@ export function UserManagement() {
               <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="text-left text-xs text-zinc-600 bg-zinc-800/40 border-b border-zinc-800/60 uppercase tracking-wider">
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Joined</th>
-                    <th className="px-4 py-3">Last Active</th>
-                    <th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-3">Người dùng</th>
+                    <th className="px-4 py-3">Vai trò</th>
+                    <th className="px-4 py-3">Trạng thái</th>
+                    <th className="px-4 py-3">Ngày tham gia</th>
+                    <th className="px-4 py-3">Hoạt động gần nhất</th>
+                    <th className="px-4 py-3">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,14 +322,14 @@ export function UserManagement() {
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${statusBadge(u.status)}`}
                         >
-                          {u.status}
+                          {adminStatusVi(u.status)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-500">
-                        {u.joined}
+                        {adminShortDateVi(u.joined)}
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-500">
-                        {u.lastActive}
+                        {adminShortDateVi(u.lastActive)}
                       </td>
                       <td className="px-4 py-3">
                         <DropdownMenu>
@@ -356,7 +363,7 @@ export function UserManagement() {
                         colSpan={6}
                         className="px-4 py-10 text-center text-sm text-zinc-600"
                       >
-                        No users match your filters.
+                        Không có người dùng nào khớp bộ lọc.
                       </td>
                     </tr>
                   )}
@@ -390,17 +397,17 @@ export function UserManagement() {
                   className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold border mt-2 ${statusBadge(selectedUser.status)}`}
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {selectedUser.status}
+                  {adminStatusVi(selectedUser.status)}
                 </span>
               </div>
 
               <div className="space-y-2.5 text-sm border-b border-zinc-800/60 pb-4 mb-4">
                 {[
-                  { label: "Role", value: roleText(selectedUser) },
-                  { label: "Joined", value: selectedUser.joined },
-                  { label: "Last Active", value: selectedUser.lastActive },
-                  { label: "Sessions", value: String(selectedUser.sessions) },
-                  { label: "Contracts", value: String(selectedUser.contracts) },
+                  { label: "Vai trò", value: roleText(selectedUser) },
+                  { label: "Ngày tham gia", value: adminShortDateVi(selectedUser.joined) },
+                  { label: "Hoạt động gần nhất", value: adminShortDateVi(selectedUser.lastActive) },
+                  { label: "Số buổi", value: String(selectedUser.sessions) },
+                  { label: "Hợp đồng", value: String(selectedUser.contracts) },
                 ].map((row) => (
                   <div key={row.label} className="flex justify-between">
                     <span className="text-zinc-500">{row.label}</span>
@@ -413,11 +420,11 @@ export function UserManagement() {
 
               <div className="space-y-2">
                 <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
-                  <Shield className="w-4 h-4 text-blue-400" /> View full profile
+                  <Shield className="w-4 h-4 text-blue-400" /> Xem hồ sơ đầy đủ
                 </button>
                 {selectedUser.status === "Pending" && (
                   <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors font-semibold">
-                    <UserCheck className="w-4 h-4" /> Approve PT
+                    <UserCheck className="w-4 h-4" /> Duyệt PT
                   </button>
                 )}
                 <button

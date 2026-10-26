@@ -117,7 +117,7 @@ function stateNotAllowed(message: string) {
 }
 async function assertContractRunning(contractId: string, db?: Prisma.TransactionClient): Promise<void> {
   const contract = await contractRepository.findById(contractId, db);
-  if (!contract) throw err("Contract not found", 404);
+  if (!contract) throw err("Không tìm thấy hợp đồng", 404);
   if (contract.status !== ContractStatus.ACTIVE) throw contractEndedError();
   // D59: the ending was accepted but its money is not confirmed yet - nothing that creates or changes an obligation runs.
   await assertNotEnding(contractId, db);
@@ -324,11 +324,11 @@ export const bookingService = {
     },
   ) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
 
     // Must be the client of this contract
     if (contract.clientUserId !== clientUserId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
 
     // A restricted PT (temporarily suspended, or banned) takes no new sessions: the contract stays
@@ -359,13 +359,13 @@ export const bookingService = {
     const durationMin = contract.sessionDurationMinutes ?? 60;
     const startAt = new Date(`${data.scheduledDate}T${data.scheduledTime}:00`);
     if (isNaN(startAt.getTime())) {
-      throw err("Invalid date/time", 400);
+      throw err("Ngày giờ không hợp lệ", 400);
     }
     const endAt = new Date(startAt.getTime() + durationMin * 60 * 1000);
 
     // Must be in the future
     if (startAt <= new Date()) {
-      throw err("Cannot book a session in the past", 400);
+      throw err("Không thể đặt buổi tập trong quá khứ", 400);
     }
 
     // BR-30: must be booked at least 24 hours in advance
@@ -413,7 +413,7 @@ export const bookingService = {
         dayEnd,
       );
       if (exceptions.length > 0) {
-        throw err("The trainer is not available on this date", 400);
+        throw err("Huấn luyện viên không có lịch trống vào ngày này", 400);
       }
     }
 
@@ -433,7 +433,7 @@ export const bookingService = {
       // half the comparison still reflects pre-lock state. Re-read on this transaction's own
       // connection so both sides of the comparison are equally fresh.
       const freshContract = await contractRepository.findById(contractId, tx);
-      if (!freshContract) throw err("Contract not found", 404);
+      if (!freshContract) throw err("Không tìm thấy hợp đồng", 404);
       // The ending may have been recorded since the unlocked check above (D59: refused, not queued).
       if (freshContract.status !== ContractStatus.ACTIVE) throw contractEndedError();
       await assertNotEnding(contractId, tx);
@@ -443,7 +443,7 @@ export const bookingService = {
 
       const activeSessionCount = await sessionRepository.countActiveByContract(contractId, tx);
       if (getRemainingEntitlements(freshContract) <= activeSessionCount) {
-        throw err("Session limit reached for this contract", 400);
+        throw err("Hợp đồng đã dùng hết số buổi", 400);
       }
 
       const conflict = await sessionRepository.findConflict(
@@ -455,7 +455,7 @@ export const bookingService = {
         tx,
       );
       if (conflict) {
-        throw err("This time slot conflicts with another session", 409);
+        throw err("Khung giờ này trùng với một buổi tập khác", 409);
       }
 
       return sessionRepository.create(
@@ -500,21 +500,21 @@ export const bookingService = {
    */
   async confirmSession(sessionId: string, ptUserId: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (session.status !== SessionStatus.REQUESTED) {
-      throw err(`Cannot confirm session in ${session.status} status`, 400);
+      throw err("Không thể xác nhận buổi tập ở trạng thái hiện tại", 400);
     }
 
     await withPtScheduleLock(session.ptUserId, session.contractId, async (tx) => {
       const freshSession = await tx.session.findUnique({ where: { id: sessionId } });
-      if (!freshSession) throw err("Session not found", 404);
+      if (!freshSession) throw err("Không tìm thấy buổi tập", 404);
       if (freshSession.status !== SessionStatus.REQUESTED) {
-        throw err(`Cannot confirm session in ${freshSession.status} status`, 400);
+        throw err("Không thể xác nhận buổi tập ở trạng thái hiện tại", 400);
       }
 
       const contract = await contractRepository.findById(freshSession.contractId, tx);
-      if (!contract) throw err("Contract not found", 404);
+      if (!contract) throw err("Không tìm thấy hợp đồng", 404);
       if (contract.status !== ContractStatus.ACTIVE) {
         throw err("Hợp đồng không còn hiệu lực", 409);
       }
@@ -549,7 +549,7 @@ export const bookingService = {
         tx,
       );
       if (conflict) {
-        throw err("PT has a conflicting session in this time slot", 409);
+        throw err("Huấn luyện viên đã có một buổi tập khác trong khung giờ này", 409);
       }
 
       const won = await sessionRepository.transitionStatus(
@@ -586,12 +586,12 @@ export const bookingService = {
    */
   async completeSession(sessionId: string, ptUserId: string, ptNotes?: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     await assertPtMayActOnContract(ptUserId, session.contractId); // restricted mode: no "report completed" while suspended
     await assertContractRunning(session.contractId); // L2: said first - an ended contract's session is not reportable at all (re-checked under the lock below)
     if (session.status !== SessionStatus.CONFIRMED) {
-      throw stateNotAllowed(`Cannot complete session in ${session.status} status`);
+      throw stateNotAllowed("Không thể hoàn thành buổi tập ở trạng thái hiện tại");
     }
     // P0 cluster B3: "completed" means the whole session happened — gated on scheduledEndAt
     // (not scheduledStartAt), unlike the no-show checks below, which only need to establish
@@ -639,10 +639,10 @@ export const bookingService = {
   // ── Client confirms the session actually happened ───────────────
   async clientConfirmSession(sessionId: string, clientUserId: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.clientUserId !== clientUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
-      throw err(`Cannot confirm a session in ${session.status} status`, 400);
+      throw err("Không thể xác nhận buổi tập ở trạng thái hiện tại", 400);
     }
 
     // F3: the confirmation IS the state transition - one compare-and-set from PENDING_CLIENT_CONFIRMATION to COMPLETED
@@ -657,7 +657,7 @@ export const bookingService = {
       // A second click / a retry of the confirmation that already won is not an error ...
       if (updated?.status === SessionStatus.COMPLETED && updated.sessionDeducted) return { ...updated, quotaDeducted: false };
       // ... but a session that went another way (disputed, cancelled, ruled) cannot be confirmed any more.
-      throw err(`Cannot confirm a session in ${updated?.status ?? "an unknown"} status`, 409);
+      throw err("Không thể xác nhận buổi tập ở trạng thái hiện tại", 409);
     }
 
     await notificationService
@@ -680,13 +680,13 @@ export const bookingService = {
     clientUserId: string,
     reason: string,
   ) {
-    if (!reason?.trim()) throw err("Dispute reason is required", 400);
+    if (!reason?.trim()) throw err("Cần nhập lý do khiếu nại", 400);
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.clientUserId !== clientUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
-      throw err(`Cannot dispute a session in ${session.status} status`, 400);
+      throw err("Không thể khiếu nại buổi tập ở trạng thái hiện tại", 400);
     }
 
     // Vòng 4 / Phase E4 — audit/admin-screen only: PENDING_CLIENT_CONFIRMATION is entered from
@@ -740,15 +740,15 @@ export const bookingService = {
     resolution: "COMPLETED" | "CANCELLED" | "PT_NO_SHOW_CONFIRMED",
     note: string,
   ) {
-    if (!note?.trim()) throw err("Resolution note is required", 400);
+    if (!note?.trim()) throw err("Cần nhập ghi chú giải quyết", 400);
     if (resolution !== "COMPLETED" && resolution !== "CANCELLED" && resolution !== "PT_NO_SHOW_CONFIRMED") {
-      throw err("Resolution must be COMPLETED, CANCELLED, or PT_NO_SHOW_CONFIRMED", 400);
+      throw err("Kết quả giải quyết không hợp lệ", 400);
     }
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.status !== SessionStatus.DISPUTED) {
-      throw err(`Session is not disputed (status ${session.status})`, 400);
+      throw err("Buổi tập này không ở trạng thái đang khiếu nại", 400);
     }
 
     // F2 / D45-L3 + F3: a disputed session of a contract that has ENDED (for any reason) is one whose value
@@ -902,12 +902,12 @@ export const bookingService = {
 
   // ── Cancel session (either party) ──────────────────────────────
   async cancelSession(sessionId: string, userId: string, reason: string) {
-    if (!reason?.trim()) throw err("Cancellation reason is required", 400);
+    if (!reason?.trim()) throw err("Cần nhập lý do huỷ", 400);
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.clientUserId !== userId && session.ptUserId !== userId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
     // L2: nobody cancels (and so nobody is charged / compensated for) a session of an ended contract - said first, so an ended
     // contract is reported as CONTRACT_ENDED even when its ending already called this very session off.
@@ -916,7 +916,7 @@ export const bookingService = {
       session.status !== SessionStatus.REQUESTED &&
       session.status !== SessionStatus.CONFIRMED
     ) {
-      throw stateNotAllowed(`Cannot cancel session in ${session.status} status`);
+      throw stateNotAllowed("Không thể huỷ buổi tập ở trạng thái hiện tại");
     }
 
     const isClient = userId === session.clientUserId;
@@ -1044,11 +1044,11 @@ export const bookingService = {
     noShowBy: "CLIENT" | "PT",
   ) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
 
     // Only PT or admin can mark no-show
     if (session.ptUserId !== userId) {
-      throw err("Only the PT can mark no-show", 403);
+      throw err("Chỉ huấn luyện viên mới đánh dấu vắng mặt được", 403);
     }
     await assertPtMayActOnContract(userId, session.contractId); // restricted mode
     await assertContractRunning(session.contractId); // L2: no PT-initiated no-show on an ended contract
@@ -1059,7 +1059,7 @@ export const bookingService = {
       session.status !== SessionStatus.CONFIRMED &&
       session.status !== SessionStatus.PT_NO_SHOW_REPORTED
     ) {
-      throw stateNotAllowed(`Cannot mark no-show for session in ${session.status} status`);
+      throw stateNotAllowed("Không thể đánh dấu vắng mặt cho buổi tập ở trạng thái hiện tại");
     }
     // P0 cluster B4: reportPtNoShow (the client-reports-PT-no-show direction) has always
     // gated on scheduledStartAt — this direction (PT reports the client, or admits their own
@@ -1175,13 +1175,13 @@ export const bookingService = {
     if (!reason?.trim()) throw err("Phải nêu lý do báo cáo", 400);
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.clientUserId !== clientUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     // The PT cannot answer a report while restricted, and nothing may be decided against them meanwhile.
     await assertContractAcceptsClientAction({ id: session.contractId, ptUserId: session.ptUserId }, "REPORT_PT_NO_SHOW");
     await assertContractRunning(session.contractId); // L2: an ended contract's leftover cannot start a no-show claim
     if (session.status !== SessionStatus.CONFIRMED) {
-      throw stateNotAllowed(`Cannot report a no-show for a session in ${session.status} status`);
+      throw stateNotAllowed("Không thể báo vắng mặt cho buổi tập ở trạng thái hiện tại");
     }
     // Vòng 4 / Phase E1: same grace window as markNoShow's mirror check — both directions.
     if (session.scheduledStartAt.getTime() + NO_SHOW_GRACE_MS > Date.now()) {
@@ -1230,12 +1230,12 @@ export const bookingService = {
     note?: string,
   ) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     await assertPtMayActOnContract(ptUserId, session.contractId); // restricted mode: the report waits until the PT may answer it
     await assertContractRunning(session.contractId); // L2: an ended contract's report is closed unadjudicated, not answered
     if (session.status !== SessionStatus.PT_NO_SHOW_REPORTED) {
-      throw stateNotAllowed(`Cannot respond to a no-show report on a session in ${session.status} status`);
+      throw stateNotAllowed("Không thể phản hồi báo vắng mặt cho buổi tập ở trạng thái hiện tại");
     }
 
     if (response === "AGREE") {
@@ -1277,16 +1277,16 @@ export const bookingService = {
     comment?: string,
   ) {
     if (rating < 1 || rating > 5)
-      throw err("Rating must be between 1 and 5", 400);
+      throw err("Điểm đánh giá phải từ 1 đến 5", 400);
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.clientUserId !== clientUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (session.status !== SessionStatus.COMPLETED) {
-      throw err("Can only review completed sessions", 400);
+      throw err("Chỉ đánh giá được buổi tập đã hoàn thành", 400);
     }
     if (session.review) {
-      throw err("Session already reviewed", 409);
+      throw err("Buổi tập này đã được đánh giá", 409);
     }
 
     return sessionRepository.createReview({
@@ -1307,17 +1307,17 @@ export const bookingService = {
     comment?: string,
   ) {
     if (rating < 1 || rating > 5)
-      throw err("Rating must be between 1 and 5", 400);
+      throw err("Điểm đánh giá phải từ 1 đến 5", 400);
 
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
-    if (session.ptUserId !== ptUserId) throw err("Not authorized", 403);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
+    if (session.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     await assertPtMayActOnContract(ptUserId, session.contractId); // restricted mode
     if (session.status !== SessionStatus.COMPLETED) {
-      throw err("Can only review completed sessions", 400);
+      throw err("Chỉ đánh giá được buổi tập đã hoàn thành", 400);
     }
     if (session.clientReview) {
-      throw err("Session already reviewed", 409);
+      throw err("Buổi tập này đã được đánh giá", 409);
     }
 
     return sessionRepository.createClientReview({
@@ -1332,9 +1332,9 @@ export const bookingService = {
   // ── Get sessions for a contract ─────────────────────────────────
   async getContractSessions(contractId: string, userId: string) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.clientUserId !== userId && contract.ptUserId !== userId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
     // DQ-2(a): a NO_SHOW (PT-fault) session also carries refundState / refundedAmount / refundPendingAmount - how much of the
     // client's refund the ledger really paid (session-refund-state.ts). Best-effort: a failure here never hides the sessions.
@@ -1348,9 +1348,9 @@ export const bookingService = {
   // ── Get single session (used by chat-service to verify call permissions) ─
   async getSessionById(sessionId: string, userId: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.clientUserId !== userId && session.ptUserId !== userId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
     return session;
   },
@@ -1358,19 +1358,19 @@ export const bookingService = {
   // ── Generate join token for a coaching session call ─────────────
   async joinSession(sessionId: string, userId: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
 
     const isParticipant =
       session.clientUserId === userId || session.ptUserId === userId;
-    if (!isParticipant) throw err("Not authorized", 403);
+    if (!isParticipant) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     if (session.ptUserId === userId) await assertPtMayActOnContract(userId, session.contractId); // restricted mode: the PT does not teach
     await assertContractRunning(session.contractId); // L2: a room of an ended contract opens nothing (its joins feed the late / no-show sweep)
 
     if (session.status !== SessionStatus.CONFIRMED) {
-      throw err("Session must be confirmed before joining", 400);
+      throw err("Buổi tập cần được xác nhận trước khi tham gia", 400);
     }
     if (session.sessionMode !== SessionMode.ONLINE) {
-      throw err("Session is not online — no call needed", 400);
+      throw err("Buổi tập này không phải buổi online nên không cần gọi video", 400);
     }
 
     // Open-room window: opens ROOM_OPEN_BEFORE_MINUTES early, closes hard at scheduledEndAt.
@@ -1406,7 +1406,7 @@ export const bookingService = {
 
     const secret = process.env.INTERNAL_API_SECRET;
     if (!secret)
-      throw err("Server misconfiguration: missing INTERNAL_API_SECRET", 500);
+      throw err("Hệ thống đang cấu hình chưa đầy đủ. Vui lòng thử lại sau", 500);
 
     const payload = {
       sessionId,
@@ -1481,11 +1481,11 @@ export const bookingService = {
     }
   ) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
 
     const isClient = session.clientUserId === userId;
     const isPT = session.ptUserId === userId;
-    if (!isClient && !isPT) throw err("Not authorized", 403);
+    if (!isClient && !isPT) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     // No reschedule into (or out of) a suspension, from either side.
     if (isPT) await assertPtMayActOnContract(userId, session.contractId);
     else await assertContractAcceptsClientAction({ id: session.contractId, ptUserId: session.ptUserId }, "RESCHEDULE");
@@ -1539,7 +1539,7 @@ export const bookingService = {
     // plan 3.4). A direct-API caller used to be able to propose e.g. a 180-minute session
     // against a package sold as 60, by simply naming a different proposedEndAt.
     const contract = await contractRepository.findById(session.contractId);
-    if (!contract) throw err("Contract not found", 404);
+    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     const durationMin = contract.sessionDurationMinutes ?? 60;
     const proposedEnd = new Date(proposedStart.getTime() + durationMin * 60 * 1000);
 
@@ -1664,9 +1664,9 @@ export const bookingService = {
    */
   async getRescheduleHistory(sessionId: string, userId: string) {
     const session = await sessionRepository.findById(sessionId);
-    if (!session) throw err("Session not found", 404);
+    if (!session) throw err("Không tìm thấy buổi tập", 404);
     if (session.clientUserId !== userId && session.ptUserId !== userId) {
-      throw err("Not authorized", 403);
+      throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
     return sessionRepository.findRescheduleRequestsBySession(sessionId);
   },
@@ -1678,16 +1678,16 @@ export const bookingService = {
     responseNote?: string
   ) {
     const request = await sessionRepository.findRescheduleRequestById(requestId);
-    if (!request) throw err("Reschedule request not found", 404);
+    if (!request) throw err("Không tìm thấy yêu cầu đổi lịch", 404);
     if (request.status !== "PENDING") {
-      throw err("Request already processed", 400);
+      throw err("Yêu cầu này đã được xử lý", 400);
     }
 
     const session = request.session;
     const isClient = session.clientUserId === userId;
     const isPT = session.ptUserId === userId;
 
-    if (!isClient && !isPT) throw err("Not authorized", 403);
+    if (!isClient && !isPT) throw err("Bạn không có quyền thực hiện thao tác này", 403);
     
     // No answering a reschedule proposal into (or out of) a suspension, from either side.
     if (isPT) await assertPtMayActOnContract(userId, session.contractId);

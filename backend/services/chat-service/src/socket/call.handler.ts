@@ -461,6 +461,9 @@ export function registerCallHandlers(
         // The caller hung up before an answer — to the callee that is a missed call; this
         // replaces the "đang gọi" push still sitting in their shade.
         pushMissedCall(call, (await displayName(user.id)) ?? user.email);
+        // C3-07: …and the conversation gets the same "nhỡ" system line a ring timeout writes (reject keeps its own
+        // "bị từ chối" wording). Voice/video wording comes from callLogContent; a non-CHAT call is skipped inside.
+        await emitCallLogMessage(io, call, true);
 
         logger.info({ callSessionId, cancelledBy: user.id }, "Call cancelled");
       } catch (error) {

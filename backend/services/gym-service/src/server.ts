@@ -6,6 +6,7 @@ import { prisma } from './repositories/prisma';
 import { logger } from '@gym-coach/shared';
 import { startMembershipPayoutSweep } from './services/membershipPayout.sweep';
 import { startReferralSettlementSweepJob } from './services/referral-settlement-sweep.service';
+import { assertFrontendUrlForProduction } from './config/frontend-url';
 import { assertPartnerS3ProductionSafe } from './services/partner-s3.guard';
 import { startCompatWriterHeartbeat, stopCompatWriterHeartbeat } from './services/compat-writer-heartbeat.service';
 import { startGymListingSweepJob } from './services/gym-listing-sweep.service';
@@ -16,6 +17,8 @@ let stopGymListingSweep: (() => void) | null = null;
 async function startServer() {
   try {
     assertPartnerS3ProductionSafe();
+    // Invite / reset links are built from FRONTEND_URL - production refuses to start without a public one (config/frontend-url.ts).
+    assertFrontendUrlForProduction();
     app.listen(PORT, () => {
       logger.info(`Gym Service running on port ${PORT}`);
       startMembershipPayoutSweep();

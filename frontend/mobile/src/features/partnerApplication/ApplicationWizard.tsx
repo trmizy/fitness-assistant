@@ -61,6 +61,7 @@ import {
   stepDone,
   type ApplicationView,
 } from "./partnerApplication";
+import { emailInputProps, normalizeEmail } from "../../lib/email";
 
 /**
  * WB-16 + GY-09 — hồ sơ đối tác 10 bước (bước Tiện ích nằm giữa Vị trí và Ảnh cơ sở).
@@ -426,7 +427,7 @@ function BranchStep({ view, onSaved, fail, editable }: StepProps) {
         name: form.name.trim(),
         address: form.address.trim(),
         ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
-        ...(form.email.trim() ? { email: form.email.trim() } : {}),
+        ...(normalizeEmail(form.email) ? { email: normalizeEmail(form.email) } : {}),
         ...(form.city.trim() ? { city: form.city.trim() } : {}),
         ...(form.description.trim() ? { description: form.description.trim().slice(0, ABOUT_MAX) } : {}),
       }),
@@ -445,7 +446,7 @@ function BranchStep({ view, onSaved, fail, editable }: StepProps) {
       {/* Not optional: the server refuses to submit an application whose branch has no phone
           ("Chưa nhập số điện thoại chi nhánh") — the old "(tuỳ chọn)" sent people to step 9 to find out. */}
       <Input label="Điện thoại chi nhánh" value={form.phone} onChangeText={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" editable={editable} placeholderTextColor={inputPlaceholderColor} />
-      <Input label="Email chi nhánh (tuỳ chọn)" value={form.email} onChangeText={(v) => setForm({ ...form, email: v })} autoCapitalize="none" keyboardType="email-address" editable={editable} placeholderTextColor={inputPlaceholderColor} />
+      <Input label="Email chi nhánh (tuỳ chọn)" value={form.email} onChangeText={(v) => setForm({ ...form, email: v })} {...emailInputProps} editable={editable} placeholderTextColor={inputPlaceholderColor} />
       <Input
         label={`Giới thiệu (tuỳ chọn) · ${form.description.length}/${ABOUT_MAX}`}
         value={form.description}

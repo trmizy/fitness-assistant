@@ -4,6 +4,7 @@ dotenv.config();
 import app from "./app";
 import { prisma } from "./repositories/auth.repository";
 import { logger } from "@gym-coach/shared";
+import { assertFrontendUrlForProduction } from "./config/frontend-url";
 import { startPtDeactivationRelaySweepJob } from "./services/pt-deactivation-relay-sweep.service";
 
 // Fail-closed: /auth/internal/* endpoints rely on x-service-secret. Refuse to start
@@ -42,6 +43,14 @@ if (process.env.NODE_ENV === "production") {
     );
     process.exit(1);
   }
+}
+
+// FRONTEND_URL builds the links in verification / password-reset emails — see config/frontend-url.ts.
+try {
+  assertFrontendUrlForProduction();
+} catch (error) {
+  logger.error((error as Error).message);
+  process.exit(1);
 }
 
 const PORT = process.env.PORT || 3001;

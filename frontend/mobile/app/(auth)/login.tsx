@@ -15,6 +15,7 @@ import {
   roleOf,
 } from "../../src/config/landing";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
 /**
  * Real login. The layout is the design's `Auth.tsx` (logo tile, display heading, two fields, a
@@ -57,7 +58,7 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      const success = await login(email.trim(), password);
+      const success = await login(normalizeEmail(email), password);
       if (!success) {
         setError("Email hoặc mật khẩu không đúng");
         return;
@@ -128,9 +129,7 @@ export default function LoginScreen() {
           <Input
             icon={Mail}
             placeholder="Email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
+            {...emailInputProps}
             value={email}
             onChangeText={setEmail}
             editable={!loading}

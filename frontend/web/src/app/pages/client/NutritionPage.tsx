@@ -98,10 +98,10 @@ interface EditForm {
 const COLORS = ["#22c55e", "#60a5fa", "#f59e0b"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snack",
+  breakfast: "Bữa sáng",
+  lunch: "Bữa trưa",
+  dinner: "Bữa tối",
+  snack: "Bữa phụ",
 };
 const MEAL_TIMES: Record<MealType, string> = {
   breakfast: "06–10",
@@ -624,8 +624,8 @@ export function NutritionPage() {
     Math.round(actualNutrition.fat * 9);
   const pieData = [
     { name: "Protein", value: Math.round(actualNutrition.protein * 4) },
-    { name: "Carbs", value: Math.round(actualNutrition.carbs * 4) },
-    { name: "Fat", value: Math.round(actualNutrition.fat * 9) },
+    { name: "Tinh bột", value: Math.round(actualNutrition.carbs * 4) },
+    { name: "Chất béo", value: Math.round(actualNutrition.fat * 9) },
   ];
 
   const weeklyHistory = Array.from({ length: 7 }, (_, i) => {
@@ -849,7 +849,7 @@ export function NutritionPage() {
       return;
     }
     if (isNaN(editForm.calories) || editForm.calories < 0) {
-      toast.error("Calories không hợp lệ");
+      toast.error("Calo không hợp lệ");
       return;
     }
     if (
@@ -1625,12 +1625,12 @@ export function NutritionPage() {
                             color: "text-green-400",
                           },
                           {
-                            label: "Carbs",
+                            label: "Tinh bột",
                             val: `${prevCrbPct}g`,
                             color: "text-blue-400",
                           },
                           {
-                            label: "Fat",
+                            label: "Chất béo",
                             val: `${prevFatPct}g`,
                             color: "text-amber-400",
                           },
@@ -1658,7 +1658,7 @@ export function NutritionPage() {
                       <div>
                         <label className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
                           <span>
-                            Calories thực tế (kcal){" "}
+                            Calo thực tế (kcal){" "}
                             <span className="text-red-400">*</span>
                           </span>
                           {calInput > 0 && (
@@ -1695,14 +1695,14 @@ export function NutritionPage() {
                               color: "focus:border-green-500/60",
                             },
                             {
-                              label: "Carbs",
+                              label: "Tinh bột",
                               val: partialCarb,
                               set: setPartialCarb,
                               ph: String(partialMeal.plannedCarbs.toFixed(0)),
                               color: "focus:border-blue-500/60",
                             },
                             {
-                              label: "Fat",
+                              label: "Chất béo",
                               val: partialFatAmt,
                               set: setPartialFatAmt,
                               ph: String(partialMeal.plannedFat.toFixed(0)),
@@ -1822,7 +1822,7 @@ export function NutritionPage() {
             <span className="font-semibold text-blue-400">Carb</span> = giúp bạn tập khỏe.
           </p>
           <p>
-            <span className="font-semibold text-amber-400">Fat</span> = cần cho sức khỏe và hormone.
+            <span className="font-semibold text-amber-400">Chất béo</span> = cần cho sức khỏe và hormone.
           </p>
           <p className="col-span-2 text-zinc-500">
             Cân nặng dao động từng ngày — hãy nhìn trung bình cả tuần, đừng lo nếu 1 ngày lệch mục tiêu.
@@ -1837,7 +1837,7 @@ export function NutritionPage() {
       >
         {[
           {
-            label: "Calories",
+            label: "Calo",
             consumed: Math.round(
               dailyTask?.actualProgress?.calories ?? totals.calories,
             ),
@@ -1859,7 +1859,7 @@ export function NutritionPage() {
             textColor: "text-green-400",
           },
           {
-            label: "Carbs",
+            label: "Tinh bột",
             consumed: +(
               dailyTask?.actualProgress?.carbs ?? totals.carbs
             ).toFixed(1),
@@ -1869,7 +1869,7 @@ export function NutritionPage() {
             textColor: "text-blue-400",
           },
           {
-            label: "Fat",
+            label: "Chất béo",
             consumed: +(dailyTask?.actualProgress?.fat ?? totals.fat).toFixed(
               1,
             ),
@@ -1882,7 +1882,7 @@ export function NutritionPage() {
           // Part 3 (Beginner Mode) — show only Calo/Protein first; Carb/Fat
           // stay one tap away via "Xem chi tiết macro" instead of hitting a
           // brand-new user with all 4 numbers at once.
-          .filter((m) => simpleMode ? m.label === "Calories" || m.label === "Protein" : true)
+          .filter((m) => simpleMode ? m.label === "Calo" || m.label === "Protein" : true)
           .map((m) => (
           <div
             key={m.label}
@@ -2527,12 +2527,12 @@ export function NutritionPage() {
                   color: COLORS[0],
                 },
                 {
-                  name: "Carbs",
+                  name: "Tinh bột",
                   value: Math.round(actualNutrition.carbs * 4),
                   color: COLORS[1],
                 },
                 {
-                  name: "Fat",
+                  name: "Chất béo",
                   value: Math.round(actualNutrition.fat * 9),
                   color: COLORS[2],
                 },
@@ -2796,12 +2796,12 @@ export function NutritionPage() {
                           color: "text-green-400",
                         },
                         {
-                          label: "Carbs",
+                          label: "Tinh bột",
                           val: addPreview.carbs + "g",
                           color: "text-blue-400",
                         },
                         {
-                          label: "Fat",
+                          label: "Chất béo",
                           val: addPreview.fat + "g",
                           color: "text-amber-400",
                         },
@@ -3139,7 +3139,7 @@ export function NutritionPage() {
               {[
                 {
                   key: "calories",
-                  label: "Calories",
+                  label: "Calo",
                   unit: "kcal",
                   color: "text-orange-400",
                 },
@@ -3151,13 +3151,13 @@ export function NutritionPage() {
                 },
                 {
                   key: "carbs",
-                  label: "Carbohydrate",
+                  label: "Tinh bột",
                   unit: "g",
                   color: "text-blue-400",
                 },
                 {
                   key: "fat",
-                  label: "Fat",
+                  label: "Chất béo",
                   unit: "g",
                   color: "text-amber-400",
                 },

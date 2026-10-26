@@ -22,22 +22,22 @@ const SESSION_STATUS: Record<
   { label: string; color: string; bg: string }
 > = {
   REQUESTED: {
-    label: "Pending",
+    label: "Chờ xác nhận",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   CONFIRMED: {
-    label: "Confirmed",
+    label: "Đã xác nhận",
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
   },
   COMPLETED: {
-    label: "Completed",
+    label: "Hoàn thành",
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
   },
   CANCELLED: {
-    label: "Cancelled",
+    label: "Đã hủy",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
@@ -50,17 +50,17 @@ const SESSION_STATUS: Record<
   // lifecycle (client-confirmation window, dispute flow, reschedule requests) but predate
   // this map — added so Record<SessionStatus, ...>'s completeness check stays meaningful.
   PENDING_CLIENT_CONFIRMATION: {
-    label: "Awaiting client confirmation",
+    label: "Chờ khách xác nhận",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   DISPUTED: {
-    label: "Disputed",
+    label: "Đang tranh chấp",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
   RESCHEDULE_PENDING: {
-    label: "Reschedule pending",
+    label: "Chờ đổi lịch",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
@@ -75,9 +75,9 @@ function partyName(c: Contract) {
 function formatSessionTime(iso: string) {
   const d = new Date(iso);
   return (
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+    d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }) +
     " " +
-    d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
   );
 }
 
@@ -86,13 +86,13 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
   PENDING_REVIEW: {
-    label: "Pending Review",
+    label: "Chờ duyệt",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
     icon: Clock,
   },
   PENDING_SIGNATURE: {
-    label: "Pending Sign",
+    label: "Chờ ký",
     color: "text-purple-400",
     bg: "bg-purple-500/10 border-purple-500/20",
     icon: FileText,
@@ -103,37 +103,37 @@ const STATUS_CONFIG: Record<
   // here as soon as the PT accepts (REQUIRE_CONTRACT_ESIGN=false skips e-sign straight to
   // PENDING_PAYMENT), so this crashed on every single Accept.
   PENDING_PAYMENT: {
-    label: "Payment Due",
+    label: "Chờ thanh toán",
     color: "text-orange-400",
     bg: "bg-orange-500/10 border-orange-500/20",
     icon: DollarSign,
   },
   ACTIVE: {
-    label: "Active",
+    label: "Đang hiệu lực",
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
     icon: CheckCircle,
   },
   COMPLETED: {
-    label: "Completed",
+    label: "Hoàn thành",
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
     icon: CheckCircle,
   },
   EXPIRED: {
-    label: "Expired",
+    label: "Đã hết hạn",
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
     icon: AlertTriangle,
   },
   CANCELLED: {
-    label: "Cancelled",
+    label: "Đã hủy",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
     icon: XCircle,
   },
   REJECTED: {
-    label: "Rejected",
+    label: "Đã từ chối",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
     icon: XCircle,
@@ -141,18 +141,18 @@ const STATUS_CONFIG: Record<
 };
 
 const TABS: { label: string; value: string }[] = [
-  { label: "All", value: "" },
-  { label: "Pending", value: "PENDING_REVIEW" },
-  { label: "Active", value: "ACTIVE" },
-  { label: "Completed", value: "COMPLETED" },
-  { label: "Cancelled", value: "CANCELLED" },
+  { label: "Tất cả", value: "" },
+  { label: "Chờ duyệt", value: "PENDING_REVIEW" },
+  { label: "Đang hiệu lực", value: "ACTIVE" },
+  { label: "Hoàn thành", value: "COMPLETED" },
+  { label: "Đã hủy", value: "CANCELLED" },
 ];
 
 function formatDate(d?: string | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
+  return new Date(d).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
   });
 }
@@ -187,7 +187,7 @@ export function PTContractsPage() {
   const acceptMutation = useMutation({
     mutationFn: (id: string) => contractService.acceptContract(id),
     onSuccess: () => {
-      toast.success("Contract accepted!");
+      toast.success("Đã chấp nhận hợp đồng!");
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) => {
@@ -197,7 +197,7 @@ export function PTContractsPage() {
         setTermsOpen(true);
         return;
       }
-      toast.error(err?.response?.data?.error || "Failed to accept");
+      toast.error(err?.response?.data?.error || "Không chấp nhận được hợp đồng");
     },
   });
 
@@ -205,13 +205,13 @@ export function PTContractsPage() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       contractService.rejectContract(id, reason),
     onSuccess: () => {
-      toast.success("Contract rejected");
+      toast.success("Đã từ chối hợp đồng");
       setRejectId(null);
       setRejectReason("");
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to reject"),
+      toast.error(err?.response?.data?.error || "Không từ chối được hợp đồng"),
   });
 
   const feedbackMutation = useMutation({
@@ -236,13 +236,13 @@ export function PTContractsPage() {
       toast.success(
         refund > 0
           ? `Đã hủy hợp đồng — khách được hoàn ${refund.toLocaleString("vi-VN")}đ`
-          : "Contract cancelled",
+          : "Đã hủy hợp đồng",
       );
       setCancelId(null);
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to cancel"),
+      toast.error(err?.response?.data?.error || "Không hủy được hợp đồng"),
   });
 
   // ── Session queries & mutations ──────────────────────────────────
@@ -258,46 +258,46 @@ export function PTContractsPage() {
   const confirmSessionMut = useMutation({
     mutationFn: (id: string) => sessionService.confirmSession(id),
     onSuccess: () => {
-      toast.success("Session confirmed");
+      toast.success("Đã xác nhận buổi tập");
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to confirm"),
+      toast.error(err?.response?.data?.error || "Không xác nhận được buổi tập"),
   });
 
   const completeSessionMut = useMutation({
     mutationFn: (id: string) => sessionService.completeSession(id),
     onSuccess: () => {
-      toast.success("Session marked as completed");
+      toast.success("Đã đánh dấu buổi tập hoàn thành");
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to complete"),
+      toast.error(err?.response?.data?.error || "Không đánh dấu hoàn thành được"),
   });
 
   const cancelSessionMut = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       sessionService.cancelSession(id, reason),
     onSuccess: () => {
-      toast.success("Session cancelled");
+      toast.success("Đã hủy buổi tập");
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to cancel session"),
+      toast.error(err?.response?.data?.error || "Không hủy được buổi tập"),
   });
 
   const noShowMut = useMutation({
     mutationFn: ({ id, noShowBy }: { id: string; noShowBy: "CLIENT" | "PT" }) =>
       sessionService.markNoShow(id, noShowBy),
     onSuccess: () => {
-      toast.success("No-show recorded");
+      toast.success("Đã ghi nhận vắng mặt");
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to record no-show"),
+      toast.error(err?.response?.data?.error || "Không ghi nhận được vắng mặt"),
   });
 
   // Mirror-image of the client's session review (BookingPage.tsx) — PT rates the client
@@ -353,10 +353,10 @@ export function PTContractsPage() {
       {/* Header */}
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <FileText className="w-5 h-5 text-green-400" /> Contracts
+          <FileText className="w-5 h-5 text-green-400" /> Hợp đồng
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Manage client coaching requests and agreements
+          Quản lý yêu cầu huấn luyện và hợp đồng của khách hàng
         </p>
       </div>
 
@@ -366,25 +366,25 @@ export function PTContractsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {
-            label: "Total",
+            label: "Tổng",
             value: kpis.total,
             icon: FileText,
             accent: "text-zinc-300",
           },
           {
-            label: "Pending",
+            label: "Chờ duyệt",
             value: kpis.pending,
             icon: Clock,
             accent: "text-amber-400",
           },
           {
-            label: "Active",
+            label: "Đang hiệu lực",
             value: kpis.active,
             icon: CheckCircle,
             accent: "text-green-400",
           },
           {
-            label: "Completed",
+            label: "Hoàn thành",
             value: kpis.completed,
             icon: CheckCircle,
             accent: "text-blue-400",
@@ -412,7 +412,7 @@ export function PTContractsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by package name..."
+            placeholder="Tìm theo tên gói..."
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
@@ -449,10 +449,9 @@ export function PTContractsPage() {
       {!isLoading && filtered.length === 0 && (
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-20 text-center">
           <FileText className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-          <h3 className="text-zinc-200 font-bold mb-1">No contracts</h3>
+          <h3 className="text-zinc-200 font-bold mb-1">Chưa có hợp đồng</h3>
           <p className="text-sm text-zinc-500 max-w-xs mx-auto">
-            Client coaching requests will appear here when clients request your
-            services.
+            Yêu cầu huấn luyện của khách hàng sẽ hiện ở đây khi họ đăng ký dịch vụ của bạn.
           </p>
         </div>
       )}
@@ -538,13 +537,13 @@ export function PTContractsPage() {
                           disabled={acceptMutation.isPending}
                           className="flex flex-1 sm:flex-none items-center justify-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                         >
-                          <Check className="w-3.5 h-3.5" /> Accept
+                          <Check className="w-3.5 h-3.5" /> Chấp nhận
                         </button>
                         <button
                           onClick={() => setRejectId(c.id)}
                           className="flex flex-1 sm:flex-none items-center justify-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         >
-                          <X className="w-3.5 h-3.5" /> Reject
+                          <X className="w-3.5 h-3.5" /> Từ chối
                         </button>
                       </div>
                     )}
@@ -572,7 +571,7 @@ export function PTContractsPage() {
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 bg-zinc-800/40 rounded-lg px-3 py-2">
                       <div className="min-w-0">
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Contract ID
+                          Mã hợp đồng
                         </div>
                         <code className="text-[11px] font-mono text-zinc-300 break-all select-all">
                           {c.id}
@@ -580,7 +579,7 @@ export function PTContractsPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Client
+                          Khách hàng
                         </div>
                         <div className="text-xs text-zinc-300 truncate">
                           {partyName(c)}
@@ -594,7 +593,7 @@ export function PTContractsPage() {
                       </div>
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Created
+                          Ngày tạo
                         </div>
                         <div className="text-xs text-zinc-300">
                           {formatDate(c.createdAt)}
@@ -605,17 +604,17 @@ export function PTContractsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Package Type
+                          Loại gói
                         </div>
                         <div className="text-sm text-zinc-300">
                           {c.packageType === "PER_SESSION"
-                            ? "Per Session"
-                            : "Package"}
+                            ? "Theo buổi"
+                            : "Theo gói"}
                         </div>
                       </div>
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Start Date
+                          Ngày bắt đầu
                         </div>
                         <div className="text-sm text-zinc-300">
                           {formatDate(c.startDate)}
@@ -623,7 +622,7 @@ export function PTContractsPage() {
                       </div>
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          End Date
+                          Ngày kết thúc
                         </div>
                         <div className="text-sm text-zinc-300">
                           {formatDate(c.endDate)}
@@ -631,7 +630,7 @@ export function PTContractsPage() {
                       </div>
                       <div>
                         <div className="text-xs text-zinc-600 mb-0.5">
-                          Price
+                          Giá
                         </div>
                         <div className="text-sm text-zinc-300 font-bold">
                           {formatPrice(c.price)}
@@ -647,7 +646,7 @@ export function PTContractsPage() {
                     {/* Session progress */}
                     <div>
                       <div className="text-xs text-zinc-600 mb-2">
-                        Sessions: {c.usedSessions + (c.compensatedSessions ?? 0)} / {c.totalSessions}
+                        Số buổi: {c.usedSessions + (c.compensatedSessions ?? 0)} / {c.totalSessions}
                       </div>
                       <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
                         <div
@@ -662,7 +661,7 @@ export function PTContractsPage() {
                       (expandedSessions as Session[]).length > 0 && (
                         <div>
                           <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <Calendar className="w-3 h-3" /> Sessions (
+                            <Calendar className="w-3 h-3" /> Buổi tập (
                             {(expandedSessions as Session[]).length})
                           </div>
                           <div className="space-y-2">
@@ -682,8 +681,8 @@ export function PTContractsPage() {
                                       </span>
                                       <span className="text-xs text-zinc-600">
                                         {s.sessionMode === "ONLINE"
-                                          ? "Online"
-                                          : "In Person"}
+                                          ? "Trực tuyến"
+                                          : "Trực tiếp"}
                                       </span>
                                     </div>
                                     <div className="text-sm text-zinc-300 font-medium">
@@ -705,19 +704,19 @@ export function PTContractsPage() {
                                           disabled={confirmSessionMut.isPending}
                                           className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                                         >
-                                          <Check className="w-3 h-3" /> Confirm
+                                          <Check className="w-3 h-3" /> Xác nhận
                                         </button>
                                         <button
                                           onClick={() =>
                                             cancelSessionMut.mutate({
                                               id: s.id,
-                                              reason: "PT declined",
+                                              reason: "PT từ chối buổi tập",
                                             })
                                           }
                                           disabled={cancelSessionMut.isPending}
                                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                         >
-                                          <X className="w-3 h-3" /> Decline
+                                          <X className="w-3 h-3" /> Từ chối
                                         </button>
                                       </>
                                     )}
@@ -741,7 +740,7 @@ export function PTContractsPage() {
                                               className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                                             >
                                               <CheckCircle className="w-3 h-3" />{" "}
-                                              Complete
+                                                Hoàn thành
                                             </button>
                                             <button
                                               onClick={() =>
@@ -754,7 +753,7 @@ export function PTContractsPage() {
                                               className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                             >
                                               <AlertOctagon className="w-3 h-3" />{" "}
-                                              No-Show
+                                                Vắng mặt
                                             </button>
                                           </>
                                         )}
@@ -762,13 +761,13 @@ export function PTContractsPage() {
                                           onClick={() =>
                                             cancelSessionMut.mutate({
                                               id: s.id,
-                                              reason: "PT cancelled",
+                                              reason: "PT hủy buổi tập",
                                             })
                                           }
                                           disabled={cancelSessionMut.isPending}
                                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                         >
-                                          <X className="w-3 h-3" /> Cancel
+                                          <X className="w-3 h-3" /> Hủy buổi
                                         </button>
                                       </>
                                     )}
@@ -809,7 +808,7 @@ export function PTContractsPage() {
                     {c.clientMessage && (
                       <div className="bg-zinc-800/30 rounded-lg p-3">
                         <div className="text-xs text-zinc-500 mb-1 flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3" /> Client Message
+                          <MessageSquare className="w-3 h-3" /> Lời nhắn của khách
                         </div>
                         <p className="text-sm text-zinc-400">
                           {c.clientMessage}
@@ -820,7 +819,7 @@ export function PTContractsPage() {
                     {c.rejectionReason && (
                       <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
                         <div className="text-xs text-red-400 mb-1">
-                          Rejection Reason
+                          Lý do từ chối
                         </div>
                         <p className="text-sm text-zinc-400">
                           {c.rejectionReason}
@@ -831,7 +830,7 @@ export function PTContractsPage() {
                     {c.cancellationReason && (
                       <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
                         <div className="text-xs text-red-400 mb-1">
-                          Cancellation Reason
+                          Lý do hủy
                         </div>
                         <p className="text-sm text-zinc-400">
                           {c.cancellationReason}
@@ -848,13 +847,13 @@ export function PTContractsPage() {
                             disabled={acceptMutation.isPending}
                             className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                           >
-                            <Check className="w-3.5 h-3.5" /> Accept
+                            <Check className="w-3.5 h-3.5" /> Chấp nhận
                           </button>
                           <button
                             onClick={() => setRejectId(c.id)}
                             className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                           >
-                            <X className="w-3.5 h-3.5" /> Reject
+                            <X className="w-3.5 h-3.5" /> Từ chối
                           </button>
                         </>
                       )}
@@ -871,12 +870,12 @@ export function PTContractsPage() {
                             onClick={() => setCancelId(c.id)}
                             className="flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                           >
-                            <Ban className="w-3.5 h-3.5" /> Cancel Contract
+                            <Ban className="w-3.5 h-3.5" /> Hủy hợp đồng
                           </button>
                         </>
                       )}
                       <div className="ml-auto text-xs text-zinc-600 self-center">
-                        Created {formatDate(c.createdAt)}
+                        Tạo ngày {formatDate(c.createdAt)}
                       </div>
                     </div>
                   </div>
@@ -936,19 +935,18 @@ export function PTContractsPage() {
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">
-                Reject Coaching Request
+                Từ chối yêu cầu huấn luyện
               </h3>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                Please provide a reason for declining this request. The client
-                will see this.
+                Vui lòng nhập lý do từ chối yêu cầu này. Khách hàng sẽ nhìn thấy lý do.
               </p>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 rows={3}
-                placeholder="Reason for rejection..."
+                placeholder="Lý do từ chối..."
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 resize-none"
               />
             </div>
@@ -960,7 +958,7 @@ export function PTContractsPage() {
                 }}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={() =>
@@ -972,7 +970,7 @@ export function PTContractsPage() {
                 {rejectMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
-                Reject
+                Từ chối
               </button>
             </div>
           </div>
@@ -1038,11 +1036,11 @@ export function PTContractsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Cancel Contract</h3>
+              <h3 className="text-zinc-100 font-bold">Hủy hợp đồng</h3>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                This cannot be undone. The client is refunded 100% of the unused value.
+                Thao tác này không thể hoàn tác. Khách hàng được hoàn 100% giá trị chưa dùng.
               </p>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
@@ -1050,7 +1048,7 @@ export function PTContractsPage() {
                 onClick={() => setCancelId(null)}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
-                Keep
+                Giữ lại
               </button>
               <button
                 onClick={() => cancelMutation.mutate(cancelId)}
@@ -1060,7 +1058,7 @@ export function PTContractsPage() {
                 {cancelMutation.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
-                Cancel Contract
+                Hủy hợp đồng
               </button>
             </div>
           </div>

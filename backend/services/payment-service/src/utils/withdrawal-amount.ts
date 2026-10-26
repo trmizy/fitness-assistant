@@ -16,6 +16,15 @@ export function isParsableAmount(raw: unknown): boolean {
   }
 }
 
+/**
+ * C2-02: VND has no minor unit, so a payout cannot be 10000.555 (the ledger stored 10000.56 and locked/refunded exactly that).
+ * Whole-dong only: "10000" and "10000.00" pass (same value), "10000.5" / "10000.555" do not. Ledger math is untouched.
+ */
+export function isValidWithdrawalAmount(raw: unknown): boolean {
+  if (!isParsableAmount(raw)) return false;
+  return new Prisma.Decimal(raw as string).isInteger();
+}
+
 export const INVALID_AMOUNT_BODY = {
   success: false,
   error: { code: 'INVALID_AMOUNT', message: 'Số tiền rút không hợp lệ' },

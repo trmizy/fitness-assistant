@@ -473,7 +473,7 @@ export function OnboardingWizardPage() {
                 key={s.key}
                 type="button"
                 onClick={() => i < currentStep && setCurrentStep(i)}
-                className="flex flex-col items-center gap-1.5 flex-1 min-w-[60px] group transition-all"
+                className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all"
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${

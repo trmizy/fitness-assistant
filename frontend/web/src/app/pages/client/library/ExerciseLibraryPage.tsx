@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlassIcon as Search, BarbellIcon as Dumbbell, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { workoutService } from "../../../services/api";
 import { ExerciseMediaPreview } from "./ExerciseMediaPreview";
+import { ACTIVITY_TYPE_VI, EQUIPMENT_VI } from "../../../utils/labels.vi";
 
 const PAGE_SIZE = 24;
 
@@ -130,7 +131,7 @@ export function ExerciseLibraryPage() {
           <option value="">Mọi thiết bị</option>
           {(filters?.equipments ?? []).map((v: string) => (
             <option key={v} value={v}>
-              {v.replace(/_/g, " ").toLowerCase()}
+              {EQUIPMENT_VI[v] ?? v.replace(/_/g, " ").toLowerCase()}
             </option>
           ))}
         </select>
@@ -143,7 +144,7 @@ export function ExerciseLibraryPage() {
           <option value="">Mọi loại hoạt động</option>
           {(filters?.activityTypes ?? []).map((v: string) => (
             <option key={v} value={v}>
-              {v.replace(/_/g, " ").toLowerCase()}
+              {ACTIVITY_TYPE_VI[v] ?? v.replace(/_/g, " ").toLowerCase()}
             </option>
           ))}
         </select>
@@ -183,7 +184,7 @@ export function ExerciseLibraryPage() {
               : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
           }`}
         >
-          Co media
+          Có hình/video
         </button>
       </div>
 

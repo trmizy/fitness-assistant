@@ -13,6 +13,12 @@ import { ptApplicationReviewNotice } from "../utils/ptApplicationNotice.util";
 import { profileNameFields } from "../utils/profileName.util";
 import { ptTermsService, PT_TERMS_NOT_ACCEPTED } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
+import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from "../utils/phone.util";
+
+/** An error the controller can answer with its own HTTP status and a machine-readable code. */
+function httpError(message: string, status: number, code: string): Error & { status: number; code: string } {
+  return Object.assign(new Error(message), { status, code });
+}
 
 const prisma = new PrismaClient();
 
@@ -176,6 +182,13 @@ async function validatePriceFields(data: any): Promise<void> {
   }
 }
 
+/** C1-08: a phone number that is present must look like one (empty/absent is fine for a draft; submit requires it). */
+function validatePhoneField(data: any): void {
+  const raw = data?.phoneNumber;
+  if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) return;
+  if (!isValidPhoneNumber(raw)) throw httpError(PHONE_INVALID_MESSAGE, 400, "INVALID_PHONE_NUMBER");
+}
+
 async function syncRoleToPT(userId: string): Promise<void> {
   await authServiceClient.internalPatch(
     `/auth/internal/users/${userId}/role`,
@@ -202,23 +215,28 @@ export const ptApplicationService = {
   },
 
   async saveDraft(userId: string, data: any) {
-    const profile = await profileRepository.findByUserId(userId);
-    if (!profile) throw new Error("User profile not found");
+    // C4-03: a freshly registered account has no UserProfile row yet (the profile is only written when the
+    // user fills in onboarding), but applying to be a trainer must not depend on that. Create the minimal
+    // empty profile on demand - upsert, so two simultaneous first requests cannot collide, and the
+    // onboarding flag stays false so the normal onboarding is still offered afterwards.
+    const profile =
+      (await profileRepository.findByUserId(userId)) ?? (await profileRepository.upsert(userId, {}));
 
     // Check if user is already PT
-    if (profile.isPT) throw new Error("User is already a Personal Trainer");
+    if (profile.isPT) throw new Error("Bạn đã là huấn luyện viên");
 
     // Check if there is already a non-DRAFT/NEEDS_MORE_INFO application
     const existing = await ptApplicationRepository.findByUserId(userId);
     if (existing && !["DRAFT", "NEEDS_MORE_INFO"].includes(existing.status)) {
       throw new Error(
-        `Cannot save draft while application is in ${existing.status} status`,
+        "Không thể sửa bản nháp khi đơn ứng tuyển đang được xét duyệt hoặc đã có kết quả",
       );
     }
 
     // Validate location data if provided
     await validateLocationData(data);
     await validatePriceFields(data);
+    validatePhoneField(data);
 
     // B7a: Save availability to PTAvailability directly
     if (data.availabilityBlocks) {
@@ -241,9 +259,9 @@ export const ptApplicationService = {
     opts: { termsVersion?: string; meta?: { ipAddress?: string | null; userAgent?: string | null } } = {},
   ) {
     const app = await ptApplicationRepository.findByUserId(userId);
-    if (!app) throw new Error("No application found to submit");
+    if (!app) throw new Error("Chưa có đơn ứng tuyển nào để nộp");
     if (!["DRAFT", "NEEDS_MORE_INFO"].includes(app.status)) {
-      throw new Error("Application is already submitted or processed");
+      throw new Error("Đơn ứng tuyển đã được nộp hoặc đã có kết quả");
     }
 
     // Basic validation before submission
@@ -260,12 +278,14 @@ export const ptApplicationService = {
 
     for (const field of requiredFields) {
       if (!(app as any)[field]) {
-        throw new Error(`Missing required field for submission: ${field}`);
+        throw new Error(`Thiếu thông tin bắt buộc để nộp đơn: ${field}`);
       }
     }
+    // A draft saved before the format check existed may still hold a junk number.
+    validatePhoneField({ phoneNumber: app.phoneNumber });
 
     if (app.mainSpecialties.length === 0) {
-      throw new Error("At least one specialty is required");
+      throw new Error("Cần chọn ít nhất một chuyên môn");
     }
 
     // Pricing validation — mode-based
@@ -375,7 +395,7 @@ export const ptApplicationService = {
 
   async adminReviewAction(id: string, action: string, payload: any, reviewerUserId: string) {
     const app = await ptApplicationRepository.findById(id);
-    if (!app) throw new Error("Application not found");
+    if (!app) throw httpError("Không tìm thấy đơn ứng tuyển", 404, "PT_APPLICATION_NOT_FOUND");
 
     // Normalize action names (frontend may send short forms)
     const actionAliases: Record<string, string> = {
@@ -393,7 +413,7 @@ export const ptApplicationService = {
     };
 
     const status = statusMap[normalizedAction];
-    if (!status) throw new Error(`Invalid action: ${action}`);
+    if (!status) throw httpError(`Hành động không hợp lệ: ${action}`, 400, "INVALID_REVIEW_ACTION");
 
     // B08: approving an application that is already APPROVED is a no-op that answers with the current
     // state - no second role sync, no location rewrite, no new "approved" notification, no overwritten
@@ -411,18 +431,29 @@ export const ptApplicationService = {
 
     if (normalizedAction === "REJECTED") {
       if (!payload.rejectionReason)
-        throw new Error("Rejection reason is required");
+        throw new Error("Cần nhập lý do từ chối");
       extra.rejectionReason = payload.rejectionReason;
     }
 
     if (normalizedAction === "NEEDS_MORE_INFO") {
       if (!payload.adminNote)
-        throw new Error("Admin feedback is required for NEEDS_MORE_INFO");
+        throw new Error("Cần nhập nội dung yêu cầu bổ sung thông tin");
       extra.adminNote = payload.adminNote;
     }
 
     if (normalizedAction === "APPROVED") {
       extra.approvedAt = new Date();
+      // C4-02: an application that was rejected and is now approved must not keep showing the old
+      // rejection reason beside "approved". The reason is not lost: it was stored with the applicant's
+      // rejection notification (and the reviewer id is on every action); the log below records what
+      // was cleared.
+      if (app.rejectionReason) {
+        extra.rejectionReason = null;
+        logger.info(
+          { applicationId: id, reviewerUserId, clearedRejectionReason: app.rejectionReason },
+          "PT application approved: previous rejection reason cleared from the application",
+        );
+      }
 
       // Perform role sync and profile update
       await syncRoleToPT(app.userProfile.userId);
@@ -478,7 +509,7 @@ export const ptApplicationService = {
     await ptApplicationRepository.updateStatus(id, status, extra);
 
     // Tell the applicant — the result they were promised a notification for.
-    const notice = ptApplicationReviewNotice(normalizedAction);
+    const notice = ptApplicationReviewNotice(normalizedAction, extra.rejectionReason ?? undefined);
     if (notice) {
       // Stored as well as pushed, so an applicant who was offline still finds the result in
       // their notification list. Never allowed to fail the review itself.
@@ -495,12 +526,17 @@ export const ptApplicationService = {
     }
     // Fetch full application with userProfile and enrich with auth-service data
     const updated = await ptApplicationRepository.findById(id);
-    if (!updated) throw new Error("Application not found after update");
+    if (!updated) throw httpError("Không tìm thấy đơn ứng tuyển", 404, "PT_APPLICATION_NOT_FOUND");
     return signPtApplicationDocumentUrls(await enrichWithUserInfo(updated));
   },
 
-  async listApplications(filters: any) {
-    const apps = await ptApplicationRepository.findAll(filters);
+  async countApplications(filters: any) {
+    return ptApplicationRepository.countAll(filters);
+  },
+
+  /** `paging` omitted: every matching application, as before (C1-10 keeps existing callers working). */
+  async listApplications(filters: any, paging?: { page: number; limit: number }) {
+    const apps = await ptApplicationRepository.findAll(filters, paging);
     // Enrich all applications with user info from auth-service (in parallel). One row that cannot be
     // enriched or have its document links signed must never take the whole admin list down (B01): it is
     // logged and returned without enrichment instead.

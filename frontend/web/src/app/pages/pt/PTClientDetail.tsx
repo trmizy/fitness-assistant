@@ -498,7 +498,7 @@ export function PTClientDetail() {
               {clientContracts.slice(1).map((c: any) => (
                 <div key={c.id} className="flex justify-between text-xs">
                   <span className="text-zinc-500">
-                    {c.packageName ?? "Package"}
+                    {c.packageName ?? "Gói huấn luyện"}
                   </span>
                   <span className="text-zinc-600">
                     {contractStatusLabel[c.status] ?? c.status}

@@ -69,7 +69,8 @@ async function post(path: string, body: unknown, headers: Record<string, string>
 
 const SERVICE_SECRET = { 'x-service-secret': 'dev_internal_service_secret_change_in_production' };
 
-for (const bad of ['abc', '12abc', 'Infinity', 'NaN', '  ']) {
+// C2-02: fractional dong is refused too (VND has no minor unit)
+for (const bad of ['abc', '12abc', 'Infinity', 'NaN', '  ', '10000.555', '10000.5', '10000.01']) {
   test(`POST /me/withdrawals with amount ${JSON.stringify(bad)} -> 400 INVALID_AMOUNT (not 500)`, skipOpts, async () => {
     const r = await post('/me/withdrawals', { amount: bad, payoutInfo: 'Bank ABC 0123' }, { authorization: 'Bearer tok' });
     assert.equal(r.status, 400);
@@ -81,4 +82,16 @@ test('POST /internal/withdrawals/gym/:gymId with amount "abc" -> 400 INVALID_AMO
   const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: 'abc', payoutInfo: 'Bank ABC 0123' }, SERVICE_SECRET);
   assert.equal(r.status, 400);
   assert.equal(r.json.error.code, 'INVALID_AMOUNT');
+});
+
+test('POST /internal/withdrawals/gym/:gymId with a fractional dong amount -> 400 INVALID_AMOUNT too (C2-02)', skipOpts, async () => {
+  const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: '10000.555', payoutInfo: 'Bank ABC 0123' }, SERVICE_SECRET);
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error.code, 'INVALID_AMOUNT');
+});
+
+test('isValidWithdrawalAmount: whole dong only ("10000" and "10000.00" pass, fractions / junk do not) (C2-02)', async () => {
+  const { isValidWithdrawalAmount } = await import('../utils/withdrawal-amount');
+  for (const ok of ['10000', '10000.00', '250000']) assert.equal(isValidWithdrawalAmount(ok), true, ok);
+  for (const bad of ['10000.555', '10000.5', '0.01', 'abc', '', 'NaN', 'Infinity', 10000, null, undefined]) assert.equal(isValidWithdrawalAmount(bad), false, String(bad));
 });

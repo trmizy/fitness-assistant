@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, XIcon as X, PlusIcon as Plus, CircleNotchIcon as Loader2, CheckIcon as Check, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningOctagonIcon as AlertOctagon, ProhibitIcon as Ban, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sessionService, availabilityService } from "../../services/api";
+import { sessionService, availabilityService, contractService } from "../../services/api";
 import { toast } from "sonner";
 import type {
   Session,
@@ -19,20 +19,20 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
 // regardless).
 const NO_SHOW_GRACE_MIN = 15;
 
-const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "Tháng 1",
+  "Tháng 2",
+  "Tháng 3",
+  "Tháng 4",
+  "Tháng 5",
+  "Tháng 6",
+  "Tháng 7",
+  "Tháng 8",
+  "Tháng 9",
+  "Tháng 10",
+  "Tháng 11",
+  "Tháng 12",
 ];
 const WEEK_DAYS: DayOfWeek[] = [
   "MONDAY",
@@ -44,13 +44,13 @@ const WEEK_DAYS: DayOfWeek[] = [
   "SUNDAY",
 ];
 const DAY_LABELS: Record<DayOfWeek, string> = {
-  MONDAY: "Mon",
-  TUESDAY: "Tue",
-  WEDNESDAY: "Wed",
-  THURSDAY: "Thu",
-  FRIDAY: "Fri",
-  SATURDAY: "Sat",
-  SUNDAY: "Sun",
+  MONDAY: "Thứ 2",
+  TUESDAY: "Thứ 3",
+  WEDNESDAY: "Thứ 4",
+  THURSDAY: "Thứ 5",
+  FRIDAY: "Thứ 6",
+  SATURDAY: "Thứ 7",
+  SUNDAY: "CN",
 };
 
 const SESSION_STATUS_CFG: Record<
@@ -58,49 +58,49 @@ const SESSION_STATUS_CFG: Record<
   { label: string; color: string; bg: string }
 > = {
   REQUESTED: {
-    label: "Pending",
+    label: "Chờ xác nhận",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   CONFIRMED: {
-    label: "Confirmed",
+    label: "Đã xác nhận",
     color: "text-green-400",
     bg: "bg-green-500/10 border-green-500/20",
   },
   PENDING_CLIENT_CONFIRMATION: {
-    label: "Awaiting client",
+    label: "Chờ khách xác nhận",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   DISPUTED: {
-    label: "Disputed",
+    label: "Đang tranh chấp",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
   PT_NO_SHOW_REPORTED: {
-    label: "No-show reported",
+    label: "Đã báo vắng mặt",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
   COMPLETED: {
-    label: "Completed",
+    label: "Hoàn thành",
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
   },
   CANCELLED: {
-    label: "Cancelled",
+    label: "Đã hủy",
     color: "text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
   },
   NO_SHOW: {
-    label: "No Show",
+    label: "Vắng mặt",
     color: "text-zinc-400",
     bg: "bg-zinc-700/50 border-zinc-700",
   },
   // Merge note: added for the payment-gateways branch's reschedule-request flow — see the
   // same note on BookingPage.tsx/PTContractsPage.tsx's SESSION_STATUS maps.
   RESCHEDULE_PENDING: {
-    label: "Reschedule pending",
+    label: "Chờ đổi lịch",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
@@ -115,7 +115,7 @@ function getFirstDay(year: number, month: number) {
 
 function formatSessionTime(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 
 type Tab = "schedule" | "availability";
@@ -162,6 +162,20 @@ export function PTSchedulePage() {
   // Money-flow plan 4.3: sessions a client reported this PT as a no-show for. A separate,
   // time-unfiltered query — these are already in the past, so they never appear in
   // sessions-upcoming above.
+  // Session rows only carry clientUserId; the PT's contract list (same cache as /pt/contracts)
+  // already has each client's profile, so show a name instead of a UUID fragment.
+  const { data: ptContracts = [] } = useQuery({
+    queryKey: ["pt-contracts", ""],
+    queryFn: () => contractService.getByPT(),
+  });
+  const clientNameById = new Map<string, string>();
+  for (const c of ptContracts as any[]) {
+    const p = c?.clientProfile;
+    const n = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim() || p?.email;
+    if (c?.clientUserId && n) clientNameById.set(c.clientUserId, n);
+  }
+  const clientLabel = (id: string) => clientNameById.get(id) ?? "Khách hàng";
+
   const { data: noShowReports = [] } = useQuery({
     queryKey: ["sessions-no-show-reports"],
     queryFn: () => sessionService.listNoShowReports(),
@@ -213,38 +227,38 @@ export function PTSchedulePage() {
   const confirmMut = useMutation({
     mutationFn: (id: string) => sessionService.confirmSession(id),
     onSuccess: () => {
-      toast.success("Session confirmed");
+      toast.success("Đã xác nhận buổi tập");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   const completeMut = useMutation({
     mutationFn: (id: string) => sessionService.completeSession(id),
     onSuccess: () => {
-      toast.success("Session completed");
+      toast.success("Đã hoàn thành buổi tập");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   const cancelSessionMut = useMutation({
     mutationFn: (id: string) =>
-      sessionService.cancelSession(id, "PT cancelled"),
+      sessionService.cancelSession(id, "PT hủy buổi tập"),
     onSuccess: () => {
-      toast.success("Session cancelled");
+      toast.success("Đã hủy buổi tập");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   const noShowMut = useMutation({
     mutationFn: (id: string) => sessionService.markNoShow(id, "CLIENT"),
     onSuccess: () => {
-      toast.success("No-show recorded");
+      toast.success("Đã ghi nhận vắng mặt");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   // Money-flow plan 3.3: the PT's schedule had no way at all to respond to a client's
@@ -255,10 +269,10 @@ export function PTSchedulePage() {
     mutationFn: ({ requestId, action }: { requestId: string; action: "ACCEPT" | "REJECT" }) =>
       sessionService.respondToReschedule(requestId, action),
     onSuccess: (_data, variables) => {
-      toast.success(variables.action === "ACCEPT" ? "Reschedule accepted" : "Reschedule declined");
+      toast.success(variables.action === "ACCEPT" ? "Đã đồng ý đổi lịch" : "Đã từ chối đổi lịch");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   // The PT's own fixed weekly hours (Mon–Fri, say) are a default, not a ceiling — a PT who
@@ -312,13 +326,13 @@ export function PTSchedulePage() {
           { duration: 6000 }
         );
       } else {
-        toast.success("Availability saved");
+        toast.success("Đã lưu lịch làm việc");
       }
       setIsEditingAvail(false);
       queryClient.invalidateQueries({ queryKey: ["pt-availability"] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Failed to save"),
+      toast.error(err?.response?.data?.error || "Không lưu được lịch làm việc"),
   });
 
   const addExceptionMut = useMutation({
@@ -328,21 +342,21 @@ export function PTSchedulePage() {
       const affected = result?.affectedSessions ?? result?.data?.affectedSessions ?? 0;
       toast.success(
         affected > 0
-          ? `Date blocked — ${affected} session(s) on that day were cancelled and the client(s) compensated`
-          : "Date blocked",
+          ? `Đã chặn ngày — ${affected} buổi tập trong ngày đó đã bị hủy và khách hàng được bồi thường`
+          : "Đã chặn ngày",
       );
       setBlockDate("");
       setBlockReason("");
       queryClient.invalidateQueries({ queryKey: ["pt-exceptions"] });
       queryClient.invalidateQueries({ queryKey: ["pt-sessions"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
   });
 
   const removeExceptionMut = useMutation({
     mutationFn: (id: string) => availabilityService.removeException(id),
     onSuccess: () => {
-      toast.success("Block removed");
+      toast.success("Đã bỏ chặn ngày");
       queryClient.invalidateQueries({ queryKey: ["pt-exceptions"] });
     },
   });
@@ -392,7 +406,7 @@ export function PTSchedulePage() {
   // wrapper and, despite align-items:stretch being the flex default, ended up sized to its own
   // content's max-content width instead of the container's full available width — the exact
   // bug reported live: picking a day whose session card (buttons, longer names) is wider than
-  // the empty "No sessions on this day" state visibly widened the ENTIRE page, calendar column
+  // the empty "Không có buổi tập nào trong ngày này" state visibly widened the ENTIRE page, calendar column
   // included, even though the calendar's own content never changed. w-full pins the block to
   // 100% of its flex parent regardless of what any one child renders.
   return (
@@ -400,10 +414,10 @@ export function PTSchedulePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Calendar className="w-5 h-5 text-green-400" /> My Schedule
+            <Calendar className="w-5 h-5 text-green-400" /> Lịch của tôi
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Manage your coaching sessions and availability
+            Quản lý các buổi huấn luyện và lịch làm việc của bạn
           </p>
         </div>
       </div>
@@ -479,13 +493,13 @@ export function PTSchedulePage() {
           onClick={() => setTab("schedule")}
           className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === "schedule" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
         >
-          Sessions
+          Buổi tập
         </button>
         <button
           onClick={() => setTab("availability")}
           className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${tab === "availability" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
         >
-          <Settings className="w-3.5 h-3.5" /> Availability
+          <Settings className="w-3.5 h-3.5" /> Lịch làm việc
         </button>
       </div>
 
@@ -564,8 +578,8 @@ export function PTSchedulePage() {
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-zinc-200">
               {selectedDay
-                ? `${MONTHS[month]} ${selectedDay}`
-                : "Select a date"}
+                ? `Ngày ${selectedDay} ${MONTHS[month].toLowerCase()}`
+                : "Chọn một ngày"}
             </h4>
 
             {loadingSessions ? (
@@ -575,7 +589,7 @@ export function PTSchedulePage() {
             ) : daySessions.length === 0 ? (
               <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center">
                 <Calendar className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                <p className="text-sm text-zinc-500">No sessions on this day</p>
+                <p className="text-sm text-zinc-500">Không có buổi tập nào trong ngày này</p>
               </div>
             ) : (
               daySessions.map((s) => {
@@ -592,14 +606,14 @@ export function PTSchedulePage() {
                         {cfg.label}
                       </span>
                       <span className="text-xs text-zinc-600">
-                        {s.sessionMode === "ONLINE" ? "Online" : "In Person"}
+                        {s.sessionMode === "ONLINE" ? "Trực tuyến" : "Trực tiếp"}
                       </span>
                       <span className="text-xs text-zinc-500 ml-auto">
                         {formatSessionTime(s.scheduledStartAt)}
                       </span>
                     </div>
                     <div className="text-xs text-zinc-500">
-                      {s.clientUserId.slice(0, 8)}...
+                      {clientLabel(s.clientUserId)}
                     </div>
                     {s.notes && (
                       <p className="text-xs text-zinc-600 mt-1">{s.notes}</p>
@@ -613,14 +627,14 @@ export function PTSchedulePage() {
                             disabled={confirmMut.isPending}
                             className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                           >
-                            <Check className="w-3 h-3" /> Confirm
+                            <Check className="w-3 h-3" /> Xác nhận
                           </button>
                           <button
                             onClick={() => cancelSessionMut.mutate(s.id)}
                             disabled={cancelSessionMut.isPending}
                             className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                           >
-                            <X className="w-3 h-3" /> Decline
+                            <X className="w-3 h-3" /> Từ chối
                           </button>
                         </>
                       )}
@@ -650,7 +664,7 @@ export function PTSchedulePage() {
                                   disabled={completeMut.isPending}
                                   className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                                 >
-                                  <CheckCircle className="w-3 h-3" /> Complete
+                                  <CheckCircle className="w-3 h-3" /> Hoàn thành
                                 </button>
                               )}
                               {Date.now() >=
@@ -661,7 +675,7 @@ export function PTSchedulePage() {
                                   disabled={noShowMut.isPending}
                                   className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                 >
-                                  <AlertOctagon className="w-3 h-3" /> No-Show
+                                  <AlertOctagon className="w-3 h-3" /> Vắng mặt
                                 </button>
                               )}
                             </>
@@ -686,7 +700,7 @@ export function PTSchedulePage() {
                             disabled={cancelSessionMut.isPending}
                             className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                           >
-                            <X className="w-3 h-3" /> Cancel
+                            <X className="w-3 h-3" /> Hủy buổi
                           </button>
                         </>
                       )}
@@ -737,25 +751,25 @@ export function PTSchedulePage() {
             {/* All upcoming sidebar */}
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
               <h4 className="text-xs font-bold text-zinc-600 mb-3 uppercase tracking-wider">
-                All Upcoming
+                Sắp diễn ra
               </h4>
               {sessions.length === 0 ? (
-                <p className="text-xs text-zinc-600">No upcoming sessions</p>
+                <p className="text-xs text-zinc-600">Chưa có buổi tập sắp tới</p>
               ) : (
                 <div className="space-y-2">
                   {sessions.slice(0, 6).map((s) => (
                     <div key={s.id} className="flex items-center gap-2">
                       <div className="w-7 h-7 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center text-[10px] font-bold text-green-400 flex-shrink-0">
-                        {s.clientUserId.slice(0, 2).toUpperCase()}
+                        {clientLabel(s.clientUserId).slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold text-zinc-300 truncate">
-                          {s.clientUserId.slice(0, 8)}...
+                          {clientLabel(s.clientUserId)}
                         </div>
                         <div className="text-xs text-zinc-600">
                           {new Date(s.scheduledStartAt).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric" },
+                            "vi-VN",
+                            { day: "2-digit", month: "2-digit" },
                           )}{" "}
                           · {formatSessionTime(s.scheduledStartAt)}
                         </div>
@@ -776,14 +790,14 @@ export function PTSchedulePage() {
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-zinc-200">
-                Weekly Schedule
+                Lịch làm việc hàng tuần
               </h3>
               {!isEditingAvail ? (
                 <button
                   onClick={startEditing}
                   className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 font-semibold transition-colors"
                 >
-                  <Settings className="w-3 h-3" /> Edit
+                  <Settings className="w-3 h-3" /> Chỉnh sửa
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -791,7 +805,7 @@ export function PTSchedulePage() {
                     onClick={() => setIsEditingAvail(false)}
                     className="text-xs text-zinc-500 hover:text-zinc-300 font-semibold"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     onClick={saveAvailability}
@@ -803,7 +817,7 @@ export function PTSchedulePage() {
                     ) : (
                       <Check className="w-3 h-3" />
                     )}{" "}
-                    Save
+                    Lưu
                   </button>
                 </div>
               )}
@@ -863,9 +877,9 @@ export function PTSchedulePage() {
                 {(availability as PTAvailabilitySlot[]).length === 0 ? (
                   <div className="text-center py-6">
                     <Clock className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                    <p className="text-sm text-zinc-500">No availability set</p>
+                    <p className="text-sm text-zinc-500">Chưa thiết lập lịch làm việc</p>
                     <p className="text-xs text-zinc-600 mt-1">
-                      Click Edit to set your weekly hours
+                      Bấm Chỉnh sửa để đặt giờ làm việc hàng tuần
                     </p>
                   </div>
                 ) : (
@@ -890,10 +904,9 @@ export function PTSchedulePage() {
 
           {/* Blocked dates */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 space-y-4">
-            <h3 className="text-sm font-bold text-zinc-200">Blocked Dates</h3>
+            <h3 className="text-sm font-bold text-zinc-200">Ngày nghỉ</h3>
             <p className="text-xs text-zinc-500">
-              Block specific dates when you're unavailable (vacation, holidays,
-              etc.)
+              Chặn những ngày bạn không nhận lịch (nghỉ phép, lễ, v.v.)
             </p>
 
             <div className="flex gap-2">
@@ -907,7 +920,7 @@ export function PTSchedulePage() {
                 type="text"
                 value={blockReason}
                 onChange={(e) => setBlockReason(e.target.value)}
-                placeholder="Reason (optional)"
+                placeholder="Lý do (không bắt buộc)"
                 className="flex-1 bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 outline-none"
               />
               <button
@@ -926,14 +939,14 @@ export function PTSchedulePage() {
                 ) : (
                   <Plus className="w-3 h-3" />
                 )}{" "}
-                Block
+                Chặn
               </button>
             </div>
 
             <div className="space-y-2">
               {(exceptions as PTScheduleException[]).length === 0 ? (
                 <p className="text-xs text-zinc-600 text-center py-4">
-                  No blocked dates
+                  Chưa có ngày nghỉ nào
                 </p>
               ) : (
                 (exceptions as PTScheduleException[]).map((e) => (
@@ -944,10 +957,10 @@ export function PTSchedulePage() {
                     <Ban className="w-3.5 h-3.5 text-red-400" />
                     <div className="flex-1">
                       <div className="text-xs font-bold text-zinc-300">
-                        {new Date(e.date).toLocaleDateString("en-US", {
+                        {new Date(e.date).toLocaleDateString("vi-VN", {
                           weekday: "short",
-                          month: "short",
-                          day: "numeric",
+                          day: "2-digit",
+                          month: "2-digit",
                           year: "numeric",
                         })}
                       </div>

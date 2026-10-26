@@ -267,14 +267,14 @@ test("after the exit: the client confirms the awaiting session -> ONE DELIVERED 
     assert.equal(afterDelivered.status, "CANCELLED", "the contract stays ended");
     assert.equal(afterDelivered.terminationReason, EXIT);
 
-    await assert.rejects(() => bookingService.clientConfirmSession(ids.pending, c.clientUserId), /Cannot confirm/);
+    await assert.rejects(() => bookingService.clientConfirmSession(ids.pending, c.clientUserId), /Không thể xác nhận buổi tập/);
 
     await bookingService.resolveDispute(ids.disputed, ADMIN, "CANCELLED", "không dạy");
     assert.equal(await statusOf(ids.disputed), "CANCELLED");
     assert.equal(await used(c.id), 5, "NOT_DELIVERED does not count");
     assert.equal(ledger.resolveCalls.length, 2);
     assert.deepEqual(ledger.resolveCalls[1], expectedResolveBody(c, ids.disputed, "NOT_DELIVERED"));
-    await assert.rejects(() => bookingService.resolveDispute(ids.disputed, ADMIN, "COMPLETED", "lại"), /not disputed/);
+    await assert.rejects(() => bookingService.resolveDispute(ids.disputed, ADMIN, "COMPLETED", "lại"), /không ở trạng thái đang khiếu nại/);
 
     assert.equal(ledger.resolved.size, 2, "exactly once per session");
     assert.equal(ledger.applied.size, 1, "and the termination was not repeated");

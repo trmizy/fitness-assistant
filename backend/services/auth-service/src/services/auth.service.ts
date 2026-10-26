@@ -26,6 +26,14 @@ const SELF_RESET_COOLDOWN_SECONDS = Number(
 const PASSWORD_RESET_REQUEST_MESSAGE =
   "Nếu email này có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu.";
 
+/** Prisma P2025 (record to update not found) -> a clean 404 instead of an unhandled 500. */
+function rethrowMissingUserAs404(error: unknown): never {
+  if ((error as { code?: string } | null)?.code === "P2025") {
+    throw { status: 404, message: "Không tìm thấy người dùng" };
+  }
+  throw error;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -328,7 +336,15 @@ export const authService = {
       message: PASSWORD_RESET_REQUEST_MESSAGE,
     };
 
-    const user = await authRepository.findUserByEmail(email);
+    let user;
+    try {
+      user = await authRepository.findUserByEmail(email);
+    } catch (error) {
+      // Legacy accounts that differ only by email case: answer like "no account" so the reply never
+      // reveals anything about which emails exist (the lookup already logged a warning).
+      if ((error as { code?: string } | null)?.code === "EMAIL_CASE_AMBIGUOUS") return result;
+      throw error;
+    }
     if (!user || !user.isActive) return result;
 
     const latest = await authRepository.findLatestPasswordResetForUser(user.id);
@@ -449,9 +465,9 @@ export const authService = {
   ) {
     const relay = deps.relay ?? relayPtActiveStateChange;
     const audit = deps.audit ?? ((entry) => authRepository.createAuditLog(entry));
-    const updated = await authRepository.updateUser(userId, {
-      isActive,
-    } as any);
+    const updated = await authRepository
+      .updateUser(userId, { isActive } as any)
+      .catch(rethrowMissingUserAs404);
     try {
       await audit({
         userId,
@@ -613,7 +629,9 @@ export const authService = {
   },
 
   async updateUserRole(userId: string, data: UpdateUserRoleDto) {
-    const updated = await authRepository.updateUserRoleById(userId, data.role);
+    const updated = await authRepository
+      .updateUserRoleById(userId, data.role)
+      .catch(rethrowMissingUserAs404);
     return {
       user: {
         id: updated.id,
@@ -737,7 +755,7 @@ export const authService = {
   // the login credential, so a typo would lock the owner out with no self-service recovery
   // (they'd have no working email to reset a password against).
   async updateUserNameAsAdmin(userId: string, data: { firstName?: string; lastName?: string }) {
-    const updated = await authRepository.updateUserById(userId, data);
+    const updated = await authRepository.updateUserById(userId, data).catch(rethrowMissingUserAs404);
     return { user: updated };
   },
 };

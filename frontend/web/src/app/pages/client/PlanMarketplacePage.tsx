@@ -532,7 +532,7 @@ function DetailPanel({ id }: { id: string }) {
 
         <button
           type="button"
-          title={isOwnListing ? "Dung ke hoach cua ban" : undefined}
+          title={isOwnListing ? "Dùng kế hoạch của bạn" : undefined}
           onClick={() => setShowAdoptModal(true)}
           className="mt-4 inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-lg text-sm font-bold transition-all"
         >
@@ -1178,9 +1178,9 @@ function SellPackagesTab() {
   if (!isPT) {
     return (
       <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-5">
-        <h3 className="text-sm font-bold text-zinc-300">Chia se mien phi</h3>
+        <h3 className="text-sm font-bold text-zinc-300">Chia sẻ miễn phí</h3>
         <p className="mt-2 text-sm text-zinc-500">
-          Tai khoan member co the dang ke hoach mien phi. Chi PT da duoc xac minh moi duoc tao goi tra phi va dat gia.
+          Tài khoản hội viên có thể đăng kế hoạch miễn phí. Chỉ PT đã được xác minh mới được tạo gói trả phí và đặt giá.
         </p>
       </div>
     );
@@ -1319,7 +1319,7 @@ function PackageCard({ pkg }: { pkg: TrainingPackage }) {
         </span>
         {isOwnPackage && (
           <span className="rounded-lg border border-zinc-700/60 px-3 py-1.5 text-xs font-bold text-zinc-500">
-            Goi cua ban
+            Gói của bạn
           </span>
         )}
         <button
@@ -1549,7 +1549,7 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
             </div>
 
             <div className="rounded-lg border border-zinc-700/40 p-2.5 space-y-1">
-              <p className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold">Buyer Protection</p>
+              <p className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold">Bảo vệ người mua</p>
               <p className="text-[11px] text-zinc-500">✓ PT đã xác minh · ✓ Chính sách chỉnh sửa rõ ràng · ✓ Deadline giao có hạn · ✓ Lịch sử chat · ✓ Hỗ trợ khiếu nại</p>
             </div>
 

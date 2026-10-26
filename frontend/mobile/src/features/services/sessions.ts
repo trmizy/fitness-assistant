@@ -369,6 +369,12 @@ export function normalizeSlots(raw: any): string[] {
 export const BOOKING_LEAD_HOURS = 24;
 
 /**
+ * B27 (server): a reschedule proposal — from the client or the trainer — obeys the SAME lead time as a
+ * new booking and must stay inside the contract window, so the picker offers nothing the server refuses.
+ */
+export const RESCHEDULE_LEAD_HOURS = BOOKING_LEAD_HOURS;
+
+/**
  * The endpoint offers a whole day's slots (it works per day, not per minute); the ones that cannot
  * be taken are dropped here, which saves the user a refusal they can do nothing about. With no
  * `leadHours` that means slots already past. A new booking passes BOOKING_LEAD_HOURS: every slot

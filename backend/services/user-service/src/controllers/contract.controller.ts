@@ -54,7 +54,7 @@ export const contractController = {
       // `code === "LOW_AVAILABILITY"` check could never match and it never rendered.
       res.status(error.status || 500).json({
         ...errorCodeBody(error),
-        error: error.message || "Failed to request contract",
+        error: error.message || "Không gửi được yêu cầu hợp đồng",
         // 409 PACKAGE_CHANGED carries the package as it is NOW (with its version), so the UI can show the new terms.
         ...(error.code === "PACKAGE_CHANGED" && error.package ? { package: error.package } : {}),
         ...(error.code === "LOW_AVAILABILITY"
@@ -90,7 +90,7 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, "Accept contract error");
       res.status(error.status || 500).json({
-        error: error.message || "Failed to accept contract",
+        error: error.message || "Không chấp nhận được hợp đồng",
         ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
         ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
       });
@@ -112,7 +112,7 @@ export const contractController = {
       logger.error(error, "Reject contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to reject contract", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không từ chối được hợp đồng", ...errorCodeBody(error) });
     }
   },
 
@@ -131,7 +131,7 @@ export const contractController = {
       logger.error(error, "Cancel contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to cancel contract", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không huỷ được hợp đồng", ...errorCodeBody(error) });
     }
   },
 
@@ -145,7 +145,7 @@ export const contractController = {
       logger.error(error, "Create contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to create contract" });
+        .json({ error: error.message || "Không tạo được hợp đồng" });
     }
   },
 
@@ -161,7 +161,7 @@ export const contractController = {
       res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get PT contracts error");
-      res.status(500).json({ error: "Failed to fetch contracts" });
+      res.status(500).json({ error: "Không tải được danh sách hợp đồng" });
     }
   },
 
@@ -177,7 +177,7 @@ export const contractController = {
       res.json(redactContractSplit(contracts, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get client contracts error");
-      res.status(500).json({ error: "Failed to fetch contracts" });
+      res.status(500).json({ error: "Không tải được danh sách hợp đồng" });
     }
   },
 
@@ -189,18 +189,18 @@ export const contractController = {
       const role = req.headers["x-user-role"] as string;
       const contract = await contractService.getById(req.params.id);
       if (!contract) {
-        res.status(404).json({ error: "Contract not found" });
+        res.status(404).json({ error: "Không tìm thấy hợp đồng" });
         return;
       }
       const isParty = contract.clientUserId === userId || contract.ptUserId === userId;
       if (!isParty && role !== "ADMIN") {
-        res.status(403).json({ error: "Not authorized" });
+        res.status(403).json({ error: "Bạn không có quyền thực hiện thao tác này" });
         return;
       }
       res.json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
       logger.error(error, "Get contract error");
-      res.status(500).json({ error: "Failed to fetch contract" });
+      res.status(500).json({ error: "Không tải được hợp đồng" });
     }
   },
 
@@ -220,7 +220,7 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, "Update contract status error");
       res.status(error.status || 500).json({
-        error: error.message || "Failed to update status",
+        error: error.message || "Không cập nhật được trạng thái hợp đồng",
         ...(error.status && typeof error.code === "string" ? { code: error.code } : {}),
         ...(error.code === "PT_TERMS_NOT_ACCEPTED" && error.termsVersion ? { termsVersion: error.termsVersion } : {}),
       });
@@ -241,7 +241,7 @@ export const contractController = {
       logger.error(error, "Update contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to update contract" });
+        .json({ error: error.message || "Không cập nhật được hợp đồng" });
     }
   },
 
@@ -258,7 +258,7 @@ export const contractController = {
       logger.error(error, "Log session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to log session" });
+        .json({ error: error.message || "Không ghi nhận được buổi tập" });
     }
   },
 
@@ -422,7 +422,7 @@ export const contractController = {
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: "Contract not found" });
+        res.status(404).json({ error: "Không tìm thấy hợp đồng" });
         return;
       }
 
@@ -432,19 +432,19 @@ export const contractController = {
         userId !== contract.ptUserId &&
         userRole !== "ADMIN"
       ) {
-        res.status(403).json({ error: "Forbidden" });
+        res.status(403).json({ error: "Bạn không có quyền thực hiện thao tác này" });
         return;
       }
 
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
         res
           .status(400)
-          .json({ error: "Contract is not in PENDING_SIGNATURE state" });
+          .json({ error: "Hợp đồng không ở bước chờ ký" });
         return;
       }
 
       if (contract.eSignStatus === "SIGNED") {
-        res.status(400).json({ error: "Contract is already signed" });
+        res.status(400).json({ error: "Hợp đồng đã được ký" });
         return;
       }
 
@@ -460,12 +460,12 @@ export const contractController = {
       }
 
       await contractService.resendESign(contract.id);
-      res.json({ message: "E-sign request sent" });
+      res.json({ message: "Đã gửi yêu cầu ký hợp đồng" });
     } catch (error: any) {
       logger.error(error, "Send e-sign error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Failed to send e-sign request" });
+        .json({ error: error.message || "Không gửi được yêu cầu ký hợp đồng" });
     }
   },
 
@@ -477,7 +477,7 @@ export const contractController = {
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: "Contract not found" });
+        res.status(404).json({ error: "Không tìm thấy hợp đồng" });
         return;
       }
 
@@ -486,7 +486,7 @@ export const contractController = {
         userId !== contract.ptUserId &&
         userRole !== "ADMIN"
       ) {
-        res.status(403).json({ error: "Forbidden" });
+        res.status(403).json({ error: "Bạn không có quyền thực hiện thao tác này" });
         return;
       }
 
@@ -501,7 +501,7 @@ export const contractController = {
       });
     } catch (error: any) {
       logger.error(error, "Get e-sign status error");
-      res.status(500).json({ error: "Failed to get e-sign status" });
+      res.status(500).json({ error: "Không lấy được trạng thái ký hợp đồng" });
     }
   },
 
@@ -513,7 +513,7 @@ export const contractController = {
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: "Contract not found" });
+        res.status(404).json({ error: "Không tìm thấy hợp đồng" });
         return;
       }
 
@@ -522,12 +522,12 @@ export const contractController = {
         userId !== contract.ptUserId &&
         userRole !== "ADMIN"
       ) {
-        res.status(403).json({ error: "Forbidden" });
+        res.status(403).json({ error: "Bạn không có quyền thực hiện thao tác này" });
         return;
       }
 
       if (!contract.contractPdfPath) {
-        res.status(404).json({ error: "PDF not available" });
+        res.status(404).json({ error: "Chưa có tệp PDF của hợp đồng" });
         return;
       }
 
@@ -544,14 +544,14 @@ export const contractController = {
         : path.join(process.cwd(), contract.contractPdfPath);
 
       if (!fs.existsSync(absPath)) {
-        res.status(404).json({ error: "PDF file not found" });
+        res.status(404).json({ error: "Không tìm thấy tệp PDF của hợp đồng" });
         return;
       }
 
       res.sendFile(absPath);
     } catch (error: any) {
       logger.error(error, "Get contract PDF error");
-      res.status(500).json({ error: "Failed to retrieve PDF" });
+      res.status(500).json({ error: "Không tải được tệp PDF của hợp đồng" });
     }
   },
 
@@ -563,7 +563,7 @@ export const contractController = {
       res.json(earnings);
     } catch (error: any) {
       logger.error(error, "Get earnings error");
-      res.status(500).json({ error: "Failed to fetch earnings" });
+      res.status(500).json({ error: "Không tải được thu nhập" });
     }
   },
 
@@ -591,7 +591,7 @@ export const contractController = {
       }
       logger.error(error, 'Contract pay error');
       res.status(error.status || 500).json({
-        error: error.message || 'Failed to pay contract',
+        error: error.message || 'Không thanh toán được hợp đồng',
         ...(error.status && typeof error.code === 'string' ? { code: error.code } : {}),
       });
     }
@@ -615,7 +615,7 @@ export const contractController = {
         return;
       }
       logger.error(error, 'Contract sendFeedback error');
-      res.status(500).json({ error: 'Failed to send feedback' });
+      res.status(500).json({ error: 'Không gửi được nhận xét' });
     }
   },
 
@@ -626,12 +626,12 @@ export const contractController = {
       const role = req.headers['x-user-role'] as string;
       const contract = await contractService.getById(req.params.id);
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: 'Không tìm thấy hợp đồng' });
         return;
       }
       const isParty = contract.clientUserId === userId || contract.ptUserId === userId;
       if (!isParty && role !== 'ADMIN') {
-        res.status(403).json({ error: 'Not authorized' });
+        res.status(403).json({ error: 'Bạn không có quyền thực hiện thao tác này' });
         return;
       }
       // The preview is priced with the SAME terms the termination would send (reason + sessions held), via
@@ -640,13 +640,13 @@ export const contractController = {
       // sessions' value would stay held, and payment-service's `reasonUsed` / `unresolvedAmountHeld` pass through.
       const data = await previewClientExit(req.params.id);
       if (!data) {
-        res.status(400).json({ error: 'Contract has no price or sessions to break down' });
+        res.status(400).json({ error: 'Hợp đồng chưa có giá hoặc số buổi để thống kê tiền' });
         return;
       }
       res.json(redactBreakdownForViewer(data, viewerOf(req), contract.ptUserId));
     } catch (error: any) {
       logger.error(error, 'Money breakdown error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to load breakdown' });
+      res.status(error.status || 500).json({ error: error.message || 'Không tải được thống kê tiền của hợp đồng' });
     }
   },
 
@@ -666,7 +666,7 @@ export const contractController = {
 
       const contract = await contractService.getById(req.params.id);
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: 'Không tìm thấy hợp đồng' });
         return;
       }
 
@@ -689,16 +689,16 @@ export const contractController = {
         PT_REPEATED_NO_SHOW: isClient || isAdmin,
       };
       if (!(reason in allowed)) {
-        res.status(400).json({ error: `Unknown termination reason: ${reason}` });
+        res.status(400).json({ error: `Lý do kết thúc hợp đồng không hợp lệ: ${reason}` });
         return;
       }
       if (reason === 'PT_BANNED') {
         // D49: a ban is the platform's decision, not proof that this PT failed this client. New endings use SERVICE_DISCONTINUED_BY_PLATFORM.
-        res.status(400).json({ error: 'PT_BANNED is retired: use SERVICE_DISCONTINUED_BY_PLATFORM', code: 'REASON_RETIRED' });
+        res.status(400).json({ error: 'Lý do PT_BANNED không còn dùng nữa, hãy dùng SERVICE_DISCONTINUED_BY_PLATFORM', code: 'REASON_RETIRED' });
         return;
       }
       if (!allowed[reason]) {
-        res.status(403).json({ error: `You may not terminate this contract as ${reason}` });
+        res.status(403).json({ error: `Bạn không có quyền kết thúc hợp đồng này với lý do ${reason}` });
         return;
       }
 
@@ -797,7 +797,7 @@ export const contractController = {
         const owner = await contractRepository.findById(req.params.id).catch(() => null);
         extra = { ...extra, currentTerms: owner ? redactBreakdownForViewer(extra.currentTerms, viewerOf(req), owner.ptUserId) : null };
       }
-      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract', ...errorCodeBody(error), ...extra });
+      res.status(error.status || 500).json({ error: error.message || 'Không kết thúc được hợp đồng', ...errorCodeBody(error), ...extra });
     }
   },
 

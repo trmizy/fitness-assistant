@@ -148,10 +148,24 @@ export async function previewClientExit(contractId: string): Promise<Record<stri
   // B31: a contract that was never paid has nothing to refund. The formula still prices the (unpaid) price, which made
   // an unpaid contract quote "you would get 2.700.000 back"; report no estimate instead, and say why. Paid contracts
   // are untouched, and no settlement math changes (this is the preview only).
-  const refundEstimate = breakdown.paid === false ? { refundIfCancelledNow: null, refundEstimateAvailable: false } : {};
+  //
+  // C2-04: an ended contract (completed / expired / cancelled / rejected) cannot be cancelled again, so "what
+  // cancelling now would refund" has no meaning there; the formula would still print a number (it quoted 828.000
+  // on a contract already cancelled and refunded 920.000). Report none, and say why.
+  // C2-07: nothing has entered the system for an unpaid contract, so the PT must not be shown money as "still
+  // pending" for it. `stillPending` is null + `stillPendingAvailable:false` (not a zero that reads as a real amount).
+  // Preview only - settlement math is untouched; a paid, live contract is returned exactly as before.
+  const ended = isContractEnded(contract);
+  const refundEstimate = ended
+    ? { refundIfCancelledNow: null, refundEstimateAvailable: false, refundEstimateUnavailableReason: "CONTRACT_ENDED" }
+    : breakdown.paid === false
+      ? { refundIfCancelledNow: null, refundEstimateAvailable: false }
+      : {};
+  const pendingMoney = breakdown.paid === false ? { stillPending: null, stillPendingAvailable: false } : {};
   return {
     ...breakdown,
     ...refundEstimate,
+    ...pendingMoney,
     canExitWithoutPenalty: Boolean(override),
     exitReasonIfCancelledNow: reasonIfCancelledNow,
     // On an ended exit, how many sessions are still waiting for a decision.

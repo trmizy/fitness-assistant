@@ -14,6 +14,7 @@ import { KeyRound, Mail, MailCheck, Send } from "lucide-react-native";
 import { Button, Input, ScreenHeader, useToast } from "../../src/components/ui";
 import { authService } from "../../src/services/api";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
 const SUPPORT_EMAIL = "support@fitnessassistant.vn";
 /** Mirrors auth-service's per-account cooldown, so the button does not invite a request the
@@ -50,7 +51,7 @@ export default function ForgotPasswordScreen() {
 
   const submit = async (target: string) => {
     Keyboard.dismiss();
-    const trimmed = target.trim();
+    const trimmed = normalizeEmail(target);
     if (!EMAIL_PATTERN.test(trimmed)) {
       toast.show("Email không hợp lệ", "danger");
       return;
@@ -96,9 +97,7 @@ export default function ForgotPasswordScreen() {
               <Input
                 icon={Mail}
                 placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
+                {...emailInputProps}
                 value={email}
                 onChangeText={setEmail}
                 editable={!loading}

@@ -169,7 +169,7 @@ test("F3 a session that is already settled (COMPLETED + deducted) is never settl
       } finally {
         restore();
       }
-      await assert.rejects(bookingService.resolveDispute(s.id, ADMIN, "COMPLETED", "lại"), /not disputed/);
+      await assert.rejects(bookingService.resolveDispute(s.id, ADMIN, "COMPLETED", "lại"), /không ở trạng thái đang khiếu nại/);
       assert.equal(ledger.release.length, 1, "exactly one ledger transaction for the session");
       assert.equal(await used(c.id), 3);
     } finally {

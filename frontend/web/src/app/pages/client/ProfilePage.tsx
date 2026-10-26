@@ -899,7 +899,7 @@ export function ProfilePage() {
               onClick={handleSwitchToPT}
               className="flex items-center gap-2 bg-green-500 text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20 flex-shrink-0 self-start sm:self-auto"
             >
-              <Award className="w-4 h-4" /> Vào Trainer Workspace
+              <Award className="w-4 h-4" /> Vào không gian huấn luyện
             </button>
           </div>
         </div>

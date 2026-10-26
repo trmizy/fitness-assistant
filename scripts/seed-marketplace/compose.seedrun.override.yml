@@ -1,4 +1,6 @@
 # Temporary isolated live seed. Revert with compose.restore.override.yml after the run.
+# VNPAY_SIMULATE=true (payment-service below) exists ONLY because the seed pays through the VNPay simulator page; it must NOT outlive the
+# run - the post-seed command in SEED.md stacks compose.seedrun.ready.override.yml last, which sets it back to "false" (verify with printenv).
 x-seed-environment: &seed-environment
   CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat_seedrun
   SMTP_HOST: ""

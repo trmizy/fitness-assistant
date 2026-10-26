@@ -4,6 +4,7 @@ import { partnerInvitationService } from '../services/partner-invitation.service
 import { partnerRepository } from '../repositories/partner.repository';
 import { authClient } from '../clients/auth.client';
 import { principalId } from '../middleware/partner-context.middleware';
+import { resolveFrontendUrl } from '../config/frontend-url';
 
 const ROLE_EMAIL_LABEL: Record<string, string> = {
   MANAGER: 'quản lý chi nhánh',
@@ -25,7 +26,7 @@ function appBaseUrl(req: Request): string {
     (process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production');
   const header = fromGateway ? req.headers['x-trusted-web-origin'] : undefined;
   const raw = Array.isArray(header) ? header[0] : header;
-  return (raw || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  return (raw || resolveFrontendUrl()).replace(/\/$/, '');
 }
 
 /**
@@ -80,6 +81,7 @@ export const ownerPartnerController = {
         principalId(req),
         { email, role, scopedGymIds },
         principalId(req),
+        req.user?.email,
       );
       const link = `${appBaseUrl(req)}/partner/invite/${rawToken}`;
       const label = ROLE_EMAIL_LABEL[invitation.role] ?? 'thành viên';

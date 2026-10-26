@@ -149,7 +149,7 @@ export function FoodLibraryPage() {
             onChange={(event) => setSourceFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
           >
-            <option value="">Tat ca nguon</option>
+            <option value="">Tất cả nguồn</option>
             {(filterOptionsQuery.data?.sources ?? []).map((source) => (
               <option key={source} value={source}>
                 {source}
@@ -162,7 +162,7 @@ export function FoodLibraryPage() {
             onChange={(event) => setFormFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
           >
-            <option value="">Tat ca dang</option>
+            <option value="">Tất cả dạng</option>
             {(filterOptionsQuery.data?.foodForms ?? []).map((foodForm) => (
               <option key={foodForm} value={foodForm}>
                 {foodForm}
@@ -177,9 +177,9 @@ export function FoodLibraryPage() {
             }
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
           >
-            <option value="all">Tat ca loai</option>
-            <option value="false">Thuc pham thong thuong</option>
-            <option value="true">Supplement</option>
+            <option value="all">Tất cả loại</option>
+            <option value="false">Thực phẩm thông thường</option>
+            <option value="true">Thực phẩm bổ sung</option>
           </select>
           <button
             type="button"
@@ -191,7 +191,7 @@ export function FoodLibraryPage() {
                 : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
             }`}
           >
-            Co anh
+          Có ảnh
           </button>
         </div>
       )}

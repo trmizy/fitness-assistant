@@ -36,6 +36,7 @@ import {
   ownedGyms,
   pendingManagerInvites,
 } from "../../src/features/gymOwner/gymOwner";
+import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
 /**
  * GY-05 — "Người quản lý". Chủ sở hữu tự mời và thu hồi quản lý chi nhánh, không cần quản trị viên.
@@ -79,9 +80,9 @@ export default function GymOwnerManagersScreen() {
     toast.show(e?.response?.data?.error?.message || fallback, "danger");
 
   const invite = useMutation({
-    mutationFn: () => gymService.inviteManager({ email: email.trim(), scopedGymIds: scoped }),
+    mutationFn: () => gymService.inviteManager({ email: normalizeEmail(email), scopedGymIds: scoped }),
     onSuccess: (data: any) => {
-      setCreated({ email: email.trim(), inviteLink: data?.inviteLink ?? "", emailSent: data?.emailSent !== false });
+      setCreated({ email: normalizeEmail(email), inviteLink: data?.inviteLink ?? "", emailSent: data?.emailSent !== false });
       setInviteOpen(false);
       setEmail("");
       setScoped([]);
@@ -265,8 +266,7 @@ export default function GymOwnerManagersScreen() {
             label="Email"
             value={email}
             onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
+            {...emailInputProps}
             placeholder="quanly@example.com"
             placeholderTextColor={inputPlaceholderColor}
           />

@@ -8,7 +8,13 @@ export type PtApplicationNotice = { text: string; link: string };
 
 const APPLICANT_LINK = "/client/pt-application";
 
-export function ptApplicationReviewNotice(action: string): PtApplicationNotice | null {
+const REASON_MAX = 300;
+
+/**
+ * `detail` is the admin's reason for a rejection. It is appended to the stored notification so the history of
+ * "why was this rejected" survives after a later approval clears the live `rejectionReason` on the application.
+ */
+export function ptApplicationReviewNotice(action: string, detail?: string): PtApplicationNotice | null {
   switch (action) {
     case "APPROVED":
       return {
@@ -17,7 +23,9 @@ export function ptApplicationReviewNotice(action: string): PtApplicationNotice |
       };
     case "REJECTED":
       return {
-        text: "Đơn ứng tuyển huấn luyện viên của bạn chưa được chấp nhận. Mở đơn để xem lý do.",
+        text:
+          "Đơn ứng tuyển huấn luyện viên của bạn chưa được chấp nhận. Mở đơn để xem lý do." +
+          (detail?.trim() ? ` Lý do: ${detail.trim().slice(0, REASON_MAX)}` : ""),
         link: APPLICANT_LINK,
       };
     case "NEEDS_MORE_INFO":

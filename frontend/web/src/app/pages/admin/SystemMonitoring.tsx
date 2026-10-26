@@ -58,6 +58,13 @@ const SERVICE_ICONS: Record<string, any> = {
 
 const GRAFANA_URL = grafanaUrl();
 
+const PROBE_STATUS_VI: Record<string, string> = {
+  healthy: "Ổn định",
+  degraded: "Chậm/suy giảm",
+  down: "Ngừng hoạt động",
+};
+const ISSUE_LEVEL_VI: Record<string, string> = { error: "Lỗi", warning: "Cảnh báo", info: "Thông tin", critical: "Nghiêm trọng" };
+
 function formatUptime(seconds: number | null): string {
   if (seconds === null || seconds === undefined) return "—";
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -82,10 +89,10 @@ export function SystemMonitoring() {
         setData(res.data);
         setError(null);
       } else {
-        setError("Failed to load monitoring data");
+        setError("Không tải được dữ liệu giám sát");
       }
     } catch (err: any) {
-      setError(err?.message || "Network error");
+      setError(err?.message || "Lỗi kết nối mạng");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -104,7 +111,7 @@ export function SystemMonitoring() {
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
         <span className="ml-2 text-zinc-400 text-sm">
-          Loading monitoring data...
+          Đang tải dữ liệu giám sát...
         </span>
       </div>
     );
@@ -116,13 +123,13 @@ export function SystemMonitoring() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
           <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
           <p className="text-red-400 text-sm font-semibold">
-            {error || "No data available"}
+            {error || "Không có dữ liệu"}
           </p>
           <button
             onClick={fetchData}
             className="mt-2 text-xs text-red-300 hover:text-red-200 underline"
           >
-            Retry
+            Thử lại
           </button>
         </div>
       </div>
@@ -146,10 +153,10 @@ export function SystemMonitoring() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2">
-            <Monitor className="w-5 h-5 text-violet-500" /> System Monitoring
+            <Monitor className="w-5 h-5 text-violet-500" /> Giám sát hệ thống
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Real-time platform health via Prometheus
+            Tình trạng nền tảng theo thời gian thực (Prometheus)
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -161,7 +168,7 @@ export function SystemMonitoring() {
             <RefreshCw
               className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
             />
-            Refresh
+            Làm mới
           </button>
 
           {GRAFANA_URL ? (
@@ -172,7 +179,7 @@ export function SystemMonitoring() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg border border-orange-500/20 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Open Grafana
+              Mở Grafana
             </a>
           ) : null}
 
@@ -181,10 +188,10 @@ export function SystemMonitoring() {
               <div
                 className={`w-2 h-2 rounded-full animate-pulse ${summary.healthScore >= 80 ? "bg-green-500" : summary.healthScore >= 50 ? "bg-amber-500" : "bg-red-500"}`}
               />
-              {summary.healthScore}% Health
+              {summary.healthScore}% khỏe mạnh
             </span>
             <span className="text-xs text-zinc-600">
-              {lastRefresh.toLocaleTimeString()}
+              {lastRefresh.toLocaleTimeString("vi-VN")}
             </span>
           </div>
         </div>
@@ -214,18 +221,18 @@ export function SystemMonitoring() {
           </div>
           <div>
             <div className="text-sm font-semibold text-zinc-200">
-              Platform Health Score
+              Điểm sức khỏe nền tảng
             </div>
             <div className="text-xs text-zinc-500">
-              {summary.healthyCount}/{summary.serviceCount} services healthy
+              {summary.healthyCount}/{summary.serviceCount} dịch vụ ổn định
               {summary.degradedCount > 0 &&
-                ` · ${summary.degradedCount} degraded`}
-              {summary.downCount > 0 && ` · ${summary.downCount} down`}
+                ` · ${summary.degradedCount} suy giảm`}
+              {summary.downCount > 0 && ` · ${summary.downCount} ngừng hoạt động`}
             </div>
           </div>
         </div>
         <div className="text-xs text-zinc-600">
-          Response: {data.responseTimeMs}ms
+          Phản hồi: {data.responseTimeMs}ms
         </div>
       </div>
 
@@ -284,21 +291,21 @@ export function SystemMonitoring() {
                           : "bg-amber-500"
                     }`}
                   />
-                  {s.status}
+                  {PROBE_STATUS_VI[s.status] ?? s.status}
                 </span>
               </div>
               <div className="text-xs font-semibold text-zinc-200 truncate">
                 {s.name}
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5">
-                Latency: {s.latencyMs}ms
+                Độ trễ: {s.latencyMs}ms
               </div>
               <div className="text-[10px] text-zinc-500">
-                Uptime: {formatUptime(s.uptimeSeconds)}
+                Thời gian chạy: {formatUptime(s.uptimeSeconds)}
               </div>
               {s.optional && (
                 <div className="text-[9px] text-zinc-600 mt-0.5 italic">
-                  Optional
+                  Tùy chọn
                 </div>
               )}
             </div>
@@ -313,7 +320,7 @@ export function SystemMonitoring() {
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-blue-400" />
             <h4 className="text-sm font-semibold text-zinc-200">
-              Service Response Latency (ms)
+              Độ trễ phản hồi dịch vụ (ms)
             </h4>
           </div>
           <ResponsiveContainer width="100%" height={160}>
@@ -338,7 +345,7 @@ export function SystemMonitoring() {
                   backgroundColor: "#111",
                   color: "#f4f4f5",
                 }}
-                formatter={(v: number) => [`${v}ms`, "Latency"]}
+                formatter={(v: number) => [`${v}ms`, "Độ trễ"]}
               />
               <Bar dataKey="latency" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -349,9 +356,9 @@ export function SystemMonitoring() {
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">
-              Service Uptime Overview
+              Thời gian chạy của dịch vụ
             </h4>
-            <span className="text-xs text-zinc-500">Since last restart</span>
+            <span className="text-xs text-zinc-500">Từ lần khởi động lại gần nhất</span>
           </div>
           <div className="space-y-2">
             {services
@@ -398,12 +405,11 @@ export function SystemMonitoring() {
               alt="Grafana"
             />
             <h4 className="text-sm font-semibold text-zinc-200">
-              Grafana Dashboards
+              Bảng điều khiển Grafana
             </h4>
           </div>
           <p className="text-xs text-zinc-500 mb-3">
-            Deep-dive into metrics with pre-configured Grafana dashboards
-            powered by Prometheus.
+            Xem chi tiết các chỉ số qua bảng điều khiển Grafana dựng sẵn, dữ liệu từ Prometheus.
           </p>
           {GRAFANA_URL ? (
           <div className="space-y-2">
@@ -415,10 +421,10 @@ export function SystemMonitoring() {
             >
               <div>
                 <div className="text-xs font-semibold text-zinc-200">
-                  Platform Overview
+                  Tổng quan nền tảng
                 </div>
                 <div className="text-[10px] text-zinc-500">
-                  Request rates, error rates, latency p50/p95
+                  Tần suất yêu cầu, tỷ lệ lỗi, độ trễ p50/p95
                 </div>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
@@ -431,10 +437,10 @@ export function SystemMonitoring() {
             >
               <div>
                 <div className="text-xs font-semibold text-zinc-200">
-                  Business Metrics
+                  Chỉ số kinh doanh
                 </div>
                 <div className="text-[10px] text-zinc-500">
-                  OCR stats, PT flow, AI coach, chat activity
+                  Thống kê OCR, luồng PT, AI coach, hoạt động chat
                 </div>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
@@ -447,10 +453,10 @@ export function SystemMonitoring() {
             >
               <div>
                 <div className="text-xs font-semibold text-zinc-200">
-                  Explore Metrics
+                  Khám phá chỉ số
                 </div>
                 <div className="text-[10px] text-zinc-500">
-                  Ad-hoc PromQL queries
+                  Truy vấn PromQL tùy ý
                 </div>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
@@ -462,7 +468,7 @@ export function SystemMonitoring() {
                 Grafana URL chưa cấu hình
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5">
-                Set VITE_GRAFANA_URL nếu muốn mở dashboard từ S3 production.
+                Đặt VITE_GRAFANA_URL nếu muốn mở bảng điều khiển từ môi trường production.
               </div>
             </div>
           )}
@@ -473,21 +479,21 @@ export function SystemMonitoring() {
           <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <h4 className="text-sm font-semibold text-zinc-200">
-              Active Issues
+              Sự cố đang xảy ra
             </h4>
             {data.recentErrors.length === 0 && (
               <span className="ml-auto text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 font-semibold">
-                All Clear
+                Ổn định
               </span>
             )}
           </div>
           {data.recentErrors.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <div className="text-green-400 text-sm font-semibold">
-                No active issues
+                Không có sự cố nào
               </div>
               <div className="text-zinc-600 text-xs mt-1">
-                All services are operating normally
+                Tất cả dịch vụ đang hoạt động bình thường
               </div>
             </div>
           ) : (
@@ -505,7 +511,7 @@ export function SystemMonitoring() {
                           : "bg-amber-500/20 text-amber-400"
                       }`}
                     >
-                      {e.level}
+                      {ISSUE_LEVEL_VI[e.level] ?? e.level}
                     </span>
                     <span className="text-xs font-semibold text-zinc-300">
                       {e.service}
@@ -524,9 +530,9 @@ export function SystemMonitoring() {
 
       {/* Footer */}
       <div className="text-center text-[10px] text-zinc-700 py-2">
-        Data from{" "}
+        Dữ liệu từ{" "}
         <code className="text-zinc-600">GET /admin/system-monitor</code> ·
-        Prometheus scrape interval: 15s
+        chu kỳ thu thập Prometheus: 15 giây
         {GRAFANA_URL ? (
           <>
             {" "}· Grafana at <code className="text-zinc-600">{GRAFANA_URL}</code>

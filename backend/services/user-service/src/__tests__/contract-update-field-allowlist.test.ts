@@ -72,7 +72,7 @@ test("a contract past PENDING_REVIEW cannot be edited at all, not even descripti
   try {
     await assert.rejects(
       () => contractService.update("c1", "pt-1", { description: "sau khi đã ký thì không được sửa nữa" }),
-      /PENDING_REVIEW|status/i,
+      /PENDING_REVIEW|status|chờ huấn luyện viên xem xét/i,
     );
   } finally {
     restores.forEach((r) => r());
@@ -86,7 +86,7 @@ test("a PT who does not own the contract is still rejected before the allowlist 
   const restores = [patch(contractRepository, "findById", async () => contract as any)];
 
   try {
-    await assert.rejects(() => contractService.update("c1", "pt-2", { description: "not my contract" }), /Only the PT/);
+    await assert.rejects(() => contractService.update("c1", "pt-2", { description: "not my contract" }), /Chỉ huấn luyện viên/);
   } finally {
     restores.forEach((r) => r());
   }

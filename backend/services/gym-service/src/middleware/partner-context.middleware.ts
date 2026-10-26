@@ -28,7 +28,7 @@ export async function resolvePartnerContext(req: Request, res: Response, next: N
   } catch (e: any) {
     res.status(e.status || 500).json({
       success: false,
-      error: { code: 'PARTNER_CONTEXT_UNRESOLVED', message: e.message },
+      error: { code: typeof e.code === 'string' && e.status === 403 ? e.code : 'PARTNER_CONTEXT_UNRESOLVED', message: e.message },
     });
   }
 }

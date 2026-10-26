@@ -36,6 +36,7 @@ import {
   workspaceVars,
   type Workspace,
 } from "../../src/theme/workspace";
+import { emailInputProps } from "../../src/lib/email";
 
 /**
  * Design-system kitchen sink — every component in every state, so it can be held side by side with
@@ -187,8 +188,7 @@ function KitchenSinkBody({
             label="Email"
             icon={Mail}
             placeholder="ban@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
+            {...emailInputProps}
             value={email}
             onChangeText={setEmail}
           />

@@ -17,6 +17,7 @@ import { authService } from "../../src/services/api";
 import { ONBOARDING_PATH } from "../../src/config/landing";
 import { designTokens } from "../../src/theme/colors";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
 /**
  * Registration: account details, then the emailed 6-digit code. Two steps, not the five web once
@@ -66,9 +67,9 @@ function AccountStep({ onSent }: { onSent: (email: string) => void }) {
       const firstName = parts[0];
       const lastName = parts.slice(1).join(" ") || ".";
 
-      await authService.register(email.trim(), password, firstName, lastName);
+      await authService.register(normalizeEmail(email), password, firstName, lastName);
       toast.show("Mã xác nhận đã được gửi đến email của bạn");
-      onSent(email.trim());
+      onSent(normalizeEmail(email));
     } catch (error: any) {
       const message = error?.response?.data?.error || "";
       if (message === "Email already registered") {
@@ -113,9 +114,7 @@ function AccountStep({ onSent }: { onSent: (email: string) => void }) {
           <Input
             icon={Mail}
             placeholder="Email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
+            {...emailInputProps}
             value={email}
             onChangeText={setEmail}
             editable={!loading}

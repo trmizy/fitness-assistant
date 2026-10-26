@@ -240,6 +240,8 @@ test('header "3" is a NEW client: it needs amenities, stores 3 as application_fl
 test('the same owner proposes the same name for two branches -> two separate PENDING proposals (idempotent per branch); ONE admin group approval gives the amenity to BOTH branches', async () => {
   const name = `${P} Sân pickleball`;
   const g1 = track((await h.call(owner.token, 'POST', '/owner/gyms/draft', undefined, NEW2)).json.data.id);
+  // C3-11: an untouched draft is reused by the next "create" of a new client, so the first branch must have been started on before a second one is made.
+  assert.equal((await h.call(owner.token, 'PATCH', `/owner/gyms/${g1}/draft`, { name: `${P} Chi nhánh 1` }, NEW2)).status, 200);
   const g2 = track((await h.call(owner.token, 'POST', '/owner/gyms/draft', undefined, NEW2)).json.data.id);
   const propose = (gym: string) =>
     h.call(owner.token, 'PATCH', `/owner/gyms/${gym}/draft`, { proposals: [{ name, suggestedCategory: 'TRAINING_ZONE' }] }, NEW2);
