@@ -107,9 +107,40 @@ export async function ensurePtApplication(ctx, pt) {
   }
 }
 
+/**
+ * Read-only "is this PT's application + listing scenario finished?" check for an account that CANNOT log in (disabled), so it
+ * only uses admin endpoints: the application list (status filter) and the admin listing history of the PT. A complete scenario means
+ * the application is in the scenario state and, for an APPROVED application, `planListing` has nothing left to do.
+ */
+export async function ptScenarioComplete(ctx, pt) {
+  const admin = await adminToken(ctx);
+  const list = unwrap(await ctx.client.call("GET", `/pt-applications/admin?status=${pt.app.state}`, { token: admin, expect: [200] }));
+  const apps = Array.isArray(list) ? list : list?.applications ?? [];
+  // real admin list rows carry userProfile.userId (no top-level userId)
+  if (!apps.some((a) => (a.userProfile?.userId ?? a.userId) === pt.userId && a.status === pt.app.state)) return false;
+  if (pt.app.state !== "APPROVED") return true;
+  const hist = unwrap(await ctx.client.call("GET", `/admin/listings/pts/${pt.userId}/history`, { token: admin, expect: [200] }));
+  const revisions = hist?.revisions ?? [];
+  const OPEN = new Set(["DRAFT", "PENDING"]);
+  const obs = observeListing({ history: revisions.filter((r) => !OPEN.has(r.status)), openRevision: revisions.find((r) => OPEN.has(r.status)) ?? null });
+  return planListing(obs, { kind: pt.listing.kind, rounds: pt.listing.rounds || 0 }).length === 0;
+}
+
+/** Admin switch of a seed-domain auth account (PATCH /auth/users/:id/enable|disable - the real admin API). */
+export async function setAccountActive(ctx, userId, active) {
+  const admin = await adminToken(ctx);
+  await ctx.client.call("PATCH", `/auth/users/${userId}/${active ? "enable" : "disable"}`, { token: admin, expect: [200] });
+  stat(ctx, active ? "pt.account.reenabled" : "pt.account.disabled");
+}
+
 export async function ensurePtFlags(ctx, pt) {
   if (pt.app.state !== "APPROVED") return;
-  if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) return;
+  if (ctx.disabledPts?.has(pt.userId)) return; // disabled AND complete: nothing to do
+  if (ctx.incompletePts?.has(pt.userId)) {
+    // never lock an account (or restrict it) before its application + listing scenario is finished
+    ctx.warnings.push(`${pt.email}: flags skipped, application/listing scenario is not complete`);
+    return;
+  }
   const admin = await adminToken(ctx);
   const token = await ctx.client.login(pt.email).catch(() => null);
   const profile = pt.flags.notAccepting && token ? unwrap(await ctx.client.call("GET", "/profile/me", { token, expect: [200] }))?.profile : null;
@@ -124,7 +155,7 @@ export async function ensurePtFlags(ctx, pt) {
     stat(ctx, "pt.flags.accountRestricted");
   }
   if (pt.flags.suspended) {
-    await ctx.client.call("PATCH", `/auth/users/${pt.userId}/disable`, { token: admin, expect: [200] });
+    await setAccountActive(ctx, pt.userId, false);
     stat(ctx, "pt.flags.suspended");
   }
 }
@@ -516,7 +547,19 @@ export async function ensureContract(ctx, { pt, client, packageIndex, want, gymI
   const actions = planContract(existing?.status ?? null, want);
   let contract = existing;
   for (const a of actions) {
-    if (a === "request") contract = unwrap(await ctx.client.call("POST", "/contracts/request", { token: clientToken, body: P.contractRequestBody(pt.userId, pkg, gymId), expect: [200, 201] }));
+    if (a === "request") {
+      const send = () => ctx.client.call("POST", "/contracts/request", { token: clientToken, body: P.contractRequestBody(pt.userId, pkg, gymId), expect: [200, 201, 422] });
+      let r = await send();
+      const code = r.json?.error?.code ?? r.json?.code;
+      if (r.status === 422 && code === "PT_NOT_ACCEPTING_CLIENTS" && pt.flags.notAccepting) {
+        // an earlier run set the "not accepting" flag before this contract existed: open the PT briefly, ensurePtFlags closes it again
+        await ctx.client.call("PATCH", "/profile/me/accepting-clients", { token: ptToken, body: { isAcceptingClients: true }, expect: [200] });
+        stat(ctx, "pt.flags.notAccepting.reopenedForContract");
+        r = await send();
+      }
+      if (![200, 201].includes(r.status)) throw new Error(`POST /contracts/request -> ${r.status} ${code ?? ""}`.trim());
+      contract = unwrap(r);
+    }
     else if (a === "accept") await ctx.client.call("PATCH", `/contracts/${need(ctx, contract?.id, "contractId")}/accept`, { token: ptToken, expect: [200] });
     else if (a === "pay") {
       const r = await ctx.client.call("POST", `/contracts/${contract.id}/pay`, { token: clientToken, body: P.payBody(), expect: [200] });

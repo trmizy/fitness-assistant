@@ -124,7 +124,8 @@ export const CHECKS = [
       const gOpen = await rows(pools.gym, `SELECT gym_id, count(*)::int n FROM gym_listing_revisions WHERE status IN ('DRAFT','PENDING') GROUP BY gym_id HAVING count(*) > 1`);
       const pOpen = await rows(pools.user, `SELECT pt_user_id, count(*)::int n FROM pt_listing_revisions WHERE status IN ('DRAFT','PENDING') GROUP BY pt_user_id HAVING count(*) > 1`);
       const gVer = await rows(pools.gym, `SELECT g.id, g.listing_version FROM gyms g LEFT JOIN gym_listing_revisions r ON r.gym_id = g.id WHERE g.listing_version > 0 GROUP BY g.id, g.listing_version HAVING g.listing_version <> 1 + count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
-      const pVer = await rows(pools.user, `SELECT p."userId" AS uid, p.listing_version FROM user_profiles p LEFT JOIN pt_listing_revisions r ON r.pt_user_id = p."userId" WHERE p.listing_version > 0 GROUP BY p."userId", p.listing_version HAVING p.listing_version <> count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
+      // seed PTs only: legacy PTs that existed before migration 20261017173131_pt_listing_revisions were backfilled to listing_version=1 with no revision row (product backfill, not seed data)
+      const pVer = await rows(pools.user, `SELECT p."userId" AS uid, p.listing_version FROM user_profiles p LEFT JOIN pt_listing_revisions r ON r.pt_user_id = p."userId" WHERE p.listing_version > 0 AND p.email LIKE ${SEED} GROUP BY p."userId", p.listing_version HAVING p.listing_version <> count(r.id) FILTER (WHERE r.status = 'APPROVED')`);
       const n = (await rows(pools.gym, `SELECT count(*)::int n FROM gym_listing_revisions`))[0].n + (await rows(pools.user, `SELECT count(*)::int n FROM pt_listing_revisions`))[0].n;
       return {
         examined: n,

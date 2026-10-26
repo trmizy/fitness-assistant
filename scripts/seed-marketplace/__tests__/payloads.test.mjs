@@ -125,3 +125,11 @@ test("contract / membership / review / restriction bodies are well-formed", () =
   assert.equal(P.reviewBody(5, "ok").rating, 5);
   assert.ok(["COMPLAINT_REVIEW", "CONDUCT_REVIEW", "PAYMENT_REVIEW", "DOCUMENT_VERIFICATION", "ACCOUNT_SECURITY", "OTHER"].includes(P.restrictContractBody("DOCUMENT_VERIFICATION", "x", "y").category));
 });
+
+test("owner tax codes: valid 10-digit format, unique per owner, deterministic", () => {
+  const codes = world.owners.map((o) => o.partner.legal.taxCode);
+  for (const c of codes) assert.match(c, /^\d{10}$/, `tax code ${c}`);
+  for (const c of codes) assert.ok(APP.TAX_CODE_PATTERN.test(c), `service pattern accepts ${c}`);
+  assert.equal(new Set(codes).size, codes.length, "tax codes must be unique per owner");
+  assert.deepEqual(buildWorld().owners.map((o) => o.partner.legal.taxCode), codes, "deterministic across builds");
+});
