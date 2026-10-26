@@ -17,7 +17,8 @@ import {
   InstagramLogoIcon as Instagram,
   StarIcon as StarSolid,
 } from "@phosphor-icons/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { PT_PAGE_SIZE, mergePtPages, nextPtPage } from "../../utils/ptPaging";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import {
   profileService,
@@ -360,11 +361,21 @@ export function PTDiscoveryPage() {
   // 404 on the detail: the trainer was hidden / suspended / is no longer approved (the id cannot be probed past the list).
   const ptGone = !!selectedId && !!ptDetailError && isPtGone(ptDetailError);
 
-  const { data: ptsData, isLoading } = useQuery({
-
+  const {
+    data: ptsData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    // Đổi bộ lọc = queryKey mới = quay về trang 1.
     queryKey: ["pts-list", activeFilters],
-    queryFn: () =>
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any, allPages: any[]) => nextPtPage(lastPage, allPages.length),
+    queryFn: ({ pageParam }) =>
       profileService.listPTs({
+        page: pageParam,
+        limit: PT_PAGE_SIZE,
         q: activeFilters.q || undefined,
         minPrice: activeFilters.minPrice
           ? Number(activeFilters.minPrice)
@@ -390,7 +401,7 @@ export function PTDiscoveryPage() {
     );
   }
 
-  const ptsList = ptsData?.pts || [];
+  const ptsList = mergePtPages<any>(ptsData?.pages);
 
   const filtered = ptsList.filter((pt: any) => {
     const specialties: string[] = pt.ptApplication?.mainSpecialties || [];
@@ -708,6 +719,17 @@ export function PTDiscoveryPage() {
                 Không tìm thấy PT phù hợp với bộ lọc hiện tại.
               </p>
             </div>
+          )}
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-zinc-700/60 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors disabled:opacity-60"
+            >
+              {isFetchingNextPage && <Loader2 className="w-4 h-4 animate-spin" />}
+              Xem thêm
+            </button>
           )}
         </div>
 

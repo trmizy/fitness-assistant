@@ -129,6 +129,13 @@ export default defineConfig({
         changeOrigin: true,
         configure: forwardRealHost,
       },
+      // Ảnh tin đăng PT (bucket gymini-user-media): user-service ký link theo địa chỉ trang đang dùng,
+      // cùng cơ chế với bucket đối tác ở trên — thiếu proxy này thì Vite trả SPA (text/html) thay vì ảnh.
+      [`/${process.env.PT_MEDIA_S3_BUCKET || "gymini-user-media"}`]: {
+        target: GATEWAY_PROXY_TARGET,
+        changeOrigin: true,
+        configure: forwardRealHost,
+      },
       // Gateway's own Socket.IO (dashboard/notifications/chat-intent AI) —
       // same path both sides, no rewrite needed.
       "/socket.io": {

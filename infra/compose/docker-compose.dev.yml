@@ -68,6 +68,7 @@ services:
       # thống (SMTP_FROM) nên thư trả lời về đúng một chỗ. Service `web` không có env_file nên
       # giá trị phải nằm ở đây, ghi đè được bằng biến môi trường khi cần.
       VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-huytronh5@gmail.com}
+      PT_MEDIA_S3_BUCKET: gymini-user-media # proxy ảnh tin đăng PT (vite.config.ts)
       CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
