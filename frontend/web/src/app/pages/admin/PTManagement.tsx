@@ -8,6 +8,9 @@ import {
 } from "../../services/ptApplicationService";
 import { apiBaseUrl } from "../../config/serverUrl";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { toast } from "sonner";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { listingErrorMessage } from "../../utils/listingErrors";
 
 const API_URL = apiBaseUrl();
 
@@ -434,17 +437,48 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pt-applications"] });
-      alert("Đã thực hiện xong.");
+      toast.success("Đã thực hiện xong.");
       onBack();
     },
-    onError: (err: any) => alert(err.response?.data?.error || "Thao tác không thành công."),
+    onError: (err: unknown) => toast.error(listingErrorMessage(err, "Thao tác không thành công.")),
   });
+  // Duyệt / Từ chối hồ sơ huấn luyện viên là quyết định cuối: xác nhận trước khi gửi (cùng payload).
+  const [decision, setDecision] = useState<"APPROVE" | "REJECT" | null>(null);
+  const rejectNeedsReason = decision === "REJECT" && !feedback.trim();
 
   return (
     <>
       {showDocs && (
         <DocumentViewer app={app} onClose={() => setShowDocs(false)} />
       )}
+      <ConfirmDialog
+        open={!!decision}
+        onOpenChange={(o) => !o && setDecision(null)}
+        title={decision === "APPROVE" ? "Duyệt hồ sơ huấn luyện viên?" : "Từ chối hồ sơ huấn luyện viên?"}
+        description={
+          decision === "APPROVE"
+            ? `${app.user?.firstName ?? ""} ${app.user?.lastName ?? ""} sẽ trở thành huấn luyện viên và được nhận khách.`
+            : `Hồ sơ của ${app.user?.firstName ?? ""} ${app.user?.lastName ?? ""} sẽ bị từ chối; nội dung "Phản hồi gửi người nộp" được gửi kèm làm lý do.`
+        }
+        confirmLabel={decision === "APPROVE" ? "Duyệt hồ sơ" : "Từ chối hồ sơ"}
+        danger={decision === "REJECT"}
+        confirmDisabled={rejectNeedsReason}
+        onConfirm={async () => {
+          if (!decision) return;
+          try {
+            await actionMutation.mutateAsync({ action: decision, note: adminNote, feedback });
+          } catch {
+            /* onError đã hiện thông báo */
+          }
+          setDecision(null);
+        }}
+      >
+        {rejectNeedsReason && (
+          <p role="alert" className="text-xs text-amber-400">
+            Hãy nhập lý do vào ô "Phản hồi gửi người nộp" trước khi từ chối.
+          </p>
+        )}
+      </ConfirmDialog>
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         {/* Top Header */}
         <div className="flex items-center gap-4">
@@ -551,25 +585,13 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "APPROVE",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => setDecision("APPROVE")}
                     className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20"
                   >
                     Duyệt
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "REJECT",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => setDecision("REJECT")}
                     className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Từ chối
@@ -984,7 +1006,7 @@ export function PTManagement() {
   const [selected, setSelected] = useState<App | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const { data: applications = [], isLoading } = useQuery({
+  const { data: applications = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-pt-applications", filter],
     // Keeps the current rows on screen while the new filter loads, instead of
     // dropping to undefined and flashing an empty list on every filter change.
@@ -1069,6 +1091,13 @@ export function PTManagement() {
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+        </div>
+      ) : isError && applications.length === 0 ? (
+        <div role="alert" data-testid="pt-applications-load-error" className="bg-red-500/5 border border-red-500/20 rounded-2xl py-16 text-center">
+          <p className="text-red-300 text-sm mb-3">Không tải được danh sách hồ sơ.</p>
+          <button onClick={() => void refetch()} className="px-4 py-2 border border-red-500/30 text-red-300 hover:bg-red-500/10 text-xs font-bold rounded-lg">
+            Thử lại
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-zinc-900/50 border border-zinc-800 border-dashed rounded-2xl py-20 text-center">

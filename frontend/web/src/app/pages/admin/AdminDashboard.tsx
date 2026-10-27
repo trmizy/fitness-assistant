@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { api, adminService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import { adminRoleVi, adminShortDateVi, adminStatusVi } from "../../utils/adminLabels";
+import { MoneyActionDialog } from "./shared/MoneyActionDialog";
+import { checkMembershipId } from "./shared/moneyGuards";
 
 // Gateway trả thông báo hệ thống bằng tiếng Anh — dịch các câu đã biết, câu lạ giữ nguyên.
 function viAlertText(text: string | undefined): string {
@@ -70,19 +72,22 @@ export function AdminDashboard() {
 
   // Exceptional gym-membership refund (money-flow §2.4) — the route has existed since the
   // redesign with no admin-facing caller anywhere. No membership-browsing endpoint exists
-  // yet either, so this takes the id directly rather than pretending to offer a picker.
+  // yet either (gym-service admin routes: only POST refund + the pending-issues list), so this takes the
+  // id directly — but never refunds from a pasted id without a confirmation that echoes the exact id +
+  // reason (B1-MONEY). The missing membership-by-id read endpoint is a backend gap.
   const [refundMembershipId, setRefundMembershipId] = useState("");
   const [refundReason, setRefundReason] = useState<typeof REFUND_REASONS[number]["value"] | "">("");
+  const [refundConfirmOpen, setRefundConfirmOpen] = useState(false);
+  const membershipIdCheck = checkMembershipId(refundMembershipId);
+  const refundReasonLabel = REFUND_REASONS.find((r) => r.value === refundReason)?.label ?? "";
   const refundMutation = useMutation({
-    mutationFn: () => adminService.refundGymMembership(refundMembershipId.trim(), refundReason as any),
+    mutationFn: () => adminService.refundGymMembership(membershipIdCheck.id, refundReason as any),
     onSuccess: (result: any) => {
       const amount = Number(result?.data?.refundAmount ?? result?.refundAmount ?? 0);
-      toast.success(amount > 0 ? `Đã hoàn ${formatVND(amount)} cho khách` : "Đã hoàn tiền");
+      toast.success(amount > 0 ? `Đã hoàn ${formatVND(amount)} vào ví khách hàng` : "Đã hoàn tiền");
       setRefundMembershipId("");
       setRefundReason("");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || err?.response?.data?.error?.code || "Hoàn tiền thất bại"),
   });
 
   if (isLoading) {
@@ -495,16 +500,31 @@ export function AdminDashboard() {
           hoàn tiền và không đi qua form này.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={refundMembershipId}
-            onChange={(e) => setRefundMembershipId(e.target.value)}
-            placeholder="ID gói hội viên (UUID)"
-            className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 font-mono"
-          />
+          <div className="flex-1">
+            <input
+              type="text"
+              value={refundMembershipId}
+              onChange={(e) => setRefundMembershipId(e.target.value)}
+              placeholder="ID gói hội viên (UUID)"
+              aria-label="ID gói hội viên"
+              aria-invalid={!membershipIdCheck.ok && !!membershipIdCheck.message}
+              aria-describedby={!membershipIdCheck.ok && membershipIdCheck.message ? "membership-id-error" : undefined}
+              data-testid="membership-refund-id-input"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 font-mono"
+            />
+            {!membershipIdCheck.ok && membershipIdCheck.message && (
+              <p id="membership-id-error" role="alert" data-testid="membership-refund-id-error" className="mt-1 text-xs text-red-400">
+                {membershipIdCheck.message}
+              </p>
+            )}
+          </div>
           <select
             value={refundReason}
             onChange={(e) => setRefundReason(e.target.value as any)}
+            aria-label="Lý do hoàn tiền"
+            data-testid="membership-refund-reason-select"
             className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-red-500/50"
           >
             <option value="">-- Chọn lý do --</option>
@@ -515,14 +535,35 @@ export function AdminDashboard() {
             ))}
           </select>
           <button
-            onClick={() => refundMutation.mutate()}
-            disabled={!refundMembershipId.trim() || !refundReason || refundMutation.isPending}
+            onClick={() => setRefundConfirmOpen(true)}
+            disabled={!membershipIdCheck.ok || !refundReason || refundMutation.isPending}
+            data-testid="membership-refund-open-button"
             className="flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
           >
-            {refundMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            Hoàn tiền
+            Xem lại và hoàn tiền
           </button>
         </div>
+        <MoneyActionDialog
+          testId="membership-refund-dialog"
+          open={refundConfirmOpen}
+          onOpenChange={setRefundConfirmOpen}
+          title="Xác nhận hoàn tiền gói hội viên"
+          description="Hệ thống chưa cho xem thông tin gói theo mã, nên hãy đối chiếu lại mã dưới đây với nguồn bạn lấy trước khi xác nhận."
+          parties={[
+            { label: "Mã gói hội viên", value: <span className="font-mono text-xs break-all" data-testid="membership-refund-dialog-id">{membershipIdCheck.id}</span> },
+            { label: "Lý do", value: refundReasonLabel },
+          ]}
+          effects={[
+            "Số tiền hoàn do hệ thống tự tính theo số ngày còn lại của gói (theo tỷ lệ) — bạn không nhập số tiền và hộp thoại này chưa biết trước con số đó.",
+            "Tiền hoàn được ghi có vào ví khách hàng (số dư khả dụng), không hoàn về thẻ hay ngân hàng. Gói chuyển sang đã huỷ.",
+            "Phần đã chia cho phòng gym và huấn luyện viên giới thiệu được thu hồi tương ứng.",
+            "Chỉ áp dụng cho gói đang hoạt động; gói đã huỷ hoặc hết hạn sẽ bị từ chối.",
+          ]}
+          notice="Không thể hoàn tác sau khi xác nhận."
+          confirmLabel="Xác nhận hoàn tiền"
+          confirmDisabled={!membershipIdCheck.ok || !refundReason}
+          onConfirm={() => refundMutation.mutateAsync()}
+        />
       </div>
     </div>
   );

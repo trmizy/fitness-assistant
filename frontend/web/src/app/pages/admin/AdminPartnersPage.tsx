@@ -37,6 +37,8 @@ import { getPartnerStatusMeta } from "../../components/gym-management/statusConf
 import { EmptyState as SharedEmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
 import { AdminApplicationsPanel } from "./AdminApplicationsPanel";
 import { ISSUE_TYPE_LABEL, SOURCE_LABEL, statusMeta, ComplaintDetailDialog } from "./AdminComplaintsPage";
 
@@ -76,6 +78,16 @@ function formatDateTime(iso?: string | null) {
 
 function EmptyState({ text }: { text: string }) {
   return <SharedEmptyState title={text} />;
+}
+
+/** Fetch failed - never show it as "empty". */
+function ErrorBlock({ text = "Không tải được dữ liệu.", onRetry }: { text?: string; onRetry: () => void }) {
+  return (
+    <div role="alert" data-testid="admin-partners-load-error" className="bg-red-500/5 border border-red-500/20 rounded-xl py-8 px-4 text-center">
+      <p className="text-red-300 text-sm mb-3">{text}</p>
+      <Button size="sm" variant="outline" onClick={onRetry}>Thử lại</Button>
+    </div>
+  );
 }
 
 // ── Trang chính ──────────────────────────────────────────────────────────────
@@ -152,6 +164,8 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
         <h3 className="text-sm font-bold text-zinc-200 mb-3">Cần bạn xử lý</h3>
         {queueQuery.isLoading ? (
           <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+        ) : queueQuery.isError ? (
+          <ErrorBlock text="Không tải được hàng đợi việc cần làm." onRetry={() => void queueQuery.refetch()} />
         ) : queueItems.length === 0 ? (
           <p className="text-xs text-zinc-500">✅ Không có việc nào chờ xử lý.</p>
         ) : (
@@ -202,6 +216,8 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
       {/* Danh sách */}
       {partnersQuery.isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>
+      ) : partnersQuery.isError ? (
+        <ErrorBlock text="Không tải được danh sách đối tác." onRetry={() => void partnersQuery.refetch()} />
       ) : partners.length === 0 ? (
         <EmptyState text="Không có đối tác nào khớp bộ lọc." />
       ) : (
@@ -258,6 +274,16 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
     queryClient.invalidateQueries({ queryKey: ["admin-partner-queue"] });
   };
 
+  if (detailQuery.isError && !detailQuery.data) {
+    return (
+      <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300">
+          <ArrowLeft className="w-3.5 h-3.5" /> Quay lại danh sách
+        </button>
+        <ErrorBlock text="Không tải được hồ sơ đối tác." onRetry={() => void detailQuery.refetch()} />
+      </div>
+    );
+  }
   if (detailQuery.isLoading || !detailQuery.data) {
     return (
       <div className="p-6 flex justify-center"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>
@@ -436,6 +462,11 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
     commissionPct != null && (!Number.isFinite(commissionPct) || commissionPct < 0 || commissionPct > 100)
       ? "Chiết khấu riêng phải từ 0 đến 100%"
       : null;
+  const [confirmCommission, setConfirmCommission] = useState(false);
+  const newRate = commissionPct == null ? null : Math.round(commissionPct * 100) / 10000;
+  const oldRate = partner.commissionRateOverride != null ? Number(partner.commissionRateOverride) : null;
+  const commissionChanged = (oldRate == null ? null : Math.round(oldRate * 10000)) !== (newRate == null ? null : Math.round(newRate * 10000));
+  const fmtRate = (r: number | null) => (r == null ? "Mức chung" : `${Math.round(r * 10000) / 100}%`);
   const saveMutation = useMutation({
     mutationFn: () =>
       adminService.updatePartner(partner.id, {
@@ -470,17 +501,39 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
       {commissionError && <p className="text-xs text-red-400">{commissionError}</p>}
       <textarea value={form.negotiationNotes} onChange={(e) => setForm({ ...form, negotiationNotes: e.target.value })} placeholder="Ghi chú đàm phán" rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
       <div className="flex gap-2">
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !!commissionError} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
+        <button onClick={() => (commissionChanged ? setConfirmCommission(true) : saveMutation.mutate())} disabled={saveMutation.isPending || !!commissionError} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
           {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Lưu
         </button>
         <button onClick={() => setExpanded(false)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">Huỷ</button>
       </div>
+      <ConfirmDialog
+        open={confirmCommission}
+        onOpenChange={setConfirmCommission}
+        title="Đổi chiết khấu riêng của đối tác?"
+        description={
+          <>
+            Chiết khấu riêng của "{partner.legalName}" sẽ đổi từ <b>{fmtRate(oldRate)}</b> sang <b>{fmtRate(newRate)}</b>.
+            Thay đổi này ảnh hưởng đến số tiền nền tảng thu trên các giao dịch mới của đối tác.
+          </>
+        }
+        confirmLabel="Xác nhận đổi"
+        danger={false}
+        onConfirm={async () => {
+          try {
+            await saveMutation.mutateAsync();
+          } catch {
+            /* onError đã hiện thông báo */
+          }
+          setConfirmCommission(false);
+        }}
+      />
     </div>
   );
 }
 
 function AccountsTab({ partner, identities, invitations, onChange }: { partner: any; identities: any[]; invitations: any[]; onChange: () => void }) {
-  const [transferTarget, setTransferTarget] = useState<string | null>(null);
+  const [accountConfirm, setAccountConfirm] = useState<{ kind: "logout" | "revoke" | "transfer"; accountId: string; name: string } | null>(null);
+  const [inviteConfirm, setInviteConfirm] = useState<{ id: string; email: string } | null>(null);
 
   // Moved here when the "Owners" tab was removed from AdminGymModeration: fixing a misspelled
   // display name was the ONE thing that tab did which had no equivalent anywhere else, so it
@@ -519,12 +572,13 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
   });
   const transferMutation = useMutation({
     mutationFn: (toAccountId: string) => adminService.transferPartnerOwnership(partner.id, toAccountId, "Chuyển quyền sở hữu bởi quản trị viên"),
-    onSuccess: () => { toast.success("Đã chuyển quyền sở hữu"); setTransferTarget(null); onChange(); },
+    onSuccess: () => { toast.success("Đã chuyển quyền sở hữu"); onChange(); },
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể chuyển quyền"),
   });
   const revokeInviteMutation = useMutation({
     mutationFn: (invitationId: string) => adminService.revokePartnerInvitation(partner.id, invitationId),
     onSuccess: () => { toast.success("Đã thu hồi thư mời"); onChange(); },
+    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể thu hồi thư mời"),
   });
   const resendInviteMutation = useMutation({
     mutationFn: (invitationId: string) => adminService.resendPartnerInvitation(partner.id, invitationId),
@@ -533,14 +587,71 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
       toast.success("Đã gửi lại thư mời (đã sao chép liên kết)");
       onChange();
     },
+    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể gửi lại thư mời"),
   });
 
   const activeAccounts = (partner.accounts ?? []).filter((a: any) => a.status !== "REVOKED");
   const revokedAccounts = (partner.accounts ?? []).filter((a: any) => a.status === "REVOKED");
   const pendingInvitations = (invitations ?? []).filter((i: any) => i.status === "PENDING");
 
+  const accountCopy = accountConfirm && {
+    logout: {
+      title: "Buộc đăng xuất tài khoản này?",
+      body: `Mọi phiên đăng nhập của "${accountConfirm.name}" sẽ bị đóng ngay; người này phải đăng nhập lại.`,
+      label: "Buộc đăng xuất",
+      danger: false,
+      run: () => forceLogoutMutation.mutateAsync(accountConfirm.accountId),
+    },
+    revoke: {
+      title: "Thu hồi tài khoản này?",
+      body: `Tài khoản "${accountConfirm.name}" sẽ mất quyền truy cập khu vực đối tác ngay lập tức. Không thể hoàn tác - muốn khôi phục phải mời lại.`,
+      label: "Thu hồi tài khoản",
+      danger: true,
+      run: () => revokeMutation.mutateAsync(accountConfirm.accountId),
+    },
+    transfer: {
+      title: "Chuyển quyền sở hữu?",
+      body: `Quyền sở hữu đối tác sẽ chuyển sang "${accountConfirm.name}". Chủ hiện tại sẽ trở thành quản lý.`,
+      label: "Chuyển quyền sở hữu",
+      danger: true,
+      run: () => transferMutation.mutateAsync(accountConfirm.accountId),
+    },
+  }[accountConfirm.kind];
+
   return (
     <div className="space-y-4">
+      <ConfirmDialog
+        open={!!accountConfirm}
+        onOpenChange={(o) => !o && setAccountConfirm(null)}
+        title={accountCopy?.title ?? ""}
+        description={accountCopy?.body}
+        confirmLabel={accountCopy?.label ?? "Xác nhận"}
+        danger={accountCopy?.danger}
+        onConfirm={async () => {
+          try {
+            await accountCopy?.run();
+          } catch {
+            /* onError của mutation đã hiện thông báo */
+          }
+          setAccountConfirm(null);
+        }}
+      />
+      <ConfirmDialog
+        open={!!inviteConfirm}
+        onOpenChange={(o) => !o && setInviteConfirm(null)}
+        title="Thu hồi thư mời này?"
+        description={`Thư mời gửi tới ${inviteConfirm?.email ?? ""} sẽ mất hiệu lực; liên kết đã gửi không dùng được nữa. Muốn mời lại phải gửi thư mời mới.`}
+        confirmLabel="Thu hồi thư mời"
+        onConfirm={async () => {
+          if (!inviteConfirm) return;
+          try {
+            await revokeInviteMutation.mutateAsync(inviteConfirm.id);
+          } catch {
+            /* onError đã hiện thông báo */
+          }
+          setInviteConfirm(null);
+        }}
+      />
       <div className="space-y-2.5">
         {activeAccounts.map((a: any) => {
           const identity = identities?.find((i: any) => i.accountId === a.id);
@@ -596,29 +707,20 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
                 <button onClick={() => resetPwMutation.mutate(a.id)} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
                   <KeyRound className="w-3 h-3" /> Đặt lại mật khẩu
                 </button>
-                <button onClick={() => forceLogoutMutation.mutate(a.id)} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
+                <button onClick={() => setAccountConfirm({ kind: "logout", accountId: a.id, name })} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
                   <LogOut className="w-3 h-3" /> Buộc đăng xuất
                 </button>
                 {a.role === "MANAGER" && (
-                  <button onClick={() => setTransferTarget(a.id)} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
+                  <button onClick={() => setAccountConfirm({ kind: "transfer", accountId: a.id, name })} className="flex items-center gap-1 text-[11px] border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg">
                     <ArrowLeftRight className="w-3 h-3" /> Chuyển quyền sở hữu
                   </button>
                 )}
                 {activeAccounts.filter((x: any) => x.role === "OWNER").length + (a.role === "OWNER" ? -1 : 0) > 0 || a.role === "MANAGER" ? (
-                  <button onClick={() => revokeMutation.mutate(a.id)} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg">
+                  <button onClick={() => setAccountConfirm({ kind: "revoke", accountId: a.id, name })} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg">
                     <UserMinus className="w-3 h-3" /> Thu hồi
                   </button>
                 ) : null}
               </div>
-              {transferTarget === a.id && (
-                <div className="mt-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-2.5 flex items-center justify-between gap-2">
-                  <p className="text-[11px] text-zinc-400">Chuyển quyền sở hữu sang "{name}"? Chủ hiện tại sẽ trở thành quản lý.</p>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <button onClick={() => transferMutation.mutate(a.id)} disabled={transferMutation.isPending} className="text-[11px] bg-green-500 text-black px-2 py-1 rounded font-bold">Xác nhận</button>
-                    <button onClick={() => setTransferTarget(null)} className="text-[11px] text-zinc-500 px-2 py-1">Huỷ</button>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
@@ -640,7 +742,7 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
                     <button onClick={() => resendInviteMutation.mutate(inv.id)} className="text-[11px] border border-zinc-700 text-zinc-300 px-2 py-1 rounded-lg">Gửi lại</button>
-                    <button onClick={() => revokeInviteMutation.mutate(inv.id)} className="text-[11px] border border-red-500/30 text-red-400 px-2 py-1 rounded-lg">Thu hồi</button>
+                    <button onClick={() => setInviteConfirm({ id: inv.id, email: inv.email })} className="text-[11px] border border-red-500/30 text-red-400 px-2 py-1 rounded-lg">Thu hồi</button>
                   </div>
                 </div>
               );
@@ -688,6 +790,7 @@ function DocumentsTab({ partnerId }: { partnerId: string }) {
   });
 
   if (docsQuery.isLoading) return <Loader2 className="w-5 h-5 text-green-500 animate-spin" />;
+  if (docsQuery.isError) return <ErrorBlock text="Không tải được danh sách giấy tờ." onRetry={() => void docsQuery.refetch()} />;
 
   return (
     <div className="space-y-2.5">
@@ -772,6 +875,7 @@ function ContactLogSection({ partnerId }: { partnerId: string }) {
           Ghi lại
         </button>
       </div>
+      {logQuery.isError && <ErrorBlock text="Không tải được nhật ký trao đổi." onRetry={() => void logQuery.refetch()} />}
       <div className="space-y-1.5">
         {(logQuery.data ?? []).map((l: any) => (
           <div key={l.id} className="text-xs bg-zinc-900/60 rounded-lg px-3 py-2">
@@ -811,7 +915,9 @@ function TerminationImpactPreview({ partnerId }: { partnerId: string }) {
         <AlertTriangle className="w-3.5 h-3.5" /> Xem trước hệ quả nếu chấm dứt hợp tác
       </button>
       {show && (
-        impactQuery.isLoading ? <Loader2 className="w-4 h-4 text-green-500 animate-spin mt-2" /> : impactQuery.data && (
+        impactQuery.isLoading ? <Loader2 className="w-4 h-4 text-green-500 animate-spin mt-2" /> : impactQuery.isError ? (
+          <div className="mt-3"><ErrorBlock text="Không tải được hệ quả chấm dứt." onRetry={() => void impactQuery.refetch()} /></div>
+        ) : impactQuery.data && (
           <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
             <div><span className="text-zinc-500">Hội viên còn hạn:</span> <span className="text-zinc-200 font-semibold">{impactQuery.data.activeMembers}</span></div>
             <div><span className="text-zinc-500">Giá trị chưa dùng:</span> <span className="text-zinc-200 font-semibold">{formatVND(impactQuery.data.unusedValueTotal)}</span></div>
@@ -838,6 +944,7 @@ const AUDIT_ACTION_LABEL: Record<string, string> = {
 function AuditTab({ partnerId }: { partnerId: string }) {
   const logQuery = useQuery({ queryKey: ["admin-partner-audit", partnerId], queryFn: () => adminService.getPartnerAuditLog(partnerId) });
   if (logQuery.isLoading) return <Loader2 className="w-5 h-5 text-green-500 animate-spin" />;
+  if (logQuery.isError) return <ErrorBlock text="Không tải được nhật ký kiểm toán." onRetry={() => void logQuery.refetch()} />;
   if (!logQuery.data?.length) return <EmptyState text="Chưa có hoạt động nào." />;
   return (
     <div className="space-y-2">
@@ -944,6 +1051,8 @@ function InternalNotesTab({ partnerId }: { partnerId: string }) {
       </div>
       {notesQuery.isLoading ? (
         <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+      ) : notesQuery.isError ? (
+        <ErrorBlock text="Không tải được ghi chú nội bộ." onRetry={() => void notesQuery.refetch()} />
       ) : !notesQuery.data?.length ? (
         <EmptyState text="Chưa có ghi chú nội bộ nào." />
       ) : (
@@ -970,6 +1079,7 @@ function PartnerComplaintsTab({ partnerId }: { partnerId: string }) {
   const complaintsQuery = useQuery({ queryKey: ["admin-partner-complaints", partnerId], queryFn: () => adminService.listPartnerComplaints(partnerId) });
 
   if (complaintsQuery.isLoading) return <Loader2 className="w-5 h-5 text-green-500 animate-spin" />;
+  if (complaintsQuery.isError) return <ErrorBlock text="Không tải được danh sách khiếu nại." onRetry={() => void complaintsQuery.refetch()} />;
   if (!complaintsQuery.data?.length) return <EmptyState text="Chưa có khiếu nại nào." />;
 
   return (
@@ -1021,11 +1131,14 @@ function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onCl
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể tạm khoá"),
   });
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-amber-500/20 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
-          <AlertTriangle className="w-4 h-4" /> Tạm khoá đối tác?
-        </div>
+    <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+      <DialogContent className="max-w-md space-y-4">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-amber-400">
+            <AlertTriangle className="w-4 h-4" /> Tạm khoá đối tác?
+          </DialogTitle>
+          <DialogDescription className="sr-only">Xem hệ quả rồi nhập lý do để tạm khoá đối tác.</DialogDescription>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
             <p className="font-bold text-red-400 mb-1.5">Sẽ xảy ra</p>
@@ -1047,15 +1160,15 @@ function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onCl
             </ul>
           </div>
         </div>
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do (bắt buộc)..." rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
+        <textarea aria-label="Lý do tạm khoá" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do (bắt buộc)..." rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Không khoá</button>
           <button onClick={() => mutation.mutate()} disabled={!reason.trim() || mutation.isPending} className="flex-1 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black rounded-lg">
             {mutation.isPending ? "Đang xử lý..." : "Tạm khoá"}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1066,15 +1179,18 @@ function UnsuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; on
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể thực hiện"),
   });
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-sm w-full bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <p className="text-sm text-zinc-200">Bỏ tạm khoá đối tác này? Chủ sở hữu sẽ đăng nhập lại được ngay và chi nhánh hiện lại ở trang tìm kiếm.</p>
+    <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+      <DialogContent className="max-w-sm space-y-4">
+        <DialogHeader>
+          <DialogTitle className="text-sm">Bỏ tạm khoá đối tác?</DialogTitle>
+          <DialogDescription className="text-sm text-zinc-200">Chủ sở hữu sẽ đăng nhập lại được ngay và chi nhánh hiện lại ở trang tìm kiếm.</DialogDescription>
+        </DialogHeader>
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Huỷ</button>
           <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="flex-1 py-2 text-xs font-bold bg-green-500 hover:bg-green-400 text-black rounded-lg">Bỏ tạm khoá</button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1093,14 +1209,19 @@ function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; on
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-md w-full bg-zinc-900 rounded-2xl border border-red-500/20 p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 text-sm font-bold text-red-400">
-          <UserMinus className="w-4 h-4" /> Chấm dứt hợp tác? Không quay lại được.
-        </div>
+    <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+      <DialogContent className="max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-red-400">
+            <UserMinus className="w-4 h-4" /> Chấm dứt hợp tác? Không quay lại được.
+          </DialogTitle>
+          <DialogDescription className="sr-only">Chọn cách xử lý hội viên còn hạn và nhập lý do chấm dứt.</DialogDescription>
+        </DialogHeader>
 
         {impactQuery.isLoading ? (
           <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+        ) : impactQuery.isError ? (
+          <ErrorBlock text="Không tải được hệ quả chấm dứt." onRetry={() => void impactQuery.refetch()} />
         ) : impactQuery.data && (
           <div className="bg-zinc-800/60 rounded-lg p-3 text-xs space-y-1">
             <p className="text-zinc-400">Hiện đang có:</p>
@@ -1128,7 +1249,7 @@ function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; on
           </div>
         </div>
 
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do chấm dứt (bắt buộc)..." rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
+        <textarea aria-label="Lý do chấm dứt" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do chấm dứt (bắt buộc)..." rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
 
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-2 text-xs text-zinc-400 border border-zinc-700 rounded-lg">Không chấm dứt</button>
@@ -1140,22 +1261,26 @@ function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; on
             {mutation.isPending ? "Đang xử lý..." : "Xác nhận chấm dứt"}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function ViewAsPartnerModal({ partnerId, onClose }: { partnerId: string; onClose: () => void }) {
   const viewQuery = useQuery({ queryKey: ["admin-view-as-partner", partnerId], queryFn: () => adminService.viewAsPartner(partnerId) });
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-lg w-full bg-zinc-900 rounded-2xl border border-blue-500/20 p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 text-sm font-bold text-blue-400">
-          <Eye className="w-4 h-4" /> Xem dưới góc nhìn đối tác (chỉ đọc)
-        </div>
-        <p className="text-[11px] text-zinc-600">Hành động này đã được ghi vào nhật ký kiểm toán.</p>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg space-y-3 max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-blue-400">
+            <Eye className="w-4 h-4" /> Xem dưới góc nhìn đối tác (chỉ đọc)
+          </DialogTitle>
+          <DialogDescription className="text-[11px]">Hành động này đã được ghi vào nhật ký kiểm toán.</DialogDescription>
+        </DialogHeader>
         {viewQuery.isLoading ? (
           <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+        ) : viewQuery.isError ? (
+          <ErrorBlock text="Không tải được dữ liệu góc nhìn đối tác." onRetry={() => void viewQuery.refetch()} />
         ) : viewQuery.data && (
           <div className="text-xs text-zinc-300 space-y-2">
             <p><span className="text-zinc-500">Thương hiệu:</span> {viewQuery.data.brand?.name ?? "Chưa đặt tên"}</p>
@@ -1168,7 +1293,7 @@ function ViewAsPartnerModal({ partnerId, onClose }: { partnerId: string; onClose
           </div>
         )}
         <button onClick={onClose} className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300">Đóng</button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

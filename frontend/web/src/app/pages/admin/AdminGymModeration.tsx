@@ -8,6 +8,7 @@ import { ModerationStatusBadge } from "../../components/gym-management/Moderatio
 import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
 import { BranchReviewIssuesPanel } from "../../components/gym-management/BranchReviewIssuesPanel";
 import { BranchReviewDetail } from "../../components/gym-management/BranchReviewDetail";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
 /**
  * Vòng 4 / Phase C — there was no admin-facing gym/brand moderation screen at all before this
@@ -49,18 +50,22 @@ export function AdminGymModeration() {
   const [tab, setTab] = useState<Tab>("pending");
   const queryClient = useQueryClient();
 
-  const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
+  const { data: gyms = [], isLoading: gymsLoading, isError: gymsError, refetch: refetchGyms } = useQuery<Gym[]>({
     queryKey: ["admin-gyms"],
     queryFn: () => adminService.listGymsForAdmin(),
   });
-  const { data: brands = [], isLoading: brandsLoading } = useQuery<GymBrand[]>({
+  const { data: brands = [], isLoading: brandsLoading, isError: brandsError, refetch: refetchBrands } = useQuery<GymBrand[]>({
     queryKey: ["admin-brands"],
     queryFn: () => adminService.listBrandsForAdmin(),
   });
-  const { data: permanentlyClosed = [], isLoading: closedLoading } = useQuery<(Gym & { activeMembershipCount: number })[]>({
+  const { data: permanentlyClosed = [], isLoading: closedLoading, isError: closedError, refetch: refetchClosed } = useQuery<(Gym & { activeMembershipCount: number })[]>({
     queryKey: ["admin-gyms-permanently-closed"],
     queryFn: () => adminService.listPermanentlyClosedGyms(),
   });
+
+  // Duyệt / từ chối chi nhánh đều phải xác nhận trước khi gửi. Backend (PATCH /admin/gyms/:id/status)
+  // chỉ nhận { status } — chưa có trường lý do, nên chỉ xác nhận, không bắt nhập lý do.
+  const [statusConfirm, setStatusConfirm] = useState<{ gym: Gym; status: "APPROVED" | "REJECTED" } | null>(null);
 
   const invalidateGyms = () => queryClient.invalidateQueries({ queryKey: ["admin-gyms"] });
   const invalidateBrands = () => queryClient.invalidateQueries({ queryKey: ["admin-brands"] });
@@ -193,10 +198,35 @@ export function AdminGymModeration() {
         ))}
       </div>
 
+      <ConfirmDialog
+        open={!!statusConfirm}
+        onOpenChange={(o) => !o && setStatusConfirm(null)}
+        title={statusConfirm?.status === "APPROVED" ? "Duyệt chi nhánh này?" : "Từ chối chi nhánh này?"}
+        description={
+          statusConfirm?.status === "APPROVED"
+            ? `Chi nhánh "${statusConfirm?.gym.name}" sẽ được hiển thị công khai và nhận hội viên. Nếu là chi nhánh đầu tiên của thương hiệu thì tên thương hiệu cũng được duyệt theo.`
+            : `Chi nhánh "${statusConfirm?.gym.name}" sẽ bị từ chối và không được hiển thị công khai. Chủ gym sẽ thấy trạng thái bị từ chối.`
+        }
+        confirmLabel={statusConfirm?.status === "APPROVED" ? "Duyệt" : "Từ chối"}
+        danger={statusConfirm?.status === "REJECTED"}
+        onConfirm={async () => {
+          if (!statusConfirm) return;
+          const { gym, status } = statusConfirm;
+          try {
+            await setStatusMutation.mutateAsync({ id: gym.id, status });
+          } catch {
+            /* onError của mutation đã hiện thông báo */
+          }
+          setStatusConfirm(null);
+        }}
+      />
+
       {tab === "pending" && (
         <div className="space-y-3">
           {gymsLoading ? (
             <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+          ) : gymsError ? (
+            <ErrorState onRetry={() => void refetchGyms()} />
           ) : pendingGyms.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đang chờ duyệt lần đầu." icon={Building2} />
           ) : (
@@ -226,7 +256,7 @@ export function AdminGymModeration() {
                   </button>
                   <button
                     data-testid="admin-gym-approve-button"
-                    onClick={() => setStatusMutation.mutate({ id: g.id, status: "APPROVED" })}
+                    onClick={() => setStatusConfirm({ gym: g, status: "APPROVED" })}
                     disabled={setStatusMutation.isPending}
                     className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
@@ -241,7 +271,7 @@ export function AdminGymModeration() {
                   </button>
                   <button
                     data-testid="admin-gym-reject-button"
-                    onClick={() => setStatusMutation.mutate({ id: g.id, status: "REJECTED" })}
+                    onClick={() => setStatusConfirm({ gym: g, status: "REJECTED" })}
                     disabled={setStatusMutation.isPending}
                     className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   >
@@ -276,6 +306,8 @@ export function AdminGymModeration() {
         <div className="space-y-3">
           {gymsLoading ? (
             <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+          ) : gymsError ? (
+            <ErrorState onRetry={() => void refetchGyms()} />
           ) : gymsWithPendingRename.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đang chờ duyệt đổi tên/địa chỉ." icon={Building2} />
           ) : (
@@ -330,6 +362,8 @@ export function AdminGymModeration() {
         <div className="space-y-3">
           {brandsLoading ? (
             <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+          ) : brandsError ? (
+            <ErrorState onRetry={() => void refetchBrands()} />
           ) : brandsWithPendingRename.length === 0 ? (
             <EmptyState text="Không có thương hiệu nào đang chờ duyệt đổi tên." icon={Store} />
           ) : (
@@ -363,6 +397,8 @@ export function AdminGymModeration() {
           </p>
           {closedLoading ? (
             <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+          ) : closedError ? (
+            <ErrorState onRetry={() => void refetchClosed()} />
           ) : permanentlyClosed.length === 0 ? (
             <EmptyState text="Không có phòng gym nào đã đóng cửa vĩnh viễn." icon={AlertTriangle} />
           ) : (
@@ -400,6 +436,8 @@ export function AdminGymModeration() {
           </div>
           {gymsLoading ? (
             <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+          ) : gymsError ? (
+            <ErrorState onRetry={() => void refetchGyms()} />
           ) : filteredGyms.length === 0 ? (
             <EmptyState text="Không tìm thấy chi nhánh nào." icon={Building2} />
           ) : (
@@ -507,6 +545,18 @@ export function AdminGymModeration() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" data-testid="admin-gym-load-error" className="bg-red-500/5 border border-red-500/20 rounded-2xl py-10 text-center">
+      <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+      <p className="text-red-300 text-sm mb-3">Không tải được dữ liệu. Danh sách chưa thể hiển thị.</p>
+      <button onClick={onRetry} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium">
+        Thử lại
+      </button>
     </div>
   );
 }
