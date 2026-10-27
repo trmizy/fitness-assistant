@@ -1,30 +1,25 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { Suspense, type ReactNode } from "react";
+import { Navigate, useLocation, useOutlet } from "react-router";
 import { CurrencyCircleDollarIcon as CircleDollarSign } from "@phosphor-icons/react";
-import { AdminFinanceOverviewTab } from "./AdminFinanceOverviewTab";
-import { AdminReconciliationPanel } from "./AdminReconciliationPanel";
-import { AdminWithdrawals } from "./AdminWithdrawals";
-import { PTServiceRefunds } from "./PTServiceRefunds";
+import { AdminLink } from "../../components/layout/admin/AdminLink";
+import { ADMIN_FINANCE_TABS } from "../../components/layout/admin/adminNav";
+import { resolveLegacyAdminRedirect } from "../../components/layout/admin/adminRedirects";
+import { PageSkeleton } from "../../components/layout/PageSkeleton";
 
 /**
- * "Tài chính" — mọi chức năng liên quan đến tiền của admin gom về một trang, thay cho các route
- * rời rạc trước đó (/admin/withdrawals, /admin/pt-service-refunds) và bảng đối soát vốn nằm lẫn
- * trong "Giám sát hệ thống" (trang đó giờ chỉ còn sức khoẻ hệ thống, không còn tiền).
+ * "Tài chính" — layout of the finance workspace. Each level-2 tab is a real route
+ * (`/admin/finance`, `/reconciliation`, `/withdrawals`, `/refunds`) rendering the SAME tab
+ * component as before; the tab content is untouched (B3–B6 redesign it).
+ *
+ * The old `/admin/finance?tab=…` URLs (tab held in state, never written to the URL) are
+ * redirected here, preserving any other query params — see `resolveLegacyAdminRedirect`.
  */
-type Tab = "overview" | "reconciliation" | "withdrawals" | "refunds";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "overview", label: "Tổng quan" },
-  { key: "reconciliation", label: "Đối soát" },
-  { key: "withdrawals", label: "Rút tiền" },
-  { key: "refunds", label: "Hoàn tiền" },
-];
-
 export function AdminFinancePage() {
-  // ?tab=withdrawals|refunds|reconciliation: đích của các đường dẫn cũ (/admin/withdrawals, /admin/pt-service-refunds).
-  const [searchParams] = useSearchParams();
-  const initialTab = TABS.find((t) => t.key === searchParams.get("tab"))?.key ?? "overview";
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const location = useLocation();
+  const outlet = useOutlet() as ReactNode;
+
+  const legacyTarget = resolveLegacyAdminRedirect(location.pathname, location.search, location.hash);
+  if (legacyTarget) return <Navigate to={legacyTarget} replace />;
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
@@ -37,25 +32,35 @@ export function AdminFinancePage() {
         </p>
       </div>
 
-      <div data-testid="admin-finance-tabs" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            data-testid={`admin-finance-tab-${t.key}`}
-            onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              tab === t.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <nav
+        aria-label="Tài chính"
+        data-testid="admin-finance-tabs"
+        className="-mx-1 flex gap-1 overflow-x-auto border-b border-adm-border px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {ADMIN_FINANCE_TABS.map((t) => {
+          const path = location.pathname.replace(/\/+$/, "");
+          const active = t.end ? path === t.to : path === t.to || path.startsWith(`${t.to}/`);
+          return (
+            <AdminLink
+              key={t.key}
+              to={t.to}
+              aria-current={active ? "page" : undefined}
+              data-testid={`admin-finance-tab-${t.key}`}
+              className={`-mb-px inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-t-md border-b-2 px-3.5 text-sm no-underline transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--adm-focus)] lg:min-h-10 ${
+                active
+                  ? "border-primary font-semibold text-adm-text"
+                  : "border-transparent font-medium text-adm-text-2 hover:bg-adm-surface-2 hover:text-adm-text"
+              }`}
+            >
+              {t.label}
+            </AdminLink>
+          );
+        })}
+      </nav>
 
-      {tab === "overview" && <AdminFinanceOverviewTab />}
-      {tab === "reconciliation" && <AdminReconciliationPanel />}
-      {tab === "withdrawals" && <AdminWithdrawals />}
-      {tab === "refunds" && <PTServiceRefunds />}
+      <Suspense fallback={<PageSkeleton />}>
+        {outlet}
+      </Suspense>
     </div>
   );
 }

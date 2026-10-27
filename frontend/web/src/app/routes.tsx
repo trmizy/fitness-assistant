@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
 import { AppShell } from "./components/layout/AppShell";
+import { AdminShell } from "./components/layout/admin/AdminShell";
+import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 
 /**
@@ -125,6 +127,11 @@ const AdminGymManagementOverview = lazy(() =>
 );
 const AdminComplaintsPage = lazy(() => import("./pages/admin/AdminComplaintsPage").then((m) => ({ default: m.AdminComplaintsPage })));
 const AdminFinancePage = lazy(() => import("./pages/admin/AdminFinancePage").then((m) => ({ default: m.AdminFinancePage })));
+// Finance level-2 tabs (each a route; rendered inside AdminFinancePage's <Outlet/>).
+const AdminFinanceOverviewTab = lazy(() => import("./pages/admin/AdminFinanceOverviewTab").then((m) => ({ default: m.AdminFinanceOverviewTab })));
+const AdminReconciliationPanel = lazy(() => import("./pages/admin/AdminReconciliationPanel").then((m) => ({ default: m.AdminReconciliationPanel })));
+const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals").then((m) => ({ default: m.AdminWithdrawals })));
+const PTServiceRefunds = lazy(() => import("./pages/admin/PTServiceRefunds").then((m) => ({ default: m.PTServiceRefunds })));
 // Listing Management D1 - PT + branch listing revisions, amenity catalogue and proposals.
 const AdminListingsPage = lazy(() => import("./pages/admin/AdminListingsPage").then((m) => ({ default: m.AdminListingsPage })));
 
@@ -337,7 +344,7 @@ export const router = createBrowserRouter([
         path: "admin",
         element: (
           <RequireRole allow={["admin"]}>
-            <AppShell />
+            <AdminShell />
           </RequireRole>
         ),
         children: [
@@ -348,11 +355,24 @@ export const router = createBrowserRouter([
           { path: "marketplace", Component: MarketplaceModeration },
           { path: "exercise-review", Component: AdminExerciseReview },
           { path: "catalog-quality", Component: AdminCatalogQuality },
-          { path: "finance", Component: AdminFinancePage },
-          // Gom vào "Tài chính" — giữ lại 2 đường dẫn cũ dưới dạng redirect để không vỡ
-          // bookmark/liên kết cũ, thay vì để 404.
-          { path: "pt-service-refunds", element: <Navigate to="/admin/finance?tab=refunds" replace /> },
-          { path: "withdrawals", element: <Navigate to="/admin/finance?tab=withdrawals" replace /> },
+          // Tài chính: mỗi tab cấp 2 là một route. `?tab=` cũ được AdminFinancePage chuyển hướng
+          // (giữ query khác) — xem components/layout/admin/adminRedirects.ts.
+          {
+            path: "finance",
+            Component: AdminFinancePage,
+            children: [
+              { index: true, Component: AdminFinanceOverviewTab },
+              { path: "reconciliation", Component: AdminReconciliationPanel },
+              { path: "withdrawals", Component: AdminWithdrawals },
+              { path: "refunds", Component: PTServiceRefunds },
+              // Đường dẫn con không tồn tại (vd. /transactions — chưa có API) → Tổng quan, không 404.
+              { path: "*", element: <Navigate to="/admin/finance" replace /> },
+            ],
+          },
+          // Giữ 2 đường dẫn cũ (đã gom vào Tài chính) dưới dạng redirect, giữ query + hash,
+          // để không vỡ bookmark/liên kết cũ.
+          { path: "pt-service-refunds", Component: LegacyAdminRedirect },
+          { path: "withdrawals", Component: LegacyAdminRedirect },
           { path: "system", Component: SystemMonitoring },
           { path: "disputes", Component: AdminDisputes },
           { path: "gym-management", Component: AdminGymManagementOverview },
