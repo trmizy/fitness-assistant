@@ -1,0 +1,862 @@
+[
+  {
+    "name": "[1440] default chip = Chờ duyệt (no ?status=)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] PENDING chip shows 3 rows only",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] chip counts 3 / 2",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] summary: 3 yêu cầu · Tổng 2.450.000 ₫ (PENDING only: 1.5M+0.7M+0.25M) · cũ nhất 2 ngày",
+    "pass": true,
+    "extra": "3 yêu cầu · Tổng 2.450.000 ₫ · cũ nhất 2 ngày"
+  },
+  {
+    "name": "[1440] total is NOT mixed with APPROVED (15.3M absent)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] age of 5h30 row",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] amount cell is VND, right-aligned tabular",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 2 disabled chips with reason \"cần API lịch sử rút tiền (G-08)\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] clicking a disabled chip does nothing (URL + selection unchanged)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] no requester name / available-balance column (G-08) and no error styling",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] owner short id + copy buttons present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] click APPROVED chip → ?status=APPROVED, 2 rows, only APPROVED",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] APPROVED total = 15.300.000 ₫ (12M+3.3M only), oldest 1 ngày 2 giờ",
+    "pass": true,
+    "extra": "2 yêu cầu · Tổng 15.300.000 ₫ · cũ nhất 1 ngày 2 giờ"
+  },
+  {
+    "name": "[1440] \"Đã duyệt ≠ đã chuyển\" note visible on APPROVED",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] APPROVED rows have no Duyệt button, have Đã chi trả + Từ chối",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Back returns to PENDING chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Forward returns to APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] deep link ?status=APPROVED opens APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] deep link ?status=PAID falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] deep link ?status=garbage falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] deep link ?status= falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] legacy /admin/finance?tab=withdrawals redirect still lands on the queue",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] approve opens dialog; no POST yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] H-02 dialog: amount 1.500.000, khả dụng→đang khoá, \"CHƯA\"/\"Duyệt ≠ đã chuyển\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] busy: confirm disabled + aria-busy; Esc inert",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Esc ignored while busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-04 double click ⇒ exactly 1 approve POST",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[1440] after server OK: request left PENDING chip (2 rows left), APPROVED chip = 3",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] H-02: request now under Đã duyệt – chờ chuyển khoản",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-05 500 on approve ⇒ inline \"Chưa xác nhận được kết quả\" + balance hint, no [object Object]",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] confirm blocked after unknown outcome",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] no auto-retry of the POST (count=1)",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[1440] 409 on approve ⇒ specific toast/inline message + queue re-fetched (row gone), 1 POST",
+    "pass": true,
+    "extra": "list GETs=2"
+  },
+  {
+    "name": "[1440] A-04 PENDING mark-paid dialog says \"bỏ qua bước Duyệt\" + irreversible",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] confirm disabled with empty ref",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] whitespace-only ref still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] A-04 one POST, body {bankReference:\"OK-REF-1\"} (trimmed)",
+    "pass": true,
+    "extra": "1 {\"bankReference\":\"OK-REF-1\"}"
+  },
+  {
+    "name": "[1440] paid request disappeared from the queue (PENDING chip = 2)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] H-03 APPROVED dialog: amount 12.000.000, \"rời khỏi nền tảng\", NO skip-approve line",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] H-03 mark-paid from APPROVED: 2nd POST body ok, row removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-07 network loss ⇒ \"Chưa xác nhận được kết quả\", exactly 1 POST (no retry)",
+    "pass": true,
+    "extra": "pay=1"
+  },
+  {
+    "name": "[1440] reload button shown, confirm disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] \"Tải lại trạng thái\" re-fetches the queue (GET) and does not re-POST",
+    "pass": true,
+    "extra": "list 2→3"
+  },
+  {
+    "name": "[1440] 400 INVALID_STATUS ⇒ Vietnamese stale message visible + row refetched away, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 409 ALREADY_PAID ⇒ Vietnamese stale message visible + row refetched away, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 500 on mark-paid ⇒ inline unknown-outcome, confirm blocked, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] reject: reason input inline, confirm disabled when empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] whitespace reason still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] reject: 1 POST with {reason}, row gone",
+    "pass": true,
+    "extra": "{\"reason\":\"Sai thông tin ngân hàng\"}"
+  },
+  {
+    "name": "[1440] reject on APPROVED says it unlocks the money back to available",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Huỷ closes the reject box",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] empty queue ⇒ \"Không có yêu cầu rút tiền nào đang chờ xử lý.\" (not an error)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] empty ⇒ chip counts are real zeros",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] PENDING empty but APPROVED has rows ⇒ chip-specific text + link to the other chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] link opens APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] loading ⇒ skeleton (role=status, aria-busy), no \"0\", no empty text, no chips",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] skeleton replaced by data",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-02 list 500 ⇒ \"Không tải được hàng đợi rút tiền\" + Thử lại, NOT \"không có yêu cầu\", no chips/numbers",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] retry GET loads the queue",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] network loss on list ⇒ error state \"Mất kết nối mạng\" with retry, not empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 403 ⇒ \"Tài khoản này không có quyền xem dữ liệu tài chính\", no numbers/rows/chips, no retry",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] A-03 100 rows ⇒ \"Hiển thị 100 yêu cầu cũ nhất — có thể còn nữa\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] A-03 chip counts show ≥60 / ≥40 and summary \"≥60\" + \"Tổng ≥\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 60 rows rendered",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] 99 rows ⇒ no \"≥\", no truncated banner",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] default chip = Chờ duyệt (no ?status=)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] PENDING chip shows 3 rows only",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] chip counts 3 / 2",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] summary: 3 yêu cầu · Tổng 2.450.000 ₫ (PENDING only: 1.5M+0.7M+0.25M) · cũ nhất 2 ngày",
+    "pass": true,
+    "extra": "3 yêu cầu · Tổng 2.450.000 ₫ · cũ nhất 2 ngày"
+  },
+  {
+    "name": "[390] total is NOT mixed with APPROVED (15.3M absent)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] age of 5h30 row",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] amount cell is VND, right-aligned tabular",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 2 disabled chips with reason \"cần API lịch sử rút tiền (G-08)\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] clicking a disabled chip does nothing (URL + selection unchanged)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no requester name / available-balance column (G-08) and no error styling",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] owner short id + copy buttons present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no horizontal overflow (list)",
+    "pass": true,
+    "extra": "390/390"
+  },
+  {
+    "name": "[390] click APPROVED chip → ?status=APPROVED, 2 rows, only APPROVED",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] APPROVED total = 15.300.000 ₫ (12M+3.3M only), oldest 1 ngày 2 giờ",
+    "pass": true,
+    "extra": "2 yêu cầu · Tổng 15.300.000 ₫ · cũ nhất 1 ngày 2 giờ"
+  },
+  {
+    "name": "[390] \"Đã duyệt ≠ đã chuyển\" note visible on APPROVED",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] APPROVED rows have no Duyệt button, have Đã chi trả + Từ chối",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Back returns to PENDING chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Forward returns to APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] deep link ?status=APPROVED opens APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] deep link ?status=PAID falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] deep link ?status=garbage falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] deep link ?status= falls back to PENDING",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] legacy /admin/finance?tab=withdrawals redirect still lands on the queue",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] approve opens dialog; no POST yet",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] H-02 dialog: amount 1.500.000, khả dụng→đang khoá, \"CHƯA\"/\"Duyệt ≠ đã chuyển\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no overflow with approve dialog open",
+    "pass": true,
+    "extra": "390/390"
+  },
+  {
+    "name": "[390] busy: confirm disabled + aria-busy; Esc inert",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Esc ignored while busy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-04 double click ⇒ exactly 1 approve POST",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[390] after server OK: request left PENDING chip (2 rows left), APPROVED chip = 3",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] H-02: request now under Đã duyệt – chờ chuyển khoản",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-05 500 on approve ⇒ inline \"Chưa xác nhận được kết quả\" + balance hint, no [object Object]",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] confirm blocked after unknown outcome",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no auto-retry of the POST (count=1)",
+    "pass": true,
+    "extra": "count=1"
+  },
+  {
+    "name": "[390] 409 on approve ⇒ specific toast/inline message + queue re-fetched (row gone), 1 POST",
+    "pass": true,
+    "extra": "list GETs=2"
+  },
+  {
+    "name": "[390] A-04 PENDING mark-paid dialog says \"bỏ qua bước Duyệt\" + irreversible",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] confirm disabled with empty ref",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] whitespace-only ref still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] A-04 one POST, body {bankReference:\"OK-REF-1\"} (trimmed)",
+    "pass": true,
+    "extra": "1 {\"bankReference\":\"OK-REF-1\"}"
+  },
+  {
+    "name": "[390] paid request disappeared from the queue (PENDING chip = 2)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] H-03 APPROVED dialog: amount 12.000.000, \"rời khỏi nền tảng\", NO skip-approve line",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] H-03 mark-paid from APPROVED: 2nd POST body ok, row removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-07 network loss ⇒ \"Chưa xác nhận được kết quả\", exactly 1 POST (no retry)",
+    "pass": true,
+    "extra": "pay=1"
+  },
+  {
+    "name": "[390] reload button shown, confirm disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] \"Tải lại trạng thái\" re-fetches the queue (GET) and does not re-POST",
+    "pass": true,
+    "extra": "list 2→3"
+  },
+  {
+    "name": "[390] 400 INVALID_STATUS ⇒ Vietnamese stale message visible + row refetched away, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 409 ALREADY_PAID ⇒ Vietnamese stale message visible + row refetched away, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 500 on mark-paid ⇒ inline unknown-outcome, confirm blocked, 1 POST",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] reject: reason input inline, confirm disabled when empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] whitespace reason still disabled",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] reject: 1 POST with {reason}, row gone",
+    "pass": true,
+    "extra": "{\"reason\":\"Sai thông tin ngân hàng\"}"
+  },
+  {
+    "name": "[390] reject on APPROVED says it unlocks the money back to available",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Huỷ closes the reject box",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] empty queue ⇒ \"Không có yêu cầu rút tiền nào đang chờ xử lý.\" (not an error)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] empty ⇒ chip counts are real zeros",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] PENDING empty but APPROVED has rows ⇒ chip-specific text + link to the other chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] link opens APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] loading ⇒ skeleton (role=status, aria-busy), no \"0\", no empty text, no chips",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] skeleton replaced by data",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] E-02 list 500 ⇒ \"Không tải được hàng đợi rút tiền\" + Thử lại, NOT \"không có yêu cầu\", no chips/numbers",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] retry GET loads the queue",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] network loss on list ⇒ error state \"Mất kết nối mạng\" with retry, not empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 403 ⇒ \"Tài khoản này không có quyền xem dữ liệu tài chính\", no numbers/rows/chips, no retry",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] A-03 100 rows ⇒ \"Hiển thị 100 yêu cầu cũ nhất — có thể còn nữa\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] A-03 chip counts show ≥60 / ≥40 and summary \"≥60\" + \"Tổng ≥\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] 60 rows rendered",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no overflow with 60 rows",
+    "pass": true,
+    "extra": "390/390"
+  },
+  {
+    "name": "[390] 99 rows ⇒ no \"≥\", no truncated banner",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] fresh data ⇒ no stale note",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] E-08 after ~4 min ⇒ \"Dữ liệu lúc HH:mm — đã cũ 4 phút\" and rows still shown",
+    "pass": true,
+    "extra": "Dữ liệu lúc 22:28 — đã cũ 4 phút"
+  },
+  {
+    "name": "[1440] refresh fails with data on screen ⇒ \"Không làm mới được — Dữ liệu lúc …\", rows kept, not the empty/error page",
+    "pass": true,
+    "extra": "Không làm mới được — Dữ liệu lúc 22:28 — đã cũ 4 phút"
+  },
+  {
+    "name": "[1440] refresh success clears the stale note",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] copy request id ⇒ clipboard holds the FULL request id",
+    "pass": true,
+    "extra": "aaaaaaaa-0000-4000-8000-000000000001"
+  },
+  {
+    "name": "[1440] copy owner id ⇒ clipboard holds the FULL owner id",
+    "pass": true,
+    "extra": "bbbbbbbb-0001-4111-8111-000000000001"
+  },
+  {
+    "name": "[1440] copy toast announced",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] axe serious+critical = 0 on the queue (main content, PENDING)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] axe serious+critical = 0 on the queue (APPROVED)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] focus trap: 16 Tab/Shift+Tab presses never leave the dialog",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Esc closes dialog and focus returns to the Duyệt button",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Esc on mark-paid closes, input cleared on reopen",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] bank reference reset after close",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Tab from the PENDING chip reaches the APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] Enter on a chip selects it (keyboard)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] disabled chips are focusable (aria-disabled) so their reason is reachable",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] axe serious+critical = 0 on the queue (main content, PENDING)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] axe serious+critical = 0 on the queue (APPROVED)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] focus trap: 16 Tab/Shift+Tab presses never leave the dialog",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Esc closes dialog and focus returns to the Duyệt button",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Esc on mark-paid closes, input cleared on reopen",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] bank reference reset after close",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Tab from the PENDING chip reaches the APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] Enter on a chip selects it (keyboard)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] disabled chips are focusable (aria-disabled) so their reason is reachable",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[390] no horizontal overflow (APPROVED, after interactions)",
+    "pass": true,
+    "extra": "390/390"
+  },
+  {
+    "name": "[1440-dark] axe serious+critical = 0 on the queue (main content, PENDING)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] axe serious+critical = 0 on the queue (APPROVED)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] dark theme applied",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] focus trap: 16 Tab/Shift+Tab presses never leave the dialog",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] Esc closes dialog and focus returns to the Duyệt button",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] Esc on mark-paid closes, input cleared on reopen",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] bank reference reset after close",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] Tab from the PENDING chip reaches the APPROVED chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] Enter on a chip selects it (keyboard)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440-dark] disabled chips are focusable (aria-disabled) so their reason is reachable",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "[1440] prefers-reduced-motion ⇒ skeleton shimmer off",
+    "pass": true,
+    "extra": "none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none"
+  }
+]
