@@ -1,0 +1,146 @@
+[
+  {
+    "name": "[1440] refunds page, service chip (collapsed)",
+    "violations": []
+  },
+  {
+    "name": "[1440] refunds page, whole document",
+    "violations": []
+  },
+  {
+    "name": "[1440] refunds page, service chip, row expanded",
+    "violations": []
+  },
+  {
+    "name": "[1440] service approve dialog (danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[1440] service deny dialog (MoneyActionDialog)",
+    "violations": []
+  },
+  {
+    "name": "[1440] refunds page, membership chip",
+    "violations": []
+  },
+  {
+    "name": "[1440] membership dialog",
+    "violations": []
+  },
+  {
+    "name": "[1440] approve dialog with 409 error box",
+    "violations": []
+  },
+  {
+    "name": "[1440] approve dialog with 500 error box",
+    "violations": []
+  },
+  {
+    "name": "[1440] B5 withdrawals page (PENDING)",
+    "violations": []
+  },
+  {
+    "name": "[1440] B5 withdrawals APPROVE dialog (non-danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[1440] B5 withdrawals MARK-PAID dialog (bank-reference label inside)",
+    "violations": []
+  },
+  {
+    "name": "[390] refunds page, service chip (collapsed)",
+    "violations": []
+  },
+  {
+    "name": "[390] refunds page, whole document",
+    "violations": []
+  },
+  {
+    "name": "[390] refunds page, service chip, row expanded",
+    "violations": []
+  },
+  {
+    "name": "[390] service approve dialog (danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[390] service deny dialog (MoneyActionDialog)",
+    "violations": []
+  },
+  {
+    "name": "[390] refunds page, membership chip",
+    "violations": []
+  },
+  {
+    "name": "[390] membership dialog",
+    "violations": []
+  },
+  {
+    "name": "[390] approve dialog with 409 error box",
+    "violations": []
+  },
+  {
+    "name": "[390] approve dialog with 500 error box",
+    "violations": []
+  },
+  {
+    "name": "[390] B5 withdrawals page (PENDING)",
+    "violations": []
+  },
+  {
+    "name": "[390] B5 withdrawals APPROVE dialog (non-danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[390] B5 withdrawals MARK-PAID dialog (bank-reference label inside)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] refunds page, service chip (collapsed)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] refunds page, whole document",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] refunds page, service chip, row expanded",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] service approve dialog (danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] service deny dialog (MoneyActionDialog)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] refunds page, membership chip",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] membership dialog",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] approve dialog with 409 error box",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] approve dialog with 500 error box",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] B5 withdrawals page (PENDING)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] B5 withdrawals APPROVE dialog (non-danger confirm)",
+    "violations": []
+  },
+  {
+    "name": "[1440-dark] B5 withdrawals MARK-PAID dialog (bank-reference label inside)",
+    "violations": []
+  }
+]

@@ -1,0 +1,932 @@
+[
+  {
+    "name": "balanced 1440: default chip = Cân đối sổ, URL not required",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 1440: H1 = \"Đối soát\" (header follows the tab)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 1440: chip labels carry the level \"(L1)\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 1440: level note says L1 + scope (wallet balances only; no gateway/settlement/obligation checks)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "field: Tiền đang giữ hộ [balanced]",
+    "pass": true,
+    "extra": "expected \"590.800.000 ₫\" got \"590.800.000 ₫\""
+  },
+  {
+    "name": "field: Tổng quyền đòi [balanced]",
+    "pass": true,
+    "extra": "expected \"590.800.000 ₫\" got \"590.800.000 ₫\""
+  },
+  {
+    "name": "field: Chênh lệch [balanced]",
+    "pass": true,
+    "extra": "expected \"0 ₫\" got \"0 ₫\""
+  },
+  {
+    "name": "balanced: verdict 'Cân bằng', no drift detail",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "field: Quyền đòi: Khách hàng — số dư ví [balanced]",
+    "pass": true,
+    "extra": "expected \"Khách hàng — số dư ví 184.250.000 ₫\" got \"Khách hàng — số dư ví 184.250.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: PT — đang chờ giải phóng [balanced]",
+    "pass": true,
+    "extra": "expected \"PT — đang chờ giải phóng 96.400.000 ₫\" got \"PT — đang chờ giải phóng 96.400.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: PT — khả dụng [balanced]",
+    "pass": true,
+    "extra": "expected \"PT — khả dụng 41.300.000 ₫\" got \"PT — khả dụng 41.300.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: PT — đã khoá chờ chi [balanced]",
+    "pass": true,
+    "extra": "expected \"PT — đã khoá chờ chi 12.500.000 ₫\" got \"PT — đã khoá chờ chi 12.500.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: PT — tạm giữ [balanced]",
+    "pass": true,
+    "extra": "expected \"PT — tạm giữ 0 ₫\" got \"PT — tạm giữ 0 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: Phòng gym — đang chờ giải phóng [balanced]",
+    "pass": true,
+    "extra": "expected \"Phòng gym — đang chờ giải phóng 128.700.000 ₫\" got \"Phòng gym — đang chờ giải phóng 128.700.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: Phòng gym — khả dụng [balanced]",
+    "pass": true,
+    "extra": "expected \"Phòng gym — khả dụng 57.900.000 ₫\" got \"Phòng gym — khả dụng 57.900.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: Phòng gym — đã khoá chờ chi [balanced]",
+    "pass": true,
+    "extra": "expected \"Phòng gym — đã khoá chờ chi 8.000.000 ₫\" got \"Phòng gym — đã khoá chờ chi 8.000.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: Nền tảng — doanh thu chờ [balanced]",
+    "pass": true,
+    "extra": "expected \"Nền tảng — doanh thu chờ 34.600.000 ₫\" got \"Nền tảng — doanh thu chờ 34.600.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi: Nền tảng — doanh thu đã hưởng [balanced]",
+    "pass": true,
+    "extra": "expected \"Nền tảng — doanh thu đã hưởng 27.150.000 ₫\" got \"Nền tảng — doanh thu đã hưởng 27.150.000 ₫\""
+  },
+  {
+    "name": "balanced: no negative wallets → 'Không có ví âm'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced: the 10 lines add up to the server's claims (independent sum)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "gateway chip is shown DISABLED with 'L3 — chưa có nguồn độc lập (BLOCKED)'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no 'Mark as reconciled' / 'Đánh dấu đã đối soát' control and no 'một phần/partial' for L3",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced: Quy tắc toggle expands (200ms-free, aria-expanded)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — balanced 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — balanced 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 1440: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 390: default chip = Cân đối sổ, URL not required",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 390: H1 = \"Đối soát\" (header follows the tab)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 390: chip labels carry the level \"(L1)\"",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 390: level note says L1 + scope (wallet balances only; no gateway/settlement/obligation checks)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — balanced 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — balanced 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — balanced 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "balanced 390: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "dark: admin tokens resolve to the dark palette (--adm-surface #111111)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — balanced dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — balanced dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "field: Tiền đang giữ hộ (409) [drift 409]",
+    "pass": true,
+    "extra": "expected \"590.800.000 ₫\" got \"590.800.000 ₫\""
+  },
+  {
+    "name": "field: Tổng quyền đòi (409) [drift 409]",
+    "pass": true,
+    "extra": "expected \"592.050.000 ₫\" got \"592.050.000 ₫\""
+  },
+  {
+    "name": "field: Chênh lệch (409) [drift 409]",
+    "pass": true,
+    "extra": "expected \"-1.250.000 ₫\" got \"-1.250.000 ₫\""
+  },
+  {
+    "name": "field: Quyền đòi (409): PT — khả dụng [drift 409]",
+    "pass": true,
+    "extra": "expected \"PT — khả dụng 42.550.000 ₫\" got \"PT — khả dụng 42.550.000 ₫\""
+  },
+  {
+    "name": "E-01: verdict 'Lệch sổ' in danger card, NOT a load error",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-01: explains 409 = warning about the ledger, not a load error",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-01: lists likely causes with the counts from the exceptions report (2 ví âm · 1 ví lệch sổ cái · 1 hợp đồng)",
+    "pass": true,
+    "extra": "Ví giữ hộ đang ít hơn tổng quyền đòi. Máy chủ báo lệch bằng mã 409 kèm đầy đủ số liệu — đây là cảnh báo về sổ, không phải lỗi tải; các số ở trên vẫn là số thật. Nguyên nhân có thể cần kiểm tra Ví có số dư âm: 2 ví (1 ví âm trong báo cáo này) Ví lệch so với sổ cái: 1 ví Tiền chờ của hợp đồng bị rút quá mức: 1 hợp đồng Số kèm theo lấy từ báo cáo Ngoại lệ; hệ thống chưa có quy trình (G-15) để sửa sổ. Xem các nhóm ngoại lệ"
+  },
+  {
+    "name": "E-01: no invented remediation — says 'chưa có quy trình (G-15)'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-01: negative wallet listed with exact amount (-1.250.000 ₫)",
+    "pass": true,
+    "extra": "Ví âm 1 ví có số dư âm — luôn là lỗi Huấn luyện viên bbbbbbbb — chờ 0 ₫, khả dụng -1.250.000 ₫"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — drift 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — drift 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-01: link 'Xem các nhóm ngoại lệ' opens the Ngoại lệ chip (?view=exceptions)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "drift 390: drift card visible and danger",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — drift 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — drift 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — drift 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — drift dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — drift dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "500 1440: error panel says the figure is unknown, not zero",
+    "pass": true,
+    "extra": "Không tải được số liệu cân đối sổ — lỗi máy chủ. Chưa biết số liệu; đây không phải số bằng không. Thử lại"
+  },
+  {
+    "name": "500 1440: no escrow/claims/drift value and no \"0 ₫\" anywhere in the screen",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "500: 'Thử lại' recovers once the server is healthy",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "500 390: error panel says the figure is unknown, not zero",
+    "pass": true,
+    "extra": "Không tải được số liệu cân đối sổ — lỗi máy chủ. Chưa biết số liệu; đây không phải số bằng không. Thử lại"
+  },
+  {
+    "name": "500 390: no escrow/claims/drift value and no \"0 ₫\" anywhere in the screen",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — 500 balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — 500 balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — 500 balance 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "403 (E-06): 'Không có quyền' panel, NO money anywhere on the Đối soát screen",
+    "pass": true,
+    "extra": "Cân đối sổ (L1) Ngoại lệ (L1) 10 Đối chiếu cổng ↔ Gymini L3 — chưa có nguồn độc lập (BLOCKED) “Đối chiếu cổng ↔ Gymini” chưa dùng được: chưa có báo cáo quyết to"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — 403 balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — 403 balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "P3 200 with an unreadable body → error (figure unknown), never 0 ₫",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "loading: skeleton with status role, no money and no '0 ₫'",
+    "pass": true,
+    "extra": "Cân đối sổ (L1) Ngoại lệ (L1) 10 Đối chiếu cổng ↔ Gymini L3 — chưa có nguồn độc lập (BLOCKED) “Đối chiếu cổng ↔ Gymini” "
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — loading balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — loading balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "loading → data when released",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "stale: fresh data → no stale chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-08: failed poll keeps the numbers + chip 'Dữ liệu lúc HH:mm — đã cũ N phút'",
+    "pass": true,
+    "extra": "Dữ liệu lúc 14:40 — đã cũ 4 phút (lần cập nhật gần nhất không thành công) Làm mới"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — stale balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — stale balance 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "stale: 'Làm mới' with a healthy server clears the chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 1440: ALL 22 existing groups present (counted in the DOM) = 22",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 1440: the P2 gateway group is there as the 23rd (L2)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 1440: every group shows its own count (independent expectation)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: H1 still \"Đối soát\", chip Ngoại lệ pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: level note says L1 and what is NOT checked (L3 BLOCKED-style wording, no 'partial')",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: per-group level badges: 22 × L1 and 1 × L2",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: \"22 trong 22 nhóm có mục\" overview",
+    "pass": true,
+    "extra": "22 trong 22 nhóm có mục"
+  },
+  {
+    "name": "exceptions 1440: attention summary counts (critical 10 / watch 9 — independent)",
+    "pass": true,
+    "extra": "10 mục cần xem ngay, 9 mục cần theo dõi"
+  },
+  {
+    "name": "exceptions 1440: chip count = critical (10) like the sidebar badge",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: no money total per group or across groups on a header",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "default: critical groups with items start open (7 of 22) + the P2 group (8 total open)",
+    "pass": true,
+    "extra": "8"
+  },
+  {
+    "name": "collapsed group: aria-expanded=false, body hidden; click opens it",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "click → aria-expanded=true and its rows are shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "keyboard Enter on a group header collapses it again",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "keyboard Space opens it",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "'Mở hết' opens all 23 groups",
+    "pass": true,
+    "extra": "23"
+  },
+  {
+    "name": "E-11: gateway discrepancy rows show provider, gateway txn no, expected, reported, delta",
+    "pass": true,
+    "extra": "Cổng báo số tiền khác số Gymini L2 · P2 Cần xem ngay 2 mục Cổng gọi về với số tiền khác giá của giao dịch: giao dịch KHÔNG được ghi sổ (không cộng tiền giữ hộ, không kích hoạt). Đây là dữ liệu L2 — callback cổng do hệ thống tự lưu, chưa phải xác minh độc lập từ cổng/ngân hàng (L3 — BLOCKED). Hệ thốn"
+  },
+  {
+    "name": "E-11: 'chưa có quy trình (G-15)', L2 wording, no redirectUrl leaked, no action button",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "drill-down kept: PT holdback summary + row (QUÁ HẠN, STUCK wording)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "drill-down kept: obligation history disclosure present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "drill-down kept: money cells use exact strings (cancelled-paid 1.500.000 ₫)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions all open 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions all open 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "'Thu gọn hết' closes all",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions collapsed 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions collapsed 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 1440: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 390: ALL 22 existing groups present (counted in the DOM) = 22",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 390: the P2 gateway group is there as the 23rd (L2)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "T1 390: every group shows its own count (independent expectation)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: H1 still \"Đối soát\", chip Ngoại lệ pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: level note says L1 and what is NOT checked (L3 BLOCKED-style wording, no 'partial')",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: per-group level badges: 22 × L1 and 1 × L2",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: \"22 trong 22 nhóm có mục\" overview",
+    "pass": true,
+    "extra": "22 trong 22 nhóm có mục"
+  },
+  {
+    "name": "exceptions 390: attention summary counts (critical 10 / watch 9 — independent)",
+    "pass": true,
+    "extra": "10 mục cần xem ngay, 9 mục cần theo dõi"
+  },
+  {
+    "name": "exceptions 390: chip count = critical (10) like the sidebar badge",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: no money total per group or across groups on a header",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — exceptions all open 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions all open 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions all open 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 390: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions dark 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "truncated: every group with items shows 'Chưa hiện hết' = 23",
+    "pass": true,
+    "extra": "23"
+  },
+  {
+    "name": "truncated: overview says 22 groups chưa hiện hết",
+    "pass": true,
+    "extra": "22 trong 22 nhóm có mục · 22 nhóm chưa hiện hết"
+  },
+  {
+    "name": "truncated: each opened group repeats the 'Chỉ hiện các mục đầu tiên' note",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions truncated",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions truncated",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "empty: all 22 groups present with count 0 and their 'không có' line",
+    "pass": true,
+    "extra": "22"
+  },
+  {
+    "name": "empty: P2 group shows its empty line; summary 'Không có mục nào cần chú ý'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "empty: overview '0 trong 22 nhóm có mục'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "empty: chip count shows 0 only because the data says 0",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "P13 500: payment groups missing + load error ('Không phải không có mục'); the 4 U2 groups still render",
+    "pass": true,
+    "extra": "4"
+  },
+  {
+    "name": "P13 500: no 'Không có mục nào cần chú ý' (that would be a lie) and overview says 4/22",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "P13 500: chip count is hidden (unknown), not 0",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions p13 500",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions p13 500",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "U2 500: 18 P13 groups still render + sessions error",
+    "pass": true,
+    "extra": "18"
+  },
+  {
+    "name": "P2 500: all 22 groups still render + gateway error shown (not 'no discrepancies')",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions 403: forbidden panel, no group, no numbers",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "exceptions loading: skeleton, no group, no '0 mục', no summary",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — exceptions loading",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — exceptions loading",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "E-08 (exceptions): failed poll keeps the groups + chip 'Dữ liệu lúc … đã cũ N phút'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link (none) → balance chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link ?view=balance → balance chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link ?view=exceptions → exceptions chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link ?view=ledger → balance chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link ?view=gateway → balance chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "deep link ?view=bogus → balance chip pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "legacy /admin/finance?tab=reconciliation&view=exceptions → /admin/finance/reconciliation?view=exceptions, exceptions chip",
+    "pass": true,
+    "extra": "http://127.0.0.1:5414/admin/finance/reconciliation?view=exceptions"
+  },
+  {
+    "name": "click Ngoại lệ → URL ?view=exceptions",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "click Cân đối sổ → URL ?view=balance",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "browser Back returns to the Ngoại lệ chip",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "browser Forward returns to Cân đối sổ",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Tab: focus moves Cân đối sổ → Ngoại lệ",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "chip has a visible focus ring (outline ≥2px)",
+    "pass": true,
+    "extra": "{\"w\":\"2px\",\"st\":\"solid\"}"
+  },
+  {
+    "name": "Enter on the focused chip selects it (URL + aria-pressed)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Tab again: the disabled gateway chip is reachable (explained via aria-describedby)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Enter/Space on the disabled chip does nothing (URL and chip unchanged)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Shift+Tab ×2 then Space selects Cân đối sổ",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header 1440 [overview]: H1 = \"Tổng quan tài chính\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 1440 [overview]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header 1440 [reconciliation]: H1 = \"Đối soát\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 1440 [reconciliation]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header 1440 [withdrawals]: H1 = \"Rút tiền\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 1440 [withdrawals]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header 1440 [refunds]: H1 = \"Hoàn tiền\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 1440 [refunds]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header 390 [overview]: H1 = \"Tổng quan tài chính\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 390 [overview]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — header overview 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "header 390 [reconciliation]: H1 = \"Đối soát\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 390 [reconciliation]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — header reconciliation 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "header 390 [withdrawals]: H1 = \"Rút tiền\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 390 [withdrawals]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — header withdrawals 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "header 390 [refunds]: H1 = \"Hoàn tiền\", subtitle kept",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "header refresh 390 [refunds]: re-reads exactly this tab's queries",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page overflow — header refunds 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0,\"inner\":390,\"wide\":null}"
+  },
+  {
+    "name": "parity: B3 overview renders (tiles + its own in-page 'Làm mới')",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "tab click → title 'Rút tiền'; parity: B5 withdrawals page renders with its own refresh",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "tab click → title 'Đối soát'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "tab click → title 'Hoàn tiền'; refunds page renders content",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "tab click → title 'Tổng quan tài chính'",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on page content (#admin-main) = 0 — finance overview with new header 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical on WHOLE document (shell included) = 0 — finance overview with new header 1440",
+    "pass": true,
+    "extra": ""
+  }
+]

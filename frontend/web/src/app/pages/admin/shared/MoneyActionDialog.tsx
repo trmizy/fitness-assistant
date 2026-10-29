@@ -28,6 +28,16 @@ import { moneyText } from "./moneyGuards";
  *  - built on the Radix AlertDialog already used by ConfirmDialog: focus trap, Esc, focus returns to the opener.
  */
 
+/**
+ * Dialog-scoped contrast fixes (B6a) — axe color-contrast measured these inside the dialog, which is portalled to
+ * <body> (so it sees the GLOBAL tokens, not the admin page's): muted labels 4.09:1 dark / 4.34:1 light, the amber
+ * notice 4.46:1, the default (non-danger) confirm button 3.76:1 light and (found while re-checking) the error box
+ * `text-destructive` on `bg-destructive/10` in light (`--button-bg` #059669 + white). Fixed with
+ * the existing admin tokens only (`adm-text-2`, `st-warning*`, `st-danger*`, `st-success` + `adm-bg` text) — no global token
+ * changes, so client / PT / gym-owner dialogs are untouched. The same confirm look is used by the B5 "Đã chi trả" button.
+ */
+const CONFIRM_SAFE = "bg-st-success text-adm-bg hover:bg-st-success hover:opacity-90";
+
 export interface MoneyActionRow {
   label: string;
   value: ReactNode;
@@ -135,7 +145,7 @@ export function MoneyActionDialog({
       <AlertDialogContent
         data-testid={testId}
         onEscapeKeyDown={(e) => busy && e.preventDefault()}
-        className="max-h-[100dvh] overflow-y-auto content-start gap-4 max-sm:top-0 max-sm:left-0 max-sm:h-[100dvh] max-sm:w-screen max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]"
+        className="max-h-[100dvh] overflow-y-auto content-start gap-4 [&_.text-muted-foreground]:text-adm-text-2 max-sm:top-0 max-sm:left-0 max-sm:h-[100dvh] max-sm:w-screen max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]"
       >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -146,7 +156,7 @@ export function MoneyActionDialog({
 
         {amount !== undefined && (
           <div className="rounded-lg border border-[var(--border-color)] bg-[var(--panel-bg)] px-4 py-3">
-            <p className="text-xs text-muted-foreground">{amountLabel}</p>
+            <p className="text-xs text-adm-text-2">{amountLabel}</p>
             <p data-testid={`${testId}-amount`} className="mt-0.5 text-2xl font-bold tabular-nums text-[var(--text-color)]">
               {moneyText(amount)}
             </p>
@@ -156,7 +166,7 @@ export function MoneyActionDialog({
         {facts && facts.length > 0 && <Rows rows={facts} />}
 
         <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Điều gì sẽ xảy ra</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-adm-text-2">Điều gì sẽ xảy ra</p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--text-color)]" data-testid={`${testId}-effects`}>
             {effects.map((effect, i) => (
               <li key={i}>{effect}</li>
@@ -165,7 +175,7 @@ export function MoneyActionDialog({
         </div>
 
         {notice && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+          <div className="flex items-start gap-2 rounded-lg border border-st-warning-border bg-st-warning-bg px-3 py-2.5 text-sm text-st-warning">
             <WarningIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />
             <div>{notice}</div>
           </div>
@@ -174,7 +184,7 @@ export function MoneyActionDialog({
         {children}
 
         {error && (
-          <div role="alert" data-testid={`${testId}-error`} className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <div role="alert" data-testid={`${testId}-error`} className="rounded-lg border border-st-danger-border bg-st-danger-bg px-3 py-2.5 text-sm text-st-danger">
             <p>{error.message}</p>
             {blocked && onReload && (
               <Button type="button" variant="outline" size="sm" className="mt-2" onClick={handleReload} disabled={reloading} data-testid={`${testId}-reload`}>
@@ -190,6 +200,7 @@ export function MoneyActionDialog({
           <Button
             type="button"
             variant={danger ? "destructive" : "default"}
+            className={danger ? undefined : CONFIRM_SAFE}
             disabled={confirmDisabled || busy || blocked}
             aria-busy={pending}
             onClick={handleConfirm}
@@ -209,7 +220,7 @@ function Rows({ rows }: { rows: MoneyActionRow[] }) {
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-lg border border-[var(--border-color)] px-4 py-3 text-sm">
       {rows.map((row, i) => (
         <div key={i} className="contents">
-          <dt className="text-muted-foreground">{row.label}</dt>
+          <dt className="text-adm-text-2">{row.label}</dt>
           <dd className="min-w-0 break-words text-right font-medium tabular-nums text-[var(--text-color)]">{row.value}</dd>
         </div>
       ))}
