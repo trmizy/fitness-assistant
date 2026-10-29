@@ -1,0 +1,857 @@
+[
+  {
+    "name": "Users 1440: first page = 20 rows",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440: page info",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440: header counts 27 / 17",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440: no raw English status/role",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users list 1440",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users list 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail 1440: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/users?id=f0000001-0000-4000-8000-000000000001"
+  },
+  {
+    "name": "Users detail 1440: full uuid not printed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users detail 1440",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users detail dialog 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: reload on ?id= keeps detail",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: Back from detail -> list (no id)",
+    "pass": true,
+    "extra": "/admin/users"
+  },
+  {
+    "name": "Users: Forward -> detail again",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: Esc closes detail, id removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail dialog: dialog has accessible name",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail dialog: focus trapped after 8 Tabs",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail dialog: Esc closes",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail dialog: focus returns to opener",
+    "pass": true,
+    "extra": "{\"tag\":\"BUTTON\",\"text\":\"Người Dùng 02\",\"inDialog\":false}"
+  },
+  {
+    "name": "Users: page 2 -> ?page=2 with 7 rows",
+    "pass": true,
+    "extra": "/admin/users?page=2"
+  },
+  {
+    "name": "Users: reload keeps page 2",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: Back from page 2 -> page 1",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: status filter -> ?status=Pending, resets page",
+    "pass": true,
+    "extra": "/admin/users?status=Pending"
+  },
+  {
+    "name": "Users: Pending filter shows exactly the Pending users",
+    "pass": true,
+    "extra": "5"
+  },
+  {
+    "name": "Users: role filter MANAGER (partner role lookup) -> only managers",
+    "pass": true,
+    "extra": "1 /admin/users?role=MANAGER"
+  },
+  {
+    "name": "Users: partner-accounts/roles lookup still called",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: search -> ?q= and one row",
+    "pass": true,
+    "extra": "/admin/users?q=user12%40"
+  },
+  {
+    "name": "Users: reload keeps search text",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users: no match -> empty state",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users role: confirm disabled while role unchanged",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — Users role dialog",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users role: PATCH /admin/users/:id/role {role}",
+    "pass": true,
+    "extra": "{\"m\":\"PATCH\",\"p\":\"/admin/users/f0000001-0000-4000-8000-000000000001/role\",\"body\":\"{\\\"role\\\":\\\"GYM_OWNER\\\"}\"}"
+  },
+  {
+    "name": "Users role: list reloaded after success",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users unlock: Huỷ sends nothing",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users unlock: focus returns to row actions button",
+    "pass": true,
+    "extra": "{\"tag\":\"BUTTON\",\"text\":\"Thao tác với Người Dùng 03\",\"inDialog\":false}"
+  },
+  {
+    "name": "Users unlock: PATCH /admin/users/:id/enable",
+    "pass": true,
+    "extra": "{\"m\":\"PATCH\",\"p\":\"/admin/users/f0000003-0000-4000-8000-000000000003/enable\",\"body\":\"{}\"}"
+  },
+  {
+    "name": "Users lock: PATCH /admin/users/:id/disable",
+    "pass": true,
+    "extra": "{\"m\":\"PATCH\",\"p\":\"/admin/users/f0000002-0000-4000-8000-000000000002/disable\",\"body\":\"{}\"}"
+  },
+  {
+    "name": "Users self: Đổi vai trò + Khóa disabled for own account",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 390: first page = 20 rows",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 390: page info",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 390: header counts 27 / 17",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 390: no raw English status/role",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users list 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users list 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail 390: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/users?id=f0000001-0000-4000-8000-000000000001"
+  },
+  {
+    "name": "Users detail 390: full uuid not printed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users detail 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users detail dialog 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 390: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440-dark: first page = 20 rows",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440-dark: page info",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440-dark: header counts 27 / 17",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440-dark: no raw English status/role",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users list 1440-dark",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users list 1440-dark",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users detail 1440-dark: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/users?id=f0000001-0000-4000-8000-000000000001"
+  },
+  {
+    "name": "Users detail 1440-dark: full uuid not printed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — Users detail 1440-dark",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — Users detail dialog 1440-dark",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 1440-dark: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users unknown id: note + list visible",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users unknown id: dismiss removes ?id",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users hostile params: falls back to defaults, page renders",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 500: error block (not empty list) message",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 500: Thử lại present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 500: no \"0 người dùng\" count shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — Users 500",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 403: error block (not empty list) message",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 403: Thử lại absent",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users 403: no \"0 người dùng\" count shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — Users 403",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users empty: empty state message",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — Users empty",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "Users loading: skeleton shown, no empty/error text",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — Users loading",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440: score 75% + 3/4 services",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440: raw endpoint text hidden",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440: error log row shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — System 1440",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — System 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System: refresh failure keeps last data + banner (not blank, not 0)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — System refresh-error banner",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System: retry clears the banner",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System: no incidents -> calm empty text",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 390: score 75% + 3/4 services",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 390: raw endpoint text hidden",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 390: error log row shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — System 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — System 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 390: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440-dark: score 75% + 3/4 services",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440-dark: raw endpoint text hidden",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440-dark: error log row shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — System 1440-dark",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — System 1440-dark",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 1440-dark: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 500: error block with message, no 0%/score",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 500: Thử lại present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — System 500",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 403: error block with message, no 0%/score",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System 403: Thử lại absent",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — System 403",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "System loading: skeleton, no score",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — System loading",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440: OCR block 14,9,3,2 (total, đọc được, nhập tay, chờ)",
+    "pass": true,
+    "extra": "14,9,3,2"
+  },
+  {
+    "name": "AI 1440: OCR + AI figures from the same data",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440: OCR request is the dashboard endpoint",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440: no English strings left (in last 24h / Relevance)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — AI 1440",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace 1440: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/ai-observability?id=f0000901-0000-4000-8000-000000000901"
+  },
+  {
+    "name": "no horizontal page scroll — AI trace 1440",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI trace dialog 1440",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: reload on ?id= keeps trace dialog",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: Back from trace -> list (no id)",
+    "pass": true,
+    "extra": "/admin/ai-observability"
+  },
+  {
+    "name": "AI: Forward -> trace again",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: Esc closes trace, id removed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace dialog: dialog has accessible name",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace dialog: focus trapped after 8 Tabs",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace dialog: Esc closes",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace dialog: focus returns to opener",
+    "pass": true,
+    "extra": "{\"tag\":\"BUTTON\",\"text\":\"Câu hỏi AI số 2: tôi nên tập g\",\"inDialog\":false}"
+  },
+  {
+    "name": "AI: filter chip -> ?filter=slow",
+    "pass": true,
+    "extra": "/admin/ai-observability?filter=slow"
+  },
+  {
+    "name": "AI: filter request carries filter=slow&limit=20",
+    "pass": true,
+    "extra": "GET /admin/ai/overview | GET /admin/ai/requests?filter=slow&page=1&limit=20 | GET /admin/ai/queue | GET /admin/ai/errors | GET /admin/ai/knowledge"
+  },
+  {
+    "name": "AI: filter refresh does not blank the page (KPI still visible)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: next page -> ?filter=slow&page=2",
+    "pass": true,
+    "extra": "/admin/ai-observability?filter=slow&page=2"
+  },
+  {
+    "name": "AI: reload keeps filter pressed",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: tab Hàng đợi -> ?tab=queue (filter/page dropped)",
+    "pass": true,
+    "extra": "/admin/ai-observability?tab=queue"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI queue tab",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: reload keeps tab",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — AI knowledge tab",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — AI errors tab",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI: Back after tab switch returns to previous tab",
+    "pass": true,
+    "extra": "/admin/ai-observability?tab=knowledge"
+  },
+  {
+    "name": "AI 1440: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 390: OCR block 14,9,3,2 (total, đọc được, nhập tay, chờ)",
+    "pass": true,
+    "extra": "14,9,3,2"
+  },
+  {
+    "name": "AI 390: OCR + AI figures from the same data",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 390: OCR request is the dashboard endpoint",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 390: no English strings left (in last 24h / Relevance)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — AI 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace 390: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/ai-observability?id=f0000901-0000-4000-8000-000000000901"
+  },
+  {
+    "name": "no horizontal page scroll — AI trace 390",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI trace dialog 390",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 390: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440-dark: OCR block 14,9,3,2 (total, đọc được, nhập tay, chờ)",
+    "pass": true,
+    "extra": "14,9,3,2"
+  },
+  {
+    "name": "AI 1440-dark: OCR + AI figures from the same data",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440-dark: OCR request is the dashboard endpoint",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440-dark: no English strings left (in last 24h / Relevance)",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "no horizontal page scroll — AI 1440-dark",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI 1440-dark",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace 1440-dark: URL has ?id=",
+    "pass": true,
+    "extra": "/admin/ai-observability?id=f0000901-0000-4000-8000-000000000901"
+  },
+  {
+    "name": "no horizontal page scroll — AI trace 1440-dark",
+    "pass": true,
+    "extra": "{\"doc\":0,\"main\":0}"
+  },
+  {
+    "name": "axe serious+critical = 0 — AI trace dialog 1440-dark",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 1440-dark: no page errors",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI unknown trace id: note + page visible, no dialog",
+    "pass": true,
+    "extra": "/admin/ai-observability"
+  },
+  {
+    "name": "AI hostile params: defaults",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI trace 500: error inside dialog (not blank), dialog stays",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "OCR 500: error + Thử lại, no numbers, AI KPIs still shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — OCR error",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "OCR loading: skeleton, no 0 shown",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 500: error block, no KPI zeros",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 500: Thử lại present",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 500: OCR block still loads independently",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — AI 500",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 403: error block, no KPI zeros",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 403: Thử lại absent",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI 403: OCR block still loads independently",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — AI 403",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI loading: skeleton, no KPI",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "axe serious+critical = 0 — AI loading",
+    "pass": true,
+    "extra": ""
+  },
+  {
+    "name": "AI empty requests: empty text in table",
+    "pass": true,
+    "extra": ""
+  }
+]

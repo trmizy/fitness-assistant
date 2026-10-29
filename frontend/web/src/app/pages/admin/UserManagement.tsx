@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { MagnifyingGlassIcon as Search, ShieldIcon as Shield, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, CircleNotchIcon as Loader2, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
-import { Button } from "../ui/button";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { MagnifyingGlassIcon as Search, CircleNotchIcon, UserCheckIcon as UserCheck, UserMinusIcon as UserX, DotsThreeVerticalIcon as MoreVertical, ArrowsClockwiseIcon as RefreshCw, ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, UsersIcon } from "@phosphor-icons/react";
+import { Button } from "../../components/ui/button";
 // Goes through the shared `api` instance, not a bare axios import: only that instance
 // attaches the token, refreshes it on a 401, and queues concurrent callers behind one
 // refresh. A hand-rolled axios call with a manually-read token skips all three and dies
@@ -8,7 +9,12 @@ import { Button } from "../ui/button";
 import { api } from "../../services/api";
 import { adminUsersApi, type AssignableRole } from "../../services/adminUsersApi";
 import { useApp } from "../../context/AppContext";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { DataTable, type DataTableColumn } from "../../components/ui/DataTable";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { PageSkeleton } from "../../components/ui/PageSkeleton";
+import { ErrorState } from "../../components/ui/ErrorState";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +23,11 @@ import {
 } from "../../components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { adminRoleVi, adminShortDateVi, adminStatusVi } from "../../utils/adminLabels";
+import { describeAdminError, errorStateKind, type AdminErrorView } from "./shared/useAdminError";
+import { parseIdParam } from "./shared/b9aUrlState";
+import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
+import { Pill, type PillTone } from "./shared/b9bPill";
+import { buildUserParams, paginate, parsePageParam, parseSearchParam, parseUserRole, parseUserStatus } from "./shared/b9bUrlState";
 
 interface AdminUser {
   id: string;
@@ -51,6 +62,8 @@ const PARTNER_ROLE_LABEL: Record<string, string> = {
   ACCOUNTANT: "Kế toán",
 };
 
+const PAGE_SIZE = 20;
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -59,14 +72,123 @@ const initials = (name: string) =>
     .toUpperCase()
     .slice(0, 2);
 
+const statusTone = (s: string): PillTone => (s === "Active" ? "success" : s === "Pending" ? "pending" : "neutral");
+const roleTone = (r: string): PillTone => (r === "PT" ? "success" : r === "Admin" ? "info" : "neutral");
+const avatarBg = (role: string) =>
+  role === "PT" ? "bg-st-success-bg text-st-success" : role === "Admin" ? "bg-st-info-bg text-st-info" : "bg-st-neutral-bg text-st-neutral";
+
+const selectCls =
+  "min-w-0 flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30";
+
+/** After a dialog opened from a menu item closes, the menu item is gone: put focus back on the row's "Thao tác" button. */
+function useFocusFallback(open: boolean, selector: string | null) {
+  const was = useRef(false);
+  useEffect(() => {
+    if (was.current && !open && selector) {
+      was.current = open;
+      const t = window.setTimeout(() => {
+        const a = document.activeElement as HTMLElement | null;
+        if (!a || a === document.body || !a.isConnected) (document.querySelector(selector) as HTMLElement | null)?.focus();
+      }, 320);
+      return () => window.clearTimeout(t);
+    }
+    was.current = open;
+  }, [open, selector]);
+}
+
+/**
+ * Confirmation dialog on the Radix `ui/dialog` (role="alertdialog": focus trap, Esc, Android-Back, safe Huỷ first).
+ * Not `ConfirmDialog`: its default button is the design-system emerald-600 on white = 3.76:1 (fails AA); here the
+ * primary action uses the admin `st-success` token (same as MoneyActionDialog). The destructive variant is the shared `destructive` Button.
+ */
+function ActionDialog({
+  open, onCancel, title, description, children, confirmLabel, danger, confirmDisabled, onConfirm,
+}: { open: boolean; onCancel: () => void; title: string; description?: string; children?: React.ReactNode; confirmLabel: string; danger?: boolean; confirmDisabled?: boolean; onConfirm: () => Promise<void> }) {
+  const [pending, setPending] = useState(false);
+  const run = async () => {
+    setPending(true);
+    try { await onConfirm(); } finally { setPending(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && !pending && onCancel()}>
+      <DialogContent role="alertdialog" className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description ? <DialogDescription className="text-zinc-400">{description}</DialogDescription> : <DialogDescription className="sr-only">{title}</DialogDescription>}
+        </DialogHeader>
+        {children}
+        <DialogFooter>
+          <Button variant="outline" disabled={pending} onClick={onCancel}>Huỷ</Button>
+          <Button
+            variant={danger ? "destructive" : "default"}
+            className={danger ? undefined : "bg-st-success text-adm-bg hover:bg-st-success hover:opacity-90"}
+            disabled={confirmDisabled || pending}
+            onClick={run}
+          >
+            {pending && <CircleNotchIcon className="size-4 animate-spin" />}
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UserDetailDialog({
+  user, roleText, isSelf, onClose, onRole, onLock,
+}: { user: AdminUser; roleText: string; isSelf: boolean; onClose: () => void; onRole: () => void; onLock: () => void }) {
+  const ret = useReturnFocus(`[data-user-actions="${user.id}"]`);
+  const rows = [
+    { label: "Vai trò", value: roleText },
+    { label: "Ngày tham gia", value: adminShortDateVi(user.joined) },
+    { label: "Hoạt động gần nhất", value: adminShortDateVi(user.lastActive) },
+    { label: "Số buổi", value: String(user.sessions) },
+    { label: "Hợp đồng", value: String(user.contracts) },
+  ];
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" data-testid="user-detail" onCloseAutoFocus={ret.onCloseAutoFocus}>
+        <DialogHeader className="items-center text-center sm:text-center">
+          <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-bold ${avatarBg(user.role)}`} aria-hidden>
+            {initials(user.name)}
+          </div>
+          <DialogTitle>{user.name}</DialogTitle>
+          <DialogDescription className="break-all text-zinc-400">{user.email}</DialogDescription>
+          <div className="mx-auto"><Pill tone={statusTone(user.status)}>{adminStatusVi(user.status)}</Pill></div>
+        </DialogHeader>
+        <dl className="space-y-2.5 border-y border-zinc-800/60 py-4 text-sm">
+          {rows.map((r) => (
+            <div key={r.label} className="flex justify-between gap-3">
+              <dt className="text-zinc-500">{r.label}</dt>
+              <dd className="text-right font-medium text-zinc-300">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" disabled={isSelf} onClick={onRole}>
+            <UserCheck className="size-4" /> Đổi vai trò
+          </Button>
+          <Button variant={user.status === "Inactive" ? "outline" : "destructive"} disabled={isSelf} onClick={onLock}>
+            <UserX className="size-4" /> {user.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
+          </Button>
+        </div>
+        {isSelf && <p className="text-xs text-zinc-500">Đây là tài khoản của bạn nên không thể đổi vai trò hoặc khóa.</p>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function UserManagement() {
+  const [params, setParams] = useSearchParams();
+  const selectedId = parseIdParam(params.get("id"));
+  const roleFilter = parseUserRole(params.get("role"));
+  const statusFilter = parseUserStatus(params.get("status"));
+  const search = parseSearchParam(params.get("q"));
+  const pageParam = parsePageParam(params.get("page"));
+
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [error, setError] = useState<AdminErrorView | null>(null);
   const { user: me } = useApp();
   const [partnerRoles, setPartnerRoles] = useState<Record<string, string | null>>({});
   const roleText = (u: AdminUser) => (u.role === "Gym Owner" ? PARTNER_ROLE_LABEL[partnerRoles[u.id] ?? "OWNER"] ?? adminRoleVi(u.role) : adminRoleVi(u.role));
@@ -76,11 +198,56 @@ export function UserManagement() {
   const [newRole, setNewRole] = useState<AssignableRole>("CUSTOMER");
   const [lockTarget, setLockTarget] = useState<AdminUser | null>(null);
   const isSelf = (u: AdminUser) => !!me && u.id === me.id;
+  const [noteDismissed, setNoteDismissed] = useState<string | null>(null);
+
+  useRestoreFocus(!!roleTarget);
+  useRestoreFocus(!!lockTarget);
+  const lastActor = useRef<string | null>(null);
+  useFocusFallback(!!roleTarget, lastActor.current);
+  useFocusFallback(!!lockTarget, lastActor.current);
+
+  // The router commits a URL change a render later; two quick events (typing, two selects) must not each start from the
+  // same stale snapshot and drop one another's change. `latest` is updated synchronously on every write and re-synced
+  // from the URL whenever the URL itself changes (Back/Forward, reload).
+  const urlKey = params.toString();
+  const syncedKey = useRef(urlKey);
+  const latest = useRef({ id: selectedId, role: roleFilter, status: statusFilter, q: search, page: pageParam });
+  if (syncedKey.current !== urlKey) {
+    syncedKey.current = urlKey;
+    latest.current = { id: selectedId, role: roleFilter, status: statusFilter, q: search, page: pageParam };
+  }
+  const setState = useCallback(
+    (next: { id?: string | null; role?: typeof roleFilter; status?: typeof statusFilter; q?: string; page?: number }, opts: { replace?: boolean } = {}) => {
+      latest.current = { ...latest.current, ...next };
+      setParams(buildUserParams(latest.current), { replace: opts.replace ?? false });
+    },
+    [setParams],
+  );
+  const openDetail = (u: AdminUser) => setState({ id: u.id });
+  const closeDetail = (replace = false) => setState({ id: null }, { replace });
 
   const openRoleDialog = (u: AdminUser) => {
+    lastActor.current = `[data-user-actions="${u.id}"]`;
     const cur = ROLE_LABEL_TO_ENUM[u.role];
     setNewRole(cur === "ADMIN" ? "CUSTOMER" : (cur as AssignableRole));
     setRoleTarget(u);
+  };
+  const openLockDialog = (u: AdminUser) => {
+    lastActor.current = `[data-user-actions="${u.id}"]`;
+    setLockTarget(u);
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get("/admin/users");
+      setUsers(data.data?.users ?? []);
+    } catch (err: unknown) {
+      setError(describeAdminError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const confirmRole = async () => {
@@ -89,7 +256,7 @@ export function UserManagement() {
       await adminUsersApi.updateRole(roleTarget.id, newRole);
       toast.success(`Đã đổi vai trò của ${roleTarget.name}`);
       setRoleTarget(null);
-      setSelectedUser(null);
+      closeDetail(true);
       await fetchUsers();
     } catch (e: any) {
       toast.error(e?.message ?? "Không thể đổi vai trò");
@@ -103,23 +270,10 @@ export function UserManagement() {
       await adminUsersApi.setActive(lockTarget.id, unlocking);
       toast.success(unlocking ? `Đã mở khóa ${lockTarget.name}` : `Đã khóa tài khoản ${lockTarget.name}`);
       setLockTarget(null);
-      setSelectedUser(null);
+      closeDetail(true);
       await fetchUsers();
     } catch (e: any) {
       toast.error(e?.message ?? "Thao tác thất bại");
-    }
-  };
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await api.get("/admin/users");
-      setUsers(data.data?.users ?? []);
-    } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? "Không tải được danh sách người dùng");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -148,79 +302,103 @@ export function UserManagement() {
     return () => { cancelled = true; };
   }, [users]);
 
-  const filtered = users.filter(
-    (u) =>
-      (u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())) &&
-      (roleFilter === "All" || roleKey(u) === roleFilter) &&
-      (statusFilter === "All" || u.status === statusFilter),
+  const filtered = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          (u.name.toLowerCase().includes(search.toLowerCase()) ||
+            u.email.toLowerCase().includes(search.toLowerCase())) &&
+          (roleFilter === "All" || roleKey(u) === roleFilter) &&
+          (statusFilter === "All" || u.status === statusFilter),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [users, search, roleFilter, statusFilter, partnerRoles],
   );
-
-  const statusBadge = (status: string) => {
-    if (status === "Active")
-      return "bg-green-500/10 text-green-400 border-green-500/20";
-    if (status === "Pending")
-      return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-    return "bg-zinc-700/50 text-zinc-500 border-zinc-700";
-  };
-
-  const roleBadge = (role: string) =>
-    role === "PT"
-      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-      : role === "Admin"
-        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-        : "bg-blue-500/10 text-blue-400 border-blue-500/20";
-
-  const avatarBg = (role: string) =>
-    role === "PT"
-      ? "bg-emerald-500/20 text-emerald-400"
-      : role === "Admin"
-        ? "bg-purple-500/20 text-purple-400"
-        : "bg-blue-500/20 text-blue-400";
-
+  const paged = paginate(filtered, pageParam, PAGE_SIZE);
   const activeCount = users.filter((u) => u.status === "Active").length;
+  const selectedUser = selectedId ? users.find((u) => u.id === selectedId) ?? null : null;
+  const unknownSelected = !!selectedId && !loading && !error && !selectedUser && noteDismissed !== selectedId;
+  const hasFilters = !!search || roleFilter !== "All" || statusFilter !== "All";
+
+  const columns: DataTableColumn<AdminUser>[] = [
+    {
+      key: "user",
+      header: "Người dùng",
+      render: (u) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarBg(u.role)}`} aria-hidden>
+            {initials(u.name)}
+          </div>
+          <div className="min-w-0 text-left">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); openDetail(u); }}
+              className="block max-w-full truncate rounded text-sm font-semibold text-zinc-200 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
+            >
+              {u.name}
+            </button>
+            <div className="truncate text-xs font-normal text-zinc-500">{u.email}</div>
+          </div>
+        </div>
+      ),
+    },
+    { key: "role", header: "Vai trò", render: (u) => <Pill tone={roleTone(u.role)}>{roleText(u)}</Pill> },
+    { key: "status", header: "Trạng thái", render: (u) => <Pill tone={statusTone(u.status)}>{adminStatusVi(u.status)}</Pill> },
+    { key: "joined", header: "Ngày tham gia", render: (u) => <span className="text-sm text-zinc-500">{adminShortDateVi(u.joined)}</span> },
+    { key: "last", header: "Hoạt động gần nhất", render: (u) => <span className="text-sm text-zinc-500">{adminShortDateVi(u.lastActive)}</span> },
+    {
+      key: "actions",
+      header: "Thao tác",
+      render: (u) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label={`Thao tác với ${u.name}`}
+              data-user-actions={u.id}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded p-1.5 text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-500"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onSelect={() => openDetail(u)}>Xem hồ sơ</DropdownMenuItem>
+            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => openRoleDialog(u)}>Đổi vai trò</DropdownMenuItem>
+            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => openLockDialog(u)}>
+              {u.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-zinc-100">Quản lý người dùng</h1>
-          {!loading && !error && (
-            <p className="text-zinc-500 text-sm mt-0.5">
-              {users.length} người dùng đã đăng ký · {activeCount} đang hoạt động
-            </p>
-          )}
-        </div>
-        <button
-          onClick={fetchUsers}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-400 border border-zinc-700/50 rounded-lg hover:bg-zinc-800/50 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
-          />
-          Làm mới
-        </button>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
+      <PageHeader
+        title="Người dùng"
+        description={!loading && !error ? `${users.length} người dùng đã đăng ký · ${activeCount} đang hoạt động` : undefined}
+        actions={
+          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+            Làm mới
+          </Button>
+        }
+      />
 
-      {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-2 bg-zinc-800/80 border border-zinc-700/50 rounded-xl px-4 py-2.5 flex-1">
-          <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label className="flex flex-1 items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-4 py-2.5">
+          <Search className="h-4 w-4 flex-shrink-0 text-zinc-500" aria-hidden />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm người dùng…"
-            className="flex-1 text-sm bg-transparent outline-none text-zinc-300 placeholder-zinc-600"
+            onChange={(e) => setState({ q: e.target.value, page: 1 }, { replace: true })}
+            placeholder="Tìm theo tên hoặc email…"
+            aria-label="Tìm người dùng"
+            className="flex-1 bg-transparent text-sm text-zinc-300 outline-none placeholder:text-zinc-500"
           />
-        </div>
-        <div className="flex gap-2 [&>select]:min-w-0 [&>select]:flex-1">
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
-          >
+        </label>
+        <div className="flex gap-2">
+          <select aria-label="Lọc theo vai trò" value={roleFilter} onChange={(e) => setState({ role: parseUserRole(e.target.value), page: 1 }, { replace: true })} className={selectCls}>
             <option value="All">Tất cả vai trò</option>
             <option value="Client">Hội viên</option>
             <option value="PT">Huấn luyện viên (PT)</option>
@@ -230,11 +408,7 @@ export function UserManagement() {
             <option value="ACCOUNTANT">Kế toán</option>
             <option value="Admin">Quản trị viên</option>
           </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
-          >
+          <select aria-label="Lọc theo trạng thái" value={statusFilter} onChange={(e) => setState({ status: parseUserStatus(e.target.value), page: 1 }, { replace: true })} className={selectCls}>
             <option value="All">Tất cả trạng thái</option>
             <option value="Active">Đang hoạt động</option>
             <option value="Inactive">Đã khóa</option>
@@ -243,214 +417,66 @@ export function UserManagement() {
         </div>
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-          <p className="text-zinc-500 text-sm">Đang tải người dùng…</p>
+      {unknownSelected && (
+        <div role="status" data-testid="user-unknown-id" className="flex items-center justify-between gap-3 rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-xs text-st-warning">
+          <span>Không tìm thấy người dùng này — có thể đã bị xoá hoặc đường dẫn sai. Đang hiện danh sách.</span>
+          <button onClick={() => { setNoteDismissed(selectedId); closeDetail(true); }} className="shrink-0 font-bold underline">Đóng</button>
         </div>
       )}
 
-      {/* Error state */}
+      {loading && <div role="status" data-testid="users-loading" aria-busy="true" aria-label="Đang tải người dùng"><PageSkeleton variant="list" rows={6} /></div>}
+
       {!loading && error && (
-        <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-center">
-          <p className="text-red-400 text-sm mb-3">{error}</p>
-          <button
-            onClick={fetchUsers}
-            className="text-xs px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"
-          >
-            Thử lại
-          </button>
+        <div data-testid="users-load-error">
+          <ErrorState kind={errorStateKind(error)} message={error.message} onRetry={error.kind === "forbidden" ? undefined : fetchUsers} />
         </div>
       )}
 
-      {/* Main content */}
       {!loading && !error && (
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Table */}
-          <div className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr className="text-left text-xs text-zinc-600 bg-zinc-800/40 border-b border-zinc-800/60 uppercase tracking-wider">
-                    <th className="px-4 py-3">Người dùng</th>
-                    <th className="px-4 py-3">Vai trò</th>
-                    <th className="px-4 py-3">Trạng thái</th>
-                    <th className="px-4 py-3">Ngày tham gia</th>
-                    <th className="px-4 py-3">Hoạt động gần nhất</th>
-                    <th className="px-4 py-3">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((u) => (
-                    <tr
-                      key={u.id}
-                      onClick={() =>
-                        setSelectedUser(selectedUser?.id === u.id ? null : u)
-                      }
-                      className={`border-b border-zinc-800/40 last:border-0 cursor-pointer transition-colors ${
-                        selectedUser?.id === u.id
-                          ? "bg-green-500/5 border-l-2 border-l-green-500/40"
-                          : "hover:bg-zinc-800/30"
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarBg(u.role)}`}
-                          >
-                            {initials(u.name)}
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-zinc-200">
-                              {u.name}
-                            </div>
-                            <div className="text-xs text-zinc-500">
-                              {u.email}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${roleBadge(u.role)}`}
-                        >
-                          {roleText(u)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${statusBadge(u.status)}`}
-                        >
-                          {adminStatusVi(u.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-500">
-                        {adminShortDateVi(u.joined)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-500">
-                        {adminShortDateVi(u.lastActive)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              aria-label="Thao tác"
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem onSelect={() => setSelectedUser(u)}>
-                              Xem hồ sơ
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => openRoleDialog(u)}>
-                              Đổi vai trò
-                            </DropdownMenuItem>
-                            <DropdownMenuItem disabled={isSelf(u)} onSelect={() => setLockTarget(u)}>
-                              {u.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-4 py-10 text-center text-sm text-zinc-600"
-                      >
-                        Không có người dùng nào khớp bộ lọc.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Detail panel */}
-          {selectedUser && (
-            <div className="lg:w-72 bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 self-start flex-shrink-0">
-              <div className="text-center mb-4 pb-4 border-b border-zinc-800/60 relative">
-                <button
-                  type="button"
-                  onClick={() => setSelectedUser(null)}
-                  className="absolute top-0 right-0 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-                  aria-label="Đóng"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <div
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-3 ${avatarBg(selectedUser.role)}`}
-                >
-                  {initials(selectedUser.name)}
-                </div>
-                <h3 className="text-zinc-100 font-bold">{selectedUser.name}</h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  {selectedUser.email}
-                </p>
-                <span
-                  className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold border mt-2 ${statusBadge(selectedUser.status)}`}
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {adminStatusVi(selectedUser.status)}
-                </span>
-              </div>
-
-              <div className="space-y-2.5 text-sm border-b border-zinc-800/60 pb-4 mb-4">
-                {[
-                  { label: "Vai trò", value: roleText(selectedUser) },
-                  { label: "Ngày tham gia", value: adminShortDateVi(selectedUser.joined) },
-                  { label: "Hoạt động gần nhất", value: adminShortDateVi(selectedUser.lastActive) },
-                  { label: "Số buổi", value: String(selectedUser.sessions) },
-                  { label: "Hợp đồng", value: String(selectedUser.contracts) },
-                ].map((row) => (
-                  <div key={row.label} className="flex justify-between">
-                    <span className="text-zinc-500">{row.label}</span>
-                    <span className="text-zinc-300 font-medium">
-                      {row.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
-                  <Shield className="w-4 h-4 text-blue-400" /> Xem hồ sơ đầy đủ
-                </button>
-                {selectedUser.status === "Pending" && (
-                  <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors font-semibold">
-                    <UserCheck className="w-4 h-4" /> Duyệt PT
-                  </button>
-                )}
-                <button
-                  disabled={isSelf(selectedUser)}
-                  onClick={() => openRoleDialog(selectedUser)}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <UserCheck className="w-4 h-4 text-blue-400" /> Đổi vai trò
-                </button>
-                <button
-                  disabled={isSelf(selectedUser)}
-                  onClick={() => setLockTarget(selectedUser)}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <UserX className="w-4 h-4" />{" "}
-                  {selectedUser.status === "Inactive" ? "Mở khóa" : "Khóa tài khoản"}
-                </button>
-              </div>
-            </div>
+        <div className="space-y-3">
+          <DataTable
+            columns={columns}
+            rows={paged.rows}
+            rowKey={(u) => u.id}
+            onRowClick={openDetail}
+            emptyState={
+              <EmptyState
+                icon={UsersIcon}
+                title={hasFilters ? "Không có người dùng nào khớp bộ lọc" : "Chưa có người dùng nào"}
+                description={hasFilters ? "Thử bỏ bớt bộ lọc hoặc đổi từ khóa tìm kiếm." : undefined}
+              />
+            }
+          />
+          {paged.pages > 1 && (
+            <nav aria-label="Phân trang" className="flex items-center justify-between gap-3">
+              <Button variant="outline" size="sm" disabled={paged.page <= 1} onClick={() => setState({ page: paged.page - 1 })}>
+                <ArrowLeft className="size-4" /> Trước
+              </Button>
+              <span className="text-xs text-zinc-500" data-testid="users-page-info">
+                Trang {paged.page} / {paged.pages} · {paged.total} người dùng
+              </span>
+              <Button variant="outline" size="sm" disabled={paged.page >= paged.pages} onClick={() => setState({ page: paged.page + 1 })}>
+                Sau <ArrowRight className="size-4" />
+              </Button>
+            </nav>
           )}
         </div>
       )}
 
-      <ConfirmDialog
+      {selectedUser && (
+        <UserDetailDialog
+          user={selectedUser}
+          roleText={roleText(selectedUser)}
+          isSelf={isSelf(selectedUser)}
+          onClose={() => closeDetail()}
+          onRole={() => openRoleDialog(selectedUser)}
+          onLock={() => openLockDialog(selectedUser)}
+        />
+      )}
+
+      <ActionDialog
         open={!!roleTarget}
-        onOpenChange={(o) => !o && setRoleTarget(null)}
+        onCancel={() => setRoleTarget(null)}
         title="Đổi vai trò"
         description={roleTarget ? `Chọn vai trò mới cho ${roleTarget.name} (${roleTarget.email}).` : undefined}
         confirmLabel="Xác nhận"
@@ -462,7 +488,7 @@ export function UserManagement() {
           aria-label="Vai trò mới"
           value={newRole}
           onChange={(e) => setNewRole(e.target.value as AssignableRole)}
-          className="w-full px-3 py-2 border border-zinc-700/50 rounded-xl text-sm bg-zinc-800/80 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+          className="w-full rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-green-500/30"
         >
           {ROLE_OPTIONS.map((r) => (
             <option key={r.value} value={r.value}>
@@ -470,11 +496,11 @@ export function UserManagement() {
             </option>
           ))}
         </select>
-      </ConfirmDialog>
+      </ActionDialog>
 
-      <ConfirmDialog
+      <ActionDialog
         open={!!lockTarget}
-        onOpenChange={(o) => !o && setLockTarget(null)}
+        onCancel={() => setLockTarget(null)}
         title={lockTarget?.status === "Inactive" ? "Mở khóa tài khoản" : "Khóa tài khoản"}
         description={
           lockTarget
