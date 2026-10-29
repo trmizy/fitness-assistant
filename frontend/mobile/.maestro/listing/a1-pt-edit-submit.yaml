@@ -1,0 +1,42 @@
+# a1: PT (tran-minh-khoa) edits a field of the listing draft, saves it, submits it -> "Chờ.duyệt".
+# Run: run.sh a1-pt-edit-submit.yaml -e EMAIL=tran-minh-khoa@seed.gymini.test   (PASSWORD injected by the runner)
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- runFlow: _pt-open-listing.yaml
+- takeScreenshot: a1-01-listing
+# a draft may already exist; if not, start one
+- runFlow:
+    when:
+      visible: "Soạn bản sửa mới"
+    commands:
+      - tapOn: "Soạn bản sửa mới"
+- extendedWaitUntil:
+    visible: "Giới thiệu & chuyên môn"
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Chuyên môn chính"
+- tapOn: "Yoga"
+- assertVisible: "Lưu nháp"
+- takeScreenshot: a1-02-edited
+- tapOn: "Lưu nháp"
+- assertVisible: "Đã lưu bản nháp"
+- takeScreenshot: a1-03-saved
+- tapOn: "Gửi duyệt"
+- assertVisible: "Gửi duyệt bản sửa?"
+- takeScreenshot: a1-04-confirm
+- tapOn: "GỬI DUYỆT"
+- assertVisible: "Đã gửi duyệt.*"
+- extendedWaitUntil:
+    visible: "Chờ.duyệt"
+    timeout: 15000
+- assertVisible: "Rút lại để sửa tiếp"
+- takeScreenshot: a1-05-pending
+- runFlow: _pt-logout.yaml

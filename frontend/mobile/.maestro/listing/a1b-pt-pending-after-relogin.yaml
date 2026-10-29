@@ -1,0 +1,26 @@
+# a1b: after a1 submitted, a fresh login still shows "Chờ.duyệt" with Xem bản đã gửi / Rút lại để sửa tiếp.
+# NOTE: Badge/chip labels use a non-breaking space, so multi-word badge text is matched with "." instead of " ".
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- runFlow: _pt-open-listing.yaml
+- extendedWaitUntil:
+    visible: "Chờ.duyệt"
+    timeout: 15000
+- assertVisible: "Xem bản đã gửi"
+- assertVisible: "Rút lại để sửa tiếp"
+- takeScreenshot: a1b-pending
+- tapOn: "Xem bản đã gửi"
+- extendedWaitUntil:
+    visible: "Xem trước"
+    timeout: 15000
+- takeScreenshot: a1b-preview-submitted
+- back
+- runFlow: _pt-logout.yaml

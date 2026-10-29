@@ -1,0 +1,47 @@
+# a2: PT with 5 physique photos (hoang-thu-trang): 6th photo refused with the Vietnamese limit message; ↑↓ reorder dirties the draft; save; discard draft (restore).
+# Run: run.sh a2-pt-photo-limit-reorder.yaml -e EMAIL=hoang-thu-trang@seed.gymini.test
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan|Trang chủ"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- runFlow: _pt-open-listing.yaml
+- takeScreenshot: a2-01-listing
+- runFlow:
+    when:
+      visible: "Soạn bản sửa mới"
+    commands:
+      - tapOn: "Soạn bản sửa mới"
+- extendedWaitUntil:
+    visible: "Giới thiệu & chuyên môn"
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Thêm ảnh"
+- assertVisible: "Ảnh hình thể.5/5"
+- assertVisible: "Đã đủ 5/5 ảnh.*"
+- takeScreenshot: a2-02-photos-5of5
+- tapOn: "Thêm ảnh"
+- assertVisible: "Tin đăng chỉ có tối đa 5 ảnh hình thể.*"
+- takeScreenshot: a2-03-limit-message
+# reorder: move photo 1 down, then photo 2 up (net: back to start) — each move must dirty the draft
+- scrollUntilVisible:
+    element: "Đưa ảnh 1 xuống"
+- tapOn: "Đưa ảnh 1 xuống"
+- assertVisible: "Lưu nháp"
+- takeScreenshot: a2-04-moved-down
+- tapOn: "Lưu nháp"
+- assertVisible: "Đã lưu bản nháp"
+- takeScreenshot: a2-05-reorder-saved
+- scrollUntilVisible:
+    element: "Bỏ nháp"
+- tapOn: "Bỏ nháp"
+- assertVisible: "Bỏ bản nháp?"
+- tapOn: "BỎ NHÁP"
+- assertVisible: "Đã bỏ bản nháp"
+- takeScreenshot: a2-06-discarded
+- runFlow: _pt-logout.yaml

@@ -1,0 +1,85 @@
+# b: gym owner (nguyen-truong-thanh) -> Phòng gym -> Tin đăng & tiện ích -> branch Quận 1 -> toggle an amenity,
+#    propose a new amenity, 21st-photo refusal (branch has 20/20), save draft, submit -> "Chờ duyệt".
+# Run: run.sh b-owner-listing-amenities.yaml -e EMAIL=nguyen-truong-thanh@seed.gymini.test
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Phòng gym"
+    timeout: 40000
+- tapOn: "Phòng gym"
+- extendedWaitUntil:
+    visible: "Tin đăng & tiện ích"
+    timeout: 20000
+- tapOn: "Tin đăng & tiện ích"
+- tapOn: "Iron District Fitness Quận 1"
+- extendedWaitUntil:
+    visible: "Trạng thái tin đăng"
+    timeout: 20000
+- takeScreenshot: b-01-branch
+- runFlow:
+    when:
+      visible: "Soạn bản sửa mới"
+    commands:
+      - tapOn: "Soạn bản sửa mới"
+- extendedWaitUntil:
+    visible: "Tiện ích & dịch vụ"
+    timeout: 20000
+# toggle an amenity (Phòng Yoga is unselected on the seed)
+- scrollUntilVisible:
+    element: "Phòng Yoga"
+    centerElement: true
+- tapOn: "Phòng Yoga (đã chọn)|Phòng Yoga"
+- assertVisible: "Lưu nháp"
+- assertVisible: "Đã chọn 15 tiện ích."
+- takeScreenshot: b-02-amenity-toggled
+# propose a new amenity
+- scrollUntilVisible:
+    element: "Đề xuất mới"
+    direction: UP
+- tapOn: "Đề xuất mới"
+- extendedWaitUntil:
+    visible: "Đề xuất tiện ích mới"
+    timeout: 10000
+- tapOn: "Ví dụ: Phòng boxing"
+- inputText: "Khu thu gian Maestro"
+- takeScreenshot: b-03-propose-sheet
+- tapOn: "Nhóm Khu tập luyện"
+- tapOn: "Gửi đề xuất"
+# the toast is too short-lived to assert reliably; assert the proposal block instead
+- scrollUntilVisible:
+    element: "Đề xuất tiện ích của bạn"
+- assertVisible: "Khu Thu.*Maestro"
+- assertVisible: "Trong bản nháp"
+- takeScreenshot: b-04-proposed
+# 21st photo is refused (branch already has 20/20)
+- scrollUntilVisible:
+    element: "Thêm ảnh"
+- tapOn: "Thêm ảnh"
+- extendedWaitUntil:
+    visible: "Chi nhánh chỉ có tối đa 20 ảnh.*|.*tối đa 20 ảnh.*"
+    timeout: 10000
+- takeScreenshot: b-05-photo-limit
+- tapOn: "Lưu nháp"
+- assertVisible: "Đã lưu bản nháp"
+- takeScreenshot: b-06-saved
+- tapOn: "Gửi duyệt"
+- assertVisible: "Gửi duyệt bản sửa?"
+- tapOn: "GỬI DUYỆT"
+- extendedWaitUntil:
+    visible: "Chờ.duyệt"
+    timeout: 15000
+- takeScreenshot: b-07-pending
+- runFlow: _owner-logout.yaml

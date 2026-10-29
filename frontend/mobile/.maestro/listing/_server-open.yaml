@@ -1,0 +1,8 @@
+# Login screen -> "Cấu hình máy chủ" -> focus the address field (text is cleared/typed by adb, see set-server.sh).
+appId: vn.fitnessassistant.app
+---
+- tapOn: "Cấu hình máy chủ"
+- extendedWaitUntil:
+    visible: "Đang dùng"
+    timeout: 10000
+- takeScreenshot: server-before
