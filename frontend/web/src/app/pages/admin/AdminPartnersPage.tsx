@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -32,7 +33,7 @@ import {
 import { adminService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
 import { PartnerStatusBadge, VerificationStatusBadge } from "../../components/gym-management/PartnerStatusBadge";
-import { ModerationStatusBadge } from "../../components/gym-management/ModerationStatusBadge";
+import { GymStatusPill } from "./shared/b9aStatusPill";
 import { getPartnerStatusMeta } from "../../components/gym-management/statusConfig";
 import { EmptyState as SharedEmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/button";
@@ -40,6 +41,19 @@ import { Textarea } from "../../components/ui/textarea";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
 import { AdminApplicationsPanel } from "./AdminApplicationsPanel";
+import {
+  PARTNER_STATUS_FILTERS,
+  buildPartnerParams,
+  parseIdParam,
+  parsePartnerDetailTab,
+  parsePartnerStatus,
+  parsePartnerView,
+  shortRef,
+  type PartnerDetailTab,
+  type PartnerStatusFilter,
+  type PartnerView,
+} from "./shared/b9aUrlState";
+import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
 import { ISSUE_TYPE_LABEL, SOURCE_LABEL, statusMeta, ComplaintDetailDialog } from "./AdminComplaintsPage";
 
 const DOC_TYPE_LABEL: Record<string, { label: string; required: boolean }> = {
@@ -83,8 +97,8 @@ function EmptyState({ text }: { text: string }) {
 /** Fetch failed - never show it as "empty". */
 function ErrorBlock({ text = "Không tải được dữ liệu.", onRetry }: { text?: string; onRetry: () => void }) {
   return (
-    <div role="alert" data-testid="admin-partners-load-error" className="bg-red-500/5 border border-red-500/20 rounded-xl py-8 px-4 text-center">
-      <p className="text-red-300 text-sm mb-3">{text}</p>
+    <div role="alert" data-testid="admin-partners-load-error" className="bg-st-danger-bg border border-st-danger-border rounded-xl py-8 px-4 text-center">
+      <p className="text-st-danger text-sm mb-3">{text}</p>
       <Button size="sm" variant="outline" onClick={onRetry}>Thử lại</Button>
     </div>
   );
@@ -93,26 +107,64 @@ function ErrorBlock({ text = "Không tải được dữ liệu.", onRetry }: { 
 // ── Trang chính ──────────────────────────────────────────────────────────────
 
 export function AdminPartnersPage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<"applications" | "partners">("applications");
-  const [appId, setAppId] = useState<string | null>(null);
+  // B9a: ?view=applications|partners &id= (hồ sơ đăng ký hoặc đối tác) &tab= (tab chi tiết đối tác) &status= (lọc danh sách).
+  const [params, setParams] = useSearchParams();
+  const view: PartnerView = parsePartnerView(params.get("view"));
+  const id = parseIdParam(params.get("id"));
+  const tab = parsePartnerDetailTab(params.get("tab"));
+  const status = parsePartnerStatus(params.get("status"));
+  const [missing, setMissing] = useState<string | null>(null);
 
-  if (selectedId) return <PartnerDetail id={selectedId} onBack={() => setSelectedId(null)} />;
+  const go = useCallback(
+    (next: { view?: PartnerView; id?: string | null; tab?: PartnerDetailTab; status?: PartnerStatusFilter }, replace = false) =>
+      setParams(buildPartnerParams(next), { replace }),
+    [setParams],
+  );
+  // id sai / đã xoá: về danh sách (thay thế mục lịch sử để Back không quay lại id hỏng) kèm dải thông báo không chặn.
+  const handleNotFound = useCallback(
+    (missingId: string) => {
+      setMissing(missingId);
+      setParams(buildPartnerParams({ view }), { replace: true });
+    },
+    [setParams, view],
+  );
+
+  const partnerId = view === "partners" ? id : null;
+  if (partnerId) {
+    return (
+      <PartnerDetail
+        key={partnerId}
+        id={partnerId}
+        tab={tab}
+        onTab={(t) => go({ view: "partners", id: partnerId, tab: t })}
+        onBack={() => go({ view: "partners", status })}
+        onNotFound={handleNotFound}
+      />
+    );
+  }
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Handshake className="w-5 h-5 text-green-400" /> Duyệt hồ sơ đối tác
+          <Handshake className="w-5 h-5 text-st-success" /> Duyệt hồ sơ đối tác
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
           Chủ phòng tập tự đăng ký; bạn xem hồ sơ, yêu cầu chỉnh sửa, phê duyệt hoặc từ chối. Sau khi duyệt họ trở thành đối tác đang hoạt động.
         </p>
       </div>
-      <div className="flex gap-1.5">
+      {missing && (
+        <div role="status" data-testid="admin-partner-unknown-id" className="rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-xs text-st-warning flex items-center justify-between gap-3">
+          <span>Không tìm thấy hồ sơ <span className="font-mono">{shortRef(missing)}</span> — có thể đã bị xoá hoặc đường dẫn sai. Đang hiện danh sách.</span>
+          <button onClick={() => setMissing(null)} className="font-bold underline shrink-0">Đóng</button>
+        </div>
+      )}
+      <div className="flex gap-1.5" role="tablist" aria-label="Chế độ xem">
         {([["applications", "Hồ sơ đăng ký"], ["partners", "Đối tác"]] as const).map(([k, label]) => (
           <button
             key={k}
-            onClick={() => { setView(k); setAppId(null); }}
+            role="tab"
+            aria-selected={view === k}
+            onClick={() => { setMissing(null); go({ view: k }); }}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${view === k ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800/60 border border-zinc-800/60"}`}
           >
             {label}
@@ -120,19 +172,26 @@ export function AdminPartnersPage() {
         ))}
       </div>
       {view === "applications" ? (
-        <AdminApplicationsPanel key={appId ?? "list"} initialId={appId} onOpenPartner={setSelectedId} />
+        <AdminApplicationsPanel
+          openId={id}
+          onOpenChange={(next) => go({ view: "applications", id: next })}
+          onOpenPartner={(pid) => go({ view: "partners", id: pid })}
+          onNotFound={handleNotFound}
+        />
       ) : (
         <PartnerList
-          onSelect={setSelectedId}
-          onOpenApplication={(id) => { setAppId(id); setView("applications"); }}
+          statusFilter={status}
+          onStatusFilter={(st) => go({ view: "partners", status: st }, true)}
+          onSelect={(pid) => go({ view: "partners", id: pid })}
+          onOpenApplication={(appId) => go({ view: "applications", id: appId })}
         />
       )}
     </div>
   );
 }
 
-function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) => void; onOpenApplication: (id: string) => void }) {
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+function PartnerList({ statusFilter, onStatusFilter, onSelect, onOpenApplication }: { statusFilter: PartnerStatusFilter; onStatusFilter: (s: PartnerStatusFilter) => void; onSelect: (id: string) => void; onOpenApplication: (id: string) => void }) {
+  const setStatusFilter = onStatusFilter;
   const [search, setSearch] = useState("");
   const queueQuery = useQuery({ queryKey: ["admin-partner-queue"], queryFn: () => adminService.getPartnerQueue() });
   const partnersQuery = useQuery({
@@ -178,7 +237,7 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
               >
                 <span className="flex items-center gap-2 text-sm text-zinc-300">
                   <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
-                  <span className="font-bold text-amber-400">{item.count}</span> {item.label}
+                  <span className="font-bold text-st-warning">{item.count}</span> {item.label}
                 </span>
                 <ChevronRight className="w-4 h-4 text-zinc-600" />
               </button>
@@ -199,9 +258,10 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
           />
         </div>
         <div className="flex gap-1.5 flex-wrap">
-          {(["ALL", "PROSPECT", "INVITED", "ACTIVE", "SUSPENDED", "TERMINATED"] as const).map((s) => (
+          {PARTNER_STATUS_FILTERS.map((s) => (
             <button
               key={s}
+              aria-pressed={statusFilter === s}
               onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 statusFilter === s ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800/60 border border-zinc-800/60"
@@ -213,11 +273,17 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
         </div>
       </div>
 
+      {partnersQuery.dataUpdatedAt > 0 && (
+        <p data-testid="admin-partners-updated" className="text-xs tabular-nums text-zinc-500">
+          Cập nhật lúc {new Date(partnersQuery.dataUpdatedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        </p>
+      )}
+
       {/* Danh sách */}
       {partnersQuery.isLoading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>
+        <div data-testid="admin-partner-list-skeleton" aria-busy="true" className="space-y-2.5">{[0, 1, 2].map((i) => <div key={i} className="h-20 rounded-xl border border-zinc-800/60 bg-zinc-900/60 animate-pulse motion-reduce:animate-none" />)}</div>
       ) : partnersQuery.isError ? (
-        <ErrorBlock text="Không tải được danh sách đối tác." onRetry={() => void partnersQuery.refetch()} />
+        <ErrorBlock text={(partnersQuery.error as any)?.response?.status === 403 ? "Bạn không có quyền xem danh sách đối tác." : "Không tải được danh sách đối tác."} onRetry={() => void partnersQuery.refetch()} />
       ) : partners.length === 0 ? (
         <EmptyState text="Không có đối tác nào khớp bộ lọc." />
       ) : (
@@ -259,15 +325,19 @@ function PartnerList({ onSelect, onOpenApplication }: { onSelect: (id: string) =
   );
 }
 
-type DetailTab = "overview" | "accounts" | "gyms" | "documents" | "money" | "audit" | "notes" | "complaints";
+type DetailTab = PartnerDetailTab;
 
-function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
-  const [tab, setTab] = useState<DetailTab>("overview");
+function PartnerDetail({ id, tab, onTab, onBack, onNotFound }: { id: string; tab: DetailTab; onTab: (t: DetailTab) => void; onBack: () => void; onNotFound: (id: string) => void }) {
+  const setTab = onTab;
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<"suspend" | "unsuspend" | "terminate" | "viewAs" | null>(null);
   const queryClient = useQueryClient();
 
   const detailQuery = useQuery({ queryKey: ["admin-partner-detail", id], queryFn: () => adminService.getPartner(id) });
+  const notFound = (detailQuery.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  useEffect(() => {
+    if (notFound) onNotFound(id);
+  }, [notFound, id, onNotFound]);
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-partner-detail", id] });
     queryClient.invalidateQueries({ queryKey: ["admin-partners"] });
@@ -280,13 +350,13 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
         <button onClick={onBack} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300">
           <ArrowLeft className="w-3.5 h-3.5" /> Quay lại danh sách
         </button>
-        <ErrorBlock text="Không tải được hồ sơ đối tác." onRetry={() => void detailQuery.refetch()} />
+        <ErrorBlock text={(detailQuery.error as any)?.response?.status === 403 ? "Bạn không có quyền xem hồ sơ đối tác này." : "Không tải được hồ sơ đối tác."} onRetry={() => void detailQuery.refetch()} />
       </div>
     );
   }
   if (detailQuery.isLoading || !detailQuery.data) {
     return (
-      <div className="p-6 flex justify-center"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /></div>
+      <div data-testid="admin-partner-detail-skeleton" aria-busy="true" className="p-4 md:p-6 max-w-5xl mx-auto space-y-4"><div className="h-8 w-56 rounded-lg bg-zinc-800/60 animate-pulse motion-reduce:animate-none" /><div className="h-40 rounded-xl bg-zinc-800/40 animate-pulse motion-reduce:animate-none" /></div>
     );
   }
 
@@ -326,15 +396,15 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
             {partner.taxCode ? `MST ${partner.taxCode} · ` : ""}Tạo lúc {formatDateTime(partner.createdAt)}
           </p>
           {partner.suspendedReason && (
-            <p className="text-xs text-amber-400 mt-1">Lý do tạm khoá: "{partner.suspendedReason}"</p>
+            <p className="text-xs text-st-warning mt-1">Lý do tạm khoá: "{partner.suspendedReason}"</p>
           )}
           {partner.terminationReason && (
-            <p className="text-xs text-red-400 mt-1">Lý do chấm dứt: "{partner.terminationReason}"</p>
+            <p className="text-xs text-st-danger mt-1">Lý do chấm dứt: "{partner.terminationReason}"</p>
           )}
         </div>
 
         <div className="relative flex-shrink-0">
-          <button onClick={() => setMenuOpen((v) => !v)} className="flex items-center gap-1 px-3 py-2 border border-zinc-700 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800">
+          <button data-return-focus="partner-menu" onClick={() => setMenuOpen((v) => !v)} className="flex items-center gap-1 px-3 py-2 border border-zinc-700 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800">
             <MoreVertical className="w-4 h-4" /> Hành động
           </button>
           {menuOpen && (
@@ -348,17 +418,17 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 </button>
               )}
               {partner.status === "ACTIVE" && (
-                <button onClick={() => { setDialog("suspend"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-amber-400 hover:bg-zinc-800 flex items-center gap-2">
+                <button onClick={() => { setDialog("suspend"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-st-warning hover:bg-zinc-800 flex items-center gap-2">
                   <Ban className="w-3.5 h-3.5" /> Tạm khoá
                 </button>
               )}
               {partner.status === "SUSPENDED" && (
-                <button onClick={() => { setDialog("unsuspend"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-green-400 hover:bg-zinc-800 flex items-center gap-2">
+                <button onClick={() => { setDialog("unsuspend"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-st-success hover:bg-zinc-800 flex items-center gap-2">
                   <RotateCcw className="w-3.5 h-3.5" /> Bỏ tạm khoá
                 </button>
               )}
               {partner.status !== "TERMINATED" && partner.status !== "PROSPECT" && (
-                <button onClick={() => { setDialog("terminate"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-zinc-800 flex items-center gap-2 border-t border-zinc-800">
+                <button onClick={() => { setDialog("terminate"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs text-st-danger hover:bg-zinc-800 flex items-center gap-2 border-t border-zinc-800">
                   <UserMinus className="w-3.5 h-3.5" /> Chấm dứt hợp tác
                 </button>
               )}
@@ -367,10 +437,12 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
       </div>
 
-      <div className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
+      <div role="tablist" aria-label="Các mục của đối tác" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
         {TABS.map((t) => (
           <button
             key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               tab === t.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"
@@ -415,7 +487,7 @@ function PartnerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   <p className="text-sm font-semibold text-zinc-200">{g.approvedName ?? g.name}</p>
                   <p className="text-xs text-zinc-500 mt-0.5">{g.approvedAddress ?? g.address}{g.city ? `, ${g.city}` : ""}</p>
                 </div>
-                <ModerationStatusBadge status={g.status} />
+                <GymStatusPill status={g.status} />
               </div>
             ))
           )}
@@ -482,7 +554,7 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
 
   if (!expanded) {
     return (
-      <button onClick={() => setExpanded(true)} className="text-xs text-green-400 hover:text-green-300 font-semibold">
+      <button onClick={() => setExpanded(true)} className="text-xs text-st-success hover:text-st-success font-semibold">
         Sửa hồ sơ / điều khoản đã chốt
       </button>
     );
@@ -498,7 +570,7 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
         <input value={form.commissionPercent} onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })} inputMode="decimal" placeholder="Chiết khấu riêng (%) — trống = mức chung" title="Nhập theo phần trăm, ví dụ 8 = 8%" className={`px-3 py-2 bg-zinc-800 border rounded-lg text-sm text-zinc-200 ${commissionError ? "border-red-500/60" : "border-zinc-700/60"}`} />
         <input value={form.expectedBranchCount} onChange={(e) => setForm({ ...form, expectedBranchCount: e.target.value })} placeholder="Số chi nhánh dự kiến" className="px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200" />
       </div>
-      {commissionError && <p className="text-xs text-red-400">{commissionError}</p>}
+      {commissionError && <p className="text-xs text-st-danger">{commissionError}</p>}
       <textarea value={form.negotiationNotes} onChange={(e) => setForm({ ...form, negotiationNotes: e.target.value })} placeholder="Ghi chú đàm phán" rows={2} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none" />
       <div className="flex gap-2">
         <button onClick={() => (commissionChanged ? setConfirmCommission(true) : saveMutation.mutate())} disabled={saveMutation.isPending || !!commissionError} className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold">
@@ -534,6 +606,8 @@ function EditPartnerForm({ partner, onSaved }: { partner: any; onSaved: () => vo
 function AccountsTab({ partner, identities, invitations, onChange }: { partner: any; identities: any[]; invitations: any[]; onChange: () => void }) {
   const [accountConfirm, setAccountConfirm] = useState<{ kind: "logout" | "revoke" | "transfer"; accountId: string; name: string } | null>(null);
   const [inviteConfirm, setInviteConfirm] = useState<{ id: string; email: string } | null>(null);
+  useRestoreFocus(!!accountConfirm);
+  useRestoreFocus(!!inviteConfirm);
 
   // Moved here when the "Owners" tab was removed from AdminGymModeration: fixing a misspelled
   // display name was the ONE thing that tab did which had no equivalent anywhere else, so it
@@ -661,12 +735,12 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-zinc-200">
-                    {name} <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${a.role === "OWNER" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>{a.role === "OWNER" ? "Chủ sở hữu" : "Quản lý"}</span>
+                    {name} <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${a.role === "OWNER" ? "bg-st-pending-bg border-st-pending-border text-st-pending" : "bg-st-info-bg border-st-info-border text-st-info"}`}>{a.role === "OWNER" ? "Chủ sở hữu" : "Quản lý"}</span>
                   </p>
                   <p className="text-xs text-zinc-500 mt-0.5">{identity?.email}</p>
                   {a.role === "MANAGER" && <p className="text-[11px] text-zinc-600 mt-0.5">{a.scopedGymIds?.length ?? 0} chi nhánh được gán</p>}
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${a.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-zinc-700/50 border-zinc-700 text-zinc-400"}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${a.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-st-success" : "bg-zinc-700/50 border-zinc-700 text-zinc-400"}`}>
                   {a.status === "ACTIVE" ? "Hoạt động" : a.status}
                 </span>
               </div>
@@ -716,7 +790,7 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
                   </button>
                 )}
                 {activeAccounts.filter((x: any) => x.role === "OWNER").length + (a.role === "OWNER" ? -1 : 0) > 0 || a.role === "MANAGER" ? (
-                  <button onClick={() => setAccountConfirm({ kind: "revoke", accountId: a.id, name })} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg">
+                  <button onClick={() => setAccountConfirm({ kind: "revoke", accountId: a.id, name })} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-st-danger hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg">
                     <UserMinus className="w-3 h-3" /> Thu hồi
                   </button>
                 ) : null}
@@ -736,13 +810,13 @@ function AccountsTab({ partner, identities, invitations, onChange }: { partner: 
                 <div key={inv.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs text-zinc-300">{inv.email} <span className="text-zinc-600">· {inv.role === "OWNER" ? "Chủ sở hữu" : "Quản lý"}</span></p>
-                    <p className={`text-[11px] mt-0.5 ${isOld ? "text-amber-400" : "text-zinc-600"}`}>
+                    <p className={`text-[11px] mt-0.5 ${isOld ? "text-st-warning" : "text-zinc-600"}`}>
                       Mời {relativeOrAbsolute(inv.createdAt)} {isOld && "⚠️"}
                     </p>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
                     <button onClick={() => resendInviteMutation.mutate(inv.id)} className="text-[11px] border border-zinc-700 text-zinc-300 px-2 py-1 rounded-lg">Gửi lại</button>
-                    <button onClick={() => setInviteConfirm({ id: inv.id, email: inv.email })} className="text-[11px] border border-red-500/30 text-red-400 px-2 py-1 rounded-lg">Thu hồi</button>
+                    <button onClick={() => setInviteConfirm({ id: inv.id, email: inv.email })} className="text-[11px] border border-red-500/30 text-st-danger px-2 py-1 rounded-lg">Thu hồi</button>
                   </div>
                 </div>
               );
@@ -797,9 +871,9 @@ function DocumentsTab({ partnerId }: { partnerId: string }) {
       {(docsQuery.data ?? []).map((doc: any) => {
         const meta = DOC_TYPE_LABEL[doc.docType] ?? { label: doc.docType, required: false };
         const statusCls =
-          doc.status === "VERIFIED" ? "bg-green-500/10 border-green-500/20 text-green-400"
-          : doc.status === "REJECTED" ? "bg-red-500/10 border-red-500/20 text-red-400"
-          : doc.status === "RECEIVED" ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+          doc.status === "VERIFIED" ? "bg-green-500/10 border-green-500/20 text-st-success"
+          : doc.status === "REJECTED" ? "bg-red-500/10 border-red-500/20 text-st-danger"
+          : doc.status === "RECEIVED" ? "bg-blue-500/10 border-blue-500/20 text-st-info"
           : "bg-zinc-700/50 border-zinc-700 text-zinc-400";
         const statusText = { VERIFIED: "Đã xác minh", REJECTED: "Bị từ chối", RECEIVED: "Đã nộp", PENDING: "Chưa nộp" }[doc.status as string] ?? doc.status;
         return (
@@ -809,7 +883,7 @@ function DocumentsTab({ partnerId }: { partnerId: string }) {
                 <p className="text-sm font-semibold text-zinc-200">
                   {meta.required ? "🔴" : "🟡"} {meta.label}
                 </p>
-                {doc.fileUrl && <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-[11px] text-blue-400 hover:underline break-all">{doc.fileUrl}</a>}
+                {doc.fileUrl && <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-[11px] text-st-info hover:underline break-all">{doc.fileUrl}</a>}
                 {doc.verifiedAt && <p className="text-[11px] text-zinc-600 mt-0.5">Xác minh lúc {formatDateTime(doc.verifiedAt)}</p>}
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${statusCls}`}>{statusText}</span>
@@ -831,10 +905,10 @@ function DocumentsTab({ partnerId }: { partnerId: string }) {
             </div>
             {doc.fileUrl && doc.status !== "VERIFIED" && (
               <div className="flex gap-1.5 mt-2">
-                <button onClick={() => verifyMutation.mutate({ docType: doc.docType, decision: "VERIFIED" })} className="flex items-center gap-1 text-[11px] bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-lg">
+                <button onClick={() => verifyMutation.mutate({ docType: doc.docType, decision: "VERIFIED" })} className="flex items-center gap-1 text-[11px] bg-green-500/10 border border-green-500/20 text-st-success px-2.5 py-1 rounded-lg">
                   <Check className="w-3 h-3" /> Xác minh
                 </button>
-                <button onClick={() => verifyMutation.mutate({ docType: doc.docType, decision: "REJECTED" })} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-red-400 px-2.5 py-1 rounded-lg">
+                <button onClick={() => verifyMutation.mutate({ docType: doc.docType, decision: "REJECTED" })} className="flex items-center gap-1 text-[11px] border border-red-500/30 text-st-danger px-2.5 py-1 rounded-lg">
                   <X className="w-3 h-3" /> Từ chối
                 </button>
               </div>
@@ -1098,9 +1172,9 @@ function PartnerComplaintsTab({ partnerId }: { partnerId: string }) {
               <p className="text-zinc-500 mt-0.5 truncate">{c.description}</p>
             </div>
             <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-              meta.tone === "success" ? "bg-green-500/10 border-green-500/20 text-green-400" :
-              meta.tone === "warning" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-              "bg-blue-500/10 border-blue-500/20 text-blue-400"
+              meta.tone === "success" ? "bg-green-500/10 border-green-500/20 text-st-success" :
+              meta.tone === "warning" ? "bg-amber-500/10 border-amber-500/20 text-st-warning" :
+              "bg-blue-500/10 border-blue-500/20 text-st-info"
             }`}>
               {meta.label}
             </span>
@@ -1124,6 +1198,7 @@ function PartnerComplaintsTab({ partnerId }: { partnerId: string }) {
 // ── Dialogs ──────────────────────────────────────────────────────────────────
 
 function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onClose: () => void; onDone: () => void }) {
+  const returnFocus = useReturnFocus("[data-return-focus=partner-menu]");
   const [reason, setReason] = useState("");
   const mutation = useMutation({
     mutationFn: () => adminService.suspendPartner(partnerId, reason.trim()),
@@ -1132,16 +1207,16 @@ function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onCl
   });
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
-      <DialogContent className="max-w-md space-y-4">
+      <DialogContent {...returnFocus} className="max-w-md space-y-4">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-amber-400">
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-st-warning">
             <AlertTriangle className="w-4 h-4" /> Tạm khoá đối tác?
           </DialogTitle>
           <DialogDescription className="sr-only">Xem hệ quả rồi nhập lý do để tạm khoá đối tác.</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-            <p className="font-bold text-red-400 mb-1.5">Sẽ xảy ra</p>
+          <div className="bg-st-danger-bg border border-st-danger-border rounded-lg p-3">
+            <p className="font-bold text-st-danger mb-1.5">Sẽ xảy ra</p>
             <ul className="space-y-1 text-zinc-400">
               <li>✗ Chủ sở hữu không đăng nhập được</li>
               <li>✗ Ngừng bán gói hội viên mới</li>
@@ -1151,7 +1226,7 @@ function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onCl
             </ul>
           </div>
           <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-            <p className="font-bold text-green-400 mb-1.5">Vẫn tiếp tục</p>
+            <p className="font-bold text-st-success mb-1.5">Vẫn tiếp tục</p>
             <ul className="space-y-1 text-zinc-400">
               <li>✓ Hội viên còn hạn dùng tới hết hạn</li>
               <li>✓ Check-in bình thường</li>
@@ -1173,6 +1248,7 @@ function SuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onCl
 }
 
 function UnsuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; onClose: () => void; onDone: () => void }) {
+  const returnFocus = useReturnFocus("[data-return-focus=partner-menu]");
   const mutation = useMutation({
     mutationFn: () => adminService.unsuspendPartner(partnerId),
     onSuccess: () => { toast.success("Đã bỏ tạm khoá"); onDone(); onClose(); },
@@ -1180,7 +1256,7 @@ function UnsuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; on
   });
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
-      <DialogContent className="max-w-sm space-y-4">
+      <DialogContent {...returnFocus} className="max-w-sm space-y-4">
         <DialogHeader>
           <DialogTitle className="text-sm">Bỏ tạm khoá đối tác?</DialogTitle>
           <DialogDescription className="text-sm text-zinc-200">Chủ sở hữu sẽ đăng nhập lại được ngay và chi nhánh hiện lại ở trang tìm kiếm.</DialogDescription>
@@ -1195,6 +1271,7 @@ function UnsuspendDialog({ partnerId, onClose, onDone }: { partnerId: string; on
 }
 
 function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; onClose: () => void; onDone: () => void }) {
+  const returnFocus = useReturnFocus("[data-return-focus=partner-menu]");
   const [reason, setReason] = useState("");
   const [policy, setPolicy] = useState<"SERVE_UNTIL_EXPIRY" | "PRORATED_REFUND" | null>(null);
   const impactQuery = useQuery({ queryKey: ["admin-partner-termination-impact", partnerId], queryFn: () => adminService.getTerminationImpact(partnerId) });
@@ -1210,9 +1287,9 @@ function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; on
 
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
-      <DialogContent className="max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent {...returnFocus} className="max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-red-400">
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-st-danger">
             <UserMinus className="w-4 h-4" /> Chấm dứt hợp tác? Không quay lại được.
           </DialogTitle>
           <DialogDescription className="sr-only">Chọn cách xử lý hội viên còn hạn và nhập lý do chấm dứt.</DialogDescription>
@@ -1267,12 +1344,13 @@ function TerminateDialog({ partnerId, onClose, onDone }: { partnerId: string; on
 }
 
 function ViewAsPartnerModal({ partnerId, onClose }: { partnerId: string; onClose: () => void }) {
+  const returnFocus = useReturnFocus("[data-return-focus=partner-menu]");
   const viewQuery = useQuery({ queryKey: ["admin-view-as-partner", partnerId], queryFn: () => adminService.viewAsPartner(partnerId) });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg space-y-3 max-h-[85vh] overflow-y-auto">
+      <DialogContent {...returnFocus} className="max-w-lg space-y-3 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-blue-400">
+          <DialogTitle className="flex items-center gap-2 text-sm font-bold text-st-info">
             <Eye className="w-4 h-4" /> Xem dưới góc nhìn đối tác (chỉ đọc)
           </DialogTitle>
           <DialogDescription className="text-[11px]">Hành động này đã được ghi vào nhật ký kiểm toán.</DialogDescription>

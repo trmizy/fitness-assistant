@@ -16,7 +16,7 @@ import {
   parseCents,
   type ReconciliationReport,
 } from "../adminFinanceOverview.utils";
-import type { ObligationsReport, SessionsReconciliationReport } from "../adminReconciliation.utils";
+import { countAttention, type ObligationsReport, type SessionsReconciliationReport } from "../adminReconciliation.utils";
 
 // ───────────────────────────────────────────────────────────────── chip (URL) ──
 export type ReconView = "balance" | "exceptions";
@@ -262,6 +262,31 @@ export function normalizeGatewayDiscrepancies(raw: unknown): GatewayDiscrepancyR
     });
   }
   return { rows, truncated: list.length >= GATEWAY_DISCREPANCY_CAP };
+}
+
+/**
+ * "Cần xem ngay" across EVERYTHING the Đối soát screen lists as critical: the 22 P13/U2 groups (`countAttention`)
+ * plus the P2 group "Cổng báo số tiền khác số Gymini" (tone critical, one item per row; nothing ever resolves it).
+ * Used by the sidebar badge and by "Hôm nay" so the two always agree. `null` unless ALL THREE sources loaded — a
+ * number built from two of three would be an undercount presented as a fact.
+ */
+export interface ExceptionAttention {
+  critical: number;
+  watch: number;
+  /** Rows of the P2 group (already inside `critical`). */
+  gatewayRows: number;
+  /** P2 hit its fixed 200-row cap, so `critical` is a lower bound. */
+  gatewayTruncated: boolean;
+}
+export function exceptionAttention(
+  payment: ObligationsReport | null | undefined,
+  sessions: SessionsReconciliationReport | null | undefined,
+  gateway: GatewayDiscrepancyReport | null | undefined,
+): ExceptionAttention | null {
+  if (!payment || !sessions || !gateway) return null;
+  const base = countAttention(payment, sessions);
+  const gatewayRows = gateway.rows.length;
+  return { critical: base.critical + gatewayRows, watch: base.watch, gatewayRows, gatewayTruncated: gateway.truncated };
 }
 
 export const PROVIDER_LABEL: Record<string, string> = { VNPAY: "VNPay", ZALOPAY: "ZaloPay", PAYOS: "PayOS", MOMO: "MoMo", MOCK: "Giả lập" };

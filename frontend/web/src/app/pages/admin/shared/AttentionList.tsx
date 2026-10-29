@@ -59,14 +59,17 @@ export function AttentionList({ title, description, items, headingId, testId, cl
           const status = it.status ?? "ready";
           if (status === "loading") {
             return (
-              <li key={it.key} data-testid={`attention-${it.key}`} data-state="loading" role="status" aria-busy="true">
-                <span className="sr-only">Đang tải: {it.title}</span>
-                <div aria-hidden className="flex min-h-14 items-center justify-between gap-3 rounded-lg bg-adm-surface-2 px-3.5 py-3">
-                  <div className="space-y-2">
-                    <div className="h-3.5 w-40 animate-pulse rounded bg-adm-pill motion-reduce:animate-none" />
-                    <div className="h-3 w-28 animate-pulse rounded bg-adm-pill motion-reduce:animate-none" />
+              // role="status" lives on an inner div, NOT on the <li>: an <li> with its own role breaks the "list" axe rule (B3b).
+              <li key={it.key} data-testid={`attention-${it.key}`} data-state="loading">
+                <div role="status" aria-busy="true">
+                  <span className="sr-only">Đang tải: {it.title}</span>
+                  <div aria-hidden className="flex min-h-14 items-center justify-between gap-3 rounded-lg bg-adm-surface-2 px-3.5 py-3">
+                    <div className="space-y-2">
+                      <div className="h-3.5 w-40 animate-pulse rounded bg-adm-pill motion-reduce:animate-none" />
+                      <div className="h-3 w-28 animate-pulse rounded bg-adm-pill motion-reduce:animate-none" />
+                    </div>
+                    <div className="size-7 rounded-full bg-adm-pill" />
                   </div>
-                  <div className="size-7 rounded-full bg-adm-pill" />
                 </div>
               </li>
             );

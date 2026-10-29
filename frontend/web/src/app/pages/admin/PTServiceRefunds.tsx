@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
-import { ArrowClockwiseIcon, CircleNotchIcon, InfoIcon, WalletIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { InfoIcon, WalletIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { personalizedServiceApi } from "../../services/api";
-import { Button } from "../../components/ui/button";
 import { describeAdminError } from "./shared/useAdminError";
 import { MembershipRefundCard } from "./refunds/MembershipRefundCard";
 import { ErrorBlock } from "./refunds/ErrorBlock";
@@ -117,32 +116,20 @@ export function PTServiceRefunds() {
 
   return (
     <div className="space-y-5" data-testid="admin-refunds-page">
-      {/* Header: title + subtitle, last update + outlined refresh */}
+      {/* Header: title + subtitle, last update (the "Làm mới" button is the Tài chính header's) */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-adm-text">Hoàn tiền</h2>
           <p className="mt-0.5 text-sm text-adm-text-2">Xử lý các yêu cầu hoàn tiền dịch vụ cá nhân hoá và hoàn tiền gói hội viên ngoại lệ.</p>
         </div>
         {active === "service" && (
+          // "Làm mới" lives in the Tài chính header (it re-reads this queue); only the timestamp stays here.
           <div className="flex items-center gap-3">
             {hasData && (
               <span data-testid="admin-refunds-updated" className="text-xs tabular-nums text-adm-text-2">
                 Cập nhật lúc {timeText(query.dataUpdatedAt)}
               </span>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => query.refetch()}
-              disabled={query.isFetching}
-              aria-busy={query.isFetching}
-              data-testid="admin-refunds-refresh"
-              className="min-h-11 xl:min-h-8"
-            >
-              {query.isFetching ? <CircleNotchIcon className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ArrowClockwiseIcon aria-hidden />}
-              Làm mới
-            </Button>
           </div>
         )}
       </div>

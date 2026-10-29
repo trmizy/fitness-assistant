@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import {
   ArrowClockwiseIcon,
-  CircleNotchIcon,
   InfoIcon,
   LockKeyIcon,
   MoneyIcon,
@@ -160,31 +159,19 @@ export function AdminWithdrawals() {
 
   return (
     <div className="space-y-5" data-testid="admin-withdrawals-page">
-      {/* Header: title + subtitle, last update + outlined refresh */}
+      {/* Header: title + subtitle, last update (the "Làm mới" button is the Tài chính header's) */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-adm-text">Rút tiền</h2>
           <p className="mt-0.5 text-sm text-adm-text-2">Duyệt và chuyển khoản các yêu cầu rút tiền của PT và chủ phòng gym.</p>
         </div>
+        {/* "Làm mới" lives in the Tài chính header (it re-reads this queue); only the timestamp stays here. */}
         <div className="flex items-center gap-3">
           {hasData && (
             <span data-testid="admin-withdrawals-updated" className="text-xs tabular-nums text-adm-text-2">
               Cập nhật lúc {timeText(query.dataUpdatedAt)}
             </span>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
-            aria-busy={query.isFetching}
-            data-testid="admin-withdrawals-refresh"
-            className="min-h-11 xl:min-h-8"
-          >
-            {query.isFetching ? <CircleNotchIcon className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ArrowClockwiseIcon aria-hidden />}
-            Làm mới
-          </Button>
         </div>
       </div>
 

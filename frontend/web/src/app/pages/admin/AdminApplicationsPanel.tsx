@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -10,6 +10,8 @@ import {
   TrashIcon as Trash2,
 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useRestoreFocus } from "./shared/b9aReturnFocus";
 import { SOCIALS } from "../../components/gym/SocialLinks";
 import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
 import { amenityCategoryLabel } from "../../utils/amenityIcons";
@@ -61,9 +63,21 @@ const box = "bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4";
 const inputCls = "w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50";
 
 /** Hàng đợi hồ sơ đối tác tự đăng ký + màn duyệt chi tiết. */
-export function AdminApplicationsPanel({ initialId, onOpenPartner }: { initialId?: string | null; onOpenPartner: (id: string) => void }) {
+export function AdminApplicationsPanel({
+  openId,
+  onOpenChange,
+  onOpenPartner,
+  onNotFound,
+}: {
+  /** Hồ sơ đang mở — do URL (?view=applications&id=) quyết định; null = hiện danh sách. */
+  openId: string | null;
+  onOpenChange: (id: string | null) => void;
+  onOpenPartner: (id: string) => void;
+  /** Gọi khi GET hồ sơ trả 404 (id sai/đã xoá): trang cha đưa về danh sách kèm thông báo. */
+  onNotFound?: (id: string) => void;
+}) {
   const [filter, setFilter] = useState<Filter>("IN_REVIEW");
-  const [openId, setOpenId] = useState<string | null>(initialId ?? null);
+  const setOpenId = onOpenChange;
 
   const q = useQuery({
     queryKey: ["admin-applications", filter],
@@ -72,14 +86,14 @@ export function AdminApplicationsPanel({ initialId, onOpenPartner }: { initialId
   });
   const counts = useQuery({ queryKey: ["admin-applications", "counts"], queryFn: () => adminPartnerApplications.list(), staleTime: 0 });
 
-  if (openId) return <ApplicationDetail id={openId} onBack={() => setOpenId(null)} onOpenPartner={onOpenPartner} />;
+  if (openId) return <ApplicationDetail id={openId} onBack={() => setOpenId(null)} onOpenPartner={onOpenPartner} onNotFound={onNotFound} />;
 
   const total = counts.data?.counts?.IN_REVIEW ?? 0;
   return (
     <div className="space-y-5">
       <div className={box}>
         <p className="text-sm text-zinc-300">
-          <span className="text-2xl font-bold text-amber-400 mr-2">{total}</span>
+          <span className="text-2xl font-bold text-st-warning mr-2">{total}</span>
           hồ sơ đang chờ duyệt
         </p>
       </div>
@@ -104,7 +118,7 @@ export function AdminApplicationsPanel({ initialId, onOpenPartner }: { initialId
           <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
         </div>
       ) : q.isError ? (
-        <p className="text-sm text-red-400">{friendlyError(q.error).message}</p>
+        <p className="text-sm text-st-danger">{friendlyError(q.error).message}</p>
       ) : !q.data || q.data.items.length === 0 ? (
         <p className="text-sm text-zinc-500 text-center py-10">Không có hồ sơ nào ở mục này.</p>
       ) : (
@@ -136,9 +150,13 @@ export function AdminApplicationsPanel({ initialId, onOpenPartner }: { initialId
   );
 }
 
-function ApplicationDetail({ id, onBack, onOpenPartner }: { id: string; onBack: () => void; onOpenPartner: (id: string) => void }) {
+function ApplicationDetail({ id, onBack, onOpenPartner, onNotFound }: { id: string; onBack: () => void; onOpenPartner: (id: string) => void; onNotFound?: (id: string) => void }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin-application", id], queryFn: () => adminPartnerApplications.get(id), refetchOnMount: "always" });
+  const notFound = (q.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  useEffect(() => {
+    if (notFound) onNotFound?.(id);
+  }, [notFound, id, onNotFound]);
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-application", id] });
     qc.invalidateQueries({ queryKey: ["admin-applications"] });
@@ -158,7 +176,7 @@ function ApplicationDetail({ id, onBack, onOpenPartner }: { id: string; onBack: 
         <button onClick={onBack} className="text-xs text-zinc-400 flex items-center gap-1">
           <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
         </button>
-        <p className="text-sm text-red-400">{friendlyError(q.error, "Không tải được hồ sơ.").message}</p>
+        <p className="text-sm text-st-danger">{friendlyError(q.error, "Không tải được hồ sơ.").message}</p>
       </div>
     );
   }
@@ -232,7 +250,7 @@ function Content({ d }: { d: AdminApplicationDetail }) {
                       <so.icon className="w-3.5 h-3.5 shrink-0 text-zinc-400" weight="fill" />
                       <span className="text-zinc-500 shrink-0">{so.label}:</span>
                       {/* Nguyên văn đường dẫn để admin thấy link thật sự trỏ đi đâu trước khi duyệt. */}
-                      <a href={d.brand![so.key]!} target="_blank" rel="noopener noreferrer nofollow" className="truncate text-green-400 hover:underline">
+                      <a href={d.brand![so.key]!} target="_blank" rel="noopener noreferrer nofollow" className="truncate text-st-success hover:underline">
                         {d.brand![so.key]}
                       </a>
                     </li>
@@ -269,7 +287,7 @@ function Content({ d }: { d: AdminApplicationDetail }) {
             href={`https://www.openstreetmap.org/?mlat=${d.branch.latitude}&mlon=${d.branch.longitude}#map=17/${d.branch.latitude}/${d.branch.longitude}`}
             target="_blank"
             rel="noreferrer noopener"
-            className="mt-3 inline-block text-xs text-green-400 hover:text-green-300"
+            className="mt-3 inline-block text-xs text-st-success hover:text-st-success"
           >
             Xem vị trí trên bản đồ
           </a>
@@ -317,7 +335,7 @@ function AmenitiesBlock({ d }: { d: AdminApplicationDetail }) {
     <section className={box} data-testid="admin-application-amenities">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-zinc-200">Tiện ích ({amenities.length})</h3>
-        {d.legacyLabel && <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">{d.legacyLabel}</span>}
+        {d.legacyLabel && <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-st-warning">{d.legacyLabel}</span>}
       </div>
       {amenities.length === 0 ? (
         <p className="text-sm text-zinc-500">Chưa chọn tiện ích nào trong danh mục.</p>
@@ -332,7 +350,7 @@ function AmenitiesBlock({ d }: { d: AdminApplicationDetail }) {
 
       {pending.length > 0 && (
         <div className="mt-4 space-y-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
-          <p className="text-xs font-semibold text-blue-300">Đề xuất đang chờ duyệt ({pending.length})</p>
+          <p className="text-xs font-semibold text-st-info">Đề xuất đang chờ duyệt ({pending.length})</p>
           <ul className="space-y-1">
             {pending.map((p) => (
               <li key={p.id} className="text-xs text-zinc-300">
@@ -342,7 +360,7 @@ function AmenitiesBlock({ d }: { d: AdminApplicationDetail }) {
               </li>
             ))}
           </ul>
-          <button type="button" onClick={() => navigate("/admin/listings?tab=proposals")} className="inline-block text-xs font-semibold text-green-400 hover:text-green-300">
+          <button type="button" onClick={() => navigate("/admin/listings?tab=proposals")} className="inline-block text-xs font-semibold text-st-success hover:text-st-success">
             Xử lý đề xuất tiện ích →
           </button>
         </div>
@@ -398,14 +416,14 @@ function DocumentsPanel({ id, d, onChanged, canReview }: { id: string; d: AdminA
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-zinc-200">
                   {DOC_LABEL[doc.docType as DocType]}
-                  {doc.required && <span className="text-red-400"> *</span>}
+                  {doc.required && <span className="text-st-danger"> *</span>}
                 </p>
                 <p className="text-[11px] text-zinc-500">
                   {DOC_STATUS_LABEL[doc.status]}
                   {doc.hasFile ? ` · v${doc.version}` : ""}
                   {doc.files.length > 1 ? ` · ${doc.files.length} tệp` : ""}
                 </p>
-                {doc.status === "REJECTED" && doc.reviewNote && <p className="text-[11px] text-amber-300 mt-0.5">Đã yêu cầu cập nhật: {doc.reviewNote}</p>}
+                {doc.status === "REJECTED" && doc.reviewNote && <p className="text-[11px] text-st-warning mt-0.5">Đã yêu cầu cập nhật: {doc.reviewNote}</p>}
               </div>
               {doc.hasFile && (
                 <div className="flex gap-1.5 shrink-0">
@@ -507,6 +525,9 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
   const [reason, setReason] = useState("");
   const [adminNote, setAdminNote] = useState("");
 
+  // B9a: window.confirm -> ConfirmDialog (cùng nội dung, cùng lệnh gọi sau khi xác nhận).
+  const [confirmKind, setConfirmKind] = useState<"approve" | "reopen" | null>(null);
+  useRestoreFocus(confirmKind !== null);
   const run = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => {
@@ -523,20 +544,42 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
 
   return (
     <section className={box}>
+      <ConfirmDialog
+        open={confirmKind !== null}
+        onOpenChange={(o) => !o && setConfirmKind(null)}
+        title={confirmKind === "approve" ? "Phê duyệt hồ sơ?" : "Mở lại hồ sơ?"}
+        description={
+          confirmKind === "approve"
+            ? "Đối tác trở thành chủ phòng tập đang hoạt động và chi nhánh đầu tiên được duyệt cùng lúc."
+            : "Mở lại hồ sơ để ứng viên chỉnh sửa và nộp lại?"
+        }
+        confirmLabel={confirmKind === "approve" ? "Phê duyệt" : "Mở lại hồ sơ"}
+        danger={false}
+        onConfirm={async () => {
+          const kind = confirmKind;
+          try {
+            if (kind === "approve") await run.mutateAsync(() => adminPartnerApplications.approve(id));
+            else if (kind === "reopen") await run.mutateAsync(() => adminPartnerApplications.reopen(id));
+          } catch {
+            /* onError của mutation đã hiện thông báo */
+          }
+          setConfirmKind(null);
+        }}
+      />
       <h3 className="text-sm font-bold text-zinc-200 mb-3">Quyết định</h3>
 
       {v === "VERIFIED" && (
         <div className="space-y-2">
-          <p className="text-sm text-green-400">Hồ sơ đã được phê duyệt.</p>
-          <button onClick={() => onOpenPartner(id)} className="text-xs text-green-400 hover:text-green-300">Mở hồ sơ đối tác →</button>
+          <p className="text-sm text-st-success">Hồ sơ đã được phê duyệt.</p>
+          <button onClick={() => onOpenPartner(id)} className="text-xs text-st-success hover:text-st-success">Mở hồ sơ đối tác →</button>
         </div>
       )}
 
       {v === "REJECTED" && (
         <div className="space-y-2">
-          <p className="text-sm text-red-400">Hồ sơ đã bị từ chối{d.partner.rejectionReason ? `: ${d.partner.rejectionReason}` : ""}.</p>
+          <p className="text-sm text-st-danger">Hồ sơ đã bị từ chối{d.partner.rejectionReason ? `: ${d.partner.rejectionReason}` : ""}.</p>
           <button
-            onClick={() => window.confirm("Mở lại hồ sơ để ứng viên chỉnh sửa và nộp lại?") && run.mutate(() => adminPartnerApplications.reopen(id))}
+            onClick={() => setConfirmKind("reopen")}
             disabled={run.isPending}
             className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:border-zinc-500 disabled:opacity-50"
           >
@@ -550,17 +593,13 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
           {!canApprove && (
             <ul className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-1">
               {d.approve.blockers.map((b: any, i: number) => (
-                <li key={i} className="text-[11px] text-amber-300">• {b?.message ?? String(b)}</li>
+                <li key={i} className="text-[11px] text-st-warning">• {b?.message ?? String(b)}</li>
               ))}
             </ul>
           )}
           <div className="grid gap-2">
             <button
-              onClick={() =>
-                window.confirm(
-                  "Phê duyệt hồ sơ? Đối tác trở thành chủ phòng tập đang hoạt động và chi nhánh đầu tiên được duyệt cùng lúc.",
-                ) && run.mutate(() => adminPartnerApplications.approve(id))
-              }
+              onClick={() => setConfirmKind("approve")}
               disabled={!canApprove || run.isPending}
               className="rounded-lg bg-green-500 px-3 py-2.5 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-40"
             >
@@ -569,7 +608,7 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
             <button onClick={() => setMode(mode === "changes" ? null : "changes")} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:border-zinc-500">
               Yêu cầu chỉnh sửa
             </button>
-            <button onClick={() => setMode(mode === "reject" ? null : "reject")} className="rounded-lg border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">
+            <button onClick={() => setMode(mode === "reject" ? null : "reject")} className="rounded-lg border border-red-500/40 px-3 py-2 text-xs font-semibold text-st-danger hover:bg-red-500/10">
               Từ chối hồ sơ
             </button>
           </div>
@@ -586,13 +625,13 @@ function ActionsPanel({ id, d, onChanged, onOpenPartner }: { id: string; d: Admi
                   </select>
                   <input value={it.message} onChange={(e) => setIssues((l) => l.map((x, j) => (j === idx ? { ...x, message: e.target.value } : x)))} placeholder="Cần sửa gì?" className={inputCls} />
                   {issues.length > 1 && (
-                    <button aria-label="Xoá" onClick={() => setIssues((l) => l.filter((_, j) => j !== idx))} className="p-2 text-zinc-500 hover:text-red-400">
+                    <button aria-label="Xoá" onClick={() => setIssues((l) => l.filter((_, j) => j !== idx))} className="p-2 text-zinc-500 hover:text-st-danger">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
               ))}
-              <button onClick={() => setIssues((l) => [...l, { category: "OTHER", message: "" }])} className="inline-flex items-center gap-1 text-xs text-green-400 hover:text-green-300">
+              <button onClick={() => setIssues((l) => [...l, { category: "OTHER", message: "" }])} className="inline-flex items-center gap-1 text-xs text-st-success hover:text-st-success">
                 <Plus className="w-3.5 h-3.5" /> Thêm vấn đề
               </button>
 

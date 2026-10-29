@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { formatMoneyString, staleness } from "./adminFinanceOverview.utils";
 import {
   TargetUnverifiedCandidate,
@@ -49,6 +48,7 @@ import { EXCEPTIONS_MAX_AGE_MS, ForbiddenPanel, LevelNote, StaleChip, useNow } f
 import { errorView, useExceptionReports } from "./reconciliation/useReconciliationData";
 import {
   NO_PROCEDURE_TEXT,
+  exceptionAttention,
   discrepancyDelta,
   discrepancySourceLabel,
   exceptionGroupStats,
@@ -641,7 +641,7 @@ function GatewayBlock({ report }: { report: GatewayDiscrepancyReport }) {
   );
 }
 
-function ExpandBar({ overview, onAll, onNone, onRefresh, refreshing }: { overview: GroupsOverview; onAll: () => void; onNone: () => void; onRefresh: () => void; refreshing: boolean }) {
+function ExpandBar({ overview, onAll, onNone }: { overview: GroupsOverview; onAll: () => void; onNone: () => void }) {
   const btn = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-adm-border bg-adm-surface px-3 text-xs font-semibold text-adm-text transition-colors hover:bg-adm-surface-2 disabled:opacity-60 motion-reduce:transition-none lg:min-h-9 ${FOCUS}`;
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -656,9 +656,6 @@ function ExpandBar({ overview, onAll, onNone, onRefresh, refreshing }: { overvie
         </button>
         <button type="button" onClick={onNone} data-testid="recon-collapse-all" className={btn}>
           Thu gọn hết
-        </button>
-        <button type="button" onClick={onRefresh} aria-busy={refreshing} data-testid="recon-exceptions-refresh" className={btn}>
-          <ArrowClockwiseIcon className={`size-3.5 ${refreshing ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden /> Làm mới
         </button>
       </div>
     </div>
@@ -675,7 +672,8 @@ export function AdminReconciliationBlocks() {
   const gatewayData = gateway.data ?? null;
   const stats = exceptionGroupStats(paymentData, sessionData);
   const overview = overviewOfGroups(stats);
-  const attention = countAttention(paymentData, sessionData);
+  // Gồm cả nhóm P2 khi đã tải (khớp huy hiệu thanh bên); P2 lỗi thì nhóm đó tự báo lỗi bên dưới.
+  const attention = exceptionAttention(paymentData, sessionData, gatewayData) ?? countAttention(paymentData, sessionData);
   const loading = payment.isLoading || sessions.isLoading;
   const refreshing = payment.isFetching || sessions.isFetching || gateway.isFetching;
   const bothLoaded = Boolean(paymentData) && Boolean(sessionData);
@@ -756,8 +754,6 @@ export function AdminReconciliationBlocks() {
 
       <ExpandBar
         overview={overview}
-        refreshing={refreshing}
-        onRefresh={refetchAll}
         onAll={() => setCtrl((c) => ({ epoch: c.epoch + 1, mode: "all" }))}
         onNone={() => setCtrl((c) => ({ epoch: c.epoch + 1, mode: "none" }))}
       />

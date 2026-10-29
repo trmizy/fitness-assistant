@@ -86,9 +86,6 @@ export function BalanceView() {
             {data ? `Tính đến ${formatVnTime(recon.dataUpdatedAt)}` : ""}
           </span>
         )}
-        <button type="button" onClick={() => void recon.refetch()} aria-busy={refreshing} data-testid="recon-balance-refresh" className={BTN}>
-          <ArrowClockwiseIcon className={`size-3.5 ${refreshing ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden /> Làm mới
-        </button>
       </div>
 
       {!data && !err && <Skeleton />}

@@ -1,10 +1,10 @@
 import { InfoIcon } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
-import { countAttention } from "./adminReconciliation.utils";
 import { AdminReconciliationBlocks } from "./AdminReconciliationBlocks";
 import { BalanceView } from "./reconciliation/BalanceView";
 import { FOCUS } from "./reconciliation/ExceptionParts";
 import { useExceptionReports } from "./reconciliation/useReconciliationData";
+import { exceptionAttention } from "./reconciliation/reconciliationView";
 import {
   GATEWAY_CHIP_LABEL,
   GATEWAY_CHIP_REASON,
@@ -30,8 +30,8 @@ export function AdminReconciliationPanel() {
   const [search, setSearch] = useSearchParams();
   const view = parseReconView(search.get("view"));
   // Same cached reports as the sidebar badge, the B3 queue and the Ngoại lệ chip — only used here for the chip count.
-  const { payment, sessions } = useExceptionReports({ gateway: false });
-  const attention = payment.data && sessions.data ? countAttention(payment.data, sessions.data) : null;
+  const { payment, sessions, gateway } = useExceptionReports({ gateway: true });
+  const attention = exceptionAttention(payment.data, sessions.data, gateway.data);
 
   const select = (next: ReconView) => {
     if (next === view && search.get("view") === next) return;

@@ -65,40 +65,36 @@ export function useBalanceReport() {
   return useQuery({ queryKey: RECON_KEYS.balance, queryFn: fetchReconciliation, refetchInterval: POLL_MS, ...OPTIONS });
 }
 
+/** P13 — the obligations report; a body that cannot be read is a failure, never an empty report. */
+export async function fetchObligations() {
+  const report = normalizeObligationsReport(await adminService.getObligationsReport());
+  if (!report) throw malformed();
+  return report;
+}
+
+/** U2 — the sessions/settlement report (same rule as P13). */
+export async function fetchSessionsReport() {
+  const report = normalizeSessionsReport(await adminService.getSessionsReconciliation());
+  if (!report) throw malformed();
+  return report;
+}
+
+/**
+ * P2. Shared by the reconciliation page AND the sidebar badge / "Hôm nay" (B3b): same query key, same function, so
+ * every surface reads one cache entry and they always agree.
+ */
+export async function fetchGatewayDiscrepancies() {
+  // P2 has no adminService wrapper yet; same axios instance (auth header, base URL, refresh) as every admin call.
+  const { data } = await api.get("/admin/payments/gateway-discrepancies");
+  const report = normalizeGatewayDiscrepancies(data);
+  if (!report) throw malformed();
+  return report;
+}
+
 /** P13 + U2 (+ P2 when `gateway`). Independent: if one source fails the others still render. */
 export function useExceptionReports(opts: { gateway: boolean }) {
-  const payment = useQuery({
-    queryKey: RECON_KEYS.obligations,
-    queryFn: async () => {
-      const report = normalizeObligationsReport(await adminService.getObligationsReport());
-      if (!report) throw malformed();
-      return report;
-    },
-    refetchInterval: POLL_MS,
-    ...OPTIONS,
-  });
-  const sessions = useQuery({
-    queryKey: RECON_KEYS.sessions,
-    queryFn: async () => {
-      const report = normalizeSessionsReport(await adminService.getSessionsReconciliation());
-      if (!report) throw malformed();
-      return report;
-    },
-    refetchInterval: POLL_MS,
-    ...OPTIONS,
-  });
-  const gateway = useQuery({
-    queryKey: RECON_KEYS.gateway,
-    enabled: opts.gateway,
-    queryFn: async () => {
-      // P2 has no adminService wrapper yet; same axios instance (auth header, base URL, refresh) as every admin call.
-      const { data } = await api.get("/admin/payments/gateway-discrepancies");
-      const report = normalizeGatewayDiscrepancies(data);
-      if (!report) throw malformed();
-      return report;
-    },
-    refetchInterval: POLL_MS,
-    ...OPTIONS,
-  });
+  const payment = useQuery({ queryKey: RECON_KEYS.obligations, queryFn: fetchObligations, refetchInterval: POLL_MS, ...OPTIONS });
+  const sessions = useQuery({ queryKey: RECON_KEYS.sessions, queryFn: fetchSessionsReport, refetchInterval: POLL_MS, ...OPTIONS });
+  const gateway = useQuery({ queryKey: RECON_KEYS.gateway, enabled: opts.gateway, queryFn: fetchGatewayDiscrepancies, refetchInterval: POLL_MS, ...OPTIONS });
   return { payment, sessions, gateway };
 }

@@ -13,8 +13,9 @@ import { activeFinanceTab, financeRefreshKeys, financeTitle, keyMatchesAny } fro
  * (`/admin/finance`, `/reconciliation`, `/withdrawals`, `/refunds`) rendering the SAME tab
  * component as before; the tab content is untouched (B3–B6 redesign it).
  *
- * Header (B4, approved by Ngài 28/10): the H1 follows the active tab and the header "Làm mới" re-reads that tab's queries
- * (the in-page refresh buttons of B3/B5 are kept — they do the same for their own page).
+ * Header (B4, approved by Ngài 28/10): the H1 follows the active tab and the header "Làm mới" re-reads that tab's queries.
+ * It is the ONLY refresh button of the workspace (B3b removed the duplicates inside the four tabs; their "Cập nhật lúc …" /
+ * "Tính đến …" timestamps and the "dữ liệu đã cũ" chips stay).
  *
  * The old `/admin/finance?tab=…` URLs (tab held in state, never written to the URL) are
  * redirected here, preserving any other query params — see `resolveLegacyAdminRedirect`.

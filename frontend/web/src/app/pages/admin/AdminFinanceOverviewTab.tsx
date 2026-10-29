@@ -23,7 +23,9 @@ import { StatTile, type StatStatus } from "./shared/StatTile";
 import { AttentionList, type AttentionItem } from "./shared/AttentionList";
 import { describeAdminError } from "./shared/useAdminError";
 import { FlowChart, MoneyMapCard } from "./AdminFinanceOverviewParts";
-import { countAttention, normalizeObligationsReport, normalizeSessionsReport } from "./adminReconciliation.utils";
+import { normalizeObligationsReport, normalizeSessionsReport } from "./adminReconciliation.utils";
+import { exceptionAttention } from "./reconciliation/reconciliationView";
+import { RECON_KEYS, fetchGatewayDiscrepancies } from "./reconciliation/useReconciliationData";
 import {
   GROUP_LABEL,
   GROUP_NOUN,
@@ -272,6 +274,8 @@ export function AdminFinanceOverviewTab() {
     queryFn: async () => normalizeSessionsReport(await adminService.getSessionsReconciliation()),
     ...QUEUE_OPTIONS,
   });
+  // P2 — cùng khoá + hàm với huy hiệu thanh bên và Hôm nay, để số "cần xem ngay" luôn khớp.
+  const gateway = useQuery({ queryKey: RECON_KEYS.gateway, queryFn: fetchGatewayDiscrepancies, ...QUEUE_OPTIONS });
 
   const refreshAll = () => {
     void recon.refetch();
@@ -280,6 +284,7 @@ export function AdminFinanceOverviewTab() {
     void serviceRefunds.refetch();
     void obligations.refetch();
     void sessions.refetch();
+    void gateway.refetch();
   };
   const refreshing = recon.isFetching || overview.isFetching;
 
@@ -320,8 +325,8 @@ export function AdminFinanceOverviewTab() {
   // ── hàng đợi ──
   const wq = withdrawals.data !== undefined ? summarizeWithdrawals(withdrawals.data, nowMs) : null;
   const wStatus: StatStatus = withdrawals.isError || (withdrawals.data !== undefined && !wq) ? "error" : wq ? "ready" : "loading";
-  const attention = obligations.data && sessions.data ? countAttention(obligations.data, sessions.data) : null;
-  const exStatus: StatStatus = obligations.isError || sessions.isError ? "error" : attention ? "ready" : "loading";
+  const attention = exceptionAttention(obligations.data, sessions.data, gateway.data);
+  const exStatus: StatStatus = obligations.isError || sessions.isError || gateway.isError ? "error" : attention ? "ready" : "loading";
   const refundList = Array.isArray(serviceRefunds.data) ? serviceRefunds.data : null;
   const rfStatus: StatStatus = serviceRefunds.isError || (serviceRefunds.data !== undefined && !refundList) ? "error" : refundList ? "ready" : "loading";
   const capNote = wq?.capped ? " · trong 100 yêu cầu cũ nhất, có thể còn nữa" : "";
@@ -394,9 +399,6 @@ export function AdminFinanceOverviewTab() {
                 {recon.data ? `Tính đến ${formatVnTime(recon.dataUpdatedAt)} · không phụ thuộc kỳ` : "Không phụ thuộc kỳ"}
               </span>
             )}
-            <button type="button" onClick={refreshAll} disabled={refreshing} aria-busy={refreshing} data-testid="finance-refresh" className={BTN}>
-              <ArrowClockwiseIcon className={`size-3.5 ${refreshing ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden /> Làm mới
-            </button>
           </div>
         </div>
 
