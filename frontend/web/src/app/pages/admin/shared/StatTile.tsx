@@ -43,6 +43,8 @@ export interface StatTileProps {
   valueSize?: "lg" | "sm";
   testId?: string;
   className?: string;
+  /** Extra classes for the LOADING skeleton only — reserves the height the loaded tile usually has (no layout shift on data load). */
+  loadingClassName?: string;
 }
 
 export function StatTile({
@@ -59,6 +61,7 @@ export function StatTile({
   valueSize = "lg",
   testId,
   className = "",
+  loadingClassName = "",
 }: StatTileProps) {
   const frame = `min-h-[116px] min-w-0 rounded-xl border bg-adm-surface p-4 shadow-adm-card ${
     danger && status === "ready" ? "border-st-danger-border" : "border-adm-border"
@@ -66,7 +69,7 @@ export function StatTile({
 
   if (status === "loading") {
     return (
-      <div data-testid={testId} data-state="loading" role="status" aria-busy="true" className={frame}>
+      <div data-testid={testId} data-state="loading" role="status" aria-busy="true" className={`${frame} ${loadingClassName}`}>
         <span className="sr-only">Đang tải: {label}</span>
         <div aria-hidden className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-3">

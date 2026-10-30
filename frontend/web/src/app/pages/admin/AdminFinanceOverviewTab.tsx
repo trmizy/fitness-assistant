@@ -405,6 +405,7 @@ export function AdminFinanceOverviewTab() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <StatTile
             testId="tile-escrow"
+            loadingClassName="lg:min-h-[226px]"
             label="Tiền đang giữ hộ"
             icon={WalletIcon}
             tone="info"
@@ -417,6 +418,7 @@ export function AdminFinanceOverviewTab() {
           />
           <StatTile
             testId="tile-claims"
+            loadingClassName="lg:min-h-[226px]"
             label="Tổng quyền đòi của các bên"
             icon={UsersIcon}
             tone="neutral"
@@ -429,6 +431,7 @@ export function AdminFinanceOverviewTab() {
           />
           <StatTile
             testId="tile-balance"
+            loadingClassName="lg:min-h-[226px]"
             label="Cân đối sổ ví (ESCROW = Σ quyền đòi)"
             icon={verdict?.balanced === false ? WarningIcon : verdict ? CheckCircleIcon : ScalesIcon}
             tone={verdict ? (verdict.balanced ? "success" : "danger") : "neutral"}
@@ -489,7 +492,7 @@ export function AdminFinanceOverviewTab() {
       {/* ───────── Bản đồ tiền ───────── */}
       <section aria-label="Bản đồ tiền đang giữ hộ">
         {reconStatus === "loading" && (
-          <div data-testid="finance-money-map" data-state="loading" role="status" aria-busy="true" className={`${CARD} min-h-[300px]`}>
+          <div data-testid="finance-money-map" data-state="loading" role="status" aria-busy="true" className={`${CARD} min-h-[300px] md:min-h-[640px]`}>
             <span className="sr-only">Đang tải bản đồ tiền đang giữ hộ</span>
             <div aria-hidden className="space-y-4">
               <div className="h-5 w-48 animate-pulse rounded bg-adm-pill motion-reduce:animate-none" />
@@ -529,6 +532,7 @@ export function AdminFinanceOverviewTab() {
           <div className={`grid grid-cols-1 gap-3 transition-opacity motion-reduce:transition-none sm:grid-cols-2 lg:grid-cols-3 ${switching ? "opacity-50" : ""}`}>
             <StatTile
               testId="tile-income"
+              loadingClassName="lg:min-h-[146px]"
               label="Tiền vào nền tảng"
               icon={ArrowDownLeftIcon}
               tone="info"
@@ -541,6 +545,7 @@ export function AdminFinanceOverviewTab() {
             />
             <StatTile
               testId="tile-expense"
+              loadingClassName="lg:min-h-[146px]"
               label="Tiền ra khỏi nền tảng"
               icon={ArrowUpRightIcon}
               tone="neutral"
@@ -553,6 +558,7 @@ export function AdminFinanceOverviewTab() {
             />
             <StatTile
               testId="tile-net-revenue"
+              loadingClassName="lg:min-h-[146px]"
               label="Doanh thu nền tảng đã thực hiện"
               icon={PulseIcon}
               tone="info"

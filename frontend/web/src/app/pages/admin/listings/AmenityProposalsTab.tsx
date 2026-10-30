@@ -27,6 +27,7 @@ import {
 } from "../../../utils/adminListing";
 import { listingErrorMessage, readAmenityExistsDisabled } from "../../../utils/listingErrors";
 import { catalogueKey, handleAdminError, proposalsKey, refreshAdminListings } from "./adminListingShared";
+import { onTablistKeyDown, tabProps } from "../shared/tablistKeys";
 
 const selectCls =
   "h-9 w-full rounded-md border border-[var(--border-color)] bg-[var(--input-bg)] px-2 text-sm text-[var(--input-text)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
@@ -85,12 +86,11 @@ export function AmenityProposalsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist">
+      <div className="flex flex-wrap gap-1.5 border-b border-zinc-800/60 pb-2" role="tablist" onKeyDown={onTablistKeyDown}>
         {STATUS_TABS.map((t) => (
           <button
             key={t.value}
-            role="tab"
-            aria-selected={status === t.value}
+            {...tabProps(status === t.value)}
             onClick={() => setStatus(t.value)}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${status === t.value ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
           >

@@ -105,7 +105,10 @@ export function SystemMonitoring() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    // Auto-refresh every 30s, skipped while the tab is hidden.
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") fetchData();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -325,9 +328,9 @@ export function SystemMonitoring() {
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-blue-400" />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Độ trễ phản hồi dịch vụ (ms)
-            </h4>
+            </h2>
           </div>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={latencyData}>
@@ -361,9 +364,9 @@ export function SystemMonitoring() {
         {/* Service Uptime */}
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Thời gian chạy của dịch vụ
-            </h4>
+            </h2>
             <span className="text-xs text-zinc-500">Từ lần khởi động lại gần nhất</span>
           </div>
           <div className="space-y-2">
@@ -410,9 +413,9 @@ export function SystemMonitoring() {
               className="w-4 h-4"
               alt="Grafana"
             />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Bảng điều khiển Grafana
-            </h4>
+            </h2>
           </div>
           <p className="text-xs text-zinc-500 mb-3">
             Xem chi tiết các chỉ số qua bảng điều khiển Grafana dựng sẵn, dữ liệu từ Prometheus.
@@ -484,9 +487,9 @@ export function SystemMonitoring() {
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <h4 className="text-sm font-semibold text-zinc-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Sự cố đang xảy ra
-            </h4>
+            </h2>
             {data.recentErrors.length === 0 && (
               <span className="ml-auto text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 font-semibold">
                 Ổn định

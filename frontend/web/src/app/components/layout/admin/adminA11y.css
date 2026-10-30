@@ -1,0 +1,38 @@
+/*
+ * B10 — admin-only reduced-motion guarantee. `AdminShell` sets `data-admin-shell` on <html> while an
+ * admin page is mounted (so Radix portals — dialogs, sheets, popovers — are covered too) and this file
+ * is only ever loaded by AdminShell. Client / PT / gym-owner shells never set the attribute, so their
+ * motion is untouched.
+ *
+ * Spinners, skeleton shimmer and Radix open/close animations all come from CSS animations on shared
+ * `ui/*` primitives that do not carry their own `motion-reduce:` variant; with this rule nothing in the
+ * admin runs a CSS animation or transition under `prefers-reduced-motion: reduce` (state changes are
+ * instant; the content, label and icon of a loading state are unchanged).
+ */
+@media (prefers-reduced-motion: reduce) {
+  html[data-admin-shell] *,
+  html[data-admin-shell] *::before,
+  html[data-admin-shell] *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * B10 — touch targets on phones: chips, tabs, selects, text fields and buttons inside the admin main area
+ * get a 44px minimum height below 768px (the shell's own nav/topbar already use min-h-11). Width is untouched.
+ * Desktop (pointer) sizes are unchanged. Icon-only controls inside dense widgets are not special-cased.
+ */
+@media (max-width: 767px) {
+  html[data-admin-shell] #admin-main :is(
+      [role="tab"],
+      button:not(.sr-only),
+      [role="button"]:not(.sr-only),
+      select,
+      input:is([type="text"], [type="search"], [type="email"], [type="number"], [type="tel"], [type="password"], :not([type]))
+    ):not([data-no-touch-min]) {
+    min-height: 2.75rem;
+  }
+}

@@ -115,6 +115,7 @@ export function AdminCatalogQuality() {
       <div className="flex flex-wrap gap-2 items-center">
         <select
           data-testid="catalog-quality-logging-mode-filter"
+          aria-label="Lọc theo cách ghi bài tập"
           value={loggingMode}
           onChange={(e) => {
             setLoggingMode(e.target.value);
@@ -130,6 +131,7 @@ export function AdminCatalogQuality() {
         </select>
         <select
           data-testid="catalog-quality-status-filter"
+          aria-label="Lọc theo trạng thái xuất bản"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);

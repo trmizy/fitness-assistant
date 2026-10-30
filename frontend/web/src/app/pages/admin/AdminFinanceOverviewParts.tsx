@@ -71,6 +71,7 @@ export function MoneyMapCard({ map, dimmed }: { map: MoneyMap; dimmed?: boolean 
                     key={s.key}
                     type="button"
                     data-testid={`mm-seg-${s.key}`}
+                    data-no-touch-min=""
                     aria-label={`${s.label}: ${formatDong(s.dong)}, ${formatShare(s.shareBp)}`}
                     onMouseEnter={() => setActive(s.key)}
                     onMouseLeave={() => setActive(null)}

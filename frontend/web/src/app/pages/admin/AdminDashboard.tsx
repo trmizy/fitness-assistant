@@ -35,6 +35,9 @@ import { useTodayData } from "./today/useTodayData";
  * đây" table / membership-refund card moved or were dropped on purpose: see docs/admin-redesign/review/b3b/CHECKS.md.
  */
 
+/** Skeleton height of the four money tiles at xl (loaded ≈ 226-276 px) so their data arriving does not push the page down. */
+const MONEY_TILE_LOADING = "xl:min-h-[250px]";
+
 const BTN =
   "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-adm-border bg-adm-surface px-3 text-xs font-semibold text-adm-text transition-colors hover:bg-adm-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)] disabled:opacity-60 motion-reduce:transition-none lg:min-h-9";
 const LINK = "font-semibold text-adm-text underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
@@ -123,11 +126,12 @@ export function AdminDashboard() {
       )}
 
       <section aria-label="Việc cần quyết định" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile testId="today-tile-money" label="Cần xử lý về tiền" icon={WarningIcon} tone="warning" status={money.status} value={money.value} note={money.note} errorText={money.errorText} dimmed={dimmed} />
-        <StatTile testId="today-tile-withdrawals" label="Rút tiền chờ duyệt" icon={ArrowUpRightIcon} tone="info" status={pending.status} value={pending.value} note={pending.note} errorText={pending.errorText} dimmed={dimmed} />
-        <StatTile testId="today-tile-review" label="Hồ sơ chờ duyệt" icon={IdentificationCardIcon} tone="neutral" status={review.status} value={review.value} note={review.note} errorText={review.errorText} dimmed={dimmed} />
+        <StatTile testId="today-tile-money" loadingClassName={MONEY_TILE_LOADING} label="Cần xử lý về tiền" icon={WarningIcon} tone="warning" status={money.status} value={money.value} note={money.note} errorText={money.errorText} dimmed={dimmed} />
+        <StatTile testId="today-tile-withdrawals" loadingClassName={MONEY_TILE_LOADING} label="Rút tiền chờ duyệt" icon={ArrowUpRightIcon} tone="info" status={pending.status} value={pending.value} note={pending.note} errorText={pending.errorText} dimmed={dimmed} />
+        <StatTile testId="today-tile-review" loadingClassName={MONEY_TILE_LOADING} label="Hồ sơ chờ duyệt" icon={IdentificationCardIcon} tone="neutral" status={review.status} value={review.value} note={review.note} errorText={review.errorText} dimmed={dimmed} />
         <StatTile
           testId="today-tile-balance"
+          loadingClassName={MONEY_TILE_LOADING}
           label="Cân đối sổ ví (ESCROW = Σ quyền đòi)"
           icon={BalanceIcon}
           tone={bal.balanced === false ? "danger" : bal.balanced ? "success" : "neutral"}

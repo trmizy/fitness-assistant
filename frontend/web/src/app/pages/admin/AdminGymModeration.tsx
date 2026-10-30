@@ -12,6 +12,7 @@ import { BranchReviewIssuesPanel } from "../../components/gym-management/BranchR
 import { BranchReviewDetail } from "../../components/gym-management/BranchReviewDetail";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DEFAULT_GYM_TAB, GYM_TABS, parseGymTab, parseIdParam, shortRef, type GymTab } from "./shared/b9aUrlState";
+import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
 
 /**
  * Vòng 4 / Phase C — there was no admin-facing gym/brand moderation screen at all before this
@@ -203,13 +204,12 @@ export function AdminGymModeration() {
         </div>
       )}
 
-      <div data-testid="admin-gym-moderation-tabs" role="tablist" aria-label="Các mục kiểm duyệt chi nhánh" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
+      <div data-testid="admin-gym-moderation-tabs" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Các mục kiểm duyệt chi nhánh" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
         {TABS.map((t) => (
           <button
             key={t.key}
             data-testid={`admin-gym-tab-${t.key}`}
-            role="tab"
-            aria-selected={tab === t.key}
+            {...tabProps(tab === t.key)}
             onClick={() => setTab(t.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               tab === t.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"

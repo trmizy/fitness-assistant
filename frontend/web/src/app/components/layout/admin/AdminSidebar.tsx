@@ -174,7 +174,7 @@ export function AdminSidebar({ collapsed = false, onNavigate, onToggleCollapse, 
         </button>
 
         {inDrawer && (
-          <div className="px-1 py-1.5 md:hidden">
+          <div className="px-1 py-1.5 md:hidden [&_label]:has-[:focus-visible]:outline-2 [&_label]:has-[:focus-visible]:outline-offset-2 [&_label]:has-[:focus-visible]:outline-[var(--adm-focus)] [&_label]:min-h-11 [&_select]:min-h-9">
             <LanguageSwitcher />
           </div>
         )}

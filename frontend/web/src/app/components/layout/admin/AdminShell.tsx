@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "../../ui/shee
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { getAdminPageTitle } from "./adminNav";
+import "./adminA11y.css";
 
 const COLLAPSE_STORAGE_KEY = "gymini.admin.sidebarCollapsed";
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -81,6 +82,12 @@ function AdminShellInner() {
   const mainRef = useRef<HTMLElement>(null);
   // `as ReactNode`: this tree resolves two @types/react copies, so router element types do not match.
   const outlet = useOutlet() as ReactNode;
+
+  // Marks <html> while the admin shell is mounted: scopes the reduced-motion rule in adminA11y.css to admin (portals included).
+  useLayoutEffect(() => {
+    document.documentElement.setAttribute("data-admin-shell", "");
+    return () => document.documentElement.removeAttribute("data-admin-shell");
+  }, []);
 
   // Descriptive title per page (also announced to assistive tech on navigation).
   useEffect(() => {

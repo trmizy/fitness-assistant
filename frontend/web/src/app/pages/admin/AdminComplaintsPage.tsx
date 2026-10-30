@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -10,6 +10,7 @@ import {
   BuildingsIcon,
 } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
+import { useModalA11y } from "./shared/useModalA11y";
 import type { ComplaintIssueType, ComplaintSource, ComplaintStatus, GymComplaint } from "../../types";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -172,6 +173,9 @@ export function ComplaintDetailDialog({
   onChanged: (updated: GymComplaint) => void;
 }) {
   const [response, setResponse] = useState(complaint.adminResponse ?? "");
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useModalA11y(panelRef, onClose);
 
   const updateMutation = useMutation({
     mutationFn: (status: ComplaintStatus) => adminService.updateComplaintStatus(complaint.id, { status, adminResponse: response }),
@@ -186,10 +190,18 @@ export function ComplaintDetailDialog({
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-w-lg w-full bg-zinc-950 rounded-2xl border border-zinc-800 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="max-w-lg w-full bg-zinc-950 rounded-2xl border border-zinc-800 max-h-[90vh] overflow-y-auto outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 sticky top-0 bg-zinc-950">
-          <h3 className="text-sm font-bold text-zinc-100">{ISSUE_TYPE_LABEL[complaint.issueType]}</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">
+          <h3 id={titleId} className="text-sm font-bold text-zinc-100">{ISSUE_TYPE_LABEL[complaint.issueType]}</h3>
+          <button type="button" aria-label="Đóng" onClick={onClose} className="grid size-8 place-items-center rounded-md text-zinc-500 hover:text-zinc-300">
             <XIcon className="size-4" />
           </button>
         </div>

@@ -1,0 +1,16 @@
+[
+ {
+  "theme": "light",
+  "bg": "rgb(4, 120, 87)",
+  "color": "rgb(255, 255, 255)",
+  "contrast": 5.48,
+  "axe": []
+ },
+ {
+  "theme": "dark",
+  "bg": "rgb(34, 197, 94)",
+  "color": "rgb(5, 46, 22)",
+  "contrast": 6.54,
+  "axe": []
+ }
+]

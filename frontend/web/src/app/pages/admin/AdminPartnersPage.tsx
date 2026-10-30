@@ -55,6 +55,7 @@ import {
 } from "./shared/b9aUrlState";
 import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
 import { ISSUE_TYPE_LABEL, SOURCE_LABEL, statusMeta, ComplaintDetailDialog } from "./AdminComplaintsPage";
+import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
 
 const DOC_TYPE_LABEL: Record<string, { label: string; required: boolean }> = {
   BUSINESS_LICENSE: { label: "Giấy phép kinh doanh", required: true },
@@ -158,12 +159,11 @@ export function AdminPartnersPage() {
           <button onClick={() => setMissing(null)} className="font-bold underline shrink-0">Đóng</button>
         </div>
       )}
-      <div className="flex gap-1.5" role="tablist" aria-label="Chế độ xem">
+      <div className="flex gap-1.5" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Chế độ xem">
         {([["applications", "Hồ sơ đăng ký"], ["partners", "Đối tác"]] as const).map(([k, label]) => (
           <button
             key={k}
-            role="tab"
-            aria-selected={view === k}
+            {...tabProps(view === k)}
             onClick={() => { setMissing(null); go({ view: k }); }}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${view === k ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800/60 border border-zinc-800/60"}`}
           >
@@ -437,12 +437,11 @@ function PartnerDetail({ id, tab, onTab, onBack, onNotFound }: { id: string; tab
         </div>
       </div>
 
-      <div role="tablist" aria-label="Các mục của đối tác" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
+      <div role="tablist" onKeyDown={onTablistKeyDown} aria-label="Các mục của đối tác" className="flex gap-1.5 flex-wrap border-b border-zinc-800/60 pb-2">
         {TABS.map((t) => (
           <button
             key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
+            {...tabProps(tab === t.key)}
             onClick={() => setTab(t.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               tab === t.key ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"

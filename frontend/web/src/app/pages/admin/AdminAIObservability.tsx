@@ -838,9 +838,11 @@ export function AdminAIObservability() {
     fetchAll(loadedOnce.current);
   }, [fetchAll]);
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s — skipped while the tab is hidden (nobody is looking; react-query polling elsewhere pauses the same way).
   useEffect(() => {
-    const t = setInterval(() => fetchAll(true), 30_000);
+    const t = setInterval(() => {
+      if (document.visibilityState !== "hidden") fetchAll(true);
+    }, 30_000);
     return () => clearInterval(t);
   }, [fetchAll]);
 
@@ -1321,7 +1323,7 @@ export function AdminAIObservability() {
               <button
                 disabled={page <= 1}
                 onClick={() => setUrl({ page: page - 1 })}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                className="flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Trước
               </button>
@@ -1331,7 +1333,7 @@ export function AdminAIObservability() {
               <button
                 disabled={page >= requests.pages}
                 onClick={() => setUrl({ page: page + 1 })}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                className="flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
                 Sau <ArrowRight className="w-3.5 h-3.5" />
               </button>

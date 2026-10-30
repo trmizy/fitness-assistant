@@ -210,7 +210,7 @@ export function AdminTopbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
-        <div className="hidden md:block">
+        <div className="hidden md:block [&_label]:has-[:focus-visible]:outline-2 [&_label]:has-[:focus-visible]:outline-offset-2 [&_label]:has-[:focus-visible]:outline-[var(--adm-focus)] [&_select]:min-h-6">
           <LanguageSwitcher />
         </div>
         <AdminNotificationBell />

@@ -387,7 +387,7 @@ export function UserManagement() {
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="flex flex-1 items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-4 py-2.5">
+        <label className="flex flex-1 items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-4 py-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--adm-focus)]">
           <Search className="h-4 w-4 flex-shrink-0 text-zinc-500" aria-hidden />
           <input
             value={search}

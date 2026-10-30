@@ -275,9 +275,9 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                   className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3"
                 >
                   <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-bold text-zinc-200">
+                    <h3 className="text-sm font-bold text-zinc-200">
                       {c.certificateName}
-                    </h4>
+                    </h3>
                     {c.isCurrentlyValid ? (
                       <span className="text-[10px] bg-green-500/10 text-st-success px-2 py-0.5 rounded-full border border-green-500/20 font-bold">
                         Còn hiệu lực
@@ -497,9 +497,9 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                   </div>
                 )}
               </div>
-              <h3 className="text-lg font-bold text-zinc-100">
+              <h2 className="text-lg font-bold text-zinc-100">
                 {app.user?.firstName} {app.user?.lastName}
-              </h3>
+              </h2>
               <p className="text-sm text-zinc-500">
                 {app.user?.email || "Chưa có email"}
               </p>
@@ -1100,7 +1100,7 @@ export function PTManagement() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên hoặc email..."
-            className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:outline-none focus:border-green-500"
+            className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:border-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]"
           />
         </div>
       </div>
@@ -1176,9 +1176,9 @@ export function PTManagement() {
                     {app.user?.firstName?.[0] || "?"}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-200">
+                    <h2 className="text-sm font-bold text-zinc-200">
                       {app.user?.firstName || "—"} {app.user?.lastName || ""}
-                    </h3>
+                    </h2>
                     <p className="text-xs text-zinc-500">
                       {app.user?.email || "Chưa có email"}
                     </p>
