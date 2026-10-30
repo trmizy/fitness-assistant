@@ -1,0 +1,11 @@
+import { call, login } from './lib.mjs';
+const PW='Test@123456';
+const admin = await login('afr.admin@example.test', PW), owner = await login('afr.owner@example.test', PW);
+let r = await call('POST','/owner/brands',{token:owner.token, body:{name:'AFR Fit Brand'}}); console.log('brand', r.status, JSON.stringify(r.body).slice(0,300));
+r = await call('POST','/owner/gyms',{token:owner.token, body:{name:'AFR Gym Quan 1', address:'1 Nguyen Hue', city:'Ho Chi Minh', description:'isolated afr stack gym'}});
+console.log('create gym', r.status, JSON.stringify(r.body).slice(0,500));
+const gym = r.body.data;
+r = await call('PATCH',`/admin/gyms/${gym.id}/status`,{token:admin.token, body:{status:'APPROVED'}}); console.log('approve', r.status, r.body?.data?.status, JSON.stringify(r.body).slice(0,300));
+r = await call('GET','/owner/brands',{token:owner.token}); const brand = (r.body.data||r.body)[0]; console.log('brand id', brand?.id, brand?.status);
+r = await call('POST',`/owner/brands/${brand.id}/plans`,{token:owner.token, body:{name:'AFR Monthly', price:500000, durationDays:30, visitLimit:null}}); console.log('plan', r.status, JSON.stringify(r.body).slice(0,300));
+console.log(JSON.stringify({gymId:gym.id, brandId:brand.id, planId:r.body.data?.id}));

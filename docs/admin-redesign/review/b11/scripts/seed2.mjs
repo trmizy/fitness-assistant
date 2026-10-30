@@ -1,0 +1,10 @@
+import { call, login, pool } from './lib.mjs';
+const PW='Test@123456';
+const admin = await login('afr.admin@example.test', PW), owner = await login('afr.owner@example.test', PW);
+const g = pool('gym');
+const pid = (await g.query("select gen_random_uuid() id")).rows[0].id;
+await g.query(`insert into gym_partners (id, legal_name, contact_email, status, verification_status, verified_at, updated_at, source, payout_bank_name, payout_bank_account_number, payout_bank_account_holder, terms_accepted_at, terms_accepted_version) values ($1,'AFR Gym Co','afr.owner@example.test','ACTIVE','VERIFIED',now(),now(),'ADMIN_CREATED','AFRBank','000111222','AFR GYM CO',now(),'1')`, [pid]);
+await g.query(`insert into gym_partner_accounts (id, partner_id, user_id, role, status, activated_at, onboarding_completed_at, updated_at, scoped_gym_ids) values (gen_random_uuid(),$1,$2,'OWNER','ACTIVE',now(),now(),now(),'{}')`, [pid, owner.id]);
+await g.end();
+let r = await call('POST','/owner/gyms',{token:owner.token, body:{name:'AFR Gym Quan 1', address:'1 Nguyen Hue', city:'Ho Chi Minh', description:'isolated afr stack gym'}});
+console.log('create gym', r.status, JSON.stringify(r.body).slice(0,500));

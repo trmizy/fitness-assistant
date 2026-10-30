@@ -1,0 +1,18 @@
+import { call, login, loadState, walletOf, q, rec, inv } from './lib.mjs';
+const PW = 'Test@123456'; const st = loadState();
+const admin = await login('afr.admin@example.test', PW), c3 = await login('afr.c3@example.test', PW), cust = await login('afr.c1@example.test', PW);
+const oid = st.orders.c3; const num = Number;
+let r = await call('GET', '/marketplace/orders/refund-requests', { token: cust.token });
+rec('A1 customer -> 403', r.status === 403, { http: r.status, code: r.body?.error?.code });
+r = await call('POST', `/marketplace/orders/${oid}/refund-resolve`, { token: cust.token, body: { decision: 'APPROVE', refundAmount: 1000, note: 'x' } });
+rec('A3 non-buyer customer -> 403', r.status === 403, { http: r.status, code: r.body?.error?.code });
+const w0 = await walletOf('CLIENT', c3.id);
+r = await call('POST', `/marketplace/orders/${oid}/refund-resolve`, { token: admin.token, body: { decision: 'APPROVE', refundAmount: 700000, note: 'AFR over ceiling' } });
+const w1 = await walletOf('CLIENT', c3.id);
+rec('E-10 refund > ceiling -> 400, wallet unchanged', r.status === 400 && w0.a === w1.a, { http: r.status, code: r.body?.error?.code, walletBefore: w0.a, walletAfter: w1.a });
+const [a, b] = await Promise.all([1, 2].map(() => call('POST', `/marketplace/orders/${oid}/refund-resolve`, { token: admin.token, body: { decision: 'APPROVE', refundAmount: 250000, note: 'AFR partial approve' } })));
+const w2 = await walletOf('CLIENT', c3.id);
+const keyOps = await q('payment', "select key from ledger_operations where key like $1", ['%PERSONALIZED_REFUND:' + oid + '%']);
+const ord = await call('GET', `/marketplace/orders/${oid}`, { token: admin.token });
+rec('H-04 service refund 250k double-submit -> wallet credited once', num(w2.a) - num(w0.a) === 250000 && keyOps.length >= 1, { statuses: [a.status, b.status], bodies: [a.body?.data?.status ?? a.body?.error?.code, b.body?.data?.status ?? b.body?.error?.code], clientWalletDelta: num(w2.a) - num(w0.a), ledgerKeys: keyOps.map(k => k.key), orderStatus: ord.body?.data?.status, cumulativeRefunded: ord.body?.data?.cumulativeRefundedAmount });
+await inv(admin.token, '31-after-A3');

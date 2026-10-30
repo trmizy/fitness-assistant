@@ -1,0 +1,12 @@
+import { call, login, payViaSim, recon, loadState, saveState, dbInv, walletOf } from './lib.mjs';
+const PW='Test@123456';
+const st = loadState();
+const c1 = await login('afr.c1@example.test', PW);
+const mid = '70d0bb67-b86a-469a-ac17-183f4a4bac35';
+let r = await call('POST', `/me/gym-memberships/${mid}/pay`, { token: c1.token, body: { provider: 'VNPAY' } });
+console.log('c1 pay', r.status, r.body?.data?.payment?.redirectUrl);
+const p = await payViaSim(r.body.data.payment.redirectUrl, true);
+r = await call('GET', `/me/gym-memberships/${mid}`, { token: c1.token }); console.log('c1 membership', r.body?.data?.status, JSON.stringify(r.body?.data).slice(0,300));
+st.memberships.c1 = { id: mid, txn: p.txnId, userId: c1.id };
+saveState(st);
+console.log(await dbInv());

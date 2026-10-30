@@ -1,0 +1,28 @@
+{
+ "success": true,
+ "data": {
+  "groupBy": "day",
+  "from": "2026-09-30T09:53:06.885Z",
+  "to": "2026-10-30T09:53:06.885Z",
+  "buckets": [
+   {
+    "period": "2026-10-30T00:00:00.000Z",
+    "income": "3200000.00",
+    "expense": "200000.00",
+    "netRevenue": "29.38",
+    "transactionCount": 10
+   }
+  ],
+  "totals": {
+   "income": "3200000.00",
+   "expense": "200000.00",
+   "netRevenue": "29.38",
+   "transactionCount": 10
+  },
+  "platformRevenue": {
+   "available": "29.38",
+   "pending": "125000.00",
+   "asOf": "2026-10-30T09:53:06.894Z"
+  }
+ }
+}

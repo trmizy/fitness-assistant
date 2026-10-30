@@ -1,0 +1,61 @@
+{
+ "success": true,
+ "data": [
+  {
+   "id": "1717c192-b7b1-4b25-b7cb-cf19a8f9a928",
+   "serviceId": "093c922a-ce4c-4ae0-94fa-de493b083519",
+   "sellerId": "2958c626-0734-4726-b1e8-0865df1e100a",
+   "buyerId": "8ea119ba-452b-478a-b64a-210cb705a9a4",
+   "status": "REFUND_REQUESTED",
+   "titleSnapshot": "AFR Online Coaching",
+   "descriptionSnapshot": "afr stack",
+   "serviceTypeSnapshot": "ONLINE_COACHING",
+   "deliverablesSnapshot": [
+    "Training plan"
+   ],
+   "revisionLimitSnapshot": null,
+   "initialDeliveryDaysSnapshot": 3,
+   "supportWeeksSnapshot": 4,
+   "priceAtPurchase": 600000,
+   "platformRateSnapshot": 0.1,
+   "ptRateSnapshot": 0.9,
+   "paymentTransactionId": "619143fe-018d-45c3-b7ab-18686ee6b3ff",
+   "purchasedAt": "2026-10-30T09:35:17.941Z",
+   "releasedAt": null,
+   "autoAcceptDeadline": null,
+   "intakeData": {
+    "goal": "afr"
+   },
+   "consentCategories": [
+    "basic_info",
+    "training_goals"
+   ],
+   "intakeSubmittedAt": "2026-10-30T09:35:30.528Z",
+   "contractId": "80bed746-04e5-4453-bb40-3d84db5d698f",
+   "initialDeliveryDeadline": "2026-11-02T09:35:30.528Z",
+   "draftContent": null,
+   "draftVersion": 0,
+   "revisionCount": 0,
+   "acceptedAt": null,
+   "committedProgramId": null,
+   "cancelledAt": null,
+   "cancelReason": null,
+   "refundRequestedAt": "2026-10-30T09:51:08.783Z",
+   "refundedAt": null,
+   "disputeReason": "AFR second request (390 dialog probe)",
+   "disputedAt": null,
+   "preRefundStatus": "PT_REVIEWING",
+   "cumulativeRefundedAmount": 250000,
+   "refundResolvedBy": "02f8f1da-394d-4b43-abc8-8ba3fe06897f",
+   "refundResolvedAt": "2026-10-30T09:35:41.634Z",
+   "refundResolutionNote": "AFR partial approve (refund 250000.00, clawed back pt=225000.00 platform=25000.00)",
+   "refundDecision": "APPROVED_PARTIAL",
+   "milestoneIntakeReleasedAt": null,
+   "milestoneDraftReleasedAt": null,
+   "milestoneAcceptedReleasedAt": null,
+   "milestoneCompletedReleasedAt": null,
+   "createdAt": "2026-10-30T09:35:17.941Z",
+   "updatedAt": "2026-10-30T09:51:08.784Z"
+  }
+ ]
+}

@@ -286,7 +286,7 @@ export function ServiceRefundRow({
               </ul>
               <p className="flex items-start gap-1.5 text-[11px] text-adm-text-2">
                 <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-st-warning" aria-hidden />
-                Hệ thống không tự tính số tiền PT đã "xứng đáng nhận" cho loại giao dịch này — tiền đã chuyển thẳng vào ví PT, không giữ tạm. Bạn quyết định số tiền hoàn dựa trên các mốc trên.
+                Hệ thống không tự tính số tiền PT đã "xứng đáng nhận" cho loại giao dịch này. Bạn quyết định số tiền hoàn dựa trên các mốc trên.
               </p>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

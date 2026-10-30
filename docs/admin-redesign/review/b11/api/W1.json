@@ -1,0 +1,114 @@
+{
+ "success": true,
+ "data": {
+  "generatedAt": "2026-10-30T09:53:07.537Z",
+  "responseTimeMs": 122,
+  "kpis": {
+   "totalUsers": 6,
+   "verifiedPTs": 1,
+   "activeContracts": 2,
+   "sessionsToday": 0,
+   "pendingPT": 0
+  },
+  "userGrowth": [
+   {
+    "month": "May",
+    "users": 0
+   },
+   {
+    "month": "Jun",
+    "users": 0
+   },
+   {
+    "month": "Jul",
+    "users": 0
+   },
+   {
+    "month": "Aug",
+    "users": 0
+   },
+   {
+    "month": "Sep",
+    "users": 0
+   },
+   {
+    "month": "Oct",
+    "users": 6
+   }
+  ],
+  "roleData": [
+   {
+    "name": "Clients",
+    "value": 4
+   },
+   {
+    "name": "Trainers",
+    "value": 1
+   },
+   {
+    "name": "Gym owners",
+    "value": 1
+   }
+  ],
+  "systemAlerts": [
+   {
+    "level": "error",
+    "service": "Fitness Service",
+    "message": "Error",
+    "time": "04:53 PM"
+   },
+   {
+    "level": "error",
+    "service": "Chat Service",
+    "message": "Error",
+    "time": "04:53 PM"
+   }
+  ],
+  "recentUsers": [
+   {
+    "name": "Trainer Afr",
+    "email": "afr.pt@example.test",
+    "role": "PT",
+    "joined": "Oct 30",
+    "status": "Active"
+   },
+   {
+    "name": "Client Bon",
+    "email": "afr.c4@example.test",
+    "role": "Client",
+    "joined": "Oct 30",
+    "status": "Active"
+   },
+   {
+    "name": "Client Ba",
+    "email": "afr.c3@example.test",
+    "role": "Client",
+    "joined": "Oct 30",
+    "status": "Active"
+   },
+   {
+    "name": "Client Hai",
+    "email": "afr.c2@example.test",
+    "role": "Client",
+    "joined": "Oct 30",
+    "status": "Active"
+   }
+  ],
+  "ocrStats": {
+   "total": 0,
+   "extracted": 0,
+   "manual": 0,
+   "pending": 0
+  },
+  "monitor": {
+   "healthScore": 67,
+   "healthyCount": 4,
+   "serviceCount": 6
+  },
+  "money": {
+   "escrow": "3000000.00",
+   "platformRevenue": "29.38",
+   "balanced": true
+  }
+ }
+}

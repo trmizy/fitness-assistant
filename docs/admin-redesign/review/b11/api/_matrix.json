@@ -1,0 +1,245 @@
+[
+ {
+  "id": "P1",
+  "path": "/admin/payments",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P2",
+  "path": "/admin/payments/gateway-discrepancies",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P3",
+  "path": "/admin/payments/reconciliation",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P4",
+  "path": "/admin/payments/finance-overview?groupBy=day",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P4m",
+  "path": "/admin/payments/finance-overview?groupBy=month",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P4q",
+  "path": "/admin/payments/finance-overview?groupBy=quarter&from=2026-01-01T00:00:00.000Z&to=2026-12-31T23:59:59.000Z",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P5",
+  "path": "/admin/payments/commissions",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P7",
+  "path": "/admin/payments/withdrawals",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "P13",
+  "path": "/admin/payments/obligations",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "U1",
+  "path": "/admin/sessions/disputed",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": ""
+ },
+ {
+  "id": "U2",
+  "path": "/admin/sessions/reconciliation",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "generatedAt,params,needsAttention,endingsUnconfirmed,endedWithoutSettledEnding,disputes"
+ },
+ {
+  "id": "G2",
+  "path": "/admin/gym-memberships/pending-issues",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "G4",
+  "path": "/admin/commission-rate",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "G5",
+  "path": "/admin/commission-rate/history",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "A1",
+  "path": "/marketplace/orders/refund-requests",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "W1",
+  "path": "/admin/dashboard",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "SYS",
+  "path": "/admin/system-monitor",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "USERS",
+  "path": "/auth/users",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "users"
+ },
+ {
+  "id": "GYMS",
+  "path": "/admin/gyms",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "BRANDS",
+  "path": "/admin/brands",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "PTAPP",
+  "path": "/pt-applications/admin",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "0"
+ },
+ {
+  "id": "PARTNERS",
+  "path": "/admin/partners",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "PARTNERS_OV",
+  "path": "/admin/partners/overview-stats",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "PTS",
+  "path": "/profile/pts",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 200,
+  "gymOwner": 200,
+  "top": "pts"
+ },
+ {
+  "id": "COMPL",
+  "path": "/admin/complaints",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "LISTQ",
+  "path": "/admin/listings/gyms",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "success,data"
+ },
+ {
+  "id": "LISTPT",
+  "path": "/admin/listings/pts",
+  "admin": 200,
+  "noToken": 401,
+  "customer": 403,
+  "gymOwner": 403,
+  "top": "total,page,pageSize,items"
+ }
+]
