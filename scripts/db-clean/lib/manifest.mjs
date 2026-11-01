@@ -13,6 +13,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { canonicalJSON, sha256Hex, readJson, writeJsonAtomic, ensureDir, Refused } from './util.mjs';
 import { checkManifestTableConsistency } from './engine.mjs';
+import { denyStaticProblems } from './deny.mjs';
+import { guardTriggerStaticProblems } from './triggers.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const TOOL_DIR = path.resolve(HERE, '..');
@@ -104,6 +106,8 @@ export function loadApproved(manifestPath, token, { requireApprovedDir = false }
 export function staticChecks(manifest, scriptVersion) {
   const problems = [];
   for (const t of manifest.tables || []) problems.push(...checkManifestTableConsistency(t));
+  problems.push(...denyStaticProblems(manifest.deny));
+  problems.push(...guardTriggerStaticProblems(manifest));
   if (manifest.scriptVersion?.filesSha256 !== scriptVersion.filesSha256) problems.push('scriptVersion.filesSha256 differs from the running script');
   if (manifest.scriptVersion?.gitSha !== scriptVersion.gitSha) problems.push(`scriptVersion.gitSha differs (manifest ${manifest.scriptVersion?.gitSha}, running ${scriptVersion.gitSha})`);
   if (manifest.blockers && Object.values(manifest.blockers).some((v) => (Array.isArray(v) ? v.length : v && Object.keys(v).length))) {

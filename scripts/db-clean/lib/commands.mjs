@@ -16,6 +16,7 @@ import { freeze, unfreeze, recover, status, readState, stateFile } from './fence
 import { backup, restore } from './backup.mjs';
 import { clean, verifyClean, progressFile } from './clean.mjs';
 import { renderReport } from './report.mjs';
+import { loadDenyFile, emptyPatterns, computeGuards, walletImpact } from './deny.mjs';
 
 const REPO_ROOT = path.resolve(TOOL_DIR, '..', '..');
 export const DEFAULT_BACKUP_ROOT = 'D:\\FitnessAssistant-backups';
@@ -54,6 +55,7 @@ export async function cmdAudit(args) {
 
   if (args.recheck) return cmdRecheck(ctx, args);
 
+  const denyPatterns = args['deny-file'] ? loadDenyFile(args['deny-file']) : emptyPatterns(); // refuses a bad pattern before any connection is opened
   const started = Date.now();
   ctx.log(`audit (READ ONLY) of ${ctx.profile.name}: ${SERVICES.map((s) => ctx.profile.dbName(s)).join(', ')}`);
   const dbs = await openApp(ctx);
@@ -78,10 +80,13 @@ export async function cmdAudit(args) {
     const allowLower = [...new Set(allowlist.map((e) => e.toLowerCase()))].sort();
     const cleanDbs = cleanDbsFor(partnerDbs);
 
-    const plan = await computePlan(ctx, { emails: allowLower, cleanDbs, stats: true });
+    const plan = await computePlan(ctx, { emails: allowLower, cleanDbs, stats: true, denyPatterns });
+    const guards = await computeGuards(ctx, plan, cleanDbs);
+    const wallets = await walletImpact(ctx, plan);
+    const denyDetail = await denyNames(dbs, plan.deny);
     const snap = await environmentSnapshot(ctx);
     const scriptVersion = computeScriptVersion(ctx.extraScriptFiles);
-    const manifest = buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan });
+    const manifest = buildManifest({ snap, scriptVersion, cleanDbs, partnerDbs, plan, guardBlockers: guards.blockers, guardTriggers: guards.triggers.guardTriggers });
     const token = confirmTokenOf(manifest);
 
     // ---- facts for the report (not part of the token)
@@ -108,6 +113,9 @@ export async function cmdAudit(args) {
       perDb: summariseAnalyses(ctx, plan, cleanDbs),
       extras,
       userDeps: groupDeps(plan),
+      deny: { file: args['deny-file'] || null, patterns: plan.deny.patterns, counts: { gyms: plan.deny.gymIds.length, amenities: plan.deny.amenityIds.length, proposals: plan.deny.proposalIds.length, packages: plan.deny.packageIds.length }, keptDespiteDeny: plan.deny.keptDespiteDeny, names: denyDetail, guardInfo: guards.info },
+      walletImpact: wallets,
+      triggerPreflight: { listing: guards.triggers.listing, cascadeReached: guards.triggers.cascadeReached },
     });
     ensureDir(out);
     const files = saveCandidate(out, manifest, token, metadata, 'candidate');
@@ -124,6 +132,17 @@ export async function cmdAudit(args) {
   } finally {
     await closeMany(dbs);
   }
+}
+
+/** Names of the denied rows (report only). */
+async function denyNames(dbs, deny) {
+  const names = async (db, table, list) => (list.length ? db.json(`SELECT COALESCE(json_agg(json_build_object('id', id, 'name', name) ORDER BY name, id), '[]'::json) FROM "${table}" WHERE id = ANY($1::text[])`, [list]) : []);
+  return {
+    gyms: await names(dbs.gym, 'gyms', deny.gymIds),
+    amenities: await names(dbs.gym, 'amenities', deny.amenityIds),
+    proposals: await names(dbs.gym, 'amenity_proposals', deny.proposalIds),
+    packages: await names(dbs.user, 'pt_service_packages', deny.packageIds),
+  };
 }
 
 function groupDeps(plan) {

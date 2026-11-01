@@ -68,6 +68,23 @@ export async function loadSchema(db) {
 
 /** Delete order: children before parents. Edges only between the given tables. Returns { order, cycle }. Self references count as a cycle. */
 export function deleteOrder(tableKeys, fks) {
+  // A cycle can only be broken by ignoring an ON DELETE SET NULL edge (it never blocks a delete: amenities.created_from_proposal_id <->
+  // amenity_proposals.resulting_amenity_id is such a pair). Only the SET NULL edges ON the reported cycle are dropped, one at a time; every
+  // other SET NULL edge is honoured, so a parent is never deleted before the children whose column it would null (that UPDATE could fire
+  // triggers: gyms_compat_writer_guard). What SET NULL changes in a row that stays is caught by the kept-row hash / foreign-key conflict checks.
+  const ignored = new Set();
+  for (let i = 0; i <= fks.length; i++) {
+    const r = deleteOrderWith(tableKeys, fks, ignored);
+    if (!r.cycle) return r;
+    const onCycle = new Set(r.cycle);
+    const edge = fks.find((f) => f.onDelete === 'n' && !ignored.has(f) && onCycle.has(`${f.schema}.${f.table}`) && onCycle.has(`${f.refSchema}.${f.refTable}`) && `${f.schema}.${f.table}` !== `${f.refSchema}.${f.refTable}`);
+    if (!edge) return r;
+    ignored.add(edge);
+  }
+  return deleteOrderWith(tableKeys, fks, ignored);
+}
+
+function deleteOrderWith(tableKeys, fks, ignored) {
   const set = new Set(tableKeys);
   const deps = new Map(tableKeys.map((k) => [k, new Set()])); // parent -> children that must go first
   for (const f of fks) {
@@ -75,6 +92,7 @@ export function deleteOrder(tableKeys, fks) {
     const parent = `${f.refSchema}.${f.refTable}`;
     if (!set.has(child) || !set.has(parent)) continue;
     if (child === parent) return { order: null, cycle: [child] };
+    if (ignored.has(f)) continue;
     deps.get(parent).add(child);
   }
   const order = [];
