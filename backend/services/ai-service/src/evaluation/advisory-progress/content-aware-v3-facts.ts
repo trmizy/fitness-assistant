@@ -13,7 +13,18 @@ const metrics = (input: AdvisoryInput) => input.facts.filter((f) => f.evidence.k
     exercise: typeof f.evidence.value.exercise === "string" ? f.evidence.value.exercise : null }));
 const issue = (severity: ContentIssue["severity"], code: string, path: string): ContentIssue => ({ severity, code, path, scope: "STRUCTURED_INVARIANT" });
 
-export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], observations: Answer["observations"]): ContentIssue[] {
+/** Resolve only known e1RM projections, never a body-weight number or attendance
+ * count. Claim references/exercise names can narrow scope, not invent facts. */
+function deltaMetric(input: AdvisoryInput, unit: TextUnit, references: Record<string, string[]>, bareLift: boolean) {
+  const all = metrics(input), ids = references[unit.path];
+  let scoped = ids ? all.filter((m) => ids.includes(m.id)) : all;
+  const named = all.filter((m) => m.exercise && fold(unit.text).includes(fold(m.exercise)));
+  if (named.length) scoped = scoped.filter((m) => named.some((n) => n.id === m.id));
+  if (bareLift && input.facts.some((f) => !["EXERCISE_E1RM_CHANGE", "SCHEDULED_ADHERENCE", "LOGGED_TRAINING_DAYS"].includes(f.evidence.kind))) return null;
+  return scoped.length === 1 ? scoped[0] : null;
+}
+
+export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], observations: Answer["observations"], references: Record<string, string[]> = {}): ContentIssue[] {
   const result: ContentIssue[] = [];
   const adapter = (text: string): Answer => ({ assessment: "INSUFFICIENT_DATA", observations, hypotheses: [], missingInformation: [], rationaleSummary: text, proposedAction: null });
   if (checkAnswer(input, adapter("")).includes("facts_not_addressed")) result.push(issue("HARD", "FACTS_NOT_ADDRESSED", "claims"));
@@ -40,16 +51,30 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
       }
       derivationSpans.push({ start: m.index!, end: m.index! + m[0].length });
     }
-    // A single directly referenced metric also permits an exact kg delta, in
-    // this bounded strength-delta grammar. It never authorizes the same number
-    // in unrelated prose elsewhere in the unit.
-    const personal = metrics(input);
-    if (personal.length === 1) {
-      const s = fold(unit.text), metric = personal[0];
-      for (const m of s.matchAll(/\b(?:e1rm|suc manh)(?: uoc tinh)?\s+(tang|giam)\s+(?:them\s+)?(\d+(?:[.,]\d+)?)\s*kg\b/g)) {
-        const value = Number(m[2].replace(",", "."));
-        if (Math.abs(Math.abs(metric.current - metric.baseline) - value) < 1e-9 && Math.sign(metric.current - metric.baseline) === (m[1] === "tang" ? 1 : -1)) derivationSpans.push({ start: m.index!, end: m.index! + m[0].length });
+    // Verify BOTH magnitude and direction, even if the number already occurs
+    // elsewhere in the input (e.g. session count, percentage, window days).
+    const s = fold(unit.text);
+    const exerciseNames = [...new Set(metrics(input).flatMap((m) => m.exercise ? [fold(m.exercise)] : []))]
+      .sort((a, b) => b.length - a.length).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const namedExercise = exerciseNames ? `(?: (?:${exerciseNames}))?` : "";
+    const deltaPatterns = [
+      { bareLift: false, pattern: new RegExp(`\\b(?:e1rm|suc manh)(?: uoc tinh)?${namedExercise}(?: cua (?:ban|toi|nguoi dung))?\\s+(tang|giam)\\s+(?:them\\s+|duoc\\s+)?(\\d+(?:[.,]\\d+)?)\\s*kg\\b`, "g") },
+      { bareLift: true, pattern: /\b(?:ban|toi) (?:da )?(nang|ha) (?:them|bot) (\d+(?:[.,]\d+)?)\s*kg\b/g },
+    ];
+    for (const { bareLift, pattern } of deltaPatterns) for (const m of s.matchAll(pattern)) {
+      const metric = deltaMetric(input, unit, references, bareLift);
+      const span = { start: m.index!, end: m.index! + m[0].length };
+      if (!metric || uncertaintyBefore(s, m.index!)) {
+        result.push(issue("SOFT", "OBSERVATION_DELTA_UNVERIFIED", unit.path));
+        derivationSpans.push(span);
+        continue;
       }
+      const magnitude = Number(m[2].replace(",", ".")), direction = /^(?:tang|nang)$/.test(m[1]) ? 1 : -1;
+      const delta = metric.current - metric.baseline;
+      if (Math.abs(Math.abs(delta) - magnitude) > 1e-9 || (magnitude !== 0 && Math.sign(delta) !== direction)) result.push(issue("HARD", "OBSERVATION_DELTA_CONTRADICTION", unit.path));
+      else derivationSpans.push(span);
+      // An e1RM difference is not a measured change in actual lifted load.
+      if (bareLift) result.push(issue("SOFT", "ACTUAL_LOAD_CHANGE_NOT_ESTABLISHED_BY_E1RM", unit.path));
     }
     for (const m of unit.text.matchAll(/\d+(?:[.,]\d+)?/g)) {
       if (extra.has(Number(m[0].replace(",", "."))) && !derivationSpans.some((span) => m.index! >= span.start && m.index! < span.end)) result.push(issue("HARD", "NUMBER_NOT_IN_INPUT", unit.path));
@@ -64,12 +89,18 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
 export function checkServerFacts(input: AdvisoryInput, answer: AnswerV3): ContentIssue[] {
   const result: ContentIssue[] = [], all = metrics(input), question = fold(input.question);
   const muscleQuestion = MUSCLE_WORDS.test(question), strengthQuestion = STRENGTH_WORDS.test(question);
-  if (muscleQuestion && strengthQuestion) result.push(issue("SOFT", "MIXED_OUTCOME_ASSESSMENT_REQUIRES_REVIEW", "assessment"));
-  const strengthScope = strengthQuestion && !muscleQuestion;
+  const otherOutcomeQuestion = /\b(?:can nang|weight|ty le mo|body fat|calories|calo|dinh duong|nutrition)\b/.test(question);
+  const competingOutcomes = input.facts.some((f) => f.evidence.kind !== "EXERCISE_E1RM_CHANGE"
+    && !["SCHEDULED_ADHERENCE", "LOGGED_TRAINING_DAYS"].includes(f.evidence.kind));
+  if ((muscleQuestion || otherOutcomeQuestion) && strengthQuestion) result.push(issue("SOFT", "MIXED_OUTCOME_ASSESSMENT_REQUIRES_REVIEW", "assessment"));
+  // Generic progress questions are still constrained by the only observed
+  // outcome. Attendance/frequency context is not a second measured outcome.
+  // Other/unknown outcome kinds remain ambiguous instead of being guessed away.
+  const strengthScope = !muscleQuestion && !otherOutcomeQuestion && all.length > 0;
   if (strengthScope && all.length) {
     const named = all.filter((m) => m.exercise && question.includes(fold(m.exercise)));
     const scoped = named.length ? named : all;
-    const ambiguous = scoped.length > 1;
+    const ambiguous = scoped.length > 1 || (!strengthQuestion && competingOutcomes);
     const directions = scoped.map((m) => Math.sign(m.current - m.baseline));
     if (ambiguous) result.push(issue("SOFT", "AMBIGUOUS_STRENGTH_ASSESSMENT_SCOPE", "assessment"));
     else if ((answer.assessment === "OBSERVED_PROGRESS" && directions.every((d) => d <= 0))

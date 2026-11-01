@@ -67,7 +67,8 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
   const answer = parsed.data;
   const prose = textUnits(answer).filter((u) => /(?:\.text|\.question)$/.test(u.path) || u.path === "rationaleSummary");
   const observations = answer.claims.filter((c) => c.claimType === "OBSERVATION").map((c) => ({ text: c.text, factIds: c.factIds }));
-  issues.push(...checkTextInvariants(input, prose, observations));
+  const claimReferences = Object.fromEntries(answer.claims.map((c, i) => [`claims.${i}.text`, c.factIds]));
+  issues.push(...checkTextInvariants(input, prose, observations, claimReferences));
   refs(answer.assessmentBasis.factIds, "fact", "assessmentBasis.factIds");
   answer.claims.forEach((claim, i) => {
     const p = `claims.${i}`;
@@ -111,7 +112,8 @@ export function reviewLegacyV2(input: AdvisoryInput, row: { finalCandidate: unkn
     parsed.data.observations.forEach((c, i) => refs(c.factIds, "fact", `observations.${i}.factIds`));
     parsed.data.hypotheses.forEach((c, i) => refs(c.evidenceIds, "source", `hypotheses.${i}.evidenceIds`));
     checkQuestions(parsed.data.missingInformation, "missingInformation", issues);
-    issues.push(...checkTextInvariants(input, units, parsed.data.observations));
+    issues.push(...checkTextInvariants(input, units, parsed.data.observations,
+      Object.fromEntries(parsed.data.observations.map((c, i) => [`observations.${i}.text`, c.factIds]))));
   }
   return { originalContractPass: row.contractPass, ...makeReport(parsed.success ? [] : parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })), issues) };
 }

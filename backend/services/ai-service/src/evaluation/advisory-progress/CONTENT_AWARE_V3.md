@@ -29,11 +29,11 @@ nonzero. Artifact bytes remain outside Git; only pinned hashes/history metadata
 are tracked. Default runs on a fresh checkout therefore cannot confirm the
 local frozen run unless its artifact directory is supplied.
 
-Run the required fixture scope (four baseline files + five V3 files):
+Run the required fixture scope (four baseline files + six V3 files):
 
 ```powershell
 $env:ADVISORY_V2_ARTIFACT_DIR = 'C:/D_Backup/project_personal/fitness-assistant/artifacts/ai-advisory-progress/bedrock-guarded-v2'
-pnpm exec tsx --test src/__tests__/advisory-baseline.test.ts src/__tests__/advisory-progress.test.ts src/__tests__/advisory-progress-guarded.test.ts src/__tests__/advisory-content-review.test.ts src/__tests__/advisory-content-v3.test.ts src/__tests__/advisory-content-v3-repair.test.ts src/__tests__/advisory-source-ablation-v3.test.ts src/__tests__/advisory-frozen-v2-integrity.test.ts src/__tests__/advisory-content-v3-review-fixes.test.ts
+pnpm exec tsx --test src/__tests__/advisory-baseline.test.ts src/__tests__/advisory-progress.test.ts src/__tests__/advisory-progress-guarded.test.ts src/__tests__/advisory-content-review.test.ts src/__tests__/advisory-content-v3.test.ts src/__tests__/advisory-content-v3-repair.test.ts src/__tests__/advisory-source-ablation-v3.test.ts src/__tests__/advisory-frozen-v2-integrity.test.ts src/__tests__/advisory-content-v3-review-fixes.test.ts src/__tests__/advisory-content-v3-second-review.test.ts
 pnpm exec tsc --noEmit
 ```
 
@@ -56,18 +56,40 @@ override hard server findings; revisions go through the full gate again.
 
 Metric assertions only copy values from referenced service facts. Assessment
 checks use the original question and server facts; UNSPECIFIED metadata cannot
-disable them. Unscoped multiple exercises remain flagged. Restricted from/to
+disable them. A neutral progress question with a sole e1RM outcome is also
+constrained by that metric; attendance/frequency are context, not another
+measured outcome. Other/unknown outcome kinds and unscoped exercises remain
+flagged. Restricted from/to
 and direction grammar checks linked observations without metricAssertion.
 Free-text numbers, unmapped URLs and missing observations reuse V2 checks.
-Exact binary equations over input operands and a single-metric kg delta are
+Exact binary equations over input operands and a resolved-metric kg delta are
 the permitted arithmetic grammars; unresolved equations are flagged, false
 equations are blocked. An equation never authorizes a number elsewhere in text.
 This is still not complete number attribution or scientific entailment.
+Delta checks compare magnitude and direction with server endpoints, including
+numbers otherwise valid as session counts/percentages. Natural subject phrases
+and supplied exercise names are supported in the bounded delta grammar.
+An ambiguous metric produces a review flag. A bare lifting-load statement is
+not established by an e1RM estimate, even when its numeric delta matches.
 
 General wording and decorative quotes never exempt a directive. Explicitly
 reported old-answer quotations and genuine questions can receive review signals;
 uncertainty must precede the directive in its own clause. Every repair result
 retains initialCandidate, initialReport and bounded response/schema diagnostics.
+The uncertainty must also govern that decision: a hedge about causes/nutrition
+cannot own an independent recommendation after it. Measurement questions and
+explicit strength-vs-muscle measurement contrasts are not positive hypertrophy
+inferences merely because both outcomes are named.
+
+## Conservative normative-wording policy (R-7)
+
+Prefer descriptive general principles, such as describing what a supplied
+source studied. Normative population-level wording can still be hard-blocked:
+“Nguyên tắc chung: nên tăng tải theo mục tiêu” and “Người tập thường nên tăng dần
+tải” are examples. This experiment prioritizes avoiding load prescriptions.
+Such blocking reflects policy and lexical-screening limits; it does not establish
+that the population-level statement is scientifically incorrect. This round does
+not relax that policy. Any relaxation needs a separately evaluated change.
 
 Ablation model inputs contain only opaque source/excerpt/finding IDs, class,
 excerpt text and remaining supported findings. Titles, locators, DOIs, URLs and
@@ -81,3 +103,5 @@ for rule boundaries and the [frozen review](../../../../../../data/eval/advisory
 for earlier assistant annotations. Neither is independent scientific validation.
 The [review-fix handoff](../../../../../../data/eval/advisory-progress-dev/reviews/content-aware-v3-review-fixes.md)
 records the changes following REQUEST_CHANGES on commit 8718e986.
+The [second-review handoff](../../../../../../data/eval/advisory-progress-dev/reviews/content-aware-v3-second-review.md)
+records R-1 through R-7 following review of 6fe3eb60.

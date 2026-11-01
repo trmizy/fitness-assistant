@@ -9,6 +9,11 @@ Updated after the code-review REQUEST_CHANGES on `8718e986`:
 directive handling, V2 text invariants and server-owned assessment checks;
 the original baseline remains unchanged.
 
+Second-review changes from `6fe3eb60` are recorded in the
+[R-1–R-7 handoff](content-aware-v3-second-review.md). They retain the architecture
+and read-only policy, tighten hedge/assessment/delta scope, and reduce specified
+semantic false positives. No new generation or scientific validation was run.
+
 Baseline V2: `ea98576d48ed97a1964bfae1f48b1a9af9197288`, branch
 `baseline/advisory-progress-v2`. V3 work starts from that commit in
 `feat/advisory-content-v3`, in a separate worktree. The original `aws-deploy`
@@ -39,6 +44,13 @@ against that referenced projection are deterministic contradictions. Assessment
 and narrow from/to/direction checks also use server facts when model metadata
 is missing or misdeclared. Unknown/mixed exercise scopes remain flagged. Unsupported
 fact kinds cannot be checked this way; do not claim general numeric entailment.
+Neutral questions also use the sole relevant server e1RM outcome, without
+depending on question keywords or model-declared scope. Attendance/frequency
+do not establish another outcome; other/unknown outcome kinds remain ambiguous.
+Explicit kg deltas are checked against abs(current-baseline) and direction,
+even when the literal number occurs elsewhere in input. Claim references and
+supplied exercise names can resolve a metric; unresolved attribution stays soft.
+An estimate's delta does not establish an actual change in lifted load.
 
 ## Rule severity and content gate
 
@@ -56,6 +68,8 @@ Broad/ambiguous advice, reported quotations and linguistic inference remain revi
 risks. Generic wording and decorative quotes do not soften an explicit directive;
 reported-quote exceptions require a reporting cue in that sentence. Hedge scope
 is before the directive in its clause, never an unrelated later hedge.
+Only a bounded complement about that decision is exempt; a hedge whose object
+is a cause or nutrition cannot suppress an independent following directive.
 
 V2 number/URL/observation coverage checks are reused through an adapter. Exact
 source URLs remain mapped; unsupported numbers anywhere in prose are blocked.
@@ -68,6 +82,18 @@ unknown-as-unchanged wording, measured-vs-estimated wording, declared-type/text
 mismatch, non-question questions and a narrow missing-key mismatch heuristic.
 These rules identify symptoms, not scientific entailment or complete semantic
 classification. They do not automatically repair or rewrite an answer.
+Measurement questions and explicit strength/muscle measurement contrasts are
+excluded from the positive-inference screen where recognized; unsupported
+personal applications retain semantic review flags.
+
+### R-7 policy tradeoff: normative general principles
+
+V3 prefers descriptive population findings. Normative wording such as “Nguyên
+tắc chung: nên tăng tải theo mục tiêu” or “Người tập thường nên tăng dần tải”
+can be hard-blocked even at population level. This is a conservative experiment
+policy against load prescription, coupled with lexical-screening limits, not a
+finding of scientific error. This round preserves the policy; relaxing it needs
+separate evaluation and review. It must not be silently weakened to improve scores.
 
 ## Repair rules
 
