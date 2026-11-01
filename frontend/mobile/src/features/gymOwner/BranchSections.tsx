@@ -64,6 +64,7 @@ import {
 } from "./branchManage";
 import { memberLabel } from "./gymOwner";
 import { facilityLabels } from "../services/gymDirectory";
+import { emailInputProps, normalizeEmail } from "../../lib/email";
 
 /**
  * 14B.5 (PG-A7, GY-03) — the sections of web `GymManagePage`'s "Cài đặt" panel, one card each.
@@ -192,7 +193,7 @@ export function AboutSection({ uid, gym }: { uid: string; gym: any }) {
         />
       )}
       <Input label="Điện thoại chi nhánh" value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" maxLength={20} />
-      <Input label="Email chi nhánh" value={form.email} onChangeText={(v) => setForm((f) => ({ ...f, email: v }))} keyboardType="email-address" autoCapitalize="none" maxLength={200} />
+      <Input label="Email chi nhánh" value={form.email} onChangeText={(v) => setForm((f) => ({ ...f, email: v }))} {...emailInputProps} maxLength={200} />
       <Button
         disabled={!!error || save.isPending}
         onPress={() =>
@@ -200,7 +201,7 @@ export function AboutSection({ uid, gym }: { uid: string; gym: any }) {
             // A non-DRAFT branch must not send the description at all (the server refuses the whole PATCH).
             ...(descriptionLocked ? {} : { description: form.description.trim() }),
             phone: form.phone.trim(),
-            email: form.email.trim(),
+            email: normalizeEmail(form.email),
           })
         }
       >

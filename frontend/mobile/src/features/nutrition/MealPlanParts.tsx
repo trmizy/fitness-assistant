@@ -346,7 +346,7 @@ function PartialMealSheet({
               <Text className="font-body text-xs text-muted-foreground">
                 Nhập calories thực tế đã ăn. Hữu ích khi ăn thêm hoặc ăn món khác ngoài kế hoạch.
               </Text>
-              <Input label="Calories (bắt buộc)" value={amount.calories} keyboardType="decimal-pad" onChangeText={(t) => setAmount((a) => ({ ...a, calories: t }))} />
+              <Input label="Calo (bắt buộc)" value={amount.calories} keyboardType="decimal-pad" onChangeText={(t) => setAmount((a) => ({ ...a, calories: t }))} />
               <View className="flex-row gap-2">
                 {(["protein", "carbs", "fat"] as const).map((k) => (
                   <View key={k} className="flex-1">

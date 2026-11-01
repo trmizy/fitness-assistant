@@ -12,6 +12,7 @@ export function createFakeGateway({ adminEmail = "admin@fake.test", password = "
   const listings = new Map(); // userId -> state
   const writes = []; // non-GET requests, to prove idempotency
   const storage = new Set();
+  const failUploadFor = new Set(); // e-mails whose document presign answers 500 (simulates an upload outage)
 
   const userOf = (token) => [...users.entries()].find(([e]) => token === `tok:${e}`)?.[0];
   const listing = (uid) => {
@@ -51,21 +52,48 @@ export function createFakeGateway({ adminEmail = "admin@fake.test", password = "
     if (path === "/auth/login") {
       if (body.email !== adminEmail && !users.has(body.email)) return json(401, { error: "bad" });
       if (!users.has(body.email)) users.set(body.email, { id: `id-${body.email}`, role: "ADMIN" });
+      if (users.get(body.email).active === false) return json(403, { error: "Tài khoản đã bị vô hiệu hóa" });
       return json(200, { accessToken: `tok:${body.email}` });
     }
     if (path === "/pt-applications/terms" && method === "GET") return json(200, { version: "test-v1" });
     const me = email && users.get(email);
     if (!me) return json(401, { error: "unauth" });
 
+    // ---- auth admin: list / enable / disable accounts
+    if (path === "/auth/users" && method === "GET") {
+      if (me.role !== "ADMIN") return json(403, {});
+      return json(200, { users: [...users.entries()].filter(([, u]) => u.role !== "ADMIN").map(([e, u]) => ({ id: u.id, email: e, role: u.role, isActive: u.active !== false })) });
+    }
+    let am = path.match(/^\/auth\/users\/([^/]+)\/(enable|disable)$/);
+    if (am && method === "PATCH") {
+      if (me.role !== "ADMIN") return json(403, {});
+      const target = [...users.values()].find((u) => u.id === am[1]);
+      if (!target) return json(404, {});
+      target.active = am[2] === "enable";
+      return json(200, {});
+    }
+    if (path === "/pt-applications/admin" && method === "GET") {
+      if (me.role !== "ADMIN") return json(403, {});
+      const st = u.searchParams.get("status");
+      return json(200, [...apps.values()].filter((a) => !st || a.status === st).map((a) => ({ id: a.id, status: a.status, userProfile: { userId: a.userId } })));
+    }
+    let hm = path.match(/^\/admin\/listings\/pts\/([^/]+)\/history$/);
+    if (hm && method === "GET") {
+      if (me.role !== "ADMIN") return json(403, {});
+      const st = listings.get(hm[1]);
+      return json(200, { revisions: [...(st?.open ? [{ id: st.open.id, status: st.open.status, source: "OWNER" }] : []), ...(st?.history ?? [])], audit: [] });
+    }
+
     // ---- PT application
     if (path === "/pt-applications/me" && method === "GET") return apps.has(me.id) ? json(200, apps.get(me.id)) : json(404, { error: "none" });
     if (path === "/pt-applications/me/draft") {
-      if (!apps.has(me.id)) apps.set(me.id, { id: id("app"), status: "DRAFT", docs: {} });
+      if (!apps.has(me.id)) apps.set(me.id, { id: id("app"), userId: me.id, status: "DRAFT", docs: {} });
       const a = apps.get(me.id);
       if (!["DRAFT", "NEEDS_MORE_INFO"].includes(a.status)) return json(400, { error: "locked" });
       Object.assign(a.docs, Object.fromEntries(Object.entries(body).filter(([k]) => /Url$/.test(k))));
       return json(200, a);
     }
+    if (path === "/pt-applications/me/upload/presign" && failUploadFor.has(email)) return json(500, { error: "storage unavailable" });
     if (path === "/pt-applications/me/upload/presign") return json(200, { uploadUrl: `http://storage.fake/${id("obj")}`, key: id("key"), url: "s3://x" });
     if (path === "/pt-applications/me/upload/confirm") return json(200, { key: body.key, url: `s3://${body.key}` });
     if (path === "/pt-applications/me/submit") {
@@ -167,6 +195,7 @@ export function createFakeGateway({ adminEmail = "admin@fake.test", password = "
     listings,
     writes,
     storage,
+    failUploadFor,
     addUser(email, role = "CUSTOMER", uid = `id-${email}`) {
       users.set(email, { id: uid, role });
     },

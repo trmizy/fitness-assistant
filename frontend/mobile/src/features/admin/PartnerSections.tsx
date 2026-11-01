@@ -55,6 +55,7 @@ import {
   type PartnerAccount,
   type PartnerForm,
 } from "./adminPartners";
+import { emailInputProps } from "../../lib/email";
 
 /**
  * 14B.8 (PG-D1) — the tabs of web AdminPartnersPage's partner detail, one component per tab, plus the
@@ -246,7 +247,7 @@ function EditPartnerBody({ partner, onClose, onSaved }: { partner: AdminPartner;
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>
       <Input label="Tên pháp lý" value={form.legalName} onChangeText={set("legalName")} />
-      <Input label="Email liên hệ" value={form.contactEmail} onChangeText={set("contactEmail")} autoCapitalize="none" keyboardType="email-address" />
+      <Input label="Email liên hệ" value={form.contactEmail} onChangeText={set("contactEmail")} {...emailInputProps} />
       <Input label="Điện thoại" value={form.contactPhone} onChangeText={set("contactPhone")} keyboardType="phone-pad" />
       <View className="flex-row gap-2">
         <Input className="flex-1" label="Mã số thuế" value={form.taxCode} onChangeText={set("taxCode")} />

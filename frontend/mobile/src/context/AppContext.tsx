@@ -19,6 +19,7 @@ import { sessionGuard } from "../services/sessionGuard";
 import { onSessionExpired } from "../services/sessionEvents";
 import { unregisterPushToken } from "../features/push/pushDevice";
 import { darkColors } from "../theme/colors";
+import { normalizeEmail } from "../lib/email";
 
 // Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
 export type UserRole = "client" | "pt" | "gym_owner" | "admin";
@@ -140,7 +141,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await authService.login(email, password);
+      // C1-01: whichever screen calls this (login, partner invite/verify auto-login), the address
+      // leaves the app trimmed and lowercased.
+      const res = await authService.login(normalizeEmail(email), password);
       if (res.success && res.user) {
         if (res.sessionGeneration !== undefined) sessionGuard.assertCurrent(res.sessionGeneration);
         queryClient.clear();

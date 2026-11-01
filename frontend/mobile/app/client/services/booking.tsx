@@ -26,14 +26,15 @@ import {
   Tappable,
   useToast,
 } from "../../../src/components/ui";
-import { availabilityService, contractService, sessionService } from "../../../src/services/api";
+import { contractService, sessionService } from "../../../src/services/api";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton";
 import { normalizeContracts, sessionsLeft } from "../../../src/features/services/contracts";
+import { SlotCalendarPicker } from "../../../src/features/services/SlotCalendarPicker";
 import {
   BOOKING_LEAD_HOURS,
-  bookableSlots,
+  RESCHEDULE_LEAD_HOURS,
   bookingBlockedReason,
   buildBookingPayload,
   buildReschedulePayload,
@@ -45,7 +46,6 @@ import {
   mergeSessionSources,
   normalizeRescheduleHistory,
   normalizeSessions,
-  normalizeSlots,
   outgoingReschedule,
   pendingReschedule,
   proposalOutcomeText,
@@ -59,14 +59,6 @@ import {
 } from "../../../src/features/services/sessions";
 
 const SEGMENTS = ["Cần xử lý", "Sắp tới", "Đã qua"];
-
-function toDateKey(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
 
 function timeLabel(iso: string | null): string {
   if (!iso) return "--:--";
@@ -163,6 +155,8 @@ export default function BookingScreen() {
     void queryClient.invalidateQueries({ queryKey: ["sessions-pending-confirmation"] });
     void queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
     void queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    // A booked or moved session takes a slot off the PT's calendar.
+    void queryClient.invalidateQueries({ queryKey: ["pt-slots"] });
   };
 
   const actionMutation = useMutation({
@@ -398,6 +392,8 @@ export default function BookingScreen() {
         key={action === "reschedule" ? "reschedule-open" : "reschedule-closed"}
         open={action === "reschedule"}
         session={detail}
+        contractEnd={contracts.find((c) => c.id === detail?.contractId)?.endDate}
+        contractStart={contracts.find((c) => c.id === detail?.contractId)?.startDate}
         onClose={() => setAction(null)}
         onDone={() => {
           setAction(null);
@@ -655,38 +651,24 @@ function AnswerRescheduleSheet({
 function RescheduleSheet({
   open,
   session,
+  contractEnd,
+  contractStart,
   onClose,
   onDone,
 }: {
   open: boolean;
   session: SessionRow | null;
+  /** The session's contract window — a move may not leave it (the server re-checks). */
+  contractEnd?: string | null;
+  contractStart?: string | null;
   onClose: () => void;
   onDone: () => void;
 }) {
-  const accent = useWorkspaceAccent();
   const toast = useToast();
 
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-
-  const days = useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: 14 }, (_, index) => {
-      const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + index);
-      return { key: toDateKey(day), label: dateLabel(day.toISOString()) };
-    });
-  }, []);
-
-  const slotsQuery = useQuery({
-    queryKey: ["pt-slots", session?.ptUserId, date],
-    queryFn: () => availabilityService.getAvailableSlots(session!.ptUserId, date!),
-    enabled: !!session?.ptUserId && !!date,
-  });
-  const slots = useMemo(
-    () => (date ? bookableSlots(normalizeSlots(slotsQuery.data), date) : []),
-    [slotsQuery.data, date],
-  );
 
   const payload = session && date && time ? buildReschedulePayload(session, date, time) : null;
 
@@ -717,74 +699,19 @@ function RescheduleSheet({
               : ""}
           </Text>
 
-          <View className="gap-2">
-            <Text className="font-body-medium text-xs text-muted-foreground">Ngày đề nghị</Text>
-            <View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {days.map((day) => {
-                  const active = day.key === date;
-                  return (
-                    <Tappable
-                      key={day.key}
-                      className={`rounded-xl border px-3.5 py-2.5 ${
-                        active ? "border-primary" : "border-border bg-panel"
-                      }`}
-                      style={active ? { backgroundColor: accent.primary } : undefined}
-                      onPress={() => {
-                        setDate(day.key);
-                        setTime(null);
-                      }}
-                    >
-                      <Text
-                        className={`font-body-medium text-xs ${
-                          active ? "text-background" : "text-muted-foreground"
-                        }`}
-                      >
-                        {day.label}
-                      </Text>
-                    </Tappable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          </View>
-
-          {date ? (
-            <View className="gap-2">
-              <Text className="font-body-medium text-xs text-muted-foreground">Khung giờ trống</Text>
-              {slotsQuery.isLoading ? (
-                <ActivityIndicator color={accent.primary} />
-              ) : slots.length === 0 ? (
-                <Text className="font-body text-xs text-muted-foreground">
-                  Huấn luyện viên không còn khung giờ trống trong ngày này.
-                </Text>
-              ) : (
-                <View className="flex-row flex-wrap gap-2">
-                  {slots.map((slot) => {
-                    const active = slot === time;
-                    return (
-                      <Tappable
-                        key={slot}
-                        className={`rounded-xl border px-3.5 py-2 ${
-                          active ? "border-primary" : "border-border bg-panel"
-                        }`}
-                        style={active ? { backgroundColor: accent.primary } : undefined}
-                        onPress={() => setTime(slot)}
-                      >
-                        <Text
-                          className={`font-body-medium text-sm ${
-                            active ? "text-background" : "text-foreground"
-                          }`}
-                        >
-                          {slot}
-                        </Text>
-                      </Tappable>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ) : null}
+          <SlotCalendarPicker
+            ptUserId={session?.ptUserId}
+            leadHours={RESCHEDULE_LEAD_HOURS}
+            contractEnd={contractEnd}
+            contractStart={contractStart}
+            date={date}
+            time={time}
+            onChange={(nextDate, nextTime) => {
+              setDate(nextDate);
+              setTime(nextTime);
+            }}
+            emptyDayText="Huấn luyện viên không còn khung giờ trống trong ngày này."
+          />
 
           <Input
             value={reason}
@@ -912,7 +839,6 @@ function BookingSheet({
   onClose: () => void;
   onBooked: () => void;
 }) {
-  const accent = useWorkspaceAccent();
   const toast = useToast();
 
   const [contractId, setContractId] = useState<string | null>(contracts[0]?.id ?? null);
@@ -922,28 +848,6 @@ function BookingSheet({
   const [notes, setNotes] = useState("");
 
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0] ?? null;
-
-  // Fourteen days is what fits a phone without a full calendar, and matches how far ahead the
-  // availability endpoint is useful in practice. They start TOMORROW: a new booking needs 24 hours'
-  // notice (BOOKING_LEAD_HOURS), so today can never hold a slot the server would accept.
-  const days = useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: 14 }, (_, index) => {
-      const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1 + index);
-      return { key: toDateKey(day), label: dateLabel(day.toISOString()) };
-    });
-  }, []);
-
-  const slotsQuery = useQuery({
-    queryKey: ["pt-slots", contract?.ptUserId, date],
-    queryFn: () => availabilityService.getAvailableSlots(contract!.ptUserId, date!),
-    enabled: !!contract?.ptUserId && !!date,
-  });
-
-  const slots = useMemo(
-    () => (date ? bookableSlots(normalizeSlots(slotsQuery.data), date, new Date(), BOOKING_LEAD_HOURS) : []),
-    [slotsQuery.data, date],
-  );
 
   const blocked = contract
     ? bookingBlockedReason({
@@ -992,6 +896,7 @@ function BookingSheet({
                     }`}
                     onPress={() => {
                       setContractId(item.id);
+                      setDate(null);
                       setTime(null);
                     }}
                   >
@@ -1011,78 +916,19 @@ function BookingSheet({
             </Text>
           ) : null}
 
-          <View className="gap-2">
-            <Text className="font-body-medium text-xs text-muted-foreground">Ngày tập</Text>
-            <View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
-              >
-                {days.map((day) => {
-                  const active = day.key === date;
-                  return (
-                    <Tappable
-                      key={day.key}
-                      className={`rounded-xl border px-3.5 py-2.5 ${
-                        active ? "border-primary" : "border-border bg-panel"
-                      }`}
-                      style={active ? { backgroundColor: accent.primary } : undefined}
-                      onPress={() => {
-                        setDate(day.key);
-                        setTime(null);
-                      }}
-                    >
-                      <Text
-                        className={`font-body-medium text-xs ${
-                          active ? "text-background" : "text-muted-foreground"
-                        }`}
-                      >
-                        {day.label}
-                      </Text>
-                    </Tappable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          </View>
-
-          {date ? (
-            <View className="gap-2">
-              <Text className="font-body-medium text-xs text-muted-foreground">Khung giờ trống</Text>
-              {slotsQuery.isLoading ? (
-                <ActivityIndicator color={accent.primary} />
-              ) : slots.length === 0 ? (
-                <Text className="font-body text-xs text-muted-foreground">
-                  Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất {BOOKING_LEAD_HOURS} giờ.
-                </Text>
-              ) : (
-                <View className="flex-row flex-wrap gap-2">
-                  {slots.map((slot) => {
-                    const active = slot === time;
-                    return (
-                      <Tappable
-                        key={slot}
-                        className={`rounded-xl border px-3.5 py-2 ${
-                          active ? "border-primary" : "border-border bg-panel"
-                        }`}
-                        style={active ? { backgroundColor: accent.primary } : undefined}
-                        onPress={() => setTime(slot)}
-                      >
-                        <Text
-                          className={`font-body-medium text-sm ${
-                            active ? "text-background" : "text-foreground"
-                          }`}
-                        >
-                          {slot}
-                        </Text>
-                      </Tappable>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ) : null}
+          <SlotCalendarPicker
+            key={contract?.id ?? "none"}
+            ptUserId={contract?.ptUserId}
+            leadHours={BOOKING_LEAD_HOURS}
+            contractEnd={contract?.endDate}
+            date={date}
+            time={time}
+            onChange={(nextDate, nextTime) => {
+              setDate(nextDate);
+              setTime(nextTime);
+            }}
+            emptyDayText={`Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất ${BOOKING_LEAD_HOURS} giờ.`}
+          />
 
           {contract?.sessionMode === "OFFLINE" ? (
             <Input

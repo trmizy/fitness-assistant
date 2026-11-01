@@ -86,6 +86,24 @@ function sanitizeCert(c: any): Record<string, any> {
   return clean;
 }
 
+function adminListWhere(filters: { status?: PTApplicationStatus; search?: string }) {
+  const { status, search } = filters;
+  return {
+    ...(status && { status }),
+    ...(search && {
+      OR: [
+        { phoneNumber: { contains: search } },
+        {
+          professionalBio: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        },
+      ],
+    }),
+  };
+}
+
 export const ptApplicationRepository = {
   findByUserId: async (userId: string) => {
     return prisma.pTApplication.findFirst({
@@ -239,32 +257,31 @@ export const ptApplicationRepository = {
     });
   },
 
-  findAll: async (filters: {
-    status?: PTApplicationStatus;
-    search?: string;
-  }) => {
-    const { status, search } = filters;
+  /**
+   * `paging` is optional: without it every row comes back exactly as before. With it the same ordering is
+   * sliced (skip/take), plus `id` as a tie-breaker so two rows with the same submittedAt (or none) cannot
+   * swap between pages.
+   */
+  findAll: async (
+    filters: {
+      status?: PTApplicationStatus;
+      search?: string;
+    },
+    paging?: { page: number; limit: number },
+  ) => {
     return prisma.pTApplication.findMany({
-      where: {
-        ...(status && { status }),
-        ...(search && {
-          OR: [
-            { phoneNumber: { contains: search } },
-            {
-              professionalBio: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-          ],
-        }),
-      },
+      where: adminListWhere(filters),
       include: {
         userProfile: true,
         certificates: true,
         media: true,
       },
-      orderBy: { submittedAt: "desc" },
+      orderBy: paging ? [{ submittedAt: "desc" }, { id: "asc" }] : { submittedAt: "desc" },
+      ...(paging ? { skip: (paging.page - 1) * paging.limit, take: paging.limit } : {}),
     });
   },
+
+  /** Total rows matching the same filters as findAll (for the X-Total-Count header of a paged list). */
+  countAll: async (filters: { status?: PTApplicationStatus; search?: string }) =>
+    prisma.pTApplication.count({ where: adminListWhere(filters) }),
 };

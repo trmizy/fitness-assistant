@@ -7,8 +7,8 @@ import { partnerRepository } from '../repositories/partner.repository';
 import { authClient } from '../clients/auth.client';
 import { gymRepository } from '../repositories/gym.repository';
 import { brandRepository } from '../repositories/brand.repository';
+import { resolveFrontendUrl } from '../config/frontend-url';
 
-const APP_BASE_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 function fail(res: Response, e: any, fallback = 'Đã có lỗi xảy ra') {
   res.status(e.status || 500).json({ success: false, error: { message: e.message || fallback } });
@@ -32,7 +32,7 @@ function appBaseUrl(req: Request): string {
     (process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production');
   const header = fromGateway ? req.headers['x-trusted-web-origin'] : undefined;
   const raw = Array.isArray(header) ? header[0] : header;
-  return (raw || APP_BASE_URL).replace(/\/$/, '');
+  return (raw || resolveFrontendUrl()).replace(/\/$/, '');
 }
 
 export const partnerController = {

@@ -36,10 +36,10 @@ import {
 import { CurrentNutritionProgram as NutritionAiPlansPanel } from "./CurrentNutritionProgram";
 
 const QUERY_GOAL_LABELS: Record<string, string> = {
-  WEIGHT_LOSS: "Giam mo",
-  MUSCLE_GAIN: "Tang co",
-  MAINTENANCE: "Duy tri voc dang",
-  ATHLETIC_PERFORMANCE: "Cai thien suc khoe",
+  WEIGHT_LOSS: "Giảm mỡ",
+  MUSCLE_GAIN: "Tăng cơ",
+  MAINTENANCE: "Duy trì vóc dáng",
+  ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
 };
 
 type JobActionType = "generate" | "adjust";
@@ -1217,7 +1217,7 @@ export function AIPlansPage() {
         <div>
           <h1 className="text-zinc-100 text-xl font-bold flex items-center gap-2">
             <Brain className="w-5 h-5 text-green-400" />
-            AI Plans
+            Kế hoạch AI
           </h1>
           <p className="text-zinc-500 text-sm mt-1">
             Tạo và quản lý kế hoạch tập luyện bằng AI, theo dõi job, giải thích
@@ -1238,7 +1238,7 @@ export function AIPlansPage() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          Refresh
+          Làm mới
         </button>
       </div>
 
@@ -1600,7 +1600,7 @@ export function AIPlansPage() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-sm font-semibold text-zinc-100 truncate">
-                            {plan.name || "Workout Plan"}
+                            {plan.name || "Kế hoạch tập"}
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span
@@ -1667,7 +1667,7 @@ export function AIPlansPage() {
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                         <div>
                           <h2 className="text-zinc-100 text-lg font-bold">
-                            {currentPlan.name || "Workout Plan"}
+                            {currentPlan.name || "Kế hoạch tập"}
                           </h2>
                           <p className="text-zinc-500 text-sm">
                             {currentPlan.description ||
@@ -1683,7 +1683,7 @@ export function AIPlansPage() {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                          <div className="text-[11px] text-zinc-500">Goal</div>
+                          <div className="text-[11px] text-zinc-500">Mục tiêu</div>
                           <div className="text-sm text-zinc-100 mt-1">
                             {headerGoal}
                           </div>
@@ -1805,7 +1805,7 @@ export function AIPlansPage() {
                             {planEvidence.evidenceUsed.length > 0 && (
                               <div>
                                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">
-                                  Evidence used
+                                  Căn cứ sử dụng
                                 </div>
                                 <ul className="space-y-2">
                                   {planEvidence.evidenceUsed.map(
@@ -1851,7 +1851,7 @@ export function AIPlansPage() {
                             {planEvidence.safetyNotes.length > 0 && (
                               <div>
                                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">
-                                  Safety notes
+                                  Lưu ý an toàn
                                 </div>
                                 <ul className="list-disc pl-5 space-y-1 text-xs text-zinc-400">
                                   {planEvidence.safetyNotes.map(

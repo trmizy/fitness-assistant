@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { PaperPlaneTiltIcon as Send, PaperclipIcon as Paperclip, MagnifyingGlassIcon as Search, DotsThreeVerticalIcon as MoreVertical, PhoneIcon as Phone, VideoCameraIcon as Video, FileTextIcon as FileText, CalendarIcon as Calendar, CaretLeftIcon as ChevronLeft, WarningCircleIcon as AlertCircle, UserIcon as User, CircleNotchIcon as Loader2, PlusIcon as Plus, ChatTextIcon as MessageSquare } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
 import { useRealtimeChat } from "../../hooks/useRealtimeChat";
+import { getSocket as getChatSocket } from "../../services/socket";
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
   const { user } = useApp();
   const userScopeId = user?.id ?? "guest";
   const { initiateCall } = useCall();
+  const queryClient = useQueryClient();
   const [activeConvId, setActiveConvId] = useState<string | null>(
     searchParams.get("conversationId"),
   );
@@ -61,6 +63,48 @@ export function ChatPage() {
     enabled: !!activeConvId,
   });
 
+  // Call log lines ("Cuộc gọi video đã kết thúc", "bị từ chối", "nhỡ") are saved by chat-service
+  // and pushed on ITS socket as "chat:message" (the one calls already use) - the gateway socket
+  // behind useRealtimeChat never carries them, so only the polled conversation list showed them.
+  // Put the line straight into the open thread when it arrives.
+  useEffect(() => {
+    if (!user?.id) return;
+    const chatSocket = getChatSocket();
+    const onCallLog = (msg: any) => {
+      if (!msg?.id || !msg?.conversationId) return;
+      const mapped = {
+        id: msg.id,
+        authorId: msg.authorId || msg.senderId,
+        content: msg.content,
+        createdAt: msg.createdAt,
+        conversationId: msg.conversationId,
+      };
+      queryClient.setQueryData(
+        ["messages", userScopeId, mapped.conversationId],
+        (old: any[] | undefined) => {
+          if (!old) return [mapped];
+          if (old.some((item) => item.id === mapped.id)) return old;
+          return [...old, mapped];
+        },
+      );
+      queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
+    };
+    chatSocket.on("chat:message", onCallLog);
+    return () => {
+      chatSocket.off("chat:message", onCallLog);
+    };
+  }, [user?.id, userScopeId, queryClient]);
+
+  // Fallback that reuses what the conversation list already polls: when its last message is one
+  // the open thread does not have yet (socket down, or the push was missed), reload the thread.
+  const lastMessageId = (conversations as any[]).find((c: any) => c.id === activeConvId)?.lastMessage?.id;
+  useEffect(() => {
+    if (!activeConvId || !lastMessageId) return;
+    if ((messages as any[]).some((m: any) => m.id === lastMessageId)) return;
+    queryClient.invalidateQueries({ queryKey: ["messages", userScopeId, activeConvId] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessageId, activeConvId]);
+
   useEffect(() => {
     setActiveConvId(searchParams.get("conversationId"));
     setMobileView(searchParams.get("conversationId") ? "chat" : "list");
@@ -105,7 +149,7 @@ export function ChatPage() {
         className={`${mobileView === "chat" ? "hidden" : "flex"} lg:flex flex-col w-full lg:w-80 bg-zinc-900 border-r border-zinc-800/60 flex-shrink-0`}
       >
         <div className="p-4 border-b border-zinc-800/60">
-          <h2 className="font-bold text-zinc-100 mb-3">Messages</h2>
+          <h2 className="font-bold text-zinc-100 mb-3">Tin nhắn</h2>
           <div className="flex items-center gap-2 bg-zinc-800/60 border border-zinc-700/40 rounded-xl px-3 py-2">
             <Search className="w-4 h-4 text-zinc-500" />
             <input
@@ -130,7 +174,7 @@ export function ChatPage() {
                   <div className="w-10 h-10 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400">
                     {c.otherUser?.firstName?.charAt(0) || "U"}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-zinc-900 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                  
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
@@ -140,9 +184,9 @@ export function ChatPage() {
                     <span className="text-xs text-zinc-600 flex-shrink-0 ml-2">
                       {c.lastMessage
                         ? new Date(c.lastMessage.createdAt).toLocaleTimeString(
-                            [],
-                            { hour: "2-digit", minute: "2-digit" },
-                          )
+                        "vi-VN",
+                        { hour: "2-digit", minute: "2-digit" },
+                        )
                         : ""}
                     </span>
                   </div>
@@ -169,8 +213,8 @@ export function ChatPage() {
             <div className="p-10 text-center">
               <MessageSquare className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
               <p className="text-sm text-zinc-500">
-                No active chats yet. Connect with a PT from the Find a Coach
-                page to get started!
+                Chưa có cuộc trò chuyện nào. Hãy kết nối với một huấn luyện viên
+                ở trang Tìm huấn luyện viên để bắt đầu!
               </p>
             </div>
           )}
@@ -196,14 +240,16 @@ export function ChatPage() {
                   <div className="w-9 h-9 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400">
                     {activeConv.otherUser?.firstName?.charAt(0) || "PT"}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-zinc-900" />
+                  
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-zinc-200">
                     {activeConv.otherUser?.firstName}{" "}
                     {activeConv.otherUser?.lastName}
                   </div>
-                  <div className="text-xs text-green-400">Đang hoạt động</div>
+                  <div className="text-xs text-zinc-500">
+                    {activeConv.otherUser?.role === "PT" ? "Huấn luyện viên" : "Học viên"}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -246,7 +292,7 @@ export function ChatPage() {
                           {msg.content}
                         </span>
                         <span className="text-[10px] text-zinc-500">
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                          {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -276,7 +322,7 @@ export function ChatPage() {
                         <div
                           className={`text-xs mt-1 text-zinc-600 ${msg.authorId === user?.id ? "text-right" : ""}`}
                         >
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                          {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}

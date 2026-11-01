@@ -84,10 +84,10 @@ export function GlobalSearchPage() {
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-          <Search className="w-5 h-5 text-emerald-400" /> Tim kiem
+          <Search className="w-5 h-5 text-emerald-400" /> Tìm kiếm
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
-          Tim bai tap, thuc pham, kien thuc dinh duong va nhom co trong cac thu vien hien co.
+          Tìm bài tập, thực phẩm, kiến thức dinh dưỡng và nhóm cơ trong các thư viện hiện có.
         </p>
       </div>
 
@@ -97,31 +97,31 @@ export function GlobalSearchPage() {
           data-testid="global-search-page-input"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Nhap tu khoa..."
+          placeholder="Nhập từ khóa..."
           className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-zinc-700/60 bg-zinc-900 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-emerald-500/40"
         />
       </form>
 
       {!canSearch ? (
         <div className="text-center py-16 text-sm text-zinc-500">
-          Nhap it nhat 2 ky tu de tim trong cac thu vien.
+          Nhập ít nhất 2 ký tự để tìm trong các thư viện.
         </div>
       ) : remoteQuery.isLoading ? (
         <div className="flex items-center justify-center py-16 text-zinc-500">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Dang tim...
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tìm...
         </div>
       ) : remoteQuery.isError ? (
         <div className="text-center py-16 text-sm text-rose-300">
-          Khong tai duoc ket qua tim kiem. Hay thu lai.
+          Không tải được kết quả tìm kiếm. Hãy thử lại.
         </div>
       ) : totalCount === 0 ? (
         <div className="text-center py-16 text-sm text-zinc-500">
-          Khong co ket qua phu hop voi "{q}".
+          Không có kết quả phù hợp với "{q}".
         </div>
       ) : (
         <div className="space-y-5" data-testid="global-search-results">
           <ResultGroup
-            title="Bai tap"
+            title="Bài tập"
             icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}
             count={exercises.length}
             viewAll={() => navigate(`/client/exercises?search=${encodeURIComponent(q)}`)}
@@ -145,7 +145,7 @@ export function GlobalSearchPage() {
           </ResultGroup>
 
           <ResultGroup
-            title="Thuc pham"
+            title="Thực phẩm"
             icon={<Apple className="w-4 h-4 text-rose-400" />}
             count={foods.length}
             viewAll={() => navigate(`/client/foods?search=${encodeURIComponent(q)}`)}
@@ -161,7 +161,7 @@ export function GlobalSearchPage() {
           </ResultGroup>
 
           <ResultGroup
-            title="Kien thuc"
+            title="Kiến thức"
             icon={<BookOpen className="w-4 h-4 text-amber-400" />}
             count={articles.length}
             viewAll={() => navigate("/client/learn/nutrition")}
@@ -177,7 +177,7 @@ export function GlobalSearchPage() {
           </ResultGroup>
 
           <ResultGroup
-            title="Nhom co"
+            title="Nhóm cơ"
             icon={<PersonStanding className="w-4 h-4 text-sky-400" />}
             count={muscles.length}
             viewAll={() => navigate(`/client/muscles?search=${encodeURIComponent(q)}`)}
@@ -219,7 +219,7 @@ function ResultGroup(props: {
           onClick={props.viewAll}
           className="text-xs font-semibold text-zinc-400 hover:text-zinc-200"
         >
-          Xem them
+          Xem thêm
         </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">{props.children}</div>

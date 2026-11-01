@@ -106,7 +106,7 @@ export function Topbar() {
   // Workspace badge config
   const workspaceBadge = isAdmin
     ? {
-        label: "Admin",
+        label: "Quản trị viên",
         bg: "bg-violet-500/10",
         border: "border-violet-500/20",
         text: "text-violet-400",
@@ -180,8 +180,8 @@ export function Topbar() {
               }`}
             >
               <User className="w-3 h-3" />
-              <AutoText className="hidden md:block" sourceLang="en">
-                Client
+              <AutoText className="hidden md:block">
+                Thành viên
               </AutoText>
             </button>
             <button
@@ -193,8 +193,8 @@ export function Topbar() {
               }`}
             >
               <Zap className="w-3 h-3" />
-              <AutoText className="hidden md:block" sourceLang="en">
-                Trainer
+              <AutoText className="hidden md:block">
+                Huấn luyện viên
               </AutoText>
             </button>
           </div>
@@ -206,7 +206,7 @@ export function Topbar() {
         >
           <div className={`w-1.5 h-1.5 rounded-full ${workspaceBadge.dot}`} />
           <span className={`text-xs font-semibold ${workspaceBadge.text}`}>
-            <AutoText sourceLang={workspaceBadge.label === "Admin" ? "en" : "vi"}>
+            <AutoText>
               {workspaceBadge.label}
             </AutoText>
           </span>
@@ -251,7 +251,7 @@ export function Topbar() {
                           ? <AutoText>Đang chờ xử lý</AutoText>
                           : <AutoText>Đang xử lý</AutoText>}{" "}
                         ·{" "}
-                        {new Date(task.createdAt).toLocaleTimeString([], {
+                        {new Date(task.createdAt).toLocaleTimeString("vi-VN", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -324,7 +324,7 @@ export function Topbar() {
                       <p className="text-sm text-zinc-200">{n.text}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-zinc-500">
-                          {new Date(n.createdAt).toLocaleTimeString([], {
+                          {new Date(n.createdAt).toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -381,7 +381,7 @@ export function Topbar() {
                         {user
                           ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
                             user.email.split("@")[0]
-                          : "Personal Profile"}
+                          : "Hồ sơ cá nhân"}
                       </p>
                       <p className="text-xs text-zinc-500">{user?.email}</p>
                     </div>

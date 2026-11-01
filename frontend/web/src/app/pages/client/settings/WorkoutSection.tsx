@@ -17,12 +17,12 @@ export function WorkoutSection() {
       icon={Dumbbell}
       iconColor="text-orange-400"
       iconBg="bg-orange-500/10 border-orange-500/20"
-      title="Tap luyen"
-      description="Hanh vi khi dang tap va thiet bi tap luyen cua ban"
+      title="Tập luyện"
+      description="Hành vi khi đang tập và thiết bị tập luyện của bạn"
     >
       <ToggleRow
-        label="Hien chi so RPE/RIR"
-        description="An/hien thanh truot RPE/RIR va phan giai thich khi ghi set trong buoi tap"
+        label="Hiện chỉ số RPE/RIR"
+        description="Ẩn/hiện thanh trượt RPE/RIR và phần giải thích khi ghi set trong buổi tập"
         checked={settings.showRpeRir}
         onChange={() => update({ showRpeRir: !settings.showRpeRir })}
         testId="settings-workout-show-rpe-rir"
@@ -30,8 +30,8 @@ export function WorkoutSection() {
 
       <ToggleRow
         icon={Sparkles}
-        label="Dien san thong minh"
-        description="Dung muc tieu hom nay hoac lan tap truoc de goi y gia tri cho set tiep theo"
+        label="Điền sẵn thông minh"
+        description="Dùng mục tiêu hôm nay hoặc lần tập trước để gợi ý giá trị cho set tiếp theo"
         checked={settings.smartPrefill}
         onChange={() => update({ smartPrefill: !settings.smartPrefill })}
         testId="settings-workout-smart-prefill"
@@ -42,10 +42,10 @@ export function WorkoutSection() {
           <Timer className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm text-zinc-200 font-semibold">
-              Nghi mac dinh
+              Nghỉ mặc định
             </p>
             <p className="text-xs text-zinc-500">
-              Dung khi bai tap hoac set khong co thoi gian nghi rieng
+              Dùng khi bài tập hoặc set không có thời gian nghỉ riêng
             </p>
           </div>
         </div>
@@ -62,13 +62,13 @@ export function WorkoutSection() {
             }
             className="w-20 px-2 py-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/60 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
           />
-          <span className="text-xs text-zinc-500">giay</span>
+          <span className="text-xs text-zinc-500">giây</span>
         </div>
       </div>
 
       <ToggleRow
-        label="Giu man hinh khi dang tap"
-        description="Bat/tat Screen Wake Lock khi dong ho buoi tap hoac timer nghi dang chay"
+        label="Giữ màn hình sáng khi đang tập"
+        description="Bật/tắt giữ màn hình sáng khi đồng hồ buổi tập hoặc bộ đếm giờ nghỉ đang chạy"
         checked={settings.keepScreenAwake}
         onChange={() => update({ keepScreenAwake: !settings.keepScreenAwake })}
         testId="settings-workout-keep-screen-awake"
@@ -76,8 +76,8 @@ export function WorkoutSection() {
 
       <ToggleRow
         icon={Volume2}
-        label="Am bao het gio nghi"
-        description="Phat beep ngan khi rest timer ve 0 neu trinh duyet cho phep am thanh"
+        label="Âm báo hết giờ nghỉ"
+        description="Phát tiếng bíp ngắn khi bộ đếm giờ nghỉ về 0, nếu trình duyệt cho phép âm thanh"
         checked={settings.restTimerSound}
         onChange={() => update({ restTimerSound: !settings.restTimerSound })}
         testId="settings-workout-rest-sound"
@@ -85,8 +85,8 @@ export function WorkoutSection() {
 
       <ToggleRow
         icon={Vibrate}
-        label="Rung khi het gio nghi"
-        description="Dung Vibration API tren thiet bi ho tro khi rest timer ket thuc"
+        label="Rung khi hết giờ nghỉ"
+        description="Rung trên thiết bị hỗ trợ khi bộ đếm giờ nghỉ kết thúc"
         checked={settings.restTimerVibration}
         onChange={() => update({ restTimerVibration: !settings.restTimerVibration })}
         testId="settings-workout-rest-vibration"
@@ -94,8 +94,8 @@ export function WorkoutSection() {
 
       <LinkRow
         icon={Dumbbell}
-        label="Thiet bi tap luyen"
-        description="Doi phong gym hoac cap nhat thiet bi ban co de loc bai tap phu hop"
+        label="Thiết bị tập luyện"
+        description="Đổi phòng gym hoặc cập nhật thiết bị bạn có để lọc bài tập phù hợp"
         to="/client/training-equipment"
         testId="settings-link-training-equipment"
       />

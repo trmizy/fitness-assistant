@@ -5,6 +5,7 @@ import { authService } from "../services/auth.service";
 import { authRepository } from "../repositories/auth.repository";
 import { adminAccountGuard } from "../services/admin-account-guard";
 import { sendPlainEmail } from "../services/email.service";
+import { resolveFrontendUrl } from "../config/frontend-url";
 import {
   registerStartSchema,
   registerVerifySchema,
@@ -34,6 +35,15 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
+// User ids are generated UUIDs. Anything else cannot exist, so admin routes answer 400 for a
+// malformed id instead of letting it reach the database (C1-05). Deliberately version-agnostic.
+const USER_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isWellFormedUserId(value: unknown): boolean {
+  return typeof value === "string" && USER_ID_SHAPE.test(value);
+}
+
+const LISTABLE_ROLES = ["CUSTOMER", "PT", "GYM_OWNER"];
+
 function getBearerToken(req: Request): string | null {
   const token = req.headers.authorization?.split(" ")[1];
   return token || null;
@@ -61,13 +71,30 @@ export const authController = {
         return;
       }
 
-      const roleParam = typeof req.query.role === "string" ? req.query.role.toUpperCase() : undefined;
-      const role = roleParam && ["CUSTOMER", "PT", "GYM_OWNER"].includes(roleParam) ? (roleParam as any) : undefined;
+      // C1-09: an unrecognised filter used to be silently ignored (every account came back).
+      // ADMIN is deliberately not listable here — this endpoint has always excluded admins.
+      const rawRole = req.query.role;
+      let role: any;
+      if (Array.isArray(rawRole) || (rawRole !== undefined && typeof rawRole !== "string")) {
+        res.status(400).json({ error: "Bộ lọc role không hợp lệ", code: "INVALID_ROLE_FILTER" });
+        return;
+      }
+      if (typeof rawRole === "string" && rawRole.trim() !== "") {
+        const roleParam = rawRole.trim().toUpperCase();
+        if (!LISTABLE_ROLES.includes(roleParam)) {
+          res.status(400).json({
+            error: `Bộ lọc role không hợp lệ (chấp nhận: ${LISTABLE_ROLES.join(", ")})`,
+            code: "INVALID_ROLE_FILTER",
+          });
+          return;
+        }
+        role = roleParam;
+      }
       const users = await authService.listUsers(role);
       res.json({ users });
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "List users error");
@@ -88,7 +115,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Register error");
@@ -114,7 +141,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Verify registration error");
@@ -136,7 +163,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Resend registration OTP error");
@@ -166,7 +193,7 @@ export const authController = {
         (Array.isArray(gatewaySecret) ? gatewaySecret[0] : gatewaySecret) === INTERNAL_SERVICE_SECRET;
       const trustedHeader = fromGateway ? req.headers["x-trusted-web-origin"] : undefined;
       const trustedOrigin = Array.isArray(trustedHeader) ? trustedHeader[0] : trustedHeader;
-      const linkBaseUrl = trustedOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+      const linkBaseUrl = trustedOrigin || resolveFrontendUrl();
       const result = await authService.requestPasswordReset(body.email, linkBaseUrl);
       res.json(result);
     } catch (error: any) {
@@ -177,7 +204,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Request password reset error");
@@ -203,7 +230,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Login error");
@@ -232,7 +259,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Refresh token error");
@@ -269,7 +296,7 @@ export const authController = {
       res.json({ user });
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Verify token error");
@@ -296,7 +323,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Update me error");
@@ -328,7 +355,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Change password error");
@@ -347,6 +374,11 @@ export const authController = {
       const actor = await authService.verifyToken(token);
       if (actor.role !== "ADMIN") {
         res.status(403).json({ error: "Forbidden: admin role required" });
+        return;
+      }
+
+      if (!isWellFormedUserId(req.params.userId)) {
+        res.status(400).json({ error: "userId không hợp lệ", code: "INVALID_USER_ID" });
         return;
       }
 
@@ -377,7 +409,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Update user role error");
@@ -503,6 +535,10 @@ export const authController = {
         res.status(403).json({ error: "Admin role required" });
         return;
       }
+      if (!isWellFormedUserId(req.params.userId)) {
+        res.status(400).json({ error: "userId không hợp lệ", code: "INVALID_USER_ID" });
+        return;
+      }
       const desired = req.body?.isActive;
       const isActive =
         desired !== undefined
@@ -548,7 +584,7 @@ export const authController = {
       res.json({ user: updated });
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "setUserActive error");
@@ -574,6 +610,10 @@ export const authController = {
         res.status(403).json({ error: "Admin role required" });
         return;
       }
+      if (!isWellFormedUserId(req.params.userId)) {
+        res.status(400).json({ error: "userId không hợp lệ", code: "INVALID_USER_ID" });
+        return;
+      }
       const body = updateMeSchema.parse(req.body);
       const result = await authService.updateUserNameAsAdmin(req.params.userId, body);
       res.json(result);
@@ -583,7 +623,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "updateUserName error");
@@ -654,7 +694,7 @@ export const authController = {
       res.status(404).json({ error: "Thao tác không tồn tại" });
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "partnerAuthInternal error");
@@ -678,7 +718,7 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "resetPassword error");
@@ -715,7 +755,7 @@ export const authController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
         return;
       }
       logger.error(error, "Internal update user role error");

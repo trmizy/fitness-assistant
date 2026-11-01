@@ -72,14 +72,31 @@ export const socialLinksSchema = z.object({
 
 export const applicationBranchSchema = gymCreateSchema.omit({ facilities: true }).partial();
 
+export const TAX_CODE_PATTERN = /^\d{10}(-?\d{3})?$/;
+export const BUSINESS_LICENSE_PATTERN = /^(?=.*\d)[\p{L}\p{N}][\p{L}\p{N}\s\-./]{2,49}$/u;
+
 export const legalSchema = z.object({
   legalName: z
     .string({ required_error: 'Tên pháp lý là bắt buộc' })
     .trim()
     .min(2, 'Tên pháp lý quá ngắn')
     .max(200),
-  taxCode: z.string().trim().max(30).nullable().optional(),
-  businessLicenseNo: z.string().trim().max(50).nullable().optional(),
+  // C1-07: mã số thuế Việt Nam = 10 số (doanh nghiệp) hoặc 13 số (đơn vị phụ thuộc, dạng 0312345678-001 hoặc 0312345678001). Để trống = chưa nhập.
+  taxCode: z
+    .string()
+    .trim()
+    .max(30)
+    .refine((v) => v === '' || TAX_CODE_PATTERN.test(v), { message: 'Mã số thuế phải gồm 10 chữ số, hoặc 13 chữ số (10 số + 3 số chi nhánh, ví dụ 0312345678-001)' })
+    .nullable()
+    .optional(),
+  // C1-07: nếu có nhập thì phải là số giấy phép thật (chữ/số/dấu - . /, tối thiểu 3 ký tự, có ít nhất một chữ số); để trống = chưa nhập (bước này không bắt buộc, hồ sơ vẫn nộp được).
+  businessLicenseNo: z
+    .string()
+    .trim()
+    .max(50)
+    .refine((v) => v === '' || BUSINESS_LICENSE_PATTERN.test(v), { message: 'Số giấy phép kinh doanh không hợp lệ — chỉ gồm chữ, số và các dấu - . /, ít nhất 3 ký tự' })
+    .nullable()
+    .optional(),
 });
 
 const DOC_TYPES = [

@@ -7,8 +7,8 @@ import { partnerGuard } from './partner-guard.service';
 import { gymPublicWhere } from './gym-public';
 import { withCollaborationLifecycle } from './collaboration-lifecycle';
 
-function err(message: string, status: number) {
-  return Object.assign(new Error(message), { status });
+function err(message: string, status: number, code?: string) {
+  return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
 }
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
@@ -42,14 +42,14 @@ const TERMINATION_DATE_GRACE_MS = 60 * 1000;
  */
 export function validateRates(ptRate: Prisma.Decimal, gymRate: Prisma.Decimal, platformRate: Prisma.Decimal): void {
   if (ptRate.lessThan(0) || gymRate.lessThan(0) || platformRate.lessThan(0)) {
-    throw err('Tỷ lệ không được âm', 400);
+    throw err('Tỷ lệ không được âm', 400, 'RATE_OUT_OF_RANGE');
   }
   if (platformRate.lessThan(MIN_PLATFORM_RATE)) {
-    throw err(`Tỷ lệ nền tảng không được nhỏ hơn ${MIN_PLATFORM_RATE.toString()}`, 400);
+    throw err(`Tỷ lệ nền tảng không được nhỏ hơn ${MIN_PLATFORM_RATE.toString()}`, 400, 'PLATFORM_RATE_TOO_LOW');
   }
   const sum = ptRate.plus(gymRate).plus(platformRate);
   if (!sum.equals(ONE)) {
-    throw err(`Tổng ba tỷ lệ phải bằng đúng 1, hiện là ${sum.toString()}`, 400);
+    throw err(`Tổng ba tỷ lệ phải bằng đúng 1, hiện là ${sum.toString()}`, 400, 'RATES_MUST_SUM_TO_ONE');
   }
 }
 
@@ -218,9 +218,30 @@ async function finalizeIfEffective<T extends { id: string; gymId: string; ptUser
   return { ...row, ...real };
 }
 
+const RATE_LABELS = { ptRate: 'PT', gymRate: 'phòng gym', platformRate: 'nền tảng' } as const;
+
+/**
+ * C1-04 - one rate from the request body -> Decimal. A missing / blank / non-numeric value used to reach `new Decimal(undefined)` and
+ * surface as a 500 "[DecimalError]"; it is now a 400 with a code. Each rate must lie within [0, 1] (they are shares of one whole).
+ */
+function parseRate(raw: unknown, field: keyof typeof RATE_LABELS): Prisma.Decimal {
+  const label = RATE_LABELS[field];
+  if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+    throw err(`Thiếu tỷ lệ của ${label}`, 400, 'RATE_REQUIRED');
+  }
+  if (typeof raw !== 'string' && typeof raw !== 'number' && !(raw instanceof Prisma.Decimal)) {
+    throw err(`Tỷ lệ của ${label} phải là một con số`, 400, 'RATE_INVALID');
+  }
+  const text = raw.toString().trim();
+  if (!/^-?\d+(\.\d+)?$/.test(text)) throw err(`Tỷ lệ của ${label} phải là một con số, ví dụ 0.25`, 400, 'RATE_INVALID');
+  const value = D(text);
+  if (value.lessThan(0) || value.greaterThan(1)) throw err(`Tỷ lệ của ${label} phải nằm trong khoảng từ 0 đến 1`, 400, 'RATE_OUT_OF_RANGE');
+  return value;
+}
+
 /** Parse + validate a rate table in one place — the legacy and brand flows must never drift apart on this. */
-function parseRates(ptRate: Prisma.Decimal.Value, gymRate: Prisma.Decimal.Value, platformRate: Prisma.Decimal.Value) {
-  const rates = { ptRate: D(ptRate), gymRate: D(gymRate), platformRate: D(platformRate) };
+function parseRates(ptRate: unknown, gymRate: unknown, platformRate: unknown) {
+  const rates = { ptRate: parseRate(ptRate, 'ptRate'), gymRate: parseRate(gymRate, 'gymRate'), platformRate: parseRate(platformRate, 'platformRate') };
   validateRates(rates.ptRate, rates.gymRate, rates.platformRate);
   return rates;
 }
@@ -253,7 +274,7 @@ function planCounter(
     return { status: 'EXPIRED' as const, note: `Quá ${MAX_ROUNDS} vòng thương thảo mà chưa thống nhất` };
   }
   if (params.ptRate === undefined || params.gymRate === undefined) {
-    throw err('Đề xuất lại phải kèm tỷ lệ mới', 400);
+    throw err('Đề xuất lại phải kèm tỷ lệ mới', 400, 'RATE_REQUIRED');
   }
   const { ptRate, gymRate, platformRate } = parseRates(params.ptRate, params.gymRate, params.platformRate ?? fresh.platformRate);
   return {

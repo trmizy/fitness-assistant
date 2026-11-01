@@ -166,7 +166,9 @@ function AppShellInner() {
               // ChatPage's own `h-full` was resolving against `auto`, not the real box height.
               // min-h-0 lets this shrink back down for a page taller than the viewport, so
               // `<main>`'s own overflow-y-auto still scrolls the whole page exactly as before.
-              className="flex-1 flex flex-col min-h-0"
+              // w-full/min-w-0 on every page root: a root with `mx-auto` in a flex column does not stretch, it shrink-wraps to its
+              // content - and one nowrap chip row inside pushed it to its max-w (up to 744px) on a 360px screen, clipped by overflow-x-hidden.
+              className="flex-1 flex flex-col min-h-0 min-w-0 [&>*]:w-full [&>*]:min-w-0"
             >
               {/* Vòng 4 / Phase D2 — routes.tsx now lazy()s every page; this Suspense boundary
                   is scoped to JUST the content area (inside main, inside the animated box)

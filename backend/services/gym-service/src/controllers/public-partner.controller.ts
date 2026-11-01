@@ -7,6 +7,9 @@ function fail(res: Response, e: any) {
 }
 
 const MIN_PASSWORD_LENGTH = 8;
+/** C1-03 - cùng chính sách mật khẩu với đăng ký thường (auth-service models/auth.models.ts: PASSWORD_COMPLEXITY = chữ thường + chữ hoa + chữ số, tối thiểu 8). */
+const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+export const PASSWORD_COMPLEXITY_MESSAGE = 'Mật khẩu phải có chữ hoa, chữ thường và chữ số';
 
 /**
  * B11 - lỗi từ auth-service khi lập tài khoản cho người nhận lời mời. axios ném "Request failed with status code 400" và
@@ -64,6 +67,10 @@ export const publicPartnerController = {
       }
       if (password.length < MIN_PASSWORD_LENGTH) {
         res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự` } });
+        return;
+      }
+      if (!PASSWORD_COMPLEXITY.test(password)) {
+        res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: PASSWORD_COMPLEXITY_MESSAGE } });
         return;
       }
       const invitation = await partnerInvitationService.validateToken(req.params.token);

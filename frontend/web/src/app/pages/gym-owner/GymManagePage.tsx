@@ -242,13 +242,13 @@ export function GymManagePage() {
   }
 
   if (!gym) {
-    return <div className="p-6 max-w-3xl mx-auto text-center text-zinc-500">Gym not found</div>;
+    return <div className="p-6 max-w-3xl mx-auto text-center text-zinc-500">Không tìm thấy phòng gym</div>;
   }
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">
       <button type="button" onClick={() => navigate("/gym-owner/gyms")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300">
-        <ArrowLeft className="w-4 h-4" /> Back to my gyms
+        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách phòng gym
       </button>
 
       <div className="flex items-start justify-between gap-3">
@@ -705,9 +705,9 @@ export function GymManagePage() {
 
       {/* Memberships */}
       <div>
-        <h2 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-1.5"><Users className="w-4 h-4" /> Members ({memberships.length})</h2>
+        <h2 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-1.5"><Users className="w-4 h-4" /> Hội viên ({memberships.length})</h2>
         {memberships.length === 0 ? (
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-sm text-zinc-500">No members yet</div>
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-sm text-zinc-500">Chưa có hội viên</div>
         ) : (
           <div className="space-y-2">
             {memberships.map((m) => (

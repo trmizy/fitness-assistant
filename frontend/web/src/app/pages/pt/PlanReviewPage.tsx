@@ -106,7 +106,7 @@ export function PlanReviewPage() {
                     {getInitials(p.clientName)}
                   </div>
                   <span className="text-sm font-bold text-zinc-200 truncate">
-                    {p.clientName || "Client"}
+                    {p.clientName || "Khách hàng"}
                   </span>
                 </div>
                 <div className="text-xs text-zinc-500 truncate">
@@ -128,7 +128,7 @@ export function PlanReviewPage() {
                   <div>
                     <h3 className="text-zinc-100 flex items-center gap-2">
                       <User className="w-4 h-4 text-zinc-400" />
-                      {selected.clientName || "Client"} —{" "}
+                      {selected.clientName || "Khách hàng"} —{" "}
                       {selected.name || selected.goal}
                     </h3>
                     <p className="text-sm text-zinc-500 mt-0.5">

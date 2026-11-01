@@ -38,6 +38,7 @@ const errMessage = (e: any, fallback: string) => {
 const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Đang hiển thị",
   PENDING: "Chờ duyệt",
+  PENDING_REVIEW: "Chờ duyệt",
   DRAFT: "Bản nháp",
   REJECTED: "Bị từ chối",
   SUSPENDED: "Tạm khoá",
@@ -71,7 +72,12 @@ export function GymOwnerProfilePage() {
   const brandName = brand ? brand.approvedName ?? brand.name : null;
 
   // ── Thương hiệu ──
-  const [brandForm, setBrandForm] = useState({ name: "", description: "", ...({} as Record<SocialKey, string>) });
+  const [brandForm, setBrandForm] = useState({
+    name: "",
+    description: "",
+    // Khởi tạo đủ các ô mạng xã hội bằng chuỗi rỗng — nếu để undefined, ô input đổi từ uncontrolled sang controlled khi dữ liệu về.
+    ...(Object.fromEntries(SOCIALS.map((so) => [so.key, ""])) as Record<SocialKey, string>),
+  });
   useEffect(() => {
     if (!brand) return;
     setBrandForm({

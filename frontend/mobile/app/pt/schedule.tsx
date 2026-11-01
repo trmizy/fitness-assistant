@@ -31,6 +31,8 @@ import {
 import { availabilityService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { SlotCalendarPicker } from "../../src/features/services/SlotCalendarPicker";
+import { RESCHEDULE_LEAD_HOURS } from "../../src/features/services/sessions";
 import { JoinSessionButton } from "../../src/features/call/JoinSessionButton";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import {
@@ -102,8 +104,8 @@ export default function PtScheduleScreen() {
   const [denyFor, setDenyFor] = useState<any>(null);
   const [denyNote, setDenyNote] = useState("");
   const [proposeFor, setProposeFor] = useState<any>(null);
-  const [proposeDate, setProposeDate] = useState("");
-  const [proposeTime, setProposeTime] = useState("");
+  const [proposeDate, setProposeDate] = useState<string | null>(null);
+  const [proposeTime, setProposeTime] = useState<string | null>(null);
   const [proposeReason, setProposeReason] = useState("");
   const exceptions: any[] = Array.isArray(exceptionsQuery.data) ? exceptionsQuery.data : [];
 
@@ -453,9 +455,8 @@ export default function PtScheduleScreen() {
                             icon={CalendarClock}
                             disabled={busy}
                             onPress={() => {
-                              const d = new Date(s.scheduledStartAt);
-                              setProposeDate(isoDate(d.getFullYear(), d.getMonth(), d.getDate()));
-                              setProposeTime(sessionTimeLabel(s.scheduledStartAt));
+                              setProposeDate(null);
+                              setProposeTime(null);
                               setProposeReason("");
                               setProposeFor(s);
                             }}
@@ -502,19 +503,33 @@ export default function PtScheduleScreen() {
       </BottomSheet>
 
       <BottomSheet open={!!proposeFor} onClose={() => setProposeFor(null)} title="Xin dời lịch">
+        <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View className="gap-3 pb-2">
           <Text className="font-body text-sm text-muted-foreground">
             Học viên phải đồng ý thì buổi mới chuyển. Chỉ xin dời được khi còn ít nhất{" "}
             {RESCHEDULE_MIN_NOTICE_HOURS} giờ trước buổi tập.
           </Text>
-          <Input label="Ngày mới (YYYY-MM-DD)" value={proposeDate} onChangeText={setProposeDate} />
-          <Input label="Giờ mới (HH:MM)" value={proposeTime} onChangeText={setProposeTime} />
+          {/* The trainer's own free slots, 24h lead, inside the contract — what the server accepts. */}
+          <SlotCalendarPicker
+            key={proposeFor?.id ?? "closed"}
+            ptUserId={proposeFor?.ptUserId ?? user?.id}
+            leadHours={RESCHEDULE_LEAD_HOURS}
+            contractEnd={proposeFor?.contract?.endDate}
+            contractStart={proposeFor?.contract?.startDate}
+            date={proposeDate}
+            time={proposeTime}
+            onChange={(d, t) => {
+              setProposeDate(d);
+              setProposeTime(t);
+            }}
+            emptyDayText={"Bạn không còn khung giờ trống trong ngày này. Dời lịch cần cách hiện tại ít nhất " + RESCHEDULE_LEAD_HOURS + " giờ."}
+          />
           <Input label="Lý do" value={proposeReason} onChangeText={setProposeReason} placeholder="Tôi bận đột xuất giờ đó…" multiline />
           <Button
             full
             disabled={
-              !/^\d{4}-\d{2}-\d{2}$/.test(proposeDate) ||
-              !/^([01]\d|2[0-3]):[0-5]\d$/.test(proposeTime) ||
+              !proposeDate ||
+              !proposeTime ||
               proposeReschedule.isPending
             }
             onPress={() => proposeReschedule.mutate()}
@@ -522,6 +537,7 @@ export default function PtScheduleScreen() {
             {proposeReschedule.isPending ? "Đang gửi…" : "Gửi đề nghị"}
           </Button>
         </View>
+        </ScrollView>
       </BottomSheet>
     </View>
   );

@@ -187,7 +187,8 @@ docker exec gymcoach-auth-dev printenv PARTNER_APPLICATION_DEV_ECHO
 docker exec gymcoach-gym-dev printenv PARTNER_APPLICATION_DEV_ECHO
 ```
 
-The last three commands must print `false`. The override explicitly applies migrations to fitness instead of its original `db push --accept-data-loss && db seed`; AI ingestion into shared Qdrant is also skipped. SMTP is disabled during seeding. Do not start the original compose alone against the fresh target.
+The last three commands must print `false`: `VNPAY_SIMULATE=true` is set only by `compose.seedrun.override.yml` for the seed run, and `compose.seedrun.ready.override.yml` (always the LAST file) turns it off again.
+`compose.restore.override.yml` restores each service's original dev startup, including `prisma migrate deploy` (fitness uses `migrate deploy` instead of `db push --accept-data-loss`; ai skips Qdrant ingestion), so a restart still applies pending migrations. The override explicitly applies migrations to fitness instead of its original `db push --accept-data-loss && db seed`; AI ingestion into shared Qdrant is also skipped. SMTP is disabled during seeding. Do not start the original compose alone against the fresh target.
 
 For a partial or complete rerun, re-enable the seed override first, then use the same command with `--reseed`. No database reset is needed. `fresh` performs an empty-business-data check on first use and requires its matching local `.runtime` receipt for `--reseed`; `partner` requires the explicit environment confirmation and retains collision/production/local-host guards. Never copy a fresh receipt to authorize a different database set. Token and audit rows produced by real authentication are reported separately from business writes.
 

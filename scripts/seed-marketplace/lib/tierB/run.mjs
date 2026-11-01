@@ -76,10 +76,12 @@ export async function runTierB(ctx, { only, limit } = {}) {
     ctx.log(`[tierB] ${label}`);
     try {
       await fn();
+      return true;
     } catch (e) {
       ctx.errors.push({ step: label, error: String(e.message).slice(0, 300) });
       ctx.log(`[tierB] ! ${label}: ${e.message}`);
       if (ctx.failFast) throw e;
+      return false;
     }
   };
 
@@ -87,17 +89,31 @@ export async function runTierB(ctx, { only, limit } = {}) {
   else ctx.catalog = ctx.catalog ?? new Map();
 
   if (want("pts")) {
+    ctx.disabledPts = new Set(); // disabled AND scenario complete: skipped entirely (zero writes)
+    ctx.incompletePts = new Set(); // scenario not finished in this run: their flags (disable, restrictions) must not run
+    const pts = world.pts.slice(0, limit ?? Infinity);
     if (!ctx.client.dryRun) {
-      const users = unwrap(await ctx.client.call("GET", "/auth/users?role=PT", { token: await F.adminToken(ctx), expect: [200] }));
-      ctx.disabledPts = new Set((users?.users ?? []).filter(u => u.isActive === false).map(u => u.id));
+      const users = unwrap(await ctx.client.call("GET", "/auth/users", { token: await F.adminToken(ctx), expect: [200] }));
+      const off = new Set((users?.users ?? []).filter((u) => u.isActive === false).map((u) => u.id));
+      for (const pt of pts) {
+        // seed-domain accounts only (the planned e-mail always ends with the seed domain)
+        if (!off.has(pt.userId) || !pt.email.endsWith("@seed.gymini.test")) continue;
+        if (await F.ptScenarioComplete(ctx, pt)) {
+          ctx.disabledPts.add(pt.userId);
+          if (!pt.flags.suspended) ctx.warnings.push(`${pt.email}: account is disabled although the scenario does not suspend it; left alone`);
+        } else {
+          // locked by an earlier run before its application/listing was finished: enable, complete, flags step locks it again
+          await step(`pt ${pt.slug} re-enable (incomplete scenario)`, () => F.setAccountActive(ctx, pt.userId, true));
+        }
+      }
     }
-    for (const pt of world.pts.slice(0, limit ?? Infinity)) {
-      if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) continue;
-      await step(`pt ${pt.slug} application`, () => F.ensurePtApplication(ctx, pt));
+    for (const pt of pts) {
+      if (ctx.disabledPts.has(pt.userId)) continue;
+      if (!(await step(`pt ${pt.slug} application`, () => F.ensurePtApplication(ctx, pt)))) ctx.incompletePts.add(pt.userId);
     }
-    for (const pt of world.pts.slice(0, limit ?? Infinity)) {
-      if (ctx.disabledPts?.has(pt.userId) && pt.flags.suspended) continue;
-      await step(`pt ${pt.slug} listing`, () => F.ensurePtListing(ctx, pt));
+    for (const pt of pts) {
+      if (ctx.disabledPts.has(pt.userId) || ctx.incompletePts.has(pt.userId)) continue;
+      if (!(await step(`pt ${pt.slug} listing`, () => F.ensurePtListing(ctx, pt)))) ctx.incompletePts.add(pt.userId);
     }
   }
 
@@ -190,8 +206,8 @@ export async function runTierB(ctx, { only, limit } = {}) {
   // restrictions need contracts to exist first
   if (want("pts")) {
     for (const pt of world.pts.slice(0, limit ?? Infinity)) {
-      await step(`pt ${pt.slug} flags`, () => F.ensurePtFlags(ctx, pt));
-      if (pt.flags.contractRestricted) {
+      if (!(await step(`pt ${pt.slug} flags`, () => F.ensurePtFlags(ctx, pt)))) ctx.incompletePts?.add(pt.userId);
+      if (pt.flags.contractRestricted && !ctx.disabledPts?.has(pt.userId) && !ctx.incompletePts?.has(pt.userId)) {
         await step(`pt ${pt.slug} contract restriction`, async () => {
           const admin = await F.adminToken(ctx);
           const token = await ctx.client.login(pt.email).catch(() => null);

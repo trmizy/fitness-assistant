@@ -39,9 +39,9 @@ test.after(async () => {
 
 type Row = { id: string; email: string; role: string; isActive: boolean };
 const users: Record<string, Row> = {
-  "admin-1": { id: "admin-1", email: "a1@example.com", role: "ADMIN", isActive: true },
-  "admin-2": { id: "admin-2", email: "a2@example.com", role: "ADMIN", isActive: true },
-  "pt-1": { id: "pt-1", email: "pt@example.com", role: "PT", isActive: true },
+  "11111111-1111-4111-8111-111111111111": { id: "11111111-1111-4111-8111-111111111111", email: "a1@example.com", role: "ADMIN", isActive: true },
+  "22222222-2222-4222-8222-222222222222": { id: "22222222-2222-4222-8222-222222222222", email: "a2@example.com", role: "ADMIN", isActive: true },
+  "33333333-3333-4333-8333-333333333333": { id: "33333333-3333-4333-8333-333333333333", email: "pt@example.com", role: "PT", isActive: true },
 };
 
 function setup(activeAdmins: number) {
@@ -74,7 +74,7 @@ async function call(path: string, userId: string, body: object = {}) {
 test("admin disabling their own account -> 403 CANNOT_DISABLE_SELF, no write", async () => {
   const { writes, restore } = setup(2);
   try {
-    const r = await call("admin-1/disable", "admin-1");
+    const r = await call("11111111-1111-4111-8111-111111111111/disable", "11111111-1111-4111-8111-111111111111");
     assert.equal(r.status, 403);
     assert.equal(r.json.code, "CANNOT_DISABLE_SELF");
     assert.equal(writes.length, 0);
@@ -86,7 +86,7 @@ test("admin disabling their own account -> 403 CANNOT_DISABLE_SELF, no write", a
 test("admin sending isActive:false to the enable route for themselves is also blocked", async () => {
   const { writes, restore } = setup(2);
   try {
-    const r = await call("admin-1/enable", "admin-1", { isActive: false });
+    const r = await call("11111111-1111-4111-8111-111111111111/enable", "11111111-1111-4111-8111-111111111111", { isActive: false });
     assert.equal(r.status, 403);
     assert.equal(r.json.code, "CANNOT_DISABLE_SELF");
     assert.equal(writes.length, 0);
@@ -98,7 +98,7 @@ test("admin sending isActive:false to the enable route for themselves is also bl
 test("admin changing their own role -> 403 CANNOT_CHANGE_OWN_ROLE, no write", async () => {
   const { writes, restore } = setup(2);
   try {
-    const r = await call("admin-1/role", "admin-1", { role: "CUSTOMER" });
+    const r = await call("11111111-1111-4111-8111-111111111111/role", "11111111-1111-4111-8111-111111111111", { role: "CUSTOMER" });
     assert.equal(r.status, 403);
     assert.equal(r.json.code, "CANNOT_CHANGE_OWN_ROLE");
     assert.equal(writes.length, 0);
@@ -110,7 +110,7 @@ test("admin changing their own role -> 403 CANNOT_CHANGE_OWN_ROLE, no write", as
 test("disabling the last active admin -> 409 LAST_ADMIN, no write", async () => {
   const { writes, restore } = setup(1);
   try {
-    const r = await call("admin-2/disable", "admin-1");
+    const r = await call("22222222-2222-4222-8222-222222222222/disable", "11111111-1111-4111-8111-111111111111");
     assert.equal(r.status, 409);
     assert.equal(r.json.code, "LAST_ADMIN");
     assert.equal(writes.length, 0);
@@ -122,7 +122,7 @@ test("disabling the last active admin -> 409 LAST_ADMIN, no write", async () => 
 test("disabling another admin while two are active still works", async () => {
   const { writes, restore } = setup(2);
   try {
-    const r = await call("admin-2/disable", "admin-1");
+    const r = await call("22222222-2222-4222-8222-222222222222/disable", "11111111-1111-4111-8111-111111111111");
     assert.equal(r.status, 200);
     assert.equal(writes.length, 1);
   } finally {
@@ -133,9 +133,9 @@ test("disabling another admin while two are active still works", async () => {
 test("disabling / re-roling a non-admin by an admin is unchanged (200)", async () => {
   const { writes, restore } = setup(1);
   try {
-    const d = await call("pt-1/disable", "admin-1");
+    const d = await call("33333333-3333-4333-8333-333333333333/disable", "11111111-1111-4111-8111-111111111111");
     assert.equal(d.status, 200);
-    const e = await call("pt-1/role", "admin-1", { role: "CUSTOMER" });
+    const e = await call("33333333-3333-4333-8333-333333333333/role", "11111111-1111-4111-8111-111111111111", { role: "CUSTOMER" });
     assert.equal(e.status, 200);
     assert.equal(writes.length, 2);
   } finally {

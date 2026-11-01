@@ -230,6 +230,27 @@ export function BookingPage() {
     else if (cm === "OFFLINE") setSessionMode("OFFLINE");
   }, [selectedContract?.id]);
 
+  // Which weekdays the selected PT works (public weekly hours, same source the slot list is
+  // built from). Only used to HIGHLIGHT bookable days on the calendar - nothing is disabled by
+  // it, and the slot list / server-side booking rules (>= 24h lead, availability, contract
+  // validity) stay exactly as they were.
+  const { data: ptWeeklyHours = [] } = useQuery({
+    queryKey: ["pt-weekly-hours", selectedContract?.ptUserId],
+    queryFn: () => availabilityService.getAvailability(selectedContract!.ptUserId),
+    enabled: !!selectedContract?.ptUserId,
+    staleTime: 60_000,
+  });
+  // weekday (0 = Sunday) -> the latest minute-of-day a PT's working window ends
+  const ptLatestEndByWeekday = new Map<number, number>();
+  for (const s of (Array.isArray(ptWeeklyHours) ? ptWeeklyHours : []) as Array<{ dayOfWeek?: string; endTime?: string; isActive?: boolean }>) {
+    if (s.isActive === false) continue;
+    const wd = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"].indexOf(String(s.dayOfWeek).toUpperCase());
+    const [hh, mm] = String(s.endTime ?? "").split(":").map(Number);
+    if (wd < 0 || !Number.isFinite(hh)) continue;
+    const endMin = hh * 60 + (Number.isFinite(mm) ? mm : 0);
+    ptLatestEndByWeekday.set(wd, Math.max(ptLatestEndByWeekday.get(wd) ?? 0, endMin));
+  }
+
   // Fetch upcoming sessions
   const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
     queryKey: ["sessions-upcoming"],
@@ -678,6 +699,15 @@ export function BookingPage() {
                       const hasSession = bookedDays.has(
                         `${year}-${month}-${day}`,
                       );
+                      // Highlighted = the PT works that weekday AND the last one-hour start of
+                      // their working window is at least 24h from now (the booking lead rule),
+                      // so a highlighted day always has hours to pick; the slot list then shows
+                      // which of them are actually still free.
+                      const latestEnd = ptLatestEndByWeekday.get(dateObj.getDay());
+                      const isBookable =
+                        !disabled &&
+                        latestEnd !== undefined &&
+                        dateObj.getTime() + (latestEnd - 60) * 60_000 >= Date.now() + 24 * 60 * 60 * 1000;
                       return (
                         <button
                           key={day}
@@ -696,7 +726,9 @@ export function BookingPage() {
                                   ? "bg-green-500/15 text-green-400 border border-green-500/30"
                                   : disabled
                                     ? "text-zinc-700 cursor-not-allowed"
-                                    : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                                    : isBookable
+                                      ? "bg-green-500/10 text-green-300 border border-green-500/25 hover:bg-green-500/20"
+                                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                           }`}
                         >
                           {day}
@@ -712,12 +744,20 @@ export function BookingPage() {
                       );
                     })}
                   </div>
-                  {bookedDays.size > 0 && (
-                    <div className="flex items-center gap-1.5 mt-3 text-[11px] text-zinc-500">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      Ngày đã có buổi tập
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[11px] text-zinc-500">
+                    {ptLatestEndByWeekday.size > 0 && (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-green-500/20 border border-green-500/40" />
+                        Ngày có thể đặt - bấm để xem giờ trống
+                      </span>
+                    )}
+                    {bookedDays.size > 0 && (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        Ngày đã có buổi tập
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Time slots + booking form */}
@@ -725,7 +765,7 @@ export function BookingPage() {
                   {selectedDate ? (
                     <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 shadow-xl">
                       <h4 className="text-sm font-bold text-zinc-200 mb-1">
-                        Khung giờ trống – {MONTHS[month]} {selectedDate}
+                        Khung giờ trống – ngày {selectedDate} {MONTHS[month].toLowerCase()}
                       </h4>
                       <p className="text-xs text-zinc-500 mb-3">
                         Chọn giờ cho buổi tập của bạn

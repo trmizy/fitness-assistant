@@ -26,7 +26,7 @@ export function EntityCard({ title, subtitle, badge, meta, onClick, actions, cla
     <div
       onClick={onClick}
       className={cn(
-        "rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition-colors",
+        "min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition-colors",
         onClick && "cursor-pointer hover:border-zinc-700 hover:bg-zinc-900 active:bg-zinc-800/60",
         className,
       )}

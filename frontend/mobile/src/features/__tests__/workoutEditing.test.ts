@@ -125,8 +125,8 @@ describe("exercise actions", () => {
   });
 
   it("set type labels default to working", () => {
-    assert.equal(setTypeLabel(null), "Working");
-    assert.equal(setTypeLabel("TOP"), "Top set");
+    assert.equal(setTypeLabel(null), "Set chính");
+    assert.equal(setTypeLabel("TOP"), "Set đỉnh");
   });
 
   it("feedback opens only when a cycle session closes", () => {

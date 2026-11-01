@@ -19,7 +19,7 @@ function keyFor(req: Request): string {
     .toString()
     .split(",")[0]
     .trim();
-  const email = (req.body?.email || "").toString().toLowerCase();
+  const email = (req.body?.email || "").toString().trim().toLowerCase();
   return `${ip}|${email}`;
 }
 

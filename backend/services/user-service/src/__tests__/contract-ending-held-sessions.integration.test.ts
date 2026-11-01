@@ -158,14 +158,14 @@ for (const reason of ["CLIENT_CANCELLED", "EXPIRED", "MUTUAL", "PT_BANNED"] as c
       assert.equal(confirmed.quotaDeducted, true);
       assert.deepEqual(ledger.resolve.map((r) => `${r.idempotencyKey}:${r.outcome}`), [`UNRESOLVED_SESSION:${ids.pending}:DELIVERED`]);
       assert.equal(ledger.release.length, 0, "no ordinary SESSION_RELEASE on an ended contract");
-      await assert.rejects(bookingService.clientConfirmSession(ids.pending, c.clientUserId), /Cannot confirm/);
+      await assert.rejects(bookingService.clientConfirmSession(ids.pending, c.clientUserId), /Không thể xác nhận buổi tập/);
 
       await bookingService.resolveDispute(ids.disputed, ADMIN, "PT_NO_SHOW_CONFIRMED", "PT vắng");
       assert.equal(await statusOf(ids.disputed), "NO_SHOW");
       assert.equal(ledger.resolve.length, 2);
       assert.equal(ledger.resolve[1].outcome, "NOT_DELIVERED");
       assert.equal(ledger.noShow.length, 0, "the held value is refunded once - no second compensation drawn from the PT's pool");
-      await assert.rejects(bookingService.resolveDispute(ids.disputed, ADMIN, "COMPLETED", "lại"), /not disputed/);
+      await assert.rejects(bookingService.resolveDispute(ids.disputed, ADMIN, "COMPLETED", "lại"), /không ở trạng thái đang khiếu nại/);
 
       const after = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
       assert.equal(after.usedSessions, 3, "2 + the confirmed one; the no-show does not count");

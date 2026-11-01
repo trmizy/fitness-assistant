@@ -1,5 +1,5 @@
 # Keep seeded databases available for manual testing, but disable temporary seed capabilities.
-# Apply after compose.seedrun.override.yml and compose.restore.override.yml.
+# Apply LAST, after compose.seedrun.override.yml and compose.restore.override.yml: it is what turns VNPAY_SIMULATE (and the partner-application dev echo) back to "false".
 services:
   auth-service:
     environment:

@@ -78,6 +78,7 @@ const CLIENT_BREAKDOWN_FIELDS = [
   "remaining",
   "refundIfCancelledNow",
   "refundEstimateAvailable",
+  "refundEstimateUnavailableReason",
   "reasonUsed",
   "canExitWithoutPenalty",
   "exitReasonIfCancelledNow",

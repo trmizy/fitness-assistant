@@ -47,6 +47,7 @@ import {
   type BranchIssueDraft,
   type GymEditForm,
 } from "../../../src/features/admin/adminGyms";
+import { emailInputProps } from "../../../src/lib/email";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -472,8 +473,7 @@ export default function AdminGymDetailScreen() {
             <Input
               label="Email"
               value={edit.email}
-              autoCapitalize="none"
-              keyboardType="email-address"
+              {...emailInputProps}
               onChangeText={(v) => setEdit({ ...edit, email: v })}
             />
             <Input label="Mô tả" value={edit.description} multiline onChangeText={(v) => setEdit({ ...edit, description: v })} />

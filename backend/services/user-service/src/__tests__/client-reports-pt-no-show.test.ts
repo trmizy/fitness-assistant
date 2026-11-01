@@ -175,7 +175,7 @@ test("someone other than the client cannot report on their behalf", async () => 
   const restore = patch(sessionRepository, "findById", async () => session as any);
 
   try {
-    await assert.rejects(() => bookingService.reportPtNoShow(sessionId, "someone-else", "reason"), /Not authorized/);
+    await assert.rejects(() => bookingService.reportPtNoShow(sessionId, "someone-else", "reason"), /không có quyền/);
   } finally {
     restore();
   }

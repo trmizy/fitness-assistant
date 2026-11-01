@@ -19,7 +19,7 @@ export const contractReadController = {
       if (!error.status || error.status >= 500) logger.error(error, "Gym options error");
       res.status(error.status || 500).json({
         ...errorCodeBody(error),
-        error: error.message || "Failed to load gym options",
+        error: error.message || "Không tải được các lựa chọn phòng gym",
       });
     }
   },
@@ -36,7 +36,7 @@ export const contractReadController = {
       if (!error.status || error.status >= 500) logger.error(error, "Checkout context error");
       res.status(error.status || 500).json({
         ...errorCodeBody(error),
-        error: error.message || "Failed to load checkout context",
+        error: error.message || "Không tải được thông tin thanh toán hợp đồng",
       });
     }
   },

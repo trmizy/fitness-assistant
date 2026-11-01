@@ -77,7 +77,7 @@ test.before(async () => {
     if (req.method === 'POST' && req.url === '/auth/internal/partner-auth/create-invited-account') {
       const body = await readBody(req);
       if (String(body.email).startsWith('taken')) return send(res, 409, { error: 'Email đã được sử dụng' });
-      if (body.password === 'password1') return send(res, 400, { error: 'Mật khẩu quá yếu, hãy thêm chữ hoa và số' });
+      if (body.password === 'Password1x') return send(res, 400, { error: 'Mật khẩu quá yếu, hãy thêm chữ hoa và số' });
       return send(res, 201, { user: { id: randomUUID(), email: body.email, firstName: body.firstName, lastName: null, role: 'GYM_OWNER' } });
     }
     return send(res, 404, { error: 'not found' });
@@ -402,8 +402,14 @@ integrationTest('B11: accept-invitation errors are propagated in Vietnamese with
   assert.equal(r.body.error.code, 'WEAK_PASSWORD');
   assert.match(r.body.error.message, /ít nhất 8 ký tự/);
 
-  // auth-service refuses a longer-but-weak password: its own message comes through
-  r = await accept(t1, { password: 'password1', firstName: 'An' });
+  // C1-03: the registration policy (upper + lower + digit) is checked locally too
+  r = await accept(t1, { password: 'alllowercase1', firstName: 'An' });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error.code, 'WEAK_PASSWORD');
+  assert.equal(r.body.error.message, 'Mật khẩu phải có chữ hoa, chữ thường và chữ số');
+
+  // auth-service refuses a password that passes the local policy: its own message comes through
+  r = await accept(t1, { password: 'Password1x', firstName: 'An' });
   assert.equal(r.status, 400);
   assert.equal(r.body.error.code, 'WEAK_PASSWORD');
   assert.equal(r.body.error.message, 'Mật khẩu quá yếu, hãy thêm chữ hoa và số');

@@ -23,42 +23,42 @@ const statusConfig: Record<
   { label: string; bg: string; text: string; border: string; dot: string }
 > = {
   SUBMITTED: {
-    label: "Submitted",
+    label: "Mới nộp",
     bg: "bg-blue-500/10",
     text: "text-blue-400",
     border: "border-blue-500/20",
     dot: "bg-blue-500",
   },
   UNDER_REVIEW: {
-    label: "Under Review",
+    label: "Đang xem xét",
     bg: "bg-amber-500/10",
     text: "text-amber-400",
     border: "border-amber-500/20",
     dot: "bg-amber-500",
   },
   NEEDS_MORE_INFO: {
-    label: "Info Required",
+    label: "Cần bổ sung",
     bg: "bg-orange-500/10",
     text: "text-orange-400",
     border: "border-orange-500/20",
     dot: "bg-orange-500",
   },
   APPROVED: {
-    label: "Approved",
+    label: "Đã duyệt",
     bg: "bg-green-500/10",
     text: "text-green-400",
     border: "border-green-500/20",
     dot: "bg-green-500",
   },
   REJECTED: {
-    label: "Rejected",
+    label: "Đã từ chối",
     bg: "bg-red-500/10",
     text: "text-red-400",
     border: "border-red-500/20",
     dot: "bg-red-500",
   },
   DRAFT: {
-    label: "Draft",
+    label: "Bản nháp",
     bg: "bg-zinc-700/50",
     text: "text-zinc-400",
     border: "border-zinc-700",
@@ -67,6 +67,11 @@ const statusConfig: Record<
 };
 
 type App = PTApplication;
+
+// Chỉ để hiển thị — dữ liệu gốc vẫn dùng "Mon".."Sun" / MONDAY.. để so khớp lịch.
+const DAY_SHORT_VI: Record<string, string> = { Mon: "T2", Tue: "T3", Wed: "T4", Thu: "T5", Fri: "T6", Sat: "T7", Sun: "CN" };
+const DAY_FULL_VI: Record<string, string> = { MONDAY: "Thứ 2", TUESDAY: "Thứ 3", WEDNESDAY: "Thứ 4", THURSDAY: "Thứ 5", FRIDAY: "Thứ 6", SATURDAY: "Thứ 7", SUNDAY: "Chủ nhật" };
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—");
 type FilterKey = "all" | keyof typeof statusConfig;
 
 /* ── InfoRow component ─────────────────────────────────── */
@@ -176,7 +181,7 @@ function DocThumb({
             <div className="relative z-10 text-center pointer-events-none bg-black/40 px-2 py-1 rounded-md backdrop-blur-xs">
               <ImageIcon className="w-5 h-5 text-green-400 mx-auto mb-1 opacity-70" />
               <p className="text-[10px] text-zinc-100 font-bold">
-                Click to Expand
+                Bấm để phóng to
               </p>
             </div>
             {tag && (
@@ -188,7 +193,7 @@ function DocThumb({
         ) : (
           <div className="text-center">
             <XCircle className="w-7 h-7 text-red-400/60 mx-auto mb-1" />
-            <p className="text-xs text-red-400">Not uploaded</p>
+            <p className="text-xs text-red-400">Chưa tải lên</p>
           </div>
         )}
       </div>
@@ -227,10 +232,10 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
             </div>
             <div>
               <h3 className="text-sm font-bold text-zinc-100">
-                Document Review — {app.user?.firstName} {app.user?.lastName}
+                Xem hồ sơ giấy tờ — {app.user?.firstName} {app.user?.lastName}
               </h3>
               <p className="text-xs text-zinc-500">
-                Submitted {new Date(app.updatedAt).toLocaleDateString()}
+                Nộp lúc {fmtDate(app.updatedAt)}
               </p>
             </div>
           </div>
@@ -245,9 +250,9 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
         {/* Section tabs */}
         <div className="flex border-b border-zinc-800/60 bg-zinc-900/60">
           {[
-            { key: 1 as const, label: "Identity Verification", icon: Shield },
-            { key: 2 as const, label: "Pro Certificates", icon: Award },
-            { key: 3 as const, label: "Portfolio / Photos", icon: ImageIcon },
+            { key: 1 as const, label: "Xác minh danh tính", icon: Shield },
+            { key: 2 as const, label: "Chứng chỉ chuyên môn", icon: Award },
+            { key: 3 as const, label: "Ảnh / sản phẩm", icon: ImageIcon },
           ].map((t) => (
             <button
               key={t.key}
@@ -270,30 +275,30 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
             <>
               <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                  Declared Citizen ID Number
+                  Số CCCD đã khai
                 </p>
                 <p
                   className={`text-base font-mono tracking-widest font-bold ${app.nationalIdNumber ? "text-green-400" : "text-red-400 italic"}`}
                 >
-                  {app.nationalIdNumber || "Not provided"}
+                  {app.nationalIdNumber || "Chưa cung cấp"}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <DocThumb
-                  label="ID Card (Front)"
+                  label="CCCD (mặt trước)"
                   url={app.idCardFrontUrl}
-                  tag="Front"
+                  tag="Trước"
                 />
                 <DocThumb
-                  label="ID Card (Back)"
+                  label="CCCD (mặt sau)"
                   url={app.idCardBackUrl}
-                  tag="Back"
+                  tag="Sau"
                 />
               </div>
               <DocThumb
-                label="Portrait Photo"
+                label="Ảnh chân dung"
                 url={app.portraitPhotoUrl}
-                tag="Portrait"
+                tag="Chân dung"
               />
             </>
           )}
@@ -311,34 +316,34 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                     </h4>
                     {c.isCurrentlyValid ? (
                       <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20 font-bold">
-                        Valid
+                        Còn hiệu lực
                       </span>
                     ) : (
                       <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20 font-bold">
-                        Expired
+                        Hết hạn
                       </span>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-zinc-500">Org:</span>{" "}
+                      <span className="text-zinc-500">Đơn vị cấp:</span>{" "}
                       <span className="text-zinc-300">
                         {c.issuingOrganization}
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-500">Date:</span>{" "}
+                      <span className="text-zinc-500">Ngày cấp:</span>{" "}
                       <span className="text-zinc-300">
                         {c.issueDate
-                          ? new Date(c.issueDate).toLocaleDateString()
+                          ? fmtDate(c.issueDate)
                           : "-"}
                       </span>
                     </div>
                   </div>
                   <DocThumb
-                    label="Certificate File"
+                    label="Tệp chứng chỉ"
                     url={c.certificateFileUrl}
-                    tag="Cert"
+                    tag="Chứng chỉ"
                   />
                 </div>
               ))}
@@ -346,7 +351,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                 <div className="text-center py-10">
                   <Award className="w-10 h-10 text-zinc-700 mx-auto mb-2" />
                   <p className="text-sm text-zinc-500">
-                    No certificates uploaded.
+                    Chưa tải chứng chỉ nào.
                   </p>
                 </div>
               )}
@@ -363,9 +368,9 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                 .map((m, i) => (
                   <DocThumb
                     key={i}
-                    label={`Portfolio ${i + 1}`}
+                    label={`Sản phẩm ${i + 1}`}
                     url={m.fileUrl}
-                    tag="Media"
+                    tag="Ảnh/video"
                   />
                 ))}
               {(!app.media ||
@@ -376,7 +381,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
                 <div className="col-span-2 text-center py-10">
                   <ImageIcon className="w-10 h-10 text-zinc-700 mx-auto mb-2" />
                   <p className="text-sm text-zinc-500">
-                    No portfolio media uploaded.
+                    Chưa tải ảnh/video sản phẩm nào.
                   </p>
                 </div>
               )}
@@ -389,7 +394,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
             onClick={onClose}
             className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-700"
           >
-            Close Review
+            Đóng
           </button>
         </div>
       </div>
@@ -429,10 +434,10 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pt-applications"] });
-      alert("Action completed successfully.");
+      alert("Đã thực hiện xong.");
       onBack();
     },
-    onError: (err: any) => alert(err.response?.data?.error || "Action failed."),
+    onError: (err: any) => alert(err.response?.data?.error || "Thao tác không thành công."),
   });
 
   return (
@@ -451,7 +456,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
           </button>
           <div>
             <h1 className="text-xl font-bold text-zinc-100 flex items-center gap-3">
-              Review: {app.user?.firstName} {app.user?.lastName}
+              Xét duyệt: {app.user?.firstName} {app.user?.lastName}
               <span
                 className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${cfg.bg} ${cfg.text} ${cfg.border} uppercase tracking-wider`}
               >
@@ -459,7 +464,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               </span>
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Application ID: {app.id}
+              Mã hồ sơ: {app.id}
             </p>
           </div>
         </div>
@@ -477,7 +482,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         : getFullUrl(app.portraitPhotoUrl)
                     }
                     className="w-full h-full object-cover"
-                    alt="Profile"
+                    alt="Ảnh hồ sơ"
                   />
                 ) : (
                   <div className="text-3xl font-bold text-zinc-600">
@@ -489,7 +494,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                 {app.user?.firstName} {app.user?.lastName}
               </h3>
               <p className="text-sm text-zinc-500">
-                {app.user?.email || "No email provided"}
+                {app.user?.email || "Chưa có email"}
               </p>
 
               <div className="mt-6 pt-6 border-t border-zinc-800/60 space-y-3">
@@ -497,7 +502,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   onClick={() => setShowDocs(true)}
                   className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5"
                 >
-                  <Eye className="w-4 h-4" /> View Documents
+                  <Eye className="w-4 h-4" /> Xem giấy tờ
                 </button>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
@@ -505,7 +510,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   </div>
                   <div className="text-left min-w-0">
                     <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider leading-none mb-1">
-                      Phone
+                      Điện thoại
                     </p>
                     <p className="text-xs text-zinc-200 font-semibold truncate">
                       {app.phoneNumber || "N/A"}
@@ -517,31 +522,31 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
 
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-4 shadow-xl">
               <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-green-500" /> Admin Review
+                <ShieldCheck className="w-4 h-4 text-green-500" /> Xét duyệt của admin
               </p>
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Internal Note
+                    Ghi chú nội bộ
                   </p>
                   <textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     rows={2}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors"
-                    placeholder="Visible only to admins..."
+                    placeholder="Chỉ admin nhìn thấy..."
                   />
                 </div>
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Feedback to User
+                    Phản hồi gửi người nộp
                   </p>
                   <textarea
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     rows={2}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-amber-500 transition-colors"
-                    placeholder="Message sent to user..."
+                    placeholder="Tin nhắn gửi tới người nộp..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
@@ -555,7 +560,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     }
                     className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20"
                   >
-                    Approve
+                    Duyệt
                   </button>
                   <button
                     onClick={() =>
@@ -567,7 +572,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     }
                     className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
-                    Reject
+                    Từ chối
                   </button>
                   <button
                     onClick={() =>
@@ -579,7 +584,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     }
                     className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
-                    Need Info
+                    Cần bổ sung
                   </button>
                   <button
                     onClick={() =>
@@ -591,7 +596,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     }
                     className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
-                    Investigate
+                    Xem xét
                   </button>
                 </div>
               </div>
@@ -604,12 +609,11 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-6 shadow-xl">
               <div>
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2 mb-4">
-                  <User className="w-4 h-4 text-green-500" /> Professional Bio &
-                  Approach
+                  <User className="w-4 h-4 text-green-500" /> Giới thiệu & phương pháp
                 </p>
                 <div className="relative p-5 rounded-2xl bg-zinc-800/20 border border-zinc-700/20">
                   <p className="text-sm text-zinc-300 leading-relaxed italic">
-                    "{app.professionalBio || "Applicant did not provide a bio."}
+                    "{app.professionalBio || "Người nộp chưa viết giới thiệu."}
                     "
                   </p>
                 </div>
@@ -618,15 +622,15 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/40">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Education & Background
+                    Học vấn & nền tảng
                   </p>
                   <p className="text-sm text-zinc-100 font-medium">
-                    {app.educationBackground || "None provided"}
+                    {app.educationBackground || "Chưa cung cấp"}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Specialties
+                    Chuyên môn
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {app.mainSpecialties?.length > 0 ? (
@@ -640,7 +644,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                       ))
                     ) : (
                       <span className="text-xs text-zinc-600 italic">
-                        None selected
+                        Chưa chọn
                       </span>
                     )}
                   </div>
@@ -652,19 +656,18 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-400" /> Service &
-                  Availability
+                  <Calendar className="w-4 h-4 text-blue-400" /> Dịch vụ & lịch rảnh
                 </p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
                       <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">
-                        Exp.
+                        Kinh nghiệm
                       </p>
                       <p className="text-xs text-zinc-100 font-bold">
                         {app.yearsOfExperience
-                          ? `${app.yearsOfExperience} years`
-                          : "N/A"}
+                          ? `${app.yearsOfExperience} năm`
+                          : "Chưa có"}
                       </p>
                     </div>
                     <div className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
@@ -684,7 +687,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   </div>
                   <div className="pt-2">
                     <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                      Schedule
+                      Lịch làm việc
                     </p>
                     <div className="flex flex-wrap gap-1.5 overflow-hidden mb-3">
                       {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
@@ -703,7 +706,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                                   : "bg-zinc-950 text-zinc-700 border-zinc-800/40"
                               }`}
                             >
-                              {d}
+                              {DAY_SHORT_VI[d] ?? d}
                             </span>
                           );
                         },
@@ -720,7 +723,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                             <Clock className="w-3.5 h-3.5 text-green-400" />
                             <div className="text-xs text-zinc-300 font-medium">
                               <span className="text-zinc-500 w-10 inline-block">
-                                {b.dayOfWeek}
+                                {DAY_FULL_VI[b.dayOfWeek] ?? b.dayOfWeek}
                               </span>{" "}
                               {b.startTime} — {b.endTime}
                             </div>
@@ -733,7 +736,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         <div className="text-xs text-zinc-300">
                           {app.availableFrom || app.availableUntil
                             ? `${app.availableFrom || "??:??"} — ${app.availableUntil || "??:??"}`
-                            : "Variable schedule"}
+                            : "Lịch linh hoạt"}
                         </div>
                       </div>
                     )}
@@ -750,7 +753,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         if (names.length > 0) return names.join(", ");
                         if (app.operatingAreas?.length)
                           return app.operatingAreas.join(", ");
-                        return "Online";
+                        return "Trực tuyến";
                       })()}
                     </span>
                   </div>
@@ -759,12 +762,12 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
 
               <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-400" /> Coaching Focus
+                  <Users className="w-4 h-4 text-purple-400" /> Đối tượng & mục tiêu
                 </p>
                 <div className="space-y-4">
                   <div>
                     <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                      Target Clients
+                      Nhóm khách hướng tới
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {app.targetClientGroups?.length > 0 ? (
@@ -778,14 +781,14 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         ))
                       ) : (
                         <span className="text-xs text-zinc-700 italic">
-                          Not set
+                          Chưa thiết lập
                         </span>
                       )}
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                      Training Goals
+                      Mục tiêu huấn luyện
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {app.primaryTrainingGoals?.length > 0 ? (
@@ -799,18 +802,18 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                         ))
                       ) : (
                         <span className="text-xs text-zinc-700 italic">
-                          Not set
+                          Chưa thiết lập
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="pt-2 border-t border-zinc-800/40">
                     <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1.5">
-                      Methods
+                      Phương pháp
                     </p>
                     <p className="text-xs text-zinc-400 leading-relaxed max-h-16 overflow-hidden line-clamp-3 italic">
                       {app.trainingMethodsApproach ||
-                        "No specific methods mentioned."}
+                        "Chưa nêu phương pháp cụ thể."}
                     </p>
                   </div>
                 </div>
@@ -821,13 +824,13 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-pink-400" /> Online Presence
+                  <Globe className="w-4 h-4 text-pink-400" /> Hiện diện trực tuyến
                 </p>
                 <div className="space-y-2.5">
                   {app.portfolioUrl && (
                     <SocialLink
                       icon={<Globe className="w-4 h-4" />}
-                      label="Personal Website"
+                      label="Website cá nhân"
                       url={app.portfolioUrl}
                     />
                   )}
@@ -858,7 +861,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                       <div className="text-center py-8 bg-zinc-950/40 rounded-xl border border-dashed border-zinc-800/60">
                         <Globe className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
                         <p className="text-[10px] text-zinc-700 font-bold uppercase">
-                          No links provided
+                          Chưa có liên kết
                         </p>
                       </div>
                     )}
@@ -867,8 +870,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
 
               <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-amber-500" /> Service
-                  Pricing
+                  <Briefcase className="w-4 h-4 text-amber-500" /> Giá dịch vụ
                 </p>
                 <div className="space-y-4">
                   {/* Legacy pricing (PT cũ) */}
@@ -876,7 +878,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     (app.packagePrice ?? 0) > 0) && (
                     <div>
                       <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                        Legacy
+                        Giá cũ
                       </p>
                       <div className="space-y-2">
                         {(app.desiredSessionPrice ?? 0) > 0 && (
@@ -957,10 +959,10 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     )}
                   <div className="pt-2 flex items-center justify-between px-1 border-t border-zinc-800/40">
                     <span className="text-[10px] text-zinc-600 font-bold uppercase">
-                      Gym / Facility
+                      Phòng gym / cơ sở
                     </span>
                     <span className="text-xs text-zinc-300 font-bold">
-                      {app.gymAffiliation || "Freelance"}
+                      {app.gymAffiliation || "Tự do"}
                     </span>
                   </div>
                 </div>
@@ -1024,10 +1026,10 @@ export function PTManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-100">
-            Trainer Applications
+            Hồ sơ đăng ký huấn luyện viên
           </h1>
           <p className="text-sm text-zinc-500">
-            Review and manage professional certifications
+            Xem xét và quản lý hồ sơ, chứng chỉ chuyên môn
           </p>
         </div>
         <div className="relative">
@@ -1035,7 +1037,7 @@ export function PTManagement() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name or email..."
+            placeholder="Tìm theo tên hoặc email..."
             className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:outline-none focus:border-green-500"
           />
         </div>
@@ -1043,12 +1045,12 @@ export function PTManagement() {
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {Object.entries({
-          all: "All",
-          SUBMITTED: "New",
-          UNDER_REVIEW: "Reviewing",
-          NEEDS_MORE_INFO: "Needs Info",
-          APPROVED: "Approved",
-          REJECTED: "Rejected",
+          all: "Tất cả",
+          SUBMITTED: "Mới",
+          UNDER_REVIEW: "Đang xem xét",
+          NEEDS_MORE_INFO: "Cần bổ sung",
+          APPROVED: "Đã duyệt",
+          REJECTED: "Đã từ chối",
         }).map(([k, v]) => (
           <button
             key={k}
@@ -1071,7 +1073,7 @@ export function PTManagement() {
       ) : filtered.length === 0 ? (
         <div className="bg-zinc-900/50 border border-zinc-800 border-dashed rounded-2xl py-20 text-center">
           <FileText className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-          <p className="text-zinc-600 text-sm">No applications found.</p>
+          <p className="text-zinc-600 text-sm">Không có hồ sơ nào.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1094,10 +1096,10 @@ export function PTManagement() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-zinc-200">
-                      {app.user?.firstName || "N/A"} {app.user?.lastName || ""}
+                      {app.user?.firstName || "—"} {app.user?.lastName || ""}
                     </h3>
                     <p className="text-xs text-zinc-500">
-                      {app.user?.email || "No email"}
+                      {app.user?.email || "Chưa có email"}
                     </p>
                   </div>
                 </div>
@@ -1109,20 +1111,20 @@ export function PTManagement() {
               <div className="mt-4 grid grid-cols-2 gap-3 relative z-10">
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                   <Briefcase className="w-3 h-3" />{" "}
-                  {app.yearsOfExperience ? `${app.yearsOfExperience}y` : "?y"}{" "}
-                  Exp
+                  {app.yearsOfExperience ? `${app.yearsOfExperience} năm` : "? năm"}{" "}
+                    KN
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                   <Calendar className="w-3 h-3" />{" "}
-                  {new Date(app.createdAt).toLocaleDateString()}
+                  {fmtDate(app.createdAt)}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                   <Award className="w-3 h-3" /> {app.certificates?.length || 0}{" "}
-                  Certs
+                    chứng chỉ
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                   <ImageIcon className="w-3 h-3" /> {app.media?.length || 0}{" "}
-                  Media
+                    ảnh/video
                 </div>
               </div>
 

@@ -261,9 +261,9 @@ export function PTProfilePage() {
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-zinc-100">PT Profile & Services</h1>
+          <h1 className="text-zinc-100">Hồ sơ & dịch vụ PT</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Manage your public profile and coaching packages
+            Quản lý hồ sơ công khai và các gói huấn luyện của bạn
           </p>
         </div>
         <button

@@ -112,7 +112,7 @@ export function BeginnerNutritionSummary({
       <div className="space-y-2">
         <div>
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-zinc-400">Calories</span>
+            <span className="text-zinc-400">Calo</span>
             <span className={overCalories ? "text-amber-400" : "text-zinc-300"}>
               {dailySummary.consumedCalories.toLocaleString("vi-VN")} / {dailySummary.targetCalories.toLocaleString("vi-VN")} kcal
             </span>

@@ -1,17 +1,21 @@
-# Apply AFTER the original compose and compose-user-e.override.yml.
-# User-approved: skip migration/db-push/seed startup commands on existing dev databases.
+# Apply AFTER the original compose (and compose.seedrun.override.yml when keeping the seeded databases).
+# Replaces each service's startup command with the ORIGINAL dev Dockerfile.dev sequence so a restart still applies pending
+# migrations (`prisma migrate deploy`) - the previous version of this file started `pnpm run dev` directly and silently skipped it.
+# Two deliberate differences from Dockerfile.dev, both unchanged from the seed run itself:
+#   fitness-service: `migrate deploy`, NOT the original `prisma db push --accept-data-loss && prisma db seed` (never on a populated DB);
+#   ai-service:      no `ingest.ts --check-empty` (no ingestion into the shared Qdrant from a restore).
 services:
   auth-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
   user-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/tsx prisma/seed_vietnam_locations.ts && pnpm run dev"]
   fitness-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
   ai-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
   chat-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
   payment-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
   gym-service:
-    command: ["pnpm", "run", "dev"]
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]

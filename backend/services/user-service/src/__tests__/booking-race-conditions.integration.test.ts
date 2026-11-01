@@ -136,7 +136,7 @@ test("B2 — hai khách khác nhau đặt cùng một khung giờ cho cùng mộ
     assert.equal(fulfilled.length, 1, "chỉ MỘT trong hai request đồng thời được tạo session — không được cả hai cùng thành công");
     assert.equal(rejected.length, 1);
     if (rejected[0].status === "rejected") {
-      assert.match((rejected[0].reason as Error).message, /conflict/i);
+      assert.match((rejected[0].reason as Error).message, /trùng với một buổi tập khác/i);
     }
 
     const sessions = await prisma.session.findMany({ where: { ptUserId } });
@@ -385,7 +385,7 @@ test("A3 — bookSession: hợp đồng bị dùng hết quyền lợi đúng l�
         }),
       (e: any) => {
         assert.equal(e.status, 400);
-        assert.match(e.message, /limit reached/i);
+        assert.match(e.message, /dùng hết số buổi/i);
         return true;
       },
     );

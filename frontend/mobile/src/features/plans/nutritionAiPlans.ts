@@ -28,7 +28,7 @@ export const DIET_OPTIONS = [
   { value: "low_fat", label: "Ít béo" },
   { value: "Keto", label: "Keto" },
   { value: "vegetarian", label: "Chay" },
-  { value: "Eat Clean", label: "Eat Clean" },
+  { value: "Eat Clean", label: "Eat clean (ăn sạch)" },
 ];
 export const BUDGET_OPTIONS = [
   { value: "student", label: "Tiết kiệm" },
@@ -50,12 +50,12 @@ export const TRAINING_TYPE_OPTIONS = [
   { value: "endurance", label: "Sức bền" },
 ];
 export const PHASE_OPTIONS = [
-  { value: "cutting", label: "Cutting" },
-  { value: "bulking", label: "Bulking" },
-  { value: "lean_bulk", label: "Lean Bulk" },
+  { value: "cutting", label: "Giảm mỡ (cutting)" },
+  { value: "bulking", label: "Tăng cơ (bulking)" },
+  { value: "lean_bulk", label: "Tăng cơ sạch (lean bulk)" },
   { value: "maintenance", label: "Duy trì" },
   { value: "contest_prep", label: "Chuẩn bị thi đấu" },
-  { value: "deload", label: "Deload" },
+  { value: "deload", label: "Giảm tải (deload)" },
 ];
 export const EXPERIENCE_OPTIONS_NUTRITION = [
   { value: "BEGINNER", label: "Mới bắt đầu" },
@@ -176,8 +176,8 @@ const NUMERIC_BOUNDS: { key: keyof NutritionForm; label: string; min: number; ma
   { key: "trainingDaysPerWeek", label: "Số buổi tập/tuần", min: 0, max: 7, int: true },
   { key: "trainingDurationMin", label: "Thời lượng buổi tập", min: 10, max: 300, int: true },
   { key: "proteinTargetG", label: "Protein", min: 50, max: 500 },
-  { key: "carbTargetG", label: "Carb", min: 0, max: 1000 },
-  { key: "fatTargetG", label: "Fat", min: 20, max: 300 },
+  { key: "carbTargetG", label: "Tinh bột", min: 0, max: 1000 },
+  { key: "fatTargetG", label: "Chất béo", min: 20, max: 300 },
 ];
 
 /**

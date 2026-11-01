@@ -43,7 +43,7 @@ export const collaborationController = {
       });
       res.status(201).json({ success: true, data: row });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -73,7 +73,7 @@ export const collaborationController = {
       });
       res.status(201).json({ success: true, data: row });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -93,7 +93,7 @@ export const collaborationController = {
       });
       res.json({ success: true, data: row });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -113,7 +113,7 @@ export const collaborationController = {
       });
       res.json({ success: true, data: row });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -123,7 +123,7 @@ export const collaborationController = {
       const row = await collaborationService.terminate(req.params.id, 'PT', req.user!.userId, effectiveAt);
       res.json({ success: true, data: withCollaborationLifecycle(row) });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -133,7 +133,7 @@ export const collaborationController = {
       const row = await collaborationService.terminate(req.params.id, 'GYM', principalId(req), effectiveAt);
       res.json({ success: true, data: withCollaborationLifecycle(row) });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 

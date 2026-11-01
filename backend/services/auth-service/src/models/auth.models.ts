@@ -8,8 +8,14 @@ import { z } from "zod";
 // would reject existing users' real passwords that predate this rule.
 const PASSWORD_COMPLEXITY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 
+// C4-01 / C1-01 — emails are case-insensitive in practice (phone keyboards capitalise the first
+// letter), so every new write/lookup path normalises trim + lowercase, the same way
+// partnerApplicationStartSchema does. Registration used to keep the typed case, which let
+// "Foo@x.com" create a second account next to "foo@x.com".
+const normalizedEmail = z.string().trim().toLowerCase().email().max(254);
+
 export const registerSchema = z.object({
-  email: z.string().email(),
+  email: normalizedEmail,
   password: z
     .string()
     .min(8)
@@ -21,7 +27,7 @@ export const registerSchema = z.object({
 export const registerStartSchema = registerSchema;
 
 export const registerVerifySchema = z.object({
-  email: z.string().email(),
+  email: normalizedEmail,
   otp: z.string().min(6).max(6),
 });
 
@@ -29,17 +35,20 @@ export const registerVerifySchema = z.object({
 // verification. Only the email: the pending row already holds the hashed password and name from
 // the original POST /auth/register, so a resend can never change what account gets created.
 export const registerResendSchema = z.object({
-  email: z.string().email(),
+  email: normalizedEmail,
 });
 
 // GAP-4 — self-service "forgot password". Deliberately email-only: nothing the caller sends may
 // influence where the emailed link points (see authController.requestPasswordReset).
 export const passwordResetRequestSchema = z.object({
-  email: z.string().email(),
+  email: normalizedEmail,
 });
 
+// Login keeps the typed case (trim only): authRepository.findUserByEmail tries the exact spelling
+// first so a legacy pair of accounts that differ only by case can still be told apart; otherwise
+// it matches case-insensitively.
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().max(254),
   password: z.string(),
 });
 

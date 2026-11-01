@@ -215,9 +215,9 @@ function formatLatency(seconds: number | null): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
+  return new Date(iso).toLocaleString("vi-VN", {
     day: "2-digit",
+    month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -247,6 +247,21 @@ function truncate(text: string | null | undefined, max = 60): string {
   if (!text) return "—";
   return text.length <= max ? text : `${text.slice(0, max)}…`;
 }
+
+const STATUS_LABEL_VI: Record<string, string> = {
+  QUEUED: "Đang chờ",
+  PROCESSING: "Đang xử lý",
+  COMPLETED: "Hoàn thành",
+  FAILED: "Thất bại",
+  RUNNING: "Đang chạy",
+  SUCCESS: "Thành công",
+  PENDING: "Chờ duyệt",
+  APPROVED: "Đã duyệt",
+  REJECTED: "Đã từ chối",
+  REVIEW: "Cần xem xét",
+  SCORED: "Đã chấm điểm",
+  EMBEDDED: "Đã nhúng",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   QUEUED: "text-zinc-400 bg-zinc-800",
@@ -400,7 +415,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cls}`}
     >
-      {status}
+      {STATUS_LABEL_VI[status] ?? status}
     </span>
   );
 }
@@ -409,7 +424,7 @@ function FallbackBadge({ used }: { used: boolean }) {
   if (!used) return null;
   return (
     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-amber-400 bg-amber-500/10">
-      fallback
+      dự phòng
     </span>
   );
 }
@@ -429,7 +444,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
       .getAIRequestDetail(id)
       .then((res) => {
         if (res.success) setDetail(res.data.conversation);
-        else setError("Failed to load detail");
+        else setError("Không tải được chi tiết");
       })
       .catch((err: unknown) => setError((err as Error).message))
       .finally(() => setLoading(false));
@@ -447,7 +462,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           <div className="flex items-center gap-2">
             <Brain className="w-4 h-4 text-violet-400" />
             <span className="text-sm font-semibold text-zinc-200">
-              Request Trace
+              Chi tiết yêu cầu
             </span>
           </div>
           <button
@@ -462,7 +477,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           {loading && (
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Loading trace…
+              Đang tải chi tiết…
             </div>
           )}
           {error && <div className="text-red-400 text-sm">{error}</div>}
@@ -471,7 +486,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {/* Metadata row */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Latency</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Độ trễ</div>
                   <div
                     className={`text-sm font-bold ${detail.responseTime > 10 ? "text-amber-400" : "text-green-400"}`}
                   >
@@ -479,7 +494,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Tokens</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Token</div>
                   <div className="text-sm font-bold text-zinc-200">
                     {detail.totalTokens.toLocaleString()}
                   </div>
@@ -488,19 +503,19 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Language</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Ngôn ngữ</div>
                   <div className="text-sm font-bold text-zinc-200 uppercase">
                     {detail.responseLanguage ?? "—"}
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Intent</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Ý định</div>
                   <div className="text-xs text-violet-400 font-medium truncate">
                     {detail.routeIntent ?? "—"}
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Warnings</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Cảnh báo</div>
                   <div
                     className={`text-sm font-bold ${detail.warningCount > 0 ? "text-amber-400" : "text-green-400"}`}
                   >
@@ -508,7 +523,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
-                  <div className="text-[10px] text-zinc-600 mb-1">Feedback</div>
+                  <div className="text-[10px] text-zinc-600 mb-1">Phản hồi</div>
                   <div className="text-sm font-bold text-zinc-200">
                     {detail.feedback === 1
                       ? "👍"
@@ -523,13 +538,13 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <div className="flex flex-wrap gap-2">
                 {detail.usedFallback && (
                   <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Qdrant retrieval empty
+                    <AlertTriangle className="w-3 h-3" /> Qdrant không truy xuất được
                     (fallback)
                   </span>
                 )}
                 {detail.usedDeterministicFallback && (
                   <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Validation rejected
+                    <AlertTriangle className="w-3 h-3" /> Bị kiểm tra từ chối
                     LLM answer (deterministic used)
                   </span>
                 )}
@@ -558,7 +573,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {/* Question */}
               <div>
                 <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
-                  Question
+                  Câu hỏi
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                   {detail.question}
@@ -568,7 +583,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {/* Answer */}
               <div>
                 <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
-                  Answer
+                  Câu trả lời
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
                   {detail.answer}
@@ -579,7 +594,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {detail.relevanceExplanation && (
                 <div>
                   <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
-                    Relevance Explanation
+                    Giải thích mức liên quan
                   </div>
                   <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-xs text-zinc-400">
                     {detail.relevanceExplanation}
@@ -753,7 +768,7 @@ export function AdminAIObservability() {
         setApiError(null);
       } catch (err: unknown) {
         setApiError(
-          (err as Error).message || "Failed to load observability data",
+          (err as Error).message || "Không tải được dữ liệu giám sát",
         );
       } finally {
         setLoading(false);
@@ -783,7 +798,7 @@ export function AdminAIObservability() {
         await fetchAll(true);
       } catch (err: unknown) {
         setKnowledgeError(
-          (err as Error).message || "Knowledge pipeline action failed",
+          (err as Error).message || "Thao tác với luồng kiến thức không thành công",
         );
       } finally {
         setKnowledgeBusy(null);
@@ -813,7 +828,7 @@ export function AdminAIObservability() {
             onClick={() => fetchAll()}
             className="mt-3 text-xs text-red-300 hover:text-red-200 underline"
           >
-            Retry
+            Thử lại
           </button>
         </div>
       </div>
@@ -830,10 +845,10 @@ export function AdminAIObservability() {
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-lg font-semibold">
             <Brain className="w-5 h-5 text-violet-400" />
-            AI Request Observability
+            Giám sát yêu cầu AI
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Live view of AI coach requests, plan queue, and failure analysis
+            Theo dõi trực tiếp yêu cầu AI coach, hàng đợi kế hoạch và phân tích lỗi
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -845,10 +860,10 @@ export function AdminAIObservability() {
             <RefreshCw
               className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
             />
-            Refresh
+            Làm mới
           </button>
           <span className="text-xs text-zinc-600">
-            {lastRefresh.toLocaleTimeString()}
+            {lastRefresh.toLocaleTimeString("vi-VN")}
           </span>
         </div>
       </div>
@@ -857,12 +872,12 @@ export function AdminAIObservability() {
       {convStats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           <KpiCard
-            label="Total Requests"
+            label="Tổng yêu cầu"
             value={convStats.total.toLocaleString()}
             sub={`${convStats.last24h} in last 24h`}
           />
           <KpiCard
-            label="Avg Latency"
+            label="Độ trễ trung bình"
             value={formatLatency(convStats.avgLatencySeconds)}
             sub={`p95: ${formatLatency(convStats.p95LatencySeconds)}`}
             accent={
@@ -873,17 +888,17 @@ export function AdminAIObservability() {
             }
           />
           <KpiCard
-            label="Fallback Rate"
+            label="Tỷ lệ dự phòng"
             value={`${convStats.fallbackRate}%`}
-            sub="Qdrant retrieval empty"
+            sub="Qdrant không truy xuất được"
             accent={
               convStats.fallbackRate > 20 ? "text-amber-400" : "text-zinc-100"
             }
           />
           <KpiCard
-            label="Det. Fallback Rate"
+            label="Tỷ lệ dự phòng cố định"
             value={`${convStats.deterministicFallbackRate}%`}
-            sub="Validation rejected LLM"
+            sub="Kiểm tra từ chối kết quả LLM"
             accent={
               convStats.deterministicFallbackRate > 10
                 ? "text-red-400"
@@ -891,17 +906,17 @@ export function AdminAIObservability() {
             }
           />
           <KpiCard
-            label="Warning Rate"
+            label="Tỷ lệ cảnh báo"
             value={`${convStats.warningRate}%`}
-            sub="Responses with issues"
+            sub="Phản hồi có vấn đề"
             accent={
               convStats.warningRate > 15 ? "text-amber-400" : "text-zinc-100"
             }
           />
           <KpiCard
-            label="Slow Requests"
+            label="Yêu cầu chậm"
             value={convStats.slowCount}
-            sub="> 10s (last 7d)"
+            sub="> 10 giây (7 ngày qua)"
             accent={
               convStats.slowCount > 5 ? "text-amber-400" : "text-zinc-100"
             }
@@ -917,12 +932,12 @@ export function AdminAIObservability() {
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-4 h-4 text-violet-400" />
               <h3 className="text-sm font-semibold text-zinc-200">
-                Intent Distribution (7d)
+                Phân bố ý định (7 ngày)
               </h3>
             </div>
             {ov.intents.length === 0 ? (
               <div className="text-xs text-zinc-600 text-center py-8">
-                No intent data yet
+                Chưa có dữ liệu ý định
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={160}>
@@ -959,7 +974,7 @@ export function AdminAIObservability() {
                       backgroundColor: "#111",
                       color: "#f4f4f5",
                     }}
-                    formatter={(v: number) => [v, "requests"]}
+                    formatter={(v: number) => [v, "yêu cầu"]}
                     labelFormatter={(v: string) => v.replace(/_/g, " ")}
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
@@ -982,12 +997,12 @@ export function AdminAIObservability() {
               <div className="flex items-center gap-2 mb-3">
                 <Languages className="w-4 h-4 text-blue-400" />
                 <h3 className="text-xs font-semibold text-zinc-200">
-                  Response Language (7d)
+                  Ngôn ngữ phản hồi (7 ngày)
                 </h3>
               </div>
               {ov.languages.length === 0 ? (
                 <div className="text-xs text-zinc-600 text-center py-4">
-                  No data yet
+                  Chưa có dữ liệu
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
@@ -1033,28 +1048,28 @@ export function AdminAIObservability() {
               <div className="flex items-center gap-2 mb-3">
                 <Layers className="w-4 h-4 text-green-400" />
                 <h3 className="text-xs font-semibold text-zinc-200">
-                  Plan Job Status
+                  Trạng thái tác vụ kế hoạch
                 </h3>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   {
-                    label: "Completed",
+                    label: "Hoàn thành",
                     value: ov.plans.completed,
                     color: "text-green-400",
                   },
                   {
-                    label: "Failed",
+                    label: "Thất bại",
                     value: ov.plans.failed,
                     color: "text-red-400",
                   },
                   {
-                    label: "Processing",
+                    label: "Đang xử lý",
                     value: ov.plans.processing,
                     color: "text-blue-400",
                   },
                   {
-                    label: "Queued",
+                    label: "Đang chờ",
                     value: ov.plans.queued,
                     color: "text-zinc-400",
                   },
@@ -1085,12 +1100,12 @@ export function AdminAIObservability() {
             }`}
           >
             {tab === "errors"
-              ? `Errors${errors ? ` (${errors.failedPlans.length + errors.highWarnConversations.length})` : ""}`
+              ? `Lỗi${errors ? ` (${errors.failedPlans.length + errors.highWarnConversations.length})` : ""}`
               : tab === "knowledge"
-                ? `Knowledge${knowledge ? ` (${knowledge.reviewItems.length})` : ""}`
+                ? `Kiến thức${knowledge ? ` (${knowledge.reviewItems.length})` : ""}`
                 : tab === "queue"
-                  ? `Plan Queue${queue ? ` (${queue.plans.length})` : ""}`
-                  : "Requests"}
+                  ? `Hàng đợi kế hoạch${queue ? ` (${queue.plans.length})` : ""}`
+                  : "Yêu cầu"}
           </button>
         ))}
       </div>
@@ -1116,18 +1131,18 @@ export function AdminAIObservability() {
                   }`}
                 >
                   {f === "all"
-                    ? "All"
+                    ? "Tất cả"
                     : f === "slow"
-                      ? "Slow (>10s)"
-                      : f === "fallback"
-                        ? "Fallback"
-                        : "Warnings"}
+                    ? "Chậm (>10 giây)"
+                    : f === "fallback"
+                    ? "Dự phòng"
+                    : "Cảnh báo"}
                 </button>
               ),
             )}
             {requests && (
               <span className="ml-auto text-xs text-zinc-600">
-                {requests.total.toLocaleString()} total
+                {requests.total.toLocaleString()} yêu cầu
               </span>
             )}
           </div>
@@ -1136,7 +1151,7 @@ export function AdminAIObservability() {
           {!requests || requests.items.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-zinc-600">
               <Search className="w-5 h-5 mx-auto mb-2 opacity-50" />
-              No requests found for this filter.
+              Không có yêu cầu nào khớp bộ lọc này.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -1144,13 +1159,13 @@ export function AdminAIObservability() {
                 <thead>
                   <tr className="border-b border-zinc-800/60">
                     {[
-                      "Time",
-                      "Question",
-                      "Intent",
-                      "Lang",
-                      "Latency",
-                      "Tokens",
-                      "Flags",
+                      "Thời gian",
+                      "Câu hỏi",
+                      "Ý định",
+                      "Ngôn ngữ",
+                      "Độ trễ",
+                      "Token",
+                      "Cờ",
                       "",
                     ].map((h) => (
                       <th
@@ -1236,17 +1251,17 @@ export function AdminAIObservability() {
                 onClick={() => setPage((p) => p - 1)}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
-                <ArrowLeft className="w-3.5 h-3.5" /> Prev
+                <ArrowLeft className="w-3.5 h-3.5" /> Trước
               </button>
               <span className="text-xs text-zinc-600">
-                Page {requests.page} / {requests.pages}
+                Trang {requests.page} / {requests.pages}
               </span>
               <button
                 disabled={page >= requests.pages}
                 onClick={() => setPage((p) => p + 1)}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
               >
-                Next <ArrowRight className="w-3.5 h-3.5" />
+                Sau <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -1260,27 +1275,27 @@ export function AdminAIObservability() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               {
-                label: "Waiting",
+                label: "Đang đợi",
                 value: queue.queue.waiting,
                 color: "text-zinc-400",
               },
               {
-                label: "Active",
+                label: "Đang chạy",
                 value: queue.queue.active,
                 color: "text-blue-400",
               },
               {
-                label: "Delayed",
+                label: "Bị hoãn",
                 value: queue.queue.delayed,
                 color: "text-amber-400",
               },
               {
-                label: "Completed",
+                label: "Hoàn thành",
                 value: queue.queue.completed,
                 color: "text-green-400",
               },
               {
-                label: "Failed",
+                label: "Thất bại",
                 value: queue.queue.failed,
                 color: "text-red-400",
               },
@@ -1302,15 +1317,15 @@ export function AdminAIObservability() {
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <Layers className="w-4 h-4 text-green-400" />
               <span className="text-sm font-semibold text-zinc-200">
-                Recent Plan Jobs
+                Tác vụ kế hoạch gần đây
               </span>
               <span className="ml-auto text-xs text-zinc-600">
-                {queue.plans.length} shown
+                {queue.plans.length} đang hiển thị
               </span>
             </div>
             {queue.plans.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-zinc-600">
-                No plan jobs yet.
+                Chưa có tác vụ kế hoạch nào.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1318,14 +1333,14 @@ export function AdminAIObservability() {
                   <thead>
                     <tr className="border-b border-zinc-800/60">
                       {[
-                        "Status",
-                        "Name / Goal",
-                        "Duration",
-                        "Days/Wk",
-                        "Version",
-                        "Job ID",
-                        "Created",
-                        "Updated",
+                        "Trạng thái",
+                        "Tên / Mục tiêu",
+                        "Thời lượng",
+                        "Ngày/tuần",
+                        "Phiên bản",
+                        "Mã tác vụ",
+                        "Tạo lúc",
+                        "Cập nhật",
                       ].map((h) => (
                         <th
                           key={h}
@@ -1391,7 +1406,7 @@ export function AdminAIObservability() {
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <XCircle className="w-4 h-4 text-red-400" />
               <span className="text-sm font-semibold text-zinc-200">
-                Failed Plan Jobs
+                Tác vụ kế hoạch thất bại
               </span>
               <span className="ml-auto text-xs text-zinc-600">
                 {errors.failedPlans.length}
@@ -1401,7 +1416,7 @@ export function AdminAIObservability() {
               <div className="px-4 py-8 text-center">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
                 <div className="text-xs text-zinc-600">
-                  No failed plan jobs.
+                  Không có tác vụ kế hoạch thất bại.
                 </div>
               </div>
             ) : (
@@ -1424,7 +1439,7 @@ export function AdminAIObservability() {
                     )}
                     {p.jobId && (
                       <div className="text-[10px] text-zinc-700 font-mono mt-1">
-                        Job: {p.jobId}
+                        Tác vụ: {p.jobId}
                       </div>
                     )}
                   </div>
@@ -1438,9 +1453,9 @@ export function AdminAIObservability() {
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               <span className="text-sm font-semibold text-zinc-200">
-                High-Warning Requests
+                Yêu cầu có nhiều cảnh báo
               </span>
-              <span className="text-xs text-zinc-600 ml-1">(last 7d)</span>
+              <span className="text-xs text-zinc-600 ml-1">(7 ngày qua)</span>
               <span className="ml-auto text-xs text-zinc-600">
                 {errors.highWarnConversations.length}
               </span>
@@ -1449,7 +1464,7 @@ export function AdminAIObservability() {
               <div className="px-4 py-8 text-center">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
                 <div className="text-xs text-zinc-600">
-                  No validation issues in the last 7 days.
+                  Không có vấn đề kiểm tra nào trong 7 ngày qua.
                 </div>
               </div>
             ) : (
@@ -1502,27 +1517,27 @@ export function AdminAIObservability() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               {
-                label: "Waiting",
+                label: "Đang đợi",
                 value: knowledge.queue.waiting,
                 color: "text-zinc-400",
               },
               {
-                label: "Active",
+                label: "Đang chạy",
                 value: knowledge.queue.active,
                 color: "text-blue-400",
               },
               {
-                label: "Delayed",
+                label: "Bị hoãn",
                 value: knowledge.queue.delayed,
                 color: "text-amber-400",
               },
               {
-                label: "Completed",
+                label: "Hoàn thành",
                 value: knowledge.queue.completed,
                 color: "text-green-400",
               },
               {
-                label: "Failed",
+                label: "Thất bại",
                 value: knowledge.queue.failed,
                 color: "text-red-400",
               },
@@ -1545,12 +1560,12 @@ export function AdminAIObservability() {
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-green-400" />
                   <h3 className="text-sm font-semibold text-zinc-200">
-                    Knowledge Pipeline
+                    Luồng kiến thức
                   </h3>
                 </div>
                 <div className="text-[10px] text-zinc-600 mt-1 font-mono truncate">
                   {knowledge.queue.name} - {knowledge.queue.repeatable.length}{" "}
-                  scheduled
+                    lịch định kỳ
                 </div>
               </div>
 
@@ -1562,7 +1577,7 @@ export function AdminAIObservability() {
                     onChange={(e) => setKnowledgeEmbed(e.target.checked)}
                     className="h-3.5 w-3.5 accent-green-500"
                   />
-                  Embed
+                  Nhúng vector
                 </label>
                 <label className="flex items-center gap-2 text-xs text-zinc-400">
                   <input
@@ -1571,10 +1586,10 @@ export function AdminAIObservability() {
                     onChange={(e) => setKnowledgeForce(e.target.checked)}
                     className="h-3.5 w-3.5 accent-amber-500"
                   />
-                  Force
+                  Chạy lại bắt buộc
                 </label>
                 <label className="flex items-center gap-2 text-xs text-zinc-400">
-                  Limit
+                  Giới hạn
                   <input
                     type="number"
                     min={1}
@@ -1637,8 +1652,8 @@ export function AdminAIObservability() {
                 ) : (
                   <Clock className="w-3.5 h-3.5" />
                 )}
-                Schedule
-              </button>
+                Lên lịch
+ </button>
               <button
                 disabled={knowledgeBusy !== null}
                 onClick={() =>
@@ -1653,8 +1668,8 @@ export function AdminAIObservability() {
                 ) : (
                   <XCircle className="w-3.5 h-3.5" />
                 )}
-                Clear
-              </button>
+                Xóa lịch
+ </button>
             </div>
 
             {knowledge.queue.repeatable.length > 0 && (
@@ -1677,7 +1692,7 @@ export function AdminAIObservability() {
               <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-400" />
                 <span className="text-sm font-semibold text-zinc-200">
-                  Recent Pipeline Runs
+                  Lần chạy luồng gần đây
                 </span>
                 <span className="ml-auto text-xs text-zinc-600">
                   {knowledge.runs.length}
@@ -1685,7 +1700,7 @@ export function AdminAIObservability() {
               </div>
               {knowledge.runs.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-zinc-600">
-                  No pipeline runs yet.
+                  Chưa có lần chạy nào.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1693,13 +1708,13 @@ export function AdminAIObservability() {
                     <thead>
                       <tr className="border-b border-zinc-800/60">
                         {[
-                          "Status",
-                          "Type",
-                          "Crawled",
-                          "Accepted",
-                          "Review",
-                          "Rejected",
-                          "Started",
+                          "Trạng thái",
+                          "Loại",
+                          "Đã thu thập",
+                          "Chấp nhận",
+                          "Cần xem xét",
+                          "Từ chối",
+                          "Bắt đầu",
                         ].map((h) => (
                           <th
                             key={h}
@@ -1746,7 +1761,7 @@ export function AdminAIObservability() {
               <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-semibold text-zinc-200">
-                  Review Queue
+                  Hàng đợi xem xét
                 </span>
                 <span className="ml-auto text-xs text-zinc-600">
                   {knowledge.reviewItems.length}
@@ -1756,7 +1771,7 @@ export function AdminAIObservability() {
                 <div className="px-4 py-8 text-center">
                   <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
                   <div className="text-xs text-zinc-600">
-                    No knowledge items waiting for review.
+                    Không có mục kiến thức nào đang chờ xem xét.
                   </div>
                 </div>
               ) : (
@@ -1786,7 +1801,7 @@ export function AdminAIObservability() {
                           </a>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
                             <span>
-                              Trust:{" "}
+                              Độ tin cậy:{" "}
                               {item.trustScore !== null
                                 ? item.trustScore.toFixed(2)
                                 : "-"}
@@ -1813,7 +1828,7 @@ export function AdminAIObservability() {
                             ) : (
                               <CheckCircle2 className="w-3 h-3" />
                             )}
-                            Approve
+                            Duyệt
                           </button>
                           <button
                             disabled={knowledgeBusy !== null}
@@ -1831,7 +1846,7 @@ export function AdminAIObservability() {
                             ) : (
                               <XCircle className="w-3 h-3" />
                             )}
-                            Reject
+                            Từ chối
                           </button>
                         </div>
                       </div>
@@ -1846,12 +1861,11 @@ export function AdminAIObservability() {
 
       {/* Performance note */}
       <div className="text-center text-[10px] text-zinc-700 py-2">
-        Data from{" "}
+        Dữ liệu từ{" "}
         <code className="text-zinc-600">
           GET /admin/ai/{"{overview,requests,queue,errors}"}
         </code>{" "}
-        · Auto-refresh every 30s · Fallback = Qdrant retrieval empty · DFB =
-        deterministic fallback used
+        · Tự làm mới mỗi 30 giây · Dự phòng = Qdrant không truy xuất được · DFB = dùng phương án dự phòng cố định
       </div>
 
       {/* Trace detail drawer */}

@@ -737,9 +737,9 @@ const DEFAULT_MANUAL_WEEKDAYS: Record<number, number[]> = {
 };
 
 const SET_TYPE_OPTIONS = [
-  { value: "WARMUP", label: "Warm-up" },
-  { value: "WORKING", label: "Working" },
-  { value: "TOP", label: "Top set" },
+  { value: "WARMUP", label: "Khởi động" },
+  { value: "WORKING", label: "Set chính" },
+  { value: "TOP", label: "Set đỉnh" },
   { value: "BACKOFF", label: "Back-off" },
   { value: "FAILURE", label: "Failure" },
 ];
@@ -2621,7 +2621,7 @@ export function WorkoutLogPage() {
 
       const saveDate = selectedDate;
       const payload = {
-        name: `Workout for ${saveDate.toLocaleDateString()}`,
+        name: `Buổi tập ngày ${saveDate.toLocaleDateString("vi-VN")}`,
         date: toApiDateTime(saveDate),
         exercises: editExercises.map((ex) => {
           // Ensure we have a valid UUID for exerciseId
@@ -3597,7 +3597,7 @@ export function WorkoutLogPage() {
     const scheduleId = selectedScheduleId || scheduleForSave?.id || undefined;
     const payload = {
       scheduleId,
-      name: `Workout for ${saveDate.toLocaleDateString()}`,
+      name: `Buổi tập ngày ${saveDate.toLocaleDateString("vi-VN")}`,
       date: toApiDateTime(saveDate),
       duration: Math.max(1, Math.ceil(timerSeconds / 60)),
       exercises: dayExercises.map((exercise, index) => {
@@ -3882,7 +3882,7 @@ export function WorkoutLogPage() {
             setFeedbackPrompt({ scheduleId: scheduleForCompletion.id });
           }
           setTimeout(() => fireConfetti(), 300);
-          toast.success("Da luu hoan thanh buoi tap.");
+          toast.success("Đã lưu hoàn thành buổi tập.");
           void refetchProgramAndSchedules();
           return;
         }
@@ -3897,14 +3897,14 @@ export function WorkoutLogPage() {
           setShowCompletion(true);
           if (savedWorkoutId) void loadCompletionSummary(savedWorkoutId);
           setTimeout(() => fireConfetti(), 300);
-          toast.success("Da luu hoan thanh buoi tap.");
+          toast.success("Đã lưu hoàn thành buổi tập.");
           return;
         }
       }
     } catch (error: any) {
       toast.error(
         error?.response?.data?.error ||
-          "Khong the luu trang thai hoan thanh bai tap.",
+          "Không thể lưu trạng thái hoàn thành bài tập.",
       );
       setCompletedExercises(previousCompleted);
       return;
@@ -4137,7 +4137,7 @@ export function WorkoutLogPage() {
             setFeedbackPrompt({ scheduleId });
           }
           setTimeout(() => fireConfetti(), 300);
-          toast.success("Da luu hoan thanh buoi tap.");
+          toast.success("Đã lưu hoàn thành buổi tập.");
           void refetchProgramAndSchedules();
           return;
         }
@@ -5671,7 +5671,7 @@ export function WorkoutLogPage() {
                           } catch (error: any) {
                             toast.error(
                               error?.response?.data?.error ||
-                                "Khong the bat dau buoi tap. Vui long thu lai.",
+                                "Không thể bắt đầu buổi tập. Vui lòng thử lại.",
                             );
                             return;
                           }
@@ -6155,7 +6155,7 @@ export function WorkoutLogPage() {
                   onClick={() => setPlanView("dayDetail")}
                   className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800"
                 >
-                  Quay lai
+                  Quay lại
                 </button>
               </div>
             );
@@ -7091,7 +7091,7 @@ export function WorkoutLogPage() {
 
                     <label className="block">
                       <span className="block text-[11px] text-zinc-500 mb-1">
-                        Set type
+                        Loại set
                       </span>
                       <select
                         data-testid="active-set-type-select"

@@ -29,7 +29,8 @@ export async function gymPublicWhere(): Promise<Prisma.GymWhereInput> {
  * B43 - the visibility rule of the DETAIL page (GET /gyms/:id) only: like gymPublicWhere() but a TEMPORARILY_CLOSED branch
  * stays reachable by its direct link, so a member or visitor sees "tạm đóng cửa" (with the reason and the expected reopen
  * date when known) instead of "not found". Permanently closed, unapproved and hidden-partner branches stay 404. The LIST
- * (GET /gyms) and every sub-resource (plans, trainers, reviews, photos) keep the strict rule above, and buying a plan or
+ * (GET /gyms) and every sub-resource (trainers, reviews, photos) keep the strict rule above; GET /gyms/:id/plans of a temporarily
+ * closed branch answers 200 with NO plans + the closed state (C2-03, findTemporarilyClosedDetailGym), and buying a plan or
  * checking in stays blocked while the branch is closed.
  */
 export async function gymDetailWhere(): Promise<Prisma.GymWhereInput> {
@@ -41,6 +42,19 @@ export async function isGymPubliclyVisible(gymId: string): Promise<boolean> {
   const where = await gymPublicWhere();
   const row = await prisma.gym.findFirst({ where: { AND: [{ id: gymId }, where] }, select: { id: true } });
   return row !== null;
+}
+
+/**
+ * C2-03: the closed-state of a branch whose DETAIL page is reachable (gymDetailWhere) but which is not strictly public - i.e. a
+ * TEMPORARILY_CLOSED one. null when the branch is OPEN (use the normal path) or not reachable at all (404).
+ */
+export async function findTemporarilyClosedDetailGym(gymId: string) {
+  const where = await gymDetailWhere();
+  const row = await prisma.gym.findFirst({
+    where: { AND: [{ id: gymId }, where] },
+    select: { id: true, operationalStatus: true, closureReason: true, expectedReopenAt: true },
+  });
+  return row && row.operationalStatus === 'TEMPORARILY_CLOSED' ? row : null;
 }
 
 /** 404 JSON for a public route whose branch is not visible (or does not exist) - the two are indistinguishable on purpose. */

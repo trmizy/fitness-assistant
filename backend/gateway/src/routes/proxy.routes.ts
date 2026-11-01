@@ -527,6 +527,8 @@ router.get(
       const [usersRes, contractsRes] = await Promise.allSettled([
         axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
           headers: authHeader ? { Authorization: authHeader } : undefined,
+          // C1-09: forward the role filter; auth-service validates it (unknown value -> 400).
+          params: typeof req.query.role === "string" && req.query.role !== "" ? { role: req.query.role } : undefined,
           timeout: 6000,
         }),
         axios.get(`${USER_SERVICE_URL}/profile/admin/contracts/summary`, {
@@ -534,6 +536,18 @@ router.get(
           timeout: 6000,
         }),
       ]);
+
+      // A rejected filter (auth-service answers 400) is the caller's mistake, not an outage.
+      if (usersRes.status === "rejected" && (usersRes.reason as any)?.response?.status === 400) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: (usersRes.reason as any).response.data?.code || "INVALID_FILTER",
+            message: (usersRes.reason as any).response.data?.error || "Invalid filter",
+          },
+        });
+        return;
+      }
 
       const authUsers = (
         usersRes.status === "fulfilled" ? usersRes.value.data?.users || [] : []

@@ -295,7 +295,7 @@ export function buildOwners(names, { clientsByCity } = {}) {
       payoutDone: state === "ACTIVE" || state === "SUSPENDED",
       representative: { name: person.full, phone: mobilePhone(rng), role: h.pick(["GYM_OWNER", "GYM_OWNER", "CO_FOUNDER", "LEGAL_REPRESENTATIVE"]) },
       scale: branches.length > 1 ? "MULTIPLE_BRANCHES" : "ONE_BRANCH",
-      legal: { legalName: `Công ty TNHH ${spec.brand}`, taxCode: String(h.int(300000000, 319999999)) + String(h.int(100, 999)), businessLicenseNo: `${h.int(41, 79)}${h.pick(["A", "B", "C"])}-${h.int(100000, 999999)}` },
+      legal: { legalName: `Công ty TNHH ${spec.brand}`, taxCode: sellerTaxCode(idx, h.int(300000000, 319999999), h.int(100, 999)), businessLicenseNo: `${h.int(41, 79)}${h.pick(["A", "B", "C"])}-${h.int(100000, 999999)}` },
       social: { facebookUrl: `https://www.facebook.com/${brandSlug.replace(/-/g, "")}`, instagramUrl: h.chance(0.7) ? `https://www.instagram.com/${brandSlug.replace(/-/g, "_")}` : null, tiktokUrl: h.chance(0.3) ? `https://www.tiktok.com/@${brandSlug.replace(/-/g, "")}` : null, youtubeUrl: null },
       bank: (() => { const [bank] = h.pick(BANKS); return { bankName: bank, accountNumber: String(h.int(100000000, 999999999)) + String(h.int(100, 999)), accountHolder: person.full.normalize("NFD").replace(/\p{M}+/gu, "").replace(/đ/g, "d").replace(/Đ/g, "D").toUpperCase() }; })(),
       contactPhone: mobilePhone(rng),
@@ -321,3 +321,12 @@ export function buildOwners(names, { clientsByCity } = {}) {
 }
 
 export { ARCH, PRICE_TIERS };
+
+/**
+ * Valid Vietnamese tax code (gym-service TAX_CODE_PATTERN: 10 digits, optional "-NNN" branch suffix), deterministic and unique per
+ * owner: 10 digits = "0" + 9 digits whose upper part is the owner index (so two owners can never clash) and whose lower part comes
+ * from the rng draw. The two rng draws stay in place so the rest of the world does not shift.
+ */
+export function sellerTaxCode(idx, draw, _branchDraw) {
+  return `0${String(300000000 + idx * 100000 + (draw % 100000))}`;
+}

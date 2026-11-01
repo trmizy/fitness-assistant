@@ -28,10 +28,10 @@ const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: strin
   // their own section below, filtered out of the normal brand groups), but Record<GymStatus,
   // …> requires an entry for every status value regardless.
   DRAFT:          { label: "Nháp",           color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Pencil },
-  PENDING_REVIEW: { label: "Pending Review", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
-  APPROVED:       { label: "Approved",       color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
-  REJECTED:       { label: "Rejected",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     icon: XCircle },
-  SUSPENDED:      { label: "Suspended",      color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Ban },
+  PENDING_REVIEW: { label: "Chờ duyệt", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
+  APPROVED:       { label: "Đã duyệt",       color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
+  REJECTED:       { label: "Bị từ chối",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     icon: XCircle },
+  SUSPENDED:      { label: "Tạm ngưng",      color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Ban },
 };
 
 const WIZARD_TOTAL_STEPS = 7;
@@ -257,7 +257,7 @@ export function MyGymsPage() {
       ),
     onSuccess: () => {
       toast.success(
-        brands.length > 0 ? "Đã thêm chi nhánh — chờ admin duyệt" : "Gym created — awaiting admin approval",
+        brands.length > 0 ? "Đã thêm chi nhánh — chờ admin duyệt" : "Đã tạo phòng gym — chờ admin duyệt",
       );
       setShowCreateGym(false);
       setGymForm({ name: "", address: "", city: "", description: "" });
@@ -272,7 +272,7 @@ export function MyGymsPage() {
       toast.error(
         errorCodeOf(err) === "AMENITIES_REQUIRED"
           ? GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED
-          : err?.response?.data?.error?.message || gymListingErrorMessage(err, "Failed to create gym"),
+          : err?.response?.data?.error?.message || gymListingErrorMessage(err, "Không tạo được phòng gym"),
       ),
   });
 
@@ -325,7 +325,7 @@ export function MyGymsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Dumbbell className="w-5 h-5 text-green-400" /> My Gyms
+            <Dumbbell className="w-5 h-5 text-green-400" /> Phòng gym của tôi
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">Quản lý thương hiệu và các chi nhánh của bạn</p>
         </div>
@@ -336,7 +336,7 @@ export function MyGymsPage() {
               onClick={needsBrandSetup ? () => setBrandPromptDismissed(false) : openAddBranch}
               className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,background-color] active:scale-[0.98] shadow-lg shadow-green-500/25"
             >
-              <Plus className="w-4 h-4" /> New Gym
+              <Plus className="w-4 h-4" /> Thêm phòng gym
             </button>
             {/* GYM_BRANCH_FORM_SPEC.md, Phase 1 — new wizard shell, reachable alongside the
                 existing dialog above rather than replacing it (steps 1-6 are still
@@ -459,8 +459,8 @@ export function MyGymsPage() {
       {!isLoading && gyms.length === 0 && brands.length === 0 && (
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-20 text-center">
           <Dumbbell className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-          <h3 className="text-zinc-200 font-bold mb-1">No gyms yet</h3>
-          <p className="text-sm text-zinc-500 mb-6">Create your first gym to start selling memberships.</p>
+          <h3 className="text-zinc-200 font-bold mb-1">Chưa có phòng gym nào</h3>
+          <p className="text-sm text-zinc-500 mb-6">Hãy tạo phòng gym đầu tiên để bắt đầu bán gói hội viên.</p>
         </div>
       )}
 
@@ -503,7 +503,7 @@ export function MyGymsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-[92vh] flex flex-col">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">{brands.length > 0 ? "Thêm chi nhánh" : "Create Gym"}</h3>
+              <h3 className="text-zinc-100 font-bold">{brands.length > 0 ? "Thêm chi nhánh" : "Tạo phòng gym"}</h3>
               <button type="button" aria-label="Đóng" onClick={() => setShowCreateGym(false)} className="text-zinc-500 hover:text-zinc-300">
                 <X className="w-4 h-4" />
               </button>
@@ -513,14 +513,14 @@ export function MyGymsPage() {
                 aria-label="Gym name"
                 value={gymForm.name}
                 onChange={(e) => setGymForm({ ...gymForm, name: e.target.value })}
-                placeholder="Gym name"
+                placeholder="Tên phòng gym"
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <input
                 aria-label="City"
                 value={gymForm.city}
                 onChange={(e) => setGymForm({ ...gymForm, city: e.target.value })}
-                placeholder="City"
+                placeholder="Thành phố"
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <textarea
@@ -529,7 +529,7 @@ export function MyGymsPage() {
                 onChange={(e) => setGymForm({ ...gymForm, description: e.target.value })}
                 rows={3}
                 maxLength={ABOUT_MAX}
-                placeholder="Description (optional)"
+                placeholder="Mô tả (tuỳ chọn)"
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
               />
               <AboutCounter value={gymForm.description} />
@@ -579,7 +579,7 @@ export function MyGymsPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button type="button" onClick={() => setShowCreateGym(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -589,7 +589,7 @@ export function MyGymsPage() {
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
               >
                 {createGymMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create
+                Tạo
               </button>
             </div>
           </div>

@@ -13,8 +13,8 @@ const CARDS = [
     icon: Dumbbell,
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
-    title: "Bai tap",
-    description: "Catalog bai tap co huong dan, nhom co, thiet bi va media minh hoa",
+    title: "Bài tập",
+    description: "Danh mục bài tập có hướng dẫn, nhóm cơ, thiết bị và hình ảnh minh họa",
     testId: "library-card-exercises",
   },
   {
@@ -22,8 +22,8 @@ const CARDS = [
     icon: Apple,
     color: "text-rose-400",
     bg: "bg-rose-500/10 border-rose-500/20",
-    title: "Thuc pham",
-    description: "Tra cuu calo, protein, carb, fat theo 100g tu bang food hien co",
+    title: "Thực phẩm",
+    description: "Tra cứu calo, protein, carb, chất béo theo 100g từ bảng thực phẩm hiện có",
     testId: "library-card-foods",
   },
   {
@@ -31,8 +31,8 @@ const CARDS = [
     icon: BookOpen,
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
-    title: "Kien thuc",
-    description: "Cac bai viet ngan ve calo, macro, BMR, TDEE va hieu suat tap",
+    title: "Kiến thức",
+    description: "Các bài viết ngắn về calo, macro, BMR, TDEE và hiệu suất tập",
     testId: "library-card-nutrition-knowledge",
   },
   {
@@ -40,8 +40,8 @@ const CARDS = [
     icon: PersonStanding,
     color: "text-sky-400",
     bg: "bg-sky-500/10 border-sky-500/20",
-    title: "Nhom co",
-    description: "Bang taxonomy nhom co va bai tap lien quan tu mapping canonical",
+    title: "Nhóm cơ",
+    description: "Bảng phân loại nhóm cơ và các bài tập liên quan",
     testId: "library-card-muscles",
   },
 ];
@@ -78,10 +78,10 @@ export function LibraryPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Compass className="w-5 h-5 text-emerald-400" /> Kham pha
+            <Compass className="w-5 h-5 text-emerald-400" /> Khám phá
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Du lieu that tu thu vien bai tap, thuc pham, kien thuc dinh duong va nhom co.
+            Dữ liệu từ thư viện bài tập, thực phẩm, kiến thức dinh dưỡng và nhóm cơ.
           </p>
         </div>
         <button
@@ -90,7 +90,7 @@ export function LibraryPage() {
           className="inline-flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-300 hover:border-zinc-600"
         >
           <Search className="w-4 h-4" />
-          Tim kiem
+          Tìm kiếm
         </button>
       </div>
 
@@ -119,13 +119,13 @@ export function LibraryPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-zinc-500">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Dang tai...
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tải...
         </div>
       ) : (
         <>
           <PreviewSection
-            title="Bai tap co media"
-            actionLabel="Xem thu vien bai tap"
+            title="Bài tập có hình/video"
+            actionLabel="Xem thư viện bài tập"
             onAction={() => navigate("/client/exercises")}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -154,8 +154,8 @@ export function LibraryPage() {
           </PreviewSection>
 
           <PreviewSection
-            title="Thuc pham co anh"
-            actionLabel="Xem thu vien thuc pham"
+            title="Thực phẩm có ảnh"
+            actionLabel="Xem thư viện thực phẩm"
             onAction={() => navigate("/client/foods")}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -186,8 +186,8 @@ export function LibraryPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <PreviewSection
-              title="Kien thuc dinh duong"
-              actionLabel="Xem bai viet"
+              title="Kiến thức dinh dưỡng"
+              actionLabel="Xem bài viết"
               onAction={() => navigate("/client/learn/nutrition")}
             >
               <div className="grid grid-cols-1 gap-2.5">
@@ -206,8 +206,8 @@ export function LibraryPage() {
             </PreviewSection>
 
             <PreviewSection
-              title="Nhom co"
-              actionLabel="Xem taxonomy"
+              title="Nhóm cơ"
+              actionLabel="Xem phân loại nhóm cơ"
               onAction={() => navigate("/client/muscles")}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

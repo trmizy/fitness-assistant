@@ -157,6 +157,14 @@ for (const label of ['DRAFT', 'PENDING_REVIEW', 'REJECTED', 'SUSPENDED', 'TEMPOR
         assert.equal(r.json.data.isOpen, false);
         continue;
       }
+      if (detailStays && p === `/gyms/${h.gymId}/plans`) {
+        // C2-03: consistent with B43 - 200 with NO plans plus the closed state (not purchasable), never a 404 next to a 200 detail page.
+        assert.equal(r.status, 200, p);
+        assert.deepEqual(r.json.data, []);
+        assert.equal(r.json.meta.purchasable, false);
+        assert.equal(r.json.meta.operationalStatus, 'TEMPORARILY_CLOSED');
+        continue;
+      }
       assert.equal(r.status, 404, p);
       assert.equal(r.json?.success, false, p);
     }
