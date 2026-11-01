@@ -42,6 +42,20 @@ test("D3 synthetic annotations test denominators but cannot publish model effect
   assert.equal(report.fixtureCalculations!.postGate.assessmentCorrectness.value, null); assert.equal(report.denominators.blockedValid, 1); assert.equal(report.denominators.releasedValid, 0);
   assert.equal(report.telemetry.inputTokens.observedSum, null); assert.equal(report.telemetry.fakeAttemptsExcluded, 1);
   const wrongAuthority = fixture(); wrongAuthority.purpose = "INDEPENDENT_ANALYSIS"; assert.equal(analyzeOffline(wrongAuthority).semantics, null);
+  const mislabeledMode = fixture(); mislabeledMode.outputs[0].raw.executionMode = "LIVE"; assert.equal(analyzeOffline(mislabeledMode).telemetry.estimatedUsd.observedSum, null);
+});
+test("D3 raw and post-gate denominators keep blocked/absent outputs separate across repeats", () => {
+  const data = fixture(), first = data.outputs[0], { attemptKey: _key, ...base } = data.schedule[0], next = { ...base, repeatIndex: 1 }, key = attemptIdentity(next);
+  data.schedule.push({ ...next, attemptKey: key }); const absent = { ...base, repeatIndex: 2 }; data.schedule.push({ ...absent, attemptKey: attemptIdentity(absent) });
+  const request = data.cases[0].sealed.case.request;
+  const packet = createAnnotationPackets({ question: request.question, facts: request.snapshots.flatMap((s) => s.facts), evidence: [], candidate: pilotAnswer }).reviewers[0];
+  data.outputs.push({ ...first, attemptKey: key, packet, postGate: { decision: "ELIGIBLE", structuredInvariant: false, narrowTextHeuristic: false } });
+  data.annotations.push(...data.annotations.slice(0, 2).map((a) => ({ ...a, packetHash: packet.packetHash, units: a.units.map((u) => ({ ...u, unsupportedPersonalClaim: false, personalApplicability: "SUPPORTED" as const, unsupportedCausalInference: "NONE" as const })) })));
+  data.adjudications.push({ ...data.adjudications[0], shouldBlock: false, review: { ...data.adjudications[0].review, packetHash: packet.packetHash } });
+  const report = analyzeOffline(data);
+  assert.equal(report.denominators.scheduled, 3); assert.equal(report.denominators.missingOutputs, 1); assert.equal(report.denominators.rawRecorded, 2); assert.equal(report.denominators.coverage.value, 0.5);
+  assert.equal(report.fixtureCalculations!.raw.unsupportedPersonalClaimRate.value, 0.5); assert.equal(report.fixtureCalculations!.postGate.unsupportedPersonalClaimRate.value, 0);
+  assert.equal(report.fixtureCalculations!.raw.assessmentCorrectness.denominator, 2); assert.equal(report.fixtureCalculations!.postGate.assessmentCorrectness.denominator, 1);
 });
 test("D3 absent annotations/NA/partial labels remain missing, not zero errors or perfect support", () => {
   const data = fixture(); data.annotations = []; data.adjudications = []; const report = analyzeOffline(data);

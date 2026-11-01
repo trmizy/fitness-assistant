@@ -172,7 +172,7 @@
     {
       "id": "O-09",
       "group": "people",
-      "decision": "Tác giả case độc lập (≥ 1) cho 30 case reviewed-DEV và 10 held-out",
+      "decision": "Independent authors/substantive reviewers for 30 AI-authored draft candidates and at least 20 held-out cases; precision target 35+ subject to pilot/power analysis",
       "why": "Case do AI soạn không phải gold",
       "currentRepoStatus": "Chưa có case độc lập thật; case-review-001…040 là slot rỗng",
       "ownerRole": null,
@@ -339,27 +339,6 @@
     ],
     "codeNotYetPresent": [
       {
-        "id": "D-1",
-        "item": "Mở rộng AnnotationSchema (hiện .strict()) thêm personalApplicability và unsupportedCausalInference",
-        "neededFor": "Chấm đầy đủ các trục rubric và tính PE1 phân rã",
-        "blocksPilot": false,
-        "blocksFullEvaluation": true
-      },
-      {
-        "id": "D-2",
-        "item": "Runner hỗ trợ nhiều lần lặp và nhiều policy (runner hiện chạy mỗi cặp case×arm một lần với một policy; attemptKey không có chiều lặp nên một vòng lặp thêm vào sẽ va chạm ATTEMPT_ALREADY_RESERVED; prepareReleasedPilot nhận một policy)",
-        "neededFor": "k ≥ 2 và MINIMAL+FULL",
-        "blocksPilot": false,
-        "blocksFullEvaluation": true
-      },
-      {
-        "id": "D-3",
-        "item": "Mã phân tích: hiệu theo cặp, bootstrap theo case, Cohen's κ, độ nhạy/độ chính xác gate (kappa hiện luôn null)",
-        "neededFor": "Tính điểm theo kế hoạch",
-        "blocksPilot": false,
-        "blocksFullEvaluation": true
-      },
-      {
         "id": "D-4",
         "item": "Nhánh LIVE của runner (review riêng)",
         "neededFor": "Bất kỳ lần chạy Bedrock thật",
@@ -379,6 +358,21 @@
       "Packet mẫu cho hiệu chỉnh rubric (evaluation owner soạn tay)",
       "Bản đồ ẩn danh packet↔arm do evaluation owner giữ",
       "Sổ phát hành held-out thủ công"
+    ],
+    "implementedInfrastructurePendingReview": [
+      {
+        "id": "D-1",
+        "status": "IMPLEMENTED_PENDING_CODE_REVIEW_NOT_EVALUATION_APPROVAL"
+      },
+      {
+        "id": "D-2",
+        "status": "IMPLEMENTED_PENDING_CODE_REVIEW_NOT_EVALUATION_APPROVAL"
+      },
+      {
+        "id": "D-3",
+        "status": "IMPLEMENTED_PENDING_CODE_REVIEW_NOT_EVALUATION_APPROVAL"
+      }
     ]
-  }
+  },
+  "reviewerDependency": "REVIEWER_DEPENDENCY_PENDING"
 }

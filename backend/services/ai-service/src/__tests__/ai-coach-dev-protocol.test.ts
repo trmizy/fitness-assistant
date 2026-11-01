@@ -23,8 +23,10 @@ test("fact-flip controls hold question constant while authoritative endpoints ch
 });
 test("independent review and unopened split are future obligations, not fabricated dataset claims", () => {
   assert.equal(protocol.status, "PREPARED_PENDING_INDEPENDENT_REVIEW");
-  assert.equal(protocol.independentSetPlan.targetCount, 40);
-  assert.equal(protocol.independentSetPlan.reservedUnopenedCount, 10);
+  assert.equal(protocol.independentSetPlan.targetCount, 65);
+  assert.equal(protocol.independentSetPlan.reservedUnopenedCount, 20);
+  assert.equal(protocol.independentSetPlan.minimumIndependentHeldOut, 20);
+  assert.equal(protocol.independentSetPlan.heldOutPrecisionTarget, 35);
   assert.equal(protocol.independentSetPlan.reservedContentStatus, "NOT_SUPPLIED_NOT_CREATED_BY_IMPLEMENTER");
   assert.equal(protocol.independentSetPlan.reviewer, "UNASSIGNED");
   assert.equal(protocol.blindedScoring.coverage.blockedCountsAsCorrect, false);

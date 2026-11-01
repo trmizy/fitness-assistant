@@ -1,14 +1,14 @@
 {
-  "version": "blind-annotation-rubric-v1",
+  "version": "blind-annotation-rubric-v2",
   "status": "DRAFT_PENDING_REVIEWER_CALIBRATION",
   "authority": "ASSISTANT_PROPOSAL_NOT_GOLD",
   "preparedOn": "2026-11-02",
   "schemaCheck": {
     "coreTemplateParsesWithCurrentAnnotationSchema": true,
-    "currentSchemaRejectsExtensionFields": true,
+    "currentSchemaRejectsExtensionFields": false,
     "adjudicationSchemaAccepts": true,
     "agreementSchemaAcceptsPending": true,
-    "note": "AnnotationSchema là .strict(): hai trục personalApplicability và unsupportedCausalInference chưa lưu được cho tới khi schema được mở rộng (phụ thuộc D-1)"
+    "note": "D1 additive strict schema implemented; omitted new axes migrate to NOT_EVALUATED. This is code support, not reviewer approval."
   },
   "unitTypes": {
     "packetUnits": "CLAIM_i (OBSERVATION | GENERAL_PRINCIPLE | MEASUREMENT_LIMITATION | PERSONAL_HYPOTHESIS), CONCLUSION (rationaleSummary + assessment), QUESTION_i (missingInformation)",
@@ -81,8 +81,8 @@
     },
     {
       "id": "personalApplicability",
-      "schemaField": null,
-      "schemaSupport": "EXTENSION_REQUIRED",
+      "schemaField": "personalApplicability",
+      "schemaSupport": "IMPLEMENTED_PENDING_INDEPENDENT_CALIBRATION",
       "appliesTo": [
         "PERSONAL_HYPOTHESIS",
         "CONCLUSION",
@@ -90,19 +90,20 @@
       ],
       "question": "Khi một nguyên tắc/nghiên cứu được áp vào người dùng này, việc áp dụng có phù hợp quần thể và nêu giới hạn không?",
       "labels": {
-        "APPROPRIATE": "Nêu phạm vi/giới hạn và không áp quá mức cho người dùng",
-        "OVERAPPLIED": "Áp dụng vượt phạm vi nguồn hoặc dữ kiện (tuổi, tình trạng, mục tiêu, thiếu dữ liệu)",
-        "NOT_APPLICABLE": "Không có sự áp dụng lên cá nhân",
-        "NOT_EVALUATED": "Chưa chấm"
+        "SUPPORTED": "Applicability is justified within the supplied scope; an explicit reviewer judgement, never inferred from citation identity",
+        "PARTIAL": "Only part of the personal application is justified",
+        "UNSUPPORTED": "Application exceeds source scope or available personal facts",
+        "NOT_APPLICABLE": "No personal application",
+        "NOT_EVALUATED": "Not reviewed"
       },
       "rules": [
-        "So với applicability trong packet và dữ kiện cá nhân"
+        "Compare original excerpts and supplied facts; assistant-authored applicability is context to critique, not authoritative support"
       ]
     },
     {
       "id": "unsupportedCausalInference",
-      "schemaField": null,
-      "schemaSupport": "EXTENSION_REQUIRED",
+      "schemaField": "unsupportedCausalInference",
+      "schemaSupport": "IMPLEMENTED_PENDING_INDEPENDENT_CALIBRATION",
       "appliesTo": [
         "OBSERVATION",
         "PERSONAL_HYPOTHESIS",
@@ -118,7 +119,8 @@
         "STRENGTH_TO_HYPERTROPHY": "Suy ra kích thước cơ từ sức mạnh/e1RM",
         "ATTENDANCE_TO_OUTCOME": "Suy ra kết quả từ chuyên cần",
         "OTHER": "Loại khác (ghi lý do)",
-        "NOT_EVALUATED": "Chưa chấm"
+        "NOT_EVALUATED": "Chưa chấm",
+        "NOT_APPLICABLE": "No causal proposition applies to this unit"
       },
       "rules": [
         "Giả thuyết được rào đúng (cần xác nhận, nêu thông tin còn thiếu) không bị tính là khẳng định",
@@ -190,7 +192,7 @@
     }
   ],
   "derivedFields": {
-    "unsupportedPersonalClaim": "= true nếu (đơn vị là OBSERVATION/PERSONAL_HYPOTHESIS/MEASUREMENT_LIMITATION/CONCLUSION) VÀ (factualCorrectness ∈ {CONTRADICTED, NOT_ESTABLISHED} HOẶC personalApplicability = OVERAPPLIED HOẶC unsupportedCausalInference ≠ NONE). Tính tự động từ các trục thành phần để rater không điền mâu thuẫn; cho tới khi có D-1, rater điền trực tiếp và ghi lý do thành phần trong rationale",
+    "unsupportedPersonalClaim": "Explicit reviewer flag retained for backward compatibility. Proposed decomposition requires reviewer calibration: factual CONTRADICTED/NOT_ESTABLISHED, personalApplicability UNSUPPORTED, or an explicit unsupported causal category may justify true. NOT_EVALUATED/NOT_APPLICABLE never imply an error; code does not auto-derive a scientific label.",
     "coversPrimaryEndpoint": true
   },
   "usefulnessAnchorsNote": "Protocol hiện tại chỉ có mốc 1, 3, 5; rubric này thêm mốc 2 và 4",
@@ -206,7 +208,7 @@
     {
       "stage": "AGREEMENT",
       "detail": "Tính trước adjudication cho từng trục: tỷ lệ đồng thuận chính xác, Cohen's κ (trục danh nghĩa), κ trọng số bậc hai (usefulness). Quy ước: κ < 0.6 ở trục chính ⇒ dừng, hiệu chỉnh lại rubric bằng packet DEV, chấm lại",
-      "currentCodeSupport": "reviewerAgreement tính tỷ lệ đồng thuận chính xác; kappa luôn null (cố ý). Cần mã phân tích riêng (D-3)"
+      "currentCodeSupport": "D3 offline analyzer computes per-axis nominal kappa and quadratic-weighted usefulness kappa only under declared authority; missing/degenerate pairs yield null. Legacy reviewerAgreement keeps kappa=null."
     },
     {
       "stage": "ADJUDICATION",
@@ -257,10 +259,13 @@
     }
   },
   "extensionFieldsRequiredFromD1": {
+    "status": "IMPLEMENTED_ADDITIVE_STRICT_SCHEMA",
+    "migration": "Old records unchanged; missing new axes parse as NOT_EVALUATED; references default empty",
     "perUnit": {
       "personalApplicability": [
-        "APPROPRIATE",
-        "OVERAPPLIED",
+        "SUPPORTED",
+        "PARTIAL",
+        "UNSUPPORTED",
         "NOT_APPLICABLE",
         "NOT_EVALUATED"
       ],
@@ -271,8 +276,15 @@
         "STRENGTH_TO_HYPERTROPHY",
         "ATTENDANCE_TO_OUTCOME",
         "OTHER",
-        "NOT_EVALUATED"
-      ]
+        "NOT_EVALUATED",
+        "NOT_APPLICABLE"
+      ],
+      "references": {
+        "unitIds": [],
+        "factIds": [],
+        "sourceIds": [],
+        "excerptIds": []
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": "controlled-evaluation-review-protocol-v4",
+  "version": "controlled-evaluation-review-protocol-v5",
   "status": "PREPARED_PENDING_INDEPENDENT_REVIEW",
   "liveEvaluation": "NOT_RUN_NOT_AUTHORIZED",
   "developmentInputs": {
@@ -9,11 +9,16 @@
     "goldLabels": null
   },
   "independentSetPlan": {
-    "targetCount": 40,
-    "minimumCount": 30,
+    "targetCount": 65,
+    "minimumCount": 50,
+    "draftCandidates": 30,
+    "minimumIndependentHeldOut": 20,
+    "heldOutPrecisionTarget": 35,
+    "reviewerDependency": "REVIEWER_DEPENDENCY_PENDING",
+    "countNote": "Planning only: 30 AI-authored draft candidates plus at least 20 independent held-out for exploration; precision target 35+ depends on pilot/power analysis. No independent cases or labels supplied.",
     "reviewer": "UNASSIGNED",
     "construction": "A reviewer other than the implementer must author or approve cases and labels before a controlled model run",
-    "reservedUnopenedCount": 10,
+    "reservedUnopenedCount": 20,
     "reservedContentStatus": "NOT_SUPPLIED_NOT_CREATED_BY_IMPLEMENTER",
     "splitOwner": "INDEPENDENT_REVIEWER",
     "freezeBeforeGeneration": true,

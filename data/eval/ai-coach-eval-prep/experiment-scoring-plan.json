@@ -1,5 +1,5 @@
 {
-  "version": "controlled-experiment-scoring-plan-v1",
+  "version": "controlled-experiment-scoring-plan-v2",
   "status": "PREREGISTRATION_DRAFT_NOT_LOCKED",
   "authority": "ASSISTANT_PROPOSAL_NOT_GOLD",
   "preparedOn": "2026-11-02",
@@ -75,7 +75,7 @@
     "repetitions": {
       "value": null,
       "ownerDecision": "k=3 tối thiểu, k=5 nếu ngân sách cho phép (không có seed trên Bedrock nên lặp là mẫu ngẫu nhiên thật)",
-      "note": "protocol hiện tại ghi pairedRepetitions=2 (mock); cần cập nhật"
+      "note": "D2 supports pinned repeats 1..50 and selected existing arms/policies; absence of design preserves one repeat/MINIMAL/all six arms. No provider seed."
     },
     "routedCases": "Case safety/ngoài phạm vi chỉ qua bộ định tuyến, không sinh; báo cáo độ chính xác định tuyến riêng",
     "humanLabelling": "Mỗi cell chọn đúng một lần lặp để người chấm theo quy tắc xác định (hash(freezeManifest, cellId) mod k) ⇒ khoảng 6 arm × số case đầu ra; toàn bộ lần lặp chỉ dùng chỉ số tự động; 6 cell kiểm toán được chấm đủ lần lặp để ước lượng dao động"
@@ -265,11 +265,30 @@
       },
       "meaning": "Với 8 case sinh của held-out, chỉ hiệu rất lớn mới phân biệt được; kết quả held-out nhỏ chỉ mang tính mô tả"
     },
-    "heldOutSizeDecision": "Owner quyết định mở rộng held-out lên ≥ 20 case sinh nếu muốn suy luận xác nhận; nếu không, mọi kết luận là khám phá",
-    "multiplicity": "Các so sánh khác (FULL vs MINIMAL, SE*) là khám phá, ghi rõ trong báo cáo"
+    "heldOutSizeDecision": "REVIEWER_DEPENDENCY_PENDING: minimum 20 independent held-out cases for exploration; target 35 or more after pilot and power/precision analysis. Ten historical quota examples do not satisfy this requirement.",
+    "multiplicity": "Các so sánh khác (FULL vs MINIMAL, SE*) là khám phá, ghi rõ trong báo cáo",
+    "implementation": {
+      "module": "evaluation/evaluation-kit/offline-analysis.ts",
+      "implemented": [
+        "available-label metrics with raw/post denominators",
+        "equal-case paired contrasts",
+        "case-cluster percentile bootstrap",
+        "nominal Cohen kappa",
+        "quadratic-weighted usefulness kappa",
+        "adjudicated gate sensitivity/specificity/precision",
+        "missingness and disagreement accounting"
+      ],
+      "notImplemented": [
+        "mixed-effects logistic sensitivity model",
+        "Holm-adjusted p-values",
+        "power analysis",
+        "scientific review or independent labels"
+      ],
+      "intervalPolicy": "No reported semantic CI for FAKE/TEST_FIXTURE data. Real-data contrast intervals require at least 20 paired case clusters; this guard is not a power guarantee."
+    }
   },
   "callBudgetScenarios": {
-    "note": "Chưa tính chi phí vì chưa có giá AWS đã xác minh. Số lần gọi = số case sinh × 6 arm × số policy × số lần lặp",
+    "note": "Chưa tính chi phí vì chưa có giá AWS đã xác minh. Số lần gọi = số case sinh × 6 arm × số policy × số lần lặp; Historical counts below assume 8 generating held-out cases and do not satisfy the revised minimum 20 independent held-out cases; owner must recalculate after choosing actual non-safety cases and design.",
     "generationCases": {
       "devCandidates": 27,
       "heldOutQuotaGenerating": 8
@@ -292,7 +311,8 @@
         "calls": 2100
       }
     ],
-    "annotationWorkload": "Mỗi arm × case chấm một lần lặp: 35 × 6 = 210 đầu ra mỗi rater (khoảng 6–10 unit mỗi đầu ra); owner xác nhận nhân lực trước"
+    "annotationWorkload": "Mỗi arm × case chấm một lần lặp: 35 × 6 = 210 đầu ra mỗi rater (khoảng 6–10 unit mỗi đầu ra); owner xác nhận nhân lực trước",
+    "status": "HISTORICAL_10_QUOTA_ILLUSTRATION_NOT_CURRENT_BUDGET"
   },
   "stages": [
     {

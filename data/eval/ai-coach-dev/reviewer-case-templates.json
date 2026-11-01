@@ -3,6 +3,7 @@
   "status": "PENDING_INDEPENDENT_AUTHORS",
   "minimumCount": 30,
   "targetCount": 40,
+  "historicalSlotNote": "These 40 empty legacy slots include only 10 held-out placeholders and do not satisfy current held-out planning. Do not populate with AI-authored content. See ai-coach-eval-prep/case-protocol.json: minimum 20 independent held-out, precision target 35+; reviewer dependency pending.",
   "privateStorage": "OWNER_ACCOUNT_OUTSIDE_IMPLEMENTER_WORKSPACE",
   "schema": "evaluation/evaluation-kit/annotations.ts:ReviewerCaseSchema",
   "templates": [

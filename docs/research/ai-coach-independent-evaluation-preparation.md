@@ -1,5 +1,7 @@
 # AI Coach — chuẩn bị đánh giá độc lập
 
+> Bộ draft được lưu riêng tại `63d7540a`. Cập nhật kỹ thuật D1–D3 và protocol held-out hiện tại: [evaluation infrastructure D1–D3](ai-coach-evaluation-infrastructure-d1-d3.md). Nội dung mô tả 10 quota, schema chưa mở rộng và code gaps bên dưới là snapshot khi soạn draft; không phải trạng thái code hiện tại. JSON protocol v2 vẫn pending approval, yêu cầu ít nhất 20 held-out độc lập cho khám phá và mục tiêu 35+ tùy pilot/power analysis. Chưa có nội dung hay nhãn held-out thật.
+
 Ngày 2026-11-02 · branch `feat/advisory-content-v3` · cơ sở: HEAD `b0e563a6` (hạ tầng fake-only đã `ACCEPT_FAKE_ONLY_INFRASTRUCTURE`, LIVE `EXTERNAL_PREREQUISITES_PENDING`).
 
 **Trạng thái: `EVALUATION_DATA_PREPARED_PENDING_APPROVAL`.** Mọi thứ dưới đây do assistant soạn để người sở hữu và reviewer duyệt. Chưa có nguồn nào được chuyên gia duyệt, chưa có nhãn độc lập, chưa chạy model, chưa có bằng chứng AI Coach tốt hơn. Evidence: **CODE AUDIT** + **TEST FIXTURE** (kiểm tra hash và schema); không có model evaluation.

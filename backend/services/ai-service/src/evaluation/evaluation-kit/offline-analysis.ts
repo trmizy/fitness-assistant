@@ -41,6 +41,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
   const input = OfflineAnalysisInputSchema.parse(value);
   const cases = new Map(input.cases.map((c) => [c.manifest.caseKey, c]));
   if (cases.size !== input.cases.length) throw new Error("DuplicateFrozenCase");
+  if (new Set(input.cases.map((c) => c.manifest.split)).size > 1) throw new Error("AnalyzeReviewedDevAndHeldOutSeparately");
   for (const c of input.cases) {
     const s = c.sealed, m = c.manifest;
     if (m.caseKey !== s.case.caseKey || m.split !== s.case.split || m.requestHash !== digest(s.case.request) || m.labelHash !== digest({ salt: s.salt, labels: s.case.labels }) || m.authorAttestationHash !== digest(s.case.author)) throw new Error("FrozenCaseOrLabelsChanged");
@@ -116,11 +117,11 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     if (result.caseCount < 20) { result.interval = null; result.reason = result.caseCount ? "EXPLORATORY_FEWER_THAN_20_CASES" : "NOT_EVALUATED"; }
     return { metric: key, ...result };
   })));
-  const actual = input.outputs.filter((o) => o.raw.executionMode === "LIVE");
+  const actual = input.purpose === "INDEPENDENT_ANALYSIS" ? input.outputs.filter((o) => o.raw.executionMode === "LIVE") : [];
   const telemetry = (field: "inputTokens" | "outputTokens" | "latencyMs" | "estimatedUsd") => { const values = actual.flatMap((o) => o.raw[field] === null ? [] : [o.raw[field]!]); return { observedSum: values.length ? values.reduce((a, b) => a + b, 0) : null, observedMean: values.length ? values.reduce((a, b) => a + b, 0) / values.length : null, observed: values.length, missing: actual.length - values.length }; };
   const responseCount = input.outputs.filter((o) => o.raw.text !== null || o.raw.candidate !== null).length, eligible = rows.filter((r) => r.released).length;
   const substantive = rows.some((r) => r.qualified);
-  return { status: substantive ? "INDEPENDENT_LABELS_ANALYZED_NOT_SCIENTIFIC_APPROVAL" : "NOT_EVALUATED", purpose: input.purpose, scientificPass: null,
+  return { status: substantive ? "INDEPENDENT_LABELS_ANALYZED_NOT_SCIENTIFIC_APPROVAL" : "NOT_EVALUATED", purpose: input.purpose, configHash: input.configHash, inputHash: digest(input), split: input.cases[0]?.manifest.split ?? null, scientificPass: null,
     denominators: { scheduled: input.schedule.length, routedBeforeGeneration: input.routedBeforeGeneration, rawRecorded: rows.length, rawResponded: responseCount, missingOutputs: input.schedule.length - rows.length, validGenerated: rows.filter((r) => r.valid).length, failed: rows.filter((r) => !r.valid).length, blockedValid: rows.filter((r) => r.valid && r.blocked).length, releasedValid: eligible, coverage: metric(eligible, responseCount), attemptRetention: metric(eligible, rows.length) },
     semantics: substantive ? { raw, postGate, gate: gateConfusion(rows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), gateByScope: Object.fromEntries(["structuredInvariant", "narrowTextHeuristic"].map((scope) => [scope, gateConfusion(rows.map((r) => ({ truth: r.gateTruth, blocked: r.scopes[scope as keyof typeof r.scopes] }))) ])), agreement } : null,
     fixtureCalculations: input.purpose === "TEST_FIXTURE" ? { authority: "TEST_FIXTURE_MATH_ONLY_NOT_MODEL_EVALUATION", raw, postGate, gate: gateConfusion(rows.map((r) => ({ truth: r.gateTruth, blocked: r.blocked }))), agreement } : null,

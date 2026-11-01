@@ -16,7 +16,7 @@ export const EVAL_PROTOCOL = {
     coverage: "Report raw generated, raw contract eligible, post-gate eligible and blocked; blocked is never counted correct.",
     telemetry: "Real model tokens, latency and cost remain null until authorized model run.",
   },
-  requirements: "Independent reviewer must author/approve 40 cases, reserve an unopened split, freeze labels outside generation inputs, then perform blinded paired scoring and repeated runs with intervals. No live run authorized.",
+  requirements: "30 AI-authored drafts require substantive independent review. At least 20 independent held-out cases for exploration; precision target 35+ subject to pilot/power analysis. Reviewer owns sealed labels and held-out must not tune prompts/retrieval. No live run authorized.",
 };
 type Result = Awaited<ReturnType<typeof runDevSlice>> | ReturnType<typeof groundCandidate>;
 export function measureDevResult(c: DevCase, result: Result) {

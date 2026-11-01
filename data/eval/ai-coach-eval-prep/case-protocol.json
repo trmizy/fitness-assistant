@@ -1,5 +1,5 @@
 {
-  "version": "independent-evaluation-case-protocol-v1",
+  "version": "independent-evaluation-case-protocol-v2",
   "status": "PREPARED_PENDING_INDEPENDENT_REVIEW_NO_GOLD",
   "preparedBy": "Claude Code (assistant)",
   "preparedOn": "2026-11-02",
@@ -8,7 +8,9 @@
     "Nhãn (expected outcome, abstention, support) do reviewer tác giả viết trong ReviewerCaseSchema, lưu ngoài mọi đường tạo prompt",
     "Held-out: assistant chỉ cung cấp hạn ngạch họ case, không cung cấp nội dung",
     "Chỉ dữ liệu tổng hợp (SYNTHETIC_DEV); không dùng dữ liệu sức khoẻ thật; không sao chép log người dùng thật",
-    "Mọi case route sang safety/ngoài phạm vi chỉ chạy qua bộ định tuyến, không bao giờ gửi tới model"
+    "Mọi case route sang safety/ngoài phạm vi chỉ chạy qua bộ định tuyến, không bao giờ gửi tới model",
+    "At least 20 independently authored/substantively approved held-out cases for exploration; target 35 or more subject to pilot and power/precision analysis. Existing ten quota examples are not a completed held-out set.",
+    "Held-out content and labels remain reviewer-owned outside AI-accessible workspace; never tune prompts/retrieval on held-out before scoring."
   ],
   "splits": {
     "DEV_KNOWN": {
@@ -27,18 +29,22 @@
       "independent": "chỉ sau khi reviewer là tác giả/duyệt"
     },
     "HELD_OUT": {
-      "count": 10,
-      "slots": "case-review-031…040",
-      "authority": "INDEPENDENT_REVIEWER_OWNED",
-      "useFor": "Đánh giá xác nhận một lần",
-      "independent": true,
+      "count": null,
+      "quotaExamples": 10,
+      "minimumIndependentCases": 20,
+      "precisionPlanningTarget": 35,
+      "authority": "INDEPENDENT_REVIEWER_OWNED_PENDING",
+      "useFor": "Exploratory evaluation; larger samples depend on pilot and power/precision analysis",
+      "independent": "NOT_ESTABLISHED_UNTIL_SUBSTANTIVE_INDEPENDENT_REVIEW",
       "contentStatus": "NOT_SUPPLIED"
     }
   },
   "counts": {
-    "total": 40,
-    "minimum": 30,
-    "target": 40,
+    "draftCandidates": 30,
+    "existingQuotaExamples": 10,
+    "actualIndependentHeldOut": 0,
+    "minimumIndependentHeldOut": 20,
+    "precisionPlanningTargetHeldOut": 35,
     "generationSketches": 27,
     "routingOnlySketches": 3
   },
@@ -1382,5 +1388,6 @@
       "Số tối thiểu 30 case chỉ là quy ước trong template, chưa được code kiểm tra",
       "Thư mục riêng có thể nằm trong repo (chưa bị chặn)"
     ]
-  }
+  },
+  "reviewerDependency": "REVIEWER_DEPENDENCY_PENDING"
 }
