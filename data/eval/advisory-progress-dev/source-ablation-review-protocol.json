@@ -1,0 +1,36 @@
+{
+  "version": "source-ablation-review-protocol-v1",
+  "status": "DESIGN_ONLY_NOT_RUN",
+  "modelCalls": 0,
+  "scope": "Future semantic evaluation after content corrections; not an independent held-out set",
+  "principles": [
+    "Freeze a new excerpt-level input pack explicitly; do not mutate v1 or scientific source wording.",
+    "Keep personal facts and question fixed when ablating sources. Distinguish source-specific research findings from logical statements about missing personal measurements.",
+    "Missing external evidence does not invalidate observations from authoritative personal facts.",
+    "An ID match alone is not entailment. Review each claimed research finding against its actual supporting excerpt.",
+    "Do not put the task's answer or case-specific label in the prompt. Safety, format and source-use policies may remain explicit."
+  ],
+  "cases": [
+    { "id": "full-excerpt-support", "change": "Provide ACSM opening/context and both load/outcome result excerpts", "reviewCriterion": "Source-specific findings map to the correct excerpts; application inferences are labelled separately." },
+    { "id": "remove-hypertrophy-result", "change": "Remove only LOAD_HYPERTROPHY_RESULT", "reviewCriterion": "The model no longer attributes equal hypertrophy between study conditions to the supplied excerpt. Personal absence of muscle-size measurement may still be stated as an input limitation." },
+    { "id": "remove-context-excerpt", "change": "Remove only ACSM_CONTEXT", "reviewCriterion": "Do not present the source-specific applicability phrase as directly supported by the remaining excerpt. Do not replace it with invented text or a source URL alone." },
+    { "id": "unrelated-excerpt", "change": "Replace scientific support with a clearly unrelated excerpt", "reviewCriterion": "No unrelated citation attached to the claim; retain factual observations and disclose missing support." },
+    { "id": "no-source", "change": "Remove all external source excerpts", "reviewCriterion": "Describe available personal facts, omit source-based personal causal claims and avoid plan advice." },
+    { "id": "mixed-supported-and-unsupported-claim", "change": "Ask about observed strength, unmeasured muscle size and whether the plan must change", "reviewCriterion": "Answer each part with its own support/unknown status; no inference from strength increase to plan suitability." }
+  ],
+  "controlledMultiDocumentReasoning": {
+    "status": "DESIGN_ONLY_NOT_RUN",
+    "sourceClass": "SYNTHETIC_TEST_RULES_NOT_FITNESS_GUIDANCE",
+    "question": "In this fictional protocol, starting from the supplied initial value, what value follows after the recorded qualifying events?",
+    "personalFact": { "initialValue": 60 },
+    "documents": [
+      { "id": "SYNTH_RULE", "content": "For each qualifying event, add 2.5 units to the current value." },
+      { "id": "SYNTH_EVENTS", "content": "Exactly three qualifying events occurred." }
+    ],
+    "expectedFull": 67.5,
+    "ablation": "Removing either document makes a required operand unavailable; acknowledge insufficient evidence rather than assuming it.",
+    "counterfactual": { "change": "SYNTH_RULE adds 5 units instead", "expected": 75 },
+    "contradiction": "If two supplied rules disagree without precedence, ask for resolution; do not silently choose one.",
+    "limitation": "This demonstrates a small functional evidence-dependency task only, not fitness reasoning or hidden chain-of-thought. Never attach these altered rules to real paper IDs."
+  }
+}
