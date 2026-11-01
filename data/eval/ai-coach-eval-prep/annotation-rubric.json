@@ -1,0 +1,278 @@
+{
+  "version": "blind-annotation-rubric-v1",
+  "status": "DRAFT_PENDING_REVIEWER_CALIBRATION",
+  "authority": "ASSISTANT_PROPOSAL_NOT_GOLD",
+  "preparedOn": "2026-11-02",
+  "schemaCheck": {
+    "coreTemplateParsesWithCurrentAnnotationSchema": true,
+    "currentSchemaRejectsExtensionFields": true,
+    "adjudicationSchemaAccepts": true,
+    "agreementSchemaAcceptsPending": true,
+    "note": "AnnotationSchema là .strict(): hai trục personalApplicability và unsupportedCausalInference chưa lưu được cho tới khi schema được mở rộng (phụ thuộc D-1)"
+  },
+  "unitTypes": {
+    "packetUnits": "CLAIM_i (OBSERVATION | GENERAL_PRINCIPLE | MEASUREMENT_LIMITATION | PERSONAL_HYPOTHESIS), CONCLUSION (rationaleSummary + assessment), QUESTION_i (missingInformation)",
+    "mustReadAll": [
+      "observations",
+      "hypotheses",
+      "rationale/conclusion",
+      "missing-information questions"
+    ],
+    "validatedBy": "validateAnnotation: thiếu bất kỳ unit nào bị từ chối (AnnotationPacketOrUnitsMismatch)"
+  },
+  "generalInstructions": [
+    "Chấm từng đơn vị độc lập trước, rồi chấm usefulness toàn bộ",
+    "Chỉ dựa vào packet; không tra cứu nguồn ngoài; không suy đoán model/arm",
+    "Không thưởng văn phong hay độ dài",
+    "Phần 'assistantAuthoredInterpretation' là diễn giải của assistant, không phải bằng chứng",
+    "Đầu ra không hợp lệ (INVALID_OUTPUT): các trục dữ kiện = NOT_EVALUATED, usefulness = 1, ghi rationale",
+    "Không trao đổi với rater kia; không xem nhãn của tác giả case"
+  ],
+  "axes": [
+    {
+      "id": "factualCorrectness",
+      "schemaField": "factualCorrectness",
+      "schemaSupport": "CORE",
+      "appliesTo": [
+        "OBSERVATION",
+        "MEASUREMENT_LIMITATION",
+        "PERSONAL_HYPOTHESIS",
+        "CONCLUSION"
+      ],
+      "question": "Phát biểu về dữ kiện cá nhân (số, hướng, đơn vị, bài tập, độ mới/chất lượng) có khớp packet không?",
+      "labels": {
+        "SUPPORTED": "Packet (facts) suy ra được đúng phát biểu, kể cả số, đơn vị, bài tập, khoảng thời gian",
+        "CONTRADICTED": "Packet mâu thuẫn trực tiếp (sai số, sai hướng, sai đơn vị/bài tập, lấy lời kể làm dữ kiện)",
+        "NOT_ESTABLISHED": "Packet không đủ để xác lập (đoán, suy diễn, chi tiết bịa)",
+        "NOT_APPLICABLE": "Đơn vị không có phát biểu về dữ kiện cá nhân",
+        "NOT_EVALUATED": "Chưa chấm (đầu ra không hợp lệ hoặc rater từ chối chấm kèm lý do)"
+      },
+      "rules": [
+        "Chỉ so với 'facts' trong packet; lời kể trong hội thoại không phải dữ kiện",
+        "e1RM là ước tính; gọi nó là 1RM đo trực tiếp là CONTRADICTED",
+        "Không mở rộng sang kiến thức ngoài packet"
+      ]
+    },
+    {
+      "id": "sourceSupport",
+      "schemaField": "sourceSupport",
+      "schemaSupport": "CORE",
+      "appliesTo": [
+        "GENERAL_PRINCIPLE",
+        "PERSONAL_HYPOTHESIS",
+        "OBSERVATION",
+        "MEASUREMENT_LIMITATION",
+        "CONCLUSION"
+      ],
+      "question": "Nếu đơn vị nêu hoặc ám chỉ phát hiện nghiên cứu, đoạn trích NGUYÊN VĂN được cấp có hỗ trợ đúng phạm vi không?",
+      "labels": {
+        "SUPPORTED": "Đoạn trích nguyên văn suy ra được phát biểu, đúng quần thể, kết cục, phép so sánh, mức độ",
+        "PARTIAL": "Hỗ trợ một phần (đúng chủ đề nhưng thiếu điều kiện/độ lớn, hoặc nới phạm vi nhẹ)",
+        "UNSUPPORTED": "Không hỗ trợ: cùng chủ đề nhưng khác kết cục, nới quần thể, bỏ qua giới hạn, nhảy từ nhóm sang cá nhân, hoặc nêu phát hiện nghiên cứu mà không có đoạn trích",
+        "NOT_APPLICABLE": "Đơn vị không dựa vào nghiên cứu",
+        "NOT_EVALUATED": "Chưa chấm"
+      },
+      "rules": [
+        "Chỉ dựa vào 'originalExcerpts'; bỏ qua 'assistantAuthoredInterpretation' khi quyết định hỗ trợ",
+        "ID/trích dẫn hợp lệ không phải bằng chứng hỗ trợ",
+        "Cùng chủ đề không phải hỗ trợ",
+        "Không dùng kiến thức nghiên cứu ngoài đoạn trích để cứu một claim"
+      ]
+    },
+    {
+      "id": "personalApplicability",
+      "schemaField": null,
+      "schemaSupport": "EXTENSION_REQUIRED",
+      "appliesTo": [
+        "PERSONAL_HYPOTHESIS",
+        "CONCLUSION",
+        "GENERAL_PRINCIPLE"
+      ],
+      "question": "Khi một nguyên tắc/nghiên cứu được áp vào người dùng này, việc áp dụng có phù hợp quần thể và nêu giới hạn không?",
+      "labels": {
+        "APPROPRIATE": "Nêu phạm vi/giới hạn và không áp quá mức cho người dùng",
+        "OVERAPPLIED": "Áp dụng vượt phạm vi nguồn hoặc dữ kiện (tuổi, tình trạng, mục tiêu, thiếu dữ liệu)",
+        "NOT_APPLICABLE": "Không có sự áp dụng lên cá nhân",
+        "NOT_EVALUATED": "Chưa chấm"
+      },
+      "rules": [
+        "So với applicability trong packet và dữ kiện cá nhân"
+      ]
+    },
+    {
+      "id": "unsupportedCausalInference",
+      "schemaField": null,
+      "schemaSupport": "EXTENSION_REQUIRED",
+      "appliesTo": [
+        "OBSERVATION",
+        "PERSONAL_HYPOTHESIS",
+        "MEASUREMENT_LIMITATION",
+        "CONCLUSION",
+        "QUESTION"
+      ],
+      "question": "Có suy luận nhân quả/ngầm định nguyên nhân mà dữ kiện và nguồn không hỗ trợ không?",
+      "labels": {
+        "NONE": "Không",
+        "PERSONAL_CAUSE_ASSERTED": "Khẳng định nguyên nhân cá nhân",
+        "GROUP_TO_INDIVIDUAL": "Nhảy từ kết quả nhóm sang cá nhân",
+        "STRENGTH_TO_HYPERTROPHY": "Suy ra kích thước cơ từ sức mạnh/e1RM",
+        "ATTENDANCE_TO_OUTCOME": "Suy ra kết quả từ chuyên cần",
+        "OTHER": "Loại khác (ghi lý do)",
+        "NOT_EVALUATED": "Chưa chấm"
+      },
+      "rules": [
+        "Giả thuyết được rào đúng (cần xác nhận, nêu thông tin còn thiếu) không bị tính là khẳng định",
+        "Câu hỏi làm rõ mang tiền đề nhân quả vẫn bị gắn nhãn"
+      ]
+    },
+    {
+      "id": "uncertainty",
+      "schemaField": "uncertainty",
+      "schemaSupport": "CORE",
+      "appliesTo": [
+        "PERSONAL_HYPOTHESIS",
+        "CONCLUSION",
+        "MEASUREMENT_LIMITATION"
+      ],
+      "question": "Mức chắc chắn thể hiện có tương xứng với dữ kiện không?",
+      "labels": {
+        "APPROPRIATE": "Tương xứng",
+        "OVERCONFIDENT": "Chắc chắn hơn dữ kiện cho phép",
+        "UNDERCONFIDENT": "Rào đón thừa dù dữ kiện rõ",
+        "NOT_APPLICABLE": "Không áp dụng",
+        "NOT_EVALUATED": "Chưa chấm"
+      },
+      "rules": [
+        "Không phạt việc nêu giới hạn đúng",
+        "Không thưởng sự rào đón chung chung không dựa trên dữ kiện cụ thể"
+      ]
+    },
+    {
+      "id": "abstention",
+      "schemaField": "abstention",
+      "schemaSupport": "CORE",
+      "appliesTo": [
+        "CONCLUSION",
+        "QUESTION",
+        "PERSONAL_HYPOTHESIS"
+      ],
+      "question": "Phần câu hỏi không thể trả lời từ dữ kiện/nguồn có được từ chối/hỏi làm rõ đúng chỗ không?",
+      "labels": {
+        "APPROPRIATE": "Từ chối hoặc hỏi thêm đúng chỗ cần",
+        "UNNECESSARY": "Từ chối phần có thể trả lời",
+        "NEEDED_BUT_MISSING": "Đáng lẽ phải từ chối/hỏi thêm nhưng vẫn khẳng định",
+        "NOT_APPLICABLE": "Không cần",
+        "NOT_EVALUATED": "Chưa chấm"
+      },
+      "rules": [
+        "Đối chiếu nhãn appropriateAbstention của tác giả case CHỈ ở giai đoạn phân tích, không trong lúc chấm"
+      ]
+    },
+    {
+      "id": "usefulness",
+      "schemaField": "usefulness",
+      "schemaSupport": "CORE",
+      "appliesTo": [
+        "WHOLE_RESPONSE"
+      ],
+      "question": "Toàn bộ câu trả lời có giúp người dùng hiểu dữ kiện của họ và biết bước làm rõ tiếp theo mà không gây hiểu sai không?",
+      "labels": {
+        "1": "Gây hiểu sai hoặc không trả lời ý định",
+        "2": "Phần lớn chung chung hoặc bỏ sót dữ kiện chính",
+        "3": "Mô tả đúng quan sát và một số điều chưa biết",
+        "4": "Trả lời ý định với giới hạn rõ và gợi ý làm rõ cụ thể",
+        "5": "Trả lời ý định đầy đủ, giới hạn chính xác, bước tiếp theo cụ thể và không kê đơn"
+      },
+      "rules": [
+        "Một câu trả lời sai về dữ kiện không được quá 2",
+        "Không thưởng độ dài"
+      ]
+    }
+  ],
+  "derivedFields": {
+    "unsupportedPersonalClaim": "= true nếu (đơn vị là OBSERVATION/PERSONAL_HYPOTHESIS/MEASUREMENT_LIMITATION/CONCLUSION) VÀ (factualCorrectness ∈ {CONTRADICTED, NOT_ESTABLISHED} HOẶC personalApplicability = OVERAPPLIED HOẶC unsupportedCausalInference ≠ NONE). Tính tự động từ các trục thành phần để rater không điền mâu thuẫn; cho tới khi có D-1, rater điền trực tiếp và ghi lý do thành phần trong rationale",
+    "coversPrimaryEndpoint": true
+  },
+  "usefulnessAnchorsNote": "Protocol hiện tại chỉ có mốc 1, 3, 5; rubric này thêm mốc 2 và 4",
+  "workflow": [
+    {
+      "stage": "CALIBRATION",
+      "detail": "Evaluation owner soạn 5–8 packet mẫu (đầu ra viết tay có lỗi đã biết, authority TEST_FIXTURE, không phải đầu ra model, không đưa vào phân tích). R1/R2 chấm riêng, họp thống nhất cách hiểu nhãn; sửa rubric nếu cần rồi đóng băng phiên bản."
+    },
+    {
+      "stage": "INDEPENDENT_ANNOTATION",
+      "detail": "R1 và R2 nhận cùng packetHash qua kênh riêng, chấm độc lập; validateAnnotation từng bản; thứ tự packet được xáo ngẫu nhiên"
+    },
+    {
+      "stage": "AGREEMENT",
+      "detail": "Tính trước adjudication cho từng trục: tỷ lệ đồng thuận chính xác, Cohen's κ (trục danh nghĩa), κ trọng số bậc hai (usefulness). Quy ước: κ < 0.6 ở trục chính ⇒ dừng, hiệu chỉnh lại rubric bằng packet DEV, chấm lại",
+      "currentCodeSupport": "reviewerAgreement tính tỷ lệ đồng thuận chính xác; kappa luôn null (cố ý). Cần mã phân tích riêng (D-3)"
+    },
+    {
+      "stage": "ADJUDICATION",
+      "detail": "Mọi unit bất đồng ở bất kỳ trục nào: người thứ ba (không phải R1/R2/tác giả) quyết định từng trục theo AdjudicationSchema, ghi lý do. Nhãn cuối = quyết định adjudicator; giữ cả hai nhãn gốc"
+    },
+    {
+      "stage": "ANALYSIS_ONLY_JOIN",
+      "detail": "Chỉ ở bước phân tích mới ghép nhãn cuối với nhãn tác giả case (expectedAssessment, appropriateAbstention, referenceSupport) và với bảng ánh xạ ẩn danh packet↔arm do evaluation owner giữ"
+    }
+  ],
+  "blindingLimits": [
+    "Packet loại bỏ arm, policy, trạng thái retrieval và trace",
+    "Rater vẫn có thể suy ra arm RAG qua việc có trích dẫn/đoạn trích; đánh giá bằng câu hỏi 'đoán arm' sau khi chấm xong và báo cáo tỷ lệ đoán đúng"
+  ],
+  "independence": [
+    "R1, R2 và adjudicator là ba người khác nhau và khác tác giả case",
+    "Pseudonym/attestation không phải xác thực danh tính; owner giữ bảng đối chiếu ngoài repo"
+  ],
+  "annotationRecordTemplate": {
+    "note": "Cấu trúc hợp lệ với AnnotationSchema hiện tại; giá trị là minh hoạ TEST_FIXTURE, không phải nhãn",
+    "example": {
+      "packetHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reviewerSlot": "R1",
+      "reviewerPseudonym": "TEST_FIXTURE_RATER",
+      "authority": "TEST_FIXTURE",
+      "units": [
+        {
+          "unitId": "CLAIM_0",
+          "factualCorrectness": "SUPPORTED",
+          "sourceSupport": "NOT_APPLICABLE",
+          "unsupportedPersonalClaim": false,
+          "uncertainty": "NOT_APPLICABLE",
+          "abstention": "NOT_APPLICABLE",
+          "rationale": "Minh hoạ cấu trúc, không phải nhãn thật"
+        },
+        {
+          "unitId": "CONCLUSION",
+          "factualCorrectness": "NOT_ESTABLISHED",
+          "sourceSupport": "NOT_APPLICABLE",
+          "unsupportedPersonalClaim": true,
+          "uncertainty": "OVERCONFIDENT",
+          "abstention": "NEEDED_BUT_MISSING",
+          "rationale": "Minh hoạ cấu trúc, không phải nhãn thật"
+        }
+      ],
+      "usefulness": 3,
+      "submittedAt": "2026-11-02T00:00:00Z"
+    }
+  },
+  "extensionFieldsRequiredFromD1": {
+    "perUnit": {
+      "personalApplicability": [
+        "APPROPRIATE",
+        "OVERAPPLIED",
+        "NOT_APPLICABLE",
+        "NOT_EVALUATED"
+      ],
+      "unsupportedCausalInference": [
+        "NONE",
+        "PERSONAL_CAUSE_ASSERTED",
+        "GROUP_TO_INDIVIDUAL",
+        "STRENGTH_TO_HYPERTROPHY",
+        "ATTENDANCE_TO_OUTCOME",
+        "OTHER",
+        "NOT_EVALUATED"
+      ]
+    }
+  }
+}

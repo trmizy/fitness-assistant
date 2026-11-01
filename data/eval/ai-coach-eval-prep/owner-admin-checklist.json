@@ -1,0 +1,384 @@
+{
+  "version": "owner-admin-prerequisites-v1",
+  "status": "ALL_PENDING_NONE_PROVIDED",
+  "preparedOn": "2026-11-02",
+  "rule": "Không điền giá, phê duyệt hay danh tính reviewer thay người sở hữu; giữ PENDING cho tới khi có bằng chứng",
+  "items": [
+    {
+      "id": "O-01",
+      "group": "model-target",
+      "decision": "Model target và AWS region cho LIVE",
+      "why": "Schema khoá modelId=amazon.nova-pro-v1:0 và từ chối inference profile ở LIVE; kế hoạch đề xuất ap-southeast-1",
+      "currentRepoStatus": "bedrock-pilot-plan.json ghi target đề xuất, chưa xác nhận",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Xác nhận gọi trực tiếp model gốc ở region đã chọn hoạt động trong tài khoản được dùng",
+        "Nếu region chỉ cho phép inference profile: quyết định đổi region hoặc mở chính sách profile sau khi CountTokens với profile được xác minh"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ],
+      "openIssue": "P2-1 từ vòng review trước: mâu thuẫn tiềm tàng giữa chính sách target và region đề xuất (ghi chú bộ nhớ cũ 2026-10-20, chưa kiểm lại)"
+    },
+    {
+      "id": "O-02",
+      "group": "model-target",
+      "decision": "Hỗ trợ CountTokens với target đã chọn",
+      "why": "Runner bắt buộc đếm token trước mỗi inference; không có fallback",
+      "currentRepoStatus": "Chưa kiểm chứng với Bedrock thật (NOT_VERIFIED_LIVE)",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Ghi nhận kết quả kiểm tra khả năng/quyền CountTokens do owner thực hiện"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-03",
+      "group": "pricing",
+      "decision": "Giá AWS đã xác minh (input/output USD trên 1 triệu token), version, ngày kiểm, ngày hết hạn, hash bằng chứng",
+      "why": "Ngân sách USD tính từ giá; code từ chối giá không dương và giá hết hạn",
+      "currentRepoStatus": "pricing = null trong bedrock-pilot-plan.json",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Trang giá AWS hiện hành cho đúng model/region",
+        "Bằng chứng lưu ngoài repo, hash của nó"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-04",
+      "group": "trust",
+      "decision": "Trust root: khoá công khai Ed25519 của người duyệt, issuer, cài tại đường dẫn cố định",
+      "why": "LIVE chỉ chấp nhận approval có chữ ký xác minh bằng khoá này",
+      "currentRepoStatus": "Không cài (C:/ProgramData/Gymini/Evaluation/trust.json không tồn tại trên máy review)",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Admin cài file với ACL ngăn người triển khai ghi/xoá",
+        "Khoá riêng nằm ngoài repo và ngoài máy chạy"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-05",
+      "group": "trust",
+      "decision": "Thư mục ledger LIVE ngoài worktree/run và quyền truy cập",
+      "why": "Ngân sách một-lần dựa vào ledger; hash chain chỉ chống sửa giữa chuỗi, không chống cắt đuôi hay dựng lại",
+      "currentRepoStatus": "Chưa cấp; chỉ có ledger fixture FAKE",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Admin tạo thư mục, ACL, sao lưu chống rollback",
+        "Owner cấp trước bản ghi ISSUED (authority OWNER_SIGNED)"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-06",
+      "group": "approval",
+      "decision": "Phê duyệt cụ thể: config hash, approvalId duy nhất, hạn dùng, số lần gọi tối đa, token vào/ra tối đa, USD tối đa",
+      "why": "Approval ràng buộc một run; thay config là mất ràng buộc",
+      "currentRepoStatus": "approval = NOT_ISSUED",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Approval ký ngoài kênh; owner xem đúng các byte code/corpus/case/prompt đã đóng băng"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-07",
+      "group": "approval",
+      "decision": "Cho phép viết nhánh LIVE của runner (thay đổi code riêng, có review)",
+      "why": "CLI và runner hiện chỉ FAKE; cấp approval không tự mở khoá",
+      "currentRepoStatus": "CLI --live thoát mã 1; runner từ chối mode LIVE",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Quyết định bằng văn bản + một vòng code review cho thay đổi LIVE"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-08",
+      "group": "people",
+      "decision": "Chủ sở hữu đánh giá (evaluation owner) giữ niêm phong nhãn và sổ phát hành",
+      "why": "Held-out cần người giữ độc lập với bên triển khai",
+      "currentRepoStatus": "UNASSIGNED",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Tên/vai trò do owner xác nhận; khai báo xung đột lợi ích"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-09",
+      "group": "people",
+      "decision": "Tác giả case độc lập (≥ 1) cho 30 case reviewed-DEV và 10 held-out",
+      "why": "Case do AI soạn không phải gold",
+      "currentRepoStatus": "Chưa có case độc lập thật; case-review-001…040 là slot rỗng",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Danh sách tác giả, attestation, bản case theo ReviewerCaseSchema lưu ngoài workspace"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-10",
+      "group": "people",
+      "decision": "Hai rater độc lập + một adjudicator, trình độ chuyên môn yêu cầu (huấn luyện/thể hình/khoa học thể thao)",
+      "why": "Chấm mù mức claim",
+      "currentRepoStatus": "UNASSIGNED",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Tên, trình độ, cam kết không xem nhãn tác giả"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-11",
+      "group": "science",
+      "decision": "Người duyệt nguồn khoa học và quyết định cho hai nguồn hiện có",
+      "why": "Cả hai nguồn là abstract lịch sử PENDING_SOURCE_REVIEW; bản ACSM mới hơn tồn tại (2026)",
+      "currentRepoStatus": "Mọi decision = null trong evidence-inventory.json",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Quyết định từng nguồn/đoạn trích: APPROVED_WITH_RESTRICTIONS/REJECTED/SUPERSEDED kèm lý do và ngày"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-12",
+      "group": "science",
+      "decision": "Mở rộng corpus: chọn nguồn cho progression, recovery, nutrition, đo lường và cặp nguồn thật mâu thuẫn",
+      "why": "Không có nguồn thì không đo được giá trị RAG ở các miền này; không có cặp mâu thuẫn thật thì không thử được xử lý mâu thuẫn",
+      "currentRepoStatus": "Chỉ có lead trong data/processed/evidence/_index.json (diễn giải, chưa trích nguyên văn)",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Quy trình source-expansion-workflow.json hoàn tất; registry cập nhật qua thay đổi được review"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-13",
+      "group": "safety",
+      "decision": "Safety owner duyệt bộ cue khủng hoảng và quyết định case safety nào được đưa vào",
+      "why": "Bộ cue hiện tại không bắt vài cách diễn đạt; pilot ban đầu loại case safety",
+      "currentRepoStatus": "Triage DEV giới hạn",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Văn bản quyết định; danh sách cue/câu kiểm thử được duyệt"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-14",
+      "group": "design",
+      "decision": "Ngưỡng ý nghĩa tối thiểu (MID) cho PE1, ngưỡng guard usefulness/claim, k lần lặp, policy chính, kích thước held-out sinh",
+      "why": "Kế hoạch tính toán cần các lựa chọn này trước khi khoá",
+      "currentRepoStatus": "Đề xuất trong experiment-scoring-plan.json, chưa quyết",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Chữ ký đồng ý hoặc giá trị thay thế"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-15",
+      "group": "design",
+      "decision": "Khoá kế hoạch (pre-registration) và thời điểm đóng băng",
+      "why": "Ngăn điều chỉnh sau khi xem kết quả",
+      "currentRepoStatus": "Chưa khoá",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Hash manifest + kế hoạch + rubric với dấu thời gian trước mọi lần chạy model"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    },
+    {
+      "id": "O-16",
+      "group": "privacy",
+      "decision": "Xác nhận chỉ dữ liệu tổng hợp; quy tắc lưu và xoá đầu ra model",
+      "why": "Đầu ra model lưu nguyên văn trong journal; redaction không bắt hết PII",
+      "currentRepoStatus": "Chỉ ghi chú",
+      "ownerRole": null,
+      "value": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "evidenceRequired": [
+        "Quy tắc lưu giữ và quyền truy cập thư mục kết quả"
+      ],
+      "status": "PENDING",
+      "mustNotBeFilledBy": [
+        "Claude Code",
+        "Codex",
+        "bất kỳ trợ lý AI nào"
+      ]
+    }
+  ],
+  "dependenciesBeforePilot": {
+    "external": [
+      "O-01…O-06 (target, giá, trust, ledger, approval)",
+      "O-08, O-09 (ít nhất 2 case độc lập đã niêm phong cho pilot)",
+      "O-11 (quyết định nguồn cho hai nguồn dùng trong pilot) hoặc ghi rõ pilot chạy với nguồn PENDING và không rút kết luận khoa học",
+      "O-13 nếu có case liên quan safety"
+    ],
+    "codeNotYetPresent": [
+      {
+        "id": "D-1",
+        "item": "Mở rộng AnnotationSchema (hiện .strict()) thêm personalApplicability và unsupportedCausalInference",
+        "neededFor": "Chấm đầy đủ các trục rubric và tính PE1 phân rã",
+        "blocksPilot": false,
+        "blocksFullEvaluation": true
+      },
+      {
+        "id": "D-2",
+        "item": "Runner hỗ trợ nhiều lần lặp và nhiều policy (runner hiện chạy mỗi cặp case×arm một lần với một policy; attemptKey không có chiều lặp nên một vòng lặp thêm vào sẽ va chạm ATTEMPT_ALREADY_RESERVED; prepareReleasedPilot nhận một policy)",
+        "neededFor": "k ≥ 2 và MINIMAL+FULL",
+        "blocksPilot": false,
+        "blocksFullEvaluation": true
+      },
+      {
+        "id": "D-3",
+        "item": "Mã phân tích: hiệu theo cặp, bootstrap theo case, Cohen's κ, độ nhạy/độ chính xác gate (kappa hiện luôn null)",
+        "neededFor": "Tính điểm theo kế hoạch",
+        "blocksPilot": false,
+        "blocksFullEvaluation": true
+      },
+      {
+        "id": "D-4",
+        "item": "Nhánh LIVE của runner (review riêng)",
+        "neededFor": "Bất kỳ lần chạy Bedrock thật",
+        "blocksPilot": true,
+        "blocksFullEvaluation": true
+      },
+      {
+        "id": "D-5",
+        "item": "Tách số liệu blocked và failed trong summary (hiện chồng lấn) và đối chiếu journal run với ledger khi resume",
+        "neededFor": "Báo cáo denominators đúng",
+        "blocksPilot": false,
+        "blocksFullEvaluation": false,
+        "note": "P3-1 và P3-5 của vòng review hạ tầng; gom vào thay đổi D-4"
+      }
+    ],
+    "notCodeButMissing": [
+      "Packet mẫu cho hiệu chỉnh rubric (evaluation owner soạn tay)",
+      "Bản đồ ẩn danh packet↔arm do evaluation owner giữ",
+      "Sổ phát hành held-out thủ công"
+    ]
+  }
+}

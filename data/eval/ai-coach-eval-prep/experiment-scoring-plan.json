@@ -1,0 +1,342 @@
+{
+  "version": "controlled-experiment-scoring-plan-v1",
+  "status": "PREREGISTRATION_DRAFT_NOT_LOCKED",
+  "authority": "ASSISTANT_PROPOSAL_NOT_GOLD",
+  "preparedOn": "2026-11-02",
+  "modelEvaluation": "NOT_RUN",
+  "purpose": "Đo xem từng kỹ thuật có cải thiện chất lượng AI Coach hay không, tách khỏi hiệu ứng của gate chặn nhiều câu hơn",
+  "freezeManifestTemplate": {
+    "note": "Mọi giá trị PENDING cho tới khi owner đóng băng; tính bằng calculatePilotPins và freezeReviewerCase; không điền tay",
+    "caseIds": null,
+    "requestHashes": null,
+    "saltedLabelHashes": null,
+    "authorAttestationHashes": null,
+    "corpus": {
+      "evidencePack": null,
+      "claimMap": null,
+      "supplement": null,
+      "sourceRegistry": null,
+      "scientificReviewDecisionHash": null
+    },
+    "promptVariants": {
+      "arms": [
+        "FLAT_LAYOUT",
+        "LAYERED",
+        "LAYERED_CONTEXT",
+        "LAYERED_CONTEXT_PLACEBO",
+        "LAYERED_CONTEXT_RAG",
+        "LAYERED_CONTEXT_WRONG_EXCERPT"
+      ],
+      "policies": [
+        "MINIMAL",
+        "FULL"
+      ],
+      "promptHashes": null,
+      "contextPaddingTokenCheck": null
+    },
+    "code": {
+      "commit": null,
+      "codeHash": null,
+      "workingTreeClean": null
+    },
+    "modelSettingsExpected": {
+      "modelId": "amazon.nova-pro-v1:0",
+      "region": null,
+      "inferenceProfile": null,
+      "temperature": 0.2,
+      "topP": "omitted",
+      "maxTokens": 2048,
+      "retries": 0,
+      "seed": "NOT_SUPPORTED_BY_PROVIDER",
+      "authority": "PROPOSAL_FROM_bedrock-pilot-plan.json_OWNER_MUST_CONFIRM"
+    },
+    "documents": {
+      "caseProtocolHash": null,
+      "annotationRubricHash": null,
+      "scoringPlanHash": null,
+      "blindingMapHash": null
+    },
+    "metrics": {
+      "rawAndPostGateBothReported": true,
+      "gateScopesReportedSeparately": [
+        "STRUCTURED_INVARIANT",
+        "NARROW_TEXT_HEURISTIC"
+      ]
+    },
+    "frozenAt": null,
+    "frozenBy": null
+  },
+  "design": {
+    "unit": "case",
+    "pairedBy": "case",
+    "cells": "case × arm × policy",
+    "primaryPolicy": "MINIMAL",
+    "secondaryPolicy": "FULL (nhân rộng, không bắt buộc)",
+    "repetitions": {
+      "value": null,
+      "ownerDecision": "k=3 tối thiểu, k=5 nếu ngân sách cho phép (không có seed trên Bedrock nên lặp là mẫu ngẫu nhiên thật)",
+      "note": "protocol hiện tại ghi pairedRepetitions=2 (mock); cần cập nhật"
+    },
+    "routedCases": "Case safety/ngoài phạm vi chỉ qua bộ định tuyến, không sinh; báo cáo độ chính xác định tuyến riêng",
+    "humanLabelling": "Mỗi cell chọn đúng một lần lặp để người chấm theo quy tắc xác định (hash(freezeManifest, cellId) mod k) ⇒ khoảng 6 arm × số case đầu ra; toàn bộ lần lặp chỉ dùng chỉ số tự động; 6 cell kiểm toán được chấm đủ lần lặp để ước lượng dao động"
+  },
+  "contrasts": [
+    {
+      "id": "C1",
+      "name": "Bố cục",
+      "a": "LAYERED",
+      "b": "FLAT_LAYOUT",
+      "answers": "Việc đặt khoá JSON thành năm tầng có khác bố cục phẳng không",
+      "cannotAnswer": "Hiệu ứng của 'tách vai trò' như một cơ chế an toàn; hai arm có cùng system prompt, cùng dữ liệu",
+      "primary": true
+    },
+    {
+      "id": "C2",
+      "name": "Nội dung Context Builder (đối chứng độ dài)",
+      "a": "LAYERED_CONTEXT",
+      "b": "LAYERED_CONTEXT_PLACEBO",
+      "answers": "Phần bổ sung provenance/namespace/missingness có giá trị hơn việc chỉ dài hơn không",
+      "cannotAnswer": "Khớp token (placebo khớp ký tự bằng khoảng trắng; số token mô hình chưa kiểm chứng)",
+      "primary": true
+    },
+    {
+      "id": "C2b",
+      "name": "Tổng gói Context",
+      "a": "LAYERED_CONTEXT",
+      "b": "LAYERED",
+      "answers": "Tác động tổng của Context Builder",
+      "cannotAnswer": "Tách độ dài khỏi nội dung",
+      "primary": false
+    },
+    {
+      "id": "C3",
+      "name": "Có đoạn trích khoa học",
+      "a": "LAYERED_CONTEXT_RAG",
+      "b": "LAYERED_CONTEXT",
+      "answers": "Cấp đoạn trích (kèm diễn giải do assistant viết) có cải thiện không",
+      "cannotAnswer": "Hiệu quả RAG nói chung; corpus chỉ 4 đoạn trích từ 2 abstract lịch sử, ở các miền hẹp",
+      "primary": true
+    },
+    {
+      "id": "C4",
+      "name": "Độ liên quan của đoạn trích",
+      "a": "LAYERED_CONTEXT_RAG",
+      "b": "LAYERED_CONTEXT_WRONG_EXCERPT",
+      "answers": "Đoạn trích đúng tốt hơn một đoạn trích khác không",
+      "cannotAnswer": "Hiệu ứng của đoạn trích hoàn toàn lạc đề: WRONG luôn là ACSM_PROGRESSIVE_OPENING (xem thêm ACSM_CONTEXT) và vẫn cùng chủ đề với câu hỏi sức mạnh",
+      "restriction": "Chỉ tính ở case mà RAG=FOUND và WRONG có đoạn trích; các case còn lại báo cáo riêng",
+      "primary": true
+    },
+    {
+      "id": "G1",
+      "name": "Grounding verification (offline)",
+      "a": "post-gate",
+      "b": "raw",
+      "answers": "Gate chặn đúng các đầu ra có lỗi không (độ nhạy, độ chính xác) và cái giá về coverage",
+      "cannotAnswer": "Cải thiện độ chính xác của sinh",
+      "primary": false,
+      "appliedTo": "mọi arm, trên cùng đầu ra thô (verifyRawEvaluation)"
+    }
+  ],
+  "structuredAnalysis": {
+    "status": "NOT_EVALUABLE_IN_CURRENT_DESIGN",
+    "reason": "Cả sáu arm đều dùng AnalysisEnvelope có cấu trúc; không có arm văn bản tự do. Không đưa ra kết luận về lợi ích của structured analysis. Muốn đo cần một arm mới (tính năng mới) – chỉ khi owner yêu cầu."
+  },
+  "primaryEndpoint": {
+    "id": "PE1",
+    "name": "Tỷ lệ claim cá nhân không được hỗ trợ trên đầu ra THÔ",
+    "definition": "(số unit cá nhân có unsupportedPersonalClaim=true) / (số unit cá nhân đánh giá được), trên nhãn cuối sau adjudication",
+    "personalUnits": [
+      "OBSERVATION",
+      "PERSONAL_HYPOTHESIS",
+      "MEASUREMENT_LIMITATION",
+      "CONCLUSION"
+    ],
+    "excludedUnits": [
+      "GENERAL_PRINCIPLE (đo bằng sourceSupport)",
+      "QUESTION"
+    ],
+    "population": "mọi đầu ra sinh ra, kể cả đầu ra mà gate sẽ chặn (không loại theo gate)",
+    "guards": {
+      "usefulnessNotLowerBy": null,
+      "nonEmptyClaimsPerOutputNotLowerBy": null,
+      "why": "Tránh 'cải thiện' bằng cách nói ít đi hoặc từ chối mọi thứ"
+    },
+    "cellWithZeroEvaluableUnits": "loại khỏi PE1, nhưng tính vào tỷ lệ đầu ra rỗng và vào abstention/usefulness",
+    "failedOutputs": {
+      "primary": "available-case (chỉ đầu ra hợp lệ)",
+      "sensitivity": "worst-case: đầu ra hỏng/refusal coi như toàn bộ claim không được hỗ trợ",
+      "report": "tỷ lệ lỗi schema/JSON/refusal theo arm riêng, không bị loại ngầm"
+    }
+  },
+  "secondaryEndpoints": [
+    {
+      "id": "SE1",
+      "name": "Hỗ trợ nguồn của claim có trích dẫn",
+      "definition": "SUPPORTED / (unit có trích dẫn hoặc nêu phát hiện nghiên cứu)",
+      "note": "Chỉ trên arm có đoạn trích; unit nêu phát hiện nghiên cứu mà không có trích dẫn đếm là UNSUPPORTED"
+    },
+    {
+      "id": "SE2",
+      "name": "Từ chối đúng chỗ",
+      "definition": "APPROPRIATE / (case có nhãn appropriateAbstention=true của tác giả)",
+      "note": "Ghép nhãn tác giả chỉ ở phân tích"
+    },
+    {
+      "id": "SE3",
+      "name": "Chắc chắn quá mức",
+      "definition": "OVERCONFIDENT / (unit đánh giá uncertainty)"
+    },
+    {
+      "id": "SE4",
+      "name": "Usefulness 1–5",
+      "definition": "trung bình theo cell, so sánh theo cặp"
+    },
+    {
+      "id": "SE5",
+      "name": "Tỷ lệ lỗi định dạng",
+      "definition": "(INVALID_JSON + SCHEMA_INVALID + refusal) / đầu ra"
+    },
+    {
+      "id": "SE6",
+      "name": "Lỗi tham chiếu (ID)",
+      "definition": "referenceIssues hoặc citationReferenceIssues khác rỗng / đầu ra",
+      "note": "Chẩn đoán tự động; không phải chất lượng ngữ nghĩa"
+    },
+    {
+      "id": "SE7",
+      "name": "Token, độ trễ, chi phí",
+      "definition": "ghi nhận mỗi attempt; chưa có giá trị cho tới khi chạy thật"
+    }
+  ],
+  "gateVsAccuracy": {
+    "rule": "Một kỹ thuật sinh chỉ được ghi 'cải thiện' khi PE1 trên đầu ra THÔ cải thiện. Gate chỉ được đánh giá bằng độ nhạy/độ chính xác/coverage của chính nó",
+    "metrics": [
+      {
+        "id": "rawCleanRate",
+        "definition": "đầu ra thô không có claim cá nhân không được hỗ trợ / số đầu ra sinh ra"
+      },
+      {
+        "id": "gateSensitivity",
+        "definition": "P(bị chặn | người chấm xác nhận có claim không được hỗ trợ), tách theo STRUCTURED_INVARIANT và NARROW_TEXT_HEURISTIC"
+      },
+      {
+        "id": "gatePrecision",
+        "definition": "P(có lỗi thật | bị chặn); với NARROW_TEXT_HEURISTIC, người chấm xem xét mọi ca bị chặn"
+      },
+      {
+        "id": "coverage",
+        "definition": "số đầu ra được phát hành sau gate / số đầu ra sinh ra"
+      },
+      {
+        "id": "badReleased",
+        "definition": "đầu ra có lỗi nhưng gate cho qua (rò rỉ)"
+      },
+      {
+        "id": "goodBlocked",
+        "definition": "đầu ra tốt nhưng bị chặn (chi phí)"
+      }
+    ],
+    "forbidden": [
+      "Báo 'lỗi giảm' trên mẫu số đã bị gate thu nhỏ mà không nêu coverage",
+      "Tính đầu ra bị chặn là đúng hoặc loại khỏi mẫu số",
+      "Dùng NO_RULE_MATCH hoặc FLAGGED làm bằng chứng đúng khoa học"
+    ]
+  },
+  "statistics": {
+    "estimand": "Hiệu theo cặp của PE1 (và các chỉ số khác) giữa hai arm, trung bình theo case",
+    "method": [
+      "Cell value = tỷ số tổng trên đơn vị của đầu ra được chấm",
+      "Hiệu theo cặp trong từng case; khoảng tin cậy 95% bằng cluster bootstrap theo case (10.000 lần lấy mẫu)",
+      "Phân tích nhạy: mô hình hỗn hợp logistic cấp claim với hiệu ứng ngẫu nhiên theo case",
+      "Hiệu chỉnh Holm cho bốn đối chiếu chính C1, C2, C3, C4",
+      "Báo cáo ước lượng và khoảng; không dùng p-value đơn lẻ; không kết luận 'tương đương'"
+    ],
+    "minimumImportantDifference": {
+      "value": null,
+      "proposal": "10 điểm phần trăm tuyệt đối trên PE1 — đề xuất, owner phải quyết định"
+    },
+    "illustrativePrecision": {
+      "assumption": "SD của hiệu theo cặp = 0.25 (GIẢ ĐỊNH minh hoạ, chưa ước lượng)",
+      "halfWidth95": {
+        "n8": 0.173,
+        "n20": 0.11,
+        "n35": 0.083
+      },
+      "meaning": "Với 8 case sinh của held-out, chỉ hiệu rất lớn mới phân biệt được; kết quả held-out nhỏ chỉ mang tính mô tả"
+    },
+    "heldOutSizeDecision": "Owner quyết định mở rộng held-out lên ≥ 20 case sinh nếu muốn suy luận xác nhận; nếu không, mọi kết luận là khám phá",
+    "multiplicity": "Các so sánh khác (FULL vs MINIMAL, SE*) là khám phá, ghi rõ trong báo cáo"
+  },
+  "callBudgetScenarios": {
+    "note": "Chưa tính chi phí vì chưa có giá AWS đã xác minh. Số lần gọi = số case sinh × 6 arm × số policy × số lần lặp",
+    "generationCases": {
+      "devCandidates": 27,
+      "heldOutQuotaGenerating": 8
+    },
+    "scenarios": [
+      {
+        "name": "DEV, MINIMAL, k=3",
+        "calls": 486
+      },
+      {
+        "name": "DEV + held-out, MINIMAL, k=3",
+        "calls": 630
+      },
+      {
+        "name": "DEV + held-out, MINIMAL, k=5",
+        "calls": 1050
+      },
+      {
+        "name": "DEV + held-out, MINIMAL+FULL, k=5",
+        "calls": 2100
+      }
+    ],
+    "annotationWorkload": "Mỗi arm × case chấm một lần lặp: 35 × 6 = 210 đầu ra mỗi rater (khoảng 6–10 unit mỗi đầu ra); owner xác nhận nhân lực trước"
+  },
+  "stages": [
+    {
+      "id": "S0",
+      "name": "Hiệu chỉnh rubric",
+      "calls": 0,
+      "gate": "κ đạt ngưỡng ở packet mẫu"
+    },
+    {
+      "id": "S1",
+      "name": "Pilot plumbing",
+      "calls": 12,
+      "scope": "2 case độc lập × 6 arm × MINIMAL × 1 lần (bedrock-pilot-plan.json)",
+      "answers": "Định dạng, token, độ trễ, chi phí, luồng reviewer; KHÔNG đo hiệu quả kỹ thuật"
+    },
+    {
+      "id": "S2",
+      "name": "DEV khám phá + khoá kế hoạch phân tích",
+      "scope": "REVIEWED_DEV",
+      "answers": "Điều chỉnh nhỏ prompt/gate được phép ở đây; sau S2 đóng băng"
+    },
+    {
+      "id": "S3",
+      "name": "Held-out xác nhận một lần",
+      "scope": "HELD_OUT",
+      "rule": "Không chỉnh sau khi xem; mọi thay đổi coi held-out là đã lộ"
+    }
+  ],
+  "allowedAndForbiddenClaims": {
+    "allowedIfPrespecifiedRulesMet": [
+      "Trên bộ case này và corpus này, arm X có PE1 thấp hơn arm Y theo ước lượng và khoảng tin cậy Z",
+      "Gate chặn đúng/nhầm theo độ nhạy và độ chính xác đã đo"
+    ],
+    "forbidden": [
+      "AI Coach được chứng minh hiệu quả",
+      "RAG hiệu quả nói chung",
+      "Prompt 5 tầng hiệu quả vì cơ chế tách tầng (chỉ đo bố cục khoá JSON)",
+      "Structured analysis cải thiện kết quả",
+      "Nguồn đã được chuyên gia duyệt",
+      "Kết luận khoa học đúng nhờ NO_RULE_MATCH"
+    ]
+  },
+  "deviationsLog": {
+    "rule": "Mọi sai lệch so với kế hoạch (bỏ case, đổi prompt, thêm lần chạy) ghi lại với lý do, người, thời điểm; không xoá",
+    "entries": []
+  }
+}

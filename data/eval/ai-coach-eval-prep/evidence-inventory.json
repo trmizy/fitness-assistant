@@ -1,0 +1,607 @@
+{
+  "version": "evidence-review-inventory-v1",
+  "status": "PENDING_SCIENTIFIC_REVIEW_NONE_APPROVED",
+  "preparedBy": "Claude Code (assistant)",
+  "preparedOn": "2026-11-02",
+  "authority": "ASSISTANT_INVENTORY_NOT_SCIENTIFIC_SIGNOFF",
+  "rules": [
+    "Không nguồn nào ở đây được gán APPROVED; decision/reviewer/decisionDate = null cho tới khi chuyên gia điền",
+    "Một đoạn abstract cùng chủ đề không phải bằng chứng cho mọi claim",
+    "Mục 'claimsSupportedByExcerptAlone' và 'claimsNotInferable' do assistant đề xuất để reviewer chấp nhận, sửa hoặc bác bỏ",
+    "Diễn giải của assistant (summary, applicability, limitations, claim map, applicationInferences) không phải lời tác giả",
+    "Synthetic SYNTH_* không bao giờ được xem là nguồn khoa học"
+  ],
+  "decisionVocabulary": [
+    "PENDING_SOURCE_REVIEW",
+    "APPROVED_WITH_RESTRICTIONS",
+    "APPROVED_FOR_EVALUATION_SCOPE",
+    "REJECTED",
+    "SUPERSEDED"
+  ],
+  "inputFiles": {
+    "data/eval/advisory-progress-dev/evidence-pack.json": "4251adb6c9aa0d88d54d6b69a88824b60e37ce33a74467b822bf042483e1b8ea",
+    "data/eval/advisory-progress-dev/evidence-claim-map-v2.json": "8f2b3152aba3ee362d29ad1692a8e175dd27bc2066f7a5ec4181f371d09151d4",
+    "data/eval/ai-coach-dev/corpus-supplement.json": "9dd8a32ff3b435cf399953d3555d4640165915768ef0c1cd7bb45dbd57b08c6e",
+    "data/eval/ai-coach-dev/source-registry.json": "22819adddb9c9878653d1753f7755fa25149d3952c0c8d05276ef65ae2a0e525"
+  },
+  "registryAuthority": "ENGINEERING_IDENTITY_PIN_NOT_EXPERT_APPROVAL",
+  "integrityChecks": {
+    "allExcerptHashesMatchRegistry": true,
+    "allExcerptsRegistered": true,
+    "excerptCount": 4,
+    "sourceCount": 2
+  },
+  "sources": [
+    {
+      "sourceId": "ACSM_PROGRESSIVE",
+      "title": "American College of Sports Medicine position stand. Progression models in resistance training for healthy adults",
+      "year": 2009,
+      "doi": "10.1249/MSS.0b013e3181915670",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/?dopt=Abstract",
+      "studyTypeAsRecordedInPack": "practice_guideline",
+      "studyTypeReviewerMustConfirm": "Position stand (đồng thuận chuyên gia dựa trên tổng quan y văn); xác nhận mức bằng chứng và phương pháp tổng quan",
+      "identifiersNotReverifiedBy": "Claude Code phiên này không đối chiếu lại DOI/PMID với PubMed; chỉ lấy từ evidence-pack.json",
+      "populationAndApplicabilityAsRecorded": "Healthy adults; recommendations interpreted according to individual goals, physical capacity and training status (abstract final sentence).",
+      "limitationsAsRecorded": "Abstract-level source check only. This guideline does not establish the cause of a particular user's lack of progress or authorize a new prescription.",
+      "authoredAdditions": [
+        {
+          "field": "supportedSummaryVi",
+          "authorship": "ASSISTANT_AUTHORED",
+          "checkedBy": "assistant",
+          "note": "Chứa suy luận ứng dụng ('chỉ biết số buổi không đủ để chọn điều chỉnh tải cá nhân') không nằm trong đoạn trích"
+        },
+        {
+          "field": "applicability",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "Tóm lược từ abstract; không phải lời nguyên văn tác giả"
+        },
+        {
+          "field": "limitations",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "Giới hạn do assistant viết"
+        },
+        {
+          "field": "claim-map textVi + applicationInferences",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "applicationInferences được gắn APPLICATION_INFERENCE_NOT_AUTHOR_QUOTE"
+        }
+      ],
+      "currency": {
+        "status": "HISTORICAL_VERSION",
+        "detail": "claim map ghi nhận bản position stand cập nhật 2026 (thông báo ACSM và bản ghi PubMed 41843416); chưa so sánh toàn văn, chưa chuyển claim sang bản mới"
+      },
+      "scientificReviewStatus": "PENDING_SOURCE_REVIEW",
+      "registryReviewStatus": "PENDING_SOURCE_REVIEW",
+      "registryAuthority": "ENGINEERING_IDENTITY_PIN_NOT_EXPERT_APPROVAL",
+      "reviewer": null,
+      "decision": null,
+      "decisionDate": null,
+      "excerpts": [
+        {
+          "excerptId": "ACSM_PROGRESSIVE_OPENING",
+          "authorship": "ORIGINAL_SCIENTIFIC_EXCERPT",
+          "originalExcerpt": "In order to stimulate further adaptation toward specific training goals, progressive resistance training (RT) protocols are necessary.",
+          "locator": "Abstract, first sentence",
+          "textSha256": "b3d00655f191501b49a0bf1e191d538401b9104464582bfa19b89615a3962df4",
+          "registryTextHash": "b3d00655f191501b49a0bf1e191d538401b9104464582bfa19b89615a3962df4",
+          "hashMatchesRegistry": true,
+          "registered": true,
+          "namedOutcomeOrMeasurement": "Không nêu thước đo cụ thể; chỉ nói 'adaptation toward specific training goals'.",
+          "isSentenceFragment": false,
+          "claimsSupportedByExcerptAlone": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Phần tóm tắt của position stand ACSM (2009) nêu rằng cần các protocol tập kháng lực có tiến triển (progressive RT) để kích thích thích nghi thêm theo mục tiêu tập luyện cụ thể."
+            ]
+          },
+          "claimsNotInferable": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Người dùng cụ thể cần tăng tải",
+              "Việc không tiến bộ của người dùng là do thiếu progression",
+              "Bất kỳ mức tăng tải, số hiệp, số lần lặp, tần suất hay tốc độ tiến triển cụ thể",
+              "Nên giữ hay đổi chương trình hiện tại",
+              "Áp dụng cho người không phải người trưởng thành khoẻ mạnh",
+              "Đây là hướng dẫn hiện hành (bản cập nhật 2026 được ghi nhận trong claim map nhưng chưa đối chiếu)"
+            ]
+          },
+          "typicalOverreachToWatch": [
+            "Bạn đang không tiến bộ vì chưa tăng tải",
+            "ACSM khuyên bạn tăng tải"
+          ]
+        },
+        {
+          "excerptId": "ACSM_CONTEXT",
+          "authorship": "ORIGINAL_SCIENTIFIC_EXCERPT",
+          "originalExcerpt": "individual's target goals, physical capacity, and training status.",
+          "locator": "Abstract, final sentence, closing phrase",
+          "textSha256": "bf332c371da7960a39cbe04a9bb03ea03038b7d8a5b70e37f3d2c61ea6ae906d",
+          "registryTextHash": "bf332c371da7960a39cbe04a9bb03ea03038b7d8a5b70e37f3d2c61ea6ae906d",
+          "hashMatchesRegistry": true,
+          "registered": true,
+          "namedOutcomeOrMeasurement": "Không có.",
+          "isSentenceFragment": true,
+          "claimsSupportedByExcerptAlone": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Chỉ ghi nhận rằng phần tóm tắt nhắc tới ba yếu tố cá nhân: mục tiêu, khả năng thể chất, trạng thái tập luyện. Đoạn trích là mệnh đề cuối bị cắt, không có động từ hay mệnh đề chính."
+            ]
+          },
+          "claimsNotInferable": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Bất kỳ quy tắc hay yêu cầu nào (mệnh đề chi phối không có trong đoạn trích)",
+              "Cách điều chỉnh theo từng yếu tố",
+              "Kết quả sức mạnh hay phì đại",
+              "Chương trình của người dùng phù hợp hay không"
+            ]
+          },
+          "typicalOverreachToWatch": [
+            "ACSM yêu cầu cá nhân hoá theo trạng thái tập luyện của bạn (cần câu đầy đủ để biết đây có phải khẳng định như vậy không)"
+          ]
+        }
+      ],
+      "reviewerQuestions": [
+        "Đoạn mở đầu có đủ làm bằng chứng cho 'cần progression' trong bối cảnh app không, hay cần câu đầy đủ kèm điều kiện?",
+        "ACSM_CONTEXT là mệnh đề cuối bị cắt: có cần thay bằng câu đầy đủ?",
+        "Bản cập nhật 2026 có thay đổi nội dung liên quan; có nên thay nguồn?"
+      ]
+    },
+    {
+      "sourceId": "LOAD_OUTCOME_SPECIFICITY",
+      "title": "Strength and Hypertrophy Adaptations Between Low- vs. High-Load Resistance Training: A Systematic Review and Meta-analysis",
+      "year": 2017,
+      "doi": "10.1519/JSC.0000000000002200",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28834797/",
+      "studyTypeAsRecordedInPack": "systematic_review",
+      "studyTypeReviewerMustConfirm": "Systematic review + meta-analysis (theo tiêu đề); xác nhận số thử nghiệm, tiêu chí đưa vào, mức độ thiên lệch",
+      "identifiersNotReverifiedBy": "Claude Code phiên này không đối chiếu lại DOI/PMID với PubMed; chỉ lấy từ evidence-pack.json",
+      "populationAndApplicabilityAsRecorded": "Trials comparing low versus high loads, sets performed to momentary muscular failure, at least six weeks, participants without known conditions/injuries impairing training capacity.",
+      "limitationsAsRecorded": "Abstract-level source check only. Group comparisons do not prove individual causality. Estimated 1RM in app logs is not the same measurement as directly tested 1RM or muscle imaging. Do not generalize to injured populations or prescribe failure training.",
+      "authoredAdditions": [
+        {
+          "field": "supportedSummaryVi",
+          "authorship": "ASSISTANT_AUTHORED",
+          "checkedBy": "assistant",
+          "note": "Chứa câu suy luận ứng dụng ('Vì vậy phải phân biệt thước đo sức mạnh với kích thước cơ…') vượt quá hai đoạn trích; reviewer cần gắn nhãn APPLICATION_INFERENCE"
+        },
+        {
+          "field": "applicability",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "Tóm lược từ abstract; không phải lời nguyên văn tác giả"
+        },
+        {
+          "field": "limitations",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "Giới hạn do assistant viết"
+        },
+        {
+          "field": "claim-map textVi + applicationInferences",
+          "authorship": "ASSISTANT_AUTHORED",
+          "note": "applicationInferences được gắn APPLICATION_INFERENCE_NOT_AUTHOR_QUOTE"
+        }
+      ],
+      "currency": {
+        "status": "NOT_CHECKED",
+        "detail": "Chưa kiểm tra có tổng quan mới hơn hay không"
+      },
+      "scientificReviewStatus": "PENDING_SOURCE_REVIEW",
+      "registryReviewStatus": "PENDING_SOURCE_REVIEW",
+      "registryAuthority": "ENGINEERING_IDENTITY_PIN_NOT_EXPERT_APPROVAL",
+      "reviewer": null,
+      "decision": null,
+      "decisionDate": null,
+      "excerpts": [
+        {
+          "excerptId": "LOAD_STRENGTH_RESULT",
+          "authorship": "ORIGINAL_SCIENTIFIC_EXCERPT",
+          "originalExcerpt": "Gains in 1RM strength were significantly greater in favor of high- vs. low-load training",
+          "locator": "Abstract, results paragraph, 1RM comparison sentence",
+          "textSha256": "f85cdbc9d3f289eba625a9ab83b7240f1888569ecd00e8670aa1ad7c6caab501",
+          "registryTextHash": "f85cdbc9d3f289eba625a9ab83b7240f1888569ecd00e8670aa1ad7c6caab501",
+          "hashMatchesRegistry": true,
+          "registered": true,
+          "namedOutcomeOrMeasurement": "'1RM strength' (giao thức đo 1RM không có trong đoạn trích).",
+          "isSentenceFragment": false,
+          "claimsSupportedByExcerptAlone": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Trong các thử nghiệm được gộp của tổng quan hệ thống/phân tích gộp này, mức tăng sức mạnh 1RM lớn hơn có ý nghĩa thống kê ở nhóm tập tải cao so với nhóm tải thấp."
+            ]
+          },
+          "claimsNotInferable": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Độ lớn hiệu ứng",
+              "Nguyên nhân của thay đổi ở một cá nhân",
+              "e1RM trong nhật ký ứng dụng tương đương 1RM đo trực tiếp",
+              "Tải thấp không hiệu quả",
+              "Người dùng cụ thể cần chuyển sang tải cao",
+              "Thay đổi kích thước cơ",
+              "Quần thể ngoài tiêu chí đưa vào (xem applicability)"
+            ]
+          },
+          "typicalOverreachToWatch": [
+            "Vì nghiên cứu cho thấy tải cao tốt hơn nên sức mạnh của bạn đứng yên là do tải quá nhẹ",
+            "Tập tải cao sẽ giúp cơ to hơn"
+          ]
+        },
+        {
+          "excerptId": "LOAD_HYPERTROPHY_RESULT",
+          "authorship": "ORIGINAL_SCIENTIFIC_EXCERPT",
+          "originalExcerpt": "Changes in measures of muscle hypertrophy were similar between conditions.",
+          "locator": "Abstract, results paragraph, sentence following the 1RM/isometric-strength comparison",
+          "textSha256": "1a48fb20d64779e1642e6d44b0e22f0011c71f6c2f4e008c77adbe7f928e540a",
+          "registryTextHash": "1a48fb20d64779e1642e6d44b0e22f0011c71f6c2f4e008c77adbe7f928e540a",
+          "hashMatchesRegistry": true,
+          "registered": true,
+          "namedOutcomeOrMeasurement": "'measures of muscle hypertrophy' (phương pháp đo không có trong đoạn trích).",
+          "isSentenceFragment": false,
+          "claimsSupportedByExcerptAlone": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Trong các thử nghiệm được gộp của tổng quan này, thay đổi các thước đo phì đại cơ tương tự giữa điều kiện tải thấp và tải cao."
+            ]
+          },
+          "claimsNotInferable": {
+            "authority": "ASSISTANT_PROPOSAL_NOT_SCIENTIFIC_SIGNOFF",
+            "items": [
+              "Không có khác biệt ở cấp nhóm nghĩa là tương đương ở từng cá nhân",
+              "Cơ của người dùng thay đổi thế nào",
+              "Tăng sức mạnh kéo theo hoặc báo trước tăng cơ",
+              "Phương pháp đo phì đại được dùng",
+              "Khuyến nghị tải cụ thể"
+            ]
+          },
+          "typicalOverreachToWatch": [
+            "Sức mạnh của bạn tăng nên cơ của bạn chắc chắn tăng",
+            "Tải nào cũng cho kết quả cơ giống hệt nhau ở bạn"
+          ]
+        }
+      ],
+      "reviewerQuestions": [
+        "Hai đoạn trích chỉ lấy một câu về 1RM và một câu về phì đại; đã đủ để mô tả kết quả, hay cần thêm tiêu chí đưa vào và quy mô?",
+        "Cách đo phì đại và 1RM trong các thử nghiệm: có cần đưa vào để chặn suy diễn từ e1RM?",
+        "Có tổng quan mới hơn ảnh hưởng kết luận không?"
+      ]
+    }
+  ],
+  "syntheticDistractors": [
+    {
+      "id": "SYNTH_MUSEUM",
+      "role": "NEGATIVE_CONTROL_NOT_SCIENCE",
+      "text": "This fictional museum opens on Thursdays. This is assistant-authored test text, not scientific evidence."
+    },
+    {
+      "id": "SYNTH_CAUSE",
+      "role": "NEGATIVE_CONTROL_NOT_SCIENCE",
+      "text": "Fictional test rule: every increase in strength proves individual muscle hypertrophy. This deliberately unsupported assertion is not scientific evidence."
+    },
+    {
+      "id": "SYNTH_CONFLICT_A",
+      "role": "NEGATIVE_CONTROL_NOT_SCIENCE",
+      "text": "Fictional test rule A: muscle hypertrophy always increases after resistance training. Not scientific evidence."
+    },
+    {
+      "id": "SYNTH_CONFLICT_B",
+      "role": "NEGATIVE_CONTROL_NOT_SCIENCE",
+      "text": "Fictional test rule B: muscle hypertrophy never increases after resistance training. Not scientific evidence."
+    }
+  ],
+  "coverageGaps": [
+    {
+      "domain": "progression",
+      "currentCoverage": [
+        "ACSM_PROGRESSIVE_OPENING",
+        "ACSM_CONTEXT (mệnh đề cụt)"
+      ],
+      "whatIsMissing": [
+        "Bản hiện hành (cập nhật 2026) chưa được đối chiếu",
+        "Không có tiêu chí khi nào/như thế nào để tăng tải",
+        "Không có nguồn về plateau/deload"
+      ],
+      "claimTypesNeeded": [
+        "Nguyên tắc chung về progression",
+        "Giới hạn: không suy ra nguyên nhân cá nhân"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Hướng dẫn thực hành hoặc tổng quan hệ thống, câu nguyên văn đầy đủ có điều kiện áp dụng"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "hhs-pa-2018",
+          "category": "physical_activity",
+          "level": "government_guideline"
+        },
+        {
+          "id": "who-pa-2020",
+          "category": "physical_activity",
+          "level": "government_guideline"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Hai mục lead là hướng dẫn hoạt động thể chất chung, không phải mô hình progression",
+        "Các mục trong data/processed/evidence/_index.json là 'curated_summary' (diễn giải), không phải trích dẫn nguyên văn; phải trích lại từ nguồn gốc trước khi dùng làm originalExcerpt"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "strength",
+      "currentCoverage": [
+        "LOAD_STRENGTH_RESULT"
+      ],
+      "whatIsMissing": [
+        "Không có nguồn về hiệu lực/sai số của e1RM so với 1RM đo trực tiếp (hiện chỉ là suy luận ứng dụng do assistant viết)",
+        "Không có nguồn về tần suất/khối lượng so với sức mạnh"
+      ],
+      "claimTypesNeeded": [
+        "Đặc tính của e1RM (ước tính, sai số)",
+        "Hiệu ứng tải/khối lượng/tần suất lên sức mạnh ở cấp nhóm"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Nghiên cứu validation e1RM hoặc tổng quan hệ thống; trích nguyên văn có kèm quần thể"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "unilateral-bilateral-training-2022",
+          "category": "training",
+          "level": "systematic_review"
+        },
+        {
+          "id": "asymmetry-thresholds-2021",
+          "category": "training",
+          "level": "systematic_review"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Hai lead về bất đối xứng/đơn bên không phục vụ câu hỏi tiến bộ sức mạnh tổng quát",
+        "Không có lead nào cho độ chính xác của e1RM"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "hypertrophy",
+      "currentCoverage": [
+        "LOAD_HYPERTROPHY_RESULT"
+      ],
+      "whatIsMissing": [
+        "Không có nguồn về khối lượng tập (volume) so với phì đại",
+        "Không có nguồn về cách đo phì đại (siêu âm, DXA, BIA)"
+      ],
+      "claimTypesNeeded": [
+        "Phì đại ở cấp nhóm và giới hạn khi suy ra cá nhân",
+        "Độ tin cậy của thước đo thay đổi khối cơ"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Tổng quan hệ thống/phân tích gộp với phương pháp đo nêu rõ"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "slater-2019-energy-surplus-hypertrophy",
+          "category": "nutrition",
+          "level": "systematic_review"
+        },
+        {
+          "id": "morton-2018-protein-meta-analysis",
+          "category": "nutrition",
+          "level": "systematic_review"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Hai lead là về dinh dưỡng và phì đại, không trả lời câu hỏi tải/volume",
+        "Các mục trong data/processed/evidence/_index.json là 'curated_summary' (diễn giải), không phải trích dẫn nguyên văn; phải trích lại từ nguồn gốc trước khi dùng làm originalExcerpt"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "recovery",
+      "currentCoverage": [],
+      "whatIsMissing": [
+        "Không có nguồn nào về ngủ, nghỉ giữa hiệp/buổi, deload, mệt mỏi",
+        "Chỉ khai báo trong code rằng 'sleep, recovery' không được slice đánh giá"
+      ],
+      "claimTypesNeeded": [
+        "Ngủ ít/phục hồi có thể ảnh hưởng hiệu suất ở cấp nhóm",
+        "Giới hạn: không chẩn đoán nguyên nhân cá nhân"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Tổng quan hệ thống hoặc đồng thuận về ngủ/phục hồi trong tập luyện"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "ioc-red-s-consensus-2023",
+          "category": "safety",
+          "level": "expert_consensus"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Lead RED-S là về thiếu năng lượng, không phải ngủ/phục hồi nói chung",
+        "Probe trước cho thấy câu hỏi về ngủ hiện được trả về LOAD_STRENGTH_RESULT (cùng chủ đề, không hỗ trợ)"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "nutrition",
+      "currentCoverage": [],
+      "whatIsMissing": [
+        "Protein, creatine, calo, thời điểm dinh dưỡng chưa có nguồn trong corpus đánh giá",
+        "source-expansion-workflow ghi các miền này PENDING_SOURCE_REVIEW"
+      ],
+      "claimTypesNeeded": [
+        "Mức protein và kết quả sức mạnh/khối cơ ở cấp nhóm",
+        "Giới hạn: log dinh dưỡng của người dùng chỉ là mô tả"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Đồng thuận chuyên gia hoặc tổng quan hệ thống; quần thể ghi rõ"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "issn-protein-2017",
+          "category": "nutrition",
+          "level": "expert_consensus"
+        },
+        {
+          "id": "morton-2018-protein-meta-analysis",
+          "category": "nutrition",
+          "level": "systematic_review"
+        },
+        {
+          "id": "issn-creatine-2017",
+          "category": "supplements",
+          "level": "expert_consensus"
+        },
+        {
+          "id": "acsm-nutrition-athletic-performance-2016",
+          "category": "nutrition",
+          "level": "expert_consensus"
+        },
+        {
+          "id": "issn-diets-2017",
+          "category": "nutrition",
+          "level": "expert_consensus"
+        },
+        {
+          "id": "hall-2011-dynamic-energy-balance",
+          "category": "energy_balance",
+          "level": "primary_research"
+        },
+        {
+          "id": "issn-nutrient-timing-2017",
+          "category": "nutrition",
+          "level": "expert_consensus"
+        },
+        {
+          "id": "issn-timing-2014",
+          "category": "nutrition",
+          "level": "expert_consensus"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Các mục trong data/processed/evidence/_index.json là 'curated_summary' (diễn giải), không phải trích dẫn nguyên văn; phải trích lại từ nguồn gốc trước khi dùng làm originalExcerpt",
+        "issn-timing-2014 và issn-nutrient-timing-2017 là hai mục về cùng chủ đề; cần chọn một bản và kiểm tra bản cập nhật",
+        "docs/research/fitness-nutrition-evidence.md là lịch sử, không phải bằng chứng hiện hành"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "measurementUncertainty",
+      "currentCoverage": [],
+      "whatIsMissing": [
+        "Không có nguồn nào về sai số của thước đo (BIA/InBody, e1RM, cân nặng theo ngày)",
+        "Hiện chỉ có suy luận ứng dụng STRENGTH_NOT_MUSCLE_MEASUREMENT do assistant viết"
+      ],
+      "claimTypesNeeded": [
+        "BIA/InBody có sai số và nhạy với điều kiện đo",
+        "e1RM là ước tính",
+        "Thay đổi nhỏ có thể nằm trong sai số đo"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Nghiên cứu validation hoặc đồng thuận về chuẩn hoá điều kiện đo"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "brewer-2021-inbody-validation",
+          "category": "bia_validation",
+          "level": "primary_research"
+        },
+        {
+          "id": "tinsley-2022-bodycomp-standardization",
+          "category": "bia_validation",
+          "level": "primary_research"
+        },
+        {
+          "id": "espen-bia-1",
+          "category": "bia_validation",
+          "level": "clinical_guideline"
+        },
+        {
+          "id": "espen-bia-2",
+          "category": "bia_validation",
+          "level": "clinical_guideline"
+        },
+        {
+          "id": "shcherbina-2017-wearable-accuracy",
+          "category": "wearable_validation",
+          "level": "primary_research"
+        },
+        {
+          "id": "rmr-equation-accuracy-review",
+          "category": "energy_balance",
+          "level": "systematic_review"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Các mục trong data/processed/evidence/_index.json là 'curated_summary' (diễn giải), không phải trích dẫn nguyên văn; phải trích lại từ nguồn gốc trước khi dùng làm originalExcerpt",
+        "Không có lead nào về sai số e1RM"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "conflictingEvidence",
+      "currentCoverage": [],
+      "whatIsMissing": [
+        "Corpus không có cặp nguồn thật mâu thuẫn; SYNTH_CONFLICT_A/B là văn bản tổng hợp, không phải khoa học"
+      ],
+      "claimTypesNeeded": [
+        "Cách trình bày khi hai nguồn bất đồng: nêu cả hai, không chọn một cách im lặng"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Hai nguồn thật cùng trả lời một câu hỏi nhưng khác kết luận, do reviewer khoa học xác định"
+      ],
+      "existingRepoLeads": [],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Không được tạo mâu thuẫn bằng cách sửa nguồn thật; không gán SYNTH_* là khoa học"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    },
+    {
+      "domain": "populationAndSafety",
+      "currentCoverage": [
+        "applicability của hai nguồn hiện tại (người lớn khoẻ mạnh)"
+      ],
+      "whatIsMissing": [
+        "Người lớn tuổi, người mới tập lại, chấn thương/hậu phẫu chưa có nguồn",
+        "Quy tắc safety không dựa vào nguồn trong corpus này"
+      ],
+      "claimTypesNeeded": [
+        "Phạm vi áp dụng và dấu hiệu cần chuyển sang quy trình safety"
+      ],
+      "sourceCharacteristicsNeeded": [
+        "Hướng dẫn lâm sàng/đồng thuận; do safety owner xác nhận"
+      ],
+      "existingRepoLeads": [
+        {
+          "id": "hhs-pa-2018",
+          "category": "physical_activity",
+          "level": "government_guideline"
+        },
+        {
+          "id": "who-pa-2020",
+          "category": "physical_activity",
+          "level": "government_guideline"
+        }
+      ],
+      "leadStatus": "LEAD_ONLY_NOT_IN_EVAL_REGISTRY_NOT_REVIEWED",
+      "cautions": [
+        "Các mục trong data/processed/evidence/_index.json là 'curated_summary' (diễn giải), không phải trích dẫn nguyên văn; phải trích lại từ nguồn gốc trước khi dùng làm originalExcerpt",
+        "Dispositon safety là việc của safety owner, không phải bằng chứng do assistant chọn"
+      ],
+      "decision": "PENDING_SOURCE_REVIEW",
+      "reviewer": null
+    }
+  ]
+}
