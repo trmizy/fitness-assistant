@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import { createPublicKey, verify } from "node:crypto";
 import { z } from "zod";
 import { canonical } from "../evaluation-kit/identity";
@@ -13,7 +12,7 @@ export const initialState = (): LedgerState => ({ attempts: 0, inferenceCalls: 0
 const IssuedSchema = z.object({ event: z.literal("ISSUED"), authority: z.enum(["FAKE_TEST_ONLY", "OWNER_SIGNED"]), approvalId: z.string(), approvalHash: z.string(), configHash: z.string() }).strict();
 
 // Fixed bootstrap location; never taken from env or an artifact/config payload.
-export const installedTrustFile = () => path.join(os.homedir(), ".gymini-evaluation", "trust.json");
+export const installedTrustFile = () => process.platform === "win32" ? "C:/ProgramData/Gymini/Evaluation/trust.json" : "/etc/gymini-evaluation/trust.json";
 export function verifySignedApproval(value: unknown, trust: { issuer: string; publicKeyPem: string }) {
   const a = ApprovalSchema.parse(value), { signature, ...body } = a;
   const key = createPublicKey(trust.publicKeyPem);
@@ -39,6 +38,8 @@ export function issueFixtureLedger(directory: string, approvalId: string, config
 }
 export function openBudgetLedger(args: { directory: string; approvalId: string; approvalHash: string; configHash: string; runDirectory: string; mode: "FAKE" | "LIVE"; resume: boolean }) {
   const root = realDirectory(args.directory); assertSeparate(root, args.runDirectory);
+  realDirectory(path.dirname(path.resolve(args.runDirectory)));
+  if (fs.existsSync(args.runDirectory) && fs.lstatSync(args.runDirectory).isSymbolicLink()) throw new PilotError("UNTRUSTED_RUN_PATH");
   if (!/^[a-zA-Z0-9-]{1,100}$/.test(args.approvalId)) throw new PilotError("APPROVAL_ID_INVALID");
   const lock = path.join(root, args.approvalId + ".lock"), file = path.join(root, args.approvalId + ".jsonl");
   let fd: number;

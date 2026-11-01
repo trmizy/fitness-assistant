@@ -25,7 +25,7 @@ test("placebo matches context character length and adds no facts/evidence", asyn
   const placebo = await runDevSlice(request, "LAYERED_CONTEXT_PLACEBO", deps());
   const raw = await runDevSlice(request, "LAYERED", deps());
   assert.equal(placebo.prompt.user.length, context.prompt.user.length);
-  const p = JSON.parse(placebo.prompt.user); assert.match(p.placeboPadding, /^ *$/); delete p.placeboPadding;
+  const p = JSON.parse(placebo.prompt.user); assert.match(p.contextPadding, /^ *$/); assert.ok(!placebo.prompt.user.includes("placeboPadding")); delete p.contextPadding;
   assert.deepEqual(p, JSON.parse(raw.prompt.user));
 });
 test("wrong-excerpt control is genuinely different but does not leak treatment labels", async () => {

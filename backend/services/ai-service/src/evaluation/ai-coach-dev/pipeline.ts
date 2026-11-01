@@ -70,8 +70,8 @@ export function buildFiveLayerPrompt(context: ReturnType<typeof buildDevContext>
       const layered = { intentTask: { originalQuestion: r.question }, personalContext: arm === "LAYERED" || arm === "LAYERED_CONTEXT_PLACEBO" ? rawPersonal : { ...context.personal, facts: context.facts }, scientificEvidence, allowedReferences: allowed };
       if (arm === "LAYERED_CONTEXT_PLACEBO") {
         const target = JSON.stringify({ ...layered, personalContext: { ...context.personal, facts: context.facts } }).length;
-        const placebo = { ...layered, placeboPadding: "" };
-        placebo.placeboPadding = " ".repeat(Math.max(0, target - JSON.stringify(placebo).length));
+        const placebo = { ...layered, contextPadding: "" };
+        placebo.contextPadding = " ".repeat(Math.max(0, target - JSON.stringify(placebo).length));
         return JSON.stringify(placebo);
       }
       return JSON.stringify(arm === "FLAT_LAYOUT"

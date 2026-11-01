@@ -113,7 +113,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
     authorize(); const s = ledger.state(), cap = config.parameters.maxTokens;
     if (s.inputTokens + inputCount > config.budget.maxInputTokens || s.outputTokens + cap > config.budget.maxOutputTokens || estimatedCost(config, s.inputTokens + inputCount, s.outputTokens + cap) > config.budget.maxEstimatedUsd) {
       save({ stopped: true }, "BUDGET_REJECTED"); append({ event: "REJECTED", reason: "BUDGET_REJECTED", attemptKey: key, promptHash: hash });
-      return { event: "ATTEMPT_FINISHED", attemptKey: key, promptHash: hash, rawText: null, parsedCandidate: null, parseError: null, providerError: "BUDGET_REJECTED", inputTokens: null, outputTokens: null, latencyMs: Date.now() - started, inferenceLatencyMs: null, countLatencyMs, stopReason: null, estimatedUsd: null, target, conservativeReservationRetained: false };
+      const rejected = { event: "ATTEMPT_FINISHED", attemptKey: key, promptHash: hash, rawText: null, parsedCandidate: null, parseError: null, providerError: "BUDGET_REJECTED", inputTokens: null, outputTokens: null, latencyMs: Date.now() - started, inferenceLatencyMs: null, countLatencyMs, stopReason: null, estimatedUsd: null, target, conservativeReservationRetained: false };
+      append(rejected); return rejected;
     }
     append({ event: "ATTEMPT_STARTED", attemptKey: key, promptHash: hash });
     // Durable reservation precedes ANY inference; no refund for an unknown outcome.

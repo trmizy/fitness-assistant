@@ -1,4 +1,5 @@
 import { z } from "zod";
+import path from "node:path";
 import { digest } from "../evaluation-kit/identity";
 
 export class PilotError extends Error {
@@ -10,8 +11,8 @@ export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.literal("amazon.nova-pro-v1:0"), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
   parameters: z.object({ maxTokens: z.number().int().positive().max(5000), temperature: z.number().min(0.00001).max(1).optional(), topP: z.number().min(0).max(1).optional(), retries: z.literal(0), timeoutMs: z.number().int().min(1).max(300000) }).strict().refine((p) => !(p.temperature !== undefined && p.topP !== undefined), "Choose temperature or topP"),
-  pins: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/).refine((s) => !/^0+$/.test(s)), code: Hash, corpus: Hash, cases: Hash, promptHashes: z.array(Hash).min(1) }).strict(),
-  sources: z.object({ workspaceRoot: z.string().min(1), casesFile: z.string().min(1) }).strict().optional(),
+  pins: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/).refine((s) => !/^0+$/.test(s)), code: Hash, corpus: Hash, cases: Hash, promptHashes: z.array(Hash) }).strict(),
+  sources: z.object({ workspaceRoot: z.string().refine(path.isAbsolute), casesFile: z.string().refine(path.isAbsolute) }).strict().optional(),
   budget: z.object({ maxCalls: z.number().int().positive(), maxInputTokensPerCall: z.number().int().positive(), maxInputTokens: z.number().int().positive(), maxOutputTokens: z.number().int().positive(), maxEstimatedUsd: z.number().finite().positive(), maxFailures: z.number().int().positive() }).strict(),
   pricing: z.object({ authority: z.enum(["FAKE_TEST_ONLY", "OWNER_CONFIRMED_AWS"]), sourceUrl: z.literal("https://aws.amazon.com/bedrock/pricing/"), tokenUnit: z.literal("USD_PER_MILLION_TOKENS"), version: z.string().min(1), checkedAt: z.string().datetime(), expiresAt: z.string().datetime(), modelId: z.string(), inferenceProfile: z.string().nullable(), region: z.string(), inputUsdPerMillion: z.number().finite().positive(), outputUsdPerMillion: z.number().finite().positive(), confirmedBy: z.string().min(1), evidenceHash: Hash }).strict(),
   approval: ApprovalSchema.nullable(),
