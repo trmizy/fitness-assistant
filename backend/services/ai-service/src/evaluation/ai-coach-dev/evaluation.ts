@@ -3,10 +3,10 @@ import { evaluateContentV3 } from "../advisory-progress/content-aware-v3";
 import type { DevCase } from "./fixtures";
 export const EVAL_PROTOCOL = {
   version: "ai-coach-controlled-ablation-v2", authority: "IMPLEMENTER_DEV_ONLY_NOT_HELD_OUT", modelEvaluation: "NOT_RUN",
-  generationArms: ["V3_SCHEMA_LEGACY_POLICY", "FIVE_LAYER_POLICY", "FIVE_LAYER_CONTEXT", "FIVE_LAYER_CONTEXT_RAG"],
+  generationArms: ["FLAT_LAYOUT", "LAYERED", "LAYERED_CONTEXT", "LAYERED_CONTEXT_PLACEBO", "LAYERED_CONTEXT_RAG", "LAYERED_CONTEXT_WRONG_EXCERPT"],
   historicalReference: { arm: "V2_BASELINE", status: "HISTORICAL_MIGRATION_REFERENCE_NOT_CONTROLLED", base: "ea98576d", scoresReused: false },
   policies: ["MINIMAL", "FULL"], repetitions: 2,
-  controls: "Same V3 envelope, allowed fact/source IDs, question/facts/history, model, sampling, seed per repeat, retries=0 and metrics. Only prompt organization, context annotation, then supplied excerpts change. GROUNDED_OFFLINE reuses the same RAG raw candidate, with zero generation.",
+  controls: "Same V3 envelope, validators, facts/history, sampling and policy variant. Arm-local source IDs only; no-RAG arms see none. Character-length placebo carries no extra facts/evidence; exact model token counts remain null until approved CountTokens preflight. Seed is a mock scheduling field, not a Bedrock parameter. GROUNDED_OFFLINE uses the same raw RAG candidate with zero generation.",
   metrics: {
     factualCorrectness: "Independent per-claim supported/contradicted/not-established labels; structured assertion identity/value checks are diagnostics only.",
     sourceSupport: "Exact excerpt support and scope labelled independently; valid reference is not entailment.",

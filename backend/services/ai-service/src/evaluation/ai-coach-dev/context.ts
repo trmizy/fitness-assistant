@@ -51,7 +51,7 @@ export function buildDevContext(value: unknown) {
       factProvenance: facts.map((f) => ({ factId: f.id, classification: ["NO_DATA", "STALE", "INSUFFICIENT_HISTORY"].includes(f.evidence.quality)
         ? "MISSING_OR_UNVERIFIED" : f.evidence.kind === "EXERCISE_E1RM_CHANGE" ? "DERIVED_ESTIMATE"
         : f.evidence.kind === "DIRECT_1RM_CHANGE" || f.evidence.kind === "SCHEDULED_ADHERENCE" ? "DIRECT_LOG_OBSERVATION" : "OWNER_PROJECTION_METHOD_NOT_VALIDATED" })),
-      namespaces: r.snapshots.map(({ subjectId: _subject, ...s }) => s),
+      namespaces: r.snapshots.map((s) => ({ namespace: s.namespace, owner: s.owner, recordedAt: s.recordedAt, factIds: s.facts.map((f) => f.id) })),
       conversation: { trust: "UNVERIFIED_STATEMENTS_NOT_PERSONAL_FACTS", messages: r.conversation.map(({ subjectId: _subject, ...c }) => c) },
       absentNamespaces: ["MEASUREMENTS", "TRAINING", "NUTRITION"].filter((ns) => !r.snapshots.some((s) => s.namespace === ns && s.facts.length)),
       notAssessedByThisSlice: ["sleep", "recovery", "program_load_history", "measurement_protocol"],

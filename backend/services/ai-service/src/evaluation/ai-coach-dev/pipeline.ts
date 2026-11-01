@@ -6,8 +6,9 @@ import type { AdvisoryInput } from "../advisory-progress/experiment";
 import { AnswerV3Schema } from "../advisory-progress/content-aware-v3-schema";
 import { evaluateContentV3 } from "../advisory-progress/content-aware-v3";
 import { prepareSemanticReview } from "./review";
+import { registeredScientificExcerpt } from "./source-registry";
 
-export const ARMS = ["V3_SCHEMA_LEGACY_POLICY", "FIVE_LAYER_POLICY", "FIVE_LAYER_CONTEXT", "FIVE_LAYER_CONTEXT_RAG"] as const;
+export const ARMS = ["FLAT_LAYOUT", "LAYERED", "LAYERED_CONTEXT", "LAYERED_CONTEXT_PLACEBO", "LAYERED_CONTEXT_RAG", "LAYERED_CONTEXT_WRONG_EXCERPT"] as const;
 export type Arm = typeof ARMS[number];
 export const POLICY_VARIANTS = ["MINIMAL", "FULL"] as const;
 export type PolicyVariant = typeof POLICY_VARIANTS[number];
@@ -50,7 +51,8 @@ export const FULL_DOMAIN_POLICY = [
 ].join("\n");
 
 function evidencePayload(e: RetrievedEvidence) {
-  return { status: e.status, relevance: e.relevance, claimSupport: e.claimSupport,
+  // Do not reveal a treatment/arm label to the generator (including wrong-excerpt controls).
+  return { availability: e.passages.length ? "PROVIDED" : "NO_EXCERPTS_PROVIDED", claimSupport: e.claimSupport, sourceReview: "PENDING_SOURCE_REVIEW",
     passages: e.passages.map((p) => ({ sourceId: p.source.id,
       sourceMetadata: { title: p.source.title, doi: p.source.doi, url: p.source.url, year: p.source.year },
       originalScientificExcerpts: p.excerpts,
@@ -63,10 +65,19 @@ export function buildFiveLayerPrompt(context: ReturnType<typeof buildDevContext>
   const scientificEvidence = evidencePayload(evidence);
   return {
     system: MINIMAL_POLICY + (policy === "FULL" ? "\n" + FULL_DOMAIN_POLICY : ""),
-    layers: arm === "V3_SCHEMA_LEGACY_POLICY" ? ["LEGACY_FLAT_WITH_COMMON_V3_CONTRACT"] : ["SYSTEM_POLICY", "INTENT_TASK", "PERSONAL_CONTEXT", "SCIENTIFIC_EVIDENCE", "ANALYSIS_CONTRACT"],
-    user: JSON.stringify(arm === "V3_SCHEMA_LEGACY_POLICY"
+    layers: arm === "FLAT_LAYOUT" ? ["LEGACY_FLAT_WITH_COMMON_V3_CONTRACT"] : ["SYSTEM_POLICY", "INTENT_TASK", "PERSONAL_CONTEXT", "SCIENTIFIC_EVIDENCE", "ANALYSIS_CONTRACT"],
+    user: (() => {
+      const layered = { intentTask: { originalQuestion: r.question }, personalContext: arm === "LAYERED" || arm === "LAYERED_CONTEXT_PLACEBO" ? rawPersonal : { ...context.personal, facts: context.facts }, scientificEvidence, allowedReferences: allowed };
+      if (arm === "LAYERED_CONTEXT_PLACEBO") {
+        const target = JSON.stringify({ ...layered, personalContext: { ...context.personal, facts: context.facts } }).length;
+        const placebo = { ...layered, placeboPadding: "" };
+        placebo.placeboPadding = " ".repeat(Math.max(0, target - JSON.stringify(placebo).length));
+        return JSON.stringify(placebo);
+      }
+      return JSON.stringify(arm === "FLAT_LAYOUT"
       ? { originalQuestion: r.question, ...rawPersonal, scientificEvidence, allowedReferences: allowed }
-      : { intentTask: { originalQuestion: r.question }, personalContext: arm === "FIVE_LAYER_POLICY" ? rawPersonal : { ...context.personal, facts: context.facts }, scientificEvidence, allowedReferences: allowed }),
+      : layered);
+    })(),
   };
 }
 export function checkSourceLinks(value: AnalysisEnvelope, evidence: RetrievedEvidence): string[] {
@@ -99,8 +110,16 @@ export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provide
   if (deps.provider.kind !== "MOCK_ONLY" || !ARMS.includes(arm)) throw new Error("DevMockBoundaryRequired");
   const context = buildDevContext(request), policy = options.policy ?? "MINIMAL", settings = options.settings ?? SETTINGS;
   if (!POLICY_VARIANTS.includes(policy) || settings.retries !== 0 || settings.model !== "MOCK_PROTOCOL_ONLY") throw new Error("OfflineProtocolRequired");
-  const evidence = arm === "FIVE_LAYER_CONTEXT_RAG" ? options.evidence ?? await retrieveDevEvidence(context.request.question, deps.corpus, deps.io) : disabled(context.request.question);
-  const input: AdvisoryInput = { question: context.request.question, facts: context.facts, sources: scientificSources(deps.corpus) };
+  const usesEvidence = arm === "LAYERED_CONTEXT_RAG" || arm === "LAYERED_CONTEXT_WRONG_EXCERPT";
+  let evidence = usesEvidence ? options.evidence ?? await retrieveDevEvidence(context.request.question, deps.corpus, deps.io) : disabled(context.request.question);
+  if (evidence.question !== context.request.question) throw new Error("CrossQuestionEvidence");
+  evidence = { ...evidence, passages: evidence.passages.flatMap((p) => { const excerpts = p.excerpts.filter((e) => registeredScientificExcerpt(p, e)); return excerpts.length ? [{ ...p, excerpts }] : []; }) };
+  if (arm === "LAYERED_CONTEXT_WRONG_EXCERPT") {
+    const selected = new Set(evidence.passages.flatMap((p) => p.excerpts.map((e) => e.id)));
+    const wrong = deps.corpus.flatMap((p) => p.excerpts.filter((e) => registeredScientificExcerpt(p, e) && !selected.has(e.id)).map((e) => ({ ...p, excerpts: [e] })))[0];
+    evidence = { ...evidence, status: "CONTROL_SUPPLIED", trace: null, passages: wrong ? [wrong] : [] };
+  }
+  const input: AdvisoryInput = { question: context.request.question, facts: context.facts, sources: scientificSources(evidence.passages) };
   const allowedReferences = { factIds: input.facts.map((f) => f.id), sourceIds: input.sources.map((s) => s.id) };
   const prompt = buildFiveLayerPrompt(context, evidence, arm, policy, allowedReferences);
   const safetyHandling = devRoute(context.request.question);
@@ -111,16 +130,18 @@ export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provide
   const blocked = !parsed.success || !!referenceIssues?.length || !!citationReferenceIssues?.length;
   return { caseId: context.request.caseId, arm, policy, settings, mode: "MOCK_PROTOCOL_ONLY" as const, modelCalls: 0,
     input, allowedReferences, context: context.personal, evidence, prompt, raw, safetyHandling, generationCalls: safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? 0 : 1,
+    contextSize: { utf16CodeUnits: prompt.user.length, unicodeCodePoints: [...prompt.user].length, utf8Bytes: Buffer.byteLength(prompt.user, "utf8"), modelInputTokens: null },
     schemaIssues: parsed.success || safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? [] : parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })),
     referenceIssues, citationReferenceIssues, grounding: null,
     candidate: blocked ? null : envelope, release: safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? "SAFETY_HANDLING_REQUIRED" as const : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const,
     semanticReview: prepareSemanticReview(input, evidence, envelope, raw) };
 }
 export function groundCandidate(result: Awaited<ReturnType<typeof runDevSlice>>) {
-  if (result.arm !== "FIVE_LAYER_CONTEXT_RAG") throw new Error("GroundingRequiresSameRagCandidate");
+  if (result.arm !== "LAYERED_CONTEXT_RAG") throw new Error("GroundingRequiresSameRagCandidate");
   const parsed = AnalysisEnvelopeSchema.safeParse(result.raw);
   const grounding = result.generationCalls ? evaluateContentV3({ ...result.input, sources: selectedSources(result.evidence) }, parsed.success ? parsed.data.analysis : result.raw) : null;
   const blocked = result.release === "BLOCKED" || grounding?.contentGate === "BLOCKED";
   return { ...result, arm: "GROUNDED_OFFLINE" as const, generationArm: result.arm, generationCalls: 0,
-    grounding, candidate: blocked ? null : result.candidate, release: result.release === "SAFETY_HANDLING_REQUIRED" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
+    grounding, blockerScopes: { structuredInvariant: grounding?.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT") ?? [], narrowTextHeuristic: grounding?.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "NARROW_TEXT_HEURISTIC") ?? [] },
+    candidate: blocked ? null : result.candidate, release: result.release === "SAFETY_HANDLING_REQUIRED" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
 }

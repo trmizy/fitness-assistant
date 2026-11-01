@@ -31,14 +31,15 @@ test("conversation remains separate from owner projections and request-local con
   c.facts[0].evidence.value.completed = -1;
   assert.equal(cases[3].request.snapshots[0].facts[0].evidence.value.completed, 18);
 });
-test("four generation arms share schema, references, policy text and sampling", async () => {
+test("six generation arms share schema, fact references, policy text and sampling; sources are arm-local", async () => {
   for (const policy of POLICY_VARIANTS) {
     const d = deps(), results = [];
     for (const arm of ARMS) results.push(await runDevSlice(request, arm, d, { policy }));
-    assert.equal(d.provider.calls(), 4);
+    assert.equal(d.provider.calls(), 6);
     for (const r of results) {
       assert.ok(AnalysisEnvelopeSchema.safeParse(r.raw).success);
-      assert.deepEqual(r.allowedReferences, results[0].allowedReferences);
+      assert.deepEqual(r.allowedReferences.factIds, results[0].allowedReferences.factIds);
+      assert.deepEqual(r.allowedReferences.sourceIds, r.evidence.passages.map((p) => p.source.id));
       assert.deepEqual(r.settings, SETTINGS);
       assert.equal(r.prompt.system, results[0].prompt.system);
       assert.deepEqual(r.input.facts, results[0].input.facts);
@@ -61,7 +62,7 @@ test("generation boundary receives no case ID, gold labels or arm name", async (
   let payload: unknown;
   const mock = createScriptedMock();
   const provider: MockProvider = { kind: "MOCK_ONLY", async complete(r) { payload = r; return mock.complete(r); } };
-  const r = await runDevSlice(cases[3].request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider });
+  const r = await runDevSlice(cases[3].request, "LAYERED_CONTEXT_RAG", { ...deps(), provider });
   assert.deepEqual(Object.keys(payload as object), ["prompt", "settings"]);
   assert.ok(!JSON.stringify(payload).includes("expectedAssessment"));
   assert.ok(!JSON.stringify(payload).includes(cases[3].request.caseId));
@@ -72,14 +73,14 @@ test("generation boundary receives no case ID, gold labels or arm name", async (
 });
 test("grounding uses the identical raw RAG candidate and makes zero extra generation calls", async () => {
   const d = deps();
-  const raw = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", d);
+  const raw = await runDevSlice(request, "LAYERED_CONTEXT_RAG", d);
   const grounded = groundCandidate(raw);
   assert.equal(d.provider.calls(), 1);
   assert.equal(grounded.raw, raw.raw);
   assert.equal(grounded.prompt, raw.prompt);
   assert.equal(grounded.generationCalls, 0);
   assert.equal(grounded.semanticReview.scientificPass, null);
-  assert.throws(() => groundCandidate({ ...raw, arm: "FIVE_LAYER_CONTEXT" }), /SameRagCandidate/);
+  assert.throws(() => groundCandidate({ ...raw, arm: "LAYERED_CONTEXT" }), /SameRagCandidate/);
 });
 test("unknown fact/source namespaces are checked for every generation arm", async () => {
   const valid = await runDevSlice(request, ARMS[0], deps());
@@ -92,23 +93,23 @@ test("unknown fact/source namespaces are checked for every generation arm", asyn
   }
 });
 test("citation identity is separate from independent support and blocks forged excerpts", async () => {
-  const base = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", deps());
+  const base = await runDevSlice(request, "LAYERED_CONTEXT_RAG", deps());
   const envelope = AnalysisEnvelopeSchema.parse(clone(base.raw)), p = base.evidence.passages[0];
   assert.ok(p);
   envelope.analysis.claims.push({ claimType: "GENERAL_PRINCIPLE", text: p.excerpts[0].text, factIds: [], evidenceIds: [p.source.id] });
   envelope.sourceLinks.push({ claimIndex: envelope.analysis.claims.length - 1, sourceId: p.source.id, excerptIds: [p.excerpts[0].id] });
   assert.deepEqual(checkSourceLinks(envelope, base.evidence), []);
-  const valid = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return envelope; } } });
+  const valid = await runDevSlice(request, "LAYERED_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return envelope; } } });
   assert.equal(valid.semanticReview.claims.at(-1)?.sourceSupport, null);
   envelope.sourceLinks[0].excerptIds = ["FORGED"];
-  const bad = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return envelope; } } });
+  const bad = await runDevSlice(request, "LAYERED_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return envelope; } } });
   assert.equal(bad.release, "BLOCKED");
 });
 test("raw metric contradiction can pass common contract but is excluded by the offline gate, never counted correct", async () => {
-  const original = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", deps());
+  const original = await runDevSlice(request, "LAYERED_CONTEXT_RAG", deps());
   const wrong = AnalysisEnvelopeSchema.parse(clone(original.raw));
   wrong.analysis.claims.find((c) => c.metricAssertion)!.metricAssertion!.currentKg = 95;
-  const raw = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return wrong; } } });
+  const raw = await runDevSlice(request, "LAYERED_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return wrong; } } });
   assert.equal(raw.release, "DEV_REVIEW_ONLY");
   const post = groundCandidate(raw);
   assert.equal(post.release, "BLOCKED");
@@ -124,7 +125,7 @@ test("unmeasurable metrics remain null; mock is not assessment accuracy", async 
   assert.equal(m.uncertaintyCalibration, null);
   assert.equal(m.sourceSupport.semanticSupportedFraction, null);
   assert.equal(m.modelTokens, null);
-  const invalid = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return null; } } });
+  const invalid = await runDevSlice(request, "LAYERED_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return null; } } });
   assert.equal(measureDevResult(cases[0], invalid).schemaValid, false);
   assert.equal(measureDevResult(cases[0], groundCandidate(invalid)).schemaValid, false);
 });
@@ -132,10 +133,10 @@ test("harness pairs repeated raw RAG outputs with offline gates, excluding histo
   const experiment = await runMockExperiment();
   assert.equal(cases.length, 40);
   assert.equal(experiment.manifest.mockCalls, experiment.results.reduce((n, r) => n + r.generationCalls, 0));
-  assert.equal(experiment.results.length, cases.length * 4 * 2 * 2);
+  assert.equal(experiment.results.length, cases.length * 6 * 2 * 2);
   assert.equal(experiment.postGate.length, cases.length * 2 * 2);
   for (const post of experiment.postGate) {
-    const raw = experiment.results.find((r) => r.caseId === post.caseId && r.policy === post.policy && r.repetition === post.repetition && r.arm === "FIVE_LAYER_CONTEXT_RAG")!;
+    const raw = experiment.results.find((r) => r.caseId === post.caseId && r.policy === post.policy && r.repetition === post.repetition && r.arm === "LAYERED_CONTEXT_RAG")!;
     assert.equal(post.raw, raw.raw);
   }
   assert.equal(experiment.manifest.historicalReference.scoresReused, false);

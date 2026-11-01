@@ -33,14 +33,14 @@ export async function runMockExperiment() {
     for (const arm of [...ARMS.slice(offset), ...ARMS.slice(0, offset)]) {
       const result = await runDevSlice(c.request, arm, { corpus, provider, io }, { policy, settings });
       results.push({ ...result, repetition, metrics: measureDevResult(c, result) });
-      if (arm === "FIVE_LAYER_CONTEXT_RAG") {
+      if (arm === "LAYERED_CONTEXT_RAG") {
         const grounded = groundCandidate(result);
         postGate.push({ ...grounded, repetition, metrics: measureDevResult(c, grounded) });
       }
     }
   }
   const hash = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
-  const ragAttempts = results.filter((r) => r.arm === "FIVE_LAYER_CONTEXT_RAG");
+  const ragAttempts = results.filter((r) => r.arm === "LAYERED_CONTEXT_RAG");
   const rag = ragAttempts.filter((r) => r.generationCalls > 0);
   const firstRagByCase = [...new Map(ragAttempts.map((r) => [r.caseId, r])).values()];
   return {

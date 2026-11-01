@@ -61,7 +61,7 @@ export function createFixtureIo(corpus: Passage[]) {
   };
   return { io, queries, counters: () => ({ fixtureSearches: searches, modelCalls: 0, vectorDbCalls: 0 }) };
 }
-export type RetrievalStatus = "FOUND" | "EMPTY_NO_MATCH" | "EMPTY_UNRESOLVED" | "EMPTY_OUT_OF_DOMAIN" | "EMPTY_SAFETY" | "UNAVAILABLE" | "DISABLED";
+export type RetrievalStatus = "FOUND" | "EMPTY_NO_MATCH" | "EMPTY_UNRESOLVED" | "EMPTY_OUT_OF_DOMAIN" | "EMPTY_SAFETY" | "UNAVAILABLE" | "DISABLED" | "CONTROL_SUPPLIED";
 export type RetrievedEvidence = {
   status: RetrievalStatus; question: string; passages: Passage[]; trace: V2Trace | null;
   relevance: "V2_TOPIC_GATE_NOT_CLAIM_SUPPORT"; applicability: "REQUIRES_PERSONAL_CONTEXT_REVIEW"; claimSupport: "NOT_EVALUATED";
