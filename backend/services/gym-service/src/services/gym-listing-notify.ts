@@ -46,3 +46,23 @@ export async function sendListingNotices(notices: readonly ListingNotice[]): Pro
     }
   }
 }
+
+/**
+ * Plan B22 - a submitted revision: realtime to the admins only, nothing stored (same as the PT listing submit and a new
+ * PT application). Same flag as the owner notices. Never throws; the caller does not await it.
+ */
+export async function notifyAdminsListingSubmitted(rev: { id: string; gymId: string }, gymName: string): Promise<void> {
+  if (!listingNotificationsEnabled()) return;
+  try {
+    await userClient.notifyAdmins({
+      id: `gym-listing-${rev.id}`,
+      text: `Chủ gym vừa gửi tin chi nhánh ${gymName} chờ duyệt`,
+      eventType: 'GYM_LISTING_SUBMITTED',
+      entityType: 'GYM_LISTING',
+      entityId: rev.gymId,
+      link: '/admin/listings?tab=gyms',
+    });
+  } catch (e) {
+    logger.warn({ err: (e as Error).message }, '[GymListing] could not broadcast the submit to admins');
+  }
+}

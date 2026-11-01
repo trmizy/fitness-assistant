@@ -137,4 +137,16 @@ export const userClient = {
       logger.error({ err: (e as Error).message, userId: params.userId }, '[gym-service] gửi thông báo thất bại');
     }
   },
+
+  /**
+   * Listing Management B22 - realtime tell to the admins' open sessions (user-service `/internal/admin-broadcast`, which
+   * relays to chat-service). Nothing is stored. Best-effort: a failure is logged and never reaches the caller.
+   */
+  async notifyAdmins(params: { id: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }) {
+    try {
+      await axios.post(`${USER_SERVICE_URL}/internal/admin-broadcast`, params, { headers, timeout: 3000 });
+    } catch (e) {
+      logger.warn({ err: (e as Error).message, eventType: params.eventType }, '[gym-service] admin realtime broadcast failed');
+    }
+  },
 };

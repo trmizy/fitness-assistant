@@ -296,6 +296,19 @@ router.post("/notifications", async (req, res) => {
   }
 });
 
+// Listing Management B22 - gym-service tells the admins' open sessions that a branch listing revision was submitted.
+// Realtime only, nothing stored (same as the PT listing submit). Answers 202; delivery is best-effort.
+router.post("/admin-broadcast", (req, res) => {
+  const { id, text, eventType, entityType, entityId, link } = req.body ?? {};
+  const isStr = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+  if (!isStr(id) || !isStr(text) || !isStr(eventType) || !isStr(entityType) || !isStr(entityId) || (link !== undefined && typeof link !== "string")) {
+    res.status(400).json({ error: "id, text, eventType, entityType, entityId are required strings" });
+    return;
+  }
+  notificationService.broadcastToAdmins({ id, text: text.slice(0, 240), eventType, entityType, entityId, link });
+  res.status(202).json({ accepted: true });
+});
+
 // Mobile E2/E3 — chat-service's realtime phone nudges (incoming call, new chat message). Push
 // only: no notifications row (the bell list would drown, and the conversation already records
 // both). Answers 202 at once; delivery is best-effort and never fails the caller.

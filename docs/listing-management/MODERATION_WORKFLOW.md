@@ -65,13 +65,13 @@ Admin sửa thẳng tin công khai không cần Owner gửi: tạo **một bản
 | Sự kiện | Người nhận | `eventType` | Kênh |
 |---|---|---|---|
 | PT gửi duyệt | tất cả Admin đang online | `PT_LISTING_SUBMITTED` | đẩy realtime qua chat-service, **không lưu** (link `/admin/listings`) |
-| Gym gửi duyệt | — | — | không có thông báo; Admin thấy ở hàng đợi (`GET /admin/listings/gyms?status=PENDING`) |
+| Gym gửi duyệt | tất cả Admin đang online | `GYM_LISTING_SUBMITTED` | gym-service → user-service `POST /internal/admin-broadcast` → chat-service, đẩy realtime, **không lưu**, best-effort sau commit, không chờ (link `/admin/listings?tab=gyms`); Admin vẫn thấy ở hàng đợi (`GET /admin/listings/gyms?status=PENDING`) |
 | Approve / Reject / Request-changes / bị vô hiệu | PT | `PT_LISTING_APPROVED` / `_REJECTED` / `_CHANGES_REQUESTED` / `_INVALIDATED` | lưu hộp thư trong transaction (entity `PT_LISTING`, link `/pt/listing`) |
 | Như trên | chủ chi nhánh | `GYM_LISTING_APPROVED` / `_REJECTED` / `_CHANGES_REQUESTED` / `_INVALIDATED` | gym-service → user-service `/internal/notifications`, best-effort sau commit, link `/gym-owner/listings?gymId=` |
 | Xử lý đề xuất tiện ích | chủ đề xuất | `GYM_AMENITY_PROPOSAL_REVIEWED` | như trên |
 | Admin tắt tiện ích khỏi nháp | chủ chi nhánh | `GYM_LISTING_INVALIDATED` | như trên |
 
-Thông báo gym tắt được bằng `LISTING_GYM_NOTIFICATIONS_ENABLED=false|0` (mặc định bật).
+Thông báo gym tắt được bằng `LISTING_GYM_NOTIFICATIONS_ENABLED=false|0` (mặc định bật; cờ này tắt cả thông báo gửi Admin khi Gym gửi duyệt).
 
 ## 5. Endpoint (đường dẫn thật)
 
