@@ -69,20 +69,29 @@ const Factual = z.enum(["SUPPORTED", "CONTRADICTED", "NOT_ESTABLISHED", "NOT_APP
 const Support = z.enum(["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Uncertainty = z.enum(["APPROPRIATE", "OVERCONFIDENT", "UNDERCONFIDENT", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Abstention = z.enum(["APPROPRIATE", "UNNECESSARY", "NEEDED_BUT_MISSING", "NOT_APPLICABLE", "NOT_EVALUATED"]);
+export const PersonalApplicability = z.enum(["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
+export const UnsupportedCausalInference = z.enum(["NONE", "PERSONAL_CAUSE_ASSERTED", "GROUP_TO_INDIVIDUAL", "STRENGTH_TO_HYPERTROPHY", "ATTENDANCE_TO_OUTCOME", "OTHER", "NOT_APPLICABLE", "NOT_EVALUATED"]);
+const ReviewReferences = z.object({ unitIds: z.array(z.string()), factIds: z.array(z.string()), sourceIds: z.array(z.string()), excerptIds: z.array(z.string()) }).strict();
+const emptyReferences = () => ({ unitIds: [], factIds: [], sourceIds: [], excerptIds: [] });
 export const AnnotationSchema = z.object({ packetHash: Hash, reviewerSlot: z.enum(["R1", "R2"]), reviewerPseudonym: z.string().min(1), authority: z.enum(["TEST_FIXTURE", "REVIEWER_ATTESTED"]),
-  units: z.array(z.object({ unitId: z.string(), factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention, rationale: z.string().min(1) }).strict()),
+  // Additive migration: old records remain valid; missing new axes mean unreviewed, never NA/support.
+  units: z.array(z.object({ unitId: z.string(), factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention,
+    personalApplicability: PersonalApplicability.default("NOT_EVALUATED"), unsupportedCausalInference: UnsupportedCausalInference.default("NOT_EVALUATED"), references: ReviewReferences.default(emptyReferences), rationale: z.string().min(1) }).strict()),
   usefulness: z.number().int().min(1).max(5).nullable(), submittedAt: z.string().datetime(),
 }).strict();
 export const AgreementSchema = z.object({ status: z.enum(["PENDING_LABELS", "TEST_FIXTURE_ONLY", "REVIEWER_ATTESTED"]), pairedJudgements: z.number().int().nonnegative(), exactAgreement: z.number().min(0).max(1).nullable(), kappa: z.number().min(-1).max(1).nullable(), requiresAdjudication: z.boolean().nullable() }).strict();
-const Axis = z.enum(["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "usefulness"]);
-const axes = { factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention, usefulness: z.number().int().min(1).max(5).nullable() };
-const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([Factual, Support, Uncertainty, Abstention, z.boolean(), z.number().int().min(1).max(5), z.null()]), rationale: z.string().min(1) }).strict().superRefine((d, ctx) => {
-  if (!axes[d.axis].safeParse(d.decision).success) ctx.addIssue({ code: "custom", message: "AdjudicationDecisionDoesNotMatchAxis" });
+const Axis = z.enum(["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "personalApplicability", "unsupportedCausalInference", "usefulness"]);
+export const reviewAxes = { factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention, personalApplicability: PersonalApplicability, unsupportedCausalInference: UnsupportedCausalInference, usefulness: z.number().int().min(1).max(5).nullable() };
+const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([Factual, Support, Uncertainty, Abstention, PersonalApplicability, UnsupportedCausalInference, z.boolean(), z.number().int().min(1).max(5), z.null()]), rationale: z.string().min(1) }).strict().superRefine((d, ctx) => {
+  if (!reviewAxes[d.axis].safeParse(d.decision).success) ctx.addIssue({ code: "custom", message: "AdjudicationDecisionDoesNotMatchAxis" });
 });
 export const AdjudicationSchema = z.object({ packetHash: Hash, adjudicatorPseudonym: z.string().min(1), decisions: z.array(Decision), rationale: z.string().min(1) }).strict();
 export function validateAnnotation(value: unknown, packet: ReturnType<typeof createAnnotationPackets>["reviewers"][number]) {
   const a = AnnotationSchema.parse(value), expected = packet.body.units.map((u) => u.unitId);
   if (a.packetHash !== packet.packetHash || a.reviewerSlot !== packet.reviewerSlot || a.units.length !== expected.length || new Set(a.units.map((u) => u.unitId)).size !== expected.length || expected.some((id) => !a.units.some((u) => u.unitId === id))) throw new Error("AnnotationPacketOrUnitsMismatch");
+  const facts = new Set(Array.isArray(packet.body.facts) ? packet.body.facts.map((f) => (f as { id: string }).id) : []);
+  const sources = new Set(packet.body.evidence.map((p) => p.sourceId)), excerpts = new Set(packet.body.evidence.flatMap((p) => p.originalExcerpts.map((e) => e.id)));
+  for (const u of a.units) if (u.references.unitIds.some((id) => !expected.includes(id)) || u.references.factIds.some((id) => !facts.has(id)) || u.references.sourceIds.some((id) => !sources.has(id)) || u.references.excerptIds.some((id) => !excerpts.has(id))) throw new Error("AnnotationReferenceNotInPacket");
   return a;
 }
 export function reviewerAgreement(first?: unknown, second?: unknown) {
@@ -93,7 +102,7 @@ export function reviewerAgreement(first?: unknown, second?: unknown) {
   if (new Set(ids).size !== ids.length || new Set(b.units.map((u) => u.unitId)).size !== b.units.length || ids.length !== b.units.length || ids.some((id) => !b.units.some((u) => u.unitId === id))) throw new Error("AnnotationUnitMismatch");
   let total = 0, equal = 0;
   for (const u of a.units) { const v = b.units.find((p) => p.unitId === u.unitId)!;
-    for (const k of ["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention"] as const) {
+    for (const k of ["factualCorrectness", "sourceSupport", "unsupportedPersonalClaim", "uncertainty", "abstention", "personalApplicability", "unsupportedCausalInference"] as const) {
       if (u[k] === null || v[k] === null || u[k] === "NOT_EVALUATED" || v[k] === "NOT_EVALUATED") continue;
       total++; if (u[k] === v[k]) equal++;
     }
