@@ -5,6 +5,7 @@ import type { AnswerV3 } from "./content-aware-v3-schema";
 import type { ContentIssue } from "./content-aware-v3";
 import type { TextUnit } from "./content-review";
 import { fold, MUSCLE_WORDS, STRENGTH_WORDS, uncertaintyBefore } from "./content-aware-v3-language";
+import { checkOutcomeSupport } from "./outcome-support";
 
 const numeric = (s: string) => (s.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => Number(n.replace(",", ".")));
 const metrics = (input: AdvisoryInput) => input.facts.filter((f) => f.evidence.kind === "EXERCISE_E1RM_CHANGE"
@@ -93,7 +94,7 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
  * muscle-size outcome. Unknown future BODY kinds require an explicit adapter;
  * neither the BODY domain nor model-declared outcome can clear this review. */
 export function checkServerFacts(input: AdvisoryInput, answer: AnswerV3): ContentIssue[] {
-  const result: ContentIssue[] = [], all = metrics(input), question = fold(input.question);
+  const result: ContentIssue[] = checkOutcomeSupport(input, answer), all = metrics(input), question = fold(input.question);
   const muscleQuestion = MUSCLE_WORDS.test(question), strengthQuestion = STRENGTH_WORDS.test(question);
   const otherOutcomeQuestion = /\b(?:can nang|weight|ty le mo|body fat|calories|calo|dinh duong|nutrition)\b/.test(question);
   const competingOutcomes = input.facts.some((f) => f.evidence.kind !== "EXERCISE_E1RM_CHANGE"

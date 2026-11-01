@@ -92,6 +92,9 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
       if (fact?.evidence.kind === "EXERCISE_E1RM_CHANGE") {
         const v = fact.evidence.value as Record<string, unknown>;
         if (a.measurement !== "ESTIMATED_1RM") hard("ESTIMATED_MEASUREMENT_CONTRADICTION", `${p}.metricAssertion.measurement`);
+        if ((a.unit !== undefined && a.unit !== "kg") || (v.unit !== undefined && v.unit !== "kg")) hard("METRIC_UNIT_MISMATCH", `${p}.metricAssertion.unit`);
+        if ((a.exerciseId !== undefined && v.exerciseId !== undefined && a.exerciseId !== v.exerciseId)
+          || (a.exerciseName !== undefined && v.exercise !== undefined && a.exerciseName !== v.exercise)) hard("METRIC_EXERCISE_MISMATCH", `${p}.metricAssertion`);
         for (const k of ["baselineKg", "currentKg", "changePct"] as const) {
           if (typeof v[k] === "number" && v[k] !== a[k]) hard("FACT_VALUE_CONTRADICTION", `${p}.metricAssertion.${k}`);
           else if (typeof v[k] !== "number") soft("ASSERTION_VALUE_NOT_CHECKABLE", `${p}.metricAssertion.${k}`);

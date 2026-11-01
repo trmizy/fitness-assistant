@@ -22,6 +22,7 @@ export const ClaimV3Schema = z.object({
     factId: z.string().min(1),
     measurement: z.enum(["ESTIMATED_1RM", "DIRECT_1RM"]),
     baselineKg: z.number().finite(), currentKg: z.number().finite(), changePct: z.number().finite(),
+    exerciseId: z.string().min(1).optional(), exerciseName: z.string().min(1).optional(), unit: z.enum(["kg", "lb"]).optional(),
   }).strict().optional(),
 }).strict();
 

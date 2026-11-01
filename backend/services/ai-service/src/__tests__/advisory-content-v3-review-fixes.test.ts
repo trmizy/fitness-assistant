@@ -126,7 +126,8 @@ test("review P2-3: measured body weight does not authorize a muscle-size assessm
   const weight = { id: "F_WEIGHT", evidence: { ...input.facts[0].evidence, domain: "BODY" as const, kind: "LATEST_MEASURED_WEIGHT", value: { weightKg: 70 } } };
   const a = { ...answer(), assessmentBasis: { outcome: "MUSCLE_SIZE" as const, factIds: ["F_WEIGHT"] }, claims: [{ claimType: "OBSERVATION" as const, text: "Cân nặng ghi nhận 70 kg.", factIds: ["F_WEIGHT"], evidenceIds: [] }] };
   const r = evaluateContentV3({ ...input, question: "Kích thước cơ đã tăng chưa?", facts: [weight] }, a);
-  assert.equal(r.contentGate, "FLAGGED_FOR_REVIEW"); assert.ok(r.contentIssues.some((i) => i.code === "WEIGHT_IS_NOT_MUSCLE_SIZE_MEASUREMENT"));
+  // P1-1 upgrade: a known weight-only measurement cannot support muscle progress.
+  assert.equal(r.contentGate, "BLOCKED"); assert.ok(r.contentIssues.some((i) => i.code === "WEIGHT_IS_NOT_MUSCLE_SIZE_MEASUREMENT"));
   const unreferenced = evaluateContentV3({ ...input, facts: [...input.facts, weight] }, { ...answer(), assessmentBasis: { outcome: "MUSCLE_SIZE", factIds: ["F_PROGRESS"] } });
   assert.ok(unreferenced.contentIssues.some((i) => i.code === "MUSCLE_OUTCOME_WITHOUT_SUPPORTED_MEASUREMENT"));
 });
