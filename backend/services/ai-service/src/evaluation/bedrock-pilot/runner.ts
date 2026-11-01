@@ -8,6 +8,7 @@ import { approvedConfigurationHash, estimatedCost, parseConfiguration, PilotErro
 import { calculatePilotPins, verifySessionPins } from "./pins";
 import { openEvaluationSession, redact, type EvaluationTransport } from "./session";
 import { atomicCreate, openJournal } from "./storage";
+import { attemptIdentity } from "./design";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
 export interface RunnerOptions {
@@ -26,7 +27,7 @@ export async function runControlledPilot(options: RunnerOptions) {
   const config = parseConfiguration(options.config);
   if (config.mode !== "FAKE") throw new PilotError("RUNNER_LIVE_LOCKED");
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
-  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile);
+  const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design);
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
   const configHash = approvedConfigurationHash(config), session = openEvaluationSession(config, options.directory, options.transport ?? fakeTransport(), { resume: options.resume, fixtureLedgerDirectory: options.fixtureLedgerDirectory, fixtureApprovalId: options.fixtureApprovalId, verifiedPins });
@@ -43,7 +44,7 @@ export async function runControlledPilot(options: RunnerOptions) {
     const counts = await session.previewTokenCounts(preparation.rows.map((r) => r.prompt));
     const inputCeiling = counts.reduce((n, r) => n + r.inputTokens, 0), outputCeiling = preparation.rows.length * config.parameters.maxTokens;
     const tokenLengthControls = preparation.rows.filter((r) => r.arm === "LAYERED_CONTEXT_PLACEBO").map((row) => {
-      const index = preparation.rows.indexOf(row), pairedIndex = preparation.rows.findIndex((r) => r.caseKey === row.caseKey && r.policy === row.policy && r.arm === "LAYERED_CONTEXT");
+      const index = preparation.rows.indexOf(row), pairedIndex = preparation.rows.findIndex((r) => r.caseKey === row.caseKey && r.policy === row.policy && r.repeatIndex === row.repeatIndex && r.arm === "LAYERED_CONTEXT");
       return { caseKey: row.caseKey, authority: "FAKE_TEST_ONLY", contextTokens: counts[pairedIndex]?.inputTokens ?? null, paddedTokens: counts[index].inputTokens, delta: pairedIndex < 0 ? null : counts[index].inputTokens - counts[pairedIndex].inputTokens, modelTokenMatch: "NOT_EVALUATED" };
     });
     const preview = { mode: "FAKE", configHash, approvalId: session.approvalId, target: session.target, pins: config.pins, inferenceCallsCeiling: preparation.rows.length, countApiCallsCeiling: new Set(config.pins.promptHashes).size,
@@ -60,7 +61,7 @@ export async function runControlledPilot(options: RunnerOptions) {
     if (pending.length) throw new PilotError("UNRESOLVED_RESERVATION_REQUIRES_OWNER_AUDIT", { count: pending.length });
     const outputs: { generated: boolean; blocked: boolean; failed: boolean }[] = [];
     for (const row of preparation.rows) {
-      const attemptKey = digest({ caseKey: row.caseKey, arm: row.arm, policy: row.policy, promptHash: row.promptHash });
+      const attemptKey = attemptIdentity({ caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, configHash, promptHash: row.promptHash });
       const result = finished.get(attemptKey) ?? await session.evaluate(row.prompt, attemptKey);
       options.onStage?.("EVALUATED");
       const verification = verifyRawEvaluation(row.verificationContext, result.parsedCandidate);
@@ -71,7 +72,7 @@ export async function runControlledPilot(options: RunnerOptions) {
         if (previous.configHash !== configHash || previous.promptHash !== row.promptHash || digest(previous.verification) !== digest(redact(verification)) || previous.candidateHash !== digest(result.parsedCandidate)) throw new PilotError("RESULT_INTEGRITY_FAILED");
       } else {
         const packets = createAnnotationPackets({ question: row.verificationContext.input.question, facts: row.verificationContext.input.facts, evidence: row.verificationContext.evidence, candidate: result.parsedCandidate ?? result.rawText });
-        atomicCreate(file, redact({ configHash, attemptKey, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), raw: result, verification, packets }));
+        atomicCreate(file, redact({ configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), raw: result, verification, packets }));
       }
       journal.append({ event: "POSTPROCESSED", attemptKey, fileHash: digest(JSON.parse(fs.readFileSync(file, "utf8"))) }); options.onStage?.("PERSISTED");
       const generated = session.state().attemptKeys.includes(attemptKey);

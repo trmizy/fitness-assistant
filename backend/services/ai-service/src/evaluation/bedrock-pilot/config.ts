@@ -1,6 +1,7 @@
 import { z } from "zod";
 import path from "node:path";
 import { digest } from "../evaluation-kit/identity";
+import { EvaluationDesignSchema } from "./design";
 
 export class PilotError extends Error {
   constructor(readonly code: string, readonly details: Record<string, unknown> = {}) { super(code); this.name = "PilotError"; }
@@ -10,6 +11,7 @@ export const ApprovalSchema = z.object({ approvalId: z.string().uuid(), issuer: 
 export const SessionConfigSchema = z.object({
   mode: z.enum(["FAKE", "LIVE"]).default("FAKE"), liveOptIn: z.boolean().default(false),
   dataClass: z.literal("SYNTHETIC_EVALUATION_ONLY"), modelId: z.literal("amazon.nova-pro-v1:0"), inferenceProfile: z.string().min(1).nullable(), region: z.string().min(1), profileModelConfirmed: z.boolean(),
+  design: EvaluationDesignSchema.optional(),
   parameters: z.object({ maxTokens: z.number().int().positive().max(5000), temperature: z.number().min(0.00001).max(1).optional(), topP: z.number().min(0).max(1).optional(), retries: z.literal(0), timeoutMs: z.number().int().min(1).max(300000) }).strict().refine((p) => !(p.temperature !== undefined && p.topP !== undefined), "Choose temperature or topP"),
   pins: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/).refine((s) => !/^0+$/.test(s)), code: Hash, corpus: Hash, cases: Hash, promptHashes: z.array(Hash) }).strict(),
   sources: z.object({ workspaceRoot: z.string().refine(path.isAbsolute), casesFile: z.string().refine(path.isAbsolute) }).strict().optional(),

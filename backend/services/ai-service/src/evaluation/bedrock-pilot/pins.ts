@@ -7,6 +7,7 @@ import { digest } from "../evaluation-kit/identity";
 import { createFixtureIo, prepareCorpus } from "../ai-coach-dev/retrieval";
 import { prepareReleasedPilot } from "./prepare";
 import { approvedConfigurationHash, PilotError, type SessionConfig } from "./config";
+import type { EvaluationDesign } from "./design";
 
 export const implementationRoot = path.resolve(__dirname, "../../../../../..");
 export const CORPUS_FILES = ["data/eval/advisory-progress-dev/evidence-pack.json", "data/eval/advisory-progress-dev/evidence-claim-map-v2.json", "data/eval/ai-coach-dev/corpus-supplement.json", "data/eval/ai-coach-dev/source-registry.json"];
@@ -24,15 +25,15 @@ function snapshot(rootValue: string, casesFile: string) {
   return { commit: git(root, ["rev-parse", "HEAD"]), dirty: git(root, ["status", "--porcelain", "--untracked-files=all"]).length > 0,
     code: digest(files.map((f) => [f, bytes(path.join(root, f))])), corpus: digest(CORPUS_FILES.map((f) => [f, bytes(path.join(root, f))])), cases: bytes(casesFile) };
 }
-export async function loadPilotPreparation(root: string, casesFile: string) {
+export async function loadPilotPreparation(root: string, casesFile: string, design?: EvaluationDesign) {
   const input = ReleasedFileSchema.parse(JSON.parse(fs.readFileSync(casesFile, "utf8")));
   const read = (i: number) => JSON.parse(fs.readFileSync(path.join(root, CORPUS_FILES[i]), "utf8"));
   const corpus = prepareCorpus(read(0), read(1), read(2));
-  const preparation = await prepareReleasedPilot(input.released, input.expectedManifests, input.ownerReceiptHashes, { corpus, io: createFixtureIo(corpus).io });
+  const preparation = await prepareReleasedPilot(input.released, input.expectedManifests, input.ownerReceiptHashes, { corpus, io: createFixtureIo(corpus).io }, "MINIMAL", design);
   return preparation;
 }
-export async function calculatePilotPins(root: string, casesFile: string) {
-  const before = snapshot(root, casesFile), preparation = await loadPilotPreparation(root, casesFile), after = snapshot(root, casesFile);
+export async function calculatePilotPins(root: string, casesFile: string, design?: EvaluationDesign) {
+  const before = snapshot(root, casesFile), preparation = await loadPilotPreparation(root, casesFile, design), after = snapshot(root, casesFile);
   if (digest(before) !== digest(after)) throw new PilotError("INPUTS_CHANGED_DURING_PREPARATION");
   return { preparation, dirty: after.dirty, pins: { commit: after.commit, code: after.code, corpus: after.corpus, cases: after.cases, promptHashes: preparation.rows.map((r) => r.promptHash) } };
 }
@@ -44,7 +45,7 @@ function match(actual: unknown, expected: unknown, field: string) {
 export async function verifySessionPins(config: SessionConfig): Promise<VerifiedPins> {
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
   if (config.mode === "LIVE" && fs.realpathSync(config.sources.workspaceRoot).toLowerCase() !== fs.realpathSync(implementationRoot).toLowerCase()) throw new PilotError("LOADED_IMPLEMENTATION_ROOT_MISMATCH");
-  const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile);
+  const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design);
   if (config.mode === "LIVE") assertCleanWorkingTree(config.sources.workspaceRoot);
   for (const key of ["commit", "code", "corpus", "cases", "promptHashes"] as const) match(result.pins[key], config.pins[key], key);
   const receipt: VerifiedPins = Object.freeze({ status: "VERIFIED_FROM_FILES" });
