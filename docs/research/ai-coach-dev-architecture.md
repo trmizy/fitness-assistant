@@ -1,5 +1,7 @@
 # AI Coach DEV architecture — controlled evaluation blockers
 
+> Historical snapshot qua `d344a75a`. Protocol hiện tại đã thay đổi; xem [real evaluation readiness](ai-coach-real-evaluation-readiness.md) cho sáu arms, adapter, source registry và annotation infrastructure mới.
+
 Cập nhật 2026-11-01, branch `feat/advisory-content-v3`. Review base: `2c4806b9`. Bản này thay mô tả harness cũ 5 arm/25 mock calls; số liệu cũ vẫn là lịch sử tại commit đó, không phải kết quả model.
 
 Trạng thái: **PREPARED_PENDING_INDEPENDENT_REVIEW**. Chi tiết finding, kiểm thử và giới hạn: [handoff blockers](ai-coach-evaluation-blockers-handoff.md). Evidence tier: **CODE AUDIT / TEST FIXTURE**.

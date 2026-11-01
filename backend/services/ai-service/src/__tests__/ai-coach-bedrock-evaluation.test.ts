@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { openEvaluationSession, type SessionConfig, type EvaluationTransport } from "../evaluation/bedrock-pilot/session";
+import { approvedConfigurationHash, openEvaluationSession, type SessionConfig, type EvaluationTransport } from "../evaluation/bedrock-pilot/session";
+import { bedrockRuntimeDeps, BEDROCK_REGION } from "../services/bedrock.client";
+import { CountTokensCommand, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { digest } from "../evaluation/evaluation-kit/identity";
-import type { Prompt } from "../evaluation/ai-coach-dev/pipeline";
+import { verifyRawEvaluation, type Prompt } from "../evaluation/ai-coach-dev/pipeline";
+import { createFixtureIo, retrieveDevEvidence } from "../evaluation/ai-coach-dev/retrieval";
 const prompt: Prompt = { system: "Synthetic DEV policy", user: "{}", layers: [] };
 const answer = { analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic plumbing response only.", proposedAction: null }, sourceLinks: [] };
 function config(): SessionConfig { return {
@@ -25,6 +28,9 @@ test("fake transport normalizes raw candidate, usage, stop reason and append-onl
   assert.equal(result.parseError, null); assert.deepEqual(result.parsedCandidate, answer);
   assert.equal(result.inputTokens, 12); assert.equal(result.outputTokens, 8); assert.equal(result.stopReason, "end_turn");
   assert.equal(session.state().inferenceCalls, 1);
+  const evidence = await retrieveDevEvidence("Sức mạnh của tôi?", [], createFixtureIo([]).io);
+  const checked = verifyRawEvaluation({ input: { question: evidence.question, facts: [], sources: [] }, evidence }, result.parsedCandidate);
+  assert.equal(checked.rawCandidate, result.parsedCandidate); assert.equal(checked.generationCalls, 0); assert.equal(checked.scientificPass, null);
   const lines = fs.readFileSync(path.join(folder, "results.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
   assert.deepEqual(lines.map((l) => l.record.event), ["ATTEMPT_STARTED", "INFERENCE_RESERVED", "ATTEMPT_FINISHED"]);
   assert.throws(() => openEvaluationSession(config(), folder, fake()));
@@ -33,6 +39,7 @@ test("schema and parse failures preserve raw text and parsed invalid candidate",
   const invalid = { debug: "preserve me" };
   const s = openEvaluationSession(config(), dir(), fake(JSON.stringify(invalid)));
   const r = await s.evaluate(prompt); assert.equal(r.parseError, "SCHEMA_INVALID"); assert.deepEqual(r.parsedCandidate, invalid);
+  assert.equal(r.conservativeReservationRetained, false);
   const broken = await openEvaluationSession(config(), dir(), fake("not json")).evaluate(prompt);
   assert.equal(broken.rawText, "not json"); assert.equal(broken.parseError, "INVALID_JSON");
 });
@@ -68,4 +75,24 @@ test("unknown usage stops the session and raw response secrets are redacted in p
   assert.ok(!fs.readFileSync(path.join(folder, "results.jsonl"), "utf8").includes("NEVER_LOG_THIS"));
   const missing = openEvaluationSession(config(), dir(), { ...fake(), async invoke() { return { $metadata: {}, stopReason: "end_turn" } as Awaited<ReturnType<EvaluationTransport["invoke"]>>; } });
   assert.equal((await missing.evaluate(prompt)).providerError, "USAGE_MISMATCH_OR_UNKNOWN"); assert.equal(missing.state().stopped, true);
+});
+test("TEST FIXTURE: approved gate uses existing SDK seam, exact CountTokens and maxAttempts=1 without network", async () => {
+  const c = config(); c.mode = "LIVE"; c.liveOptIn = true; c.profileModelConfirmed = true; c.region = BEDROCK_REGION; c.pricing.region = BEDROCK_REGION;
+  c.pricing.authority = "OWNER_CONFIRMED_AWS"; // synthetic authority only for exercising the positive gate
+  c.approval = { approvedBy: "TEST_FIXTURE_NOT_REAL_APPROVAL", scope: "BEDROCK_EVALUATION_PILOT", configHash: approvedConfigurationHash(c), expiresAt: new Date(Date.now() + 3600000).toISOString() };
+  const original = bedrockRuntimeDeps.send, sent: string[] = [];
+  bedrockRuntimeDeps.send = async (command, options) => {
+    assert.equal(options.maxAttempts, 1);
+    if ((command as unknown) instanceof CountTokensCommand) { sent.push("CountTokens"); return { inputTokens: 12 }; }
+    assert.ok(command instanceof ConverseCommand); sent.push("Converse");
+    return fake().invoke(command.input, options.abortSignal);
+  };
+  try {
+    const session = openEvaluationSession(c, dir());
+    await assert.rejects(() => session.evaluate(prompt), /BatchTokenPreflightRequired/);
+    const counts = await session.previewTokenCounts([prompt]);
+    assert.equal(counts[0].inputTokens, 12); assert.equal(session.state().inferenceCalls, 0);
+    assert.equal((await session.evaluate(prompt)).providerError, null);
+    assert.deepEqual(sent, ["CountTokens", "Converse"]);
+  } finally { bedrockRuntimeDeps.send = original; }
 });

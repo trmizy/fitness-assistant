@@ -55,7 +55,7 @@ function evidencePayload(e: RetrievedEvidence) {
   return { availability: e.passages.length ? "PROVIDED" : "NO_EXCERPTS_PROVIDED", claimSupport: e.claimSupport, sourceReview: "PENDING_SOURCE_REVIEW",
     passages: e.passages.map((p) => ({ sourceId: p.source.id,
       sourceMetadata: { title: p.source.title, doi: p.source.doi, url: p.source.url, year: p.source.year },
-      originalScientificExcerpts: p.excerpts,
+      originalScientificExcerpts: p.excerpts.map((e) => ({ id: e.id, text: e.text, locator: e.locator, authorship: e.authorship })),
       assistantAuthoredInterpretation: { applicability: p.source.applicability, limitations: p.source.limitations, reviewScope: p.source.reviewScope, humanReviewed: false },
     })) };
 }
@@ -106,8 +106,8 @@ export function checkNamespaces(value: AnalysisEnvelope, input: AdvisoryInput): 
 function disabled(question: string): RetrievedEvidence {
   return { status: "DISABLED", question, passages: [], trace: null, relevance: "V2_TOPIC_GATE_NOT_CLAIM_SUPPORT", applicability: "REQUIRES_PERSONAL_CONTEXT_REVIEW", claimSupport: "NOT_EVALUATED" };
 }
-export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provider: MockProvider; corpus: Passage[]; io: V2Io }, options: { policy?: PolicyVariant; settings?: typeof SETTINGS; evidence?: RetrievedEvidence } = {}) {
-  if (deps.provider.kind !== "MOCK_ONLY" || !ARMS.includes(arm)) throw new Error("DevMockBoundaryRequired");
+export async function prepareDevSlice(request: DevRequest, arm: Arm, deps: { corpus: Passage[]; io: V2Io }, options: { policy?: PolicyVariant; settings?: typeof SETTINGS; evidence?: RetrievedEvidence } = {}) {
+  if (!ARMS.includes(arm)) throw new Error("DevArmNotSupported");
   const context = buildDevContext(request), policy = options.policy ?? "MINIMAL", settings = options.settings ?? SETTINGS;
   if (!POLICY_VARIANTS.includes(policy) || settings.retries !== 0 || settings.model !== "MOCK_PROTOCOL_ONLY") throw new Error("OfflineProtocolRequired");
   const usesEvidence = arm === "LAYERED_CONTEXT_RAG" || arm === "LAYERED_CONTEXT_WRONG_EXCERPT";
@@ -123,6 +123,11 @@ export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provide
   const allowedReferences = { factIds: input.facts.map((f) => f.id), sourceIds: input.sources.map((s) => s.id) };
   const prompt = buildFiveLayerPrompt(context, evidence, arm, policy, allowedReferences);
   const safetyHandling = devRoute(context.request.question);
+  return { context, policy, settings, evidence, input, allowedReferences, prompt, safetyHandling };
+}
+export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provider: MockProvider; corpus: Passage[]; io: V2Io }, options: { policy?: PolicyVariant; settings?: typeof SETTINGS; evidence?: RetrievedEvidence } = {}) {
+  if (deps.provider.kind !== "MOCK_ONLY") throw new Error("DevMockBoundaryRequired");
+  const { context, policy, settings, evidence, input, allowedReferences, prompt, safetyHandling } = await prepareDevSlice(request, arm, deps, options);
   const raw = safetyHandling.action !== "NORMAL" ? null : await deps.provider.complete({ prompt, settings });
   const parsed = AnalysisEnvelopeSchema.safeParse(raw), envelope = parsed.success ? parsed.data : null;
   const referenceIssues = envelope ? checkNamespaces(envelope, input) : null;
@@ -144,4 +149,15 @@ export function groundCandidate(result: Awaited<ReturnType<typeof runDevSlice>>)
   return { ...result, arm: "GROUNDED_OFFLINE" as const, generationArm: result.arm, generationCalls: 0,
     grounding, blockerScopes: { structuredInvariant: grounding ? grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT") : null, narrowTextHeuristic: grounding ? grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "NARROW_TEXT_HEURISTIC") : null },
     candidate: blocked ? null : result.candidate, release: result.safetyHandling.action !== "NORMAL" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
+}
+/** Shared post-processing entry for real adapter outputs; no provider invocation. */
+export function verifyRawEvaluation(context: { input: AdvisoryInput; evidence: RetrievedEvidence }, rawCandidate: unknown) {
+  const parsed = AnalysisEnvelopeSchema.safeParse(rawCandidate);
+  const referenceIssues = parsed.success ? checkNamespaces(parsed.data, context.input) : null;
+  const citationReferenceIssues = parsed.success ? checkSourceLinks(parsed.data, context.evidence) : null;
+  const grounding = evaluateContentV3({ ...context.input, sources: selectedSources(context.evidence) }, parsed.success ? parsed.data.analysis : rawCandidate);
+  return { rawCandidate, grounding, referenceIssues, citationReferenceIssues,
+    blocked: !parsed.success || !!referenceIssues?.length || !!citationReferenceIssues?.length || grounding.contentGate === "BLOCKED",
+    blockerScopes: { structuredInvariant: grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT"), narrowTextHeuristic: grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "NARROW_TEXT_HEURISTIC") },
+    scientificPass: null, generationCalls: 0 };
 }

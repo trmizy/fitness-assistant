@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { ARMS, POLICY_VARIANTS, SETTINGS, groundCandidate, runDevSlice } from "./pipeline";
 import { createFixtureIo, prepareCorpus } from "./retrieval";
 import { createScriptedMock, devCases } from "./fixtures";
@@ -45,9 +46,11 @@ export async function runMockExperiment() {
   const firstRagByCase = [...new Map(ragAttempts.map((r) => [r.caseId, r])).values()];
   return {
     manifest: { mode: "MOCK_PROTOCOL_ONLY", readiness: "PREPARED_PENDING_INDEPENDENT_REVIEW", modelEvaluation: "NOT_RUN", embeddingCalls: 0, modelCalls: 0, vectorDbCalls: 0, mockCalls: provider.calls(), fixtureSearches,
+      commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(), workingTreeDirty: execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim().length > 0,
       arms: ARMS, policies: POLICY_VARIANTS, repetitions: EVAL_PROTOCOL.repetitions, caseCount: cases.length,
       historicalReference: EVAL_PROTOCOL.historicalReference, caseSha256: hash(cases), corpusSha256: hash(corpus), promptSha256: hash(results.map((r) => r.prompt)),
-      codeSha256: hash(["context.ts", "retrieval.ts", "pipeline.ts", "review.ts", "fixtures.ts", "evaluation.ts", "run.ts"].map((name) => [name, fs.readFileSync(path.join(__dirname, name), "utf8")])),
+      codeSha256: hash(["context.ts", "retrieval.ts", "source-registry.ts", "pipeline.ts", "review.ts", "fixtures.ts", "evaluation.ts", "run.ts"].map((name) => [name, fs.readFileSync(path.join(__dirname, name), "utf8")])),
+      sourceRegistrySha256: hash(JSON.parse(fs.readFileSync(path.join(root, "data/eval/ai-coach-dev/source-registry.json"), "utf8"))),
       sourceFileSha256: Object.fromEntries(["evidence-pack.json", "evidence-claim-map-v2.json"].map((name) => [name, createHash("sha256").update(fs.readFileSync(path.join(data, name))).digest("hex")])),
       supplementSha256: hash(supplement), reviewProtocolSha256: hash(reviewProtocol),
       reusedCodeSha256: hash(["../../llm/fitness-concepts.ts", "../../llm/retrieval-v2.ts", "../../llm/knowledge-source.ts", "../../llm/safety-signals.ts", "../../llm/safety-narrative.ts", "../../llm/safety_guard.ts", "../advisory-progress/content-aware-v3.ts", "../advisory-progress/content-aware-v3-facts.ts", "../advisory-progress/outcome-support.ts", "../advisory-progress/content-aware-v3-language.ts", "../advisory-progress/content-aware-v3-schema.ts"].map((name) => [name, fs.readFileSync(path.join(__dirname, name), "utf8")])),
@@ -56,6 +59,7 @@ export async function runMockExperiment() {
     rawVsPostGate: { attemptedRag: ragAttempts.length, preGenerationRouted: ragAttempts.length - rag.length, safetyRouted: ragAttempts.filter((r) => r.safetyHandling.action === "SAFETY_HANDLING_REQUIRED").length, outOfDomainRouted: ragAttempts.filter((r) => r.safetyHandling.action === "OUT_OF_DOMAIN_HANDLING_REQUIRED").length, generatedRag: rag.length, rawContractEligible: rag.filter((r) => r.release === "DEV_REVIEW_ONLY").length,
       postGateEligible: postGate.filter((r) => r.release === "DEV_REVIEW_ONLY").length, blocked: postGate.filter((r) => r.release === "BLOCKED").length,
       coverage: rag.length ? postGate.filter((r) => r.release === "DEV_REVIEW_ONLY").length / rag.length : null,
+      blockers: { structuredInvariant: postGate.filter((r) => r.blockerScopes.structuredInvariant?.length).length, narrowTextHeuristic: postGate.filter((r) => r.blockerScopes.narrowTextHeuristic?.length).length },
       rawCorrectness: null, postGateCorrectness: null },
     retrievalCoverage: { label: "DEV_STATUS_COVERAGE_NOT_SEMANTIC_RECALL", cases: firstRagByCase.map((r) => ({ caseId: r.caseId, status: r.evidence.status, excerptIds: r.evidence.passages.flatMap((p) => p.excerpts.map((e) => e.id)) })),
       statusCounts: Object.fromEntries([...new Set(firstRagByCase.map((r) => r.evidence.status))].map((status) => [status, firstRagByCase.filter((r) => r.evidence.status === status).length])), independentlyJudgedRelevance: null },

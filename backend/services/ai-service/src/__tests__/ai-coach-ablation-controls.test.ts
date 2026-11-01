@@ -37,4 +37,8 @@ test("wrong-excerpt control is genuinely different but does not leak treatment l
   assert.equal(wrong.evidence.status, "CONTROL_SUPPLIED");
   assert.ok(!/WRONG_EXCERPT|CONTROL_SUPPLIED/.test(wrong.prompt.user));
   assert.deepEqual(wrong.allowedReferences.sourceIds, wrong.evidence.passages.map((p) => p.source.id));
+  const poisoned = structuredClone(rag.evidence);
+  (poisoned.passages[0].excerpts[0] as unknown as Record<string, unknown>).expectedAnswer = "PRIVATE_METADATA_MUST_NOT_LEAK";
+  const cleaned = await runDevSlice(devCases()[0].request, "LAYERED_CONTEXT_RAG", deps(), { evidence: poisoned });
+  assert.ok(!cleaned.prompt.user.includes("PRIVATE_METADATA_MUST_NOT_LEAK"));
 });

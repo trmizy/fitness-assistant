@@ -1,0 +1,18 @@
+{
+  "version": "bedrock-pilot-preparation-v1",
+  "status": "NOT_AUTHORIZED_NOT_EXECUTABLE",
+  "liveOptIn": false,
+  "proposedTarget": {"modelId":"amazon.nova-pro-v1:0","inferenceProfile":null,"region":"ap-southeast-1","ownerConfirmed":false},
+  "pins": {"commit":null,"code":null,"corpus":null,"cases":null,"promptHashes":null},
+  "pilotDesign": {"independentReleasedCases":2,"generationArms":6,"policyVariants":["MINIMAL"],"repetitions":1,"maxCalls":12,"offlineGroundingExtraCalls":0},
+  "proposedLimitsForOwnerReview": {"maxInputTokensPerCall":12000,"maxInputTokens":144000,"maxOutputTokensPerCall":2048,"maxOutputTokens":24576,"maxFailures":2,"maximumUsdToApprove":null,"retryCount":0},
+  "pricing": {"status":"PENDING_OWNER_VERIFICATION","sourceUrl":"https://aws.amazon.com/bedrock/pricing/","version":null,"checkedAt":null,"expiresAt":null,"inputUsdPerMillion":null,"outputUsdPerMillion":null,"modelProfileRegionBillingConfirmed":false,"evidenceHash":null},
+  "apiReview": {"converse":"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html","countTokens":"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_CountTokens.html","novaParameters":"https://docs.aws.amazon.com/nova/latest/userguide/complete-request-schema.html","seedSupported":false,"countTokensForProposedTarget":"PENDING_OWNER_VALIDATION","parameterChoice":"temperature=0.2; omit topP; maxTokens=2048; SDK maxAttempts=1"},
+  "stopConditions":["Any call/token/spend reservation would exceed approved cap","Failure threshold reached","Exact input count unavailable or usage inconsistent","Manifest or append-only journal persistence fails","Case/prompt/corpus/code pins changed","Safety/crisis or out-of-domain disposition before generation"],
+  "parseFailures":"Persist raw text, parsed invalid candidate, parse/schema error, tokens and stop reason; no retry; count against failure threshold; manually review blocked answers",
+  "logging":"New run directory, manifest.json with pinned configuration, append-only results.jsonl with started/reserved/finished or rejected events; no credentials or real personal data",
+  "reporting":"Raw correctness and post-gate eligibility separately; generated denominator excludes routed non-generation cases. Tokens, latency and cost recorded per attempt. Citation identity and gate pass are not semantic correctness.",
+  "requiredBeforeExecution":["Owner confirms model/profile/region and CountTokens support","Scientific owner approves corpus scope and pending source domains","Evaluation owner supplies independently authored/approved cases and seals labels","Owner releases selected held-out content only to the generation runner","Freeze code/prompts/corpus/cases and prepare blinded reviewer packets","Owner verifies current pricing/version/expiry and exact token/context lengths","User explicitly approves LIVE config hash, call count and maximum USD budget"],
+  "requiredBeforeExpansion":["Two reviewer annotations plus adjudication","Review every blocked/parse-failed candidate","Inspect unsupported personal claims, abstention and usefulness, not only schema or retention","Approve a new budget/config for any larger experiment"],
+  "productionRollout":"SEPARATE_DECISION_NOT_AUTHORIZED_BY_PILOT"
+}

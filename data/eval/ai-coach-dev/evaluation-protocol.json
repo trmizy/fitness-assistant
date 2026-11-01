@@ -1,25 +1,154 @@
 {
-  "version": "controlled-evaluation-review-protocol-v2",
+  "version": "controlled-evaluation-review-protocol-v3",
   "status": "PREPARED_PENDING_INDEPENDENT_REVIEW",
   "liveEvaluation": "NOT_RUN_NOT_AUTHORIZED",
-  "developmentInputs": {"count":40,"authority":"IMPLEMENTER_AUTHORED_DEV_ONLY","independentHeldOut":false,"goldLabels":null},
+  "developmentInputs": {
+    "count": 40,
+    "authority": "IMPLEMENTER_AUTHORED_DEV_ONLY",
+    "independentHeldOut": false,
+    "goldLabels": null
+  },
   "independentSetPlan": {
-    "targetCount":40,"minimumCount":30,"reviewer":"UNASSIGNED",
-    "construction":"A reviewer other than the implementer must author or approve cases and labels before a controlled model run",
-    "reservedUnopenedCount":10,"reservedContentStatus":"NOT_SUPPLIED_NOT_CREATED_BY_IMPLEMENTER",
-    "splitOwner":"INDEPENDENT_REVIEWER","freezeBeforeGeneration":true,
-    "caseFamilies":["progress-increase","progress-decrease","flat-outcome","attendance-only","missing-or-stale-outcome","cross-subject-rejection","conversation-conflict","unsupported-personal-application","relevant-evidence","irrelevant-evidence","same-topic-non-support","conflicting-evidence","source-ablation","fact-flip","counterfactual","prompt-injection","safety","out-of-domain","exercise-identity","unit-mismatch"]
+    "targetCount": 40,
+    "minimumCount": 30,
+    "reviewer": "UNASSIGNED",
+    "construction": "A reviewer other than the implementer must author or approve cases and labels before a controlled model run",
+    "reservedUnopenedCount": 10,
+    "reservedContentStatus": "NOT_SUPPLIED_NOT_CREATED_BY_IMPLEMENTER",
+    "splitOwner": "INDEPENDENT_REVIEWER",
+    "freezeBeforeGeneration": true,
+    "caseFamilies": [
+      "progress-increase",
+      "progress-decrease",
+      "flat-outcome",
+      "attendance-only",
+      "missing-or-stale-outcome",
+      "cross-subject-rejection",
+      "conversation-conflict",
+      "unsupported-personal-application",
+      "relevant-evidence",
+      "irrelevant-evidence",
+      "same-topic-non-support",
+      "conflicting-evidence",
+      "source-ablation",
+      "fact-flip",
+      "counterfactual",
+      "prompt-injection",
+      "safety",
+      "out-of-domain",
+      "exercise-identity",
+      "unit-mismatch"
+    ]
   },
-  "controls": {"generationArms":["V3_SCHEMA_LEGACY_POLICY","FIVE_LAYER_POLICY","FIVE_LAYER_CONTEXT","FIVE_LAYER_CONTEXT_RAG"],"policies":["MINIMAL","FULL"],"pairedRepetitions":2,"seedPerRepeat":[17,18],"retryCount":0,"commonContract":"AnalysisEnvelopeSchema","grounded":"OFFLINE_ON_SAME_RAW_RAG_CANDIDATE","historicalV2":"SEPARATE_UNSCORED_MIGRATION_REFERENCE"},
+  "controls": {
+    "generationArms": [
+      "FLAT_LAYOUT",
+      "LAYERED",
+      "LAYERED_CONTEXT",
+      "LAYERED_CONTEXT_PLACEBO",
+      "LAYERED_CONTEXT_RAG",
+      "LAYERED_CONTEXT_WRONG_EXCERPT"
+    ],
+    "policies": [
+      "MINIMAL",
+      "FULL"
+    ],
+    "pairedRepetitions": 2,
+    "seedPerRepeat": [
+      17,
+      18
+    ],
+    "retryCount": 0,
+    "commonContract": "AnalysisEnvelopeSchema",
+    "grounded": "OFFLINE_ON_SAME_RAW_RAG_CANDIDATE",
+    "historicalV2": "SEPARATE_UNSCORED_MIGRATION_REFERENCE",
+    "sourceAllowlist": "Arm-local IDs only; no-RAG sourceIds=[]",
+    "placebo": "Character-length match without facts/evidence; exact model tokens pending approved CountTokens preflight",
+    "seedMeaning": "MOCK_SCHEDULING_ONLY_NOT_A_BEDROCK_PARAMETER"
+  },
   "blindedScoring": {
-    "factualCorrectness":{"labels":["SUPPORTED","CONTRADICTED","NOT_ESTABLISHED","NOT_APPLICABLE"],"denominator":"All evaluable personal claims, including conclusion/questions","missing":null},
-    "sourceToClaim":{"labels":["SUPPORTED","PARTIAL","UNSUPPORTED","NOT_APPLICABLE"],"requirements":["exact excerpt","scope","no group-to-individual causal leap","authorship distinction"],"missing":null},
-    "unsupportedPersonalClaims":{"numerator":"Unsupported individual claims","denominator":"All individual claims","missing":null},
-    "uncertainty":{"labels":["APPROPRIATE","OVERCONFIDENT","UNDERCONFIDENT","NOT_APPLICABLE"],"missing":null},
-    "usefulness":{"scale":[1,2,3,4,5],"anchors":{"1":"Misleading or fails user intent","3":"Explains observation and some unknowns","5":"Answers intent with bounded conclusion and specific non-prescriptive follow-up"},"missing":null},
-    "coverage":{"denominator":"Raw generated candidates, excluding pre-generation safety routing","report":["raw quality","raw contract eligibility","post-gate eligibility","blocked count","safety-routed count"],"blockedCountsAsCorrect":false},
-    "telemetry":{"tokens":null,"modelLatencyMs":null,"cost":null,"reason":"No live model calls"},
-    "analysis":"Blind arm labels, pair by case and repetition, adjudicate disagreements, report agreement and paired uncertainty intervals. Do not silently drop blocked cases from quality/coverage reporting."
+    "factualCorrectness": {
+      "labels": [
+        "SUPPORTED",
+        "CONTRADICTED",
+        "NOT_ESTABLISHED",
+        "NOT_APPLICABLE"
+      ],
+      "denominator": "All evaluable personal claims, including conclusion/questions",
+      "missing": null
+    },
+    "sourceToClaim": {
+      "labels": [
+        "SUPPORTED",
+        "PARTIAL",
+        "UNSUPPORTED",
+        "NOT_APPLICABLE"
+      ],
+      "requirements": [
+        "exact excerpt",
+        "scope",
+        "no group-to-individual causal leap",
+        "authorship distinction"
+      ],
+      "missing": null
+    },
+    "unsupportedPersonalClaims": {
+      "numerator": "Unsupported individual claims",
+      "denominator": "All individual claims",
+      "missing": null
+    },
+    "uncertainty": {
+      "labels": [
+        "APPROPRIATE",
+        "OVERCONFIDENT",
+        "UNDERCONFIDENT",
+        "NOT_APPLICABLE"
+      ],
+      "missing": null
+    },
+    "usefulness": {
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "anchors": {
+        "1": "Misleading or fails user intent",
+        "3": "Explains observation and some unknowns",
+        "5": "Answers intent with bounded conclusion and specific non-prescriptive follow-up"
+      },
+      "missing": null
+    },
+    "coverage": {
+      "denominator": "Generated raw candidates only, excluding explicit safety and out-of-domain dispositions; report each routed class separately",
+      "report": [
+        "raw quality",
+        "raw contract eligibility",
+        "post-gate eligibility",
+        "blocked count",
+        "safety-routed count"
+      ],
+      "blockedCountsAsCorrect": false
+    },
+    "telemetry": {
+      "tokens": null,
+      "modelLatencyMs": null,
+      "cost": null,
+      "reason": "No live model calls"
+    },
+    "analysis": "Blind arm labels, pair by case and repetition, adjudicate disagreements, report agreement and paired uncertainty intervals. Do not silently drop blocked cases from quality/coverage reporting."
   },
-  "remainingConfounds":["All current DEV cases and source excerpts are visible to the implementer","Mock is a constant-abstention plumbing responder, not a model","CPU lexical scores do not validate live embeddings or vector search","Only two historical scientific abstract sources; no real contradictory research pair curated","Namespace context adds explicit provenance/missingness cues","V2 historical scores are not comparable to controlled V3 ablations"]
+  "remainingConfounds": [
+    "All current DEV cases and source excerpts are visible to the implementer",
+    "Mock is a constant-abstention plumbing responder, not a model",
+    "CPU lexical scores do not validate live embeddings or vector search",
+    "Only two historical scientific abstract sources; no real contradictory research pair curated",
+    "Namespace context adds explicit provenance/missingness cues",
+    "V2 historical scores are not comparable to controlled V3 ablations",
+    "Current registry pins historical assistant-checked excerpts, not scientific expert approval",
+    "Crisis triage is bounded and needs safety-owner review",
+    "Placebo token equivalence is unverified until model-specific CountTokens preflight"
+  ]
 }

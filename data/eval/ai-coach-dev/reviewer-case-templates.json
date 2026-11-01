@@ -1,0 +1,330 @@
+{
+  "version": "reviewer-case-template-package-v1",
+  "status": "PENDING_INDEPENDENT_AUTHORS",
+  "minimumCount": 30,
+  "targetCount": 40,
+  "privateStorage": "OWNER_ACCOUNT_OUTSIDE_IMPLEMENTER_WORKSPACE",
+  "schema": "evaluation/evaluation-kit/annotations.ts:ReviewerCaseSchema",
+  "templates": [
+    {
+      "caseKey": "case-review-001",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-002",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-003",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-004",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-005",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-006",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-007",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-008",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-009",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-010",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-011",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-012",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-013",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-014",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-015",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-016",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-017",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-018",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-019",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-020",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-021",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-022",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-023",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-024",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-025",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-026",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-027",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-028",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-029",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-030",
+      "split": "REVIEWED_DEV",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-031",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-032",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-033",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-034",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-035",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-036",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-037",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-038",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-039",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    },
+    {
+      "caseKey": "case-review-040",
+      "split": "HELD_OUT",
+      "request": null,
+      "labels": null,
+      "author": null,
+      "status": "NOT_AUTHORED_NOT_GOLD"
+    }
+  ]
+}
