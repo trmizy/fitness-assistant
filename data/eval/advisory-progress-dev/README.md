@@ -112,3 +112,14 @@ unit and documents mixed-claim problems in notes; it is not a fully atomized
 scientific gold set. Missing-information relevance/key correctness are judged
 separately from numeric facts. Contract pass and model KEEP are not content
 approval. No new Bedrock requests or original artifact edits were performed.
+
+## Content-aware V3 (offline)
+
+[V3 semantic design and limitations](reviews/content-aware-v3-design.md) defines
+the separate five-role claim contract, contentGate and one-shot repair seam.
+[Frozen V2 integrity metadata](reviews/frozen-v2-integrity.json) pins raw local
+artifact bytes, candidate hashes and historical scores without committing the
+runtime artifacts. V3 prepares excerpt ablations and synthetic document tasks;
+no inference, independent scientific validation or production adoption occurs.
+Commands and explicit missing-artifact behavior are documented in
+[`CONTENT_AWARE_V3.md`](../../../backend/services/ai-service/src/evaluation/advisory-progress/CONTENT_AWARE_V3.md).
