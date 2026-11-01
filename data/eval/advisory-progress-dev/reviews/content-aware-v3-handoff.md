@@ -1,5 +1,9 @@
 # Content-aware V3 — bàn giao implementation
 
+Historical handoff for `8718e986`. The subsequent REQUEST_CHANGES and fixes are
+recorded in [the review-fix handoff](content-aware-v3-review-fixes.md); test counts
+and rule behavior below describe the original reviewed revision.
+
 Ngày 2026-11-01. Trạng thái: đã triển khai experiment offline và kiểm tra trong
 phạm vi nêu dưới đây. **Chưa có independent scientific validation.** Không có
 Bedrock calls, inference ablation, production integration, deployment hoặc merge.

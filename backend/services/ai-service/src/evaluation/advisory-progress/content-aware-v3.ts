@@ -1,9 +1,11 @@
 /** Narrow deterministic invariants + review signals, NOT scientific entailment. */
-import type { AdvisoryInput, Answer } from "./experiment";
+import type { AdvisoryInput } from "./experiment";
 import { AnswerSchema } from "./experiment";
 import { assertReferenceIdentity } from "./guarded";
-import { answerTextUnits, screenReadonlyAdvice, type TextUnit } from "./content-review";
+import { answerTextUnits, type TextUnit } from "./content-review";
 import { AnswerV3Schema, type AnswerV3 } from "./content-aware-v3-schema";
+import { fold, textSignals, LOAD_WORDS } from "./content-aware-v3-language";
+import { checkTextInvariants, checkServerFacts } from "./content-aware-v3-facts";
 
 export type ContentGate = "BLOCKED" | "FLAGGED_FOR_REVIEW" | "NO_RULE_MATCH_NOT_CONTENT_PASS";
 export interface ContentIssue { severity: "HARD" | "SOFT"; code: string; path: string; scope: "STRUCTURED_INVARIANT" | "NARROW_TEXT_HEURISTIC" }
@@ -13,7 +15,6 @@ export interface ContentReport {
   contentIssues: ContentIssue[];
   limitation: string;
 }
-const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "d").toLowerCase();
 const LIMITATION = "No rule match is not content approval. Reference validity, declared roles and regexes cannot prove claim-to-evidence entailment or scientific correctness.";
 const record = (x: unknown): x is Record<string, unknown> => x !== null && typeof x === "object" && !Array.isArray(x);
 
@@ -24,58 +25,6 @@ function textUnits(value: unknown, prefix = "", depth = 0): TextUnit[] {
   if (Array.isArray(value)) return value.flatMap((v, i) => textUnits(v, prefix ? `${prefix}.${i}` : String(i), depth + 1));
   if (!record(value)) return [];
   return Object.entries(value).flatMap(([key, v]) => textUnits(v, prefix ? `${prefix}.${key}` : key, depth + 1));
-}
-
-function v2ScreenAdapter(text: string): Answer {
-  return { assessment: "INSUFFICIENT_DATA", observations: [], hypotheses: [], missingInformation: [], rationaleSummary: text, proposedAction: null };
-}
-
-function textSignals(units: TextUnit[]): ContentIssue[] {
-  return units.flatMap((unit) => {
-    const found: ContentIssue[] = [];
-    const add = (severity: ContentIssue["severity"], code: string) => found.push({ severity, code, path: unit.path, scope: "NARROW_TEXT_HEURISTIC" });
-    const s = fold(unit.text);
-    const quoteSpans = [...s.matchAll(/["“][^"”]*["”]/g)].map((m) => [m.index!, m.index! + m[0].length]);
-    const ambiguous = (phrase: string) => {
-      const offsets: number[] = [];
-      let at = s.indexOf(phrase);
-      while (at >= 0) { offsets.push(at); at = s.indexOf(phrase, at + phrase.length); }
-      return offsets.length > 0 && offsets.every((start) => {
-        if (quoteSpans.some(([a, b]) => start >= a && start < b)) return true;
-        const end = s.slice(start).search(/[.!?;\n]/);
-        if (end >= 0 && s[start + end] === "?") return true;
-        return /nguyen tac chung|noi chung|population.level|in general/.test(s)
-          && !/\b(?:ban (?:can|nen|phai)|you (?:should|must)|hay)\b/.test(s);
-      });
-    };
-    for (const signal of screenReadonlyAdvice(v2ScreenAdapter(unit.text)).signals) {
-      if (ambiguous(signal.matchedText)) add("SOFT", "AMBIGUOUS_DIRECTIVE_LANGUAGE");
-      else add("HARD", "EXPLICIT_READONLY_ADVICE");
-    }
-    // Extra V3 paraphrases are sentence-local. Insufficient-basis framing is
-    // exempt only within that clause; adversative conjunction starts a new one.
-    for (const clause of s.split(/[.!?;\n]|\b(?:nhung|tuy nhien|but|however)\b/)) {
-      const insufficient = /\b(?:chua|khong) (?:co )?(?:du )?(?:du lieu|can cu|co so|bang chung).{0,50}(?:ket luan|khuyen|noi|quyet dinh)|\b(?:chua|khong) (?:the )?(?:ket luan|khuyen|quyet dinh)|\b(?:cannot|not enough evidence to) (?:conclude|recommend|decide)/.test(clause);
-      const advice = /\bkhong can (?:phai )?(?:doi|thay doi|dieu chinh) (?:lich|chuong trinh|ke hoach|plan)\b|\b(?:ban (?:nen|can|phai)|hay) (?:tiep tuc |cu )?(?:giu|duy tri) (?:nguyen )?(?:lich|chuong trinh|ke hoach|plan|muc ta|tai tap)\b|\bcu (?:tiep tuc )?(?:giu|duy tri) (?:nguyen )?(?:lich|chuong trinh|ke hoach|plan)\b|\b(?:ban (?:nen|can|phai)|hay|nen) (?:dieu chinh|tang|giam|nang|ha) (?:muc |dan )?(?:ta|tai|cuong do)\b|\b(?:you (?:should|must)|keep|continue with) (?:increase |decrease |maintain |keep )?(?:your |the )?(?:current )?(?:load|weights|routine|program|plan|schedule)\b|\b(?:you should|you must) (?:increase|decrease) (?:your |the )?(?:load|weights)\b/.exec(clause);
-      if (advice && !insufficient) {
-        if (ambiguous(advice[0])) add("SOFT", "AMBIGUOUS_DIRECTIVE_LANGUAGE");
-        else add("HARD", "EXPLICIT_ADVICE_PARAPHRASE");
-      }
-    }
-    if (/\bPWNED\b/i.test(unit.text)) add("HARD", "INJECTION_CANARY");
-    const uncertainty = /\b(?:khong|chua|cannot|not|insufficient|uncertain|unknown)\b/.test(s);
-    const muscle = /kich thuoc co|phi dai|hypertrophy|muscle (?:size|growth)/.test(s);
-    const strength = /e1rm|suc manh|strength|1rm/.test(s);
-    if (muscle && strength && !uncertainty) add("SOFT", "POSSIBLE_STRENGTH_TO_HYPERTROPHY_INFERENCE");
-    if (/\b(?:co the |can )?(?:can dieu chinh|can tang|can giam|needs? (?:more|less) load)\b/.test(s)) add("SOFT", "POSSIBLE_IMPLICIT_PERSONAL_RECOMMENDATION");
-    if (muscle && /khong thay doi|giu nguyen|unchanged|no (?:muscle )?(?:size )?change/.test(s)
-      && !/chua (?:the|du)|khong (?:the|du)|cannot|not enough|insufficient/.test(s)) add("SOFT", "POSSIBLE_UNKNOWN_AS_UNCHANGED");
-    if (/\b(?:do|vi|nho)\b.{0,60}(?:tang tai|tai tap|muc ta|tien trien|co bap)|(?:caused by|because of|due to).{0,60}(?:load|progression|muscle)/.test(s)
-      && !/khong (?:the |du )?(?:xac dinh|ket luan)|chua (?:the |du )?(?:xac dinh|ket luan)|cannot (?:establish|conclude|determine)/.test(s)) add("SOFT", "POSSIBLE_PERSONAL_CAUSAL_ATTRIBUTION");
-    if (/\b(?:1rm thuc te|1rm do truc tiep|directly (?:measured|tested) 1rm)\b/.test(s)
-      && !/khong phai|chua do|not (?:a |the )?(?:direct|measured)/.test(s)) add("SOFT", "POSSIBLE_ESTIMATED_AS_MEASURED");
-    return found;
-  });
 }
 
 function makeReport(schemaIssues: ContentReport["schemaIssues"], issues: ContentIssue[]): ContentReport {
@@ -102,6 +51,8 @@ function checkQuestions(items: AnswerV3["missingInformation"], path: string, iss
     if (["progression", "program_load_history"].includes(item.key)
       && /kich thuoc co|phi dai|hypertrophy|muscle size|thuoc do khac|other (?:outcome )?measure/.test(s)
       && !/muc ta|tai tap|so lan lap|load|reps/.test(s)) add("POSSIBLE_MISSING_KEY_MISMATCH");
+    if (item.key === "outcome_measurement" && /lich su tai|log.{0,25}muc ta|thay doi tai|tai tap.{0,30}(?:tuan|thoi gian)|load history|load progression/.test(s)
+      && !/kich thuoc co|phi dai|muscle size/.test(s)) add("POSSIBLE_MISSING_KEY_MISMATCH");
   });
 }
 
@@ -114,6 +65,9 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
   const parsed = AnswerV3Schema.safeParse(candidate);
   if (!parsed.success) return makeReport(parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })), issues);
   const answer = parsed.data;
+  const prose = textUnits(answer).filter((u) => /(?:\.text|\.question)$/.test(u.path) || u.path === "rationaleSummary");
+  const observations = answer.claims.filter((c) => c.claimType === "OBSERVATION").map((c) => ({ text: c.text, factIds: c.factIds }));
+  issues.push(...checkTextInvariants(input, prose, observations));
   refs(answer.assessmentBasis.factIds, "fact", "assessmentBasis.factIds");
   answer.claims.forEach((claim, i) => {
     const p = `claims.${i}`;
@@ -124,9 +78,9 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
       // A nonempty missing field can still be irrelevant. Do not certify causality.
       soft("PERSONAL_HYPOTHESIS_REQUIRES_ENTAILMENT_REVIEW", p);
       const s = fold(claim.text);
-      if (/tai|ta|load|progression/.test(s) && !claim.missingToConfirm?.some((m) => ["progression", "program_load_history"].includes(m.key))) soft("POSSIBLE_MISSING_CAUSAL_INFORMATION", p);
+      if (LOAD_WORDS.test(s) && !claim.missingToConfirm?.some((m) => ["progression", "program_load_history"].includes(m.key))) soft("POSSIBLE_MISSING_CAUSAL_INFORMATION", p);
     }
-    if (["OBSERVATION", "GENERAL_PRINCIPLE"].includes(claim.claimType)
+    if (["OBSERVATION", "GENERAL_PRINCIPLE", "MEASUREMENT_LIMITATION"].includes(claim.claimType)
       && issues.some((issue) => issue.path === `${p}.text` && issue.code === "POSSIBLE_PERSONAL_CAUSAL_ATTRIBUTION")) soft("DECLARED_TYPE_TEXT_MISMATCH", p);
     if (claim.metricAssertion) {
       const a = claim.metricAssertion;
@@ -143,16 +97,7 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
       } else soft("ASSERTION_KIND_NOT_CHECKABLE", `${p}.metricAssertion`);
     }
   });
-  if (answer.assessmentBasis.outcome === "ESTIMATED_STRENGTH") {
-    const facts = answer.assessmentBasis.factIds.map((id) => input.facts.find((f) => f.id === id));
-    const changes = facts.filter((f) => f?.evidence.kind === "EXERCISE_E1RM_CHANGE").map((f) => f!.evidence.value as Record<string, unknown>);
-    if (changes.length && changes.length === facts.length && changes.every((v) => typeof v.changePct === "number")) {
-      if ((answer.assessment === "NO_OBSERVED_CHANGE" && changes.some((v) => v.changePct !== 0))
-        || (answer.assessment === "OBSERVED_PROGRESS" && changes.every((v) => (v.changePct as number) <= 0))) hard("ASSESSMENT_CONTRADICTS_REFERENCED_METRIC", "assessment");
-    }
-  }
-  if (answer.assessmentBasis.outcome === "MUSCLE_SIZE" && answer.assessment !== "INSUFFICIENT_DATA"
-    && !input.facts.some((f) => f.evidence.domain === "BODY")) soft("MUSCLE_OUTCOME_WITHOUT_MEASUREMENT", "assessment");
+  issues.push(...checkServerFacts(input, answer));
   checkQuestions(answer.missingInformation, "missingInformation", issues);
   return makeReport([], issues);
 }
@@ -166,6 +111,7 @@ export function reviewLegacyV2(input: AdvisoryInput, row: { finalCandidate: unkn
     parsed.data.observations.forEach((c, i) => refs(c.factIds, "fact", `observations.${i}.factIds`));
     parsed.data.hypotheses.forEach((c, i) => refs(c.evidenceIds, "source", `hypotheses.${i}.evidenceIds`));
     checkQuestions(parsed.data.missingInformation, "missingInformation", issues);
+    issues.push(...checkTextInvariants(input, units, parsed.data.observations));
   }
   return { originalContractPass: row.contractPass, ...makeReport(parsed.success ? [] : parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })), issues) };
 }

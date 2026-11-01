@@ -21,8 +21,8 @@ test("V3: narrow recommendation paraphrases (fixtures, not exhaustive language c
     assert.equal(evaluateContentV3(input, { ...answer(), rationaleSummary: text }).contentGate, "BLOCKED", text);
   }
 });
-test("V3: insufficient basis, genuine questions, quotation and general wording are not hard-blocked", () => {
-  for (const text of ["Chưa đủ căn cứ kết luận có cần đổi lịch.", "Chưa đủ căn cứ để nói không cần đổi lịch.", "Chưa thể kết luận nên giữ nguyên lịch tập.", 'Câu trả lời cũ ghi “không cần đổi lịch”.', "Bạn có đang giữ nguyên lịch tập không?", "Nguyên tắc chung: nên tăng tải theo mục tiêu."]) {
+test("V3: insufficient basis, genuine questions and explicitly reported quotes are not hard-blocked", () => {
+  for (const text of ["Chưa đủ căn cứ kết luận có cần đổi lịch.", "Chưa đủ căn cứ để nói không cần đổi lịch.", "Chưa thể kết luận nên giữ nguyên lịch tập.", 'Câu trả lời cũ ghi “không cần đổi lịch”.', "Bạn có đang giữ nguyên lịch tập không?"]) {
     assert.notEqual(evaluateContentV3(input, { ...answer(), rationaleSummary: text }).contentGate, "BLOCKED", text);
   }
 });
@@ -82,7 +82,7 @@ test("V3: structured direct 1RM assertion contradicts estimated fact; prose is o
 test("V3: structured assessment cannot contradict its estimated-strength basis", () => {
   assert.equal(evaluateContentV3(input, { ...answer(), assessment: "NO_OBSERVED_CHANGE" }).contentGate, "BLOCKED");
   const flat = cases.find((s) => s.id === "strength-flat")!.input;
-  assert.ok(evaluateContentV3(flat, answer()).contentIssues.some((i) => i.code === "ASSESSMENT_CONTRADICTS_REFERENCED_METRIC"));
+  assert.ok(evaluateContentV3(flat, answer()).contentIssues.some((i) => i.code === "ASSESSMENT_CONTRADICTS_SERVER_FACTS"));
 });
 test("V3 heuristic: increasing e1RM does not establish hypertrophy; declared type is not trusted", () => {
   const r = evaluateContentV3(input, { ...answer(), claims: [{ ...observation(), text: "e1RM tăng chứng minh kích thước cơ tăng." }] });
@@ -108,7 +108,7 @@ test("V3: personal causal hypothesis requires confirmation, facts, sources and m
   assert.ok(evaluateContentV3(input, a).contentIssues.some((i) => i.code === "POSSIBLE_MISSING_CAUSAL_INFORMATION"));
 });
 test("V3 heuristic: principle labelled text that explains personal cause needs review", () => {
-  const a = { ...answer(), claims: [{ claimType: "GENERAL_PRINCIPLE" as const, text: "Sức mạnh của bạn tăng do tăng tải tập.", factIds: [], evidenceIds: ["ACSM_PROGRESSIVE"] }] };
+  const a = { ...answer(), claims: [observation(), { claimType: "GENERAL_PRINCIPLE" as const, text: "Sức mạnh của bạn tăng do tăng tải tập.", factIds: [], evidenceIds: ["ACSM_PROGRESSIVE"] }] };
   const r = evaluateContentV3(input, a);
   assert.equal(r.contentGate, "FLAGGED_FOR_REVIEW"); assert.ok(r.contentIssues.some((i) => i.code === "DECLARED_TYPE_TEXT_MISMATCH"));
 });
@@ -141,7 +141,7 @@ test("V3 known limitation: an unrecognized paraphrase is not a content approval"
   assert.match(r.limitation, /cannot prove/);
 });
 test("V3 known limitation: a real source ID with arbitrary unsupported prose is not automatically entailed", () => {
-  const a = { ...answer(), claims: [{ claimType: "GENERAL_PRINCIPLE" as const, text: "Tài liệu này xác nhận mọi chương trình đều tối ưu.", factIds: [], evidenceIds: ["ACSM_PROGRESSIVE"] }] };
+  const a = { ...answer(), claims: [observation(), { claimType: "GENERAL_PRINCIPLE" as const, text: "Tài liệu này xác nhận mọi chương trình đều tối ưu.", factIds: [], evidenceIds: ["ACSM_PROGRESSIVE"] }] };
   const r = evaluateContentV3(input, a);
   assert.equal(r.contentGate, "NO_RULE_MATCH_NOT_CONTENT_PASS");
   assert.match(r.limitation, /cannot prove claim-to-evidence entailment/);

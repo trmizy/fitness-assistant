@@ -6,7 +6,11 @@ import { readDev, repoRoot } from "./advisory-content-v3.fixtures";
 
 const pin = FrozenV2PinSchema.parse(readDev("reviews/frozen-v2-integrity.json"));
 const dir = process.env.ADVISORY_V2_ARTIFACT_DIR;
-const optionalRuntime = { skip: dir ? false : "ARTIFACT_UNAVAILABLE: set ADVISORY_V2_ARTIFACT_DIR to the preserved local V2 run" };
+const availability = loadFrozenV2(repoRoot, dir).integrity;
+// Availability depends on real files, not merely an env var being set.
+// Corruption is not a reason to skip: integrity mismatch must fail below.
+const optionalRuntime = { skip: availability.status === "ARTIFACT_UNAVAILABLE"
+  ? `ARTIFACT_UNAVAILABLE: ${availability.findings.join(",")}` : false };
 
 test("V2 frozen pin records 24 historical candidates and the original results digest, not a quality score", () => {
   assert.equal(pin.rows.length, 24); assert.equal(new Set(pin.rows.map((r) => `${r.id}:${r.variant}`)).size, 24);
@@ -23,7 +27,7 @@ test("V2 missing runtime artifacts report ARTIFACT_UNAVAILABLE with no fabricate
 test("V2 invalid integrity metadata never produces an integrity success", () => {
   assert.equal(verifyFrozenV2Buffers({}, { files: {}, code: {}, pack: Buffer.from("") }).status, "INTEGRITY_MISMATCH");
 });
-test("V2 REAL LOCAL ARTIFACT BYTES: results/requests/source/code/candidates/history still match", optionalRuntime, () => {
+test("V2 CODE AUDIT: local artifact bytes/source/code/candidates/history still match", optionalRuntime, () => {
   const loaded = loadFrozenV2(repoRoot, dir);
   assert.equal(loaded.integrity.status, "INTEGRITY_CONFIRMED", JSON.stringify(loaded.integrity));
   assert.equal(loaded.integrity.modelCalls, 0);

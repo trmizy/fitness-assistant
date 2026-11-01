@@ -24,17 +24,18 @@ test("V3 ablation: removing hypertrophy excerpt also removes its finding and all
   const text = JSON.stringify(c.input);
   assert.ok(!text.includes("LOAD_HYPERTROPHY_RESULT")); assert.ok(!text.includes("LOAD_HYPERTROPHY_COMPARISON"));
   assert.ok(!text.includes("supportedSummaryVi")); assert.ok(!text.includes("applicationInferences")); assert.ok(!text.includes("applicability"));
-  assert.ok(text.includes("LOAD_STRENGTH_RESULT")); assert.ok(text.includes("ACSM_CONTEXT"));
+  const provenance = JSON.stringify(c.evaluationOnly.provenance);
+  assert.ok(provenance.includes("LOAD_STRENGTH_RESULT")); assert.ok(provenance.includes("ACSM_CONTEXT"));
 });
 test("V3 ablation: removing ACSM context preserves original opening and removes dependent finding", () => {
   const c = prepare().find((c) => c.id === "remove-context-excerpt")!;
   const text = JSON.stringify(c.input);
   assert.ok(!text.includes("ACSM_CONTEXT")); assert.ok(!text.includes("physical capacity"));
-  assert.ok(text.includes(pack.sources[0].originalExcerpt)); assert.ok(text.includes("LOAD_HYPERTROPHY_RESULT"));
+  assert.ok(text.includes(pack.sources[0].originalExcerpt)); assert.ok(JSON.stringify(c.evaluationOnly.provenance).includes("LOAD_HYPERTROPHY_RESULT"));
 });
 test("V3 ablation: no-source retains facts; unrelated test excerpt cannot impersonate real science", () => {
   assert.deepEqual(prepare().find((c) => c.id === "no-source")!.input.sources, []);
-  const s = prepare().find((c) => c.id === "unrelated-excerpt")!.input.sources[0];
+  const s = prepare().find((c) => c.id === "unrelated-excerpt")!.evaluationOnly.provenance[0];
   assert.equal(s.sourceClass, "SYNTHETIC_TEST_EXCERPT"); assert.equal(s.doi, null); assert.equal(s.url, null);
   assert.equal(ExcerptSourceSchema.safeParse({ ...s, doi: pack.sources[0].doi }).success, false);
 });

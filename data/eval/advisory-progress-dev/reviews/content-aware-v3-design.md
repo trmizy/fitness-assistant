@@ -4,6 +4,11 @@ Date: 2026-11-01. Scope: isolated offline evaluation experiment. Evidence levels
 **CODE AUDIT** and **TEST FIXTURE**. No production imports, model calls, business
 writes, source ingestion or framework migration. No independent scientific validation.
 
+Updated after the code-review REQUEST_CHANGES on `8718e986`:
+[review-fix handoff](content-aware-v3-review-fixes.md). These changes add scoped
+directive handling, V2 text invariants and server-owned assessment checks;
+the original baseline remains unchanged.
+
 Baseline V2: `ea98576d48ed97a1964bfae1f48b1a9af9197288`, branch
 `baseline/advisory-progress-v2`. V3 work starts from that commit in
 `feat/advisory-content-v3`, in a separate worktree. The original `aws-deploy`
@@ -30,7 +35,9 @@ Claim type is a model assertion, never an authoritative semantic label.
 Optional `metricAssertion` on observations copies the existing service projection
 (factId, estimated measurement type, baseline/current/changePct). It does not
 recalculate e1RM or become a second business source of truth. Exact mismatches
-against that referenced projection are deterministic contradictions. Unsupported
+against that referenced projection are deterministic contradictions. Assessment
+and narrow from/to/direction checks also use server facts when model metadata
+is missing or misdeclared. Unknown/mixed exercise scopes remain flagged. Unsupported
 fact kinds cannot be checked this way; do not claim general numeric entailment.
 
 ## Rule severity and content gate
@@ -45,7 +52,16 @@ non-null action, wrong or absent fact/source references, duplicate/colliding
 input identities, deterministic structured contradictions, injection canary,
 and narrow explicit directive patterns. Reuse the V2 advice screen through an
 adapter without changing its rules; supplement it in V3 for tested paraphrases.
-Broad/ambiguous advice, quotations and linguistic inference remain review risks.
+Broad/ambiguous advice, reported quotations and linguistic inference remain review
+risks. Generic wording and decorative quotes do not soften an explicit directive;
+reported-quote exceptions require a reporting cue in that sentence. Hedge scope
+is before the directive in its clause, never an unrelated later hedge.
+
+V2 number/URL/observation coverage checks are reused through an adapter. Exact
+source URLs remain mapped; unsupported numbers anywhere in prose are blocked.
+Explicit binary arithmetic and single-metric kg deltas are the only authorized
+derived-number grammars. Unresolved equations are flagged without asserting a
+contradiction; known false equations are blocked. Exceptions are occurrence-scoped.
 
 Soft flags: possible personal causal attribution, e1RM-to-muscle-size inference,
 unknown-as-unchanged wording, measured-vs-estimated wording, declared-type/text
@@ -62,6 +78,8 @@ expected answer or rubric is sent. Soft flags alone do not invoke repair.
 KEEP cannot override hard findings. A REVISE response is parsed and gated again;
 bad repairs remain blocked, UNCERTAIN and callback errors remain unresolved.
 No silent stripping, inserted defaults, retry loop or fabricated success.
+Returned results preserve a cloned initialCandidate, full initial/final reports,
+repair response, envelope schema diagnostics and a redacted callback-error kind.
 
 ## Frozen V2 compatibility
 
@@ -78,6 +96,8 @@ Parse the existing design protocol strictly. Resolve excerpt pointers from the
 unchanged evidence pack, retaining separate excerpts and source findings.
 Remove selected excerpts and their dependent findings; no summary/applicability
 field can leak the removed material back into the transformed model input.
+Bibliographic metadata, locators and meaningful original IDs also stay outside
+the model input, in evaluationOnly.provenance; payload identities are opaque.
 Question/facts stay fixed except the explicitly named mixed-question case.
 Unrelated replacement is explicitly synthetic, without a real DOI or source ID.
 Synthetic multi-document inputs omit expectedFull/counterfactual gold and keep

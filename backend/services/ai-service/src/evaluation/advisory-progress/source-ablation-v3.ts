@@ -42,6 +42,13 @@ export const ExcerptSourceSchema = z.object({
   if (s.sourceClass === "SYNTHETIC_TEST_EXCERPT" && (s.doi !== null || s.url !== null || !s.id.startsWith("SYNTH_"))) ctx.addIssue({ code: "custom", message: "synthetic_source_cannot_impersonate_science" });
 });
 export type ExcerptSource = z.infer<typeof ExcerptSourceSchema>;
+export const AblationModelSourceSchema = z.object({
+  id: z.string().regex(/^S\d+$/), sourceClass: z.enum(["CURATED_EVIDENCE", "SYNTHETIC_TEST_EXCERPT"]),
+  excerpts: z.array(z.object({ id: z.string().regex(/^S\d+_E\d+$/), text: z.string().min(1) }).strict()).min(1),
+  findings: z.array(z.object({ id: z.string().regex(/^S\d+_C\d+$/), excerptIds: z.array(z.string()).min(1), text: z.string() }).strict()),
+}).strict().superRefine((s, ctx) => {
+  if (s.findings.some((f) => f.excerptIds.some((id) => !s.excerpts.some((e) => e.id === id)))) ctx.addIssue({ code: "custom", message: "dangling_model_finding" });
+});
 
 export function resolveExcerptSources(packValue: unknown, mapValue: unknown): ExcerptSource[] {
   const pack = EvidencePackSchema.parse(packValue), map = MapSchema.parse(mapValue);
@@ -91,11 +98,22 @@ export function prepareSourceAblations(protocolValue: unknown, input: AdvisoryIn
     if (c.id === "unrelated-excerpt") sources = [{ id: "SYNTH_UNRELATED", sourceClass: "SYNTHETIC_TEST_EXCERPT", title: "Fictional unrelated test excerpt", doi: null, url: null,
       excerpts: [{ id: "SYNTH_MUSEUM", text: "This fictional museum opens on Thursdays.", locator: "Assistant-authored fixture, not science" }], findings: [] }];
     sources.forEach((s) => ExcerptSourceSchema.parse(s));
+    // All bibliographic/semantic metadata stays outside the model payload,
+    // including titles, locators, URLs, DOIs and suggestive original IDs.
+    // Stable opaque aliases preserve identity across paired ablations.
+    const modelSources = sources.map((s) => {
+      const original = full.find((f) => f.id === s.id) ?? s;
+      const alias = `S${full.findIndex((f) => f.id === s.id) < 0 ? full.length + 1 : full.findIndex((f) => f.id === s.id) + 1}`;
+      const excerptId = (id: string) => `${alias}_E${original.excerpts.findIndex((e) => e.id === id) + 1}`;
+      return AblationModelSourceSchema.parse({ id: alias, sourceClass: s.sourceClass,
+        excerpts: s.excerpts.map((e) => ({ id: excerptId(e.id), text: e.text })),
+        findings: s.findings.map((f) => ({ id: `${alias}_C${original.findings.findIndex((c) => c.id === f.id) + 1}`, excerptIds: f.excerptIds.map(excerptId), text: f.text })) });
+    });
     return { id: c.id, status: "PREPARED_NOT_INFERRED" as const, modelCalls: 0,
       input: { question: c.id === "mixed-supported-and-unsupported-claim" ? "Dữ liệu cho thấy sức mạnh thay đổi thế nào, kích thước cơ đã thay đổi chưa, và có đủ căn cứ để kết luận phải đổi lịch không?" : input.question,
-        facts: JSON.parse(JSON.stringify(input.facts)) as AdvisoryInput["facts"], sources },
+        facts: JSON.parse(JSON.stringify(input.facts)) as AdvisoryInput["facts"], sources: modelSources },
       // Evaluation metadata is separate from model input.
-      evaluationOnly: { criterion: c.reviewCriterion },
+      evaluationOnly: { criterion: c.reviewCriterion, provenance: sources },
     };
   });
 }

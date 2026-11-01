@@ -13,7 +13,7 @@ const V3_POLICY = [
   "Limitations are not hypotheses. Unknown outcomes are not unchanged. Estimated 1RM is not direct 1RM or muscle-size measurement.",
   "Personal hypotheses require personal facts, supplied sources, needsConfirmation=true and missingToConfirm questions identifying the unobserved causal link. Do not claim a confirmed cause.",
   "A citation or needsConfirmation flag is not proof of support. Describe facts even without sources; omit unsupported source-based claims.",
-  "Only supplied IDs/numbers. Optional metricAssertion must copy the referenced service projection exactly, never recompute it.",
+  "Only supplied IDs/numbers, except explicit binary equations over supplied operands or an exact kg delta from one supplied e1RM fact. No extra operands, clinical formulas or assumed rounding. Optional metricAssertion must copy the referenced service projection exactly, never recompute it.",
   "Ask only relevant missing questions, with matching keys and question punctuation. No hidden chain-of-thought, tools, actions or invented authority.",
   "Return one strict JSON object: version, assessment, assessmentBasis:{outcome:ESTIMATED_STRENGTH|MUSCLE_SIZE|UNSPECIFIED,factIds:[]}, claims:[], missingInformation:[], rationaleSummary, proposedAction:null.",
   "assessment: INSUFFICIENT_DATA|OBSERVED_PROGRESS|NO_OBSERVED_CHANGE. Each claim: {claimType,text,factIds:[],evidenceIds:[],needsConfirmation?:boolean,missingToConfirm?:[{key,question}],metricAssertion?:{factId,measurement:ESTIMATED_1RM|DIRECT_1RM,baselineKg,currentKg,changePct}}.",
@@ -43,19 +43,30 @@ const RepairEnvelope = z.object({ verdict: z.enum(["KEEP", "REVISE", "UNCERTAIN"
  * instantiate a provider or model. One callback max, even if repair is invalid. */
 export async function repairContentV3Once(input: AdvisoryInput, candidate: unknown,
   repair: (prompt: { system: string; user: string }) => Promise<unknown>) {
-  const initialReport = evaluateContentV3(input, candidate);
-  if (initialReport.contentGate !== "BLOCKED") return { initialReport, finalReport: initialReport, finalCandidate: candidate, repairAttempts: 0, repairStatus: "NOT_REQUIRED" as const };
-  // Invalid input identities cannot be repaired by changing model output.
-  if (initialReport.contentIssues.some((i) => i.code === "INVALID_INPUT_REFERENCE_IDENTITY")) return { initialReport, finalReport: initialReport, finalCandidate: candidate, repairAttempts: 0, repairStatus: "UNRESOLVED" as const };
+  const initialCandidate = structuredClone(candidate);
+  const initialReport = evaluateContentV3(input, initialCandidate);
+  let repairResponse: unknown = null;
+  let repairSchemaIssues: Array<{path: string; code: string}> = [];
+  const finish = (finalCandidate: unknown, finalReport: ContentReport, repairAttempts: number,
+    repairStatus: "NOT_REQUIRED" | "UNRESOLVED" | "REVISED", errorKind: string | null = null) => ({
+      initialCandidate, initialReport, finalCandidate, finalReport, repairAttempts, repairStatus,
+      repairDiagnostics: { response: repairResponse, schemaIssues: repairSchemaIssues, errorKind },
+    });
+  if (initialReport.contentGate !== "BLOCKED") return finish(initialCandidate, initialReport, 0, "NOT_REQUIRED");
+  if (initialReport.contentIssues.some((i) => i.code === "INVALID_INPUT_REFERENCE_IDENTITY")) return finish(initialCandidate, initialReport, 0, "UNRESOLVED");
   try {
-    const envelope = RepairEnvelope.safeParse(await repair(buildContentV3RepairPrompt(input, candidate, initialReport)));
-    if (!envelope.success || envelope.data.verdict !== "REVISE") return { initialReport, finalReport: initialReport, finalCandidate: candidate, repairAttempts: 1, repairStatus: "UNRESOLVED" as const };
+    repairResponse = structuredClone(await repair(buildContentV3RepairPrompt(input, initialCandidate, initialReport)));
+    const envelope = RepairEnvelope.safeParse(repairResponse);
+    if (!envelope.success) {
+      repairSchemaIssues = envelope.error.issues.map((i) => ({ path: i.path.join("."), code: i.code }));
+      return finish(initialCandidate, initialReport, 1, "UNRESOLVED");
+    }
+    if (envelope.data.verdict !== "REVISE") return finish(initialCandidate, initialReport, 1, "UNRESOLVED");
     const revised = envelope.data.revisedAnswer;
     const finalReport = evaluateContentV3(input, revised);
-    return { initialReport, finalReport, finalCandidate: revised, repairAttempts: 1,
-      repairStatus: finalReport.contentGate === "BLOCKED" ? "UNRESOLVED" as const : "REVISED" as const };
+    return finish(revised, finalReport, 1, finalReport.contentGate === "BLOCKED" ? "UNRESOLVED" : "REVISED");
   } catch {
-    // Never record arbitrary provider/callback exception text or fabricate success.
-    return { initialReport, finalReport: initialReport, finalCandidate: candidate, repairAttempts: 1, repairStatus: "UNRESOLVED" as const };
+    // Preserve diagnostic state without retaining arbitrary callback exception text.
+    return finish(initialCandidate, initialReport, 1, "UNRESOLVED", "CALLBACK_FAILED");
   }
 }
