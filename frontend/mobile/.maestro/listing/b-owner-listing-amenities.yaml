@@ -62,7 +62,7 @@ appId: vn.fitnessassistant.app
 - scrollUntilVisible:
     element: "Đề xuất tiện ích của bạn"
 - assertVisible: "Khu Thu.*Maestro"
-- assertVisible: "Trong bản nháp"
+- assertVisible: "Trong.bản.nháp"
 - takeScreenshot: b-04-proposed
 # 21st photo is refused (branch already has 20/20)
 - scrollUntilVisible:

@@ -7,6 +7,7 @@ import { AlertTriangle, Building2, ChevronRight, Eye, Lock, ListChecks, RefreshC
 
 import { Badge, BottomSheet, Button, Card, EmptyState, ScreenHeader, Tappable, useToast } from "../../components/ui";
 import { useApp } from "../../context/AppContext";
+import { pickErrorMessage } from "../../lib/pickError";
 import { pickImages, type PickedFile } from "../../lib/pickFile";
 import { gymListingService, gymService, ownerAmenityService, uploadGymListingPhoto } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
@@ -758,7 +759,7 @@ function GymListingEditor({ gym, onBack, onChangeBranch }: { gym: OwnedGym; onBa
     try {
       files = await pickImages(room, MAX_PHOTO_BYTES);
     } catch (e) {
-      toast.show((e as Error)?.message || "Không chọn được ảnh", "danger");
+      toast.show(pickErrorMessage(e), "danger");
       return;
     }
     for (const file of files) {

@@ -7,6 +7,7 @@ import { AlertTriangle, Eye, ListChecks, RefreshCw } from "lucide-react-native";
 
 import { Badge, BottomSheet, Button, Card, EmptyState, ScreenHeader, useToast } from "../../components/ui";
 import { useApp } from "../../context/AppContext";
+import { pickErrorMessage } from "../../lib/pickError";
 import { pickImages, type PickedFile } from "../../lib/pickFile";
 import { ptListingService, uploadPtPhysiquePhoto } from "../../services/api";
 import { useWorkspaceAccent } from "../../theme/workspace";
@@ -495,7 +496,7 @@ export function PtListingScreen() {
     try {
       files = await pickImages(room, MAX_PHOTO_BYTES);
     } catch (e) {
-      toast.show((e as Error)?.message || "Không chọn được ảnh", "danger");
+      toast.show(pickErrorMessage(e), "danger");
       return;
     }
     for (const file of files) {

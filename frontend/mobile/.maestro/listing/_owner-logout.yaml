@@ -10,7 +10,9 @@ appId: vn.fitnessassistant.app
 - scrollUntilVisible:
     element: "Đăng xuất"
 - tapOn: "Đăng xuất"
-- tapOn: "ĐĂNG XUẤT"
+- tapOn:
+    text: "ĐĂNG XUẤT"
+    optional: true
 - extendedWaitUntil:
     visible: "Chào mừng trở lại"
     timeout: 20000

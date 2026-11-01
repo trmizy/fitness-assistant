@@ -1,0 +1,82 @@
+# g: gym owner (trinh-gia-bao, O4) opens a DRAFT from which the admin switched an amenity off (catalogue row "E2E Maestro Zone")
+#    -> sees "Một số tiện ích đã ngừng trong danh mục" + that amenity's name + "Đề xuất bật lại", and can still submit the draft.
+# Setup/teardown are REAL HTTP/API helpers (see README "Helpers"):
+#    node helpers/g-amenity-setup.mjs        BEFORE the flow  (admin creates + later disables the amenity; owner draft contains it)
+#    node helpers/g-amenity-teardown.mjs     AFTER the flow   (withdraw + discard the revision; the E2E amenity stays DISABLED)
+# Run: run.sh g-owner-amenity-disabled.yaml -e EMAIL=trinh-gia-bao@seed.gymini.test -e BRANCH_TAP="Hanoi.Strength.Lab.C.*Gi.*"
+#   (BRANCH_TAP is an ASCII regex of the branch name; the same branch BRANCH_MATCH/GYM_ID selected in the setup.)
+# The draft equals the published listing once the amenity is removed, so "can still submit" needs one real change: the flow toggles
+# the "Wifi miễn phí" chip (either direction is a change; the branch keeps other amenities) before Lưu nháp / Gửi duyệt.
+appId: vn.fitnessassistant.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Bỏ qua"
+    commands:
+      - tapOn: "Bỏ qua"
+- extendedWaitUntil:
+    visible: "Chào mừng trở lại|Tổng quan"
+    timeout: 40000
+- runFlow:
+    when:
+      visible: "Chào mừng trở lại"
+    file: _login.yaml
+- extendedWaitUntil:
+    visible: "Phòng gym"
+    timeout: 40000
+- tapOn: "Phòng gym"
+- extendedWaitUntil:
+    visible: "Tin đăng & tiện ích"
+    timeout: 20000
+- tapOn: "Tin đăng & tiện ích"
+- tapOn: ${BRANCH_TAP}
+- extendedWaitUntil:
+    visible: "Trạng thái tin đăng"
+    timeout: 20000
+- takeScreenshot: g-01-branch
+# the draft already exists (the setup made it); only start one if the branch shows the published view
+- runFlow:
+    when:
+      visible: "Soạn bản sửa mới"
+    commands:
+      - tapOn: "Soạn bản sửa mới"
+- extendedWaitUntil:
+    visible: "Một.số.tiện.ích.đã.ngừng.trong.danh.mục"
+    timeout: 20000
+# the notice block (plan §12.3)
+- scrollUntilVisible:
+    element: "Một.số.tiện.ích.đã.ngừng.trong.danh.mục"
+    centerElement: true
+- assertVisible: "Một.số.tiện.ích.đã.ngừng.trong.danh.mục"
+- assertVisible: "E2E Maestro Zone"
+- assertVisible: "Đề.xuất.bật.lại"
+- takeScreenshot: g-02-disabled-notice
+# the draft can still be submitted: make one real change, save, submit
+# the published view above lists the same chip read-only: aim at the editor chip, which sits below the "Tiện ích & dịch vụ" heading
+- scrollUntilVisible:
+    element: "Tiện.ích.&.dịch.vụ"
+    centerElement: true
+- scrollUntilVisible:
+    element:
+      text: "Wifi.miễn.phí.*"
+      below: "Tiện.ích.&.dịch.vụ"
+    centerElement: true
+- tapOn:
+    text: "Wifi.miễn.phí.*"
+    below: "Tiện.ích.&.dịch.vụ"
+- assertVisible: "Lưu nháp"
+- takeScreenshot: g-03-amenity-toggled
+- tapOn: "Lưu nháp"
+- assertVisible: "Đã lưu bản nháp"
+- takeScreenshot: g-04-saved
+- tapOn: "Gửi duyệt"
+- assertVisible: "Gửi duyệt bản sửa?"
+- takeScreenshot: g-05-confirm
+- tapOn: "GỬI DUYỆT"
+# the page keeps its scroll position after the submit: scroll back up to the status card
+- scrollUntilVisible:
+    element: "Chờ.duyệt"
+    direction: UP
+- takeScreenshot: g-06-pending
+- runFlow: _owner-logout.yaml
