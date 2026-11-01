@@ -28,7 +28,7 @@ export function measureDevResult(c: DevCase, result: Result) {
   }).length;
   return {
     caseId: c.request.caseId, arm: result.arm, policy: result.policy, evidenceLabel: "TEST FIXTURE", modelEvaluation: "NOT_RUN",
-    schemaValid: parsed.success, referenceIssues: result.referenceIssues, citationReferenceIssues: result.citationReferenceIssues,
+    schemaValid: result.safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? null : parsed.success, referenceIssues: result.referenceIssues, citationReferenceIssues: result.citationReferenceIssues,
     factualConsistency: { structuredMetricsChecked: assertions.length, mismatches: assertions.length ? mismatches : null, correctness: null },
     sourceSupport: { referenceValidation: parsed.success ? "CHECKED_IDENTITY_ONLY" : "NOT_EVALUATED", semanticSupportedFraction: null, applicability: null },
     unsupportedPersonalClaims: { deterministicAlerts: parsed.success ? evaluateContentV3(result.input, parsed.data.analysis).contentIssues : null, independentlyLabelledRate: null },

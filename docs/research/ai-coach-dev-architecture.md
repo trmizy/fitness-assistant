@@ -1,130 +1,97 @@
-# AI Coach — V3 closure và DEV architecture vertical slice
+# AI Coach DEV architecture — controlled evaluation blockers
 
-Ngày: 2026-11-01. Phạm vi: branch `feat/advisory-content-v3`, worktree `fitness-assistant-worktrees/advisory-content-v3`; production source đối chiếu tại reviewed base `e3a45b29`. Đây là **CODE AUDIT + TEST FIXTURE**, không phải kiểm chứng production hay nghiên cứu chứng minh cải thiện chất lượng LLM.
+Cập nhật 2026-11-01, branch `feat/advisory-content-v3`. Review base: `2c4806b9`. Bản này thay mô tả harness cũ 5 arm/25 mock calls; số liệu cũ vẫn là lịch sử tại commit đó, không phải kết quả model.
 
-## 1. Ranh giới bàn giao
+Trạng thái: **PREPARED_PENDING_INDEPENDENT_REVIEW**. Chi tiết finding, kiểm thử và giới hạn: [handoff blockers](ai-coach-evaluation-blockers-handoff.md). Evidence tier: **CODE AUDIT / TEST FIXTURE**.
 
-- V3 closure commit riêng: `7915a6b3`. R-A–R-D có patches và regression. Chi tiết: [v3-closure.md](../../data/eval/advisory-progress-dev/reviews/v3-closure.md).
-- Attachment không cung cấp nội dung R-E–R-I. Phản hồi “OKE” không bổ sung finding: năm mục vẫn `PENDING_CLASSIFICATION`, chưa xác định severity; không tự đánh dấu đã xử lý.
-- Giai đoạn này thêm pipeline DEV, mock provider, review packet và evaluation harness. Không thay production route, prompt, provider config hoặc feature flag. Không merge.
-- Không sửa 24 frozen answers, historical scores, evidence pack hay các file V2 `experiment.ts`, `scenarios.ts`, `run.ts`, `guarded.ts`.
+## 1. Thành phần có sẵn và phần được reuse
 
-## 2. Architecture gap analysis dựa trên code
+| Thành phần | Code hiện có / cách sử dụng |
+| --- | --- |
+| Bedrock | `services/llm.service.ts` đã hỗ trợ Bedrock chat và embedding riêng, explicit system role và telemetry; `services/bedrock.client.ts` có Converse/Cohere và transport seam. DEV không import hoặc gọi chúng. Không thay provider config. |
+| Runtime | Các route/controller, `services/rag.service.ts`, `llm/orchestrator.service.ts` đã có context/history/retrieval, session ownership và persistence. Slice DEV không nối vào chúng. |
+| Prompt/context | `llm/prompt_builder.ts` có policy/template tổng quát; `services/context-assembler.ts`, coach-state và `coach/coach_context_builder.ts` đã có context. DEV reuse Fact/EvidenceItem contract và projections, không reuse policy tạo plan khi thiếu dữ liệu. |
+| Retrieval | Reuse `retrieveV2(question,V2Io)`, `buildKnowledgeSource`, concept resolver, safety resolver/guard. Chỉ sửa shared concept aliases cho e1RM và muscle-size/thickness; không đổi flag hoặc deploy. IO DEV dùng CPU query handles/lexical fixtures, không phải embeddings. |
+| Corpus pipeline | Web extractor bỏ HTML noise; local JSONL reader trim/hash; scoring/review queue, chunking và vector writer có provenance. Các heuristic đó không tự xác nhận scientific support. DEV không crawl/ingest/upsert. |
+| Grounding | Reuse V3 schema/gate và excerpt resolver. Bổ sung outcome support từ server facts, reference checks dùng chung và review packets. V2 source/scenarios/outputs/scores giữ nguyên. |
 
-Các đường dẫn dưới đây tương đối với `backend/services/ai-service/src/`. Phạm vi đọc tập trung vào các luồng gọi, contract, selection, provenance và persistence liên quan; không tuyên bố audit toàn repository hoặc đã kiểm chứng runtime đang deploy.
+Làm sạch tài liệu giúp truy xuất và truy vết; không tự biến nội dung thành tri thức đã kiểm chứng. RAG đưa excerpts vào context lúc chạy, không cập nhật trọng số LLM.
 
-| Thành phần | Hiện có trong code | Reuse / khoảng trống |
-| --- | --- | --- |
-| Model/provider | `services/llm.service.ts`: `LLM_PROVIDER=bedrock` dùng `BEDROCK_CHAT_MODEL`, chat/embedding chọn độc lập. `callLLM` có telemetry, `systemPrompt` tách role. `services/bedrock.client.ts` có Converse, Cohere embedding, timeout/refusal và transport seam. | Đã có Bedrock; không cần chuyển provider. DEV không import/call service này. Default fallback trong code vẫn Ollama; audit này không xác nhận env của deployment. |
-| Orchestration/API | `routes/ai.routes.ts`, `controllers/ai.controller.ts`, `services/rag.service.ts`, `llm/orchestrator.service.ts`: authenticated request, session ownership, replay/idempotency, agent early route, context/history/memory/retrieval, prompt và model response. | Giữ các route hiện tại. DEV không nối vào `/ask` hoặc `/agent`, không ghi conversation hay kế hoạch. |
-| Prompt/history | `llm/prompt_builder.ts` ghép nhiều policy, profile, retrieval, recommendation và history. Orchestrator gọi builder rồi `llmService`; explicit system role đã được service hỗ trợ. | Không tái sử dụng toàn bộ legacy prompt: các nhánh của nó còn yêu cầu plan mẫu khi thiếu dữ liệu, khác boundary advisory chỉ đọc. Việc hợp nhất policy cần review riêng, chưa sửa ở đây. |
-| Context | `services/context-assembler.ts` đọc theo needs; enterprise-data và coach-state giữ provenance/owner. `coach/coach_context_builder.ts` tạo CoachContext, có cả derived calculations. `conversational-intelligence/global/progress-review.ts` compose EvidenceItem từ projection, không tự tính lại analytics. | Reuse **EvidenceItem/Fact contract**. Không gọi context builder tổng quát để tính lại body/goal; DEV chỉ chuẩn hóa synthetic projections và namespace. Adapter sang authoritative reads thực chưa triển khai. |
-| Personal interpretation | `conversational-intelligence/global/personalized-interpretation.ts` đã có bounded readonly narration/fallback và knowledge context; knowledge query tạo theo topic, coverage dựa số nguồn. | Đây không phải claim-entailment verifier hoặc proof reasoning. Không nới validator của luồng đã có để làm slice mới. |
-| Retrieval | `llm/retrieval-v2.ts`: pure `retrieveV2(question, V2Io)`, concept/topic gate, query expansion, per-class ranking, quotas/dedup, conflict scope. `llm/knowledge-source.ts` phân biệt curated/reference/synthetic/catalog. `llm/retriever.ts` nối embedding/vector store; `vector-store/provider.ts` chọn Qdrant/OpenSearch. | **Reuse trực tiếp retrieveV2 và buildKnowledgeSource** với CPU fixture IO. Không import retriever có live defaults. Relevance/conflict heuristics không xác nhận claim được nguồn hỗ trợ. |
-| Làm sạch tài liệu | `knowledge-pipeline/web.ts` bỏ script/nav/footer, trích text và metadata; `local-evidence.ts` đọc JSONL, trim/min-length/hash; `scoring.ts` chấm trust/quality và safety theo rules; `service.ts` đưa review/reject/accept; `chunking.ts` chuẩn hóa whitespace, sentence/word boundaries; `qdrant-writer.ts` embed/upsert kèm provenance. | Có pipeline xử lý dữ liệu. Điểm trust/quality không phải expert review. Không mặc định mọi JSONL là nguyên văn bài báo hoặc claim đúng. DEV dùng excerpt registry đã có, không crawl, ingest, embed hay cập nhật corpus production. |
-| Grounding/evaluation | `evaluation/advisory-progress/`: strict V2/V3 schemas, frozen integrity, deterministic facts/language checks, bounded repair và source-ablation preparation. | **Reuse V3 gate**, V2 guarded prompt/schema, excerpt resolver và hai nguồn lịch sử. Thiếu independent semantic labels, corpus hiện hành được chuyên gia duyệt và live model evaluation. Không có scientific pass tự động. |
+## 2. Pipeline và boundary
 
-“Làm sạch” biến văn bản thành dữ liệu dễ truy xuất, có provenance; không tự biến nó thành tri thức đã được chứng minh. Trong RAG, tài liệu được đưa vào context lúc chạy; pipeline này không huấn luyện hoặc cập nhật trọng số LLM.
-
-## 3. DEV pipeline đã triển khai
-
-Code: `src/evaluation/ai-coach-dev/{context,retrieval,pipeline,review,fixtures,evaluation,run}.ts`.
+Code: `backend/services/ai-service/src/evaluation/ai-coach-dev/`.
 
 ```mermaid
 flowchart LR
-  A[Synthetic request] --> B[Context namespaces]
-  B --> C[retrieveV2 + CPU fixture IO]
-  B --> D[Prompt 5 tầng]
-  C --> D
-  D --> E[Scripted mock provider]
-  E --> F[Strict structured contract]
-  F --> G[V3 + citation identity gate]
-  G --> H[DEV review candidate hoặc BLOCKED]
-  F --> I[Independent semantic review packet: pending]
-  C --> I
+ A[Synthetic request] --> B[Context + subject/provenance checks]
+ B --> S[Existing safety policy classification]
+ S -->|risk| H[Safety handoff, no generation]
+ S -->|ordinary| C[Four controlled generation arms]
+ R[Question-based excerpt retrieval] --> C
+ C --> D[Common V3 schema + namespaces + citation identity]
+ D --> E[Raw candidate and independent review packet]
+ E --> F[Offline V3 grounding on the same RAG candidate]
+ F --> G[DEV eligible / blocked; semantic score pending]
 ```
 
-### Prompt và analysis contract
+Context giữ nguyên owner values, quality, timestamps và namespace. Profile thuộc user-service; training/measurement/nutrition projections thuộc fitness-service. Conversation là unverified claim, không thay facts. Labels phân biệt direct log observation, e1RM derived estimate và missing/stale/unverified dữ liệu. Các subject synthetic chỉ phục vụ schema/isolation tests, không phải authentication hoặc real service verification.
 
-Năm tầng logic: (1) system role/policy; (2) original question và readonly task; (3) personal context; (4) scientific excerpts; (5) analysis instructions và output contract. System chỉ chứa policy/contract cố định; question, context, history và evidence nằm trong user JSON không tin cậy. Delimiter/role separation là biện pháp giảm rủi ro, chưa được chứng minh chống mọi prompt injection.
+Outcome support không dùng model-declared basis làm bằng chứng. Attendance-only không đủ để khẳng định progress/no change. e1RM không xác nhận muscle-size outcome. Các adapters tường minh xử lý e1RM, DEV direct-1RM projection, measured weight trajectory và body-fat trend; unknown outcome kinds cần review/adapter, không bị phủ quyết mặc định. Không tạo production projection writer hoặc analytics authority mới. Kiểm tra deterministic exercise/unit chỉ áp dụng khi identity/unit đối chiếu được.
 
-Output gồm `analysis: AnswerV3` và `sourceLinks` trỏ `claimIndex → sourceId → excerptIds`. Các enum tách observation, general principle, measurement limitation và personal hypothesis. Kết luận dùng `assessment`/`rationaleSummary`; hypothesis cần facts, nguồn, uncertainty và missing information. Instructions yêu cầu cân nhắc giải thích thay thế có căn cứ hoặc thừa nhận chưa biết; không ép model bịa nguyên nhân. Không yêu cầu xuất hidden chain-of-thought, không coi một rationale hợp lệ là chứng minh reasoning.
+Prompt có system policy, user intent, personal context, scientific evidence và analysis/output contract. Mọi data nằm trong user JSON không tin cậy. Output chung là `{analysis:AnswerV3,sourceLinks}`; phân biệt observation, principle, hypothesis, limitation và conclusion. Không xuất hidden chain-of-thought, không dùng rationale làm proof reasoning.
 
-Zod là executable contract; mô tả contract trong prompt vẫn cần kiểm thử tương thích khi được phép chạy model thật. Cách tiếp cận hiện tại là role/instruction + structured output + provenance/RAG + decomposition vừa đủ + verification. Chưa thêm many-shot, ToT, multi-agent debate hoặc LangGraph: pipeline đơn tuyến này chưa cần orchestration framework.
+## 3. Controlled ablation
 
-### Context builder
+| Generation arm | Thay đổi so với arm trước |
+| --- | --- |
+| V3_SCHEMA_LEGACY_POLICY | Flat organization, policy readonly tương đương legacy, cùng V3 contract; không phải frozen V2 prompt |
+| FIVE_LAYER_POLICY | Chỉ đổi organization, cùng personal information |
+| FIVE_LAYER_CONTEXT | Thêm namespace/provenance/missingness annotations, không thêm measured facts |
+| FIVE_LAYER_CONTEXT_RAG | Thêm selected exact scientific excerpts |
 
-- Boundary chỉ nhận `SYNTHETIC_DEV`, subject có tiền tố synthetic; kiểm tra snapshot/history cùng subject, không trùng fact/namespace, domain khớp provenance.
-- Profile thuộc user-service; measurements/training/nutrition projections thuộc fitness-service. Conversation là unverified statements, không thay authoritative facts.
-- Giữ nguyên giá trị projection, quality, thời điểm và provenance. Không tính e1RM, calo, load hoặc assessment authority mới cho production.
-- Namespace không có facts được ghi rõ. Sleep/recovery/load history/measurement protocol được ghi là **không được slice đánh giá**, không suy diễn thành tình trạng thực của người dùng.
-- “Verified” ở DEV chỉ là fixture/schema consistency. Chưa có authenticated HTTP/DB adapter xác minh dữ liệu thật, freshness hoặc consent. Các nhãn synthetic không phải một cơ chế authentication.
+Mỗi arm dùng cùng fact/source ID allowlists, schema, reference checks, model/sampling settings, seed theo repetition và retries=0. Allowlist chỉ xác nhận identity; chỉ excerpt thực được cấp mới có thể được cite. Source IDs không làm nguồn trở thành support.
 
-### Retrieval và nguồn
+Mỗi arm chạy hai policy MINIMAL/FULL và hai repetition; order được rotate theo case/repetition. MINIMAL giữ role, readonly boundaries và contract; FULL thêm nguyên tắc domain chung. Không đưa case ID, evaluation labels hoặc arm name vào provider request. Các prompt có thể chứa số liệu cá nhân, không chứa expected answer.
 
-`retrieveV2` nhận **câu hỏi gốc**, rồi dùng chính query expansion/gate của code hiện tại. Fixture `embed()` tạo query handles và `search()` dùng lexical overlap trên registry cục bộ; không phải semantic embeddings. `trace.embeddings` của V2 đếm lần gọi seam này, **không** phải số request embedding thật; manifest ghi `embeddingCalls=0`.
+`V2_BASELINE` chỉ là historical/migration reference riêng. `GROUNDED_OFFLINE` không phải generation arm: dùng chính raw object của RAG candidate, không gọi provider và không sửa đáp án. Báo raw quality và post-gate eligibility; blocked không được tính là đúng.
 
-Registry reuse `evidence-pack.json` và `evidence-claim-map-v2.json`, không sửa bytes. Chỉ trả nguồn curated có trong registry và các quotes của nguồn đó; không lấy arbitrary text từ search response làm bằng chứng. Retrieval chọn ở **cấp source với tập excerpt nhỏ**, chưa phải fine-grained passage reranker. Title/DOI/applicability/limitations được giữ; summary/findings không được bơm lại để bù excerpt đã loại.
+Mock luôn abstain và copy visible facts để thử serialization. Nó không tra case/gold label và không mô phỏng reasoning. Không chấm mock assessment accuracy.
 
-- `FOUND`: qua topic/relevance gate, claim support vẫn `NOT_EVALUATED`.
-- `EMPTY`: không có nguồn phù hợp; vẫn được mô tả personal facts, hỏi thêm, không có sourced principle/hypothesis.
-- `UNAVAILABLE`: IO lỗi, bỏ toàn bộ partial evidence; phân biệt với không tìm thấy.
-- `DISABLED`: arm không RAG.
+## 4. Retrieval/corpus/authorship
 
-Hai nguồn 2009/2017 chỉ mới được assistant đối chiếu abstract ở workflow trước, không có independent expert review/full-text review. Slice này không cập nhật currency hay thẩm định lại nguồn. Không dùng các nguồn đó để chứng minh nguyên nhân cá nhân hoặc kê chương trình.
+Root cause case muscle-scope cũ: concept aliases thiếu “kích thước cơ”/muscle-size/thickness và `e1RM` không khớp `1RM`. Đã thêm aliases theo khái niệm, không hardcode case ID. V2 vẫn nhận câu hỏi gốc trước query expansion.
 
-### Grounding và semantic review
+Fixture index và selection ở cấp excerpt; title không làm một excerpt không liên quan trở nên phù hợp. Chỉ quotes đúng registry ID và qua body/topic gate được đưa vào prompt. Không tự phục hồi toàn bộ source excerpts hoặc assistant summaries khi một quote bị ablate.
 
-V3 giữ các hard invariant về metric/reference và cấm recommendation; source-link checker kiểm tra claim/source/excerpt identity. Grounded arm chặn schema lỗi, invalid/missing excerpt links hoặc V3 `BLOCKED`; raw candidate và diagnostics được giữ cho review. Không retry/repair tự động trong slice.
+Corpus supplement riêng: [corpus-supplement.json](../../data/eval/ai-coach-dev/corpus-supplement.json). Hai nguồn scientific lịch sử vẫn từ frozen pack/map; distractors và cặp conflict do assistant tạo được ghi synthetic, không có DOI và bị loại khỏi scientific evidence. Same-topic group result có thể relevant nhưng không chứng minh nguyên nhân cá nhân. Chưa có cặp nghiên cứu thật mâu thuẫn được curated độc lập.
 
-`NO_RULE_MATCH_NOT_CONTENT_PASS` và `FLAGGED_FOR_REVIEW` đều chỉ cho `DEV_REVIEW_ONLY`. Không đường nào phát scientific pass hay production response. Các arm không grounding vẫn ghi diagnostic citation issues nhưng không áp gate đó để giữ khác biệt treatment; chúng không được release production.
+Prompt/review packet tách:
+- `originalScientificExcerpts`: quote/locator/authorship.
+- `sourceMetadata`: title/DOI/URL/year.
+- `assistantAuthoredInterpretation`: applicability/limitations/review scope.
+- Semantic support/applicability labels: `null` chờ review.
 
-`review.ts` tạo packet riêng cho từng V3 claim: text/type, referenced facts, exact cited excerpts, applicability và limitations. Với V2 hoặc output lỗi, packet giữ raw candidate cùng facts để reviewer đọc trực tiếp. Reviewer còn phải đọc assessment, conclusion và missing questions. `sourceSupport`, `factSupport`, `personalApplicability`, reviewer rationale và scientificPass đều `null` trước review. Đây là chuẩn bị semantic review, chưa có semantic model/human reviewer chạy.
+Các trạng thái: FOUND, EMPTY_NO_MATCH, EMPTY_UNRESOLVED, EMPTY_OUT_OF_DOMAIN, EMPTY_SAFETY, UNAVAILABLE, DISABLED. Safety handoff có disposition riêng và bỏ generation; không xem là absence thông thường. IO lỗi bỏ partial evidence. FOUND chỉ qua relevance heuristic, không phải scientific pass.
 
-## 4. Evaluation protocol
+## 5. Evaluation và bằng chứng
 
-Năm arm: `V2_BASELINE`, `FIVE_LAYER_ONLY`, `FIVE_LAYER_CONTEXT`, `FIVE_LAYER_CONTEXT_RAG`, `GROUNDED`. V2 dùng guarded A trên **case mới**, không lấy historical scores làm baseline cho thí nghiệm này. V2 và V3 khác output contract nên đây là migration comparison; không thể quy toàn bộ chênh lệch cho prompting.
+[Protocol review](../../data/eval/ai-coach-dev/evaluation-protocol.json) chuẩn bị target 40 case độc lập (minimum 30), reviewer khác implementer, 10 case reserved/unopened do reviewer sở hữu. **Phần reserved chưa được tạo/bàn giao**. Hiện có 40 implementer-authored DEV inputs, gold labels=null; không gọi đó là independent held-out.
 
-Các arm dùng cùng question/facts/history. V2 nhận adversarial conversation qua `untrustedText`; mọi case có `profile.goal=null`. Arm five-layer-only nhận raw snapshot; context builder bổ sung namespace/absence labels, không thêm personal facts. Hai arm cuối cùng dùng chung corpus/retrieval. Grounding chỉ thay release decision; vẫn giữ raw output để đánh giá lỗi trước gate và coverage/abstention sau gate.
+Metrics chuẩn bị: factual correctness, source-to-claim support, unsupported personal claims, uncertainty/abstention, Likert usefulness, raw/post-gate coverage và tokens/latency/cost. Các metric chưa đo được giữ null. Review độc lập phải đọc cả claims, assessment/conclusion và questions, không dùng model KEEP hoặc citation ID làm proof support.
 
-Năm case mới: Overhead Press 70→70 kg trong 6 tuần; 70→77 kg; attendance 18/20 không có metric; history chứa số liệu xung đột và injection; hỏi kích thước cơ khi chỉ có e1RM. ID/numbers khác bộ frozen cũ, nhưng **vẫn là implementer-authored DEV cases**, không phải held-out hoặc nhãn độc lập. Scripted mock đọc fixture labels để tạo đáp án: đó là kiểm tra plumbing, không phải đánh giá reasoning/generalisation.
-
-| Metric | Tự động có thể báo hiện tại | Còn cần review độc lập |
-| --- | --- | --- |
-| Factual consistency | Số metricAssertion được kiểm tra; số mismatch so với projection và V3 alerts | Prose/fact entailment; không suy “0 mismatch” thành toàn bộ câu trả lời đúng |
-| Source support | Source/excerpt identity issues | Supported/partial/unsupported/NA theo exact quote và scope; tỷ lệ supported trên các claim có thể đánh giá |
-| Unsupported personal claims | Deterministic alerts, gồm nội dung ngoài claims qua V3 | Số personal claim thiếu hỗ trợ / tổng personal claim, kể cả conclusion/questions |
-| Uncertainty | Assessment match và required-question coverage trên DEV labels | Overconfidence, abstention và mức chắc chắn phù hợp; chưa có probability calibration |
-| Usefulness | Chưa chấm (`null`) | Likert 1–5 có anchors trong protocol, chấm mù theo intent, unknowns và follow-up cụ thể |
-
-Lần model evaluation sau cần phê duyệt riêng: pin model/prompt/corpus/code, paired repeated runs, báo latency/tokens/cost, independent blinded labels, leakage audit và uncertainty intervals. Theo dõi cả raw unsupported claims và tỷ lệ bị chặn; không được nâng điểm bằng cách âm thầm loại toàn bộ câu khó. Chưa có kết quả để xếp hạng năm arm.
-
-## 5. Chạy và bằng chứng
-
-Tại `backend/services/ai-service` trong worktree này:
-
+Tại `backend/services/ai-service`:
 ```powershell
 pnpm exec tsx src/evaluation/ai-coach-dev/run.ts --mock
-pnpm exec tsx --test src/__tests__/ai-coach-dev.test.ts
+pnpm exec tsx --test src/__tests__/ai-coach-dev.test.ts src/__tests__/ai-coach-dev-retrieval.test.ts src/__tests__/ai-coach-dev-protocol.test.ts
 pnpm exec tsc --noEmit
 ```
 
-CLI chỉ nhận `--mock` (hoặc không có argument), từ chối `--live`; xuất JSON ra stdout, không ghi DB/artifact hoặc thay file đầu vào. Manifest pin case/corpus/prompt/implementation/reused-code và source-file hashes. Scripted mock 5 case × 5 arm = 25 mock calls; Bedrock/LLM/embedding/vector-DB calls = 0.
+Kết quả lượt này: 228 test pass trong 19 file được nêu đầy đủ ở handoff; compiler exit 0. Harness: 608 mock calls, 0 model/embedding/vector-DB calls; 40 DEV cases. RAG status coverage: 29 FOUND, 4 UNRESOLVED, 3 NO_MATCH, 1 UNAVAILABLE, 2 SAFETY, 1 OUT_OF_DOMAIN. Đây không phải semantic recall.
 
-Snapshot mock local của lượt bàn giao: `artifacts/ai-coach-dev/mock-a08b806c89a14ac2b2d70ea0b5633c78/experiment.json` trong worktree (ignored, không commit). Cả 25 output đều `DEV_REVIEW_ONLY`; không output nào là scientific pass.
+Trong 160 RAG slots, 8 safety-routed không generation, 152 raw candidate; 148 post-gate eligible, 4 blocked. Tỷ lệ giữ 148/152 không phải accuracy. Raw/post-gate correctness vẫn null. Frozen V2 integrity giữ nguyên.
 
-Evidence label **TEST FIXTURE**:
+## 6. Readiness còn thiếu
 
-- 11 advisory suites + `ai-coach-dev.test.ts`: **142 pass, 0 fail, 0 skip** khi trỏ đến artifacts V2 đã pin.
-- Cùng scope không có artifacts trong worktree: **139 pass, 0 fail, 3 skip**; chỉ skip các kiểm tra cần local frozen artifacts.
-- Existing `rag-retrieval-v2.test.ts`: **15 pass**, CPU fixtures.
-- AI-service `tsc --noEmit`: exit 0.
-- Không có REAL HTTP/API, REAL BROWSER, BACKEND INTEGRATION hoặc model evaluation trong lượt này. Đây không phải full repository regression.
+Cần Claude Code review các outcome adapters, parity controls, quote selection/authorship, safety handoff, corpus scope và denominator metrics. R-E–R-H vẫn thiếu mô tả finding để phân loại; R-A/R-D là bounded deterministic checks, không có bảo đảm phủ mọi paraphrase.
 
-Frozen evidence-pack SHA256 giữ nguyên `4251adb6c9aa0d88d54d6b69a88824b60e37ce33a74467b822bf042483e1b8ea`; frozen results giữ nguyên `4f3f376ac81a93f645ba86a49a241f2d761e2bdf29388dcb44f79530e16c857a`. Các historical score/answer vẫn do frozen integrity test đối chiếu.
-
-## 6. Điểm cần Claude Code review và phần chưa tích hợp
-
-Review boundary synthetic/subject isolation; role split và prompt-contract drift; V2 adapter/registry/excerpt selection; empty/error semantics; nguồn có thực sự hỗ trợ từng claim hay chỉ cùng chủ đề; consistency giữa raw output, release gate và reviewer packet; tính công bằng/confounds của năm arm.
-
-Chưa triển khai real authoritative context adapter, Bedrock adapter cho slice, corpus upgrade/expert review, semantic judge độc lập, annotation storage/aggregation, held-out research set hoặc model experiments. Chưa được phép nối production route, bật flag, sửa legacy policy hoặc gọi model/embedding/vector service. Các hạng mục đó cần phạm vi và phê duyệt riêng; không dùng mock pass để mở production.
+Chưa có independent case approval/held-out labels, expert/current corpus review, real contradictory scientific pair, semantic adjudication, authenticated context adapter hoặc controlled model run. Vì vậy status là PREPARED_PENDING_INDEPENDENT_REVIEW, chưa tự đánh dấu READY_FOR_CONTROLLED_MODEL_EVALUATION. Không nối production route, không bật flag, không sửa Bedrock/DB/index, không merge hoặc gọi API trả phí.

@@ -124,11 +124,15 @@ test("unmeasurable metrics remain null; mock is not assessment accuracy", async 
   assert.equal(m.uncertaintyCalibration, null);
   assert.equal(m.sourceSupport.semanticSupportedFraction, null);
   assert.equal(m.modelTokens, null);
+  const invalid = await runDevSlice(request, "FIVE_LAYER_CONTEXT_RAG", { ...deps(), provider: { kind: "MOCK_ONLY", async complete() { return null; } } });
+  assert.equal(measureDevResult(cases[0], invalid).schemaValid, false);
+  assert.equal(measureDevResult(cases[0], groundCandidate(invalid)).schemaValid, false);
 });
 test("harness pairs repeated raw RAG outputs with offline gates, excluding historical V2 from generation", async () => {
   const experiment = await runMockExperiment();
-  assert.equal(experiment.manifest.mockCalls, cases.length * 4 * 2 * 2);
-  assert.equal(experiment.results.length, experiment.manifest.mockCalls);
+  assert.equal(cases.length, 40);
+  assert.equal(experiment.manifest.mockCalls, experiment.results.reduce((n, r) => n + r.generationCalls, 0));
+  assert.equal(experiment.results.length, cases.length * 4 * 2 * 2);
   assert.equal(experiment.postGate.length, cases.length * 2 * 2);
   for (const post of experiment.postGate) {
     const raw = experiment.results.find((r) => r.caseId === post.caseId && r.policy === post.policy && r.repetition === post.repetition && r.arm === "FIVE_LAYER_CONTEXT_RAG")!;

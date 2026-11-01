@@ -35,3 +35,10 @@ test("structured metric rejects exercise and unit mismatches", () => {
     assert.ok(result.contentIssues.some((i) => /METRIC_(EXERCISE|UNIT)_MISMATCH/.test(i.code)));
   }
 });
+test("direct strength measurement adapter permits supported outcomes and rejects a contradiction", () => {
+  const direct = { ...input, facts: input.facts.filter((f) => f.id === "F_PROGRESS").map((f) => ({ ...f, evidence: { ...f.evidence, kind: "DIRECT_1RM_CHANGE" } })) };
+  const candidate = { ...answer(), assessmentBasis: { outcome: "UNSPECIFIED", factIds: ["F_PROGRESS"] }, claims: [{ ...observation(), metricAssertion: undefined, text: "Strength measurement is recorded in the supplied log." }] };
+  assert.notEqual(evaluateContentV3(direct, candidate).contentGate, "BLOCKED");
+  direct.facts[0].evidence.value.currentKg = 60;
+  assert.ok(evaluateContentV3(direct, candidate).contentIssues.some((i) => i.code === "ASSESSMENT_CONTRADICTS_SERVER_FACTS"));
+});
