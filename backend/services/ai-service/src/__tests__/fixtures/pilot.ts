@@ -10,5 +10,5 @@ export function pilotConfig(): SessionConfig {
 }
 export const pilotAnswer = { analysis: { version: "content-aware-v3", assessment: "INSUFFICIENT_DATA", assessmentBasis: { outcome: "UNSPECIFIED", factIds: [] }, claims: [], missingInformation: [], rationaleSummary: "Synthetic plumbing response only.", proposedAction: null }, sourceLinks: [] };
 export function pilotTransport(text = JSON.stringify(pilotAnswer)): EvaluationTransport {
-  return { kind: "FAKE", async count() { return 12; }, async invoke() { return { $metadata: {}, output: { message: { role: "assistant", content: [{ text }] } }, usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 }, stopReason: "end_turn" }; } };
+  return { kind: "FAKE", async count() { return 12; }, async invoke() { return { $metadata: {}, output: { message: { role: "assistant", content: [{ text }] } }, usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 }, metrics: { latencyMs: 0 }, stopReason: "end_turn" }; } };
 }

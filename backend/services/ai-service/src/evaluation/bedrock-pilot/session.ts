@@ -8,6 +8,7 @@ import { digest } from "../evaluation-kit/identity";
 import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, parseConfiguration, PilotError, type SessionConfig } from "./config";
 import { installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
 import { atomicCreate, openJournal } from "./storage";
+import { assertVerifiedPins, type VerifiedPins } from "./pins";
 export { approvedConfigurationHash, SessionConfigSchema, type SessionConfig } from "./config";
 
 export interface EvaluationTransport {
@@ -49,13 +50,12 @@ async function deadline<T>(ms: number, work: (signal: AbortSignal) => Promise<T>
   try { return await Promise.race([work(controller.signal), new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); const e = new Error("Deadline"); e.name = "TimeoutError"; reject(e); }, ms); })]); }
   finally { clearTimeout(timer); }
 }
-export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string }
+export interface SessionOptions { resume?: boolean; fixtureLedgerDirectory?: string; fixtureApprovalId?: string; verifiedPins?: VerifiedPins }
 export function openEvaluationSession(value: unknown, directory: string, fake?: EvaluationTransport, options: SessionOptions = {}) {
   const config = parseConfiguration(value), configHash = approvedConfigurationHash(config), target = inferenceTarget(config);
   if (config.mode === "FAKE" && (!fake || fake.kind !== "FAKE")) throw new PilotError("FakeTransportRequired");
   if (config.mode === "LIVE" && fake) throw new PilotError("LiveTransportCannotBeOverridden");
-  const liveMode = () => config.mode === "LIVE";
-  if (liveMode()) throw new PilotError("VERIFIED_INPUTS_REQUIRED"); // wired to pin verifier in next scoped group
+  if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
   const approval = config.mode === "LIVE" ? installedApproval(config) : null;
   const ledgerDirectory = approval?.directory ?? options.fixtureLedgerDirectory ?? path.join(path.dirname(path.resolve(directory)), "fixture-ledger");
   const approvalId = approval?.approval.approvalId ?? options.fixtureApprovalId ?? "fake-" + digest(path.resolve(directory));
@@ -80,6 +80,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
   const authorize = () => {
     if (closed || fatal || ledger.state().stopped) throw new PilotError("BudgetStopped");
     assertCurrentAuthorization(config);
+    if (config.mode === "LIVE" || options.verifiedPins) assertVerifiedPins(config, options.verifiedPins);
+    if (config.mode === "LIVE") { const current = installedApproval(config); if (current.directory !== ledgerDirectory || digest(current.approval) !== approvalHash) throw new PilotError("APPROVAL_AUTHORITY_CHANGED"); }
   };
   const inputFor = (prompt: Prompt) => {
     const hash = digest({ system: prompt.system, user: prompt.user });

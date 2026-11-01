@@ -8,6 +8,7 @@ import { PilotError } from "./config";
 export function openJournal(file: string, create = false) {
   if (create) { const fd = fs.openSync(file, "wx", 0o600); fs.fsyncSync(fd); fs.closeSync(fd); }
   const text = fs.readFileSync(file, "utf8");
+  const identity = fs.statSync(file); let expectedText = text;
   if (text && !text.endsWith("\n")) throw new PilotError("JOURNAL_INCOMPLETE");
   let previous = "GENESIS", sequence = 0;
   const records: unknown[] = [];
@@ -22,7 +23,12 @@ export function openJournal(file: string, create = false) {
     if (broken) throw new PilotError("JOURNAL_UNUSABLE");
     const body = { sequence: sequence + 1, previous, record }, row = { ...body, hash: digest(body) };
     let fd: number | undefined;
-    try { fd = fs.openSync(file, "a"); fs.writeFileSync(fd, canonical(row) + "\n"); fs.fsyncSync(fd); }
+    try {
+      const current = fs.lstatSync(file);
+      if (current.isSymbolicLink() || current.dev !== identity.dev || current.ino !== identity.ino || fs.readFileSync(file, "utf8") !== expectedText) throw new PilotError("JOURNAL_REPLACED_OR_CHANGED");
+      const line = canonical(row) + "\n";
+      fd = fs.openSync(file, "a"); fs.writeFileSync(fd, line); fs.fsyncSync(fd); expectedText += line;
+    }
     catch { broken = true; throw new PilotError("PersistenceFailure"); }
     finally { if (fd !== undefined) fs.closeSync(fd); }
     sequence++; previous = row.hash; records.push(record);
