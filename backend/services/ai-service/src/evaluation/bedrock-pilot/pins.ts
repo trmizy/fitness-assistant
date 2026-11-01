@@ -12,6 +12,9 @@ export const implementationRoot = path.resolve(__dirname, "../../../../../..");
 export const CORPUS_FILES = ["data/eval/advisory-progress-dev/evidence-pack.json", "data/eval/advisory-progress-dev/evidence-claim-map-v2.json", "data/eval/ai-coach-dev/corpus-supplement.json", "data/eval/ai-coach-dev/source-registry.json"];
 const ReleasedFileSchema = z.object({ version: z.literal("released-pilot-input-v1"), scope: z.literal("OWNER_REVIEWED_NON_SAFETY_CASES_ONLY"), released: z.array(z.unknown()).min(1), expectedManifests: z.array(z.unknown()).min(1), ownerReceiptHashes: z.array(z.string()).min(1) }).strict();
 function git(root: string, args: string[]) { return execFileSync("git", args, { cwd: root, encoding: "utf8", windowsHide: true }).trim(); }
+export function assertCleanWorkingTree(root: string) {
+  if (git(root, ["status", "--porcelain", "--untracked-files=all"])) throw new PilotError("WORKING_TREE_DIRTY");
+}
 function bytes(file: string) { return createHash("sha256").update(fs.readFileSync(file)).digest("hex"); }
 function snapshot(rootValue: string, casesFile: string) {
   const root = fs.realpathSync(rootValue);
@@ -42,7 +45,7 @@ export async function verifySessionPins(config: SessionConfig): Promise<Verified
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
   if (config.mode === "LIVE" && fs.realpathSync(config.sources.workspaceRoot).toLowerCase() !== fs.realpathSync(implementationRoot).toLowerCase()) throw new PilotError("LOADED_IMPLEMENTATION_ROOT_MISMATCH");
   const result = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile);
-  if (config.mode === "LIVE" && result.dirty) throw new PilotError("WORKING_TREE_DIRTY");
+  if (config.mode === "LIVE") assertCleanWorkingTree(config.sources.workspaceRoot);
   for (const key of ["commit", "code", "corpus", "cases", "promptHashes"] as const) match(result.pins[key], config.pins[key], key);
   const receipt: VerifiedPins = Object.freeze({ status: "VERIFIED_FROM_FILES" });
   verified.set(receipt, { configHash: approvedConfigurationHash(config), pins: structuredClone(result.pins), sources: structuredClone(config.sources), strict: config.mode === "LIVE" });
@@ -53,7 +56,7 @@ export function assertVerifiedPins(config: SessionConfig, receipt?: VerifiedPins
   if (!value) throw new PilotError("VERIFIED_INPUTS_REQUIRED");
   match(approvedConfigurationHash(config), value.configHash, "configHash");
   const now = snapshot(value.sources.workspaceRoot, value.sources.casesFile);
-  if (value.strict && now.dirty) throw new PilotError("WORKING_TREE_DIRTY");
+  if (value.strict) assertCleanWorkingTree(value.sources.workspaceRoot);
   for (const key of ["commit", "code", "corpus", "cases"] as const) match(now[key], value.pins[key], key);
   match(config.pins.promptHashes, value.pins.promptHashes, "promptHashes");
 }

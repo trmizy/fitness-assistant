@@ -1,5 +1,5 @@
 {
-  "version": "controlled-evaluation-review-protocol-v3",
+  "version": "controlled-evaluation-review-protocol-v4",
   "status": "PREPARED_PENDING_INDEPENDENT_REVIEW",
   "liveEvaluation": "NOT_RUN_NOT_AUTHORIZED",
   "developmentInputs": {
@@ -63,7 +63,7 @@
     "grounded": "OFFLINE_ON_SAME_RAW_RAG_CANDIDATE",
     "historicalV2": "SEPARATE_UNSCORED_MIGRATION_REFERENCE",
     "sourceAllowlist": "Arm-local IDs only; no-RAG sourceIds=[]",
-    "placebo": "Character-length match without facts/evidence; exact model tokens pending approved CountTokens preflight",
+    "placebo": "Neutral contextPadding key; character-length match without facts/evidence. Runner reports paired FAKE count deltas; exact model tokens and approved tolerance remain pending model-specific preflight",
     "seedMeaning": "MOCK_SCHEDULING_ONLY_NOT_A_BEDROCK_PARAMETER"
   },
   "blindedScoring": {

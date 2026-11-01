@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { calculatePilotPins, verifySessionPins, assertVerifiedPins, implementationRoot } from "../evaluation/bedrock-pilot/pins";
+import { calculatePilotPins, verifySessionPins, assertVerifiedPins, assertCleanWorkingTree, implementationRoot } from "../evaluation/bedrock-pilot/pins";
 import { SessionConfigSchema } from "../evaluation/bedrock-pilot/config";
 import { inferenceTarget, openEvaluationSession } from "../evaluation/bedrock-pilot/session";
 import { BEDROCK_REGION } from "../services/bedrock.client";
@@ -28,6 +28,12 @@ test("file drift after verification blocks session admission; zero hashes and di
   for (const field of ["code", "corpus", "cases"] as const) assert.equal(SessionConfigSchema.safeParse({ ...c, pins: { ...c.pins, [field]: "0".repeat(64) } }).success, false);
   const live = pilotConfig(); live.mode = "LIVE"; live.sources = { workspaceRoot: implementationRoot, casesFile: f.casesFile };
   await assert.rejects(() => verifySessionPins(live), /WORKING_TREE_DIRTY|PIN_MISMATCH/);
+});
+test("dirty/untracked work and changed on-disk corpus cannot stand in for reviewed inputs", async () => {
+  const f = fixturePilotInput(), c = pilotConfig(); c.sources = { workspaceRoot: f.root, casesFile: f.casesFile }; c.pins = (await calculatePilotPins(f.root, f.casesFile)).pins;
+  const receipt = await verifySessionPins(c); assert.doesNotThrow(() => assertCleanWorkingTree(f.root));
+  fs.writeFileSync(path.join(f.root, "unreviewed.txt"), "fixture only"); assert.throws(() => assertCleanWorkingTree(f.root), /WORKING_TREE_DIRTY/);
+  fs.appendFileSync(path.join(f.root, "data/eval/ai-coach-dev/source-registry.json"), " "); assert.throws(() => assertVerifiedPins(c, receipt), (e: unknown) => (e as { details: { field: string } }).details.field === "corpus");
 });
 test("CountTokens and Converse share target identity; unsupported live profiles and wrong regions reject", async () => {
   for (const profile of [null, "test-fixture-profile"]) {

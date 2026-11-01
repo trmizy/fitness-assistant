@@ -1,6 +1,6 @@
 # AI Coach — architecture evaluation blockers handoff
 
-> Historical handoff tại `d344a75a`; các finding và số liệu dưới đây thuộc lượt đó. Trạng thái chuẩn bị LLM evaluation hiện tại nằm ở [real evaluation readiness](ai-coach-real-evaluation-readiness.md).
+> Historical handoff tại `d344a75a`; các finding và số liệu dưới đây thuộc lượt đó. Trạng thái hạ tầng hiện tại nằm ở [final pilot infrastructure hardening](ai-coach-pilot-infrastructure-hardening.md).
 
 Ngày 2026-11-01. Reviewed HEAD `2c4806b9`; branch `feat/advisory-content-v3`, worktree `fitness-assistant-worktrees/advisory-content-v3`. Evidence: **CODE AUDIT / TEST FIXTURE**. Không có model evaluation, REAL HTTP/API, REAL BROWSER hoặc BACKEND INTEGRATION.
 

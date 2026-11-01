@@ -1,5 +1,7 @@
 # AI Coach — chuẩn bị real LLM evaluation
 
+> Historical snapshot qua `06ed544c`. Các thay đổi sau final review nằm ở [final pilot infrastructure hardening](ai-coach-pilot-infrastructure-hardening.md); số liệu dưới đây giữ nguyên theo lượt cũ.
+
 Ngày 2026-11-01. Review base `d344a75a`, branch `feat/advisory-content-v3`, worktree `fitness-assistant-worktrees/advisory-content-v3`.
 
 **READY_FOR_FINAL_CODE_AUDIT — NOT_AUTHORIZED_FOR_LIVE_EXECUTION.** Bằng chứng lượt này là **CODE AUDIT / TEST FIXTURE**. Không có independent model evaluation hoặc scientific gold mới.

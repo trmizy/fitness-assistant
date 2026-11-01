@@ -68,3 +68,20 @@ test("crash probes retain reservations and orphan lock; no new run or automatic 
     assert.throws(() => openEvaluationSession(c, path.join(root, "run"), pilotTransport(), { fixtureLedgerDirectory: path.join(root, "ledger"), fixtureApprovalId: "fixture-shared", resume: true }), /LOCK_UNAVAILABLE/);
   }
 });
+test("timeout reservations survive restart and cumulative USD is checked before each invocation", async () => {
+  const root = temp(), c = pilotConfig(); c.budget.maxCalls = 1; c.parameters.timeoutMs = 10;
+  const options = { fixtureLedgerDirectory: path.join(root, "ledger"), fixtureApprovalId: "timeout-shared" };
+  const s = openEvaluationSession(c, path.join(root, "run"), { ...pilotTransport(), async invoke() { return new Promise(() => undefined); } }, options);
+  assert.equal((await s.evaluate(pilotPrompt)).providerError, "TIMEOUT"); assert.equal(s.state().outputTokens, c.parameters.maxTokens); await s.close();
+  const resumed = openEvaluationSession(c, path.join(root, "run"), pilotTransport(), { ...options, resume: true }); await assert.rejects(() => resumed.evaluate(pilotPrompt), /BudgetStopped/); await resumed.close();
+  const priced = pilotConfig(); priced.parameters.maxTokens = 20; priced.budget.maxEstimatedUsd = 0.000052;
+  const secondRoot = temp(), limited = openEvaluationSession(priced, path.join(secondRoot, "run"), pilotTransport());
+  assert.equal((await limited.evaluate(pilotPrompt)).providerError, null); assert.equal((await limited.evaluate(pilotPrompt)).providerError, "BUDGET_REJECTED"); assert.equal(limited.state().inferenceCalls, 1); await limited.close();
+});
+test("missing or altered ledger/lock fails closed rather than recreating accounting", async () => {
+  const root = temp(), options = { fixtureLedgerDirectory: path.join(root, "ledger"), fixtureApprovalId: "tamper-shared" }, c = pilotConfig();
+  const s = openEvaluationSession(c, path.join(root, "run"), pilotTransport(), options);
+  fs.appendFileSync(path.join(options.fixtureLedgerDirectory, "tamper-shared.jsonl"), "unverified partial tail");
+  await assert.rejects(() => s.evaluate(pilotPrompt), /PersistenceFailure/); assert.equal(s.state().inferenceCalls, 0); await s.close();
+  assert.throws(() => openEvaluationSession(c, path.join(root, "run"), pilotTransport(), { ...options, resume: true }), /JOURNAL_INCOMPLETE/);
+});

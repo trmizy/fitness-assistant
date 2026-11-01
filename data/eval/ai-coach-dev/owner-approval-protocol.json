@@ -1,0 +1,19 @@
+{
+  "version": "pilot-owner-approval-protocol-v1",
+  "status": "REQUIRES_ADMIN_BOOTSTRAP_AND_EXPLICIT_USER_APPROVAL_NOT_INSTALLED",
+  "authority": "OUT_OF_BAND_OWNER_ED25519_KEY_PINNED_BY_ADMIN",
+  "trustLocation": {"windows":"C:/ProgramData/Gymini/Evaluation/trust.json","posix":"/etc/gymini-evaluation/trust.json","environmentOverride":false},
+  "trustFileShape": {"version":"owner-trust-v1","issuer":null,"publicKeyPem":null,"ledgerDirectory":null},
+  "approvalBody": {"approvalId":"OWNER_UNIQUE_UUID","issuer":"PINNED_ISSUER","approvedBy":"OWNER_IDENTITY","scope":"BEDROCK_EVALUATION_PILOT","configHash":"SHA256_CANONICAL_FULL_CONFIG_EXCLUDING_APPROVAL","expiresAt":"UTC_ISO_TIMESTAMP"},
+  "signature": "Ed25519 detached signature of UTF-8 canonical approvalBody (recursive sorted object keys, array order preserved), encoded base64 in approval.signature. No private key belongs in repo, runner, config or artifact.",
+  "issuance": [
+    "Human owner reviews exact clean code/corpus/cases/prompts, non-safety scope, model/region/CountTokens support, positive current pricing and maximum USD/call/token budget",
+    "Trusted approval issuer allocates a unique approvalId and signs the full config hash; never reuse an id for another run/config",
+    "Administrator provisions fixed trust file and ledger directory outside all run artifacts/worktree, protected from implementer/runner replacement or deletion using OS identity/ACLs",
+    "Owner preissues approvalId.jsonl with hash-chained ISSUED record: authority OWNER_SIGNED, approvalId, approvalHash=digest(full signed approval), configHash. openJournal storage format is sequence=1, previous=GENESIS, record, hash=digest({sequence,previous,record}) plus newline and fsync",
+    "Runner requires this existing ledger; it never autoissues or recreates a LIVE ledger from approval JSON"
+  ],
+  "trustBoundary": "A caller-provided JSON object, pseudonym or attestation is not approval authentication. Signature verification is meaningful only if the public key bootstrap and owner private key are independently trusted. No OS ACL installation, actual owner identity, HSM or issuer service is implemented/claimed by this task.",
+  "accounting": "Single trusted host/local filesystem only. Exclusive session lock, hash-chain/fsync journal, durable reservations, clean resume same run. Refuse missing/replaced/partial ledger or lock; no stale-lock deletion or crash refund. Crash lock reconciliation is an owner audit, not a new approval or budget reset.",
+  "liveExecution": "CLI and controlled runner remain FAKE_ONLY. A future LIVE executable requires separate review and explicit user approval; provisioning does not unlock the CLI."
+}
