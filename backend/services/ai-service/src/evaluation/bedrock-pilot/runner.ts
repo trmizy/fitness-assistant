@@ -34,6 +34,10 @@ export async function runControlledPilot(options: RunnerOptions) {
   let journal: ReturnType<typeof openJournal> | undefined;
   try {
     journal = openJournal(path.join(options.directory, "pilot.jsonl"), !options.resume);
+    const schedule = preparation.rows.map((r) => ({ attemptKey: attemptIdentity({ caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }), caseKey: r.caseKey, arm: r.arm, policy: r.policy, repeatIndex: r.repeatIndex, configHash, promptHash: r.promptHash }));
+    const scheduleFile = path.join(options.directory, "schedule.json");
+    if (fs.existsSync(scheduleFile)) { if (digest(JSON.parse(fs.readFileSync(scheduleFile, "utf8"))) !== digest(schedule)) throw new PilotError("SCHEDULE_INTEGRITY_FAILED"); }
+    else atomicCreate(scheduleFile, schedule);
     const summaryFile = path.join(options.directory, "summary.json");
     if (options.resume && fs.existsSync(summaryFile)) {
       const prior = JSON.parse(fs.readFileSync(summaryFile, "utf8"));

@@ -17,7 +17,7 @@ export const ReviewerCaseSchema = z.object({
     safety: z.enum(["NORMAL", "CRISIS", "HEALTH_SAFETY", "OUT_OF_DOMAIN", "UNRESOLVED"]), appropriateAbstention: z.boolean(), rationale: z.string().min(1),
   }).strict(),
 }).strict();
-const ManifestSchema = z.object({ version: z.literal("case-freeze-v1"), caseKey: z.string(), split: z.enum(["REVIEWED_DEV", "HELD_OUT"]), requestHash: Hash, labelHash: Hash, authorAttestationHash: Hash }).strict();
+export const ManifestSchema = z.object({ version: z.literal("case-freeze-v1"), caseKey: z.string(), split: z.enum(["REVIEWED_DEV", "HELD_OUT"]), requestHash: Hash, labelHash: Hash, authorAttestationHash: Hash }).strict();
 export type CaseManifest = z.infer<typeof ManifestSchema>;
 function disjointDirectories(a: string, b: string) {
   const x = path.resolve(a).toLowerCase(), y = path.resolve(b).toLowerCase();
@@ -47,13 +47,16 @@ export function validateGenerationBundle(value: unknown, expectedManifest: unkno
   if (digest(bundle.freeze) !== digest(expected) || bundle.releaseReceiptHash !== expectedReleaseReceiptHash || digest(bundle.request) !== expected.requestHash) throw new Error("GenerationRequestChangedAfterFreeze");
   return bundle;
 }
-export function createAnnotationPackets(input: { question: string; facts: unknown; evidence: unknown; candidate: unknown }) {
-  const parsed = AnalysisEnvelopeSchema.safeParse(input.candidate);
-  const units = parsed.success ? [
+export function annotationUnits(candidate: unknown) {
+  const parsed = AnalysisEnvelopeSchema.safeParse(candidate);
+  return parsed.success ? [
     ...parsed.data.analysis.claims.map((c, i) => ({ unitId: "CLAIM_" + i, type: c.claimType, text: c.text, factIds: c.factIds, evidenceIds: c.evidenceIds })),
     { unitId: "CONCLUSION", type: "CONCLUSION", text: parsed.data.analysis.rationaleSummary, assessment: parsed.data.analysis.assessment, assessmentBasis: parsed.data.analysis.assessmentBasis },
     ...parsed.data.analysis.missingInformation.map((q, i) => ({ unitId: "QUESTION_" + i, type: "QUESTION", text: q.question })),
-  ] : [{ unitId: "INVALID_OUTPUT", type: "INVALID_OUTPUT", rawCandidate: input.candidate }];
+  ] : [{ unitId: "INVALID_OUTPUT", type: "INVALID_OUTPUT", rawCandidate: candidate }];
+}
+export function createAnnotationPackets(input: { question: string; facts: unknown; evidence: unknown; candidate: unknown }) {
+  const units = annotationUnits(input.candidate);
   const instanceId = randomUUID();
   // Drop retrieval trace/status/treatment and any extra case/label metadata.
   const evidence = input.evidence && typeof input.evidence === "object" && "passages" in input.evidence ? (input.evidence as { passages: unknown }).passages : input.evidence;
