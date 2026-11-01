@@ -15,7 +15,9 @@ export function prepareSemanticReview(input: AdvisoryInput, evidence: RetrievedE
       referencedFacts: input.facts.filter((f) => claim.factIds.includes(f.id)),
       citedExcerpts: envelope.sourceLinks.filter((l) => l.claimIndex === claimIndex).flatMap((l) => {
         const passage = evidence.passages.find((p) => p.source.id === l.sourceId);
-        return passage ? passage.excerpts.filter((e) => l.excerptIds.includes(e.id)).map((e) => ({ sourceId: passage.source.id, ...e, applicability: passage.source.applicability, limitations: passage.source.limitations, humanReviewed: passage.source.humanReviewed })) : [];
+        return passage ? passage.excerpts.filter((e) => l.excerptIds.includes(e.id)).map((e) => ({ sourceId: passage.source.id, originalScientificExcerpt: e,
+          sourceMetadata: { title: passage.source.title, doi: passage.source.doi, url: passage.source.url },
+          assistantAuthoredInterpretation: { applicability: passage.source.applicability, limitations: passage.source.limitations, humanReviewed: passage.source.humanReviewed } })) : [];
       }),
       // Excerpt identity and retrieval relevance alone can never set these labels.
       sourceSupport: null, factSupport: null, personalApplicability: null, reviewerRationale: null,

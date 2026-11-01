@@ -1,0 +1,18 @@
+{
+  "version": "dev-retrieval-supplement-v1",
+  "authority": "IMPLEMENTER_DEV_ONLY_NOT_SCIENTIFIC_REVIEW",
+  "basePackUnmodified": "advisory-progress-dev/evidence-pack.json",
+  "scientificExcerptRolesEvaluationOnly": [
+    {"sourceId":"ACSM_PROGRESSIVE","excerptId":"ACSM_PROGRESSIVE_OPENING","roles":["GENERAL_PROGRESSION","NOT_INDIVIDUAL_CAUSE"]},
+    {"sourceId":"ACSM_PROGRESSIVE","excerptId":"ACSM_CONTEXT","roles":["APPLICABILITY_CONTEXT","NOT_STRENGTH_OUTCOME_RESULT"]},
+    {"sourceId":"LOAD_OUTCOME_SPECIFICITY","excerptId":"LOAD_STRENGTH_RESULT","roles":["STRENGTH_GROUP_COMPARISON","SAME_TOPIC_NOT_INDIVIDUAL_CAUSAL_SUPPORT"]},
+    {"sourceId":"LOAD_OUTCOME_SPECIFICITY","excerptId":"LOAD_HYPERTROPHY_RESULT","roles":["HYPERTROPHY_GROUP_COMPARISON","NOT_INDIVIDUAL_MUSCLE_MEASUREMENT"]}
+  ],
+  "syntheticDistractors": [
+    {"id":"SYNTH_MUSEUM","title":"Fictional museum hours","text":"This fictional museum opens on Thursdays. This is assistant-authored test text, not scientific evidence."},
+    {"id":"SYNTH_CAUSE","title":"Synthetic strength training claim","text":"Fictional test rule: every increase in strength proves individual muscle hypertrophy. This deliberately unsupported assertion is not scientific evidence."},
+    {"id":"SYNTH_CONFLICT_A","title":"Synthetic muscle hypertrophy conflict A","text":"Fictional test rule A: muscle hypertrophy always increases after resistance training. Not scientific evidence."},
+    {"id":"SYNTH_CONFLICT_B","title":"Synthetic muscle hypertrophy conflict B","text":"Fictional test rule B: muscle hypertrophy never increases after resistance training. Not scientific evidence."}
+  ],
+  "limitations": ["Only the existing historical primary abstract excerpts are scientific inputs", "Synthetic distractors/conflicts have no DOI and must never be promoted to scientific sources", "No updated/full-text/expert-reviewed evidence added"]
+}

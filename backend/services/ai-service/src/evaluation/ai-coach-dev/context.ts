@@ -48,6 +48,9 @@ export function buildDevContext(value: unknown) {
     personal: {
       verification: "FIXTURE_SCHEMA_CHECKED_NOT_REAL_SERVICE_VERIFIED" as const,
       profile: r.profile,
+      factProvenance: facts.map((f) => ({ factId: f.id, classification: ["NO_DATA", "STALE", "INSUFFICIENT_HISTORY"].includes(f.evidence.quality)
+        ? "MISSING_OR_UNVERIFIED" : f.evidence.kind === "EXERCISE_E1RM_CHANGE" ? "DERIVED_ESTIMATE"
+        : f.evidence.kind === "DIRECT_1RM_CHANGE" || f.evidence.kind === "SCHEDULED_ADHERENCE" ? "DIRECT_LOG_OBSERVATION" : "OWNER_PROJECTION_METHOD_NOT_VALIDATED" })),
       namespaces: r.snapshots.map(({ subjectId: _subject, ...s }) => s),
       conversation: { trust: "UNVERIFIED_STATEMENTS_NOT_PERSONAL_FACTS", messages: r.conversation.map(({ subjectId: _subject, ...c }) => c) },
       absentNamespaces: ["MEASUREMENTS", "TRAINING", "NUTRITION"].filter((ns) => !r.snapshots.some((s) => s.namespace === ns && s.facts.length)),

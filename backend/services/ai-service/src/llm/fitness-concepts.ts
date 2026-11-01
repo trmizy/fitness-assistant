@@ -43,7 +43,7 @@ const FITNESS_CUE = /(tap|gym|workout|the thao|exercise|training|tang co|giam mo
 
 export const CONCEPTS: Concept[] = [
   // ── training / hypertrophy ────────────────────────────────────────────
-  { id: "hypertrophy", domain: "HYPERTROPHY", match: /(tang co|len co|to co|co no\b|no co|co lon|lon co|nay no|(cham|nhanh|khong) lon\b|phat trien co|co phat trien|phi dai|co bap|hypertroph|build muscle|muscle growth|gain muscle|muscle mass|khoi luong co|cang co)/,
+  { id: "hypertrophy", domain: "HYPERTROPHY", match: /(tang co|len co|to co|co no\b|no co|co lon|lon co|nay no|(cham|nhanh|khong) lon\b|phat trien co|co phat trien|phi dai|co bap|hypertroph|build muscle|muscle growth|gain muscle|muscle mass|muscle size|muscle thickness|kich thuoc co|do day co|be day co|khoi luong co|cang co)/,
     en: "muscle hypertrophy resistance training muscle growth", docTerms: ["hypertroph", "muscle mass", "muscle growth", "muscle size", "lean mass", "muscle gain", "muscle thickness"], viTerms: ["tang co", "phi dai", "co bap", "tang can nac"] },
   { id: "load_intensity", domain: "HYPERTROPHY", match: /(ta nang|ta nhe|tai nang|tai nhe|heavy|light load|low[- ]?load|high[- ]?load|nhieu rep|it rep|rep cao|rep thap|muc ta|ta nhe nhieu)/,
     en: "high-load versus low-load resistance training muscle hypertrophy load intensity", docTerms: ["load", "intensity", "repetition maximum", "1rm"], viTerms: ["ta nang", "ta nhe", "rep"] },
@@ -79,7 +79,7 @@ export const CONCEPTS: Concept[] = [
     en: "older adults resistance training muscle mass gain", docTerms: ["older", "elderly", "aging", "ageing"], viTerms: ["lon tuoi", "nguoi gia", "cao tuoi"] },
   { id: "women_menstrual", domain: "HYPERTROPHY", match: /(kinh nguyet|chu ky kinh|menstrual|phu nu|nu gioi|\bwomen\b|female|phai nu|ba bau)/,
     en: "women menstrual cycle resistance training adaptation", docTerms: ["menstrual", "women", "female"], viTerms: ["kinh nguyet", "phu nu", "nu gioi"] },
-  { id: "strength", domain: "STRENGTH", match: /(suc manh|\bstrength\b|\b1rm\b|one rep max|rep toi da|powerlifting|khoe hon|manh hon|nang duoc nhieu hon)/,
+  { id: "strength", domain: "STRENGTH", match: /(suc manh|\bstrength\b|\be1rm\b|\b1rm\b|one rep max|rep toi da|powerlifting|khoe hon|manh hon|nang duoc nhieu hon)/,
     en: "maximal muscular strength resistance training", docTerms: ["strength"], viTerms: ["suc manh", "1rm"] },
   { id: "asymmetry", domain: "STRENGTH", match: /(chenh lech (luc|suc|giua|hai|ben)|giua hai (chan|tay|ben)|mot chan|mot tay|don phia|unilateral|bilateral|hai ben|trai phai|chan (trai|phai)|tay (trai|phai)|lech (ben|chan|tay)|mat can bang|bat doi xung|asymmetr|ben (trai|phai) (yeu|khoe|manh))/,
     en: "inter-limb strength asymmetry unilateral versus bilateral training", docTerms: ["asymmetr", "inter-limb", "unilateral", "bilateral", "limb"], viTerms: ["mot chan", "mat can bang", "bat doi xung", "hai ben", "don phia"] },

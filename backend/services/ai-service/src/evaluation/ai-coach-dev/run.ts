@@ -10,7 +10,8 @@ import { EVAL_PROTOCOL, measureDevResult } from "./evaluation";
 export async function runMockExperiment() {
   const root = path.resolve(__dirname, "../../../../../.."), data = path.join(root, "data/eval/advisory-progress-dev");
   const read = (name: string): unknown => JSON.parse(fs.readFileSync(path.join(data, name), "utf8"));
-  const corpus = prepareCorpus(read("evidence-pack.json"), read("evidence-claim-map-v2.json"));
+  const supplement = JSON.parse(fs.readFileSync(path.join(root, "data/eval/ai-coach-dev/corpus-supplement.json"), "utf8"));
+  const corpus = prepareCorpus(read("evidence-pack.json"), read("evidence-claim-map-v2.json"), supplement);
   const cases = devCases(), provider = createScriptedMock(), fixture = createFixtureIo(corpus);
   const results = [], postGate = [];
   for (let repetition = 0; repetition < EVAL_PROTOCOL.repetitions; repetition++) for (const c of cases) for (const policy of POLICY_VARIANTS) {
