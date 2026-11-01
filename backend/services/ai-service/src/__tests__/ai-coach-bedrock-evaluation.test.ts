@@ -4,8 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { approvedConfigurationHash, openEvaluationSession, type SessionConfig, type EvaluationTransport } from "../evaluation/bedrock-pilot/session";
-import { bedrockRuntimeDeps, BEDROCK_REGION } from "../services/bedrock.client";
-import { CountTokensCommand, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
+import { randomUUID } from "node:crypto";
 import { digest } from "../evaluation/evaluation-kit/identity";
 import { verifyRawEvaluation, type Prompt } from "../evaluation/ai-coach-dev/pipeline";
 import { createFixtureIo, retrieveDevEvidence } from "../evaluation/ai-coach-dev/retrieval";
@@ -15,7 +14,7 @@ function config(): SessionConfig { return {
   mode: "FAKE", liveOptIn: false, dataClass: "SYNTHETIC_EVALUATION_ONLY", modelId: "amazon.nova-pro-v1:0", inferenceProfile: null, region: "ap-southeast-1", profileModelConfirmed: false,
   parameters: { maxTokens: 20, temperature: 0.2, retries: 0, timeoutMs: 1000 }, pins: { commit: "a".repeat(40), code: "a".repeat(64), corpus: "b".repeat(64), cases: "c".repeat(64), promptHashes: [digest({ system: prompt.system, user: prompt.user })] },
   budget: { maxCalls: 3, maxInputTokensPerCall: 100, maxInputTokens: 100, maxOutputTokens: 100, maxEstimatedUsd: 1, maxFailures: 2 },
-  pricing: { authority: "FAKE_TEST_ONLY", sourceUrl: "https://aws.amazon.com/bedrock/pricing/", version: "FAKE_TEST_RATES_NOT_AWS_PRICES", checkedAt: new Date(Date.now() - 1000).toISOString(), expiresAt: new Date(Date.now() + 3600000).toISOString(), modelId: "amazon.nova-pro-v1:0", region: "ap-southeast-1", inputUsdPerMillion: 1, outputUsdPerMillion: 2, confirmedBy: "FAKE_TEST", evidenceHash: "f".repeat(64) }, approval: null,
+  pricing: { authority: "FAKE_TEST_ONLY", sourceUrl: "https://aws.amazon.com/bedrock/pricing/", tokenUnit: "USD_PER_MILLION_TOKENS", inferenceProfile: null, version: "FAKE_TEST_RATES_NOT_AWS_PRICES", checkedAt: new Date(Date.now() - 1000).toISOString(), expiresAt: new Date(Date.now() + 3600000).toISOString(), modelId: "amazon.nova-pro-v1:0", region: "ap-southeast-1", inputUsdPerMillion: 1, outputUsdPerMillion: 2, confirmedBy: "FAKE_TEST", evidenceHash: "f".repeat(64) }, approval: null,
 }; }
 const dir = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), "gymini-eval-")), "run");
 function fake(text = JSON.stringify(answer)): EvaluationTransport { return { kind: "FAKE", async count() { return 12; }, async invoke(input) {
@@ -32,7 +31,7 @@ test("fake transport normalizes raw candidate, usage, stop reason and append-onl
   const checked = verifyRawEvaluation({ input: { question: evidence.question, facts: [], sources: [] }, evidence }, result.parsedCandidate);
   assert.equal(checked.rawCandidate, result.parsedCandidate); assert.equal(checked.generationCalls, 0); assert.equal(checked.scientificPass, null);
   const lines = fs.readFileSync(path.join(folder, "results.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-  assert.deepEqual(lines.map((l) => l.record.event), ["ATTEMPT_STARTED", "INFERENCE_RESERVED", "ATTEMPT_FINISHED"]);
+  assert.deepEqual(lines.map((l) => l.record.event), ["TOKEN_PREFLIGHT", "ATTEMPT_STARTED", "INFERENCE_RESERVED", "RAW_RESPONSE", "ATTEMPT_FINISHED"]);
   assert.throws(() => openEvaluationSession(config(), folder, fake()));
 });
 test("schema and parse failures preserve raw text and parsed invalid candidate", async () => {
@@ -76,23 +75,9 @@ test("unknown usage stops the session and raw response secrets are redacted in p
   const missing = openEvaluationSession(config(), dir(), { ...fake(), async invoke() { return { $metadata: {}, stopReason: "end_turn" } as Awaited<ReturnType<EvaluationTransport["invoke"]>>; } });
   assert.equal((await missing.evaluate(prompt)).providerError, "USAGE_MISMATCH_OR_UNKNOWN"); assert.equal(missing.state().stopped, true);
 });
-test("TEST FIXTURE: approved gate uses existing SDK seam, exact CountTokens and maxAttempts=1 without network", async () => {
-  const c = config(); c.mode = "LIVE"; c.liveOptIn = true; c.profileModelConfirmed = true; c.region = BEDROCK_REGION; c.pricing.region = BEDROCK_REGION;
-  c.pricing.authority = "OWNER_CONFIRMED_AWS"; // synthetic authority only for exercising the positive gate
-  c.approval = { approvedBy: "TEST_FIXTURE_NOT_REAL_APPROVAL", scope: "BEDROCK_EVALUATION_PILOT", configHash: approvedConfigurationHash(c), expiresAt: new Date(Date.now() + 3600000).toISOString() };
-  const original = bedrockRuntimeDeps.send, sent: string[] = [];
-  bedrockRuntimeDeps.send = async (command, options) => {
-    assert.equal(options.maxAttempts, 1);
-    if ((command as unknown) instanceof CountTokensCommand) { sent.push("CountTokens"); return { inputTokens: 12 }; }
-    assert.ok(command instanceof ConverseCommand); sent.push("Converse");
-    return fake().invoke(command.input, options.abortSignal);
-  };
-  try {
-    const session = openEvaluationSession(c, dir());
-    await assert.rejects(() => session.evaluate(prompt), /BatchTokenPreflightRequired/);
-    const counts = await session.previewTokenCounts([prompt]);
-    assert.equal(counts[0].inputTokens, 12); assert.equal(session.state().inferenceCalls, 0);
-    assert.equal((await session.evaluate(prompt)).providerError, null);
-    assert.deepEqual(sent, ["CountTokens", "Converse"]);
-  } finally { bedrockRuntimeDeps.send = original; }
+test("caller-authored approval JSON does not authorize a live session", () => {
+  const c = config(); c.mode = "LIVE"; c.liveOptIn = true; c.profileModelConfirmed = true;
+  c.pricing.authority = "OWNER_CONFIRMED_AWS";
+  c.approval = { approvalId: randomUUID(), issuer: "UNTRUSTED_CALLER", signature: "not-a-signature", approvedBy: "TEST_FIXTURE_NOT_REAL_APPROVAL", scope: "BEDROCK_EVALUATION_PILOT", configHash: approvedConfigurationHash(c), expiresAt: new Date(Date.now() + 3600000).toISOString() };
+  assert.throws(() => openEvaluationSession(c, dir()));
 });
