@@ -16,6 +16,7 @@ export const ClaimV3Schema = z.object({
   evidenceIds: references,
   needsConfirmation: z.boolean().optional(),
   missingToConfirm: z.array(MissingInformationV3Schema).max(4).optional(),
+  deltaAssertion: z.object({ factId: z.string().min(1), unit: z.enum(["KG", "PERCENT"]), change: z.number().finite() }).strict().optional(),
   /** Copy an existing projection, never recompute the owning service's e1RM. */
   metricAssertion: z.object({
     factId: z.string().min(1),
@@ -50,6 +51,7 @@ export const AnswerV3Schema = z.object({
       if (!claim.missingToConfirm?.length) issue("missingToConfirm", "hypothesis_requires_missing_information");
     }
     if (claim.metricAssertion && claim.claimType !== "OBSERVATION") issue("metricAssertion", "metric_assertion_requires_observation");
+    if (claim.deltaAssertion && claim.claimType !== "OBSERVATION") issue("deltaAssertion", "delta_assertion_requires_observation");
     if (new Set(claim.factIds).size !== claim.factIds.length) issue("factIds", "duplicate_reference");
     if (new Set(claim.evidenceIds).size !== claim.evidenceIds.length) issue("evidenceIds", "duplicate_reference");
   });

@@ -12,6 +12,11 @@ const metrics = (input: AdvisoryInput) => input.facts.filter((f) => f.evidence.k
   .map((f) => ({ id: f.id, baseline: f.evidence.value.baselineKg as number, current: f.evidence.value.currentKg as number,
     exercise: typeof f.evidence.value.exercise === "string" ? f.evidence.value.exercise : null }));
 const issue = (severity: ContentIssue["severity"], code: string, path: string): ContentIssue => ({ severity, code, path, scope: "STRUCTURED_INVARIANT" });
+function expectedChange(metric: ReturnType<typeof metrics>[number], unit: "KG" | "PERCENT"): number | null {
+  const kg = metric.current - metric.baseline;
+  const value = unit === "KG" ? kg : metric.baseline !== 0 ? kg / metric.baseline * 100 : NaN;
+  return Number.isFinite(value) ? value : null;
+}
 
 /** Resolve only known e1RM projections, never a body-weight number or attendance
  * count. Claim references/exercise names can narrow scope, not invent facts. */
@@ -58,7 +63,7 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
       .sort((a, b) => b.length - a.length).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
     const namedExercise = exerciseNames ? `(?: (?:${exerciseNames}))?` : "";
     const deltaPatterns = [
-      { bareLift: false, pattern: new RegExp(`\\b(?:e1rm|suc manh)(?: uoc tinh)?${namedExercise}(?: cua (?:ban|toi|nguoi dung))?\\s+(tang|giam)\\s+(?:them\\s+|duoc\\s+)?(\\d+(?:[.,]\\d+)?)\\s*kg\\b`, "g") },
+      { bareLift: false, pattern: new RegExp(`\\b(?:e1rm|suc manh)(?: uoc tinh)?${namedExercise}(?: cua (?:ban|toi|nguoi dung))?\\s+(tang|giam|cao hon(?: truoc)?|thap hon(?: truoc)?|chenh lech)\\s+(?:them\\s+|duoc\\s+)?(\\d+(?:[.,]\\d+)?)\\s*(kg\\b|%|phan tram\\b)`, "g") },
       { bareLift: true, pattern: /\b(?:ban|toi) (?:da )?(nang|ha) (?:them|bot) (\d+(?:[.,]\d+)?)\s*kg\b/g },
     ];
     for (const { bareLift, pattern } of deltaPatterns) for (const m of s.matchAll(pattern)) {
@@ -69,9 +74,10 @@ export function checkTextInvariants(input: AdvisoryInput, units: TextUnit[], obs
         derivationSpans.push(span);
         continue;
       }
-      const magnitude = Number(m[2].replace(",", ".")), direction = /^(?:tang|nang)$/.test(m[1]) ? 1 : -1;
-      const delta = metric.current - metric.baseline;
-      if (Math.abs(Math.abs(delta) - magnitude) > 1e-9 || (magnitude !== 0 && Math.sign(delta) !== direction)) result.push(issue("HARD", "OBSERVATION_DELTA_CONTRADICTION", unit.path));
+      const magnitude = Number(m[2].replace(",", ".")), direction = /^(?:tang|nang|cao hon)/.test(m[1]) ? 1 : -1;
+      const delta = expectedChange(metric, m[3] && m[3] !== "kg" ? "PERCENT" : "KG");
+      if (delta === null) { result.push(issue("SOFT", "OBSERVATION_DELTA_UNVERIFIED", unit.path)); derivationSpans.push(span); }
+      else if (Math.abs(Math.abs(delta) - magnitude) > 1e-9 || (magnitude !== 0 && m[1] !== "chenh lech" && Math.sign(delta) !== direction)) result.push(issue("HARD", "OBSERVATION_DELTA_CONTRADICTION", unit.path));
       else derivationSpans.push(span);
       // An e1RM difference is not a measured change in actual lifted load.
       if (bareLift) result.push(issue("SOFT", "ACTUAL_LOAD_CHANGE_NOT_ESTABLISHED_BY_E1RM", unit.path));
@@ -97,6 +103,7 @@ export function checkServerFacts(input: AdvisoryInput, answer: AnswerV3): Conten
   // outcome. Attendance/frequency context is not a second measured outcome.
   // Other/unknown outcome kinds remain ambiguous instead of being guessed away.
   const strengthScope = !muscleQuestion && !otherOutcomeQuestion && all.length > 0;
+  if (all.length && (muscleQuestion || otherOutcomeQuestion)) result.push(issue("SOFT", "ASSESSMENT_OUTCOME_AMBIGUITY", "assessment"));
   if (strengthScope && all.length) {
     const named = all.filter((m) => m.exercise && question.includes(fold(m.exercise)));
     const scoped = named.length ? named : all;
@@ -113,6 +120,14 @@ export function checkServerFacts(input: AdvisoryInput, answer: AnswerV3): Conten
     result.push(issue("SOFT", weightOnly ? "WEIGHT_IS_NOT_MUSCLE_SIZE_MEASUREMENT" : "MUSCLE_OUTCOME_WITHOUT_SUPPORTED_MEASUREMENT", "assessment"));
   }
   answer.claims.forEach((claim, i) => {
+    if (claim.deltaAssertion) {
+      const assertion = claim.deltaAssertion, metric = all.find((m) => m.id === assertion.factId);
+      const path = `claims.${i}.deltaAssertion`;
+      if (!claim.factIds.includes(assertion.factId)) result.push(issue("HARD", "ASSERTION_FACT_NOT_CITED", path));
+      const expected = metric ? expectedChange(metric, assertion.unit) : null;
+      if (expected === null) result.push(issue("SOFT", "OBSERVATION_DELTA_UNVERIFIED", path));
+      else if (Math.abs(expected - assertion.change) > 1e-9) result.push(issue("HARD", "OBSERVATION_DELTA_CONTRADICTION", path));
+    }
     const linked = all.filter((m) => claim.factIds.includes(m.id));
     if (!linked.length) return;
     const path = `claims.${i}.text`, s = fold(claim.text);

@@ -73,6 +73,7 @@ export function evaluateContentV3(input: AdvisoryInput, candidate: unknown): Con
   answer.claims.forEach((claim, i) => {
     const p = `claims.${i}`;
     refs(claim.factIds, "fact", `${p}.factIds`); refs(claim.evidenceIds, "source", `${p}.evidenceIds`);
+    if (claim.deltaAssertion) refs([claim.deltaAssertion.factId], "fact", `${p}.deltaAssertion.factId`);
     if (claim.claimType === "PERSONAL_RECOMMENDATION") hard("PERSONAL_RECOMMENDATION_FORBIDDEN", `${p}.claimType`);
     if (claim.missingToConfirm) checkQuestions(claim.missingToConfirm, `${p}.missingToConfirm`, issues);
     if (claim.claimType === "PERSONAL_HYPOTHESIS") {

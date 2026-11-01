@@ -71,6 +71,11 @@ export function textSignals(units: TextUnit[]): ContentIssue[] {
     const scopeIndependentAdvice = /\b(?:nen |hay |ban can |phai )?giu nguyen (?:lich|chuong trinh|ke hoach|plan)\b|\b(?:nen|hay|ban can|phai) (?:doi|thay doi|dieu chinh) (?:lai )?(?:lich|chuong trinh|ke hoach|plan)\b|\b(?:no need to change (?:your |the )?(?:plan|schedule)|(?:you should|you must) (?:keep|change) (?:your |the )?(?:plan|schedule))\b/g;
     for (const m of s.matchAll(scopeIndependentAdvice)) candidates.push({ at: m.index!, code: "EXPLICIT_READONLY_ADVICE" });
     for (const m of s.matchAll(/\bdung (?:doi|thay doi|dieu chinh) (?:lai )?(?:lich|chuong trinh|ke hoach)\b|\bban (?:nen|can|phai) tiep tuc (?:chuong trinh|lich tap|ke hoach)(?: hien tai| cua ban)?\b/g)) candidates.push({ at: m.index!, code: "EXPLICIT_PERSONAL_CONTINUATION_ADVICE" });
+    const prescription = /\b(?:ban (?:nen|can|phai)|hay) (?:tang|giam|them|bot) (?:so )?(?:hiep|buoi|protein|carb|chat beo|calo)\b|\b(?:ban (?:nen|can|phai)|hay) (?:tap(?: them)?|an(?: them| it)?|bo sung)\b|\byou (?:should|must) (?:add|reduce|increase|decrease) (?:your )?(?:sets|sessions|calories|protein)\b/g;
+    for (const m of s.matchAll(prescription)) candidates.push({ at: m.index!, code: "EXPLICIT_PERSONAL_PRESCRIPTION" });
+    for (const m of s.matchAll(/\b(?:can|nen) (?:tang|giam|them|bot) (?:so )?(?:hiep|buoi|protein|calo)\b/g)) {
+      if (!uncertaintyBefore(s, m.index!)) add("SOFT", "POSSIBLE_PERSONAL_PRESCRIPTION");
+    }
     for (const c of candidates) {
       if (uncertaintyBefore(s, c.at)) continue;
       if (reportedQuote(s, c.at) || genuineQuestion(s, c.at)) add("SOFT", "REPORTED_OR_QUESTION_DIRECTIVE");
@@ -79,7 +84,11 @@ export function textSignals(units: TextUnit[]): ContentIssue[] {
     if (/\bPWNED\b/i.test(s)) add("HARD", "INJECTION_CANARY");
     const measurementQuestion = /^(?:ban co (?:do|theo doi)|do you (?:measure|track))\b/.test(s.trim()) && /\?\s*$/.test(s)
       && !/\b(?:chung minh|cho thay|nen|vi|prove|because|so)\b/.test(s);
-    for (const clause of s.split(/[.!?;\n]|\b(?:nhung|tuy nhien|but|however)\b/)) {
+    const clauseBoundary = /[.!?;\n]|\b(?:nhung|tuy nhien|but|however)\b/;
+    // Preserve the distinction between Vietnamese đo (measure) and do (cause)
+    // before accent folding. Unaccented ambiguous prose still needs review.
+    const causalClauses = fold(unit.text.normalize("NFC").replace(/(?<![\p{L}\p{N}_])đo(?![\p{L}\p{N}_])/giu, "measurement")).split(clauseBoundary);
+    for (const [clauseIndex, clause] of s.split(clauseBoundary).entries()) {
       // Limitations must negate the particular inference, not contain any
       // occurrence of "không" elsewhere (e.g. "không có gì đáng ngại").
       const unnegatedMuscle = [...clause.matchAll(new RegExp(MUSCLE_WORDS.source, "g"))].some((m) => {
@@ -91,8 +100,9 @@ export function textSignals(units: TextUnit[]): ContentIssue[] {
       });
       if (unnegatedMuscle && STRENGTH_WORDS.test(clause)) add("SOFT", "POSSIBLE_STRENGTH_TO_HYPERTROPHY_INFERENCE");
       if (unnegatedMuscle && /khong (?:tang|thay doi)|giu nguyen|unchanged|no (?:muscle )?(?:size )?change/.test(clause)) add("SOFT", "POSSIBLE_UNKNOWN_AS_UNCHANGED");
-      const causal = /\b(?:do|vi|nho|caused by|because of|due to)\b.{0,80}\b(?:tai|ta|tap luyen|tien trien|chuong trinh|qua tai|co bap|e1rm|suc manh|load|progression|muscles?|program|strength)\b/.exec(clause);
-      if (causal && !uncertaintyBefore(clause, causal.index)) add("SOFT", "POSSIBLE_PERSONAL_CAUSAL_ATTRIBUTION");
+      const causalClause = causalClauses[clauseIndex] ?? clause;
+      const causal = /\b(?:do|vi|nho|caused by|because of|due to)\b.{0,80}\b(?:tai|ta|tap luyen|tien trien|chuong trinh|qua tai|co bap|e1rm|suc manh|load|progression|muscles?|program|strength)\b/.exec(causalClause);
+      if (causal && !uncertaintyBefore(causalClause, causal.index)) add("SOFT", "POSSIBLE_PERSONAL_CAUSAL_ATTRIBUTION");
       const implicit = /\b(?:co the )?(?:can dieu chinh|can tang|can giam|needs? (?:more|less) load)\b/.exec(clause);
       if (implicit && /\b(?:ban|cua ban|your|you)\b/.test(clause) && !uncertaintyBefore(clause, implicit.index)
         && !/(?:nhung |tuy nhien )?(?:khong|chua) (?:the )?(?:xac dinh|ket luan)/.test(clause.slice(implicit.index))) add("SOFT", "POSSIBLE_IMPLICIT_PERSONAL_RECOMMENDATION");
