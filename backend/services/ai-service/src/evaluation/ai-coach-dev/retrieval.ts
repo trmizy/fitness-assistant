@@ -7,6 +7,7 @@ import { resolveSafetySignals } from "../../llm/safety-signals";
 import { safetyGuard } from "../../llm/safety_guard";
 import { EvidencePackSchema, type Source } from "../advisory-progress/experiment";
 import { resolveExcerptSources } from "../advisory-progress/source-ablation-v3";
+import { registeredScientificExcerpt } from "./source-registry";
 
 type SyntheticSource = Omit<Source, "sourceClass"> & { sourceClass: "SYNTHETIC_TEST_EXCERPT" };
 export type Passage = { source: Source | SyntheticSource; excerpts: { id: string; text: string; locator: string; authorship?: "ORIGINAL_SCIENTIFIC_EXCERPT" | "ASSISTANT_SYNTHETIC_TEST" }[] };
@@ -16,7 +17,7 @@ const SupplementSchema = z.object({
   syntheticDistractors: z.array(z.object({ id: z.string().regex(/^SYNTH_/), title: z.string(), text: z.string() }).strict()), limitations: z.array(z.string()),
 }).strict();
 export function scientificSources(corpus: Passage[]): Source[] {
-  return corpus.flatMap((p) => p.source.sourceClass === "CURATED_EVIDENCE" ? [p.source] : []);
+  return corpus.flatMap((p) => p.source.sourceClass === "CURATED_EVIDENCE" && p.excerpts.some((e) => registeredScientificExcerpt(p, e)) ? [p.source] : []);
 }
 export function prepareCorpus(packValue: unknown, mapValue: unknown, supplementValue?: unknown): Passage[] {
   const pack = EvidencePackSchema.parse(packValue);
@@ -84,10 +85,13 @@ export async function retrieveDevEvidence(question: string, corpus: Passage[], i
     const result = await retrieveV2(question, guardedIo);
     const passages = corpus.flatMap((p) => {
       if (p.source.sourceClass !== "CURATED_EVIDENCE") return [];
-      const excerpts = p.excerpts.filter((e) => result.documents.some((d) => {
+      // Specific nutrition/supplement/programming topics cannot be satisfied by a generic strength result.
+      const specific = det.concepts.filter((c) => ["NUTRITION", "SUPPLEMENTS", "PROGRAMMING"].includes(c.domain));
+      const required = specific.length ? specific : det.concepts;
+      const excerpts = p.excerpts.filter((e) => registeredScientificExcerpt(p, e) && result.documents.some((d) => {
         const source = d.metadata.knowledgeSource as RetrievedKnowledgeSource | undefined;
         return d.id === pointId(p.source.id, e.id) && source?.sourceClass === "CURATED_EVIDENCE" && source.sourceId === p.source.id;
-      }) && conceptSupport(normalizeText(e.text), det.concepts, { vietnamese: false }).supported.length > 0);
+      }) && (() => { const supported = conceptSupport(normalizeText(e.text), required, { vietnamese: false }); return specific.length ? supported.coverage === 1 : supported.supported.length > 0; })());
       return excerpts.length ? [{ source: p.source, excerpts }] : [];
     });
     return { ...base, status: searchFailed ? "UNAVAILABLE" : passages.length ? "FOUND" : "EMPTY_NO_MATCH", passages: searchFailed ? [] : passages, trace: result.trace };

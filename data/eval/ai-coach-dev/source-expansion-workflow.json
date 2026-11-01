@@ -1,0 +1,9 @@
+{
+  "version": "source-expansion-workflow-v1",
+  "status": "PENDING_SOURCE_REVIEW",
+  "automaticPromotion": false,
+  "pendingDomains": ["protein", "creatine", "nutrition", "calories", "current resistance-training guidelines", "genuine conflicting research"],
+  "steps": ["Owner selects primary source and permitted exact excerpts", "Independent scientific reviewer checks source currency, population, intervention, comparator, outcomes and limits", "Reviewer separates original quotes from authored interpretation", "Owner approves source/quote hashes and scope in a reviewed registry change", "Freeze corpus version before pilot; never mutate V1 pack"],
+  "proposalTemplate": {"sourceId":null,"doi":null,"url":null,"sourceVersion":null,"retrievedAt":null,"originalExcerpts":[],"population":null,"intervention":null,"comparator":null,"outcomes":[],"supportedClaimScopes":[],"doesNotSupport":[],"scientificReviewer":null,"decision":"PENDING_SOURCE_REVIEW"},
+  "currentRegistryAuthority": "ENGINEERING_IDENTITY_PIN_NOT_EXPERT_APPROVAL"
+}

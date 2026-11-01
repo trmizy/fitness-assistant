@@ -1,0 +1,38 @@
+{
+  "version": "dev-source-registry-v1",
+  "authority": "ENGINEERING_IDENTITY_PIN_NOT_EXPERT_APPROVAL",
+  "entries": [
+    {
+      "sourceId": "ACSM_PROGRESSIVE",
+      "metadataHash": "8d5fe297dbfff33b5514fb204f31c867ae6a5f13481f01e3454aed3de2f7d2d7",
+      "reviewStatus": "PENDING_SOURCE_REVIEW",
+      "origin": "HISTORICAL_ASSISTANT_ABSTRACT_CHECK",
+      "excerpts": [
+        {
+          "id": "ACSM_PROGRESSIVE_OPENING",
+          "textHash": "b3d00655f191501b49a0bf1e191d538401b9104464582bfa19b89615a3962df4"
+        },
+        {
+          "id": "ACSM_CONTEXT",
+          "textHash": "bf332c371da7960a39cbe04a9bb03ea03038b7d8a5b70e37f3d2c61ea6ae906d"
+        }
+      ]
+    },
+    {
+      "sourceId": "LOAD_OUTCOME_SPECIFICITY",
+      "metadataHash": "32af021967762725b935318286f7a11d15915e8f015375b6e715a94f09ce33ef",
+      "reviewStatus": "PENDING_SOURCE_REVIEW",
+      "origin": "HISTORICAL_ASSISTANT_ABSTRACT_CHECK",
+      "excerpts": [
+        {
+          "id": "LOAD_STRENGTH_RESULT",
+          "textHash": "f85cdbc9d3f289eba625a9ab83b7240f1888569ecd00e8670aa1ad7c6caab501"
+        },
+        {
+          "id": "LOAD_HYPERTROPHY_RESULT",
+          "textHash": "1a48fb20d64779e1642e6d44b0e22f0011c71f6c2f4e008c77adbe7f928e540a"
+        }
+      ]
+    }
+  ]
+}
