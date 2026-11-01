@@ -123,17 +123,17 @@ export async function runDevSlice(request: DevRequest, arm: Arm, deps: { provide
   const allowedReferences = { factIds: input.facts.map((f) => f.id), sourceIds: input.sources.map((s) => s.id) };
   const prompt = buildFiveLayerPrompt(context, evidence, arm, policy, allowedReferences);
   const safetyHandling = devRoute(context.request.question);
-  const raw = safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? null : await deps.provider.complete({ prompt, settings });
+  const raw = safetyHandling.action !== "NORMAL" ? null : await deps.provider.complete({ prompt, settings });
   const parsed = AnalysisEnvelopeSchema.safeParse(raw), envelope = parsed.success ? parsed.data : null;
   const referenceIssues = envelope ? checkNamespaces(envelope, input) : null;
   const citationReferenceIssues = envelope ? checkSourceLinks(envelope, evidence) : null;
   const blocked = !parsed.success || !!referenceIssues?.length || !!citationReferenceIssues?.length;
   return { caseId: context.request.caseId, arm, policy, settings, mode: "MOCK_PROTOCOL_ONLY" as const, modelCalls: 0,
-    input, allowedReferences, context: context.personal, evidence, prompt, raw, safetyHandling, generationCalls: safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? 0 : 1,
+    input, allowedReferences, context: context.personal, evidence, prompt, raw, safetyHandling, generationCalls: safetyHandling.action !== "NORMAL" ? 0 : 1,
     contextSize: { utf16CodeUnits: prompt.user.length, unicodeCodePoints: [...prompt.user].length, utf8Bytes: Buffer.byteLength(prompt.user, "utf8"), modelInputTokens: null },
-    schemaIssues: parsed.success || safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? [] : parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })),
+    schemaIssues: parsed.success || safetyHandling.action !== "NORMAL" ? [] : parsed.error.issues.map((i) => ({ path: i.path.join("."), code: i.code })),
     referenceIssues, citationReferenceIssues, grounding: null,
-    candidate: blocked ? null : envelope, release: safetyHandling.action === "SAFETY_HANDLING_REQUIRED" ? "SAFETY_HANDLING_REQUIRED" as const : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const,
+    candidate: blocked ? null : envelope, release: safetyHandling.action !== "NORMAL" ? safetyHandling.action : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const,
     semanticReview: prepareSemanticReview(input, evidence, envelope, raw) };
 }
 export function groundCandidate(result: Awaited<ReturnType<typeof runDevSlice>>) {
@@ -142,6 +142,6 @@ export function groundCandidate(result: Awaited<ReturnType<typeof runDevSlice>>)
   const grounding = result.generationCalls ? evaluateContentV3({ ...result.input, sources: selectedSources(result.evidence) }, parsed.success ? parsed.data.analysis : result.raw) : null;
   const blocked = result.release === "BLOCKED" || grounding?.contentGate === "BLOCKED";
   return { ...result, arm: "GROUNDED_OFFLINE" as const, generationArm: result.arm, generationCalls: 0,
-    grounding, blockerScopes: { structuredInvariant: grounding?.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT") ?? [], narrowTextHeuristic: grounding?.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "NARROW_TEXT_HEURISTIC") ?? [] },
-    candidate: blocked ? null : result.candidate, release: result.release === "SAFETY_HANDLING_REQUIRED" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
+    grounding, blockerScopes: { structuredInvariant: grounding ? grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "STRUCTURED_INVARIANT") : null, narrowTextHeuristic: grounding ? grounding.contentIssues.filter((i) => i.severity === "HARD" && i.scope === "NARROW_TEXT_HEURISTIC") : null },
+    candidate: blocked ? null : result.candidate, release: result.safetyHandling.action !== "NORMAL" ? result.release : blocked ? "BLOCKED" as const : "DEV_REVIEW_ONLY" as const };
 }

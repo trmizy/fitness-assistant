@@ -27,7 +27,8 @@ export function checkOutcomeSupport(input: AdvisoryInput, answer: AnswerV3): Con
   const relevant = outcomes.filter((f) => muscle ? false : weight ? f.evidence.kind === "OBSERVED_WEIGHT_TRAJECTORY" : fat ? f.evidence.kind === "BODY_FAT_TREND" : strength ? ["EXERCISE_E1RM_CHANGE", "DIRECT_1RM_CHANGE"].includes(f.evidence.kind) : true);
   if (answer.assessment !== "INSUFFICIENT_DATA" && !relevant.length) {
     // Unknown future outcome kinds need an adapter/review, never a blanket veto.
-    const mixedScope = outcomes.length > 0 && (!muscle || (strength && /\b(?:va|and)\b/.test(q)));
+    const singleExplicitOutcome = [muscle, strength, weight, fat].filter(Boolean).length === 1;
+    const mixedScope = outcomes.length > 0 && !singleExplicitOutcome && (!muscle || (strength && /\b(?:va|and)\b/.test(q)));
     add(unknown || mixedScope ? "SOFT" : "HARD", unknown ? "OUTCOME_ADAPTER_REQUIRED" : mixedScope ? "OUTCOME_SCOPE_REQUIRES_REVIEW" : "ASSESSMENT_WITHOUT_OUTCOME_MEASUREMENT");
   }
   const direct = relevant.filter((f) => f.evidence.kind === "DIRECT_1RM_CHANGE");

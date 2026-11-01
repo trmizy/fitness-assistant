@@ -95,9 +95,9 @@ test("R-3 attribution controls: ambiguous deltas flag; exact estimate delta is n
 test("R-3 occurrence controls: a verified delta cannot authorize another number or another metric's delta", () => {
   const squat = { ...input.facts[1], id: "F_SQUAT", evidence: { ...input.facts[1].evidence, value: { ...input.facts[1].evidence.value, exercise: "Squat", currentKg: 70 } } };
   const wrong = answer(); wrong.claims[0].text = "e1RM ước tính Squat tăng 6 kg.";
-  // Conflicting text/references must remain reviewable, not inherit the wrong fact.
+  // New P2 scope: an exact server-known canonical exercise conflicts with the cited fact.
   const r = evaluateContentV3({ ...input, facts: [...input.facts, squat] }, wrong);
-  assert.equal(r.contentGate, "FLAGGED_FOR_REVIEW"); assert.ok(r.contentIssues.some((i) => i.code === "OBSERVATION_DELTA_UNVERIFIED"));
+  assert.equal(r.contentGate, "BLOCKED"); assert.ok(r.contentIssues.some((i) => i.code === "OBSERVATION_DELTA_UNVERIFIED"));
   wrong.claims[0].factIds = ["F_SQUAT"]; wrong.claims[0].metricAssertion = { factId: "F_SQUAT", measurement: "ESTIMATED_1RM", baselineKg: 60, currentKg: 70, changePct: 10 };
   const named = evaluateContentV3({ ...input, facts: [...input.facts, squat] }, wrong);
   assert.equal(named.contentGate, "BLOCKED"); assert.ok(named.contentIssues.some((i) => i.code === "OBSERVATION_DELTA_CONTRADICTION"));

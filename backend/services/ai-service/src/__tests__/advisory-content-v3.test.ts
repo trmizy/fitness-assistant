@@ -74,10 +74,10 @@ test("V3: deterministic numeric contradiction uses the cited fact, not number oc
   const r = evaluateContentV3(input, a);
   assert.equal(r.contentGate, "BLOCKED"); assert.ok(r.contentIssues.some((i) => i.code === "FACT_VALUE_CONTRADICTION"));
 });
-test("V3: structured direct 1RM assertion contradicts estimated fact; prose is only a review signal", () => {
+test("V3: explicit direct 1RM observation contradicts an estimated fact in assertion or bounded prose", () => {
   const a = answer(); a.claims[0].metricAssertion!.measurement = "DIRECT_1RM";
   assert.equal(evaluateContentV3(input, a).contentGate, "BLOCKED");
-  assert.equal(evaluateContentV3(input, { ...answer(), claims: [{ ...observation(), text: "1RM đo trực tiếp tăng từ 60 lên 66 kg.", metricAssertion: undefined }] }).contentGate, "FLAGGED_FOR_REVIEW");
+  assert.equal(evaluateContentV3(input, { ...answer(), claims: [{ ...observation(), text: "1RM đo trực tiếp tăng từ 60 lên 66 kg.", metricAssertion: undefined }] }).contentGate, "BLOCKED");
 });
 test("V3: structured assessment cannot contradict its estimated-strength basis", () => {
   assert.equal(evaluateContentV3(input, { ...answer(), assessment: "NO_OBSERVED_CHANGE" }).contentGate, "BLOCKED");

@@ -132,6 +132,16 @@ export function checkServerFacts(input: AdvisoryInput, answer: AnswerV3): Conten
     const linked = all.filter((m) => claim.factIds.includes(m.id));
     if (!linked.length) return;
     const path = `claims.${i}.text`, s = fold(claim.text);
+    if (claim.claimType === "OBSERVATION") {
+      const proseIssue = (code: string) => result.push({ severity: "HARD", code, path, scope: "NARROW_TEXT_HEURISTIC" });
+      for (const known of all) {
+        if (!known.exercise || linked.some((m) => m.id === known.id)) continue;
+        const escaped = fold(known.exercise).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`).test(s)) proseIssue("PROSE_EXERCISE_REFERENCE_MISMATCH");
+      }
+      if (STRENGTH_WORDS.test(s) && /\d\s*(?:lb|lbs|pounds)\b/.test(s) && !/khong phai|not in|not measured in/.test(s)) proseIssue("PROSE_UNIT_MISMATCH");
+      if (/\b(?:1rm do truc tiep|1rm thuc te|directly (?:measured|tested) 1rm)\b/.test(s) && !/khong phai|chua do|not (?:a |the )?direct/.test(s)) proseIssue("PROSE_ESTIMATE_AS_DIRECT_MEASUREMENT");
+    }
     if (claim.claimType === "OBSERVATION" && !claim.metricAssertion) result.push(issue("SOFT", "MISSING_METRIC_ASSERTION", `claims.${i}.metricAssertion`));
     // Restricted from/to grammar, linked to the cited personal fact(s). A number
     // occurring elsewhere in the input is not proof of its attribution here.

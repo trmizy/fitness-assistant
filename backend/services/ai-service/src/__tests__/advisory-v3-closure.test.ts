@@ -18,7 +18,9 @@ test("closure R-A: structured delta is checked independently of prose grammar", 
 test("closure R-B: non-strength question keywords cannot silently bypass assessment", () => {
   for (const question of ["Tôi tiến bộ về dinh dưỡng chưa?", "Cân nặng và tiến bộ của tôi thế nào?", "Calo hiện tại có cho thấy tiến bộ không?"]) {
     const r = evaluateContentV3({ ...input, question }, answer());
-    assert.equal(r.contentGate, "FLAGGED_FOR_REVIEW", question); assert.ok(r.contentIssues.some((i) => i.code === "ASSESSMENT_OUTCOME_AMBIGUITY"));
+    // A single explicit weight question now hard-blocks unsupported progress;
+    // nutrition/unspecified scope still requires review rather than guessing.
+    assert.equal(r.contentGate, question.startsWith("Cân nặng") ? "BLOCKED" : "FLAGGED_FOR_REVIEW", question); assert.ok(r.contentIssues.some((i) => i.code === "ASSESSMENT_OUTCOME_AMBIGUITY"));
   }
 });
 test("closure R-C: accented measurement verb is not a causal connector", () => {

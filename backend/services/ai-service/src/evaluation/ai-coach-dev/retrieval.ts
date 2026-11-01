@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { retrieveV2, contentTerms, type V2Io, type V2Trace } from "../../llm/retrieval-v2";
 import { buildKnowledgeSource, type RetrievedKnowledgeSource } from "../../llm/knowledge-source";
-import { detectConcepts, conceptSupport, normalizeText } from "../../llm/fitness-concepts";
+import { detectConcepts, conceptSupport, normalizeText, fold } from "../../llm/fitness-concepts";
 import { resolveSafetySignals } from "../../llm/safety-signals";
 import { safetyGuard } from "../../llm/safety_guard";
 import { EvidencePackSchema, type Source } from "../advisory-progress/experiment";
@@ -67,11 +67,19 @@ export type RetrievedEvidence = {
   relevance: "V2_TOPIC_GATE_NOT_CLAIM_SUPPORT"; applicability: "REQUIRES_PERSONAL_CONTEXT_REVIEW"; claimSupport: "NOT_EVALUATED";
 };
 export function devRoute(question: string) {
-  const signals = resolveSafetySignals(question), guard = safetyGuard.check(question), det = detectConcepts(question);
+  // DEV triage normalization into the existing self-harm safety gate, not a
+  // complete crisis/medical classifier. No diagnosis or new advice policy.
+  const q = " " + fold(question).replace(/[^a-z0-9]+/g, " ") + " ";
+  const raw = " " + question.normalize("NFC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ") + " ";
+  // Preserve tự tử vs từ từ; accentless ambiguous wording needs explicit first-person intent.
+  const crisisSignal = ["tự tử", "tự sát", "muốn chết", "không muốn sống"].some((s) => raw.includes(" " + s + " "))
+    || ["toi muon tu tu", "toi muon tu sat", "toi muon chet", "toi khong muon song", "kill myself", "end my life", "hurt myself", "self harm"].some((s) => q.includes(" " + s + " "));
+  const signals = resolveSafetySignals(question), guard = safetyGuard.check(crisisSignal ? question + " self-harm" : question), det = detectConcepts(question);
   const safety = signals.level !== "NONE" || det.safety || !["safe", "off_topic"].includes(guard.type);
-  return { action: safety ? "SAFETY_HANDLING_REQUIRED" as const : "NORMAL" as const,
-    disposition: safety ? "HANDOFF_TO_EXISTING_SAFETY_FLOW" as const : null,
-    safetyLevel: signals.level, policyType: guard.type, finalSafetyAction: signals.finalSafetyAction ?? null };
+  const outOfDomain = !safety && (guard.type === "off_topic" || det.status === "OUT_OF_DOMAIN");
+  return { action: safety ? "SAFETY_HANDLING_REQUIRED" as const : outOfDomain ? "OUT_OF_DOMAIN_HANDLING_REQUIRED" as const : "NORMAL" as const,
+    disposition: safety ? "HANDOFF_TO_EXISTING_SAFETY_FLOW" as const : outOfDomain ? "DECLINE_OUT_OF_DOMAIN" as const : null,
+    crisisSignal, crisisCoverage: "BOUNDED_DEV_TRIAGE_REQUIRES_SAFETY_OWNER_REVIEW", safetyLevel: signals.level, policyType: guard.type, finalSafetyAction: signals.finalSafetyAction ?? null };
 }
 export async function retrieveDevEvidence(question: string, corpus: Passage[], io: V2Io): Promise<RetrievedEvidence> {
   const base = { question, relevance: "V2_TOPIC_GATE_NOT_CLAIM_SUPPORT" as const, applicability: "REQUIRES_PERSONAL_CONTEXT_REVIEW" as const, claimSupport: "NOT_EVALUATED" as const };
