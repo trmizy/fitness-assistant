@@ -1,0 +1,107 @@
+{
+  "version": "e3-held-out-collection-plan-v1",
+  "authority": "AI_AUTHORED_COLLECTION_BRIEF_NOT_CASE_CONTENT_NOT_GOLD",
+  "status": "PENDING_OWNER_AND_INDEPENDENT_AUTHORS",
+  "actualIndependentHeldOut": 0,
+  "minimumIndependentCaseClusters": 20,
+  "targetIndependentCaseClusters": 35,
+  "unit": "INDEPENDENT_CASE_CLUSTER_NOT_REPEAT_OR_COUNTERFACTUAL_VARIANT",
+  "caseContent": null,
+  "privateLabels": null,
+  "authorIdentities": null,
+  "existingMaterial": {
+    "aiAuthoredDraftCandidates": 30,
+    "draftGeneration": 27,
+    "draftRoutingOnly": 3,
+    "ownerReviewedCalibration": 10,
+    "calibrationAccepted": 7,
+    "calibrationRevise": 3,
+    "calibrationExplicitOwnerAssessment": 0,
+    "legacyHeldOutQuotaPlaceholders": 10,
+    "completedIndependentHeldOut": 0
+  },
+  "families": [
+    {
+      "family": "progressive-overload",
+      "minimumClusters": 3,
+      "targetClusters": 5,
+      "collectionFocus": "Tiến triển reps/tải/volume khác nhau; không quy mọi plateau cho thiếu tăng tạ.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "strength-e1rm",
+      "minimumClusters": 3,
+      "targetClusters": 5,
+      "collectionFocus": "Ước tính so với trực tiếp; khác bài tập/protocol; biến động nhỏ không có cutoff CAL02 mới.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "hypertrophy-volume",
+      "minimumClusters": 3,
+      "targetClusters": 5,
+      "collectionFocus": "C32a, phạm vi quần thể, dose-response và số đo cơ khác sức mạnh.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "tempo-rir",
+      "minimumClusters": 2,
+      "targetClusters": 4,
+      "collectionFocus": "C32b/c; thời gian mỗi pha/toàn rep; gần suy cơ so với bắt buộc mọi hiệp.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "recovery",
+      "minimumClusters": 2,
+      "targetClusters": 3,
+      "collectionFocus": "Thiếu dữ liệu ngủ/hồi phục; không bịa nguyên nhân hoặc nguồn không được duyệt.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "missing-data",
+      "minimumClusters": 2,
+      "targetClusters": 4,
+      "collectionFocus": "Thiếu/cũ/mâu thuẫn provenance; attendance không phải outcome; follow-up có ích.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "unsupported-personal-causality",
+      "minimumClusters": 2,
+      "targetClusters": 4,
+      "collectionFocus": "Nhóm thành cá nhân; đồng biến thành nhân quả; sai loại claim hoặc conclusion.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    },
+    {
+      "family": "evidence-mismatch-wrong-excerpt",
+      "minimumClusters": 3,
+      "targetClusters": 5,
+      "collectionFocus": "Đúng topic nhưng sai support; đúng nguồn sai passage; nguồn bị loại hoặc absent.",
+      "contentStatus": "NOT_SUPPLIED",
+      "author": null,
+      "labels": null
+    }
+  ],
+  "rules": [
+    "Do not copy AI drafts or calibration questions/labels into held-out.",
+    "Reviewer independently authors or substantively approves cases; record actual authorship and disclosure, not only pseudonyms.",
+    "Keep content and sealed labels outside AI-accessible workspace until freeze/release; do not tune on released held-out.",
+    "Synthetic evaluation inputs only; no real patient/user logs or identifiers.",
+    "Counterfactual variants share a case cluster; repeats are not independent cases.",
+    "Safety/out-of-domain controls are routing-only and reported separately from inference denominators.",
+    "Reserve both response-level shouldBlock=true/false judgments where outcomes permit; do not preassign gate truth from a case question alone.",
+    "If there is only an owner reviewer, label EXPLORATORY_OWNER_REVIEWED; do not claim independent held-out or two-rater evidence."
+  ]
+}

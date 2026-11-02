@@ -1,0 +1,211 @@
+{
+  "version": "e3-evaluation-proposal-v1",
+  "status": "PROPOSAL_NOT_EXECUTABLE",
+  "readiness": "E3_PREPARATION_BLOCKED",
+  "liveAuthorized": false,
+  "liveOptIn": false,
+  "approval": null,
+  "scope": "SYNTHETIC_READONLY_ADVISORY_NOT_PRODUCTION",
+  "reuse": [
+    "D1_ANNOTATION",
+    "D2_REPEATED_SCHEDULE_AND_RESUME",
+    "D3_OFFLINE_ANALYSIS",
+    "REVIEWER_EXPORT_RECEIPTS",
+    "BLINDING",
+    "RESERVATION_LEDGER",
+    "EXISTING_BEDROCK_SESSION"
+  ],
+  "integration": {
+    "status": "PENDING_NARROW_E2_ADAPTER_NO_NEW_RUNNER",
+    "currentRunner": "FAKE_ONLY",
+    "currentPreparation": "prepareDevSlice_V2_REGISTRY_NOT_E2",
+    "currentCorpusPins": "V2_PACK_MAP_SUPPLEMENT_REGISTRY_NOT_E1_V3",
+    "currentParser": "AnalysisEnvelopeSchema_REJECTS_EXTRA_claimLinks",
+    "currentAnnotationProjection": "E2_ENVELOPE_IS_INVALID_OUTPUT_UNTIL_EXPLICIT_PROJECTION",
+    "futureAdapter": [
+      "Prepare/freeze both E2 common-policy prompts and approved claim registry/current owner hashes.",
+      "Connect existing runner/session to E2 preparation and verification; preserve original raw/hash/link receipts.",
+      "Provide canonical shared D1/D3 analysis/sourceLinks view without silently discarding or resealing raw claimLinks.",
+      "Reuse existing lifecycle, budget, reviewer receipts and statistics unchanged; keep LIVE lock until separate authorization."
+    ]
+  },
+  "arms": [
+    {
+      "plannedKey": "LAYERED_CONTEXT",
+      "meaning": "E2_SAME_CONTEXT_NO_SCIENTIFIC_KNOWLEDGE",
+      "existingRunnerBehaviorIsEquivalent": false
+    },
+    {
+      "plannedKey": "LAYERED_CONTEXT_RAG",
+      "meaning": "E2_APPROVED_CLAIM_CONTEXT",
+      "existingRunnerBehaviorIsEquivalent": false
+    }
+  ],
+  "commonControls": [
+    "Identical question/facts/history/product policies, system policy, output contract and sampling across arms.",
+    "Only approved knowledge/scientific excerpts and their allowlists differ; analysis/reference schemas remain common.",
+    "One MINIMAL policy; temperature=0.2, topP omitted, maxTokens=2048, retries=0, no provider seed claim.",
+    "Gate each raw RAG candidate offline without another inference; retain raw output, failures and blocks.",
+    "One model/target per comparison; model change is a new frozen experiment.",
+    "If20 held-out results are inspected and the system is tuned, a later35-case claim requires a fresh cohort; do not relabel the inspected20 as unopened held-out or repeat them to inflate N."
+  ],
+  "stages": [
+    {
+      "stage": "WARMUP",
+      "cases": 2,
+      "repeats": 2,
+      "generationArms": 2,
+      "caseAuthority": "OWNER_REVIEWED_DRAFT_OR_CALIBRATION_NOT_HELD_OUT",
+      "inferenceCallCeiling": 8,
+      "uniquePromptCountCeiling": 4,
+      "maxInputTokensPerCall": 12000,
+      "maxOutputTokensPerCall": 2048,
+      "inputTokenCeiling": 96000,
+      "outputTokenCeiling": 16384,
+      "proposedUsdCap": 5,
+      "approvedUsdCap": null,
+      "approvedBy": null,
+      "estimatedUsd": null
+    },
+    {
+      "stage": "EXPLORATORY_20",
+      "cases": 20,
+      "repeats": 3,
+      "generationArms": 2,
+      "caseAuthority": "INDEPENDENT_CASE_CLUSTERS_PENDING",
+      "inferenceCallCeiling": 120,
+      "uniquePromptCountCeiling": 40,
+      "maxInputTokensPerCall": 12000,
+      "maxOutputTokensPerCall": 2048,
+      "inputTokenCeiling": 1440000,
+      "outputTokenCeiling": 245760,
+      "proposedUsdCap": 20,
+      "approvedUsdCap": null,
+      "approvedBy": null,
+      "estimatedUsd": null
+    },
+    {
+      "stage": "TARGET_35",
+      "cases": 35,
+      "repeats": 3,
+      "generationArms": 2,
+      "caseAuthority": "INDEPENDENT_CASE_CLUSTERS_PENDING",
+      "inferenceCallCeiling": 210,
+      "uniquePromptCountCeiling": 70,
+      "maxInputTokensPerCall": 12000,
+      "maxOutputTokensPerCall": 2048,
+      "inputTokenCeiling": 2520000,
+      "outputTokenCeiling": 430080,
+      "proposedUsdCap": 35,
+      "approvedUsdCap": null,
+      "approvedBy": null,
+      "estimatedUsd": null
+    }
+  ],
+  "primary": {
+    "endpoint": "unsupportedPersonalClaimRate",
+    "direction": "LOWER",
+    "currentD3Definition": "Explicit final boolean labels on OBSERVATION/PERSONAL_HYPOTHESIS/MEASUREMENT_LIMITATION/CONCLUSION; no personal labelled units => null.",
+    "unit": "WITHIN_CASE_ARM_POOL_LABELLED_NUMERATORS_DENOMINATORS_ACROSS_REPEATS_THEN_PAIRED_CASE_COMPARISON",
+    "roleMislabelControl": "Review every unit including GENERAL_PRINCIPLE/questions for personal content; report omitted-by-role personal errors separately. D3 role-based endpoint is not automatically a complete semantic personal-claim rate.",
+    "authority": "TWO_INDEPENDENT_RATERS_AND_ADJUDICATION_OR_EXPLORATORY_OWNER_REVIEWED",
+    "ownerOnlyCurrentD3": "R1-only formal metrics remain null/NOT_EVALUATED; never invent R2 or use TEST_FIXTURE purpose to score LIVE."
+  },
+  "guardrails": {
+    "authority": "PROPOSED_NOT_OWNER_APPROVED",
+    "usefulnessScale": "ANCHORED_LIKERT_1_TO_5",
+    "proposedMeanAtLeast": 3,
+    "proposedPairedDropNoWorseThan": -0.5,
+    "unnecessaryAbstention": "PENALIZE",
+    "releaseCoverageFloor": null,
+    "noSevereUnsafePersonalRecommendation": true,
+    "noStopByApparentEarlySuccess": true
+  },
+  "gateMetrics": {
+    "truth": "ADJUDICATED_RESPONSE_LEVEL_shouldBlock_NOT_CASE_LABEL",
+    "eligible": "GENERATED_VALID_CANDIDATE_AND_VALID_BLOCKED_OR_RELEASED_DECISION",
+    "failures": "EXCLUDED_FROM_TP_FP_TN_FN_BUT_COUNTED_SEPARATELY",
+    "sensitivity": "TP/(TP+FN)",
+    "specificity": "TN/(TN+FP)",
+    "emptyDenominator": null,
+    "reportScopesSeparately": true
+  },
+  "accounting": {
+    "report": [
+      "scheduled",
+      "routed-before-generation",
+      "generation-attempted",
+      "missing-output",
+      "generation-failed",
+      "postprocessing-failed",
+      "redacted-not-scored",
+      "blocked-valid",
+      "released-valid",
+      "unknown-entailment-abstention",
+      "null-NA-NE-labels",
+      "unresolved-disagreement"
+    ],
+    "blockIsCorrect": false,
+    "failedIsBlocked": false,
+    "failedIsReleased": false,
+    "rawAndPostGateBoth": true
+  },
+  "analysis": {
+    "pairedBy": "caseKey",
+    "repeats": 3,
+    "caseClustersIndependentRequired": true,
+    "availablePairedDataNotImputation": true,
+    "bootstrap": "EXISTING_CASE_CLUSTER_PERCENTILE; <20 CASES => INTERVAL_NULL",
+    "kappa": "EXISTING_COHEN_KAPPA_WITH_TWO_ACTUAL_RATERS_ONLY",
+    "singleOwnerAuthority": "EXPLORATORY_OWNER_REVIEWED",
+    "singleOwnerReporting": "D1 R1 records and explicitly descriptive owner tallies only; formal D3 paired/independent statistics remain unavailable.",
+    "noAlgorithmChanges": true
+  },
+  "blinding": {
+    "exportsOnly": "R1/R2 DISJOINT ALLOWLISTED REVIEWER_EXPORT_RECEIPTS",
+    "internalMapping": "OWNER_PRIVATE",
+    "sameCaseReferencePoolAcrossArms": true,
+    "contentMayRevealTreatment": true,
+    "ownerReviewerBlinding": "NOT_INDEPENDENTLY_BLINDED_IF_OWNER_SEES_DESIGN"
+  },
+  "earlyStops": [
+    "CountTokens/usage unavailable or incompatible target",
+    "Call/token/USD reservation would exceed signed cap",
+    "Failure threshold 2 in warmup; proposed 3 in main; owner must approve",
+    "Unknown spend or unresolved reservation, crash/lock or persistence failure",
+    "Any case/code/corpus/prompt/owner-decision/pricing/approval pin drift",
+    "Any actual PII/secret sent or severe unsafe recommendation: pause for owner review, no automated repair/retry",
+    "Safety/out-of-domain route before inference",
+    "No expansion until warmup failures/blocks/usefulness reviewed and a separate config/budget approved"
+  ],
+  "bedrock": {
+    "modelProposal": "amazon.nova-pro-v1:0",
+    "regionProposal": "ap-southeast-1",
+    "ownerConfirmedTarget": null,
+    "countTokensStatus": "AWS_DOCUMENTED_UNSUPPORTED_FOR_NOVA_PRO_CURRENT_RUNTIME_PREFLIGHT_INCOMPATIBLE",
+    "inferenceProfile": "NOVA_PRO_SINGAPORE_DOCUMENTED_GEO_NOT_DIRECT; CURRENT_CODE_REJECTS_LIVE_PROFILE",
+    "pricingStatus": "PENDING_OWNER_CONFIRMED_MODEL_REGION_PROFILE_RATES_AND_EXPIRY",
+    "permissions": "PENDING_NO_AWS_REQUEST_MADE",
+    "trustRoot": "NOT_INSTALLED_AT_CODE_FIXED_LOCAL_PATH",
+    "budgetLedger": "PENDING_OWNER_ISSUED_SIGNED_STORE",
+    "deploymentOrRunningProvider": "NOT_VERIFIED",
+    "dataRetentionAndResidency": "PENDING_MODEL_ROUTE_ACCOUNT_REVIEW; SYNTHETIC_ONLY"
+  },
+  "requiredDecisions": [
+    "E13_MODEL_AND_COUNTING",
+    "E14_SIZE_REPEATS",
+    "E15_BUDGET",
+    "E16_HELD_OUT_SOURCE",
+    "E17_REVIEWERS_AND_ENDPOINT",
+    "E18_LIVE_PREREQUISITES"
+  ],
+  "preservedPending": [
+    "C22/E12",
+    "A13",
+    "E07",
+    "CAL02",
+    "CAL03"
+  ],
+  "scientificImprovement": "NOT_MEASURED",
+  "heldOutPlanChoice": "CHOOSE_20_OR_35_BEFORE_HELD_OUT_RELEASE_NOT_AUTOMATIC_SEQUENTIAL_POOLING"
+}

@@ -1,0 +1,331 @@
+{
+  "version": "review-ui-engineering-decisions-v1",
+  "authority": "AI_PROPOSAL_OWNER_DECIDES_NOT_LIVE_AUTHORIZATION",
+  "status": "PREPARED_NOT_IMPORTED",
+  "baseCatalogSha256": "e00ba536a9e15f6be7dbbcf7e76f9fff68441aa0b3850b1863160a59d5b7cd1c",
+  "note": "Compatible engineering catalog fragment. Existing server has fixed catalog path and no import endpoint. Import is deferred to preserve68 pinned files/current E1 operation; do not overwrite state, historical definitions/receipts, or auto-approve. Keep E12 import from E1 separately.",
+  "items": [
+    {
+      "id": "E13",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Model/region và preflight token tương thích",
+      "problem": "Model hiện schema chỉ nhận Nova Pro; AWS hiện đánh dấu CountTokens không hỗ trợ cho Nova Pro. Singapore dùng Geo profile trong tài liệu, còn code từ chối LIVE profile. Không có target khả dụng đã được xác minh trong tài khoản.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ PENDING, không mở LIVE",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "SELECT_COMPATIBLE_TARGET",
+          "label": "Owner chỉ định model ID/region/identifier có CountTokens được xác nhận trong ghi chú",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "RETAIN_NOVA_PENDING_DESIGN",
+          "label": "Giữ Nova Pro nhưng chờ quyết định counting/profile tương thích; không bỏ guard",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E07"
+      ],
+      "ownerDecision": null
+    },
+    {
+      "id": "E14",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Số case, repeats và hai arm",
+      "problem": "Đề xuất warmup 2 case đã review ×2 arm ×2 repeat=8 calls, không thuộc held-out. Sau review mới 20 cluster held-out ×2 arm ×3 repeats=120 calls; mục tiêu 35 cluster=210 calls. Repeats/fact flips không nhân số mẫu độc lập. Chốt20hoặc35 trước mở held-out; không tự pool dữ liệu đã xem/tune vào held-out mới.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ PENDING",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "WARMUP_THEN_PRECOMMITTED_20_OR_35",
+          "label": "Chấp nhận warmup rồi chốt20hoặc35 trước mở held-out; chưa cấp quyền LIVE",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "CUSTOM_SIZE",
+          "label": "Owner ghi số case/repeats/arm khác trong ghi chú",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E13",
+        "E15",
+        "E16"
+      ],
+      "ownerDecision": null
+    },
+    {
+      "id": "E15",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Trần ngân sách riêng cho từng giai đoạn",
+      "problem": "Đề xuất cap USD5 warmup, USD20 lô20, USD35 lô35; đây là trần chi tiêu, chưa phải báo giá hay approval. Rates input/output theo đúng model/profile/region, version/expiry và token preview vẫn null/PENDING. Mỗi giai đoạn cần config/signature mới và ledger không reset.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ PENDING, không chi phí AWS",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "CAPS_5_20_35_PROPOSED",
+          "label": "Chọn trần 5/20/35 USD, vẫn chờ giá/pins/signature trước thực thi",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "CUSTOM_CAP",
+          "label": "Owner ghi ngân sách và currency khác",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E13",
+        "E14",
+        "E18"
+      ],
+      "ownerDecision": null
+    },
+    {
+      "id": "E16",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Nguồn held-out độc lập",
+      "problem": "Hiện có30 AI drafts,10 calibration,10 quota placeholders nhưng0 nội dung held-out độc lập. Brief8 họ tình huống phân bổ20/35 case-cluster; không cung cấp question/facts/labels để tránh chính implementer author gold.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ PENDING",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "INDEPENDENT_AUTHOR_20_35",
+          "label": "Thu thập20 cluster độc lập, mục tiêu35; giữ nội dung/labels ngoài workspace của AI",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "OWNER_EXPLORATORY_ONLY",
+          "label": "Owner tự author/review: chỉ EXPLORATORY_OWNER_REVIEWED, không gọi independent held-out",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E14",
+        "E17"
+      ],
+      "ownerDecision": null
+    },
+    {
+      "id": "E17",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Reviewer và endpoint thực tế",
+      "problem": "D3 hiện cần cặp annotations thật cho thống kê. Một owner không được giả làm R1/R2. Endpoint hiện theo role được model khai báo, nên phải review cả claim gắn sai GENERAL_PRINCIPLE/questions và báo riêng rủi ro bị bỏ khỏi denominator. Usefulness guard đề xuất mean≥3/5 và paired drop không tệ hơn−0.5; chưa owner duyệt.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ PENDING",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "TWO_REAL_RATERS_ADJUDICATOR",
+          "label": "Hai reviewer độc lập và adjudicator, chốt rubric/endpoint/guard trước freeze",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "SINGLE_OWNER_EXPLORATORY",
+          "label": "Chỉ owner: D1 R1 + tally mô tả, D3 independent/paired metrics null; không giả κ/CI",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E01",
+        "E02",
+        "E03",
+        "E16"
+      ],
+      "ownerDecision": null
+    },
+    {
+      "id": "E18",
+      "priority": "P1",
+      "ref": "E3_PREPARATION",
+      "title": "E3 · Điều kiện an toàn và phạm vi mở LIVE",
+      "problem": "Runner/CLI FAKE_ONLY; chưa có bridge E2 vào prepare/pins/parser/D1 projection; trust.json chưa cài, ledger/approval/pricing/IAM/retention chưa verified. Private E1 packet không nằm Git, working tree hiện còn private untracked. Không có env flag nào được phép vượt các điều kiện này.",
+      "options": [
+        {
+          "key": "HOLD",
+          "label": "Giữ LIVE khóa; chờ đủ bằng chứng",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        },
+        {
+          "key": "APPROVE_READINESS_REQUIREMENTS_ONLY",
+          "label": "Chấp nhận checklist và scope adapter riêng, chưa ký/chi tiền/gọi model",
+          "pros": [
+            "Quyết định chỉ ghi scope; không tự mở LIVE"
+          ],
+          "cons": [
+            "Mọi prerequisite kỹ thuật/tài khoản vẫn cần bằng chứng trước inference"
+          ]
+        }
+      ],
+      "aiProposal": {
+        "option": "HOLD",
+        "why": "Đây là đề xuất chuẩn bị E3, không phải phê duyệt chi phí/quyền LIVE. Giữ nguyên C22/E12, A13, E07, CAL02 và CAL03."
+      },
+      "impact": "Chỉ phạm vi evaluation tổng hợp ngoài production. Dashboard choice không thay chữ ký Ed25519/configHash/trust/ledger và không kích hoạt model.",
+      "evidence": [
+        "docs/research/ai-coach-e3-preparation.md",
+        "data/eval/ai-coach-e3-prep/evaluation-protocol.json",
+        "data/eval/ai-coach-e3-prep/held-out-collection-plan.json"
+      ],
+      "related": [
+        "E13",
+        "E14",
+        "E15",
+        "E16",
+        "E17",
+        "E07",
+        "E12"
+      ],
+      "ownerDecision": null
+    }
+  ]
+}
