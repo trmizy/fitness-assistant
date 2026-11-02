@@ -1,0 +1,379 @@
+{
+  "version": "dev-claim-retrieval-30-v1",
+  "authority": "IMPLEMENTER_AI_AUTHORED_DRAFT_LABELS_NOT_INDEPENDENT_GOLD",
+  "originalClaudeBenchmark": "NOT_FOUND_IN_SUPPLIED_ATTACHMENTS_OR_LOCAL_REVIEW_FILES; replacement questions, not claimed verbatim reuse",
+  "cases": [
+    {
+      "id": "DEVQ01",
+      "topic": "Epley",
+      "question": "Epley có sai số bao nhiêu ở người Việt?",
+      "expectedClaimIds": [
+        "C21"
+      ],
+      "relevantClaimIds": [
+        "C21"
+      ]
+    },
+    {
+      "id": "DEVQ02",
+      "topic": "Epley",
+      "question": "Epley và Brzycki công thức nào chính xác hơn?",
+      "expectedClaimIds": [
+        "C21"
+      ],
+      "relevantClaimIds": [
+        "C20",
+        "C21"
+      ]
+    },
+    {
+      "id": "DEVQ03",
+      "topic": "Epley",
+      "question": "e1RM Bench Press tăng 0,5% thì sức mạnh thật đã tăng chưa?",
+      "expectedClaimIds": [
+        "C21"
+      ],
+      "relevantClaimIds": [
+        "C06",
+        "C08",
+        "C10",
+        "C13",
+        "C21",
+        "C29"
+      ]
+    },
+    {
+      "id": "DEVQ04",
+      "topic": "Epley",
+      "question": "Ước tính 1RM từ số reps cao có đáng tin không?",
+      "expectedClaimIds": [
+        "C21"
+      ],
+      "relevantClaimIds": [
+        "C20",
+        "C21"
+      ]
+    },
+    {
+      "id": "DEVQ05",
+      "topic": "ACSM",
+      "question": "ACSM 2026 khuyên người trưởng thành tập kháng lực thế nào?",
+      "expectedClaimIds": [
+        "C11",
+        "C27"
+      ],
+      "relevantClaimIds": [
+        "C02",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C25",
+        "C26",
+        "C27"
+      ]
+    },
+    {
+      "id": "DEVQ06",
+      "topic": "ACSM",
+      "question": "Quy tắc tăng tải 2–10% của ACSM 2009 có còn là luật bắt buộc?",
+      "expectedClaimIds": [
+        "C03"
+      ],
+      "relevantClaimIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C12",
+        "C16",
+        "C25"
+      ]
+    },
+    {
+      "id": "DEVQ07",
+      "topic": "ACSM",
+      "question": "Khuyến nghị ACSM có áp nguyên cho từng cá nhân không?",
+      "expectedClaimIds": [
+        "C02",
+        "C16"
+      ],
+      "relevantClaimIds": [
+        "C02",
+        "C16",
+        "C17"
+      ]
+    },
+    {
+      "id": "DEVQ08",
+      "topic": "ACSM",
+      "question": "Tập kháng lực ít nhất hai lần mỗi tuần có phải khuyến nghị cho người khỏe mạnh?",
+      "expectedClaimIds": [
+        "C27"
+      ],
+      "relevantClaimIds": [
+        "C11",
+        "C13",
+        "C26",
+        "C27"
+      ]
+    },
+    {
+      "id": "DEVQ09",
+      "topic": "Failure-RIR",
+      "question": "Có bắt buộc tập tới suy cơ ở mọi hiệp không?",
+      "expectedClaimIds": [
+        "C32c"
+      ],
+      "relevantClaimIds": [
+        "C15",
+        "C32c"
+      ]
+    },
+    {
+      "id": "DEVQ10",
+      "topic": "Failure-RIR",
+      "question": "RIR 2–3 nghĩa là phải giữ đúng con số ấy cho mọi bài à?",
+      "expectedClaimIds": [
+        "C32c"
+      ],
+      "relevantClaimIds": [
+        "C15",
+        "C32c"
+      ]
+    },
+    {
+      "id": "DEVQ11",
+      "topic": "Failure-RIR",
+      "question": "Training to failure có cần thiết để tăng cơ không?",
+      "expectedClaimIds": [
+        "C32c"
+      ],
+      "relevantClaimIds": [
+        "C15",
+        "C32c"
+      ]
+    },
+    {
+      "id": "DEVQ12",
+      "topic": "Failure-RIR",
+      "question": "Tempo mỗi pha và thời gian của cả lần lặp khác nhau thế nào?",
+      "expectedClaimIds": [
+        "C32b"
+      ],
+      "relevantClaimIds": [
+        "C15",
+        "C32b"
+      ]
+    },
+    {
+      "id": "DEVQ13",
+      "topic": "Failure-RIR",
+      "question": "Hạ tạ thật chậm có luôn giúp tăng cơ hơn không?",
+      "expectedClaimIds": [
+        "C32b"
+      ],
+      "relevantClaimIds": [
+        "C15",
+        "C32b"
+      ]
+    },
+    {
+      "id": "DEVQ14",
+      "topic": "Light-loads",
+      "question": "Tập tạ nhẹ có tăng cơ không?",
+      "expectedClaimIds": [
+        "C07"
+      ],
+      "relevantClaimIds": [
+        "C06",
+        "C07",
+        "C09",
+        "C10"
+      ]
+    },
+    {
+      "id": "DEVQ15",
+      "topic": "Light-loads",
+      "question": "Tải nặng so với tải nhẹ khác nhau về sức mạnh 1RM thế nào?",
+      "expectedClaimIds": [
+        "C06"
+      ],
+      "relevantClaimIds": [
+        "C06",
+        "C08",
+        "C09",
+        "C10",
+        "C13"
+      ]
+    },
+    {
+      "id": "DEVQ16",
+      "topic": "Light-loads",
+      "question": "Tạ nhẹ nhiều reps thì cơ có phát triển tương tự tạ nặng không?",
+      "expectedClaimIds": [
+        "C07"
+      ],
+      "relevantClaimIds": [
+        "C06",
+        "C07",
+        "C09",
+        "C10"
+      ]
+    },
+    {
+      "id": "DEVQ17",
+      "topic": "Light-loads",
+      "question": "Có phải chỉ vùng 6–12 RM mới làm cơ to lên?",
+      "expectedClaimIds": [
+        "C04",
+        "C07"
+      ],
+      "relevantClaimIds": [
+        "C04",
+        "C07",
+        "C09",
+        "C10"
+      ]
+    },
+    {
+      "id": "DEVQ18",
+      "topic": "Protein",
+      "question": "Ăn protein cao có làm tạng to ở vận động viên thể hình không?",
+      "expectedClaimIds": [
+        "C31"
+      ],
+      "relevantClaimIds": [
+        "C31"
+      ]
+    },
+    {
+      "id": "DEVQ19",
+      "topic": "Protein",
+      "question": "Tôi cần chính xác bao nhiêu gram protein mỗi ngày?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ20",
+      "topic": "Protein",
+      "question": "Bột protein nào giúp tôi tăng cơ nhanh nhất?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ21",
+      "topic": "Recovery-deload",
+      "question": "Ngủ ít có phải nguyên nhân khiến tôi chững sức mạnh?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ22",
+      "topic": "Recovery-deload",
+      "question": "Có nên deload khi cảm thấy mệt sau buổi tập?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ23",
+      "topic": "Recovery-deload",
+      "question": "Tôi cần ngủ bao nhiêu giờ để hồi phục hoàn toàn?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ24",
+      "topic": "Recovery-deload",
+      "question": "Tôi nên nghỉ giữa các hiệp chính xác bao lâu?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ25",
+      "topic": "Broad",
+      "question": "Làm sao để tăng cơ?",
+      "expectedClaimIds": [
+        "C11",
+        "C14"
+      ],
+      "relevantClaimIds": [
+        "C01",
+        "C02",
+        "C04",
+        "C07",
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+        "C14",
+        "C15",
+        "C16",
+        "C26",
+        "C27",
+        "C28",
+        "C29",
+        "C32a",
+        "C32b",
+        "C32c",
+        "C33"
+      ]
+    },
+    {
+      "id": "DEVQ26",
+      "topic": "Broad",
+      "question": "Tôi tập đều mà không thấy tiến bộ, chương trình có hiệu quả không?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": [
+        "C02",
+        "C16",
+        "C19",
+        "C26"
+      ]
+    },
+    {
+      "id": "DEVQ27",
+      "topic": "Broad",
+      "question": "Có nên tập volume 20 hiệp mỗi nhóm cơ mỗi tuần?",
+      "expectedClaimIds": [
+        "C32a"
+      ],
+      "relevantClaimIds": [
+        "C02",
+        "C04",
+        "C14",
+        "C16",
+        "C32a"
+      ]
+    },
+    {
+      "id": "DEVQ28",
+      "topic": "Broad",
+      "question": "Bài tập nào tốt nhất cho cơ ngực của riêng tôi?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ29",
+      "topic": "Broad",
+      "question": "Chỉ nhìn cân nặng có kết luận tôi đã tăng cơ chưa?",
+      "expectedClaimIds": [],
+      "relevantClaimIds": []
+    },
+    {
+      "id": "DEVQ30",
+      "topic": "Broad",
+      "question": "e1RM và kích thước cơ có phải cùng một phép đo không?",
+      "expectedClaimIds": [
+        "C21"
+      ],
+      "relevantClaimIds": [
+        "C07",
+        "C20",
+        "C21",
+        "C29"
+      ]
+    }
+  ]
+}

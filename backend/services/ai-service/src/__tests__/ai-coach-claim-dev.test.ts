@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { buildClaimMap, digest, sha256 } from "../knowledge/scientific-claim-map-v3/builder";
 import { createClaimRegistry } from "../knowledge/scientific-claim-map-v3/registry";
-import { E1_PINS } from "../evaluation/ai-coach-claim-dev/load";
+import { syntheticClaimData } from "./fixtures/scientific-claims";
+import { claimPresentation } from "../knowledge/scientific-claim-map-v3/presentation";
 import { retrieveClaims } from "../evaluation/ai-coach-claim-dev/retrieval";
 import { prepareClaimContext } from "../evaluation/ai-coach-claim-dev/context";
 import { buildClaimPrompt, ClaimAnalysisSchema, runClaimSlice, verifyClaimAnalysis, type ClaimAnalysis } from "../evaluation/ai-coach-claim-dev/pipeline";
@@ -13,10 +13,9 @@ import { claimDevScenarios, scriptedFake } from "../evaluation/ai-coach-claim-de
 import { SETTINGS, type MockProvider } from "../evaluation/ai-coach-dev/pipeline";
 import { evaluateContentV3 } from "../evaluation/advisory-progress/content-aware-v3";
 
-const root = path.resolve(__dirname, "../../../../.."), dir = path.join(root, "data/knowledge/scientific-claim-map-v3");
-const input = JSON.parse(fs.readFileSync(path.join(dir, "input-bundle.json"), "utf8"));
-const map = JSON.parse(fs.readFileSync(path.join(dir, "claim-map.json"), "utf8"));
-const registry = createClaimRegistry(input, map, E1_PINS);
+const root = path.resolve(__dirname, "../../../../..");
+const { input, map, pins } = syntheticClaimData();
+const registry = createClaimRegistry(input, map, pins);
 const scenario = (id: string) => claimDevScenarios.find(s => s.id === id)!;
 async function rawFor(id: string) {
   const s = scenario(id), context = prepareClaimContext(s.request, registry);
@@ -111,7 +110,7 @@ test("C/D: exact revised volume/tempo/effort text retains applicability, without
     assert.equal(run.release, "DEV_REVIEW_ONLY");
     const answer: ClaimAnalysis = ClaimAnalysisSchema.parse(run.result!.candidate);
     for (const target of s.targetIds) {
-      const expectedText: string | null = registry.get(target)!.approvedTextVi;
+      const expectedText: string | null = claimPresentation(registry.get(target)!).displayTextVi;
       const claim: ClaimAnalysis["analysis"]["claims"][number] = answer.analysis.claims.find(item => item.text === expectedText)!;
       assert.equal(claim.claimType, "GENERAL_PRINCIPLE"); assert.deepEqual(claim.factIds, []);
     }
@@ -141,14 +140,16 @@ test("a legitimate retrieved source cannot make a personal hypothesis supported"
   c.claimType = "PERSONAL_HYPOTHESIS"; c.factIds = ["DEV_F_TRAINING"]; c.text = "Cần thêm dữ kiện để xem kết quả nghiên cứu có áp dụng trong trường hợp này không.";
   c.needsConfirmation = true; c.missingToConfirm = [{ key: "outcome_measurement", question: "Bạn có phép đo kết quả trực tiếp phù hợp không?" }];
   const checked = verifyClaimAnalysis(context, raw);
-  assert.equal(checked.release, "INSUFFICIENT_EVIDENCE"); assert.equal(checked.candidate, null);
-  assert.equal(checked.support[0].status, "UNKNOWN_PERSONAL_APPLICABILITY");
+  assert.equal(checked.release, "DEV_REVIEW_ONLY"); assert.ok(checked.candidate);
+  assert.equal(checked.verificationDisposition, "REQUIRES_SEMANTIC_REVIEW");
+  assert.ok(checked.support.some(s => s.status === "UNKNOWN_PERSONAL_APPLICABILITY"));
 });
 
 test("valid source identity but altered general wording is UNKNOWN_ENTAILMENT, not automatic support", async () => {
   const { context, raw } = await rawFor("C"); raw.analysis.claims[0].text = "Kết quả này chứng minh một kết luận khác.";
   const checked = verifyClaimAnalysis(context, raw);
-  assert.equal(checked.release, "INSUFFICIENT_EVIDENCE"); assert.equal(checked.support[0].status, "UNKNOWN_ENTAILMENT");
+  assert.equal(checked.release, "DEV_REVIEW_ONLY"); assert.equal(checked.support[0].status, "UNKNOWN_ENTAILMENT");
+  assert.equal(checked.verificationDisposition, "REQUIRES_SEMANTIC_REVIEW");
 });
 
 test("approved scientific wording cannot masquerade as a personal observation by omitting all scientific links", async () => {

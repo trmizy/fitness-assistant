@@ -51,7 +51,7 @@ export function scriptedFake(scenario: ClaimScenario): MockProvider {
       if (!record) continue;
       const refs = p.evidenceProvenance.filter(e => e.knowledgeClaimId === id && e.kind === "PRIMARY_SCIENTIFIC");
       const claimIndex = output.analysis.claims.length, sourceIds = [...new Set(refs.map(e => e.sourceId))];
-      output.analysis.claims.push({ claimType: "GENERAL_PRINCIPLE", text: record.approvedTextVi!, factIds: [], evidenceIds: sourceIds });
+      output.analysis.claims.push({ claimType: "GENERAL_PRINCIPLE", text: record.displayTextVi, factIds: [], evidenceIds: sourceIds });
       output.claimLinks.push({ claimIndex, knowledgeClaimId: id, knowledgeClaimHash: record.claimHash });
       for (const sourceId of sourceIds) output.sourceLinks.push({ claimIndex, sourceId, excerptIds: [...new Set(refs.filter(e => e.sourceId === sourceId).map(e => e.excerptId))] });
     }

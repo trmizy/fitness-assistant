@@ -1,13 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
 import { buildClaimMap, digest, matchQuote, sha256, validateClaimMap, verifyInputBundle } from "../knowledge/scientific-claim-map-v3/builder";
 import { createClaimRegistry } from "../knowledge/scientific-claim-map-v3/registry";
+import { syntheticClaimData } from "./fixtures/scientific-claims";
 import { InputBundle } from "../knowledge/scientific-claim-map-v3/schema";
 
-const dir = path.resolve(__dirname, "../../../../../data/knowledge/scientific-claim-map-v3");
-const input: InputBundle = JSON.parse(fs.readFileSync(path.join(dir, "input-bundle.json"), "utf8"));
+const fixture = syntheticClaimData();
+const input: InputBundle = fixture.input;
 const pins = (b: InputBundle) => ({ inputBundleSha256: digest(b), ownerDecisionsSha256: b.files.owner.sha256 });
 function edit(b: InputBundle, id: string, change: (data: any) => void): void {
   const data = JSON.parse(b.files[id].text); change(data);
@@ -16,7 +15,7 @@ function edit(b: InputBundle, id: string, change: (data: any) => void): void {
 
 test("E1 pinned output is reproducible: 33 owner decisions become 35 atomic rows, one evidence hold", () => {
   const m = buildClaimMap(input);
-  validateClaimMap(input, JSON.parse(fs.readFileSync(path.join(dir, "claim-map.json"), "utf8")));
+  validateClaimMap(input, fixture.map);
   assert.deepEqual(m.counts, { total: 35, admitted: 34, heldEvidence: 1, pendingOwner: 0, rejected: 0 });
   assert.equal(m.independentScientificValidation, false);
   for (const c of m.claims.filter(c => c.admission === "ADMITTED_DEV_OFFLINE")) {
@@ -32,7 +31,7 @@ test("C21 uses the owner's own revision, preserves follow-up scope and separates
   assert.equal(c.approvedTextVi, d.acceptedRevisionVi);
   assert.notEqual(c.approvedTextVi, (c.aiProposal.followup as any).aiRevisionVi);
   assert.deepEqual(c.ownerDecision, d);
-  assert.ok(c.evidenceReferences.some(e => e.sourceId === "PMID_16937972"));
+  assert.ok(c.evidenceReferences.some(e => e.sourceId === "SYNTH_C21"));
   assert.ok(c.evidenceLimitations.some(l => l.includes("không phải kết quả systematic search")));
   assert.ok(c.unsupportedInferences.some(l => l.includes("Người Việt cần công thức khác")));
 });
@@ -102,7 +101,7 @@ test("captured input bytes and individual source text hashes fail explicitly", (
   const b = structuredClone(input); b.files.sources.text += " ";
   assert.throws(() => verifyInputBundle(b), /SourceHashMismatch:sources/);
   const c = structuredClone(input); edit(c, "sources", d => { d.records[0].bodyText += " changed"; });
-  assert.throws(() => buildClaimMap(c), /SourceHashMismatch:PMID_/);
+  assert.throws(() => buildClaimMap(c), /SourceHashMismatch:SYNTH_/);
 });
 
 test("owner's recorded source hash is checked even when an edited review is rehashed", () => {
@@ -117,10 +116,10 @@ test("tampering approvedTextVi, applicability, limitations, citations or AI/owne
     if (field === "approvedTextVi") c.approvedTextVi += " AI rewrite";
     else if (field === "applicability") c.applicability = [];
     else if (field === "evidenceLimitations") c.evidenceLimitations = [];
-    else if (field === "sourceHashes") c.sourceHashes.PMID_28834797 = "0".repeat(64);
+    else if (field === "sourceHashes") c.sourceHashes.SYNTH_C06 = "0".repeat(64);
     else if (field === "ownerDecision") c.ownerDecision = { decision: "APPROVE", via: "AI" };
     else c.aiProposal = { ownerApproved: true };
-    assert.throws(() => validateClaimMap(input, m), field === "sourceHashes" ? /SourceHashMismatch:C06:PMID_28834797/ : /ClaimMapMismatch/);
+    assert.throws(() => validateClaimMap(input, m), field === "sourceHashes" ? /SourceHashMismatch:C06:SYNTH_C06/ : /ClaimMapMismatch/);
   }
 });
 

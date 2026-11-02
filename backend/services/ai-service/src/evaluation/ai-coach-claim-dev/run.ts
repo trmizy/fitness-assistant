@@ -1,13 +1,13 @@
-import path from "node:path";
 import { digest } from "../../knowledge/scientific-claim-map-v3/builder";
-import { loadClaimDev, E1_PINS } from "./load";
+import { loadClaimDev } from "./load";
 import { claimDevScenarios, scriptedFake } from "./fixtures";
 import { retrieveClaims } from "./retrieval";
 import { runClaimSlice } from "./pipeline";
 
 async function main() {
-  if (process.argv.slice(2).join(" ") !== "--mock") throw new Error("FAKE_ONLY: use --mock; live providers, embeddings and vector DB are unavailable");
-  const { registry, mapHash } = loadClaimDev(path.resolve(__dirname, "../../../../../.."));
+  const args = process.argv.slice(2);
+  if (args.length !== 3 || args[0] !== "--mock" || args[1] !== "--registry-config") throw new Error("FAKE_ONLY: --mock --registry-config ABSOLUTE_LOCAL_CONFIG required");
+  const { registry, mapHash, pins } = loadClaimDev(args[2]);
   const results: Array<{ id: string } & Awaited<ReturnType<typeof runClaimSlice>>> = [];
   for (const scenario of claimDevScenarios) {
     const retrieve = scenario.id === "G" ? (question: string) => {
@@ -31,7 +31,7 @@ async function main() {
   const references = results.flatMap(r => r.context.payload.evidenceProvenance);
   const exactReferences = references.filter(e => registry.get(e.knowledgeClaimId)!.evidenceReferences.some(ref =>
     ref.sourceId === e.sourceId && ref.capturedQuote === e.capturedQuote && ref.sourceSha256 === e.sourceSha256 && ref.locator === e.locator && ref.url === e.url)).length;
-  console.log(JSON.stringify({ mode: "FAKE_ONLY", evidence: "TEST FIXTURE", pins: E1_PINS, mapHash,
+  console.log(JSON.stringify({ mode: "FAKE_ONLY", evidence: "TEST FIXTURE", pins, mapHash,
     metrics: { approvedClaimTargetCoverage: { authority: "IMPLEMENTER_DEV_TARGETS_NOT_INDEPENDENT_RECALL", found: targets.filter(t => results.find(r => r.id === t.scenario)!.context.retrieval.matches.some(m => m.claim.id === t.claimId)).length, expected: targets.length },
       heldC22SuppliedToGeneration: supplied.filter(c => c.id === "C22").length,
       heldC22ExplicitlyExcluded: results.find(r => r.id === "F")!.context.retrieval.excludedIds.includes("C22"),

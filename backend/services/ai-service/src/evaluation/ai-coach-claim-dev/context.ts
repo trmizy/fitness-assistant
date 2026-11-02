@@ -2,6 +2,7 @@ import { buildDevContext, type DevRequest } from "../ai-coach-dev/context";
 import { devRoute } from "../ai-coach-dev/retrieval";
 import { digest, sha256 } from "../../knowledge/scientific-claim-map-v3/builder";
 import { retrieveClaims, type ClaimRegistry, type Retrieval } from "./retrieval";
+import { claimPresentation } from "../../knowledge/scientific-claim-map-v3/presentation";
 
 export const excerptId = (sourceId: string, capturedQuote: string): string => sourceId + ":" + sha256(capturedQuote).slice(0, 16);
 export function prepareClaimContext(request: DevRequest, registry: ClaimRegistry, options: {
@@ -34,6 +35,7 @@ export function prepareClaimContext(request: DevRequest, registry: ClaimRegistry
       trainingObservations: { classification: "OWNER_LOG_PROJECTIONS_DESCRIPTIVE_ONLY", facts: training, factProvenance: personal.personal.factProvenance.filter(p => training.some(f => f.id === p.factId)) },
       // Generation receives an allowlist projection: no retired draft text, AI rewrite or full owner-decision file.
       approvedScientificKnowledge: scientificKnowledge.map(c => ({ id: c.id, version: c.version, approvedTextVi: c.approvedTextVi,
+        ...claimPresentation(c),
         claimHash: c.claimHash, ownerApproval: "OWNER_ACCEPTED_NOT_INDEPENDENT_SCIENTIFIC_VALIDATION", provenance: c.provenance,
         population: c.population, applicability: c.applicability, evidenceLimitations: c.evidenceLimitations,
         unsupportedInferences: c.unsupportedInferences, sourceHashes: c.sourceHashes, applicabilityReview: c.applicabilityReview })),
