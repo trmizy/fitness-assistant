@@ -265,9 +265,9 @@ test("Q4 one-time approval: the stamp is ONE update (approver + time together, f
   await assert.rejects(() => prisma.$executeRawUnsafe(`UPDATE dispute_case_events SET note = 'x' WHERE id = $1::uuid`, approvedEv!.id), /append-only/);
 });
 
-test("no batch route exists: the router has exactly two policy routes, each under ONE case (and the body schema is strict: no list, no 'all', no contract id)", async () => {
+test("no batch route exists: the router has exactly two WRITE policy routes, each under ONE case, and two read-only list routes (one case / one contract); the body schema is strict: no list, no 'all', no contract id", async () => {
   const routes = (router as any).stack.filter((l: any) => l.route && /policy/.test(l.route.path)).map((l: any) => `${Object.keys(l.route.methods).join(",")} ${l.route.path}`).sort();
-  assert.deepEqual(routes, ["post /:id/policy-eligibility", "post /:id/policy-eligibility/:reviewId/approve"]);
+  assert.deepEqual(routes, ["get /:id/policy-eligibility", "get /contracts/:contractId/policy-eligibility", "post /:id/policy-eligibility", "post /:id/policy-eligibility/:reviewId/approve"], "writes: two, one case each; reads: the case's contract and one contract (backend completion, read-only)");
   const { policyEligibilityBody, policyEligibilityApproveBody } = await import("../services/dispute-case/schemas");
   const good = { result: "ELIGIBLE_CURRENT_POLICY", evidenceIds: [randomUUID()], reasoning: "x" };
   assert.ok(policyEligibilityBody.safeParse(good).success);

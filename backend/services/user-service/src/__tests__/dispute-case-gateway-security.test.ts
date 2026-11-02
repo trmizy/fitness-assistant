@@ -281,8 +281,8 @@ guardedTest("DB part: cases of other parties are invisible; party views leak not
     // 4. a client cannot see another client's case; 5. a PT outside the case cannot either (404, not 403: existence is not disclosed)
     for (const [who, tok] of [["client of B", tClientB], ["PT of B", tPtB], ["stranger", tStranger]] as const) {
       assert.equal((await call(gw, "GET", `/dispute-cases/${caseA}`, tok)).status, 404, `${who} GET`);
-      assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/statements`, tok, { text: "xâm nhập" })).status, 404, `${who} POST statement`);
-      assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tok, { description: "xâm nhập", sha256: "a".repeat(64) })).status, 404, `${who} POST evidence`);
+      assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/statements`, tok, { text: "xâm nhập" }, { "Idempotency-Key": "sec-stmt" })).status, 404, `${who} POST statement`);
+      assert.equal((await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tok, { description: "xâm nhập", sha256: "a".repeat(64) }, { "Idempotency-Key": "sec-ev" })).status, 404, `${who} POST evidence`);
       const list = await call(gw, "GET", "/dispute-cases", tok);
       assert.equal(list.status, 200);
       assert.ok(!list.json.items.some((i: any) => i.id === caseA), `${who} list`);
@@ -294,11 +294,11 @@ guardedTest("DB part: cases of other parties are invisible; party views leak not
     assert.equal((await call(direct, "GET", `/dispute-cases/${caseA}`, tStranger, undefined, { "x-user-id": A.clientUserId })).status, 404);
 
     // parties of A each post a restricted document and a statement
-    const cDoc = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tClientA, { description: "BI-MAT-KHACH", sha256: "c1".repeat(32) });
-    const pDoc = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tPtA, { description: "BI-MAT-PT", sha256: "d2".repeat(32) });
+    const cDoc = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tClientA, { description: "BI-MAT-KHACH", sha256: "c1".repeat(32) }, { "Idempotency-Key": "sec-doc-c" });
+    const pDoc = await call(gw, "POST", `/dispute-cases/${caseA}/evidence`, tPtA, { description: "BI-MAT-PT", sha256: "d2".repeat(32) }, { "Idempotency-Key": "sec-doc-p" });
     assert.equal(cDoc.status, 201);
     assert.equal(pDoc.status, 201);
-    const cStmt = await call(gw, "POST", `/dispute-cases/${caseA}/statements`, tClientA, { text: "LOI-KHAI-KHACH-MOI", supplementReason: "bổ sung" });
+    const cStmt = await call(gw, "POST", `/dispute-cases/${caseA}/statements`, tClientA, { text: "LOI-KHAI-KHACH-MOI", supplementReason: "bổ sung" }, { "Idempotency-Key": "sec-stmt-c" });
     assert.equal(cStmt.status, 201);
 
     // 8. what a party can read: own items only, no financial split, no access logs, no event payloads, no investigator internals
