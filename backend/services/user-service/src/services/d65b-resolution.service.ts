@@ -311,6 +311,7 @@ export const d65bResolutionService = {
     const c0 = await contractRepository.findById(head.contractId);
     if (!c0) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng của buổi tập");
     assertNotParty(actor.id, c0, "Người đề xuất");
+    await assessDb(prisma, sessionId, "PROPOSE"); // the system's own facts first (specific codes), then the ledger
     const ledgerBefore = await readLedger(head.contractId, sessionId);
     assertLedgerAllows(ledgerBefore);
 
@@ -385,7 +386,8 @@ export const d65bResolutionService = {
       conflictOfInterestDeclaredNone: b.conflictOfInterestDeclaredNone,
     });
     if (!verdict.ok) throw err(verdict.status, verdict.code, verdict.message);
-    // the ledger and the system must still agree (re-checked now, not trusted from the proposal)
+    // the system's facts and the ledger must still agree (re-checked now, not trusted from the proposal)
+    await assessDb(prisma, r0.sessionId, "PROPOSE");
     const ledgerAtApproval = await readLedger(r0.contractId, r0.sessionId);
     assertLedgerAllows(ledgerAtApproval);
 
@@ -457,7 +459,8 @@ async function execute(actor: Actor, id: string): Promise<ExecutionResult> {
       const done = await paymentClient.lookupLedgerOperation(unresolvedKey(r.sessionId)).catch(() => undefined);
       if (!done) assertLedgerAllows(ledgerBefore);
     } catch (e: any) {
-      await writeEvent(prisma, { ...base, action: "EXECUTION_BLOCKED", note: String(e?.message ?? e).slice(0, 300), payload: { detail: { code: e?.code ?? null } } }).catch(() => {});
+      // only a REFUSAL of the premise is audited (409); "the ledger cannot be read" (503) says nothing about the premise
+      if (e?.status === 409) await writeEvent(prisma, { ...base, action: "EXECUTION_BLOCKED", note: String(e?.message ?? e).slice(0, 300), payload: { detail: { code: e?.code ?? null } } }).catch(() => {});
       throw e;
     }
     await writeEvent(prisma, { ...base, action: "EXECUTION_STARTED", payload: { detail: { ledgerBefore } } });

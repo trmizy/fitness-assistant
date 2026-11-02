@@ -320,14 +320,15 @@ test("T4 payment-service REFUSES the call (down) or the answer times out BEFORE 
     assert.equal((await rowOf(`PT_NO_SHOW:${S.id}`))?.status, "UNCONFIRMED");
 
     // payment-service down at PROPOSAL / APPROVAL time: 503, nothing written at all
-    const p2 = await H.stopPayment().then(() => api("GET", `/sessions/${S.id}`, adminC()));
+    await H.stopPayment();
+    const p2 = await api("GET", `/sessions/${S.id}`, adminC());
     assert.equal(p2.status, 200, "reads stay available");
     assert.equal(p2.body.assessment.eligible, false, "and say plainly that the ledger cannot be read");
-    const cOther = await H.m.prisma.d65bResolutionEvent.count();
+    const eventsBefore = await H.m.prisma.d65bResolutionEvent.count();
     const dead = await approve(adminB(), p.body.id); // already approved by B -> resume -> needs the ledger
-    assert.ok(dead.status === 503 || dead.status === 409 || dead.status === 202, JSON.stringify(dead.body));
     await H.startPayment();
-    void cOther;
+    assert.deepEqual([dead.status, dead.body.code], [503, "LEDGER_UNAVAILABLE"]);
+    assert.equal(await H.m.prisma.d65bResolutionEvent.count(), eventsBefore, "an unreadable ledger writes nothing");
 
     // the approver's replay with the ledger back: paid once
     const resumed = await approve(adminB(), p.body.id);
@@ -422,7 +423,7 @@ test("T5b the database itself refuses what the service refuses: self-approval, a
     await assert.rejects(() => sql(`DELETE FROM d65b_resolution_events WHERE resolution_id = '${id}'::uuid`), /append-only/);
     await assert.rejects(
       () => sql(`INSERT INTO d65b_resolutions (id, session_id, contract_id, settlement_row_id, client_user_id, pt_user_id, reason, evidence_refs, proposed_by, ledger_before) SELECT gen_random_uuid(), 'dup-${id}', contract_id, settlement_row_id, client_user_id, pt_user_id, 'r', ARRAY['e'], 'x', '{}'::jsonb FROM d65b_resolutions WHERE id = '${id}'::uuid`),
-      /unique|duplicate/i,
+      /23505|unique|duplicate/i,
       "one proposal per held row",
     );
     // a legitimate flow still stamps once and the stamps are then frozen
@@ -439,8 +440,8 @@ test("T6 D77 trace, DISPUTED, ruled, a Case, a running contract, an unconfirmed 
   await scenario(async () => {
     const { c, S, held } = await heldNoShow();
     const prisma = H.m.prisma;
-    const snap = await footprint(c);
     const expect = async (code: string, why: string) => {
+      const snap = await footprint(c); // taken AFTER the fixture of this step, BEFORE the call
       const r = await propose(adminA(), S.id);
       assert.deepEqual([r.status, r.body.code], [409, code], why);
       assert.deepEqual(await footprint(c), snap, `${why}: nothing written`);
@@ -452,7 +453,6 @@ test("T6 D77 trace, DISPUTED, ruled, a Case, a running contract, an unconfirmed 
     const late = await prisma.sessionSettlement.create({ data: { kind: "PT_LATE_ARRIVAL_COMPENSATION", idempotencyKey: `PT_LATE_ARRIVAL:${S.id}`, sessionId: S.id, contractId: c.id, status: "SETTLED" } });
     await expect("SESSION_HAS_D77", "a PT_LATE_ARRIVAL row");
     await prisma.sessionSettlement.delete({ where: { id: late.id } });
-    snap.settlements = (await footprint(c)).settlements;
 
     // DISPUTED / PT_NO_SHOW_REPORTED
     for (const st of ["DISPUTED", "PT_NO_SHOW_REPORTED"] as const) {
@@ -496,7 +496,6 @@ test("T6 D77 trace, DISPUTED, ruled, a Case, a running contract, an unconfirmed 
     const res = await prisma.sessionSettlement.create({ data: { kind: "UNRESOLVED_SESSION_RESOLUTION", idempotencyKey: `UNRESOLVED_SESSION:${S.id}`, sessionId: S.id, contractId: c.id, status: "PENDING", reason: "DELIVERED" } });
     await expect("ALREADY_RESOLVING", "an UNRESOLVED_SESSION row exists");
     await prisma.sessionSettlement.delete({ where: { id: res.id } });
-    snap.settlements = (await footprint(c)).settlements;
 
     // and a session that is NOT held at all: a client NO_SHOW of a running contract (no refund row)
     const pt2 = await H.makePt();
@@ -525,6 +524,14 @@ test("T6b the state changes BETWEEN the proposal and the approval (a Case is ope
     assert.deepEqual(await footprint(c), snap);
     await H.m.prisma.disputeCase.update({ where: { id: k.id }, data: { status: "REJECTED_INTAKE" } });
     // the held funds are short (TEST FIXTURE: the PT's pending cut by 800,000 -> pending 100,000 + 25,000... less than one session)
+    // TEST FIXTURE: a DEBIT of 225,000 on the PT's pending of THIS transaction (the ledger reading sums entries) + the wallet and escrow lowered by the same amount (invariant holds)
+    await H.payDb.$executeRawUnsafe(
+      `INSERT INTO wallet_ledger_entries (id, wallet_id, transaction_id, entry_type, bucket, amount, balance_before, balance_after, description)
+       SELECT gen_random_uuid()::text, w.id, $2, 'DEBIT'::"LedgerEntryType", 'PENDING'::"LedgerBucket", 225000, w.pending_balance, w.pending_balance - 225000, 'TEST FIXTURE: shortfall'
+         FROM wallets w WHERE w.owner_type = 'PT'::"WalletOwnerType" AND w.owner_id = $1`,
+      c.ptUserId,
+      c.txnId,
+    );
     await H.payDb.$executeRawUnsafe(`UPDATE wallets SET pending_balance = pending_balance - 225000 WHERE owner_type = 'PT' AND owner_id = $1`, c.ptUserId);
     await H.payDb.$executeRawUnsafe(`UPDATE wallets SET available_balance = available_balance - 225000 WHERE owner_type = 'PLATFORM' AND owner_id = 'ESCROW'`);
     const snap2 = await footprint(c);
@@ -592,12 +599,13 @@ test("T8 the quota is byte-identical before and after: compensatedSessions, used
     const entitlement = async () => getRemainingEntitlements(await H.m.prisma.contract.findUniqueOrThrow({ where: { id: c.id } }));
     const q0 = await quota(c, S.id);
     const e0 = await entitlement();
+    const released0 = (await H.m.prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).releasedToPt.toString();
     const p = await propose(adminA(), S.id);
     assert.deepEqual(await quota(c, S.id), q0);
     assert.equal((await approve(adminB(), p.body.id)).status, 200);
     assert.deepEqual(await quota(c, S.id), q0);
     assert.equal(await entitlement(), e0);
-    assert.equal((await H.m.prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).releasedToPt.toString(), "67500", "the PT's released total is only the cancellation fee share: this path never pays the PT for the session");
+    assert.equal((await H.m.prisma.contract.findUniqueOrThrow({ where: { id: c.id } })).releasedToPt.toString(), released0, "this path never pays the PT: releasedToPt is exactly what the ending left");
   });
 });
 
