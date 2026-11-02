@@ -7,6 +7,7 @@ import { adminReconciliationController } from "../controllers/admin-reconciliati
 import adminPtListingRoutes from "./admin-pt-listing.routes";
 import disputeCaseAdminRoutes from "./dispute-case-admin.routes";
 import lateOpenReconciliationRoutes from "./late-open-reconciliation.routes";
+import d65bResolutionRoutes from "./d65b-resolution.routes";
 
 const router = Router();
 
@@ -25,6 +26,9 @@ router.use("/dispute-cases", disputeCaseAdminRoutes);
 
 // ── Late-open reconciliation (final safety gate): the four-eyes way out for a D77-OPEN step of an ORDINARY session (no Case, no policy review). Never touches the dispute-case tables. ──
 router.use("/late-open-reconciliations", lateOpenReconciliationRoutes);
+
+// ── D65-B: four-eyes admin resolution of the money HELD for one NO_SHOW session (its refund was never paid, the contract ended). Only NOT_DELIVERED, only to the client. ──
+router.use("/unconfirmed-session-resolutions", d65bResolutionRoutes);
 
 // ── Temporary PT suspension (contracts are NOT touched; see pt-restriction.service.ts) ──────────
 // The literal /pts/suspended is declared before the parameterised paths, though no parameterised path

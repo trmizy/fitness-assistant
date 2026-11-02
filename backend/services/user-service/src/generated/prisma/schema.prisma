@@ -1272,6 +1272,8 @@ model SessionSettlement {
   lateOpenReconciliations      LateOpenReconciliation[]
   lateOpenReconciliationEvents LateOpenReconciliationEvent[]
   lateOpenRecoveries           LateOpenRecovery[]
+  d65bResolution               D65bResolution?
+  d65bResolutionEvents         D65bResolutionEvent[]
 
   // The sweep's own query: "everything not yet SETTLED".
   @@index([status])
@@ -2208,4 +2210,56 @@ model LateOpenRecovery {
 
   @@index([reconciliationId])
   @@map("late_open_reconciliation_recoveries")
+}
+
+/// D65-B (03/11/2026). Four-eyes admin resolution of the money HELD for ONE NO_SHOW session whose compensation row is UNCONFIRMED (the ending held its value; the ledger never paid it).
+/// ONE proposal per session, ever (unique session_id / settlement_row_id). NO amount, NO outcome column the caller can choose: the only outcome is NOT_DELIVERED, the value is read
+/// by the ledger from the contract's own pending. `ledger_before` is the ledger reading at proposal time; the approval stamp (approved_by, approved_at, approval_reason) and the outcome
+/// stamp (outcome, outcome_at, ledger_after) are one-time NULL -> value changes, everything else is immutable (trigger).
+model D65bResolution {
+  id              String    @id @default(uuid()) @db.Uuid
+  sessionId       String    @unique @map("session_id")
+  contractId      String    @map("contract_id")
+  settlementRowId String    @unique @map("settlement_row_id")
+  clientUserId    String    @map("client_user_id")
+  ptUserId        String    @map("pt_user_id")
+  reason          String
+  evidenceRefs    String[]  @map("evidence_refs")
+  proposedBy      String    @map("proposed_by")
+  ledgerBefore    Json      @map("ledger_before")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  approvedBy      String?   @map("approved_by")
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz(3)
+  approvalReason  String?   @map("approval_reason")
+  outcome         String?
+  outcomeAt       DateTime? @map("outcome_at") @db.Timestamptz(3)
+  ledgerAfter     Json?     @map("ledger_after")
+
+  row    SessionSettlement     @relation(fields: [settlementRowId], references: [id], onDelete: Restrict)
+  events D65bResolutionEvent[]
+
+  @@index([contractId])
+  @@map("d65b_resolutions")
+}
+
+/// APPEND-ONLY audit of the D65-B path (proposed, approved, execution started / failed / blocked / done).
+model D65bResolutionEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  resolutionId    String   @map("resolution_id") @db.Uuid
+  settlementRowId String   @map("settlement_row_id")
+  sessionId       String   @map("session_id")
+  contractId      String   @map("contract_id")
+  action          String
+  actorUserId     String   @map("actor_user_id")
+  actorRole       String   @map("actor_role")
+  note            String?
+  payload         Json?
+  idempotencyKey  String?  @unique @map("idempotency_key")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  resolution D65bResolution    @relation(fields: [resolutionId], references: [id], onDelete: Restrict)
+  row        SessionSettlement @relation(fields: [settlementRowId], references: [id], onDelete: Restrict)
+
+  @@index([resolutionId, createdAt])
+  @@map("d65b_resolution_events")
 }
