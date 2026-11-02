@@ -42,7 +42,8 @@ app.use(
     },
     credentials: true,
     // C1-10: paged admin lists report their totals in these headers; browsers can only read them if exposed.
-    exposedHeaders: ["X-Total-Count", "X-Page", "X-Limit"],
+    // Idempotent-Replay: the dispute-case / late-open routes mark a replayed idempotent answer with it; the UI reads it.
+    exposedHeaders: ["X-Total-Count", "X-Page", "X-Limit", "Idempotent-Replay"],
   }),
 );
 // Identity headers are gateway-authority ONLY. Strip any client-supplied x-user-*/x-gateway-secret

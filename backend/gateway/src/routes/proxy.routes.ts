@@ -1399,6 +1399,20 @@ router.use(
   }),
 );
 
+// Late-open (D77 OPEN) reconciliation — admin side, four-eyes (User Service). The gateway only gates by role and forwards; user-service re-checks ADMIN,
+// takes the acting admin from the verified token and refuses every mutating route (409 LATE_OPEN_RECONCILIATION_DISABLED) while its fail-closed flag is off,
+// which is the case in every environment except the isolated test one. Proxying the route does not turn anything on.
+router.use(
+  "/admin/late-open-reconciliations",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (late-open reconciliation)"),
+  }),
+);
+
 // Dispute Case (slice 1) — party side: the client / PT of a case reads their own redacted view and submits statements and
 // evidence metadata. Any authenticated user may reach it; user-service answers only for a party of the case.
 router.use(
