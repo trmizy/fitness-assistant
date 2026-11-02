@@ -90,10 +90,12 @@ export async function runControlledPilot(options: RunnerOptions) {
         const previous = JSON.parse(fs.readFileSync(file, "utf8"));
         if (previous.configHash !== configHash || previous.promptHash !== row.promptHash || digest(previous.verification) !== digest(redact(verification)) || previous.candidateHash !== digest(result.parsedCandidate)) throw new PilotError("RESULT_INTEGRITY_FAILED");
       } else {
-        const packets = createAnnotationPackets({ question: row.verificationContext.input.question, facts: row.verificationContext.input.facts, evidence: row.verificationContext.evidence, candidate: result.parsedCandidate ?? result.rawText });
+        const packets = createAnnotationPackets({ question: row.verificationContext.input.question, facts: row.verificationContext.input.facts, evidence: row.verificationContext.evidence, candidate: result.parsedCandidate ?? result.rawText,
+          redactionChanged: "representation" in result && (result.representation as { scoringDisposition?: string } | undefined)?.scoringDisposition === "REDACTED_NOT_SCORED" });
         const reviewerExportHashes = Object.fromEntries(packets.reviewers.map((packet) => [packet.reviewerSlot, reviewerExport(packet).hash]));
         for (const packet of packets.reviewers) Object.assign(packet, { reviewerExportHashes });
-        atomicCreate(file, redact({ configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), raw: result, verification, packets }));
+        // Packet hashes are sealed AFTER sanitizing; never redact a sealed packet again.
+        atomicCreate(file, { configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), raw: result, verification: redact(verification), packets });
       }
       const stored = JSON.parse(fs.readFileSync(file, "utf8"));
       for (const packet of stored.packets.reviewers) {

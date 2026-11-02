@@ -2,12 +2,13 @@
 import { z } from "zod";
 import { ARMS, POLICY_VARIANTS, AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { attemptIdentity } from "../bedrock-pilot/design";
-import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, type createAnnotationPackets } from "./annotations";
+import { AdjudicationSchema, AnnotationSchema, ManifestSchema, ReviewerCaseSchema, annotationUnits, validateAnnotation, type ReviewerPacket } from "./annotations";
 import { digest } from "./identity";
+import { redact } from "./representation";
 import { outputLifecycle } from "./lifecycle";
 import { cohensKappa, pairedClusterBootstrap, type Category, type CaseCell } from "./statistics";
 
-type Packet = ReturnType<typeof createAnnotationPackets>["reviewers"][number];
+type Packet = ReviewerPacket;
 const Hash = z.string().regex(/^[a-f0-9]{64}$/);
 const Authority = z.enum(["TEST_FIXTURE", "REVIEWER_ATTESTED"]);
 export const AnalysisAttemptSchema = z.object({ attemptKey: Hash, caseKey: z.string(), arm: z.enum(ARMS), policy: z.enum(POLICY_VARIANTS), repeatIndex: z.number().int().min(0).max(49), configHash: Hash, promptHash: Hash }).strict();
@@ -62,7 +63,7 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     const metadata = schedule.get(output.attemptKey); if (!metadata) throw new Error("OutputNotScheduled");
     const frozen = cases.get(metadata.caseKey)!, packet = output.packet, body = packet.body;
     const packetCandidate = output.raw.candidate ?? output.raw.text;
-    if (!body || digest(body) !== packet.packetHash || body.candidateHash !== digest(packetCandidate) || digest(body.units) !== digest(annotationUnits(packetCandidate)) || body.question !== frozen.sealed.case.request.question || digest(body.facts) !== digest(frozen.sealed.case.request.snapshots.flatMap((s) => s.facts))) throw new Error("PacketRawOrCaseMismatch");
+    if (!body || digest(body) !== packet.packetHash || body.candidateHash !== digest(redact(packetCandidate)) || digest(body.units) !== digest(annotationUnits(redact(packetCandidate))) || body.question !== redact(frozen.sealed.case.request.question) || digest(body.facts) !== digest(redact(frozen.sealed.case.request.snapshots.flatMap((s) => s.facts)))) throw new Error("PacketRawOrCaseMismatch");
     const lifecycle = outputLifecycle(output.raw.status, output.postGate.decision, output.raw.candidate);
     const parsed = AnalysisEnvelopeSchema.safeParse(output.raw.candidate), valid = lifecycle.validGenerated;
     if ((valid && !parsed.success) || (output.postGate.decision === "ELIGIBLE" && !valid)) throw new Error("RawPostGateContractMismatch");
@@ -80,9 +81,10 @@ export function analyzeOffline(value: unknown, options: { resamples?: number; sa
     }
     const paired = !!left && !!right;
     const eligibleAuthority = paired && frozen.authority === "REVIEWER_ATTESTED" && annotations.every((a) => a.authority === "REVIEWER_ATTESTED" && a.reviewerPseudonym !== frozen.sealed.case.author.pseudonym);
-    const qualified = input.purpose === "INDEPENDENT_ANALYSIS" && output.raw.executionMode === "LIVE" && eligibleAuthority;
+    const representationEligible = body.representation?.scoringDisposition !== "REDACTED_NOT_SCORED";
+    const qualified = input.purpose === "INDEPENDENT_ANALYSIS" && output.raw.executionMode === "LIVE" && eligibleAuthority && representationEligible;
     // Fixture arithmetic is an explicit diagnostic, never published semantic results.
-    const calculate = qualified || input.purpose === "TEST_FIXTURE" && paired;
+    const calculate = representationEligible && (qualified || input.purpose === "TEST_FIXTURE" && paired);
     function finalLabel(unitId: string, axis: Axis): unknown {
       const a = axis === "usefulness" ? left?.usefulness : left?.units.find((u) => u.unitId === unitId)?.[axis];
       const b = axis === "usefulness" ? right?.usefulness : right?.units.find((u) => u.unitId === unitId)?.[axis];

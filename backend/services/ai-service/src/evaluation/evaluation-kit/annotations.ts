@@ -6,6 +6,7 @@ import { z } from "zod";
 import { DevRequestSchema } from "../ai-coach-dev/context";
 import { AnalysisEnvelopeSchema } from "../ai-coach-dev/pipeline";
 import { canonical, digest } from "./identity";
+import { protect } from "./representation";
 const Hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const ReviewerCaseSchema = z.object({
   version: z.literal("reviewer-case-v1"), caseKey: z.string().regex(/^case-[a-z0-9-]+$/), split: z.enum(["REVIEWED_DEV", "HELD_OUT"]),
@@ -55,7 +56,8 @@ export function annotationUnits(candidate: unknown) {
     ...parsed.data.analysis.missingInformation.map((q, i) => ({ unitId: "QUESTION_" + i, type: "QUESTION", text: q.question })),
   ] : [{ unitId: "INVALID_OUTPUT", type: "INVALID_OUTPUT", rawCandidate: candidate }];
 }
-export function createAnnotationPackets(input: { question: string; facts: unknown; evidence: unknown; candidate: unknown }) {
+export function createAnnotationPackets(original: { question: string; facts: unknown; evidence: unknown; candidate: unknown; redactionChanged?: boolean }) {
+  const protectedInput = protect(original), input = protectedInput.value as typeof original;
   const units = annotationUnits(input.candidate);
   const instanceId = randomUUID();
   // Drop retrieval trace/status/treatment and any extra case/label metadata.
@@ -64,7 +66,8 @@ export function createAnnotationPackets(input: { question: string; facts: unknow
     const p = value as { source?: { id?: unknown; title?: unknown; doi?: unknown; url?: unknown; applicability?: unknown; limitations?: unknown }; excerpts?: { id?: unknown; text?: unknown; locator?: unknown; authorship?: unknown }[] };
     return { sourceId: p.source?.id ?? null, sourceMetadata: { title: p.source?.title ?? null, doi: p.source?.doi ?? null, url: p.source?.url ?? null }, originalExcerpts: (p.excerpts ?? []).map((e) => ({ id: e.id ?? null, text: e.text ?? null, locator: e.locator ?? null, authorship: e.authorship ?? "UNVERIFIED" })), assistantAuthoredInterpretation: { applicability: p.source?.applicability ?? null, limitations: p.source?.limitations ?? null } };
   }) : [];
-  const body = { instanceId, question: input.question, facts: input.facts, evidence: publicEvidence, units, candidateHash: digest(input.candidate) };
+  const body = { instanceId, question: input.question, facts: input.facts, evidence: publicEvidence, units, candidateHash: digest(input.candidate),
+    representation: { version: "redacted-canonical-v1", ...protectedInput.receipt, scoringDisposition: protectedInput.receipt.changed || original.redactionChanged ? "REDACTED_NOT_SCORED" : "UNCHANGED" } };
   const packetHash = digest(body);
   return { ownerLinkage: { instanceId, packetHash, candidateHash: body.candidateHash }, reviewers: ["R1", "R2"].map((reviewerSlot) => ({ packetHash, reviewerSlot, body })) };
 }

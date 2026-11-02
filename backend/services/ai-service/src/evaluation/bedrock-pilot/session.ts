@@ -5,6 +5,8 @@ import { ConverseCommand, CountTokensCommand, type ConverseCommandInput, type Co
 import { BEDROCK_REGION, bedrockRuntimeDeps, buildConverseTextInput, parseConverseText } from "../../services/bedrock.client";
 import { AnalysisEnvelopeSchema, type Prompt } from "../ai-coach-dev/pipeline";
 import { digest } from "../evaluation-kit/identity";
+import { protect, redact } from "../evaluation-kit/representation";
+export { redact } from "../evaluation-kit/representation";
 import { approvedConfigurationHash, assertCurrentAuthorization, estimatedCost, parseConfiguration, PilotError, type SessionConfig } from "./config";
 import { installedApproval, issueFixtureLedger, openBudgetLedger } from "./ledger";
 import { atomicCreate, openJournal } from "./storage";
@@ -33,12 +35,6 @@ function liveTransport(): EvaluationTransport {
     },
     async invoke(input, abortSignal) { return await bedrockRuntimeDeps.send(new ConverseCommand(input), { abortSignal, maxAttempts: 1 }) as ConverseCommandOutput; },
   };
-}
-export function redact(value: unknown): unknown {
-  if (typeof value === "string") return value.replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, "[REDACTED]").replace(/Bearer\s+[A-Za-z0-9._~+/-]+/gi, "Bearer [REDACTED]").replace(/((?:api[_-]?key|secret(?:accesskey)?|sessiontoken|password)\s*["']?\s*[:=]\s*["']?)[^\s,"'}]+/gi, "$1[REDACTED]");
-  if (Array.isArray(value)) return value.map(redact);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, /credential|api.?key|secret|password|sessiontoken/i.test(k) ? "[REDACTED]" : redact(v)]));
-  return value;
 }
 function category(error: unknown): string {
   if (error instanceof PilotError) return error.code;
@@ -128,7 +124,8 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
       rawText = (response.output?.message?.content ?? []).map((b) => "text" in b ? b.text ?? "" : "").join("");
       stopReason = response.stopReason ?? null; inputTokens = response.usage?.inputTokens ?? null; outputTokens = response.usage?.outputTokens ?? null;
       // First durable response copy. Later verification/summary failures retain it.
-      append({ event: "RAW_RESPONSE", attemptKey: key, promptHash: hash, rawText, rawTextHash: digest(rawText), inputTokens, outputTokens, stopReason });
+      const safeText = protect(rawText);
+      append({ event: "RAW_RESPONSE", attemptKey: key, promptHash: hash, rawText: safeText.value, rawTextHash: safeText.receipt.storedHash, representation: safeText.receipt, inputTokens, outputTokens, stopReason });
       if (inputTokens !== inputCount || !Number.isInteger(outputTokens) || outputTokens! < 0 || outputTokens! > cap) { save({ stopped: true }, "USAGE_MISMATCH"); providerError = "USAGE_MISMATCH_OR_UNKNOWN"; }
       else {
         const latest = ledger.state(); save({ outputTokens: latest.outputTokens - cap + outputTokens!, estimatedUsd: estimatedCost(config, latest.inputTokens, latest.outputTokens - cap + outputTokens!) }, "USAGE_RECONCILED"); reconciled = true;
@@ -138,8 +135,12 @@ export function openEvaluationSession(value: unknown, directory: string, fake?: 
         }
       }
     } catch (e) { if (fatal) throw e; providerError = category(e); }
+    const safeText = protect(rawText), safeCandidate = protect(parsedCandidate);
+    if (!providerError && !parseError && !AnalysisEnvelopeSchema.safeParse(safeCandidate.value).success) parseError = "REDACTION_SCHEMA_CHANGED";
     if (providerError || parseError) { const failures = ledger.state().failures + 1; save({ failures, stopped: ledger.state().stopped || failures >= config.budget.maxFailures }, "ATTEMPT_FAILED"); }
-    const result = { event: "ATTEMPT_FINISHED", executionMode: config.mode, attemptKey: key, promptHash: hash, rawText, rawTextHash: rawText === null ? null : digest(rawText), parsedCandidate, parseError, providerError, inputTokens, outputTokens,
+    const representation = { version: "redacted-canonical-v1", rawText: safeText.receipt, candidate: safeCandidate.receipt,
+      scoringDisposition: safeText.receipt.changed || safeCandidate.receipt.changed ? "REDACTED_NOT_SCORED" : "UNCHANGED" };
+    const result = { event: "ATTEMPT_FINISHED", executionMode: config.mode, attemptKey: key, promptHash: hash, rawText: safeText.value as string | null, rawTextHash: rawText === null ? null : safeText.receipt.storedHash, parsedCandidate: safeCandidate.value, representation, parseError, providerError, inputTokens, outputTokens,
       latencyMs: Date.now() - started, countLatencyMs, inferenceLatencyMs: Date.now() - inferenceStarted, stopReason, target,
       estimatedUsd: reconciled ? estimatedCost(config, inputTokens!, outputTokens!) : null, conservativeReservationRetained: !reconciled };
     append(result); return result;
