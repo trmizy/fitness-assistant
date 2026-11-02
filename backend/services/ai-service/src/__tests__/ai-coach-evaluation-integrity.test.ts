@@ -100,7 +100,7 @@ test("reviewer export persistence failure retains a sealed internal answer and r
   const stored=JSON.parse(fs.readFileSync(path.join(directory,files[0]),"utf8")); assert.equal(digest(stored.packets.reviewers[0].body),stored.packets.reviewers[0].packetHash);
   assert.ok(!fs.readFileSync(path.join(directory,"results.jsonl"),"utf8").includes("FAKE_PERSIST_SECRET"));
   const answerFile=path.join(directory,files[0]), originalBytes=fs.readFileSync(answerFile);
-  for (const packet of stored.packets.reviewers) { packet.body.units[0].text += "tampered"; packet.packetHash=digest(packet.body); }
+  for (const packet of stored.packets.reviewers) { packet.body.units[0].text = "tampered " + packet.body.units[0].text; packet.packetHash=digest(packet.body); }
   const forgedHashes=Object.fromEntries(stored.packets.reviewers.map((p: Parameters<typeof reviewerExport>[0])=>[p.reviewerSlot,reviewerExport(p).hash]));
   for (const packet of stored.packets.reviewers) packet.reviewerExportHashes=forgedHashes;
   fs.writeFileSync(answerFile,JSON.stringify(stored));

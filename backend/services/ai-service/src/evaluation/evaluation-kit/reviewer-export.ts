@@ -1,6 +1,7 @@
 /** Reviewer directory contains only allowlisted, sealed packets, never run metadata. */
 import { z } from "zod";
 import { digest } from "./identity";
+import { redact } from "./representation";
 import type { ReviewerPacket } from "./annotations";
 
 const blockedKeys = /^(arm|policy|repeat|repeatIndex|expected.*|labels|gateDecision|postGate|verification|diagnostics|trace|retrievalTrace|ownerLinkage|attemptKey|configHash|promptHash|caseKey|split)$/i;
@@ -22,10 +23,12 @@ export function reviewerExport(packet: ReviewerPacket): { artifact: z.infer<type
   const artifact = ExportSchema.parse({ version: "blind-review-v1", opaqueId: b.instanceId, packetHash: packet.packetHash, reviewerSlot: packet.reviewerSlot,
     body: { question: b.question, facts: b.facts, evidence: b.evidence, units: b.units } });
   assertBlind(artifact.body);
+  if (digest(redact(artifact)) !== digest(artifact)) throw new Error("ReviewerExportRequiresRedactionReseal");
   return { artifact, hash: digest(artifact) };
 }
 export function verifyReviewerExport(value: unknown, expectedHash: string) {
   const artifact = ExportSchema.parse(value); assertBlind(artifact.body);
+  if (digest(redact(artifact)) !== digest(artifact)) throw new Error("ReviewerExportRequiresRedactionReseal");
   if (digest(artifact) !== expectedHash) throw new Error("ReviewerExportIntegrityFailed");
   return artifact;
 }
