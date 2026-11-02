@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "name": "prisma-client-538c7e083990cb552cba22690efe403523126d278ef12e874180e0f55107e124",
-=======
-  "name": "prisma-client-01f3641b7d3fbe7205199b0f61dacdf2bd1e9941dc65a89563aaee33fca19f55",
->>>>>>> dispute-bc-d65
+  "name": "prisma-client-e9645f7691704a41c824c8879613d54a849344a823d0ea26d2275d1f1d926838",
   "main": "index.js",
   "types": "index.d.ts",
   "browser": "index-browser.js",

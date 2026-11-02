@@ -1404,6 +1404,15 @@ router.use(
 // which is the case in every environment except the isolated test one. Proxying the route does not turn anything on.
 router.use(
   "/admin/late-open-reconciliations",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (late-open reconciliation)"),
+  }),
+);
+
 // D65-B — admin resolution of the money held for a NO_SHOW session (User Service): propose / approve / list / detail. ADMIN only at the gateway;
 // user-service re-checks ADMIN, the conflict of interest and four-eyes, and takes the acting admin from the verified token.
 router.use(
@@ -1413,7 +1422,6 @@ router.use(
   createProxyMiddleware({
     target: USER_SERVICE_URL,
     changeOrigin: true,
-    onError: serviceUnavailable("User service (late-open reconciliation)"),
     onError: serviceUnavailable("User service (D65-B resolution)"),
   }),
 );
