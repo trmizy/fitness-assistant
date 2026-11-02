@@ -1399,6 +1399,19 @@ router.use(
   }),
 );
 
+// D65-B — admin resolution of the money held for a NO_SHOW session (User Service): propose / approve / list / detail. ADMIN only at the gateway;
+// user-service re-checks ADMIN, the conflict of interest and four-eyes, and takes the acting admin from the verified token.
+router.use(
+  "/admin/unconfirmed-session-resolutions",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service (D65-B resolution)"),
+  }),
+);
+
 // Dispute Case (slice 1) — party side: the client / PT of a case reads their own redacted view and submits statements and
 // evidence metadata. Any authenticated user may reach it; user-service answers only for a party of the case.
 router.use(
