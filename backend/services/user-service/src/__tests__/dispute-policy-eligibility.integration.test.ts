@@ -163,11 +163,10 @@ test("supersede: ELIGIBLE (approved) opens, a later approved EXCEPTION_APPLIES t
   await refuses(resolveDisputeCore(s.session.id, "x", "COMPLETED", "n"), 409, "POLICY_EXCEPTION_APPLIES");
   await new Promise((r) => setTimeout(r, 15));
   await eligibilityViaApi(a.caseId, inv, "ELIGIBLE_CURRENT_POLICY", { supersedesId: second.proposed.reviewId });
-  await resolveDisputeCore(s.session.id, "x", "COMPLETED", "n").catch((e) => {
-    throw e;
-  });
-  // (the payment stub refuses the money step; the decision itself is committed and the step is recorded for retry)
-  assert.equal((await sessionRow(s.session.id)).status, "COMPLETED");
+  // D65 track B: the policy guard now PASSES (the newest approved row is ELIGIBLE), and the old door is then stopped by the rule that it never rules over a Case (this session has an approved Case):
+  // the answer changing from POLICY_EXCEPTION_APPLIES to CASE_EXISTS is what shows the newest approved row decided. Only the Case executor may rule it.
+  await refuses(resolveDisputeCore(s.session.id, "x", "COMPLETED", "n"), 409, "CASE_EXISTS");
+  assert.equal((await sessionRow(s.session.id)).status, "DISPUTED");
   assert.equal((await reviewsOf(s.contract.id)).length, 3, "history stays: three rows");
 });
 

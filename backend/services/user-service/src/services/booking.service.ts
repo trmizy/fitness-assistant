@@ -374,9 +374,9 @@ export async function resolveDisputeCore(
   ) => {
     const endedAtClaim = await withContractLock(session.contractId, async (tx) => {
       await assertNotEnding(session.contractId, tx);
-      await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B: the old door never rules over a Case (T0 off included)
       // Dispute Case slice 2: the CaseDecision + D77 (B-1) guard, under THIS lock and BEFORE the compare-and-set below. No ctx = the old exit: nothing here.
       await assertPolicyEligibility(tx, session.contractId); // D-NEW-12: every door (the old route and every retry included), fail-closed, before anything is written
+      await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B: the old door never rules over a Case (T0 off included). After the policy guard so that guard's answers are unchanged.
       await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
       await assertCancelNotOverD77(tx, sessionId, resolution); // I6 = A: every door, not only the Case executor
       const contract = await contractRepository.findById(session.contractId, tx);
@@ -468,8 +468,8 @@ export async function resolveDisputeCore(
       {
         // D-NEW-12 + the CaseDecision guard, under the contract lock, before the compare-and-set - for the old route too (no ctx).
         beforeClaim: async (tx) => {
-          await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B
           await assertPolicyEligibility(tx, session.contractId);
+          await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B (after the policy guard, whose answers stay as they were)
           await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
         },
         caseDecisionId: ctx?.caseDecisionId,
