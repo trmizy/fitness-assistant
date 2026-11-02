@@ -164,10 +164,14 @@ export async function cleanup() {
   );
   if (created.complaints.length) await prisma.gymComplaint.deleteMany({ where: { id: { in: created.complaints } } });
   if (created.gyms.length) await prisma.gymComplaint.deleteMany({ where: { gymId: { in: created.gyms } } });
-  if (created.memberships.length) {
-    await prisma.gymMembershipReferral.deleteMany({ where: { membershipContractId: { in: created.memberships } } });
-    await prisma.gymMembershipContract.deleteMany({ where: { id: { in: created.memberships } } });
+  // memberships / plans may also have been created by the code under test (membershipService.purchase): clear by gym / brand, not only by id
+  if (created.gyms.length) {
+    await prisma.gymMembershipReferral.deleteMany({ where: { gymId: { in: created.gyms } } });
+    await prisma.gymCheckIn.deleteMany({ where: { gymId: { in: created.gyms } } });
+    await prisma.gymMembershipContract.deleteMany({ where: { gymId: { in: created.gyms } } });
   }
+  if (created.memberships.length) await prisma.gymMembershipContract.deleteMany({ where: { id: { in: created.memberships } } });
+  if (created.brands.length) await prisma.gymMembershipPlan.deleteMany({ where: { brandId: { in: created.brands } } });
   if (created.plans.length) await prisma.gymMembershipPlan.deleteMany({ where: { id: { in: created.plans } } });
   if (created.gyms.length) await prisma.gym.deleteMany({ where: { id: { in: created.gyms } } });
   if (created.brands.length) await prisma.gymBrand.deleteMany({ where: { id: { in: created.brands } } });
