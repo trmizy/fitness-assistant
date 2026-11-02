@@ -43,7 +43,7 @@ import {
   CONTRACT_ENDING,
 } from "./contract-lock";
 import { endOpenRoomCall } from "./open-room-call.service";
-import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, assertPolicyEligibility, type CaseDecisionCtx } from "./dispute-case/execution-guard";
+import { assertBeforeRulingClaim, assertCancelNotOverD77, assertEntryAllowed, assertNoCaseForOldDoor, assertPolicyEligibility, type CaseDecisionCtx } from "./dispute-case/execution-guard";
 import { formatViDateTime } from "../utils/vi-datetime.util";
 import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockingRestriction } from "./pt-restriction.service";
 
@@ -374,6 +374,7 @@ export async function resolveDisputeCore(
   ) => {
     const endedAtClaim = await withContractLock(session.contractId, async (tx) => {
       await assertNotEnding(session.contractId, tx);
+      await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B: the old door never rules over a Case (T0 off included)
       // Dispute Case slice 2: the CaseDecision + D77 (B-1) guard, under THIS lock and BEFORE the compare-and-set below. No ctx = the old exit: nothing here.
       await assertPolicyEligibility(tx, session.contractId); // D-NEW-12: every door (the old route and every retry included), fail-closed, before anything is written
       await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
@@ -467,6 +468,7 @@ export async function resolveDisputeCore(
       {
         // D-NEW-12 + the CaseDecision guard, under the contract lock, before the compare-and-set - for the old route too (no ctx).
         beforeClaim: async (tx) => {
+          await assertNoCaseForOldDoor(tx, ctx, sessionId); // D65 track B
           await assertPolicyEligibility(tx, session.contractId);
           await assertBeforeRulingClaim(tx, ctx, sessionId, resolution);
         },

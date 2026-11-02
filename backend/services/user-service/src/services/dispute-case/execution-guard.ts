@@ -20,6 +20,7 @@ export const POLICY_EXCEPTION_APPLIES = "POLICY_EXCEPTION_APPLIES";
 export const CASE_REQUIRED = "CASE_REQUIRED";
 export const CASE_CONTEXT_INVALID = "CASE_CONTEXT_INVALID";
 export const EXECUTION_DISABLED = "EXECUTION_DISABLED";
+export const CASE_EXISTS = "CASE_EXISTS";
 
 /**
  * The D77 x outcome combinations Ngai has approved (S2.0 table). EMPTY on purpose: until the table is approved EVERY combination with a trace of
@@ -150,4 +151,23 @@ export async function assertBeforeRulingClaim(tx: Tx, ctx: CaseDecisionCtx | und
 /** T0: with the flag on, a call without a CaseDecision is refused (409 CASE_REQUIRED). With the flag off the old behaviour is untouched. */
 export function assertEntryAllowed(ctx: CaseDecisionCtx | undefined): void {
   if (!ctx && t0Enabled()) throw caseRequiredError();
+}
+
+/**
+ * D65 track B - the OLD door (no CaseDecision) must not rule independently of a Case. If the session has a Case in ANY non-terminal status
+ * (everything except REJECTED_INTAKE - DECISION_APPROVED included: the approved decision is executed by the Case executor, not by a second ruling),
+ * the old door is refused 409 CASE_EXISTS and NOTHING is written. Works with T0 off. A session with no Case keeps the old behaviour until T0.
+ * The Case executor passes a ctx and is exempt. Called under the contract lock, before the compare-and-set, at the ruling core boundary, so every
+ * door (route, scripts, any future caller) is covered.
+ */
+export async function assertNoCaseForOldDoor(tx: Tx, ctx: CaseDecisionCtx | undefined, sessionId: string): Promise<void> {
+  if (ctx) return;
+  const open = await tx.disputeCase.findFirst({ where: { sessionId, status: { not: "REJECTED_INTAKE" } }, select: { id: true, status: true } });
+  if (!open) return;
+  throw execError(
+    409,
+    CASE_EXISTS,
+    "Buổi này đã có hồ sơ khiếu nại (Case): chỉ phán quyết được qua hồ sơ, bốn mắt. Chưa ghi gì vào buổi, quyền buổi hay tiền",
+    { details: { caseId: open.id, caseStatus: open.status } },
+  );
 }
