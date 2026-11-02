@@ -290,6 +290,11 @@ export interface ChangeCheckInput {
   current: ReadonlyArray<{ id: string; hash: string; createdAt: Date }>;
   /** (source, subject) slots whose live source no longer hashes to the latest stored row and that nobody has re-collected yet */
   staleLive: readonly string[];
+  /**
+   * F5: (source, subject) slots whose LIVE source cannot be read right now although the stored head holds real data. That is neither "unchanged" nor "changed": it is
+   * unknown, so an approval/execution is refused (fail-closed) with a retryable code and nothing needs an acknowledgement; it clears when the source answers again.
+   */
+  unreadableLive?: readonly string[];
 }
 
 export interface ChangeCheckResult {
@@ -301,6 +306,8 @@ export interface ChangeCheckResult {
   /** latest write time among the new rows (null if none) */
   lastChangeAt: Date | null;
   staleLive: string[];
+  /** see ChangeCheckInput.unreadableLive; NOT part of `changed` */
+  unreadableLive: string[];
 }
 
 export function diffAgainstSnapshot(i: ChangeCheckInput): ChangeCheckResult {
@@ -314,6 +321,7 @@ export function diffAgainstSnapshot(i: ChangeCheckInput): ChangeCheckResult {
     mutatedIds,
     lastChangeAt,
     staleLive: [...i.staleLive],
+    unreadableLive: [...(i.unreadableLive ?? [])],
   };
 }
 
@@ -435,7 +443,7 @@ export function statementVisibleToParty(row: StatementVisibilityRow, viewer: { u
 
 /** B-1 (§1.3.3): the reason every proposal of a session that has (had) a PT_LATE_ARRIVAL step carries for its execution step. */
 export const D77_BLOCK_REASON = "D77_COMBINATION_UNRESOLVED";
-/** Slice 1 never executes a decision. */
+/** @deprecated Slice 1 constant. No read or write answer uses it any more: the real execution axis (execStatus / history) is returned instead. Kept only so old imports compile. */
 export const EXECUTION_BLOCKED_SLICE1 = "BLOCKED: SLICE_2_NOT_ENABLED";
 /** Cross-service evidence sources that Slice 1 does not read. */
 export const SOURCE_NOT_INTEGRATED = "SOURCE_NOT_INTEGRATED — DESIGN_REQUIRED (Slice 2)";

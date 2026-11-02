@@ -9,7 +9,8 @@ export type UserServiceJobName =
   | "reschedule-expiry"
   | "session-settlement"
   | "pt-listing-sweep"
-  | "ip-ua-retention";
+  | "ip-ua-retention"
+  | "dispute-execution-sweep";
 
 export interface UserServiceJobEvent {
   job?: UserServiceJobName | string;
@@ -49,6 +50,10 @@ export async function runUserServiceJob(event: UserServiceJobEvent, opts: JobRun
     case "ip-ua-retention": {
       const { runIpUaRetentionSweep } = await import("./services/ip-ua-retention.service");
       return runIpUaRetentionSweep();
+    }
+    case "dispute-execution-sweep": {
+      const { runDisputeExecutionSweep } = await import("./services/dispute-case/execution-sweep.service");
+      return runDisputeExecutionSweep();
     }
     default:
       throw Object.assign(new Error(`Unknown user-service job: ${event.job ?? ""}`), {

@@ -124,27 +124,54 @@ export const partyEvidenceBody = z
   })
   .strict();
 
+const STATUS_ENUM = z.enum([
+  "INTAKE",
+  "COLLECTING",
+  "AWAITING_PARTIES",
+  "ASSESSING",
+  "TECH_RECONCILIATION",
+  "FINDING_RECORDED",
+  "POLICY_PENDING",
+  "PROPOSED",
+  "AWAITING_APPROVAL",
+  "DECISION_APPROVED",
+  "REJECTED_INTAKE",
+]);
+/** A query-string boolean: only the exact strings "true" / "false". */
+const queryBool = z.enum(["true", "false"]).transform((v) => v === "true");
+
 export const listQuery = z
   .object({
-    status: z
-      .enum([
-        "INTAKE",
-        "COLLECTING",
-        "AWAITING_PARTIES",
-        "ASSESSING",
-        "TECH_RECONCILIATION",
-        "FINDING_RECORDED",
-        "POLICY_PENDING",
-        "PROPOSED",
-        "AWAITING_APPROVAL",
-        "DECISION_APPROVED",
-        "REJECTED_INTAKE",
-      ])
-      .optional(),
+    status: STATUS_ENUM.optional(),
+    execStatus: z.enum(["NOT_STARTED", "EXECUTING", "BUSINESS_DONE", "EXEC_BLOCKED", "NEEDS_HUMAN"]).optional(),
+    type: z.enum(["PT_DELIVERY", "PT_CLIENT_NO_SHOW_CLAIM", "PT_NO_SHOW_CLAIM", "LEGACY_UNCLASSIFIED"]).optional(),
+    investigatorId: z.string().trim().min(1).max(64).optional(),
+    unassigned: queryBool.optional(),
+    sessionId: z.string().trim().min(1).max(64).optional(),
+    contractId: z.string().trim().min(1).max(64).optional(),
+    createdFrom: z.coerce.date().optional(),
+    createdTo: z.coerce.date().optional(),
+    sort: z.enum(["createdAt", "updatedAt"]).optional(),
+    order: z.enum(["asc", "desc"]).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
     offset: z.coerce.number().int().min(0).max(100000).default(0),
   })
   .strict();
+
+/** Sessions that need (or have) a case. */
+export const queueQuery = z
+  .object({
+    sessionStatus: z.enum(["DISPUTED", "PT_NO_SHOW_REPORTED"]).optional(),
+    hasCase: queryBool.optional(),
+    contractId: z.string().trim().min(1).max(64).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    offset: z.coerce.number().int().min(0).max(100000).default(0),
+  })
+  .strict();
+
+/** Closing a case without a decision: the reason is required (it is the audit). */
+export const closeBody = z.object({ reason: text(2000) }).strict();
+export const acknowledgeNeedsHumanBody = z.object({ note: text(2000) }).strict();
 export const emptyBody = z.object({}).strict();
 
 /** Only the three real types: LEGACY_UNCLASSIFIED is never a target. */

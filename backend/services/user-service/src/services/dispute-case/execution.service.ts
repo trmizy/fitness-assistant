@@ -8,6 +8,7 @@ import { buildFinancialView, hasLateArrivalStep } from "./financial";
 import { executionEnabled } from "./flags";
 import { assertPolicyEligibility, D77_COMBINATION_UNRESOLVED, EXECUTION_DISABLED, OPENED_D77_COMBINATIONS, type CaseDecisionCtx } from "./execution-guard";
 import { changeAcknowledged, checkApprover, outcomeForFinding, type SnapshotEntry } from "./rules";
+import { noticesFor, sendNotices, type CaseParties } from "./notices";
 
 /**
  * DISPUTE CASE slice 2 / S2.1 - the CaseDecision EXECUTOR (design 1.2.2, 1.7.4). The ONLY door through which a Case changes a session, a quota or money,
@@ -133,7 +134,11 @@ async function assertEvidenceUnchanged(l: Loaded): Promise<void> {
   const startable = c.execStatus === "NOT_STARTED" || c.execStatus === "EXEC_BLOCKED";
   const guard = startable
     ? await evidenceGuard(prisma as unknown as Tx, c, approval.proposal.evidenceSnapshot as unknown as SnapshotEntry[])
-    : { changed: false, newIds: [] as string[], staleLive: [] as string[], mutatedIds: [] as string[], lastChangeAt: null as Date | null };
+    : { changed: false, newIds: [] as string[], staleLive: [] as string[], mutatedIds: [] as string[], lastChangeAt: null as Date | null, unreadableLive: [] as string[] };
+  // F5: a live source that cannot be read now (stored copy holds real data) is unknown, not changed: refuse (fail-closed), retryable, nothing to acknowledge.
+  if (guard.unreadableLive.length > 0) {
+    throw caseError(503, "EVIDENCE_SOURCE_UNAVAILABLE", "Chưa đọc được một nguồn bằng chứng (chat hoặc phòng tập) nên chưa kiểm tra được bằng chứng có thay đổi hay không. Vui lòng thử lại sau", { unreadable: guard.unreadableLive, retryable: true });
+  }
   if (guard.changed) {
     const acked = changeAcknowledged(guard, approval.evidenceChangeAcknowledged, await ackTimesOf(prisma as unknown as Tx, c));
     const afterApproval = guard.staleLive.length > 0 || (guard.lastChangeAt !== null && guard.lastChangeAt.getTime() > approval.createdAt.getTime());
@@ -145,7 +150,9 @@ async function assertEvidenceUnchanged(l: Loaded): Promise<void> {
 }
 
 /** A refusal of the kind that waits (nothing was written to the session): remembered on the case + in the history, then raised. */
-async function recordBlocked(c: { id: string; sessionId: string }, approval: { id: string; proposal: { outcome: any } }, actor: Actor, reason: string, message: string): Promise<never> {
+type ExecCase = CaseParties & { sessionId: string };
+
+async function recordBlocked(c: ExecCase, approval: { id: string; proposal: { outcome: any } }, actor: Actor, reason: string, message: string): Promise<never> {
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM dispute_cases WHERE id = ${c.id}::uuid FOR UPDATE`;
     const cur = await tx.disputeCase.findUniqueOrThrow({ where: { id: c.id } });
@@ -158,10 +165,11 @@ async function recordBlocked(c: { id: string; sessionId: string }, approval: { i
       data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "EXECUTION_BLOCKED", note: reason, payload: toJson({ reason, decisionId: approval.id }) },
     });
   });
+  await sendNotices([noticesFor("EXEC_BLOCKED", c, { actorId: actor.id, reasonCode: reason })]);
   throw blockedError(reason, message);
 }
 
-async function recordNeedsHuman(c: { id: string; sessionId: string }, approval: { id: string; proposal: { outcome: any } }, actor: Actor, reason: string, detail?: unknown): Promise<void> {
+async function recordNeedsHuman(c: ExecCase, approval: { id: string; proposal: { outcome: any } }, actor: Actor, reason: string, detail?: unknown): Promise<void> {
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM dispute_cases WHERE id = ${c.id}::uuid FOR UPDATE`;
     const cur = await tx.disputeCase.findUniqueOrThrow({ where: { id: c.id } });
@@ -174,7 +182,12 @@ async function recordNeedsHuman(c: { id: string; sessionId: string }, approval: 
       data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "EXECUTION_NEEDS_HUMAN", note: reason, payload: toJson({ reason, decisionId: approval.id, detail: detail ?? null }) },
     });
   });
+  await sendNotices([noticesFor("NEEDS_HUMAN", c, { actorId: actor.id })]);
 }
+
+/** The outcome a terminal session shows (null when the session is not in a state a ruling produces). */
+const outcomeOf = (s: { status: string; ptAtFault: boolean }) =>
+  s.status === "COMPLETED" ? "COMPLETED" : s.status === "CANCELLED" ? "CANCELLED" : s.status === "NO_SHOW" && s.ptAtFault ? "PT_NO_SHOW_CONFIRMED" : null;
 
 async function moneyAxis(sessionId: string) {
   try {
@@ -195,12 +208,12 @@ async function businessAnswer(sessionId: string, decisionId: string, outcome: st
 }
 
 /** Records BUSINESS_DONE (CAS EXECUTING -> BUSINESS_DONE on the case) with the business answer. */
-async function finish(c: { id: string; sessionId: string }, approval: { id: string; proposal: { outcome: any } }, actor: Actor, via: string): Promise<{ business: Awaited<ReturnType<typeof businessAnswer>> }> {
+async function finish(c: ExecCase, approval: { id: string; proposal: { outcome: any } }, actor: Actor, via: string, from: "EXECUTING" | "NEEDS_HUMAN" = "EXECUTING"): Promise<{ business: Awaited<ReturnType<typeof businessAnswer>> }> {
   const business = await businessAnswer(c.sessionId, approval.id, approval.proposal.outcome);
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM dispute_cases WHERE id = ${c.id}::uuid FOR UPDATE`;
     const r = await tx.disputeCase.updateMany({
-      where: { id: c.id, execStatus: "EXECUTING", execDecisionId: approval.id },
+      where: { id: c.id, execStatus: from, execDecisionId: approval.id },
       data: { execStatus: "BUSINESS_DONE", version: { increment: 1 } },
     });
     if (r.count !== 1) throw caseError(409, "EXECUTION_STATE_CHANGED", "Trạng thái thực thi của hồ sơ đã thay đổi");
@@ -211,6 +224,7 @@ async function finish(c: { id: string; sessionId: string }, approval: { id: stri
       data: { caseId: c.id, actorUserId: actor.id, actorRole: actor.role, action: "EXECUTION_BUSINESS_DONE", note: via, payload: toJson({ ...business }) },
     });
   });
+  await sendNotices([noticesFor("EXECUTED", c, { actorId: actor.id })]);
   return { business };
 }
 
@@ -329,8 +343,6 @@ export const executionService = {
       return handOver("STATE_UNREADABLE", { message: String(e?.message ?? "").slice(0, 200) });
     }
     if (!session) return handOver("SESSION_MISSING");
-    const outcomeOf = (s: { status: string; ptAtFault: boolean }) =>
-      s.status === "COMPLETED" ? "COMPLETED" : s.status === "CANCELLED" ? "CANCELLED" : s.status === "NO_SHOW" && s.ptAtFault ? "PT_NO_SHOW_CONFIRMED" : null;
     const loaded: Loaded = { c, approval, session };
     if (session.status === "DISPUTED") {
       if (carrying > 0) return handOver("CONTRADICTION_DISPUTED_BUT_INTENT_RECORDED");
@@ -343,6 +355,54 @@ export const executionService = {
       return { action: "BUSINESS_DONE" as const, ...r };
     }
     return handOver("SESSION_RULED_ELSEWHERE_OR_MISMATCH", { sessionStatus: session.status, resolvedByCaseDecisionId: session.resolvedByCaseDecisionId });
+  },
+
+  /**
+   * NEEDS_HUMAN way out that MOVES NO MONEY. An ADMIN (not a party; no four-eyes: nothing is decided about money) acknowledges a case the executor handed to a person.
+   * The real state is read first and the acknowledgement is always audited (event NEEDS_HUMAN_ACKNOWLEDGED: who, note, the session real state).
+   *   - the session is already ruled BY THIS DECISION with the agreed outcome (resolved_by_case_decision_id = this approval)   -> NEEDS_HUMAN -> BUSINESS_DONE
+   *     (the business answer is already in the session; the money steps belong to session_settlements and are untouched by this call)
+   *   - anything else (the session is still DISPUTED: finishing would call the ruling core and move money; or it was ruled elsewhere / differently) -> the case STAYS
+   *     NEEDS_HUMAN, locked, and the answer says why. Nothing is retried and nothing is written but the acknowledgement.
+   */
+  async acknowledgeNeedsHuman(actor: Actor, caseId: string, note: string) {
+    if (actor.role !== "ADMIN") throw caseError(403, "ADMIN_ONLY", "Chỉ quản trị viên được thực hiện");
+    if (!executionEnabled()) throw caseError(409, EXECUTION_DISABLED, "Bộ thực thi quyết định hồ sơ đang tắt");
+    if (!UUID_RE.test(caseId)) throw caseError(404, "CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
+    const c = await prisma.disputeCase.findUnique({ where: { id: caseId } });
+    if (!c) throw caseError(404, "CASE_NOT_FOUND", "Không tìm thấy hồ sơ khiếu nại");
+    if (actor.id === c.clientUserId || actor.id === c.ptUserId) throw caseError(403, "CONFLICT_OF_INTEREST", "Quản trị viên là một bên của vụ việc nên không được thực hiện");
+    if (c.execStatus !== "NEEDS_HUMAN" || !c.execDecisionId) throw caseError(409, "NOT_NEEDS_HUMAN", "Việc thực thi của hồ sơ không ở trạng thái chờ người xem xét", { execStatus: c.execStatus });
+    const approval = await prisma.disputeCaseApproval.findUnique({ where: { id: c.execDecisionId }, include: { proposal: { include: { finding: true } } } });
+    if (!approval || approval.proposal.caseId !== c.id) throw caseError(409, "DECISION_UNREADABLE", "Không đọc được quyết định gắn với lần thực thi");
+    const session = await prisma.session.findUnique({ where: { id: c.sessionId } });
+    if (!session) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
+    const terminalOutcome = outcomeOf(session);
+    const appliedByThisDecision = !!terminalOutcome && session.resolvedByCaseDecisionId === approval.id && terminalOutcome === approval.proposal.outcome;
+    await prisma.disputeCaseEvent.create({
+      data: {
+        caseId: c.id,
+        actorUserId: actor.id,
+        actorRole: actor.role,
+        action: "NEEDS_HUMAN_ACKNOWLEDGED",
+        note,
+        payload: toJson({ decisionId: approval.id, sessionStatus: session.status, resolvedByCaseDecisionId: session.resolvedByCaseDecisionId, appliedByThisDecision }),
+      },
+    });
+    if (!appliedByThisDecision) {
+      return {
+        action: "STAYS_LOCKED" as const,
+        execStatus: c.execStatus,
+        reason: session.status === "DISPUTED" ? "SESSION_STILL_DISPUTED_FINISHING_WOULD_MOVE_MONEY" : "SESSION_RULED_ELSEWHERE_OR_MISMATCH",
+        sessionStatus: session.status,
+        message:
+          session.status === "DISPUTED"
+            ? "Buổi tập vẫn đang khiếu nại: hoàn tất sẽ chạy phán quyết và có thể chuyển tiền nên hồ sơ giữ nguyên trạng thái chờ người xem xét"
+            : "Buổi tập đã được xử lý bằng một đường khác hoặc kết quả không khớp quyết định: hồ sơ giữ nguyên trạng thái chờ người xem xét",
+      };
+    }
+    const r = await finish(c, approval, actor, "NEEDS_HUMAN_ACKNOWLEDGED", "NEEDS_HUMAN");
+    return { action: "BUSINESS_DONE" as const, execStatus: "BUSINESS_DONE" as const, ...r };
   },
 
   /** The recovery sweep: every case that has been EXECUTING for longer than `olderThanMs`. Returns what was done per case. */

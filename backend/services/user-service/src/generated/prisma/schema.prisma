@@ -549,6 +549,8 @@ enum NotificationEventType {
   // the partner application (entity GYM_PARTNER_APPLICATION, entityId = gym-service's GymPartner id). A direct consequence
   // of something the recipient submitted, so no opt-out preference entry.
   GYM_PARTNER_APPLICATION_REJECTED
+  // Dispute Case lifecycle notices (backend completion, track core): told to the two parties and the assigned admin. Direct consequence of a case the recipient is part of, so no opt-out entry.
+  DISPUTE_CASE_UPDATED
 }
 
 enum NotificationEntityType {
@@ -581,6 +583,8 @@ enum NotificationEntityType {
   PAYMENT
   // GYM_PARTNER_APPLICATION_REJECTED's entityId = gym-service's GymPartner.id (cross-service reference by convention).
   GYM_PARTNER_APPLICATION
+  // DISPUTE_CASE_UPDATED's entityId = dispute_cases.id (this service's own table).
+  DISPUTE_CASE
 }
 
 enum RescheduleStatus {
@@ -1830,6 +1834,8 @@ model DisputeCase {
   execStatus     DisputeCaseExecStatus @default(NOT_STARTED) @map("exec_status")
   /// Slice 2: the CaseDecision (approval id) that is being / was executed.
   execDecisionId String?               @map("exec_decision_id") @db.Uuid
+  /// Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
+  closeReason    String?               @map("close_reason")
   version        Int                   @default(1)
   createdBy      String                @map("created_by")
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)

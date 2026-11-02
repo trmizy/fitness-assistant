@@ -2,15 +2,18 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "../../generated/prisma";
 import { prisma } from "../../repositories/profile.repository";
 import { canonicalJson, contentHashOf, sha256Hex } from "./canonical";
-import { collectSources, draftHash, type Db, type EvidenceDraft } from "./collector";
+import { collectExternal, collectSources, draftHash, type Db, type EvidenceDraft } from "./collector";
 import { buildFinancialView, hasLateArrivalStep, partyFinancialView } from "./financial";
 import { caseError, forbiddenRole, notFoundCase, notInvestigator, versionConflict } from "./errors";
 import { CANCELLED_BLOCKED_BY_D77 } from "./execution-guard";
-import { evidenceStorageEnabled } from "./flags";
+import { evidenceStorageEnabled, executionEnabled } from "./flags";
+import { assertRealAdmin } from "./admin-account";
+import { computeAllowedActions, allowedList, isOrphanCase } from "./allowed-actions";
+import { blockReasonVi, noticesFor, sendNotices, type NoticeSet } from "./notices";
 import { ALLOWED_MIME, MAX_EVIDENCE_BYTES, readVerified, removeFile, sniffMime, storeFile } from "./evidence-storage";
 import {
   D77_BLOCK_REASON,
-  EXECUTION_BLOCKED_SLICE1,
+  MANUAL_TARGETS,
   CLASSIFIABLE_TYPES,
   INVESTIGATION_STATUSES,
   PARTY_SUBMIT_STATUSES,
@@ -78,10 +81,15 @@ function summary(c: CaseRow) {
     id: c.id,
     sessionId: c.sessionId,
     contractId: c.contractId,
+    clientUserId: c.clientUserId,
+    ptUserId: c.ptUserId,
     type: c.type,
     status: c.status,
     escalated: c.escalated,
     investigatorId: c.investigatorId,
+    execStatus: c.execStatus,
+    execDecisionId: c.execDecisionId,
+    closeReason: c.closeReason,
     version: c.version,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
@@ -94,6 +102,8 @@ interface Ctx {
   tx: Tx;
   actor: Actor;
   transitions: Array<{ from: CaseStatus; to: CaseStatus; note?: string }>;
+  /** notices to send AFTER the transaction committed (never on an idempotent replay) */
+  notices: NoticeSet[];
 }
 interface Outcome<T> {
   caseId: string;
@@ -120,6 +130,19 @@ async function casStatus(ctx: Ctx, c: CaseRow, to: CaseStatus, note?: string): P
   if (r.count !== 1) throw versionConflict();
   ctx.transitions.push({ from: c.status as CaseStatus, to, note });
   c.status = to;
+  c.version += 1;
+}
+
+/** Closes a case WITHOUT a decision: REJECTED_INTAKE (the terminal state every "open case" filter already knows) + the reason. Compare-and-swap like every status change. */
+async function casClose(ctx: Ctx, c: CaseRow, closeReason: string, note?: string): Promise<void> {
+  const r = await ctx.tx.disputeCase.updateMany({
+    where: { id: c.id, version: c.version, status: c.status },
+    data: { status: "REJECTED_INTAKE", closeReason, version: { increment: 1 } },
+  });
+  if (r.count !== 1) throw versionConflict();
+  ctx.transitions.push({ from: c.status as CaseStatus, to: "REJECTED_INTAKE", note });
+  c.status = "REJECTED_INTAKE";
+  c.closeReason = closeReason;
   c.version += 1;
 }
 
@@ -160,9 +183,9 @@ async function mutate<T>(o: {
   const prior = await findReplay<T>(key, requestHash);
   if (prior) return prior;
   try {
-    return await prisma.$transaction(
+    const done = await prisma.$transaction(
       async (tx) => {
-        const ctx: Ctx = { tx, actor: o.actor, transitions: [] };
+        const ctx: Ctx = { tx, actor: o.actor, transitions: [], notices: [] };
         const out = await o.run(ctx);
         if (ctx.transitions.length > 1) {
           for (const t of ctx.transitions) {
@@ -186,10 +209,12 @@ async function mutate<T>(o: {
             payload: toJson({ requestHash, result: out.result, detail: out.detail ?? null }),
           },
         });
-        return { result: out.result, replayed: false };
+        return { result: out.result, replayed: false, notices: ctx.notices };
       },
       { timeout: 30_000, maxWait: 10_000 },
     );
+    await sendNotices(done.notices);
+    return { result: done.result, replayed: false };
   } catch (e) {
     if (key && isUniqueViolation(e, "idempotency_key")) {
       const again = await findReplay<T>(key, requestHash);
@@ -250,15 +275,22 @@ const slotKey = (source: string, subject: string) => `${source}\u0000${subject}`
 async function systemHeads(db: Db, caseId: string) {
   const rows = await db.disputeCaseEvidence.findMany({
     where: { caseId, submittedBy: null },
-    select: { id: true, source: true, subject: true, contentHash: true, snapshotVersion: true },
+    select: { id: true, source: true, subject: true, contentHash: true, snapshotVersion: true, captureStatus: true },
   });
-  const heads = new Map<string, { id: string; hash: string; version: number }>();
+  const heads = new Map<string, { id: string; hash: string; version: number; captureStatus: string }>();
   for (const r of rows) {
     const k = slotKey(r.source, r.subject);
     const cur = heads.get(k);
-    if (!cur || r.snapshotVersion > cur.version) heads.set(k, { id: r.id, hash: r.contentHash, version: r.snapshotVersion });
+    if (!cur || r.snapshotVersion > cur.version) heads.set(k, { id: r.id, hash: r.contentHash, version: r.snapshotVersion, captureStatus: r.captureStatus });
   }
   return heads;
+}
+
+/** F5: the cross-service evidence of a case's session, read WITHOUT a transaction (null when the case or session is unknown: the caller's own checks answer that). */
+async function prefetchForCase(caseId: string): Promise<EvidenceDraft[] | null> {
+  if (!UUID_RE.test(caseId)) return null;
+  const pre = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { sessionId: true } });
+  return pre ? collectExternal(prisma, pre.sessionId) : null;
 }
 
 // ── The service ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -295,6 +327,8 @@ export const disputeCaseService = {
       throw caseError(409, "DISPUTE_TYPE_UNKNOWN", "Không xác định được loại hồ sơ cho buổi tập này");
     }
     const provisional = type === "LEGACY_UNCLASSIFIED";
+    // F5: the chat / gym calls are made HERE, before the transaction, so no lock or open transaction waits on the network.
+    const prefetched = await collectExternal(prisma, sessionId);
 
     try {
       return await mutate({
@@ -304,7 +338,7 @@ export const disputeCaseService = {
         idempotencyKey,
         body: { sessionId },
         run: async (ctx) => {
-          const collected = await collectSources(ctx.tx, sessionId);
+          const collected = await collectSources(ctx.tx, sessionId, undefined, prefetched);
           if (!collected) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
           if (collected.session.status !== "DISPUTED" && collected.session.status !== "PT_NO_SHOW_REPORTED") {
             throw caseError(409, "SESSION_NOT_DISPUTED", "Buổi tập không còn ở trạng thái khiếu nại", { status: collected.session.status });
@@ -334,6 +368,7 @@ export const disputeCaseService = {
               },
             });
           }
+          ctx.notices.push(noticesFor("OPENED", created));
           return {
             caseId: created.id,
             result: { created: true, case: summary(created) },
@@ -355,6 +390,7 @@ export const disputeCaseService = {
   /** Re-reads the same sources; appends a new version (snapshotVersion + 1, supersedesId) only for a slot whose hash changed. */
   async recollect(actor: Actor, caseId: string, idempotencyKey?: string) {
     assertAdmin(actor);
+    const prefetched = await prefetchForCase(caseId);
     return mutate({
       actor,
       action: "RECOLLECT",
@@ -364,11 +400,12 @@ export const disputeCaseService = {
       run: async (ctx) => {
         const c = await lockCase(ctx.tx, caseId);
         if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
-        const collected = await collectSources(ctx.tx, c.sessionId);
+        const collected = await collectSources(ctx.tx, c.sessionId, undefined, prefetched);
         if (!collected) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
         const heads = await systemHeads(ctx.tx, c.id);
         let added = 0;
         let unchanged = 0;
+        const skippedUnavailable: string[] = [];
         for (const d of collected.evidence) {
           const head = heads.get(slotKey(d.source, d.subject));
           const hash = draftHash(d);
@@ -376,10 +413,16 @@ export const disputeCaseService = {
             unchanged += 1;
             continue;
           }
+          // F5: a source that cannot be read RIGHT NOW must not bury data that was read before. The good row stays the head; the slot is reported so the
+          // admin knows it was not refreshed, and the next recollect (after the source answers) appends the real new version.
+          if (head && d.captureStatus === "UNAVAILABLE" && head.captureStatus !== "UNAVAILABLE") {
+            skippedUnavailable.push(`${d.source}#${d.subject}`);
+            continue;
+          }
           await insertEvidence(ctx.tx, c, d, { snapshotVersion: head ? head.version + 1 : 1, supersedesId: head?.id ?? null });
           added += 1;
         }
-        return { caseId: c.id, result: { added, unchanged }, detail: { added, unchanged } };
+        return { caseId: c.id, result: { added, unchanged, skippedUnavailable }, detail: { added, unchanged, skippedUnavailable } };
       },
     });
   },
@@ -389,6 +432,9 @@ export const disputeCaseService = {
   async assign(actor: Actor, caseId: string, investigatorId: string | undefined, idempotencyKey?: string) {
     assertAdmin(actor);
     const target = investigatorId ?? actor.id;
+    // F9: the person handed the case must be a real, active ADMIN (same check as the late-open hand-over). The caller themselves is an authenticated admin already.
+    // The lookup is a network call: it is made here, before the transaction.
+    if (target !== actor.id) await assertRealAdmin(target);
     return mutate({
       actor,
       action: "ASSIGN",
@@ -402,6 +448,7 @@ export const disputeCaseService = {
           throw caseError(403, "CONFLICT_OF_INTEREST", "Một bên của vụ việc không được làm điều tra viên");
         }
         await casData(ctx, c, { investigatorId: target });
+        ctx.notices.push(noticesFor("ASSIGNED", c, { actorId: actor.id, assigneeId: target }));
         return { caseId: c.id, result: { investigatorId: target, version: c.version }, detail: { investigatorId: target } };
       },
     });
@@ -423,10 +470,15 @@ export const disputeCaseService = {
         const c = await lockCase(ctx.tx, caseId);
         if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
         if (c.status !== "INTAKE") assertInvestigator(actor, c);
-        if (!canTransitionManually(c.status as CaseStatus, to)) throw stateNotAllowed(c, []);
+        if (!canTransitionManually(c.status as CaseStatus, to)) throw stateNotAllowed(c, MANUAL_TARGETS.filter((t) => canTransitionManually(c.status as CaseStatus, t)));
         if (to === "REJECTED_INTAKE" && !o.reason) throw caseError(400, "REASON_REQUIRED", "Cần nhập lý do từ chối hồ sơ");
         const from = c.status;
         await casStatus(ctx, c, to, o.reason ?? o.note);
+        if (to === "REJECTED_INTAKE") {
+          await casData(ctx, c, { closeReason: "INTAKE_REJECTED" });
+          ctx.notices.push(noticesFor("CLOSED", c));
+        }
+        if (to === "AWAITING_PARTIES") ctx.notices.push(noticesFor("EVIDENCE_REQUESTED", c));
         return { caseId: c.id, result: { from, to, version: c.version }, note: o.reason ?? o.note };
       },
     });
@@ -453,6 +505,7 @@ export const disputeCaseService = {
         } else {
           await casStatus(ctx, c, to, note);
         }
+        if (c.status === "AWAITING_PARTIES") ctx.notices.push(noticesFor("EVIDENCE_REQUESTED", c));
         return { caseId: c.id, result: { from, to: c.status, version: c.version }, note };
       },
     });
@@ -619,6 +672,7 @@ export const disputeCaseService = {
         });
         await casStatus(ctx, c, "FINDING_RECORDED", b.reasoning);
         if (b.finding === "INSUFFICIENT_EVIDENCE") await casStatus(ctx, c, "POLICY_PENDING", "INSUFFICIENT_EVIDENCE: chờ chính sách, không tự quy kết quả");
+        ctx.notices.push(noticesFor("FINDING_RECORDED", c));
         return {
           caseId: c.id,
           result: {
@@ -683,7 +737,9 @@ export const disputeCaseService = {
           await casStatus(ctx, c, "POLICY_PENDING", reason);
           return {
             caseId: c.id,
-            result: { policyPending: true, blocked: CANCELLED_BLOCKED_BY_D77, caseStatus: c.status, reason, nextStep: "Xác minh khoản đền đến muộn của buổi rồi ghi kết luận khác, hoặc chờ quyết định chính sách" },
+            // F4: NO proposal was created. `proposalCreated:false` + `proposal:null` say so explicitly; the HTTP status is 200 (the request was processed and the case
+            // moved to POLICY_PENDING), never 201 (nothing was created).
+            result: { proposalCreated: false, proposal: null, policyPending: true, blocked: CANCELLED_BLOCKED_BY_D77, caseStatus: c.status, reason, nextStep: "Xác minh khoản đền đến muộn của buổi rồi ghi kết luận khác, hoặc chờ quyết định chính sách" },
             note: reason,
           };
         }
@@ -699,9 +755,10 @@ export const disputeCaseService = {
         });
         await casStatus(ctx, c, "PROPOSED", note);
         await casStatus(ctx, c, "AWAITING_APPROVAL", note);
+        ctx.notices.push(noticesFor("AWAITING_APPROVAL", c));
         return {
           caseId: c.id,
-          result: { id: proposal.id, outcome, executionBlockedReason: proposal.executionBlockedReason, caseStatus: c.status, execution: EXECUTION_BLOCKED_SLICE1 },
+          result: { proposalCreated: true, id: proposal.id, outcome, executionBlockedReason: proposal.executionBlockedReason, caseStatus: c.status, execStatus: c.execStatus },
           note,
         };
       },
@@ -786,6 +843,7 @@ export const disputeCaseService = {
   /** Investigator acknowledges that evidence changed after the proposal; the approver's `evidenceChangeAcknowledged` is only honoured after this. */
   async acknowledgeEvidenceChange(actor: Actor, caseId: string, note: string, idempotencyKey?: string) {
     assertAdmin(actor);
+    const prefetched = await prefetchForCase(caseId);
     return mutate({
       actor,
       action: "EVIDENCE_CHANGE_ACK",
@@ -798,10 +856,10 @@ export const disputeCaseService = {
         if (c.status !== "AWAITING_APPROVAL") throw stateNotAllowed(c, ["AWAITING_APPROVAL"]);
         const proposal = await ctx.tx.disputeCaseProposal.findFirst({ where: { caseId: c.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] });
         if (!proposal) throw caseError(409, "PROPOSAL_REQUIRED", "Chưa có đề xuất");
-        const guard = await evidenceGuard(ctx.tx, c, proposal.evidenceSnapshot as unknown as SnapshotEntry[]);
+        const guard = await evidenceGuard(ctx.tx, c, proposal.evidenceSnapshot as unknown as SnapshotEntry[], prefetched);
         return {
           caseId: c.id,
-          result: { acknowledged: true, changedIds: guard.newIds, staleLive: guard.staleLive },
+          result: { acknowledged: true, changedIds: guard.newIds, staleLive: guard.staleLive, unreadableLive: guard.unreadableLive },
           note,
           detail: { changedIds: guard.newIds, staleLive: guard.staleLive },
         };
@@ -856,6 +914,69 @@ export const disputeCaseService = {
     });
   },
 
+  // ── Closing a case WITHOUT a decision (never money) ──────────────────────────────────────────────────────────────────
+
+  /**
+   * An ORPHAN case: its session left dispute (ruled through the old route, or the PT agreed to the no-show report) while the case was still open. Any ADMIN who
+   * is not a party closes it with a reason. The case becomes REJECTED_INTAKE (terminal; closeReason ORPHAN_SESSION_LEFT_DISPUTE) so it stops blocking the late-open
+   * path and the one-open-case-per-session rule. Writes the case row, its event and the notices ONLY: no session, quota, settlement or ledger row is touched.
+   */
+  async closeOrphan(actor: Actor, caseId: string, reason: string, idempotencyKey?: string) {
+    assertAdmin(actor);
+    return mutate({
+      actor,
+      action: "CASE_CLOSED_ORPHAN",
+      scope: caseId,
+      idempotencyKey,
+      body: { reason },
+      run: async (ctx) => {
+        const c = await lockCase(ctx.tx, caseId);
+        if (actor.id === c.clientUserId || actor.id === c.ptUserId) throw caseError(403, "CONFLICT_OF_INTEREST", "Quản trị viên là một bên của vụ việc nên không được đóng hồ sơ");
+        if (isTerminal(c.status as CaseStatus)) throw stateNotAllowed(c, []);
+        const session = await ctx.tx.session.findUnique({ where: { id: c.sessionId }, select: { status: true } });
+        if (!session) throw caseError(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
+        if (!isOrphanCase(c.status, session.status)) {
+          throw caseError(409, "CASE_NOT_ORPHAN", "Buổi tập vẫn đang trong khiếu nại nên hồ sơ không phải hồ sơ mồ côi", { sessionStatus: session.status });
+        }
+        const from = c.status;
+        await casClose(ctx, c, "ORPHAN_SESSION_LEFT_DISPUTE", reason);
+        ctx.notices.push(noticesFor("CLOSED", c));
+        return {
+          caseId: c.id,
+          result: { closed: true, from, to: c.status, closeReason: "ORPHAN_SESSION_LEFT_DISPUTE", sessionStatus: session.status, version: c.version, moneyMoved: false },
+          note: reason,
+          detail: { sessionStatus: session.status },
+        };
+      },
+    });
+  },
+
+  /**
+   * The investigator recorded NOT_A_DISPUTE: closes the case with a reason. The case becomes REJECTED_INTAKE (closeReason NOT_A_DISPUTE). The SESSION is not
+   * touched (what happens to such a session is a pending policy decision): it stays in dispute and returns to the queue as a session without a case.
+   */
+  async closeNotADispute(actor: Actor, caseId: string, reason: string, idempotencyKey?: string) {
+    assertAdmin(actor);
+    return mutate({
+      actor,
+      action: "CASE_CLOSED_NOT_A_DISPUTE",
+      scope: caseId,
+      idempotencyKey,
+      body: { reason },
+      run: async (ctx) => {
+        const c = await lockCase(ctx.tx, caseId);
+        assertInvestigator(actor, c);
+        if (c.status !== "FINDING_RECORDED") throw stateNotAllowed(c, ["FINDING_RECORDED"]);
+        const finding = await ctx.tx.disputeCaseFinding.findFirst({ where: { caseId: c.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] });
+        if (!finding || finding.finding !== "NOT_A_DISPUTE") throw caseError(409, "FINDING_NOT_A_DISPUTE", "Chỉ đóng được khi kết luận hiện tại là 'không phải khiếu nại'");
+        const from = c.status;
+        await casClose(ctx, c, "NOT_A_DISPUTE", reason);
+        ctx.notices.push(noticesFor("CLOSED", c));
+        return { caseId: c.id, result: { closed: true, from, to: c.status, closeReason: "NOT_A_DISPUTE", version: c.version, moneyMoved: false }, note: reason };
+      },
+    });
+  },
+
   // ── Four-eyes decision ────────────────────────────────────────────────────────────────────────────────────────────
 
   async decide(
@@ -865,6 +986,8 @@ export const disputeCaseService = {
     idempotencyKey?: string,
   ) {
     assertAdmin(actor);
+    // F5: the chat / gym evidence is read BEFORE the transaction that holds the case lock (only an approval compares it).
+    const prefetched = b.result === "APPROVED" ? await prefetchForCase(caseId) : null;
     return mutate({
       actor,
       action: b.result === "APPROVED" ? "DECISION_APPROVED" : "DECISION_REJECTED",
@@ -890,7 +1013,15 @@ export const disputeCaseService = {
 
         if (b.result === "APPROVED") {
           // Evidence-change guard, inside the SAME transaction as the CAS to DECISION_APPROVED (§1.6.4).
-          const guard = await evidenceGuard(ctx.tx, c, proposal.evidenceSnapshot as unknown as SnapshotEntry[]);
+          const guard = await evidenceGuard(ctx.tx, c, proposal.evidenceSnapshot as unknown as SnapshotEntry[], prefetched);
+          // F5: a live source that cannot be read right now (while the stored copy holds real data) is UNKNOWN, not "changed": refuse (fail-closed) with a retryable
+          // code. Nothing needs acknowledging and nothing is recorded; the approval works as soon as the source answers again.
+          if (guard.unreadableLive.length > 0) {
+            throw caseError(503, "EVIDENCE_SOURCE_UNAVAILABLE", "Chưa đọc được một nguồn bằng chứng (chat hoặc phòng tập) nên chưa kiểm tra được bằng chứng có thay đổi hay không. Vui lòng thử duyệt lại sau", {
+              unreadable: guard.unreadableLive,
+              retryable: true,
+            });
+          }
           if (guard.changed) {
             const ackTimes = await ackTimesOf(ctx.tx, c);
             if (!changeAcknowledged(guard, b.evidenceChangeAcknowledged, ackTimes)) {
@@ -903,8 +1034,10 @@ export const disputeCaseService = {
             }
           }
           await casStatus(ctx, c, "DECISION_APPROVED", b.reason);
+          ctx.notices.push(noticesFor("DECISION_APPROVED", c, { actorId: actor.id }));
         } else {
           await casStatus(ctx, c, "ASSESSING", b.reason);
+          ctx.notices.push(noticesFor("DECISION_REJECTED", c, { actorId: actor.id }));
         }
         const approval = await ctx.tx.disputeCaseApproval.create({
           data: {
@@ -923,8 +1056,9 @@ export const disputeCaseService = {
             result: b.result,
             caseStatus: c.status,
             outcome: proposal.outcome,
-            // Slice 1 NEVER executes: no session, quota, settlement or ledger row is touched by an approval.
-            ...(b.result === "APPROVED" ? { execution: EXECUTION_BLOCKED_SLICE1, executionBlockedReason: proposal.executionBlockedReason } : {}),
+            // An approval NEVER executes: no session, quota, settlement or ledger row is touched by it. Execution is a separate call (execute); the case's
+            // execStatus says where it is.
+            ...(b.result === "APPROVED" ? { execStatus: c.execStatus, executionBlockedReason: proposal.executionBlockedReason } : {}),
           },
           note: b.reason,
         };
@@ -934,15 +1068,99 @@ export const disputeCaseService = {
 
   // ── Reads (admin) ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-  async list(actor: Actor, q: { status?: string; limit: number; offset: number }) {
+  async list(actor: Actor, q: CaseListQuery) {
     assertAdmin(actor);
-    const where = q.status ? { status: q.status as any } : {};
+    const where: Prisma.DisputeCaseWhereInput = {
+      ...(q.status ? { status: q.status as any } : {}),
+      ...(q.execStatus ? { execStatus: q.execStatus as any } : {}),
+      ...(q.type ? { type: q.type as any } : {}),
+      ...(q.investigatorId ? { investigatorId: q.investigatorId } : {}),
+      ...(q.unassigned ? { investigatorId: null } : {}),
+      ...(q.sessionId ? { sessionId: q.sessionId } : {}),
+      ...(q.contractId ? { contractId: q.contractId } : {}),
+      ...(q.createdFrom || q.createdTo ? { createdAt: { ...(q.createdFrom ? { gte: q.createdFrom } : {}), ...(q.createdTo ? { lte: q.createdTo } : {}) } } : {}),
+    };
+    const sortField = q.sort ?? "createdAt";
+    const order = q.order ?? "desc";
     const [rows, total] = await Promise.all([
-      prisma.disputeCase.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "asc" }], take: q.limit, skip: q.offset }),
+      prisma.disputeCase.findMany({ where, orderBy: [{ [sortField]: order }, { id: "asc" }] as any, take: q.limit, skip: q.offset }),
       prisma.disputeCase.count({ where }),
     ]);
     await logAccess(prisma, rows.map((r) => ({ caseId: r.id, viewer: actor, action: "VIEW_CASE" as const })));
-    return { total, items: rows.map(summary) };
+    return { total, limit: q.limit, offset: q.offset, hasMore: q.offset + rows.length < total, items: rows.map(summary) };
+  },
+
+  /**
+   * The queue of sessions that need (or have) a case: every session in dispute (DISPUTED) or waiting for the PT's answer to a no-show report (PT_NO_SHOW_REPORTED),
+   * with whether a case exists. `hasCase` = a case that is open or whose decision was approved (a closed-without-decision case does not count: the session
+   * is back in the queue). No age or deadline is computed: there is no approved timing rule.
+   */
+  async queue(actor: Actor, q: QueueQuery) {
+    assertAdmin(actor);
+    const cases = await prisma.disputeCase.findMany({
+      where: { status: { not: "REJECTED_INTAKE" } },
+      select: { id: true, sessionId: true, status: true, type: true, execStatus: true, investigatorId: true, createdAt: true },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    });
+    const bySession = new Map<string, (typeof cases)[number]>();
+    for (const c of cases) if (!bySession.has(c.sessionId)) bySession.set(c.sessionId, c); // newest first
+    const ids = [...bySession.keys()];
+    const statuses = q.sessionStatus ? [q.sessionStatus] : ["DISPUTED", "PT_NO_SHOW_REPORTED"];
+    const where: Prisma.SessionWhereInput = {
+      status: { in: statuses as any },
+      ...(q.hasCase === true ? { id: { in: ids } } : q.hasCase === false ? { id: { notIn: ids } } : {}),
+      ...(q.contractId ? { contractId: q.contractId } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      prisma.session.findMany({
+        where,
+        orderBy: [{ disputedAt: "asc" }, { scheduledStartAt: "asc" }, { id: "asc" }],
+        take: q.limit,
+        skip: q.offset,
+        select: { id: true, contractId: true, status: true, disputeType: true, disputedAt: true, scheduledStartAt: true, clientUserId: true, ptUserId: true },
+      }),
+      prisma.session.count({ where }),
+    ]);
+    return {
+      total,
+      limit: q.limit,
+      offset: q.offset,
+      hasMore: q.offset + rows.length < total,
+      items: rows.map((r) => {
+        const c = bySession.get(r.id);
+        return {
+          sessionId: r.id,
+          contractId: r.contractId,
+          sessionStatus: r.status,
+          disputeType: r.disputeType,
+          disputedAt: r.disputedAt,
+          scheduledStartAt: r.scheduledStartAt,
+          clientUserId: r.clientUserId,
+          ptUserId: r.ptUserId,
+          hasCase: !!c,
+          needsCase: !c,
+          caseId: c?.id ?? null,
+          caseStatus: c?.status ?? null,
+          caseType: c?.type ?? null,
+          execStatus: c?.execStatus ?? null,
+          investigatorId: c?.investigatorId ?? null,
+        };
+      }),
+    };
+  },
+
+  /** The policy-eligibility (D-NEW-12) reviews of a contract, read-only: who proposed, who approved, when, which one is the current one. */
+  async listPolicyReviewsForContract(actor: Actor, contractId: string) {
+    assertAdmin(actor);
+    return policyReviewsOf(prisma, contractId);
+  },
+
+  async listPolicyReviewsOfCase(actor: Actor, caseId: string) {
+    assertAdmin(actor);
+    requireUuid(caseId);
+    const c = await prisma.disputeCase.findUnique({ where: { id: caseId }, select: { contractId: true } });
+    if (!c) throw notFoundCase();
+    return policyReviewsOf(prisma, c.contractId);
   },
 
   async getForAdmin(actor: Actor, caseId: string) {
@@ -950,7 +1168,7 @@ export const disputeCaseService = {
     requireUuid(caseId);
     const c = await prisma.disputeCase.findUnique({ where: { id: caseId } });
     if (!c) throw notFoundCase();
-    const [claims, issues, evidence, statements, shares, assessments, findings, proposals, events] = await Promise.all([
+    const [claims, issues, evidence, statements, shares, assessments, findings, proposals, events, executions, session, reviews] = await Promise.all([
       prisma.disputeCaseClaim.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseIssue.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseEvidence.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
@@ -960,25 +1178,49 @@ export const disputeCaseService = {
       prisma.disputeCaseFinding.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
       prisma.disputeCaseProposal.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { approvals: { orderBy: { createdAt: "asc" } } } }),
       prisma.disputeCaseEvent.findMany({ where: { caseId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 200 }),
+      prisma.disputeCaseExecution.findMany({ where: { caseId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
+      prisma.session.findUnique({ where: { id: c.sessionId }, select: { status: true } }),
+      policyReviewsOf(prisma, c.contractId),
     ]);
     const financial = await buildFinancialView(prisma, c.sessionId);
     await logAccess(prisma, [
       { caseId, viewer: actor, action: "VIEW_CASE" as const },
       ...evidence.map((e) => ({ caseId, viewer: actor, action: "VIEW_EVIDENCE" as const, evidenceId: e.id })),
     ]);
-    const approved = proposals.find((p) => p.approvals.some((a) => a.result === "APPROVED"));
+    const latestProposal = proposals.length ? proposals[proposals.length - 1] : null;
+    const approvedProposal = [...proposals].reverse().find((p) => p.approvals.some((a) => a.result === "APPROVED")) ?? null;
+    const approval = approvedProposal ? ([...approvedProposal.approvals].reverse().find((a) => a.result === "APPROVED") ?? null) : null;
+    const latestApproval = latestProposal?.approvals.length ? latestProposal.approvals[latestProposal.approvals.length - 1] : null;
+    const sessionStatus = session?.status ?? null;
+    const execution = executionView(c, approvedProposal, approval, executions, events, sessionStatus, reviews.items);
+    const actions = computeAllowedActions({
+      actor,
+      c,
+      sessionStatus,
+      proposerId: latestProposal?.proposerId ?? null,
+      latestFinding: findings.length ? findings[findings.length - 1].finding : null,
+      pendingPolicyReviews: reviews.items.filter((r) => r.status === "PENDING").map((r) => ({ id: r.reviewId, proposedBy: r.proposedBy })),
+      flags: { executionEnabled: executionEnabled(), evidenceStorageEnabled: evidenceStorageEnabled() },
+    });
     return {
-      case: summary(c),
+      case: { ...summary(c), sessionStatus, orphan: isOrphanCase(c.status, sessionStatus) },
       claims,
       issues,
       // The admin sees plainly which rows are a party's unverified claim (effective status even for a row written before the column existed).
-      evidence: evidence.map((e) => ({ ...e, verificationStatus: effectiveVerificationStatus(e), partySubmitted: isPartySubmitted(e), provenanceLabel: provenanceLabelVi(e.provenanceType) })),
+      // The stored-file key is internal: it never leaves the server (the file is read through the evidence-file route).
+      evidence: evidence.map((e) => ({ ...e, payload: publicEvidencePayload(e.payload), verificationStatus: effectiveVerificationStatus(e), partySubmitted: isPartySubmitted(e), provenanceLabel: provenanceLabelVi(e.provenanceType) })),
       statements,
       shares,
       assessments,
       findings,
-      proposals: proposals.map((p) => ({ ...p, execution: EXECUTION_BLOCKED_SLICE1 })),
-      decision: approved ? { proposalId: approved.id, outcome: approved.outcome, execution: EXECUTION_BLOCKED_SLICE1, executionBlockedReason: approved.executionBlockedReason } : null,
+      proposals,
+      latestProposal: latestProposal ? { id: latestProposal.id, outcome: latestProposal.outcome, proposerId: latestProposal.proposerId, executionBlockedReason: latestProposal.executionBlockedReason, createdAt: latestProposal.createdAt } : null,
+      latestApproval: latestApproval ? { id: latestApproval.id, proposalId: latestApproval.proposalId, approverId: latestApproval.approverId, result: latestApproval.result, reason: latestApproval.reason, createdAt: latestApproval.createdAt } : null,
+      decision: approvedProposal && approval ? { proposalId: approvedProposal.id, approvalId: approval.id, outcome: approvedProposal.outcome, approvedBy: approval.approverId, approvedAt: approval.createdAt, executionBlockedReason: approvedProposal.executionBlockedReason } : null,
+      execution,
+      policyReviews: reviews,
+      allowedActions: allowedList(actions),
+      actions,
       events: events.map((e) => ({ ...e, payload: undefined })),
       financial,
     };
@@ -1030,7 +1272,7 @@ export const disputeCaseService = {
         capturedAt: e.capturedAt,
         captureStatus: e.captureStatus,
         snapshotVersion: e.snapshotVersion,
-        payload: e.payload,
+        payload: publicEvidencePayload(e.payload),
         verificationStatus: effectiveVerificationStatus(e),
         mine: e.submittedBy === actor.id,
       })),
@@ -1230,28 +1472,129 @@ export const disputeCaseService = {
   },
 };
 
+export interface CaseListQuery {
+  status?: string;
+  execStatus?: string;
+  type?: string;
+  investigatorId?: string;
+  unassigned?: boolean;
+  sessionId?: string;
+  contractId?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
+  sort?: "createdAt" | "updatedAt";
+  order?: "asc" | "desc";
+  limit: number;
+  offset: number;
+}
+export interface QueueQuery {
+  sessionStatus?: "DISPUTED" | "PT_NO_SHOW_REPORTED";
+  hasCase?: boolean;
+  contractId?: string;
+  limit: number;
+  offset: number;
+}
+
+/** The evidence payload as an admin / party may see it: the internal storage key of a stored file is removed (the file is read through the evidence-file route). */
+export function publicEvidencePayload(payload: unknown): unknown {
+  const p = payload as { storedFile?: Record<string, unknown> } | null | undefined;
+  if (!p || typeof p !== "object" || !p.storedFile || typeof p.storedFile !== "object") return payload;
+  const { key: _key, ...rest } = p.storedFile;
+  return { ...p, storedFile: rest };
+}
+
+async function policyReviewsOf(db: Db, contractId: string) {
+  const rows = await db.disputeCasePolicyEligibilityReview.findMany({ where: { contractId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] });
+  const current = rows.filter((r) => r.approvedAt).sort((a, b) => b.approvedAt!.getTime() - a.approvedAt!.getTime() || b.id.localeCompare(a.id))[0];
+  return {
+    contractId,
+    currentReviewId: current?.id ?? null,
+    currentResult: current?.result ?? null,
+    items: rows.map((r) => ({
+      reviewId: r.id,
+      caseId: r.caseId,
+      contractId: r.contractId,
+      result: r.result,
+      status: r.approvedAt ? ("APPROVED" as const) : ("PENDING" as const),
+      current: current?.id === r.id,
+      evidenceIds: r.evidenceIds,
+      reasoning: r.reasoning,
+      proposedBy: r.proposedBy,
+      proposedAt: r.createdAt,
+      approvedBy: r.approvedBy,
+      approvedAt: r.approvedAt,
+      supersedesId: r.supersedesId,
+    })),
+  };
+}
+
+/** Blockers a person can read BEFORE pressing execute (informational: the executor re-checks everything itself). */
+function executionBlockers(c: CaseRow, proposal: { executionBlockedReason: string | null } | null, sessionStatus: string | null, reviews: Array<{ current: boolean; result: string }>) {
+  const out: Array<{ code: string; message: string }> = [];
+  if (c.status !== "DECISION_APPROVED" || c.execStatus === "BUSINESS_DONE") return out;
+  if (!executionEnabled()) out.push({ code: "EXECUTION_DISABLED", message: "Bộ thực thi quyết định hồ sơ đang tắt" });
+  const cur = reviews.find((r) => r.current);
+  if (!cur) out.push({ code: "POLICY_ELIGIBILITY_UNVERIFIED", message: "Hợp đồng chưa có kết luận chính sách đã được duyệt" });
+  else if (cur.result !== "ELIGIBLE_CURRENT_POLICY") out.push({ code: "POLICY_EXCEPTION_APPLIES", message: "Hợp đồng thuộc một ngoại lệ lịch sử cần xử lý riêng" });
+  if (proposal?.executionBlockedReason) out.push({ code: proposal.executionBlockedReason, message: "Buổi tập có khoản đền đến muộn cần được đối soát trước khi thực thi" });
+  if (sessionStatus === "PT_NO_SHOW_REPORTED") out.push({ code: "PT_NO_SHOW_REPORTED_NOT_SUPPORTED", message: "Buổi đang chờ huấn luyện viên phản hồi báo vắng mặt; chưa thực thi được" });
+  else if (sessionStatus !== null && sessionStatus !== "DISPUTED") out.push({ code: "SESSION_ALREADY_PROCESSED", message: "Buổi tập không còn ở trạng thái đang khiếu nại" });
+  return out;
+}
+
+/** The execution axis as the admin reads it: the real execStatus, the decision it belongs to, the reason it waits, and the history from the append-only table. */
+function executionView(
+  c: CaseRow,
+  proposal: { id: string; outcome: string; executionBlockedReason: string | null } | null,
+  approval: { id: string } | null,
+  executions: Array<Prisma.DisputeCaseExecutionGetPayload<{}>>,
+  events: Array<{ action: string; createdAt: Date; note: string | null; actorUserId: string }>,
+  sessionStatus: string | null,
+  reviews: Array<{ current: boolean; result: string }>,
+) {
+  const lastWaiting = [...executions].reverse().find((e) => e.state === "BLOCKED" || e.state === "NEEDS_HUMAN");
+  const blockedReason = c.execStatus === "EXEC_BLOCKED" || c.execStatus === "NEEDS_HUMAN" ? (lastWaiting?.blockedReason ?? null) : null;
+  return {
+    status: c.execStatus,
+    decisionId: c.execDecisionId ?? approval?.id ?? null,
+    outcome: proposal?.outcome ?? null,
+    blockedReason,
+    blockedReasonText: blockedReason ? blockReasonVi(blockedReason) : null,
+    blockers: executionBlockers(c, proposal, sessionStatus, reviews),
+    needsHuman: c.execStatus === "NEEDS_HUMAN" ? { reason: lastWaiting?.blockedReason ?? null, detail: lastWaiting?.response ?? null, sessionStatus } : null,
+    history: executions.map((e) => ({ id: e.id, state: e.state, attempt: e.attempt, outcome: e.outcome, blockedReason: e.blockedReason, note: e.note, actorUserId: e.actorUserId, response: e.response, createdAt: e.createdAt })),
+    acknowledgements: events.filter((e) => e.action === "NEEDS_HUMAN_ACKNOWLEDGED").map((e) => ({ actorUserId: e.actorUserId, note: e.note, createdAt: e.createdAt })),
+    moneyNote: "Trạng thái tiền được dẫn xuất riêng ở mục financial; execStatus BUSINESS_DONE chỉ nghĩa là đường nghiệp vụ đã trả lời, không phải tiền đã tới.",
+  };
+}
+
 // ── Evidence-change guard & access log ───────────────────────────────────────────────────────────────────────────────
 
 /**
  * What changed since the proposal's snapshot: rows written after it, plus any live source whose current hash differs from the latest stored
  * row (a change nobody has re-collected yet). Pure reads; callable inside the approve transaction.
  */
-export async function evidenceGuard(tx: Tx, c: CaseRow, snapshot: SnapshotEntry[]) {
+export async function evidenceGuard(tx: Tx, c: CaseRow, snapshot: SnapshotEntry[], prefetched?: EvidenceDraft[] | null) {
   const [ev, st] = await Promise.all([
     tx.disputeCaseEvidence.findMany({ where: { caseId: c.id }, select: { id: true, contentHash: true, createdAt: true } }),
     tx.disputeCaseStatement.findMany({ where: { caseId: c.id }, select: { id: true, contentHash: true, createdAt: true } }),
   ]);
   const heads = await systemHeads(tx, c.id);
-  const collected = await collectSources(tx, c.sessionId);
+  const collected = await collectSources(tx, c.sessionId, undefined, prefetched);
   const staleLive: string[] = [];
+  const unreadableLive: string[] = [];
   for (const d of collected?.evidence ?? []) {
     const head = heads.get(slotKey(d.source, d.subject));
-    if (!head || head.hash !== draftHash(d)) staleLive.push(`${d.source}#${d.subject}`);
+    if (head && head.hash === draftHash(d)) continue;
+    // F5: the live read FAILED now while the stored head holds real data: unknown, not changed.
+    if (head && d.captureStatus === "UNAVAILABLE" && head.captureStatus !== "UNAVAILABLE") unreadableLive.push(`${d.source}#${d.subject}`);
+    else staleLive.push(`${d.source}#${d.subject}`);
   }
   return diffAgainstSnapshot({
     snapshot,
     current: [...ev.map((e) => ({ id: e.id, hash: e.contentHash, createdAt: e.createdAt })), ...st.map((s) => ({ id: s.id, hash: s.contentHash, createdAt: s.createdAt }))],
     staleLive,
+    unreadableLive,
   });
 }
 

@@ -8,11 +8,13 @@ import { MAX_EVIDENCE_BYTES } from "../services/dispute-case/evidence-storage";
 import multer from "multer";
 import {
   ackBody,
+  acknowledgeNeedsHumanBody,
   approvalBody,
   assessmentBody,
   assignBody,
   claimBody,
   classifyBody,
+  closeBody,
   emptyBody,
   executeBody,
   findingBody,
@@ -23,6 +25,7 @@ import {
   policyEligibilityApproveBody,
   policyEligibilityBody,
   proposalBody,
+  queueQuery,
   requestMoreBody,
   shareBody,
   statementBody,
@@ -49,6 +52,18 @@ function idempotencyKeyOf(req: any): string | undefined {
     throw Object.assign(new Error("Idempotency-Key không hợp lệ (tối đa 128 ký tự: chữ, số, _ . : -)"), { status: 400, code: "INVALID_IDEMPOTENCY_KEY" });
   }
   return raw;
+}
+
+/**
+ * F11: the writes that create a row and have no natural unique key (claim, issue, assessment, party statement, party evidence / evidence file) REQUIRE an
+ * Idempotency-Key, so a double click cannot add a duplicate: a missing key is 400 IDEMPOTENCY_KEY_REQUIRED (nothing is written). The UI sends one UUID per opened form.
+ */
+function requiredIdempotencyKeyOf(req: any): string {
+  const key = idempotencyKeyOf(req);
+  if (!key) {
+    throw Object.assign(new Error("Thiếu Idempotency-Key (bắt buộc cho thao tác này để bấm đúp không tạo bản ghi trùng; tối đa 128 ký tự: chữ, số, _ . : -)"), { status: 400, code: "IDEMPOTENCY_KEY_REQUIRED" });
+  }
+  return key;
 }
 
 function parse<S extends ZodTypeAny>(schema: S, data: unknown): z.infer<S> {
@@ -113,7 +128,7 @@ export const disputeCaseController = {
           actor,
           idOf(req),
           { bytes: req.file.buffer, declaredMime: String(req.file.mimetype || ""), originalName: req.file.originalname, description: fields.description, title: fields.title },
-          idempotencyKeyOf(req),
+          requiredIdempotencyKeyOf(req),
         );
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
@@ -175,6 +190,38 @@ export const disputeCaseController = {
 
   list: (req: any, res: Response) =>
     run(res, async (actor) => ({ body: await disputeCaseService.list(actor, parse(listQuery, req.query)) }), req, "list"),
+
+  queue: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.queue(actor, parse(queueQuery, req.query)) }), req, "queue"),
+
+  policyReviewsOfCase: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.listPolicyReviewsOfCase(actor, idOf(req)) }), req, "policyReviewsOfCase"),
+
+  policyReviewsOfContract: (req: any, res: Response) =>
+    run(res, async (actor) => ({ body: await disputeCaseService.listPolicyReviewsForContract(actor, String(req.params.contractId).slice(0, 64)) }), req, "policyReviewsOfContract"),
+
+  closeOrphan: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await disputeCaseService.closeOrphan(actor, idOf(req), parse(closeBody, req.body).reason, idempotencyKeyOf(req));
+        return { body: r.result, replayed: r.replayed };
+      },
+      req,
+      "closeOrphan",
+    ),
+
+  closeNotADispute: (req: any, res: Response) =>
+    run(
+      res,
+      async (actor) => {
+        const r = await disputeCaseService.closeNotADispute(actor, idOf(req), parse(closeBody, req.body).reason, idempotencyKeyOf(req));
+        return { body: r.result, replayed: r.replayed };
+      },
+      req,
+      "closeNotADispute",
+    ),
+
+  acknowledgeNeedsHuman: (req: any, res: Response) =>
+    run(res, async (actor) => ({ body: await executionService.acknowledgeNeedsHuman(actor, idOf(req), parse(acknowledgeNeedsHumanBody, req.body).note) }), req, "acknowledgeNeedsHuman"),
 
   get: (req: any, res: Response) => run(res, async (actor) => ({ body: await disputeCaseService.getForAdmin(actor, idOf(req)) }), req, "get"),
 
@@ -241,7 +288,7 @@ export const disputeCaseController = {
     run(
       res,
       async (actor) => {
-        const r = await disputeCaseService.addClaim(actor, idOf(req), parse(claimBody, req.body), idempotencyKeyOf(req));
+        const r = await disputeCaseService.addClaim(actor, idOf(req), parse(claimBody, req.body), requiredIdempotencyKeyOf(req));
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
       req,
@@ -252,7 +299,7 @@ export const disputeCaseController = {
     run(
       res,
       async (actor) => {
-        const r = await disputeCaseService.addIssue(actor, idOf(req), parse(issueBody, req.body), idempotencyKeyOf(req));
+        const r = await disputeCaseService.addIssue(actor, idOf(req), parse(issueBody, req.body), requiredIdempotencyKeyOf(req));
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
       req,
@@ -263,7 +310,7 @@ export const disputeCaseController = {
     run(
       res,
       async (actor) => {
-        const r = await disputeCaseService.addAssessment(actor, idOf(req), parse(assessmentBody, req.body), idempotencyKeyOf(req));
+        const r = await disputeCaseService.addAssessment(actor, idOf(req), parse(assessmentBody, req.body), requiredIdempotencyKeyOf(req));
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
       req,
@@ -287,7 +334,8 @@ export const disputeCaseController = {
       async (actor) => {
         const b = parse(proposalBody, req.body);
         const r = await disputeCaseService.propose(actor, idOf(req), b.note, idempotencyKeyOf(req));
-        return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
+        // F4: 201 ONLY when a proposal row was created now. 200 when nothing was created (proposalCreated:false, the case moved to a waiting state) and on a replay.
+        return { status: r.result.proposalCreated === true && !r.replayed ? 201 : 200, body: r.result, replayed: r.replayed };
       },
       req,
       "propose",
@@ -358,7 +406,7 @@ export const disputeCaseController = {
     run(
       res,
       async (actor) => {
-        const r = await disputeCaseService.submitStatement(actor, idOf(req), parse(statementBody, req.body), idempotencyKeyOf(req));
+        const r = await disputeCaseService.submitStatement(actor, idOf(req), parse(statementBody, req.body), requiredIdempotencyKeyOf(req));
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
       req,
@@ -369,7 +417,7 @@ export const disputeCaseController = {
     run(
       res,
       async (actor) => {
-        const r = await disputeCaseService.submitEvidence(actor, idOf(req), parse(partyEvidenceBody, req.body), idempotencyKeyOf(req));
+        const r = await disputeCaseService.submitEvidence(actor, idOf(req), parse(partyEvidenceBody, req.body), requiredIdempotencyKeyOf(req));
         return { status: r.replayed ? 200 : 201, body: r.result, replayed: r.replayed };
       },
       req,

@@ -16,6 +16,7 @@ import type { AddressInfo } from "node:net";
 import { guardedTest as test } from "./test-db-guard";
 import { paymentClient } from "../clients/payment.client";
 import { authServiceClient } from "../clients/auth-service.client";
+import { setAdminAccountLookupForTests } from "../services/dispute-case/admin-account";
 import { prisma } from "../repositories/profile.repository";
 import { disputeCaseService as svc, type Actor } from "../services/dispute-case/dispute-case.service";
 import { addSession, makeContract } from "./pt-restriction.test-helpers";
@@ -69,6 +70,8 @@ function stubPayments() {
 
 test.before(async () => {
   stubPayments();
+  // Backend completion: assign checks the target is a REAL admin (auth-service). This suite has no auth-service: every id is a real active admin here.
+  setAdminAccountLookupForTests(async () => ({ role: "ADMIN", isActive: true }));
   await prisma.$executeRawUnsafe(
     `TRUNCATE dispute_case_access_logs, dispute_case_events, dispute_case_approvals, dispute_case_proposals, dispute_case_findings, dispute_case_assessments, dispute_case_shares, dispute_case_statements, dispute_case_evidence, dispute_case_claims, dispute_case_issues, dispute_cases CASCADE`,
   );
@@ -153,7 +156,8 @@ test("intake from a DISPUTED session: PT_DELIVERY, every source collected read-o
   const c = out.result.case;
   assert.equal(c.type, "PT_DELIVERY");
   assert.equal(c.status, "INTAKE");
-  assert.equal((c as any).clientUserId, undefined, "summary does not leak ids it does not need");
+  assert.equal(c.clientUserId, s.session.clientUserId, "backend completion: the summary names the two parties and the execution axis");
+  assert.equal(c.execStatus, "NOT_STARTED");
 
   const row = await prisma.disputeCase.findUniqueOrThrow({ where: { id: c.id } });
   assert.equal(row.clientUserId, s.clientUserId);
@@ -419,7 +423,7 @@ test("a finding needs every claim assessed; the proposal outcome is computed fro
     assert.equal(p.outcome, outcome, finding);
     assert.equal(p.proposerId, A1.id);
     assert.equal(p.executionBlockedReason, null);
-    assert.equal(w.proposal.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+    assert.equal(w.proposal.execStatus, "NOT_STARTED");
   }
 });
 
@@ -452,7 +456,7 @@ test("B-1: a PT_LATE_ARRIVAL step on the session (settlement row of ANY status, 
     assert.equal((await prisma.disputeCase.findUniqueOrThrow({ where: { id: w.caseId } })).status, "AWAITING_APPROVAL", "investigation and approval are not blocked");
     const done = await svc.decide(A2, w.caseId, approveBody());
     assert.equal(done.result.caseStatus, "DECISION_APPROVED");
-    assert.equal(done.result.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+    assert.equal(done.result.execStatus, "NOT_STARTED", "approval never executes: the real execution axis is returned, not the old constant");
     assert.equal(done.result.executionBlockedReason, "D77_COMBINATION_UNRESOLVED");
   }
   // I6 = A: a CANCELLED finding on a session with a D77 step (a settlement row of ANY status, or only a ledger operation) creates NO proposal and parks the case in POLICY_PENDING
@@ -524,7 +528,7 @@ test("approval: the proposer, the investigator, the client, the PT and a non-adm
   const done = await svc.decide(A2, w.caseId, approveBody({ reason: "Đã xem xét" }));
   assert.equal(done.result.result, "APPROVED");
   assert.equal(done.result.caseStatus, "DECISION_APPROVED");
-  assert.equal(done.result.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+  assert.equal(done.result.execStatus, "NOT_STARTED", "approval never executes: the real execution axis is returned, not the old constant");
   const approval = await prisma.disputeCaseApproval.findFirstOrThrow({ where: { proposalId: w.proposal.id } });
   assert.equal(approval.approverId, A2.id);
   assert.equal(approval.conflictOfInterestDeclaredNone, true);
@@ -587,12 +591,12 @@ test("evidence written after the proposal blocks the approval (409 EVIDENCE_CHAN
   const w = await toAwaitingApproval({});
   // nothing changed: the guard stays silent
   const quiet = await svc.recollect(A3, w.caseId);
-  assert.deepEqual(quiet.result, { added: 0, unchanged: 13 });
+  assert.deepEqual(quiet.result, { added: 0, unchanged: 13, skippedUnavailable: [] });
 
   // something about the session changes (a new audit row) and somebody re-collects: new evidence version after the snapshot
   await prisma.auditLog.create({ data: { actorUserId: w.ptUserId, action: "SESSION_NOTE", entityType: "SESSION", entityId: w.session.id } });
   const re = await svc.recollect(A3, w.caseId);
-  assert.deepEqual(re.result, { added: 1, unchanged: 12 });
+  assert.deepEqual(re.result, { added: 1, unchanged: 12, skippedUnavailable: [] });
   const chain = await prisma.disputeCaseEvidence.findMany({ where: { caseId: w.caseId, subject: "AUDIT_LOG:SESSION" }, orderBy: { snapshotVersion: "asc" } });
   assert.equal(chain.length, 2);
   assert.equal(chain[1].snapshotVersion, 2);
@@ -925,8 +929,9 @@ test("HTTP: route wiring, role gates, strict bodies, Vietnamese errors, Idempote
     assert.equal(assign.json.investigatorId, A1.id);
     assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/assign`, adminTok, { investigatorId: A3.id, approverId: A2.id })).status, 400);
     assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/transition`, adminTok, { to: "COLLECTING" })).status, 200);
-    const claim = await call("POST", `/admin/dispute-cases/${caseId}/claims`, adminTok, { claimantRole: "CLIENT", text: "PT vắng", moves: ["MONEY"] });
+    const claim = await call("POST", `/admin/dispute-cases/${caseId}/claims`, adminTok, { claimantRole: "CLIENT", text: "PT vắng", moves: ["MONEY"] }, { "Idempotency-Key": "k-claim-1" });
     assert.equal(claim.status, 201);
+    assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/claims`, adminTok, { claimantRole: "CLIENT", text: "PT vắng", moves: ["MONEY"] })).json.code, "IDEMPOTENCY_KEY_REQUIRED", "F11: no key, no row");
     assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/transition`, adminTok, { to: "FINDING_RECORDED" })).status, 400, "not a manual target");
     assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/transition`, adminTok, { to: "ASSESSING" })).status, 200);
 
@@ -935,7 +940,7 @@ test("HTTP: route wiring, role gates, strict bodies, Vietnamese errors, Idempote
     assert.equal(partyList.status, 200);
     assert.ok(partyList.json.items.some((i: any) => i.id === caseId));
     assert.equal((await call("GET", `/dispute-cases/${caseId}`, `CUSTOMER:${randomUUID()}`)).status, 404);
-    const stmt = await call("POST", `/dispute-cases/${caseId}/statements`, ptTok, { text: "PT trình bày", supplementReason: "bổ sung" });
+    const stmt = await call("POST", `/dispute-cases/${caseId}/statements`, ptTok, { text: "PT trình bày", supplementReason: "bổ sung" }, { "Idempotency-Key": "k-stmt-1" });
     assert.equal(stmt.status, 201);
     assert.equal((await call("POST", `/dispute-cases/${caseId}/statements`, ptTok, { text: "x", userId: "someone" })).status, 400);
     assert.equal((await call("POST", `/dispute-cases/${caseId}/evidence`, clientTok, { description: "Ảnh", sha256: "not-hex" })).status, 400);
@@ -944,7 +949,7 @@ test("HTTP: route wiring, role gates, strict bodies, Vietnamese errors, Idempote
       assert.equal(refused.status, 400);
       assert.equal(refused.json.code, "INVALID_INPUT");
     }
-    const doc = await call("POST", `/dispute-cases/${caseId}/evidence`, clientTok, { description: "Ảnh", sha256: "f".repeat(64) });
+    const doc = await call("POST", `/dispute-cases/${caseId}/evidence`, clientTok, { description: "Ảnh", sha256: "f".repeat(64) }, { "Idempotency-Key": "k-doc-1" });
     assert.equal(doc.status, 201);
     const detail = await call("GET", `/dispute-cases/${caseId}`, clientTok);
     assert.equal(detail.status, 200);
@@ -953,15 +958,15 @@ test("HTTP: route wiring, role gates, strict bodies, Vietnamese errors, Idempote
 
     // investigator-only over HTTP, proposals refuse an outcome in the body
     const ev = await prisma.disputeCaseEvidence.findFirstOrThrow({ where: { caseId, subject: "SESSION_ROW" } });
-    assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/assessments`, approverTok, { claimId: claim.json.id, relevanceNote: "a", verifiabilityNote: "a", consistencyNote: "a", result: "ESTABLISHED", reasoning: "a" })).json.code, "NOT_ASSIGNED_INVESTIGATOR");
-    assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/assessments`, adminTok, { claimId: claim.json.id, directEvidenceIds: [ev.id], relevanceNote: "a", verifiabilityNote: "a", consistencyNote: "a", result: "ESTABLISHED", reasoning: "a" })).status, 201);
+    assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/assessments`, approverTok, { claimId: claim.json.id, relevanceNote: "a", verifiabilityNote: "a", consistencyNote: "a", result: "ESTABLISHED", reasoning: "a" }, { "Idempotency-Key": "k-as-0" })).json.code, "NOT_ASSIGNED_INVESTIGATOR");
+    assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/assessments`, adminTok, { claimId: claim.json.id, directEvidenceIds: [ev.id], relevanceNote: "a", verifiabilityNote: "a", consistencyNote: "a", result: "ESTABLISHED", reasoning: "a" }, { "Idempotency-Key": "k-as-1" })).status, 201);
     assert.equal((await call("POST", `/admin/dispute-cases/${caseId}/findings`, adminTok, { finding: "VERIFIED_DELIVERED", reasoning: "x" })).status, 201);
     const withOutcome = await call("POST", `/admin/dispute-cases/${caseId}/proposals`, adminTok, { outcome: "PT_NO_SHOW_CONFIRMED" });
     assert.equal(withOutcome.status, 400);
     const proposal = await call("POST", `/admin/dispute-cases/${caseId}/proposals`, adminTok, {});
     assert.equal(proposal.status, 201);
     assert.equal(proposal.json.outcome, "COMPLETED");
-    assert.equal(proposal.json.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+    assert.equal(proposal.json.execStatus, "NOT_STARTED");
 
     // four eyes over HTTP
     const self = await call("POST", `/admin/dispute-cases/${caseId}/approvals`, adminTok, approveBody());
@@ -972,11 +977,11 @@ test("HTTP: route wiring, role gates, strict bodies, Vietnamese errors, Idempote
     const ok = await call("POST", `/admin/dispute-cases/${caseId}/approvals`, approverTok, approveBody());
     assert.equal(ok.status, 200);
     assert.equal(ok.json.caseStatus, "DECISION_APPROVED");
-    assert.equal(ok.json.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+    assert.equal(ok.json.execStatus, "NOT_STARTED");
 
     const full = await call("GET", `/admin/dispute-cases/${caseId}`, adminTok);
     assert.equal(full.status, 200);
-    assert.equal(full.json.decision.execution, "BLOCKED: SLICE_2_NOT_ENABLED");
+    assert.equal(full.json.execution.status, "NOT_STARTED");
     assert.ok(full.json.financial.derived);
     assert.equal((await call("GET", "/admin/dispute-cases?status=DECISION_APPROVED", adminTok)).json.items.some((i: any) => i.id === caseId), true);
     assert.equal((await call("GET", "/admin/dispute-cases?status=NOPE", adminTok)).status, 400);

@@ -47,8 +47,44 @@ export interface CollectedSession {
 
 const NULL_NOT_ABSENCE = "NULL không phải bằng chứng vắng mặt";
 
-/** Reads every source for one session. Returns null when the session does not exist. */
-export async function collectSources(db: Db, sessionId: string, external: ExternalSources | null | undefined = defaultExternalSources()): Promise<CollectedSession | null> {
+/**
+ * F5 (backend completion): the calls to OTHER services (chat, gym) made WITHOUT a transaction, so that no case row lock is held while the network is
+ * waited on. The result is handed to {@link collectSources} as `prefetched`. Returns null when the session does not exist. Every failure is an
+ * UNAVAILABLE draft (externalEvidenceDrafts never throws); with no external sources configured it is the Slice 1 placeholders.
+ */
+export async function collectExternal(db: Db, sessionId: string, external: ExternalSources | null | undefined = defaultExternalSources()): Promise<EvidenceDraft[] | null> {
+  const session = await db.session.findUnique({ where: { id: sessionId }, include: { contract: true } });
+  if (!session) return null;
+  return externalDraftsFor(session, external);
+}
+
+function externalDraftsFor(session: any, external: ExternalSources | null | undefined): Promise<EvidenceDraft[]> | EvidenceDraft[] {
+  return external
+    ? externalEvidenceDrafts(
+        {
+          id: session.id,
+          sessionMode: session.sessionMode,
+          ptUserId: session.ptUserId,
+          scheduledStartAt: session.scheduledStartAt,
+          scheduledEndAt: session.scheduledEndAt,
+          contractGymId: session.contract.gymId ?? null,
+          contractGymMembershipId: session.contract.gymMembershipId ?? null,
+        },
+        external,
+      )
+    : legacyUnavailableDrafts();
+}
+
+/**
+ * Reads every source for one session. Returns null when the session does not exist. `prefetched` = the cross-service drafts already read by
+ * {@link collectExternal} (no network call is made here then; use it inside a transaction).
+ */
+export async function collectSources(
+  db: Db,
+  sessionId: string,
+  external: ExternalSources | null | undefined = defaultExternalSources(),
+  prefetched?: EvidenceDraft[] | null,
+): Promise<CollectedSession | null> {
   const session = await db.session.findUnique({ where: { id: sessionId }, include: { contract: true } });
   if (!session) return null;
   const contract = session.contract;
@@ -239,22 +275,7 @@ export async function collectSources(db: Db, sessionId: string, external: Extern
 
   // Slice 2 / S2.3: the sources that live in other services. Read-only, one bounded call each, every failure is UNAVAILABLE (never 0 / false);
   // with no external sources configured (null) the Slice 1 placeholders stay.
-  evidence.push(
-    ...(external
-      ? await externalEvidenceDrafts(
-          {
-            id: session.id,
-            sessionMode: session.sessionMode,
-            ptUserId: session.ptUserId,
-            scheduledStartAt: session.scheduledStartAt,
-            scheduledEndAt: session.scheduledEndAt,
-            contractGymId: contract.gymId ?? null,
-            contractGymMembershipId: contract.gymMembershipId ?? null,
-          },
-          external,
-        )
-      : legacyUnavailableDrafts()),
-  );
+  evidence.push(...(prefetched ?? (await externalDraftsFor(session, external))));
 
   // The two free-text legacy fields become statement v1 (their author is known from the session, their wording is the party's own).
   const statements: StatementDraft[] = [];

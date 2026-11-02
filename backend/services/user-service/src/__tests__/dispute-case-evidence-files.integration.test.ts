@@ -86,7 +86,10 @@ async function upload(caseId: string, token: string | null, file: { bytes: Buffe
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.append(k, v);
   if (file) fd.append("file", new Blob([new Uint8Array(file.bytes)], { type: file.mime }), file.name ?? "evidence.bin");
-  const res = await fetch(`${base}/dispute-cases/${caseId}/evidence-files`, { method: "POST", headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: fd });
+  // F11: an Idempotency-Key is REQUIRED on an upload; a test gets a fresh one unless it sends its own or asks for none (x-no-key).
+  const { "x-no-key": noKey, ...rest } = headers;
+  const keyHeader: Record<string, string> = noKey || rest["Idempotency-Key"] ? {} : { "Idempotency-Key": `up-${Math.random().toString(36).slice(2)}` };
+  const res = await fetch(`${base}/dispute-cases/${caseId}/evidence-files`, { method: "POST", headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...keyHeader, ...rest }, body: fd });
   return { status: res.status, json: (await res.json().catch(() => null)) as any };
 }
 async function download(url: string, token: string | null) {
@@ -255,4 +258,15 @@ test("the evidence directory can never be inside an 'uploads' folder", () => {
     assert.throws(() => storageDir(env(bad)), /EVIDENCE_DIR_REFUSED/, bad);
   }
   assert.ok(storageDir({} as NodeJS.ProcessEnv).startsWith(path.resolve(os.tmpdir())), "default: the OS temp folder");
+});
+
+test("F11: an upload without an Idempotency-Key is 400 IDEMPOTENCY_KEY_REQUIRED and writes nothing (no file, no row)", async () => {
+  enableExecutionFlags({ evidence: true });
+  const x = await mkCase();
+  const before = filesOf(x.caseId).length;
+  const r = await upload(x.caseId, x.client, { bytes: PNG, mime: "image/png" }, undefined, { "x-no-key": "1" });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.code, "IDEMPOTENCY_KEY_REQUIRED");
+  assert.equal(filesOf(x.caseId).length, before);
+  assert.equal(await prisma.disputeCaseEvidence.count({ where: { caseId: x.caseId, source: "party.external_document_file" } }), 0);
 });

@@ -739,6 +739,7 @@ exports.Prisma.DisputeCaseScalarFieldEnum = {
   investigatorId: 'investigatorId',
   execStatus: 'execStatus',
   execDecisionId: 'execDecisionId',
+  closeReason: 'closeReason',
   version: 'version',
   createdBy: 'createdBy',
   createdAt: 'createdAt',
@@ -1150,7 +1151,8 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   GYM_LISTING_INVALIDATED: 'GYM_LISTING_INVALIDATED',
   GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
   PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED',
-  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED'
+  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED',
+  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -1165,7 +1167,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   PT_APPLICATION: 'PT_APPLICATION',
   PT_LISTING: 'PT_LISTING',
   PAYMENT: 'PAYMENT',
-  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION'
+  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
+  DISPUTE_CASE: 'DISPUTE_CASE'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {

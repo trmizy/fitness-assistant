@@ -481,7 +481,8 @@ export const NotificationEventType: {
   GYM_LISTING_INVALIDATED: 'GYM_LISTING_INVALIDATED',
   GYM_AMENITY_PROPOSAL_REVIEWED: 'GYM_AMENITY_PROPOSAL_REVIEWED',
   PAYMENT_AUTO_REFUNDED: 'PAYMENT_AUTO_REFUNDED',
-  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED'
+  GYM_PARTNER_APPLICATION_REJECTED: 'GYM_PARTNER_APPLICATION_REJECTED',
+  DISPUTE_CASE_UPDATED: 'DISPUTE_CASE_UPDATED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -499,7 +500,8 @@ export const NotificationEntityType: {
   PT_APPLICATION: 'PT_APPLICATION',
   PT_LISTING: 'PT_LISTING',
   PAYMENT: 'PAYMENT',
-  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION'
+  GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
+  DISPUTE_CASE: 'DISPUTE_CASE'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
@@ -40529,6 +40531,7 @@ export namespace Prisma {
     investigatorId: string | null
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
+    closeReason: string | null
     version: number | null
     createdBy: string | null
     createdAt: Date | null
@@ -40547,6 +40550,7 @@ export namespace Prisma {
     investigatorId: string | null
     execStatus: $Enums.DisputeCaseExecStatus | null
     execDecisionId: string | null
+    closeReason: string | null
     version: number | null
     createdBy: string | null
     createdAt: Date | null
@@ -40565,6 +40569,7 @@ export namespace Prisma {
     investigatorId: number
     execStatus: number
     execDecisionId: number
+    closeReason: number
     version: number
     createdBy: number
     createdAt: number
@@ -40593,6 +40598,7 @@ export namespace Prisma {
     investigatorId?: true
     execStatus?: true
     execDecisionId?: true
+    closeReason?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -40611,6 +40617,7 @@ export namespace Prisma {
     investigatorId?: true
     execStatus?: true
     execDecisionId?: true
+    closeReason?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -40629,6 +40636,7 @@ export namespace Prisma {
     investigatorId?: true
     execStatus?: true
     execDecisionId?: true
+    closeReason?: true
     version?: true
     createdBy?: true
     createdAt?: true
@@ -40734,6 +40742,7 @@ export namespace Prisma {
     investigatorId: string | null
     execStatus: $Enums.DisputeCaseExecStatus
     execDecisionId: string | null
+    closeReason: string | null
     version: number
     createdBy: string
     createdAt: Date
@@ -40771,6 +40780,7 @@ export namespace Prisma {
     investigatorId?: boolean
     execStatus?: boolean
     execDecisionId?: boolean
+    closeReason?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -40802,6 +40812,7 @@ export namespace Prisma {
     investigatorId?: boolean
     execStatus?: boolean
     execDecisionId?: boolean
+    closeReason?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -40820,6 +40831,7 @@ export namespace Prisma {
     investigatorId?: boolean
     execStatus?: boolean
     execDecisionId?: boolean
+    closeReason?: boolean
     version?: boolean
     createdBy?: boolean
     createdAt?: boolean
@@ -40877,6 +40889,10 @@ export namespace Prisma {
        * Slice 2: the CaseDecision (approval id) that is being / was executed.
        */
       execDecisionId: string | null
+      /**
+       * Backend completion: why a case was closed WITHOUT a decision (status REJECTED_INTAKE is the terminal state): ORPHAN_SESSION_LEFT_DISPUTE | NOT_A_DISPUTE | INTAKE_REJECTED (NULL on a case that was not closed this way). Never money.
+       */
+      closeReason: string | null
       version: number
       createdBy: string
       createdAt: Date
@@ -41297,6 +41313,7 @@ export namespace Prisma {
     readonly investigatorId: FieldRef<"DisputeCase", 'String'>
     readonly execStatus: FieldRef<"DisputeCase", 'DisputeCaseExecStatus'>
     readonly execDecisionId: FieldRef<"DisputeCase", 'String'>
+    readonly closeReason: FieldRef<"DisputeCase", 'String'>
     readonly version: FieldRef<"DisputeCase", 'Int'>
     readonly createdBy: FieldRef<"DisputeCase", 'String'>
     readonly createdAt: FieldRef<"DisputeCase", 'DateTime'>
@@ -58925,6 +58942,7 @@ export namespace Prisma {
     investigatorId: 'investigatorId',
     execStatus: 'execStatus',
     execDecisionId: 'execDecisionId',
+    closeReason: 'closeReason',
     version: 'version',
     createdBy: 'createdBy',
     createdAt: 'createdAt',
@@ -63655,6 +63673,7 @@ export namespace Prisma {
     investigatorId?: StringNullableFilter<"DisputeCase"> | string | null
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
+    closeReason?: StringNullableFilter<"DisputeCase"> | string | null
     version?: IntFilter<"DisputeCase"> | number
     createdBy?: StringFilter<"DisputeCase"> | string
     createdAt?: DateTimeFilter<"DisputeCase"> | Date | string
@@ -63685,6 +63704,7 @@ export namespace Prisma {
     investigatorId?: SortOrderInput | SortOrder
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
+    closeReason?: SortOrderInput | SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -63718,6 +63738,7 @@ export namespace Prisma {
     investigatorId?: StringNullableFilter<"DisputeCase"> | string | null
     execStatus?: EnumDisputeCaseExecStatusFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableFilter<"DisputeCase"> | string | null
+    closeReason?: StringNullableFilter<"DisputeCase"> | string | null
     version?: IntFilter<"DisputeCase"> | number
     createdBy?: StringFilter<"DisputeCase"> | string
     createdAt?: DateTimeFilter<"DisputeCase"> | Date | string
@@ -63748,6 +63769,7 @@ export namespace Prisma {
     investigatorId?: SortOrderInput | SortOrder
     execStatus?: SortOrder
     execDecisionId?: SortOrderInput | SortOrder
+    closeReason?: SortOrderInput | SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -63774,6 +63796,7 @@ export namespace Prisma {
     investigatorId?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
     execStatus?: EnumDisputeCaseExecStatusWithAggregatesFilter<"DisputeCase"> | $Enums.DisputeCaseExecStatus
     execDecisionId?: UuidNullableWithAggregatesFilter<"DisputeCase"> | string | null
+    closeReason?: StringNullableWithAggregatesFilter<"DisputeCase"> | string | null
     version?: IntWithAggregatesFilter<"DisputeCase"> | number
     createdBy?: StringWithAggregatesFilter<"DisputeCase"> | string
     createdAt?: DateTimeWithAggregatesFilter<"DisputeCase"> | Date | string
@@ -69486,6 +69509,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -69516,6 +69540,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -69546,6 +69571,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69576,6 +69602,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69606,6 +69633,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -69624,6 +69652,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -69642,6 +69671,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -74678,6 +74708,7 @@ export namespace Prisma {
     investigatorId?: SortOrder
     execStatus?: SortOrder
     execDecisionId?: SortOrder
+    closeReason?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -74700,6 +74731,7 @@ export namespace Prisma {
     investigatorId?: SortOrder
     execStatus?: SortOrder
     execDecisionId?: SortOrder
+    closeReason?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -74718,6 +74750,7 @@ export namespace Prisma {
     investigatorId?: SortOrder
     execStatus?: SortOrder
     execDecisionId?: SortOrder
+    closeReason?: SortOrder
     version?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -87366,6 +87399,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87395,6 +87429,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87511,6 +87546,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87540,6 +87576,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87624,6 +87661,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87653,6 +87691,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87698,6 +87737,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87727,6 +87767,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87756,6 +87797,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87785,6 +87827,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87872,6 +87915,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87901,6 +87945,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87946,6 +87991,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -87975,6 +88021,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88020,6 +88067,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88049,6 +88097,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88078,6 +88127,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88107,6 +88157,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88152,6 +88203,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88181,6 +88233,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88210,6 +88263,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88239,6 +88293,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88284,6 +88339,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88313,6 +88369,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88342,6 +88399,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88371,6 +88429,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88441,6 +88500,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88470,6 +88530,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88530,6 +88591,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88559,6 +88621,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88636,6 +88699,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88665,6 +88729,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88710,6 +88775,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88739,6 +88805,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -88839,6 +88906,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88868,6 +88936,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89018,6 +89087,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89047,6 +89117,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89092,6 +89163,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89121,6 +89193,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89150,6 +89223,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89179,6 +89253,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89224,6 +89299,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89253,6 +89329,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89282,6 +89359,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89311,6 +89389,7 @@ export namespace Prisma {
     investigatorId?: string | null
     execStatus?: $Enums.DisputeCaseExecStatus
     execDecisionId?: string | null
+    closeReason?: string | null
     version?: number
     createdBy: string
     createdAt?: Date | string
@@ -89356,6 +89435,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -89385,6 +89465,7 @@ export namespace Prisma {
     investigatorId?: NullableStringFieldUpdateOperationsInput | string | null
     execStatus?: EnumDisputeCaseExecStatusFieldUpdateOperationsInput | $Enums.DisputeCaseExecStatus
     execDecisionId?: NullableStringFieldUpdateOperationsInput | string | null
+    closeReason?: NullableStringFieldUpdateOperationsInput | string | null
     version?: IntFieldUpdateOperationsInput | number
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
