@@ -68,6 +68,7 @@ export function createAnnotationPackets(input: { question: string; facts: unknow
   const packetHash = digest(body);
   return { ownerLinkage: { instanceId, packetHash, candidateHash: body.candidateHash }, reviewers: ["R1", "R2"].map((reviewerSlot) => ({ packetHash, reviewerSlot, body })) };
 }
+export type ReviewerPacket = ReturnType<typeof createAnnotationPackets>["reviewers"][number] & { reviewerExportHashes?: Record<string, string> };
 const Factual = z.enum(["SUPPORTED", "CONTRADICTED", "NOT_ESTABLISHED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Support = z.enum(["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE", "NOT_EVALUATED"]);
 const Uncertainty = z.enum(["APPROPRIATE", "OVERCONFIDENT", "UNDERCONFIDENT", "NOT_APPLICABLE", "NOT_EVALUATED"]);
@@ -77,6 +78,7 @@ export const UnsupportedCausalInference = z.enum(["NONE", "PERSONAL_CAUSE_ASSERT
 const ReviewReferences = z.object({ unitIds: z.array(z.string()), factIds: z.array(z.string()), sourceIds: z.array(z.string()), excerptIds: z.array(z.string()) }).strict();
 const emptyReferences = () => ({ unitIds: [], factIds: [], sourceIds: [], excerptIds: [] });
 export const AnnotationSchema = z.object({ packetHash: Hash, reviewerSlot: z.enum(["R1", "R2"]), reviewerPseudonym: z.string().min(1), authority: z.enum(["TEST_FIXTURE", "REVIEWER_ATTESTED"]),
+  reviewerExportHash: Hash.optional(),
   // Additive migration: old records remain valid; missing new axes mean unreviewed, never NA/support.
   units: z.array(z.object({ unitId: z.string(), factualCorrectness: Factual, sourceSupport: Support, unsupportedPersonalClaim: z.boolean().nullable(), uncertainty: Uncertainty, abstention: Abstention,
     personalApplicability: PersonalApplicability.default("NOT_EVALUATED"), unsupportedCausalInference: UnsupportedCausalInference.default("NOT_EVALUATED"), references: ReviewReferences.default(emptyReferences), rationale: z.string().min(1) }).strict()),
@@ -89,8 +91,9 @@ const Decision = z.object({ unitId: z.string(), axis: Axis, decision: z.union([F
   if (!reviewAxes[d.axis].safeParse(d.decision).success) ctx.addIssue({ code: "custom", message: "AdjudicationDecisionDoesNotMatchAxis" });
 });
 export const AdjudicationSchema = z.object({ packetHash: Hash, adjudicatorPseudonym: z.string().min(1), decisions: z.array(Decision), rationale: z.string().min(1) }).strict();
-export function validateAnnotation(value: unknown, packet: ReturnType<typeof createAnnotationPackets>["reviewers"][number]) {
+export function validateAnnotation(value: unknown, packet: ReviewerPacket) {
   const a = AnnotationSchema.parse(value), expected = packet.body.units.map((u) => u.unitId);
+  if (packet.reviewerExportHashes && a.reviewerExportHash !== packet.reviewerExportHashes[a.reviewerSlot]) throw new Error("ReviewerExportReceiptRequired");
   if (a.packetHash !== packet.packetHash || a.reviewerSlot !== packet.reviewerSlot || a.units.length !== expected.length || new Set(a.units.map((u) => u.unitId)).size !== expected.length || expected.some((id) => !a.units.some((u) => u.unitId === id))) throw new Error("AnnotationPacketOrUnitsMismatch");
   const facts = new Set(Array.isArray(packet.body.facts) ? packet.body.facts.map((f) => (f as { id: string }).id) : []);
   const sources = new Set(packet.body.evidence.map((p) => p.sourceId)), excerpts = new Set(packet.body.evidence.flatMap((p) => p.originalExcerpts.map((e) => e.id)));

@@ -2,17 +2,20 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createAnnotationPackets } from "../evaluation-kit/annotations";
+import { reviewerExport, verifyReviewerExport } from "../evaluation-kit/reviewer-export";
 import { digest } from "../evaluation-kit/identity";
 import { verifyRawEvaluation } from "../ai-coach-dev/pipeline";
 import { approvedConfigurationHash, estimatedCost, parseConfiguration, PilotError } from "./config";
 import { calculatePilotPins, verifySessionPins } from "./pins";
 import { openEvaluationSession, redact, type EvaluationTransport } from "./session";
-import { atomicCreate, openJournal } from "./storage";
+import { assertSeparate, atomicCreate, openJournal, realDirectory } from "./storage";
 import { attemptIdentity } from "./design";
 
 export type PilotStage = "PREPARED" | "VALIDATED" | "PREVIEWED" | "EVALUATED" | "VERIFIED" | "PERSISTED";
 export interface RunnerOptions {
   config: unknown; directory: string; transport?: EvaluationTransport; resume?: boolean;
+  /** Must be disjoint from internal run data. Default is a sibling directory. */
+  reviewerDirectory?: string;
   fixtureLedgerDirectory?: string; fixtureApprovalId?: string;
   onPreview?: (value: unknown) => void;
   /** FAKE-only fault probes, never a live authorization/provider bypass. */
@@ -27,6 +30,10 @@ export async function runControlledPilot(options: RunnerOptions) {
   const config = parseConfiguration(options.config);
   if (config.mode !== "FAKE") throw new PilotError("RUNNER_LIVE_LOCKED");
   if (!config.sources) throw new PilotError("PIN_SOURCES_REQUIRED");
+  const reviewerDirectory = options.reviewerDirectory ?? path.resolve(options.directory) + "-reviewers";
+  assertSeparate(options.directory, reviewerDirectory);
+  fs.mkdirSync(reviewerDirectory, { recursive: true }); realDirectory(reviewerDirectory);
+  for (const slot of ["R1", "R2"]) { fs.mkdirSync(path.join(reviewerDirectory, slot), { recursive: true }); realDirectory(path.join(reviewerDirectory, slot)); }
   const { preparation } = await calculatePilotPins(config.sources.workspaceRoot, config.sources.casesFile, config.design);
   options.onStage?.("PREPARED");
   const verifiedPins = await verifySessionPins(config); options.onStage?.("VALIDATED");
@@ -43,6 +50,14 @@ export async function runControlledPilot(options: RunnerOptions) {
       const prior = JSON.parse(fs.readFileSync(summaryFile, "utf8"));
       const committed = journal.records.find((r) => (r as { event: string }).event === "PILOT_COMPLETED") as { summaryHash: string } | undefined;
       if (prior.configHash !== configHash || !committed || committed.summaryHash !== digest(prior)) throw new PilotError("SUMMARY_INTEGRITY_FAILED");
+      for (const receipt of journal.records as { event: string; attemptKey?: string; fileHash?: string }[]) if (receipt.event === "POSTPROCESSED") {
+        const answer = JSON.parse(fs.readFileSync(path.join(options.directory, "answer-" + receipt.attemptKey + ".json"), "utf8"));
+        if (digest(answer) !== receipt.fileHash) throw new PilotError("RESULT_INTEGRITY_FAILED");
+        for (const packet of answer.packets.reviewers) {
+          const exported = reviewerExport(packet);
+          verifyReviewerExport(JSON.parse(fs.readFileSync(path.join(reviewerDirectory, packet.reviewerSlot, packet.body.instanceId + ".json"), "utf8")), exported.hash);
+        }
+      }
       return prior;
     }
     const counts = await session.previewTokenCounts(preparation.rows.map((r) => r.prompt));
@@ -76,7 +91,15 @@ export async function runControlledPilot(options: RunnerOptions) {
         if (previous.configHash !== configHash || previous.promptHash !== row.promptHash || digest(previous.verification) !== digest(redact(verification)) || previous.candidateHash !== digest(result.parsedCandidate)) throw new PilotError("RESULT_INTEGRITY_FAILED");
       } else {
         const packets = createAnnotationPackets({ question: row.verificationContext.input.question, facts: row.verificationContext.input.facts, evidence: row.verificationContext.evidence, candidate: result.parsedCandidate ?? result.rawText });
+        const reviewerExportHashes = Object.fromEntries(packets.reviewers.map((packet) => [packet.reviewerSlot, reviewerExport(packet).hash]));
+        for (const packet of packets.reviewers) Object.assign(packet, { reviewerExportHashes });
         atomicCreate(file, redact({ configHash, attemptKey, caseKey: row.caseKey, arm: row.arm, policy: row.policy, repeatIndex: row.repeatIndex, requestHash: row.requestHash, promptHash: row.promptHash, candidateHash: digest(result.parsedCandidate), raw: result, verification, packets }));
+      }
+      const stored = JSON.parse(fs.readFileSync(file, "utf8"));
+      for (const packet of stored.packets.reviewers) {
+        const exported = reviewerExport(packet), target = path.join(reviewerDirectory, packet.reviewerSlot, packet.body.instanceId + ".json");
+        if (fs.existsSync(target)) verifyReviewerExport(JSON.parse(fs.readFileSync(target, "utf8")), exported.hash);
+        else atomicCreate(target, exported.artifact);
       }
       journal.append({ event: "POSTPROCESSED", attemptKey, fileHash: digest(JSON.parse(fs.readFileSync(file, "utf8"))) }); options.onStage?.("PERSISTED");
       const generated = session.state().attemptKeys.includes(attemptKey);
